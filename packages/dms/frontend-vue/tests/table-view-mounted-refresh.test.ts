@@ -195,6 +195,7 @@ it.each(["table", "kanban"])(
     await publishTableEvent("tableview:row:/api/orders", false, {
       type: "updated",
       payload: { ids: ["r1"] },
+      ts: 1,
     });
     await settleTable();
     expect(requests).toEqual(
@@ -228,6 +229,7 @@ it("reads the list again on a row update that arrives while it loads", async () 
   await publishTableEvent("tableview:row:/api/orders", false, {
     type: "updated",
     payload: { ids: ["r1"] },
+    ts: 1,
   });
   await settleTable();
   expect(requests).toContain("/api/orders/list");

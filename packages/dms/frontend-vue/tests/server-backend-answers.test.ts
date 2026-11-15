@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { afterEach, beforeAll, describe, expect, it } from "vitest";
 import { isFunction } from "../layers/dms-core/app/utils/type-check";
-import * as cookieSpoilage from "./helpers/cookie-shapes";
+import { spoiledRecords } from "./helpers/cookie-shapes";
 import { createServerRoutesFixture } from "./helpers/server-routes-fixture";
 import {
   type ask,
@@ -47,24 +47,24 @@ const ASSIGNMENT = {
 };
 const SIGN_IN = { email: "ada@example.test", password: "secret" };
 
-const NOT_RECORDS = cookieSpoilage.spoiledShapes({}, {}, []);
-const SPOILED_USERS = cookieSpoilage.spoiledShapes(
+const NOT_RECORDS = spoiledRecords({}, {}, []);
+const SPOILED_USERS = spoiledRecords(
   USER,
   { _id: [5], email: [5], name: [null], language: [5, null] },
   [],
 );
-const SPOILED_PAIRS = cookieSpoilage.spoiledShapes(
+const SPOILED_PAIRS = spoiledRecords(
   PAIR,
   { access_token: [5, ""], refresh_token: [5, ""] },
   ["access_token"],
 );
 const SPOILED_OUTCOMES = [
-  ...cookieSpoilage.spoiledShapes(
+  ...spoiledRecords(
     TOKENS,
     { access_token: [5, ""], refresh_token: [5, ""], user: SPOILED_USERS },
     ["access_token"],
   ),
-  ...cookieSpoilage.spoiledShapes(
+  ...spoiledRecords(
     CHALLENGE,
     {
       requires_2fa: ["yes"],
@@ -73,7 +73,7 @@ const SPOILED_OUTCOMES = [
     },
     ["two_factor_token", "methods"],
   ),
-  ...cookieSpoilage.spoiledShapes(
+  ...spoiledRecords(
     ASSIGNMENT,
     {
       requires_tenant_assignment: ["yes"],
@@ -302,7 +302,7 @@ describe("the backend answers the DMS's server routes read for a provider sign-i
       );
     const failed = await start(FAILED);
     expect(failed.location).toBe("/auth?oauth_error=error.oauth.failed");
-    for (const answer of cookieSpoilage.spoiledShapes(
+    for (const answer of spoiledRecords(
       { state: "state-1", authorizeUrl: "https://github.example/authorize" },
       { state: [5, ""], authorizeUrl: [5, ""] },
       ["state", "authorizeUrl"],

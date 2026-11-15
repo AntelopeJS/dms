@@ -1,12 +1,13 @@
-import { createSSRApp, defineComponent, h, ref } from "vue";
+import { createSSRApp, defineComponent, h, ref, shallowRef } from "vue";
 import { renderToString } from "vue/server-renderer";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import ChartCard from "../layers/dms-ui/app/components/chart/ChartCard.vue";
+import type { ApiAnswer } from "./helpers/api-data-runtime";
 import { chartRuntime } from "./helpers/charts-runtime";
 
 type CardResponse =
   import("../layers/dms-ui/app/composables/chart/types").ChartCardResponse;
-const response = ref<CardResponse | null>(null);
+const response = shallowRef<ApiAnswer>(null);
 
 const Slot = defineComponent({
   setup:
@@ -46,14 +47,22 @@ afterEach(() => vi.unstubAllGlobals());
 
 describe("ChartCard invert", () => {
   it("shows a rising value in the success colour by default", async () => {
-    response.value = { value: 120, delta: 12, series: [] };
+    response.value = {
+      value: 120,
+      delta: 12,
+      series: [],
+    } satisfies CardResponse;
     const html = await render();
     expect(html).toContain(GOOD_TONE);
     expect(html).not.toContain(BAD_TONE);
   });
 
   it("shows a rising value in the error colour when lower is better", async () => {
-    response.value = { value: 120, delta: 12, series: [] };
+    response.value = {
+      value: 120,
+      delta: 12,
+      series: [],
+    } satisfies CardResponse;
     const html = await render({ invert: true });
     expect(html).toContain(BAD_TONE);
     expect(html).not.toContain(GOOD_TONE);
@@ -62,7 +71,11 @@ describe("ChartCard invert", () => {
   });
 
   it("shows a falling value in the success colour when lower is better", async () => {
-    response.value = { value: 80, delta: -12, series: [] };
+    response.value = {
+      value: 80,
+      delta: -12,
+      series: [],
+    } satisfies CardResponse;
     expect(await render({ invert: true })).toContain(GOOD_TONE);
   });
 });

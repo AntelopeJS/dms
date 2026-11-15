@@ -12,12 +12,12 @@ import {
 
 const STATE = "data-dms-block-state";
 const apps: Array<{ unmount: () => void }> = [];
-interface ListAnswer {
+type ListAnswer = {
   results: { _id: string; name: string }[];
   total: number;
   offset: number;
   limit: number;
-}
+};
 
 let list: () => Promise<ListAnswer>;
 

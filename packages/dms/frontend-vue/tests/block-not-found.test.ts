@@ -16,6 +16,7 @@ import {
 } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useRealDataEngine } from "./fixtures/dataEngine";
+import type { ApiAnswer } from "./helpers/api-data-runtime";
 import { stubBlockRuntime } from "./helpers/block-runtime";
 import { readFetchNotFound } from "../layers/dms-ui/app/entries/utils/fetchNotFound";
 
@@ -25,7 +26,7 @@ interface FetchFailure extends Error {
 }
 
 let route: ReturnType<typeof useRealDataEngine>["route"];
-const answers = new Map<string, unknown>();
+const answers = new Map<string, ApiAnswer | FetchFailure>();
 
 function failure(
   statusCode: number,

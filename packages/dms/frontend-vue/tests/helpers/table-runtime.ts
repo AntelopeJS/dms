@@ -55,7 +55,7 @@ export async function startTableRealtime() {
 export async function publishTableEvent(
   topic: string,
   snapshot = false,
-  event: Partial<Omit<RealtimeEvent, "topic">> = { type: "request", ts: 1 },
+  event: Omit<RealtimeEvent, "topic"> = { type: "request", ts: 1 },
 ) {
   if (!realtime?.sessionId.value) throw new Error("Realtime session not open");
   server.send(

@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { beforeAll, describe, expect, it } from "vitest";
 import { isObject } from "../layers/dms-core/app/utils/type-check";
-import * as cookieSpoilage from "./helpers/cookie-shapes";
+import { spoiledRecords } from "./helpers/cookie-shapes";
 import { createServerRoutesFixture } from "./helpers/server-routes-fixture";
 import { sealedCookie } from "./helpers/server-routes-fixtures";
 
@@ -53,14 +53,12 @@ describe("the account cookies the DMS's server routes read", () => {
       }),
     ).toEqual(["other", "<account>"]);
     const refused = [
-      ...cookieSpoilage
-        .spoiledShapes(DESCRIPTOR, DESCRIPTOR_WRONG, [
-          "accountId",
-          "persistent",
-        ])
-        .map((descriptor) => ({ other: descriptor })),
+      ...spoiledRecords(DESCRIPTOR, DESCRIPTOR_WRONG, [
+        "accountId",
+        "persistent",
+      ]).map((descriptor) => ({ other: descriptor })),
       [DESCRIPTOR],
-      ...cookieSpoilage.spoiledShapes(DESCRIPTOR, {}, []),
+      ...spoiledRecords(DESCRIPTOR, {}, []),
     ];
     for (const index of refused)
       expect(await indexAfterLogin(index), JSON.stringify(index)).toEqual([
@@ -79,7 +77,7 @@ describe("the account cookies the DMS's server routes read", () => {
     const stored = { ...DESCRIPTOR, accountId, refreshToken: "refresh-1" };
     expect((await switchTo(stored)).status).toBe(200);
     expect((await switchTo({ accountId, persistent: false })).status).toBe(200);
-    for (const account of cookieSpoilage.spoiledShapes(
+    for (const account of spoiledRecords(
       stored,
       { ...DESCRIPTOR_WRONG, accountId: [5], refreshToken: [5] },
       ["accountId", "persistent"],
@@ -106,7 +104,7 @@ describe("the login cookies the DMS's server routes read", () => {
     const browserOnly = await verify(pending, "challenge-1");
     expect(browserOnly.status).toBe(200);
     expect(outlives(browserOnly)).toBe(false);
-    for (const cookie of cookieSpoilage.spoiledShapes(
+    for (const cookie of spoiledRecords(
       pending,
       { token: [5], persistent: ["yes", 0] },
       ["token", "persistent"],
@@ -162,7 +160,7 @@ describe("the OAuth cookies the DMS's server routes read", () => {
     expect((await callbackWith(flow)).location).toBe(
       "/auth/oauth/complete?redirect=%2Fprojects",
     );
-    for (const spoiled of cookieSpoilage.spoiledShapes(
+    for (const spoiled of spoiledRecords(
       flow,
       {
         state: [5],
@@ -195,12 +193,12 @@ describe("the OAuth cookies the DMS's server routes read", () => {
     for (const handoff of [twoFactor, noWorkspace])
       expect((await handoffOf(handoff)).body).toEqual(handoff);
     const refused = [
-      ...cookieSpoilage.spoiledShapes(
+      ...spoiledRecords(
         twoFactor,
         { kind: ["other", "none", 5], token: [5], methods: ["totp", [5], {}] },
         ["token", "methods"],
       ),
-      ...cookieSpoilage.spoiledShapes(
+      ...spoiledRecords(
         noWorkspace,
         { kind: ["other", "none", 5], token: [5], provider: [5] },
         ["token", "provider"],

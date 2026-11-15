@@ -14,14 +14,18 @@ import {
   mountEditor,
   pickFile,
   settle,
+  type BrandingAnswer,
   type BrandingCall,
 } from "./helpers/branding-editor";
-import type { JsonValue } from "../layers/dms-core/app/types/json";
+import type {
+  ThemeColors,
+  ThemeStructure,
+} from "../layers/dms-layout/app/build/branding/theme-types";
 import { isNull, isObject } from "../layers/dms-core/app/utils/type-check";
 
 const THEME_URL = "/api/branding/theme";
 
-function files(version: string, colors: Record<string, string> = {}) {
+function files(version: string, colors: ThemeColors = {}): ThemeStructure {
   return {
     layer: { name: "project", sourcePath: "/project/frontend-vue" },
     variables: { shared: {}, light: {}, dark: {} },
@@ -31,17 +35,15 @@ function files(version: string, colors: Record<string, string> = {}) {
   };
 }
 
-interface StaleRefusal {
-  ok: false;
-  error: { code: string; ref: string; currentVersion: string };
-}
-
-const ok = (data: JsonValue) => ({ ok: true as const, data });
+const ok = (data: ThemeStructure | { version: string }): BrandingAnswer => ({
+  ok: true,
+  data,
+});
 
 let app: App | undefined;
 
 async function openEditor(
-  answer: (call: BrandingCall) => ReturnType<typeof ok> | StaleRefusal,
+  answer: (call: BrandingCall) => BrandingAnswer,
   viewer: { owner?: boolean } = {},
 ) {
   const runtime = installBrandingRuntime(answer, viewer);

@@ -2,14 +2,15 @@
  * A TopListCard writes its unit after each formatted value (`valueSuffix`),
  * and a row's `valueLabel` replaces the formatted value outright.
  */
-import { createSSRApp, defineComponent, h, ref } from "vue";
+import { createSSRApp, defineComponent, h, ref, shallowRef } from "vue";
 import { renderToString } from "vue/server-renderer";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type { ApiAnswer } from "./helpers/api-data-runtime";
 import { chartRuntime } from "./helpers/charts-runtime";
 import TopListCard from "../layers/dms-ui/app/components/top-list/TopListCard.vue";
 
 type CardProps = InstanceType<typeof TopListCard>["$props"];
-const rows = ref<NonNullable<CardProps["staticItems"]>>([]);
+const rows = shallowRef<ApiAnswer[]>([]);
 
 const Slot = defineComponent({
   setup:
@@ -56,7 +57,7 @@ beforeEach(() => {
   rows.value = [
     { id: "a", title: "GET /orders", value: 1864 },
     { id: "b", title: "GET /cart", value: 296 },
-  ];
+  ] satisfies CardProps["staticItems"];
   vi.stubGlobal("useI18n", () => ({
     locale: ref("en-US"),
     t: (key: string) => `t($${key})`,
@@ -93,7 +94,7 @@ describe("TopListCard value unit", () => {
         valueLabel: "1.9 s (partial)",
       },
       { id: "b", title: "GET /cart", value: 296 },
-    ];
+    ] satisfies CardProps["staticItems"];
     expect(values(await render({ valueSuffix: " ms" }))).toEqual([
       "1.9 s (partial)",
       "296 ms",

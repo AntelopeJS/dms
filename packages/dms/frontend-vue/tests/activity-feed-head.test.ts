@@ -3,14 +3,15 @@
  * `count` its route answers) and a soft badge before its actions; each entry
  * may add a third, dimmed mono line under its details.
  */
-import { createSSRApp, defineComponent, h, ref } from "vue";
+import { createSSRApp, defineComponent, h, ref, shallowRef } from "vue";
 import { renderToString } from "vue/server-renderer";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import ActivityFeed from "../layers/dms-ui/app/components/activity-feed/ActivityFeed.vue";
+import type { ApiAnswer } from "./helpers/api-data-runtime";
 import { chartRuntime } from "./helpers/charts-runtime";
 
 type FeedProps = InstanceType<typeof ActivityFeed>["$props"];
-const items = ref<FeedProps["items"]>([]);
+const items = shallowRef<ApiAnswer[]>([]);
 const fetchedCount = ref<number | undefined>(undefined);
 
 const Card = defineComponent({
@@ -74,7 +75,7 @@ beforeEach(() => {
       meta: ["Client errors"],
       detail: '400 "Cart is empty" × 16',
     },
-  ];
+  ] satisfies FeedProps["items"];
   fetchedCount.value = undefined;
   vi.stubGlobal("useI18n", () => ({ locale: ref("en-GB"), t: String }));
 });
@@ -122,7 +123,9 @@ describe("ActivityFeed entry detail", () => {
   });
 
   it("draws no detail line for an entry without one", async () => {
-    items.value = [{ id: "a", title: "GET /health" }];
+    items.value = [
+      { id: "a", title: "GET /health" },
+    ] satisfies FeedProps["items"];
     const html = await render({});
     expect(html).not.toMatch(/<p class="[^"]*font-mono/);
   });

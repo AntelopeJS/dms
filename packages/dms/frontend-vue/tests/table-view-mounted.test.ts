@@ -156,7 +156,7 @@ it.each([500, 404])(
     const recovered = { results: [{ _id: "r1", name: "Recovered" }], total: 1 };
     let retry = false;
     let answer = (_value: typeof recovered) => {};
-    await tableViewRuntime((url: string) => {
+    await tableViewRuntime(async (url: string) => {
       if (!url.endsWith("/list")) return {};
       if (!retry)
         throw { statusCode, data: { message: "error.read_only_demo" } };
@@ -225,7 +225,7 @@ it("a hand-ordered table neither restores nor offers nor overwrites saved sortin
 
 it("refreshes a refused reorder without a second operation-specific toast", async () => {
   const add = vi.fn(() => ({ id: "failure" }));
-  await tableViewRuntime((url: string) => {
+  await tableViewRuntime(async (url: string) => {
     requests.push(url);
     if (url.endsWith("/edit")) throw readOnlyFailure();
     return {

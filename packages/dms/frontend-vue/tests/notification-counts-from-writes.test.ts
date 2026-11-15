@@ -18,11 +18,11 @@ interface Row {
   isRead: boolean;
   tone: Tone;
 }
-interface Counts {
+type Counts = {
   all: number;
   unread: number;
   unreadTone?: Tone;
-}
+};
 type StreamEvent = {
   type: string;
   payload?: { ids?: string[]; counts?: Counts };

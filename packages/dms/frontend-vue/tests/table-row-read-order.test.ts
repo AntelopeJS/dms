@@ -11,6 +11,7 @@ import {
   startTableRealtime,
   stopTableRealtime,
 } from "./helpers/table-runtime";
+import type { ApiAnswer } from "./helpers/api-data-runtime";
 import { usePreferences } from "../layers/dms-core/app/composables/user/usePreferences";
 import { CONTENT_LANGUAGE_HEADER } from "../layers/dms-core/app/composables/auth/useAuthFetch";
 
@@ -28,7 +29,7 @@ const row = (name: string) => ({ _id: "r1", name });
 
 const holdRowRead = () => {
   const name = storedName;
-  return new Promise((resolve, reject) => {
+  return new Promise<ApiAnswer>((resolve, reject) => {
     rowReads.push({
       name,
       answer: () => resolve(row(name)),
@@ -42,6 +43,7 @@ const save = async (name: string) => {
   await publishTableEvent("tableview:row:/api/orders", false, {
     type: "updated",
     payload: { ids: ["r1"] },
+    ts: 1,
   });
   await settleTable();
 };

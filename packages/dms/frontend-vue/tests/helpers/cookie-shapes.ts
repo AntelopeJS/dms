@@ -1,4 +1,8 @@
-const NOT_RECORDS: readonly unknown[] = [null, [], "text", 5, true];
+import type { JsonValue } from "../../layers/dms-core/app/types/json";
+
+type JsonRecord = { [field: string]: JsonValue };
+
+const NOT_RECORDS: readonly JsonValue[] = [null, [], "text", 5, true];
 
 /**
  * Every single-field spoilage of `valid` (each field alone replaced by each of
@@ -6,11 +10,11 @@ const NOT_RECORDS: readonly unknown[] = [null, [], "text", 5, true];
  * that are no record at all. A guard that skips one check, or accepts all,
  * lets one of them through.
  */
-export function spoiledShapes(
-  valid: Record<string, unknown>,
-  wrong: Record<string, readonly unknown[]>,
+export function spoiledRecords(
+  valid: JsonRecord,
+  wrong: Readonly<Record<string, readonly JsonValue[]>>,
   required: readonly string[],
-): unknown[] {
+): JsonValue[] {
   return [
     ...Object.entries(wrong).flatMap(([field, values]) =>
       values.map((value) => ({ ...valid, [field]: value })),

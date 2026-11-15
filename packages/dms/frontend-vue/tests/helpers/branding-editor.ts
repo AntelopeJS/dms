@@ -9,6 +9,10 @@ import {
 import { createI18n } from "vue-i18n";
 import { vi } from "vitest";
 import en from "../../layers/dms-layout/app/entries/i18n/locales/layout-en-GB.json";
+import type {
+  OpResult,
+  ThemeStructure,
+} from "../../layers/dms-layout/app/build/branding/theme-types";
 
 /** What the fake `/api/branding` routes received. */
 export interface BrandingCall {
@@ -17,7 +21,10 @@ export interface BrandingCall {
   body: unknown;
 }
 
-type Answer = (call: BrandingCall) => unknown;
+/** What a fake `/api/branding` route answers: the theme read, the version a save wrote, or a refusal. */
+export type BrandingAnswer = OpResult<ThemeStructure | { version: string }>;
+
+type Answer = (call: BrandingCall) => BrandingAnswer;
 
 interface BrandingRuntime {
   calls: BrandingCall[];

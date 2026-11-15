@@ -12,6 +12,7 @@ import {
   registerTextBoundaries,
   plainSpaces,
 } from "./helpers/chart-extra-runtime";
+import type { ApiAnswer } from "./helpers/api-data-runtime";
 import { createI18n } from "vue-i18n";
 import { setRegionalPreferencesSource } from "../layers/dms-core/app/utils/regional";
 
@@ -41,7 +42,7 @@ const i18n = createI18n({
   },
 });
 
-let fetchedItems: unknown[] = [];
+let fetchedItems: ApiAnswer[] = [];
 
 const StatGroupBlock = (
   await import("../layers/dms-ui/app/components/blocks/StatGroupBlock.vue")

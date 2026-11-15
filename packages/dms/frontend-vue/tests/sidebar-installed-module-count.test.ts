@@ -19,8 +19,14 @@ import {
   mountInBrowser,
   serverRender,
   stubApiData,
+  type ApiAnswer,
 } from "./helpers/api-data-runtime";
 import { stubModuleReads } from "./helpers/installed-modules-runtime";
+import type {
+  StoreListing,
+  StoreListingEntry,
+} from "../layers/dms-core/app/types/module-store";
+import type { ModuleCatalogEntry } from "../layers/dms-core/app/types/page";
 import Sidebar from "../layers/dms-layout/app/entries/components/layout/DashboardSidebar";
 import { ENDPOINT_MODULES_LISTING } from "../layers/dms-layout/app/composables/page/useModulesListing";
 import { ENDPOINT_STORE_LISTING } from "../layers/dms-layout/app/composables/page/useModuleStore";
@@ -40,9 +46,9 @@ const ASSISTANT = {
   icon: "i-ph-sparkle",
   hasAccess: true,
   landingSlug: "/modules/ai/overview",
-  status: "live" as const,
+  status: "live",
   readout: [],
-};
+} satisfies ModuleCatalogEntry;
 
 function storeEntry(id: string, state: "active" | "available") {
   return {
@@ -61,11 +67,11 @@ function storeEntry(id: string, state: "active" | "available") {
     missingInterfaces: [],
     dependents: [],
     usedByProject: false,
-  };
+  } satisfies StoreListingEntry;
 }
 
 /** The modules page's data: the assistant registers pages, the Builder does not. */
-const ANSWERS = new Map([
+const ANSWERS = new Map<string, ApiAnswer>([
   [ENDPOINT_MODULES_LISTING, [ASSISTANT]],
   [
     ENDPOINT_STORE_LISTING,
@@ -79,7 +85,7 @@ const ANSWERS = new Map([
         storeEntry("builder", "active"),
         storeEntry("mailing", "available"),
       ],
-    },
+    } satisfies StoreListing,
   ],
 ]);
 
@@ -140,7 +146,7 @@ function installRuntime() {
     findMatchingRoute: () => null,
     findMatchingRouteOrCategory: () => null,
   }));
-  stubModuleReads(Object.fromEntries(ANSWERS));
+  stubModuleReads(ANSWERS);
   vi.stubGlobal("useFavoritePages", () => ({
     cleanupInvalidFavorites: vi.fn(),
     sortedFavorites: ref([]),
