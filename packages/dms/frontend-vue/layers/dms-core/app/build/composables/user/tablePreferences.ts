@@ -1,3 +1,4 @@
+import { isRecord } from "../../utils/record";
 import { isBranch, type PreferencesTree } from "./preferencesCookie";
 import { isNumber, isString } from "../../../utils/type-check";
 
@@ -154,10 +155,10 @@ const isSameValue = (
 const encodeFilters: ServerFieldCodec["encode"] = (value) =>
   (Array.isArray(value) ? value : [])
     .filter(
-      (filter) =>
+      (filter: FilterEntry) =>
         !filter.pinned || !isSameValue(filter.value, filter.initialValue),
     )
-    .map((filter) =>
+    .map((filter: FilterEntry) =>
       filter.mode === DEFAULT_FILTER_MODE
         ? [filter.accessorKey, filter.value ?? null]
         : [filter.accessorKey, filter.value ?? null, filter.mode],
@@ -196,17 +197,22 @@ const decodeVisibility: ServerFieldCodec["decode"] = (stored, defaultValue) => {
   return { ...visibilityOf(defaultValue), ...Object.fromEntries(changes) };
 };
 
+const isPaginationEntry = (value: unknown): value is PaginationEntry =>
+  isRecord(value) && isNumber(value.pageIndex) && isNumber(value.pageSize);
+
 const encodePagination: ServerFieldCodec["encode"] = (value) => {
-  const { pageIndex, pageSize } = value as PaginationEntry;
+  if (!isPaginationEntry(value)) return undefined;
+  const { pageIndex, pageSize } = value;
   return pageIndex === FIRST_PAGE_INDEX ? pageSize : [pageSize, pageIndex];
 };
 
 const decodePagination = (
   stored: Parameters<ServerFieldCodec["decode"]>[0],
 ): PaginationEntry => {
-  const [pageSize, pageIndex] = Array.isArray(stored)
+  const pair: unknown[] = Array.isArray(stored)
     ? stored
     : [stored, FIRST_PAGE_INDEX];
+  const [pageSize, pageIndex] = pair;
   if (!isNumber(pageSize) || !isNumber(pageIndex)) {
     throw new TypeError("pagination");
   }
@@ -245,7 +251,7 @@ export const SERVER_TABLE_FIELDS: Record<ServerTableField, ServerFieldCodec> = {
 /** @internal Whether `field` is kept in the cookie. */
 export const isServerTableField = (
   field: TableField,
-): field is ServerTableField => field in SERVER_TABLE_FIELDS;
+): field is ServerTableField => Object.hasOwn(SERVER_TABLE_FIELDS, field);
 
 /**
  * @internal

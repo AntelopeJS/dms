@@ -22,11 +22,15 @@ export const evaluateRowActionRule: RuleEvaluator = (rule, row) => {
 
   if (FIELD_KEY in rule) {
     const ruleObj: RuleDictionary = rule;
-    const fieldValue = get(row, rule.field);
+    const fieldValue: unknown = get(row, rule.field);
     for (const [operator, def] of Object.entries(FIELD_OPERATORS)) {
       if (operator in ruleObj) {
-        const compare = def.compare;
-        return compare(fieldValue, ruleObj[operator]);
+        const ruleValue = ruleObj[operator];
+        if (!def.isArray) return def.compare(fieldValue, ruleValue);
+        const ruleValues: unknown[] | undefined = Array.isArray(ruleValue)
+          ? ruleValue
+          : undefined;
+        return ruleValues !== undefined && def.compare(fieldValue, ruleValues);
       }
     }
   }

@@ -1,18 +1,31 @@
-type CallableFunction = (...args: any[]) => unknown;
+/** Any function: what it returns is unknown until a guard reads it. */
+type CallableFunction = (...args: any[]) => Parameters<typeof isNull>[0];
+
+/** The type each `typeof` result a guard below tests for narrows to. */
+interface TypeofResults {
+  string: string;
+  number: number;
+  boolean: boolean;
+  undefined: undefined;
+  function: CallableFunction;
+  bigint: bigint;
+  symbol: symbol;
+}
 
 const createTypeGuard =
-  <T>(type: string) =>
-  (v: unknown): v is T =>
+  <K extends keyof TypeofResults>(type: K) =>
+  (v: unknown): v is TypeofResults[K] =>
     typeof v === type;
 
-export const isString = createTypeGuard<string>("string");
-export const isNumber = createTypeGuard<number>("number");
-export const isBoolean = createTypeGuard<boolean>("boolean");
-export const isUndefined = createTypeGuard<undefined>("undefined");
-export const isObject = createTypeGuard<Record<string, unknown>>("object");
-export const isFunction = createTypeGuard<CallableFunction>("function");
-export const isBigint = createTypeGuard<bigint>("bigint");
-export const isSymbol = createTypeGuard<symbol>("symbol");
+export const isString = createTypeGuard("string");
+export const isNumber = createTypeGuard("number");
+export const isBoolean = createTypeGuard("boolean");
+export const isUndefined = createTypeGuard("undefined");
+export const isObject = (v: unknown): v is Record<string, unknown> =>
+  typeof v === "object";
+export const isFunction = createTypeGuard("function");
+export const isBigint = createTypeGuard("bigint");
+export const isSymbol = createTypeGuard("symbol");
 
 export const isNull = (value: unknown): value is null => value === null;
 
@@ -24,7 +37,7 @@ export const isJSON = (value: Parameters<typeof isString>[0]): boolean => {
     return false;
   }
   try {
-    const parsed = JSON.parse(value);
+    const parsed: unknown = JSON.parse(value);
     return isObject(parsed) && !isNull(parsed);
   } catch {
     return false;

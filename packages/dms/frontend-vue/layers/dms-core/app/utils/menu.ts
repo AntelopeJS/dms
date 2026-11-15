@@ -1,6 +1,7 @@
 import type { NavigationMenuItem } from "@nuxt/ui";
 import { parseLinkQuery, stripQueryAndHash } from "./routePath";
-import { isString } from "./type-check";
+import { isRecord } from "../build/utils/record";
+import { isString, isUndefined } from "./type-check";
 
 export const MENU_STATUS_TEXT_CLASSES: Record<MenuItemStatus, string> = {
   success: "text-success",
@@ -58,15 +59,22 @@ const matchesRoutePrefix = (currentPath: string, to: string): boolean => {
   return current === target || current.startsWith(`${target}/`);
 };
 
+const isMenuItemTarget = (
+  value: NavigationMenuItem["to"],
+): value is MenuItemTarget =>
+  isRecord(value) &&
+  isString(value.path) &&
+  (isUndefined(value.query) ||
+    (isRecord(value.query) && Object.values(value.query).every(isString)));
+
 const resolveItemTarget = (
   to: NavigationMenuItem["to"],
 ): MenuItemTarget | null => {
   if (isString(to)) {
     return { path: stripQueryAndHash(to), query: parseLinkQuery(to) };
   }
-  const target = to as MenuItemTarget | undefined;
-  if (target && isString(target.path)) {
-    return { path: target.path, query: target.query };
+  if (isMenuItemTarget(to)) {
+    return { path: to.path, query: to.query };
   }
   return null;
 };

@@ -4,7 +4,7 @@ import {
   type SseEventHandler,
   type SseStreamHandle,
 } from "../../composables/realtime/useSseStream";
-import { isString } from "../../utils/type-check";
+import { isString, isUndefined } from "../../utils/type-check";
 import {
   browserCrossTabEnvironment,
   type CrossTabEnvironment,
@@ -15,6 +15,7 @@ import {
   tabLockName,
   whenReleased,
 } from "./crossTab";
+import { isRecord } from "./record";
 
 /**
  * The realtime connection one browser shares between its tabs: the elected tab
@@ -76,6 +77,33 @@ type HubMessage =
   | QueryMessage
   | SessionMessage
   | ReopenMessage;
+
+/** Whether `value` is a message of the hub, with the fields its `kind` has. */
+function isHubMessage(value: unknown): value is HubMessage {
+  if (!isRecord(value)) return false;
+  switch (value.kind) {
+    case "query":
+      return true;
+    case "connection":
+      return value.connectionId === null || isString(value.connectionId);
+    case "reopen":
+      return isString(value.connectionId);
+    case "session":
+      return (
+        isString(value.connectionId) &&
+        isString(value.sessionId) &&
+        isString(value.tabId)
+      );
+    case "frame":
+      return (
+        isString(value.connectionId) &&
+        isString(value.event) &&
+        (isUndefined(value.sessionId) || isString(value.sessionId))
+      );
+    default:
+      return false;
+  }
+}
 
 export interface StreamRecovery {
   refreshSession: () => Promise<boolean>;
@@ -159,13 +187,12 @@ export const recoverFromError = (
     retry();
     return;
   }
-  void recovery.refreshSession().then((isRefreshed) => {
-    if (isRefreshed) {
-      retry();
-    } else {
-      void recovery.redirectToAuth();
-    }
-  }, retry);
+  void recovery
+    .refreshSession()
+    .then(
+      (isRefreshed) => (isRefreshed ? retry() : recovery.redirectToAuth()),
+      retry,
+    );
 };
 
 interface StreamCallbacks extends StreamRecovery {
@@ -237,16 +264,10 @@ const connectWithBackoff = (
 const readConnectionId = (
   data: Parameters<SseEventHandler>[1],
 ): string | null => {
-  const connectionId = (data as { connectionId?: unknown } | null)
-    ?.connectionId;
-  return isString(connectionId) ? connectionId : null;
+  return isRecord(data) && isString(data.connectionId)
+    ? data.connectionId
+    : null;
 };
-
-interface SessionFrame {
-  sessionId?: unknown;
-  event?: unknown;
-  data?: unknown;
-}
 
 interface LeaderContext {
   options: SharedRealtimeConnectionOptions;
@@ -309,8 +330,8 @@ const lead = ({ options, environment, bus, tabId }: LeaderContext) => {
     );
   };
 
-  const unlisten = bus.listen((raw) => {
-    const message = raw as HubMessage;
+  const unlisten = bus.listen((message) => {
+    if (!isHubMessage(message)) return;
     if (message.kind === "query")
       bus.post({ kind: "connection", connectionId });
     if (message.kind === "session") watchSession(message);
@@ -336,15 +357,15 @@ const lead = ({ options, environment, bus, tabId }: LeaderContext) => {
         bus.post({ kind: "frame", connectionId, event: eventName, data });
         return;
       }
-      const frame = data as SessionFrame | null;
-      if (!isString(frame?.sessionId)) return;
-      if (!isString(frame.event)) return;
+      if (!isRecord(data)) return;
+      if (!isString(data.sessionId)) return;
+      if (!isString(data.event)) return;
       bus.post({
         kind: "frame",
         connectionId,
-        sessionId: frame.sessionId,
-        event: frame.event,
-        data: frame.data,
+        sessionId: data.sessionId,
+        event: data.event,
+        data: data.data,
       });
     },
     onDisconnected: () => publish(null),
@@ -378,8 +399,8 @@ export function joinSharedRealtimeConnection(
   const tabLock = holdLock(tabLockName(options.name, tabId), environment);
   let connectionId: string | undefined;
 
-  const unlisten = bus.listen((raw) => {
-    const message = raw as HubMessage;
+  const unlisten = bus.listen((message) => {
+    if (!isHubMessage(message)) return;
     if (message.kind === "connection") {
       const next = message.connectionId ?? undefined;
       if (next === connectionId) return;
@@ -398,15 +419,14 @@ export function joinSharedRealtimeConnection(
   bus.post({ kind: "query" });
 
   return {
-    announceSession: (sessionConnectionId, sessionId) => {
-      void tabLock.held.then(() =>
-        bus.post({
-          kind: "session",
-          connectionId: sessionConnectionId,
-          sessionId,
-          tabId,
-        }),
-      );
+    announceSession: async (sessionConnectionId, sessionId) => {
+      await tabLock.held;
+      bus.post({
+        kind: "session",
+        connectionId: sessionConnectionId,
+        sessionId,
+        tabId,
+      });
     },
     reopen: (reopenedConnectionId) =>
       bus.post({ kind: "reopen", connectionId: reopenedConnectionId }),

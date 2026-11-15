@@ -8,11 +8,12 @@
  * profile edit propagates immediately without re-logging in.
  */
 export function useCurrentUser() {
-  const { user, fetch: refreshSession } = useDmsUserSession<User>();
+  const userSession = useDmsUserSession<User>();
+  const { user } = userSession;
   const { syncActiveAccount } = useMultiAccount();
 
   async function refresh(): Promise<void> {
-    await refreshSession();
+    await userSession.fetch();
     syncActiveAccount();
   }
 

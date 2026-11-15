@@ -1,5 +1,7 @@
 import { toRaw } from "vue";
 import { z } from "zod";
+import { isString } from "../../utils/type-check";
+import { isRecord } from "../utils/record";
 import type {
   ApiErrorParams,
   ApiErrorSeverity,
@@ -46,18 +48,29 @@ export interface DecodedApiFailure {
   severity: ApiErrorSeverity;
 }
 
-function record(value: unknown) {
+/** What a failure is read from: anything thrown, as the schemas parse it. */
+type FailureInput = Parameters<typeof recordSchema.safeParse>[0];
+type FailureRecord = z.infer<typeof recordSchema>;
+
+/** A response the backend answered with a failure status. */
+interface FailedResponse {
+  raw: object;
+  data: FailureRecord["_data"];
+  status: number;
+}
+
+function record(value: FailureInput): FailureRecord | undefined {
   return recordSchema.safeParse(value).data;
 }
 
-function decodeBody(input: unknown): DecodedBody {
+function decodeBody(input: FailureInput): DecodedBody {
   let value = input;
   let status: number | undefined;
   const seen = new Set<unknown>();
   for (let depth = 0; depth < MAX_DEPTH; depth++) {
     if (seen.has(value)) return { status };
     seen.add(value);
-    if (typeof value === "string") {
+    if (isString(value)) {
       const text = value;
       try {
         const parsed: unknown = JSON.parse(text);
@@ -85,12 +98,30 @@ function decodeBody(input: unknown): DecodedBody {
   return { status };
 }
 
+function failedResponseOf(entry: FailureRecord): FailedResponse | undefined {
+  const response = record(entry.response);
+  const status = statusSchema.safeParse(response?.status).data;
+  if (!response || status === undefined || !isRecord(entry.response))
+    return undefined;
+  return { raw: entry.response, data: response._data, status };
+}
+
+function severityOf(
+  body: DecodedBody,
+  status: number | undefined,
+): ApiErrorSeverity {
+  if (body.severity) return body.severity;
+  return status !== undefined && status <= HTTP_CLIENT_MAX
+    ? "warning"
+    : "error";
+}
+
 /** @internal */
-export function decodeApiFailure(error: unknown): DecodedApiFailure {
+export function decodeApiFailure(error: FailureInput): DecodedApiFailure {
   let current = error;
   let identity: object | null = null;
   let request: DecodedBody | undefined;
-  let local: unknown = error;
+  let local: FailureInput = error;
   let status: number | undefined;
   let cancelled = false;
   let hasFailedResponse = false;
@@ -103,27 +134,21 @@ export function decodeApiFailure(error: unknown): DecodedApiFailure {
       local = current;
       break;
     }
-    if (current !== null && typeof current === "object")
-      identity = toRaw(current);
+    if (isRecord(current)) identity = toRaw(current);
     local = entry.message;
     params ??= paramsSchema.safeParse(entry.params).data;
     cancelled ||= entry.name === "AbortError";
-    const response = record(entry.response);
-    const responseStatus = statusSchema.safeParse(response?.status).data;
-    const entryStatus =
-      responseStatus ??
-      statusSchema.safeParse(entry.statusCode ?? entry.status).data;
-    if (
-      entry.response &&
-      responseStatus !== undefined &&
-      typeof entry.response === "object"
-    ) {
-      identity = toRaw(entry.response);
-      request = decodeBody(entry.data ?? response?._data);
-      status = responseStatus;
+    const failed = failedResponseOf(entry);
+    if (failed) {
+      identity = toRaw(failed.raw);
+      request = decodeBody(entry.data ?? failed.data);
+      status = failed.status;
       hasFailedResponse = true;
       break;
     }
+    const entryStatus = statusSchema.safeParse(
+      entry.statusCode ?? entry.status,
+    ).data;
     if (entry.data !== undefined || entryStatus !== undefined) {
       request = decodeBody(entry.data);
       status = entryStatus;
@@ -138,8 +163,6 @@ export function decodeApiFailure(error: unknown): DecodedApiFailure {
     identity,
     key: body.key,
     params: { ...params, ...body.params },
-    severity:
-      body.severity ??
-      (status !== undefined && status <= HTTP_CLIENT_MAX ? "warning" : "error"),
+    severity: severityOf(body, status),
   };
 }

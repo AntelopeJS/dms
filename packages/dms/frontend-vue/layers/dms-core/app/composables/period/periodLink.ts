@@ -33,7 +33,7 @@ export function periodQueryKeys(id?: string): PeriodQueryKeys {
 function firstText(
   value: Parameters<typeof withPeriodQuery>[1][string],
 ): string | undefined {
-  const text = Array.isArray(value) ? value[0] : value;
+  const text: unknown = Array.isArray(value) ? value[0] : value;
   return isString(text) && text ? text : undefined;
 }
 
@@ -51,7 +51,8 @@ export function withPeriodQuery(
   const [beforeFragment = "", ...fragment] = link.split(FRAGMENT_SEPARATOR);
   const [path = "", ...search] = beforeFragment.split(QUERY_SEPARATOR);
   const params = new URLSearchParams(search.join(QUERY_SEPARATOR));
-  for (const key of Object.values(periodQueryKeys(id))) {
+  const keys: Record<keyof PeriodQueryKeys, string> = periodQueryKeys(id);
+  for (const key of Object.values(keys)) {
     const value = firstText(query[key]);
     if (value && !params.has(key)) params.set(key, value);
   }

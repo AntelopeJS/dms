@@ -155,6 +155,33 @@ function createPreviewSharing() {
 }
 
 /**
+ * Turn this tab into a preview when it was opened as one (or reloaded while
+ * being one), and follow the session other tabs write. Returns whether it did.
+ */
+function activatePreviewTab(
+  state: ReturnType<typeof usePreviewState>,
+  sharing: ReturnType<typeof createPreviewSharing>,
+): boolean {
+  const id =
+    sharing.takeIdFromLocation() ??
+    readStorage(sessionStorage, PERMISSION_PREVIEW_TAB_KEY);
+  if (!id) return false;
+  const session = sharing.readSession(id);
+  if (!session) {
+    removeStorage(sessionStorage, PERMISSION_PREVIEW_TAB_KEY);
+    return false;
+  }
+  writeStorage(sessionStorage, PERMISSION_PREVIEW_TAB_KEY, id);
+  state.session.value = session;
+  window.addEventListener("storage", (event) => {
+    if (event.key !== storageKey(id) || !state.session.value) return;
+    const next = parsePreviewSession(event.newValue);
+    if (next) state.session.value = next;
+  });
+  return true;
+}
+
+/**
  * "Preview as role": the roles editor opens a tab that browses the real
  * dashboard as a role would see it — its unsaved edits included. The server
  * says what the role would lose on the menu and on the current page; the tab
@@ -166,7 +193,7 @@ function createPreviewSharing() {
  */
 export function usePermissionPreview() {
   const state = usePreviewState();
-  const { presentError } = useApiErrorPresenter();
+  const errorPresenter = useApiErrorPresenter();
   const isActive = computed(() => state.session.value !== null);
   const hiddenEntries = computed(
     () => new Set(state.result.value?.hiddenEntries ?? []),
@@ -219,31 +246,15 @@ export function usePermissionPreview() {
     return isPreviewEntryLocked(isActive.value, hiddenQuickActions.value, key);
   }
 
-  const { start, update, readSession, takeIdFromLocation } =
-    createPreviewSharing();
+  const sharing = createPreviewSharing();
+  const { start, update } = sharing;
 
   /**
    * Turn this tab into a preview when it was opened as one (or reloaded while
    * being one). Returns whether it did.
    */
   function activate(): boolean {
-    const id =
-      takeIdFromLocation() ??
-      readStorage(sessionStorage, PERMISSION_PREVIEW_TAB_KEY);
-    if (!id) return false;
-    const session = readSession(id);
-    if (!session) {
-      removeStorage(sessionStorage, PERMISSION_PREVIEW_TAB_KEY);
-      return false;
-    }
-    writeStorage(sessionStorage, PERMISSION_PREVIEW_TAB_KEY, id);
-    state.session.value = session;
-    window.addEventListener("storage", (event) => {
-      if (event.key !== storageKey(id) || !state.session.value) return;
-      const next = parsePreviewSession(event.newValue);
-      if (next) state.session.value = next;
-    });
-    return true;
+    return activatePreviewTab(state, sharing);
   }
 
   /** Ask the server what the role changes on the menu and on `path`. */
@@ -264,7 +275,7 @@ export function usePermissionPreview() {
     } catch (error) {
       if (current !== refreshGeneration) return;
       state.failed.value = true;
-      presentError(error, {
+      errorPresenter.presentError(error, {
         fallbackKey: "page.settings.roles.preview.failed",
       });
     } finally {
@@ -282,8 +293,8 @@ export function usePermissionPreview() {
     removeStorage(localStorage, storageKey(session.id));
     window.close();
 
-    setTimeout(() => {
-      void navigateDms(session.returnTo);
+    setTimeout(async () => {
+      await navigateDms(session.returnTo);
     }, CLOSE_FALLBACK_DELAY_MS);
   }
 

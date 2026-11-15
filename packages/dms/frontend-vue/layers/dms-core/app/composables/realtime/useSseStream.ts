@@ -1,5 +1,6 @@
 import { HTTP_UNAUTHORIZED } from "../../utils/http-status";
 import { isObject } from "../../utils/type-check";
+import { isJsonValue } from "../../build/utils/json";
 
 /** Receives decoded data and the frame's id (null if absent, empty if reset). */
 export type SseEventHandler = (
@@ -17,7 +18,7 @@ export interface SseStreamOptions {
   headers?: () => Record<string, string>;
   onEvent: SseEventHandler;
   onOpen?: () => void;
-  onError?: (error: unknown) => void;
+  onError?: (error: Parameters<typeof isUnauthorizedStreamError>[0]) => void;
   /** Called once after cleanup; errors call onError first. Retry on only one callback. */
   onClose?: (reason: SseCloseReason) => void;
 }
@@ -68,7 +69,8 @@ function parseFrame(frame: string): ParsedFrame | null {
 
 function decodeData(data: string): Parameters<SseEventHandler>[1] {
   try {
-    return JSON.parse(data);
+    const parsed: unknown = JSON.parse(data);
+    return isJsonValue(parsed) ? parsed : data;
   } catch {
     return data;
   }
@@ -146,10 +148,15 @@ async function connect(
   await readStream(response.body.getReader(), options, signal);
 }
 
+/** A stream error that carries HTTP 401. */
+interface UnauthorizedStreamError {
+  status: typeof HTTP_UNAUTHORIZED;
+}
+
 /** Whether a stream error carries HTTP 401 and may need session recovery. */
 export function isUnauthorizedStreamError(
-  error: Parameters<NonNullable<SseStreamOptions["onError"]>>[0],
-): boolean {
+  error: unknown,
+): error is UnauthorizedStreamError {
   return (
     isObject(error) && error !== null && error.status === HTTP_UNAUTHORIZED
   );
@@ -158,17 +165,16 @@ export function isUnauthorizedStreamError(
 /** Opens one SSE request. EOF is not business completion; no retry is implicit. */
 export function openSseStream(options: SseStreamOptions): SseStreamHandle {
   const controller = new AbortController();
-  void (async () => {
-    let reason: SseCloseReason = "eof";
-    try {
-      await connect(options, controller.signal);
-      if (controller.signal.aborted) reason = "aborted";
-    } catch (error) {
-      reason = controller.signal.aborted ? "aborted" : "error";
-      if (reason === "error") options.onError?.(error);
-    } finally {
-      options.onClose?.(reason);
-    }
-  })();
+  void connect(options, controller.signal).then(
+    () => options.onClose?.(controller.signal.aborted ? "aborted" : "eof"),
+    (error: unknown) => {
+      const reason = controller.signal.aborted ? "aborted" : "error";
+      try {
+        if (reason === "error") options.onError?.(error);
+      } finally {
+        options.onClose?.(reason);
+      }
+    },
+  );
   return { close: () => controller.abort() };
 }

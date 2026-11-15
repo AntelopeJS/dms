@@ -1,3 +1,5 @@
+import type { JsonValue } from "./json";
+
 /**
  * Mirror of the backend's module store listing (`GET /dms/store/listing`,
  * `src/store/types.ts` in `@antelopejs/dms`).
@@ -133,7 +135,7 @@ export interface StoreDependencyChoice {
   /** npm package, never a git or local source. */
   package: string;
   /** Config written to its antelope.config.ts entry. */
-  config?: Record<string, unknown>;
+  config?: { [key: string]: JsonValue };
 }
 
 /** Body of `POST /dms/store/<kind>`; only an install carries dependencies. */

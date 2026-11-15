@@ -55,24 +55,24 @@ const occurrenceKey = (name: string, occurrence: number): string =>
   `${name}${OCCURRENCE_KEY_SEPARATOR}${occurrence}`;
 
 function countByName(names: string[]) {
-  const totals: Record<string, number> = {};
+  const totals = new Map<string, number>();
   for (const name of names) {
-    totals[name] = (totals[name] ?? 0) + 1;
+    totals.set(name, (totals.get(name) ?? 0) + 1);
   }
   return totals;
 }
 
 function buildParamBag(names: string[], values: string[]) {
   const totals = countByName(names);
-  const seen: Record<string, number> = {};
+  const seen = new Map<string, number>();
   const params: Record<string, string> = {};
 
   names.forEach((name, index) => {
     const value = values[index]!;
-    const occurrence = (seen[name] ?? 0) + 1;
-    seen[name] = occurrence;
+    const occurrence = (seen.get(name) ?? 0) + 1;
+    seen.set(name, occurrence);
     params[name] = value;
-    if (totals[name]! > 1) {
+    if (totals.get(name)! > 1) {
       params[occurrenceKey(name, occurrence)] = value;
     }
   });
@@ -205,11 +205,13 @@ const useSiteLayoutRequests = () => {
   const { pageLayoutPromises, loadingPromise } =
     useSiteLayoutRequestsInFlight();
 
-  const { resolveError } = useApiErrorPresenter();
+  const errorPresenter = useApiErrorPresenter();
   const HTTP_INTERNAL_ERROR = 500;
 
-  const handleSiteLayoutError = (error: unknown) => {
-    const errorMessage = resolveError(error, {
+  const handleSiteLayoutError = (
+    error: Parameters<typeof errorPresenter.resolveError>[0],
+  ) => {
+    const errorMessage = errorPresenter.resolveError(error, {
       fallbackKey: "error.500.description",
     })?.message;
     if (!errorMessage) return;

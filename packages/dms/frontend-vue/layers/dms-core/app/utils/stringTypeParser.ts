@@ -1,12 +1,7 @@
-export type Primitive =
-  | string
-  | number
-  | boolean
-  | Date
-  | null
-  | undefined
-  | Record<string, unknown>
-  | unknown[];
+import { isJsonValue } from "../build/utils/json";
+import type { JsonValue } from "../types/json";
+
+export type Primitive = JsonValue | Date | undefined;
 
 const KEYWORD_VALUES: Record<
   Parameters<typeof isKeyword>[0],
@@ -33,7 +28,10 @@ const PARSER_REGISTRY = [
   },
   {
     test: isStringJSON,
-    parse: (value: string) => JSON.parse(value),
+    parse: (value: string): Primitive => {
+      const parsed: unknown = JSON.parse(value);
+      return isJsonValue(parsed) ? parsed : value;
+    },
   },
 ];
 

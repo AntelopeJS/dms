@@ -5,6 +5,7 @@ import type {
   ValidateAccountResponse,
 } from "../../types/auth";
 import { uniqueAccounts, withAccount } from "../../build/utils/storedAccounts";
+import { isNumber } from "../../utils/type-check";
 
 const STORAGE_KEY = "antelopejs-accounts";
 const SWITCH_ACCOUNT_ENDPOINT = "/auth/switch-account";
@@ -59,16 +60,18 @@ interface BrowserSession {
 
 const TOKEN_REJECTION_STATUSES = new Set([400, 401, 403]);
 
-interface UpstreamError {
-  status?: number;
-  statusCode?: number;
-}
+/** A thrown value whose upstream status, `statusCode` or else `status`, is a number. */
+type UpstreamError = { statusCode: number } | { status: number };
 
-function isTokenRejection(error: unknown): boolean {
-  const { status, statusCode } = (error ?? {}) as UpstreamError;
-  const upstreamStatus = statusCode ?? status;
+/** Whether `error` is the backend refusing the account's tokens: a 400, 401 or 403. */
+function isTokenRejection(error: unknown): error is UpstreamError {
+  if (typeof error !== "object" && typeof error !== "function") return false;
+  if (error === null) return false;
+  const statusCode = "statusCode" in error ? error.statusCode : undefined;
+  const upstreamStatus =
+    statusCode ?? ("status" in error ? error.status : undefined);
   return (
-    upstreamStatus !== undefined && TOKEN_REJECTION_STATUSES.has(upstreamStatus)
+    isNumber(upstreamStatus) && TOKEN_REJECTION_STATUSES.has(upstreamStatus)
   );
 }
 
@@ -122,7 +125,7 @@ async function requestAccountSwitch(account: StoredAccount) {
  * @internal
  */
 export async function refreshSessionSurfaces(
-  refreshUser: () => Promise<unknown>,
+  refreshUser: () => Promise<any>,
 ): Promise<void> {
   await refreshUser();
 
@@ -192,11 +195,9 @@ function createValidateAllAccounts(
 
 export function useMultiAccount() {
   const accounts = useAccountsStorage();
-  const {
-    user,
-    session,
-    fetch: refreshUser,
-  } = useDmsUserSession<User, BrowserSession>();
+  const userSession = useDmsUserSession<User, BrowserSession>();
+  const { user, session } = userSession;
+  const refreshUser = () => userSession.fetch();
 
   const getActiveAccount = (): StoredAccount | undefined =>
     buildActiveAccount(user.value, session.value?.accountId);

@@ -6,7 +6,15 @@ import {
   type StreamRecovery,
 } from "../../build/utils/sharedRealtimeConnection";
 import { HTTP_UNAUTHORIZED } from "../../utils/http-status";
-import { isObject, isString } from "../../utils/type-check";
+import {
+  isNumber,
+  isObject,
+  isString,
+  isUndefined,
+} from "../../utils/type-check";
+import { isJsonObject } from "../../build/utils/json";
+import { isRecord } from "../../build/utils/record";
+import type { JsonValue } from "../../types/json";
 
 const REALTIME_CONNECTION_PATH = "/api/realtime/connection";
 const REALTIME_SESSION_PATH = "/api/realtime/session";
@@ -32,7 +40,7 @@ type RealtimeFrameData = Parameters<
 export interface RealtimeEvent {
   topic: string;
   type: string;
-  payload?: Record<string, unknown>;
+  payload?: { [key: string]: JsonValue };
   actorId?: string;
   ts: number;
 }
@@ -132,27 +140,52 @@ const dispatchToHandlers = (
   for (const handler of handlers) handler(event);
 };
 
+const isOptionalString = (value: unknown): value is string | undefined =>
+  isUndefined(value) || isString(value);
+
+const isSnapshotEntry = (
+  value: unknown,
+): value is RealtimeSnapshotEvent["entries"][number] =>
+  isRecord(value) &&
+  isString(value.topic) &&
+  isString(value.rowId) &&
+  isRecord(value.actor) &&
+  isString(value.actor.id) &&
+  isOptionalString(value.actor.displayName) &&
+  isOptionalString(value.actor.avatarUrl) &&
+  isString(value.sessionId) &&
+  isString(value.instanceId) &&
+  isNumber(value.since);
+
 const isSnapshotEvent = (
   eventName: string,
   data: RealtimeFrameData,
 ): data is RealtimeSnapshotEvent =>
-  eventName === SNAPSHOT_EVENT && !!data && isObject(data) && "topic" in data;
+  eventName === SNAPSHOT_EVENT &&
+  isRecord(data) &&
+  isString(data.topic) &&
+  Array.isArray(data.entries) &&
+  data.entries.every(isSnapshotEntry);
 
 const isRealtimeEvent = (data: RealtimeFrameData): data is RealtimeEvent =>
-  !!data && isObject(data) && isString(data.topic) && isString(data.type);
+  !!data &&
+  isObject(data) &&
+  isString(data.topic) &&
+  isString(data.type) &&
+  (isUndefined(data.payload) || isJsonObject(data.payload));
 
 /** Takes the session a greeting names, with the menu topics it announces. */
 const handleHello = (
   state: UserRealtimeState,
-  data: RealtimeFrameData,
+  sessionId: string,
+  greeting: SessionGreeting,
 ): void => {
-  if (!data || !isObject(data) || !("sessionId" in data)) return;
-  state.sessionId.value = String(data.sessionId);
-  const { menuTopics } = data;
+  state.sessionId.value = sessionId;
+  const { menuTopics } = greeting;
   state.menuTopics.value = Array.isArray(menuTopics)
     ? menuTopics.filter((topic): topic is string => isString(topic))
     : [];
-  const { devReloadTopic } = data;
+  const { devReloadTopic } = greeting;
   state.devReloadTopic.value = isString(devReloadTopic)
     ? devReloadTopic
     : undefined;
@@ -180,6 +213,7 @@ interface ConnectionCallbacks extends StreamRecovery {
 interface SessionGreeting {
   sessionId?: unknown;
   menuTopics?: unknown;
+  devReloadTopic?: unknown;
 }
 
 interface BufferedFrame {
@@ -192,7 +226,8 @@ const readGreeting = async (
   response: Response,
 ): Promise<SessionGreeting | null> => {
   try {
-    return await response.json();
+    const greeting: unknown = await response.json();
+    return isRecord(greeting) ? greeting : null;
   } catch {
     return null;
   }
@@ -233,23 +268,8 @@ const connectTab = (
   const retries = createReconnector();
   const sessionCloseUrl = `${baseUrl}${REALTIME_SESSION_CLOSE_PATH}`;
   let connectionId: string | undefined;
-
   let attempt = 0;
-
   let buffered: BufferedFrame[] | undefined;
-
-  const adopt = (forConnection: string, greeting: SessionGreeting) => {
-    const sessionId = String(greeting.sessionId);
-    handleHello(state, greeting);
-    const pending = buffered ?? [];
-    buffered = undefined;
-    for (const frame of pending) {
-      if (frame.sessionId === sessionId) dispatch(frame.eventName, frame.data);
-    }
-    retries.resetDelay();
-    connection.announceSession(forConnection, sessionId);
-    callbacks.onConnected();
-  };
 
   const openSession = async (forConnection: string): Promise<void> => {
     const ownAttempt = ++attempt;
@@ -258,15 +278,14 @@ const connectTab = (
       connectionId === forConnection &&
       attempt === ownAttempt;
     const retry = () =>
-      retries.schedule(() => {
-        if (isCurrent()) void openSession(forConnection);
+      retries.schedule(async () => {
+        if (isCurrent()) await openSession(forConnection);
       });
     buffered = [];
     let response: Response;
     try {
       response = await fetch(`${baseUrl}${REALTIME_SESSION_PATH}`, {
         method: "POST",
-
         headers: { [CONNECTION_HEADER]: forConnection },
         credentials: "include",
       });
@@ -298,17 +317,25 @@ const connectTab = (
       });
       return;
     }
-    adopt(forConnection, greeting!);
+    handleHello(state, sessionId, greeting!);
+    const pending = buffered ?? [];
+    buffered = undefined;
+    for (const frame of pending) {
+      if (frame.sessionId === sessionId) dispatch(frame.eventName, frame.data);
+    }
+    retries.resetDelay();
+    connection.announceSession(forConnection, sessionId);
+    callbacks.onConnected();
   };
 
-  const renewSession = () => {
+  const renewSession = async () => {
     if (retries.isCancelled() || !connectionId) return;
     const sessionId = state.sessionId.value;
     if (sessionId) {
       closeStraySession(sessionCloseUrl, connectionId, sessionId);
       callbacks.onDisconnected();
     }
-    void openSession(connectionId);
+    await openSession(connectionId);
   };
 
   const connection = joinSharedRealtimeConnection({
@@ -316,11 +343,11 @@ const connectTab = (
     streamUrl: `${baseUrl}${REALTIME_CONNECTION_PATH}`,
     sessionCloseUrl,
     onConnection: (next) => {
-      if (retries.isCancelled()) return;
+      if (retries.isCancelled()) return undefined;
       if (state.sessionId.value) callbacks.onDisconnected();
       buffered = undefined;
       connectionId = next;
-      if (next) void openSession(next);
+      return next ? openSession(next) : undefined;
     },
     onFrame: (sessionId, eventName, data) => {
       if (sessionId === undefined) {
@@ -328,10 +355,7 @@ const connectTab = (
         return;
       }
       if (sessionId === state.sessionId.value) {
-        if (eventName === SESSION_ENDED_EVENT) {
-          renewSession();
-          return;
-        }
+        if (eventName === SESSION_ENDED_EVENT) return renewSession();
         dispatch(eventName, data);
         return;
       }
@@ -353,19 +377,15 @@ const connectTab = (
   };
 };
 
-interface PageSubscriptionAnswer {
-  topics?: unknown;
-}
-
 /** The topics a page subscription answered, none when it answered none. */
 const readPageTopics = async (response: Response): Promise<string[]> => {
-  let answer: PageSubscriptionAnswer | null;
+  let answer: unknown;
   try {
     answer = await response.json();
   } catch {
     return [];
   }
-  const topics = answer?.topics;
+  const topics = isRecord(answer) ? answer.topics : undefined;
   return Array.isArray(topics)
     ? topics.filter((topic): topic is string => isString(topic))
     : [];
@@ -476,8 +496,8 @@ const buildApi = (): UserRealtimeApi => {
         state.menuTopics.value = [];
         if (userKey === undefined) return;
         state.connection = connectTab(state, baseUrl, userKey, {
-          onConnected: () => {
-            void reconcilePage(state, baseUrl);
+          onConnected: async () => {
+            await reconcilePage(state, baseUrl);
           },
           onDisconnected: () => resetSession(state),
           refreshSession,
@@ -489,7 +509,9 @@ const buildApi = (): UserRealtimeApi => {
 
     watch(
       () => sessionScopeOf(session?.value),
-      () => state.connection?.renewSession(),
+      () => {
+        state.connection?.renewSession();
+      },
     );
   }
 

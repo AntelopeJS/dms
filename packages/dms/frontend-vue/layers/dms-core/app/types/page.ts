@@ -1,4 +1,5 @@
 import type { BlockText } from "#dms-core/app/types/composed-text";
+import type { JsonValue } from "#dms-core/app/types/json";
 import type { BlockAction } from "#dms-core/app/entries/types/block-action";
 import type { PageLiveOptions } from "#dms-core/app/types/live";
 import type { ModuleSourceKind } from "./module-store";
@@ -141,7 +142,8 @@ export interface LayoutBanner {
   /** Link buttons after the text; the last one leads. */
   actions?: BlockAction[];
   component?: string;
-  props?: Record<string, unknown>;
+  /** The props `component` is drawn with, as the backend sends them. */
+  props?: { [key: string]: JsonValue };
 }
 
 export type SiteLayout = {

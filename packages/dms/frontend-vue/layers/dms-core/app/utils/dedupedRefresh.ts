@@ -9,11 +9,11 @@
  * token out from under each other and log the user out.
  */
 export function runDeduped<T>(
-  holder: Record<PropertyKey, unknown>,
+  holder: Record<PropertyKey, Promise<T> | null | undefined>,
   key: PropertyKey,
   task: () => Promise<T>,
 ): Promise<T> {
-  const existing = holder[key] as Promise<T> | null | undefined;
+  const existing = Object.hasOwn(holder, key) ? holder[key] : undefined;
   if (existing) {
     return existing;
   }

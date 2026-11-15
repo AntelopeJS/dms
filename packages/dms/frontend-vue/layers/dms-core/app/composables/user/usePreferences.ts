@@ -23,8 +23,13 @@ const COOKIE_MAX_AGE_ONE_YEAR = 60 * 60 * 24 * 365;
  */
 export const MAX_PREFERENCES_COOKIE_BYTES = 3 * 1024;
 
-const toPlain = <T>(value: T): T =>
+const toPlain = (value: PreferencesTree[string]): PreferencesTree[string] =>
   value === undefined ? value : JSON.parse(JSON.stringify(value));
+
+const toPlainTree = (tree: PreferencesTree): PreferencesTree => {
+  const plain = toPlain(tree);
+  return isBranch(plain) ? plain : {};
+};
 
 /**
  * The user's preferences, kept in the `dms-preferences` cookie so that a
@@ -70,7 +75,7 @@ export const usePreferences = () => {
     value: UserPreferences[string],
   ): void => {
     const keys = keyPath.split(".");
-    const next = toPlain(tree.value);
+    const next = toPlainTree(tree.value);
     writeAt(next, keys, toPlain(value));
     markWritten(next, keys);
     commit(next);
@@ -79,7 +84,7 @@ export const usePreferences = () => {
   const removePreference = (keyPath: string): void => {
     const keys = keyPath.split(".");
     const lastKey = keys.pop()!;
-    const next = toPlain(tree.value);
+    const next = toPlainTree(tree.value);
     const parent = keys.length === 0 ? next : readAt(next, keys);
     if (!isBranch(parent) || !(lastKey in parent)) return;
 
