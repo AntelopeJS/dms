@@ -40,10 +40,7 @@ export function useDrawer() {
     let title = options.title;
     let header: DrawerRowHeader | undefined = rowHeader;
     const headerProps = () => header && drawerRowHeaderProps(header, title);
-    const instance = openDynamicContainer<
-      Result,
-      DrawerOptions & DrawerCallerContext
-    >(overlay, DynamicDrawer, DRAWER_ID_PREFIX, {
+    const drawerOptions: DrawerOptions & DrawerCallerContext = {
       ...containerOptions,
 
       callerProvides: DMS_OWN_DRAWER in options ? undefined : caller?.provides,
@@ -55,7 +52,13 @@ export function useDrawer() {
         options.sizeKey ??
         options.containerId ??
         componentSizeKey(options.component),
-    });
+    };
+    const instance = openDynamicContainer<Result>(
+      overlay,
+      DynamicDrawer,
+      DRAWER_ID_PREFIX,
+      drawerOptions,
+    );
     if (!rowHeader) {
       return {
         ...instance,

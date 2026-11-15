@@ -123,7 +123,7 @@ export interface ModalOptions extends ContainerOptions {
  * changes it in place.
  */
 export interface ContainerInstance<Result = unknown> {
-  result: Promise<Result>;
+  result: Promise<Result | undefined>;
   close: (result?: Result) => void;
   /** Updates the open container: its texts, or its body's options and key. */
   patch: (options: ContainerPatch) => void;

@@ -48,11 +48,11 @@ function openWhenMenusClosed(open: () => void): () => void {
  * the body component raw so Vue keeps it as-is, and expose the open `result`
  * promise together with a programmatic `close`.
  */
-export function openDynamicContainer<Result, Options extends ContainerOptions>(
+export function openDynamicContainer<Result>(
   overlay: Overlay,
   container: Component,
   idPrefix: string,
-  options: Options,
+  options: ContainerOptions,
 ): ContainerInstance<Result> {
   const { component, headerComponent, containerId, ...rest } = options;
   const instance = overlay.create(container, {
@@ -65,11 +65,11 @@ export function openDynamicContainer<Result, Options extends ContainerOptions>(
   });
 
   let opened = false;
-  let resolveResult!: (value: Result) => void;
+  let resolveResult!: (value: Result | undefined) => void;
   let rejectResult!: Parameters<
-    ConstructorParameters<typeof Promise<Result>>[0]
+    ConstructorParameters<typeof Promise<Result | undefined>>[0]
   >[1];
-  const result = new Promise<Result>((resolve, reject) => {
+  const result = new Promise<Result | undefined>((resolve, reject) => {
     resolveResult = resolve;
     rejectResult = reject;
   });
@@ -88,7 +88,7 @@ export function openDynamicContainer<Result, Options extends ContainerOptions>(
       } else {
         cancelPendingOpen();
         instance.close(value);
-        resolveResult(value as Result);
+        resolveResult(value);
       }
     },
   };
