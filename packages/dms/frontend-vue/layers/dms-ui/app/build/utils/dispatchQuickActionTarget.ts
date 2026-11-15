@@ -8,7 +8,7 @@ import {
 
 type QuickActionTargetHandler = (
   target: QuickActionTarget,
-) => ReturnType<typeof navigateDms> | void;
+) => Promise<void> | void;
 
 const targetHandlers: Record<
   QuickActionTarget["type"],
@@ -57,7 +57,7 @@ const targetHandlers: Record<
  */
 export function dispatchQuickActionTarget(
   target: QuickActionTarget,
-): ReturnType<QuickActionTargetHandler> {
+): Promise<void> | void {
   const handler = targetHandlers[target.type];
   return handler?.(target);
 }
