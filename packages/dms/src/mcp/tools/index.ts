@@ -15,6 +15,8 @@ import { previewBlocksTool } from "./preview-blocks";
 import { queryLogsTool } from "./query-logs";
 import { typecheckTool } from "./typecheck";
 
+export { judgedWriter } from "./mockup-apply-to-page";
+
 /** Every tool the DMS MCP server serves, in the order `tools/list` returns them. */
 export const MCP_TOOLS: readonly McpTool[] = [
   builderCatalogTool,

@@ -1,12 +1,37 @@
 import { z } from "zod";
 import {
   applyMockupToPage,
+  BUILDER_WRITER,
   defaultMockupsDir,
+  type LivePageWriter,
   mockupEngineRunning,
   WIRING_REASONS,
 } from "../../mockup";
 import { defineTool, jsonResult, textResult } from "../tool";
+import { draftRequestIssues } from "./builder-request-targets";
 import { mockupArgument, withMockup } from "./mockup-support";
+
+/**
+ * `base`, refusing a draft whose blocks send requests outside the page's
+ * data API before it writes it, as builder_add_block refuses one block.
+ *
+ * @param base The writer the judged drafts go to
+ */
+export function judgedWriter(base: LivePageWriter): LivePageWriter {
+  return {
+    ...base,
+    async setPageBlocks(ref, draft, opts) {
+      const live = await base.pageStructure(ref);
+      const issues = await draftRequestIssues(
+        draft.blocks,
+        live.ok ? live.data.blocks : [],
+      );
+      return issues.length > 0
+        ? { ok: false, error: { code: "invalid_config", issues } }
+        : base.setPageBlocks(ref, draft, opts);
+    },
+  };
+}
 
 const DEV_ONLY =
   "mockup_apply_to_page runs only while the project runs in development (ajs project dev): the /mockup page and its API exist nowhere else.";
@@ -31,7 +56,12 @@ export const mockupApplyToPageTool = defineTool({
   run: async ({ mockup, page }) => {
     if (!mockupEngineRunning()) return textResult(DEV_ONLY, true);
     return withMockup(mockup, async (name) => {
-      const answer = await applyMockupToPage(defaultMockupsDir(), name, page);
+      const answer = await applyMockupToPage(
+        defaultMockupsDir(),
+        name,
+        page,
+        judgedWriter(BUILDER_WRITER),
+      );
       return jsonResult(answer, !answer.ok);
     });
   },
