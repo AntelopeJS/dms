@@ -1,5 +1,8 @@
 import type { JsonValue } from "../../types/json";
 
+/** A JSON object: each value it holds is JSON. */
+export type JsonObject = { [key: string]: JsonValue };
+
 /**
  * Whether `value` and every value it holds is JSON, walked without recursion
  * so that no nesting depth `JSON.parse` accepts exhausts the stack.
@@ -15,4 +18,14 @@ export function isJsonValue(value: unknown): value is JsonValue {
       pending.push(held);
   }
   return true;
+}
+
+/** Whether `value` is a JSON object, not an array or a primitive. */
+export function isJsonObject(value: unknown): value is JsonObject {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    !Array.isArray(value) &&
+    isJsonValue(value)
+  );
 }

@@ -15,7 +15,9 @@ import {
   tabLockName,
   whenReleased,
 } from "./crossTab";
+import { isJsonValue } from "./json";
 import { isRecord } from "./record";
+import type { JsonValue } from "../../types/json";
 
 /**
  * The realtime connection one browser shares between its tabs: the elected tab
@@ -46,7 +48,8 @@ interface FrameMessage {
   /** Unset on a frame of the connection itself, which every tab receives. */
   sessionId?: string;
   event: string;
-  data: unknown;
+  /** Unset when the session frame carried none. */
+  data: JsonValue | undefined;
 }
 
 /** A tab joining asks the leader for the connection it holds. */
@@ -98,7 +101,8 @@ function isHubMessage(value: unknown): value is HubMessage {
       return (
         isString(value.connectionId) &&
         isString(value.event) &&
-        (isUndefined(value.sessionId) || isString(value.sessionId))
+        (isUndefined(value.sessionId) || isString(value.sessionId)) &&
+        (isUndefined(value.data) || isJsonValue(value.data))
       );
     default:
       return false;
@@ -124,7 +128,7 @@ export interface SharedRealtimeConnectionOptions extends StreamRecovery {
   onFrame: (
     sessionId: string | undefined,
     eventName: string,
-    data: Parameters<SseEventHandler>[1],
+    data: FrameMessage["data"],
   ) => void;
   /**
    * A frame of the connection meant for one tab of the browser, the one that

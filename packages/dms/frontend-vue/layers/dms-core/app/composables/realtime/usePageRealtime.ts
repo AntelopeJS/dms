@@ -27,9 +27,8 @@ interface PageClaim {
  */
 const pageClaims: PageClaim[] = [];
 
-const applyLatestClaim = (user: UserRealtimeApi): void => {
-  void user.setPage(pageClaims.at(-1)?.pageId ?? null);
-};
+const applyLatestClaim = (user: UserRealtimeApi): Promise<void> =>
+  user.setPage(pageClaims.at(-1)?.pageId ?? null);
 
 const raiseClaim = (claim: PageClaim): void => {
   const index = pageClaims.indexOf(claim);
@@ -49,26 +48,26 @@ export function usePageRealtime(
   const resolvedPageId = computed(() => toValue(pageId) || undefined);
 
   if (import.meta.env.SSR) {
-    void user.setPage(resolvedPageId.value ?? null);
+    user.setPage(resolvedPageId.value ?? null).catch(() => {});
   } else {
     const claim: PageClaim = { pageId: undefined };
     watch(
       resolvedPageId,
-      (next) => {
+      async (next) => {
         claim.pageId = next;
         raiseClaim(claim);
-        applyLatestClaim(user);
+        await applyLatestClaim(user);
       },
       { immediate: true },
     );
-    onScopeDispose(() => {
+    onScopeDispose(async () => {
       dropClaim(claim);
-      applyLatestClaim(user);
+      await applyLatestClaim(user);
     });
   }
 
   return {
-    subscribe: user.subscribe,
+    subscribe: (topic, handler) => user.subscribe(topic, handler),
     sessionId: user.sessionId,
     pageId: resolvedPageId,
     pageTopics: user.pageTopics,
