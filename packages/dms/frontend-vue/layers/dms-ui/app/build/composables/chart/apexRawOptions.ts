@@ -30,7 +30,7 @@ export type ApexInput =
   | undefined
   | Date
   | ApexFunction
-  | readonly ApexInput[]
+  | ApexInput[]
   | RawOptionSection;
 
 /** A section of Apex's options (`chart`, `xaxis`, …), or the options themselves. */
@@ -44,7 +44,7 @@ type RawOptionJson =
   | number
   | boolean
   | null
-  | readonly RawOptionJson[]
+  | RawOptionJson[]
   | { readonly [option: string]: RawOptionJson };
 
 const RAW_OPTION_PATH_SEPARATOR = ".";
@@ -73,7 +73,7 @@ function parseRawOptionValue(value: string): RawOptionJson {
 
 function isApexLeaf(
   value: unknown,
-): value is Exclude<ApexInput, readonly ApexInput[] | RawOptionSection> {
+): value is Exclude<ApexInput, ApexInput[] | RawOptionSection> {
   return (
     isString(value) ||
     isNumber(value) ||

@@ -222,7 +222,7 @@ describe("annotations", () => {
     if (!Array.isArray(lines)) {
       throw new Error("The chart annotations hold no yaxis list");
     }
-    const line: unknown = lines[0];
+    const [line] = lines;
     if (!isObject(line) || isNull(line)) {
       throw new Error("The chart annotations hold no yaxis line");
     }
@@ -245,7 +245,7 @@ describe("annotations", () => {
   it("resolves theme color names to usable CSS colors", () => {
     const line = yaxisLineOf({ y: 4, label: "cap", color: "warning" });
     expect(line.borderColor).not.toBe("warning");
-    expect(String(line.borderColor)).toMatch(/^(#|rgb|hsl)/);
+    expect(line.borderColor).toMatch(/^(#|rgb|hsl)/);
     expect(sectionIn(line, "label").style).toMatchObject({
       color: line.borderColor,
     });
