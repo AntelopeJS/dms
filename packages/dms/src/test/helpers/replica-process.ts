@@ -6,6 +6,7 @@ import { join, resolve } from "node:path";
 import { bin } from "@antelopejs/core/package.json";
 import { isString } from "@antelopejs/interface-dms/utils/internal/type-check";
 import { setTimeout } from "node:timers/promises";
+import { HARNESS_MODULES } from "./harness-modules";
 
 const MODULE_ROOT = resolve(__dirname, "../../..");
 const PROVIDERS = join(MODULE_ROOT, ".antelope/cache/@antelopejs");
@@ -38,8 +39,11 @@ function freePort(): Promise<number> {
 
 function projectConfig(database: string, port: number, directory: string) {
   const baseUrl = `http://127.0.0.1:${port}`;
-  const provider = (name: string) => ({
-    source: { type: "local", path: join(PROVIDERS, name) },
+  const provider = (name: keyof typeof HARNESS_MODULES) => ({
+    source: {
+      type: "local",
+      path: join(PROVIDERS, `${name}@${HARNESS_MODULES[name]}`),
+    },
   });
   return {
     name: "dms-replica-test",

@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { defineConfig } from "@antelopejs/interface-core/config";
 import { MongoClient } from "mongodb";
 import { MongoMemoryReplSet } from "mongodb-memory-server-core";
+import { HARNESS_MODULES } from "./helpers/harness-modules";
 
 const ANY_FREE_PORT = 0;
 
@@ -125,14 +126,14 @@ export default defineConfig({
       source: providerSource(
         LOCAL_MONGODB_PATH,
         "@antelopejs/mongodb",
-        "1.8.3",
+        HARNESS_MODULES.mongodb,
       ),
     },
     "auth-jwt": {
       source: {
         type: "package",
         package: "@antelopejs/auth-jwt",
-        version: "1.0.3",
+        version: HARNESS_MODULES["auth-jwt"],
       },
       config: {
         secret: JWT_SECRET,
@@ -151,14 +152,14 @@ export default defineConfig({
       source: providerSource(
         LOCAL_STORAGE_PATH,
         "@antelopejs/file-storage-local",
-        "0.1.13",
+        HARNESS_MODULES["file-storage-local"],
       ),
     },
     nodemailer: {
       source: {
         type: "package",
         package: "@antelopejs/nodemailer",
-        version: "0.0.12",
+        version: HARNESS_MODULES.nodemailer,
       },
       config: {
         host: UNREACHABLE_SMTP_HOST,
