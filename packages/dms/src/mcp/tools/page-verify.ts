@@ -1,6 +1,7 @@
 import { GetRuntimeInfo } from "@antelopejs/interface-core/runtime";
 import { z } from "zod";
 import { DEFAULT_CLIENT_BASE_URL, getClientBaseUrl } from "../../config";
+import { redactVerifyReport } from "../page-verify/redact-report";
 import { NAMED_VIEWPORTS } from "../page-verify/report";
 import { defineTool, textResult } from "../tool";
 
@@ -65,7 +66,7 @@ const verifyPageTool = defineTool({
   name: "page_verify",
   title: "Verify pages in a browser",
   description:
-    "Opens each page in a headless Chromium signed in as a role and answers a JSON report: `ok`, then per page `failures` (one line per failed check: read these first), the render at each viewport (every block present and visible, a screenshot per block and of the page, sideways scrolling, overlapping blocks), the data state of each table, chart and KPI (`ok`, `empty`, `error`, `loading`, `needs_backend`), console errors and failed requests, interactions (links answer, tabs select, sort and search respond, forms open and validate on an empty submit) and, for every role of the workspace, whether the page opens as the role's grants say. With `mockup`, each mockup block is paired with a page block and both are screenshotted for a side-by-side look. Screenshots are written under `.antelope/page-verify/` in the project; their paths are project-relative. Writes are held back unless `submit` is true. The first call installs Chromium (about 330 MB, once, in Playwright's browser cache). Development only.",
+    "Opens each page in a headless Chromium signed in as a role and answers a JSON report: `ok`, then per page `failures` (one line per failed check: read these first), the render at each viewport (every block present and visible, a screenshot per block and of the page, sideways scrolling, overlapping blocks), the data state of each table, chart and KPI (`ok`, `empty`, `error`, `loading`, `needs_backend`), console errors and failed requests (their URL without its query), interactions (links answer, tabs select, sort and search respond, forms open and validate on an empty submit; each control named by its kind and an ordinal, `tab #2`, never by the text the page shows) and, for every role of the workspace, whether the page opens as the role's grants say. With `mockup`, each mockup block is paired with a page block and both are screenshotted for a side-by-side look. Screenshots are written under `.antelope/page-verify/` in the project; their paths are project-relative. Writes are held back unless `submit` is true. The first call installs Chromium (about 330 MB, once, in Playwright's browser cache). Development only.",
   effect: "read",
   input: PageVerifyInput,
   async run(args) {
@@ -89,7 +90,7 @@ const verifyPageTool = defineTool({
         ),
         projectPath,
       });
-      return textResult(JSON.stringify(report), !report.ok);
+      return textResult(JSON.stringify(redactVerifyReport(report)), !report.ok);
     } catch (error) {
       return textResult(
         `page_verify could not run: ${error instanceof Error ? error.message : String(error)}`,

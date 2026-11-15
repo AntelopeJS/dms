@@ -48,6 +48,7 @@ export * from "./forms";
 export * from "./mockup";
 export * from "./render";
 export * from "./page-probe";
+export * from "./redact-report";
 export * from "./report";
 export * from "./targets";
 
