@@ -9,13 +9,13 @@ import { describeFieldErrors } from "#dms-core/app/composables/useFieldErrors";
  * required."). Never the raw ofetch error line.
  */
 export function tableWriteErrorOptions(
-  error: unknown,
+  cause: unknown,
   translate: I18nTranslate,
   columns: ReadonlyArray<Pick<TableViewColumn, "accessorKey" | "header">>,
   processI18n: (text: string) => string,
   fallbackKey = "dms.action_error.generic",
 ): ResolveApiErrorOptions {
-  const summary = describeFieldErrors(error, translate, (field) => {
+  const summary = describeFieldErrors(cause, translate, (field) => {
     const column = columns.find((entry) => entry.accessorKey === field);
     return column ? processI18n(column.header) : undefined;
   });

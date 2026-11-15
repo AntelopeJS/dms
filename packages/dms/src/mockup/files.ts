@@ -29,8 +29,8 @@ const fsErrorSchema = z.object({ code: z.string().optional() }).catch({});
 export type FsError = z.infer<typeof fsErrorSchema>;
 
 /** The code a thrown filesystem error carries, if any. */
-export function parseFsError(error: unknown): FsError {
-  return fsErrorSchema.parse(error);
+export function parseFsError(cause: unknown): FsError {
+  return fsErrorSchema.parse(cause);
 }
 
 /** The code of an error saying the file does not exist. */

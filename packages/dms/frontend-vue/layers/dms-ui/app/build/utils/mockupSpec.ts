@@ -5,6 +5,7 @@ import {
   isJsonValue,
   isObjectValue,
   type JsonObject,
+  type JsonWritable,
 } from "./json";
 
 /**
@@ -111,7 +112,7 @@ function isMockupSpecPage(
 
 /** The spec `value` holds, or undefined when it is not JSON or not a spec the editor can change. */
 export function parseMockupSpec(
-  value: unknown,
+  value: JsonWritable | undefined,
 ): MockupSpecDocument | undefined {
   if (!isJsonObject(value)) return undefined;
   const { pages } = value;

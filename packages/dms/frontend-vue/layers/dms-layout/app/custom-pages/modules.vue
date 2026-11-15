@@ -8,6 +8,7 @@ import DmsSegmentedControl from "#dms-ui/app/components/segmented/SegmentedContr
 import DmsStatGroup, {
   type StatGroupItem,
 } from "#dms-ui/app/components/stat-group/StatGroup.vue";
+import type { JsonValue } from "#dms-core/app/types/json";
 import type { Tone } from "#dms-core/app/types/tone";
 import { useKeyboardPlatform } from "#dms-ui/app/composables/global/keyboardPlatform";
 import DmsChipGroup from "#dms-ui/app/entries/components/form/ChipGroup";
@@ -144,7 +145,10 @@ const category = ref<string>(MODULE_CATEGORY_ALL);
 const SORT_MODE_PREFERENCE_KEY = "modulesPage.sort";
 const { getPreference, setPreference } = usePreferences();
 const sortMode = computed<ModuleSortMode>({
-  get: () => parseModuleSortMode(getPreference(SORT_MODE_PREFERENCE_KEY)),
+  get: () =>
+    parseModuleSortMode(
+      getPreference<JsonValue | undefined>(SORT_MODE_PREFERENCE_KEY),
+    ),
   set: (mode) => setPreference(SORT_MODE_PREFERENCE_KEY, mode),
 });
 

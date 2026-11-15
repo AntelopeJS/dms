@@ -1,5 +1,7 @@
+import type { JsonValue } from "@antelopejs/interface-dms/json";
 import {
   type DatabaseAccess,
+  type DatabaseCheckInput,
   type DatabaseEngine,
   DATABASE_ENGINE_SCHEMES,
   type OpResult,
@@ -28,7 +30,9 @@ const CheckInputSchema = z
 export type ParsedCheckInput = ReturnType<typeof CheckInputSchema.safeParse>;
 
 /** Reads `input` as an engine and a URL of that engine's scheme. */
-export function parseCheckInput(input: unknown): ParsedCheckInput {
+export function parseCheckInput(
+  input: DatabaseCheckInput | JsonValue | undefined,
+): ParsedCheckInput {
   return CheckInputSchema.safeParse(input);
 }
 

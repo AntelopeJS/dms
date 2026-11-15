@@ -134,6 +134,7 @@ function isApexLeaf(
  * deep watcher only reacts to a new series, breaks that loop. Functions
  * (formatters, event handlers) and dates are kept as they are.
  */
+// oxlint-disable-next-line anti-slop/no-unknown-parameters -- Recursive copy of the untyped Props.series and RawOptionSection values: each nested value it walks is only known once isApexLeaf, Array.isArray or isObject classifies it.
 function toApexInput(value: unknown): ApexInput {
   const raw = toRaw(value);
   if (isApexLeaf(raw)) return raw;
@@ -149,6 +150,7 @@ function toApexInput(value: unknown): ApexInput {
   return copy;
 }
 
+// oxlint-disable-next-line anti-slop/no-unknown-parameters -- Takes Props.series, which the component declares unknown, and the RawOptionSection options, and hands both to toApexInput.
 function rawApexInput(value: unknown): ApexInput {
   const copy = toApexInput(value);
   return isObject(copy) ? markRaw(copy) : copy;

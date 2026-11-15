@@ -68,8 +68,8 @@ const ThrownMessage = z
   .catch("The check ended with an error that carries no message.");
 
 /** The message of a thrown `Error`; any other thrown value, or a message that is no string, says nothing a person could use. */
-export function failureMessage(error: unknown): string {
-  return ThrownMessage.parse(error);
+export function failureMessage(cause: unknown): string {
+  return ThrownMessage.parse(cause);
 }
 
 /**

@@ -17,7 +17,7 @@ const ProbeExport = z
   .returns(z.promise(z.unknown()));
 
 /**
- * A driver's `probe` as the check loads it: its answer is read by `readProbeAnswer`, since the
+ * A driver's `probe` as the check loads it: its answer is read by `ReadProbeAnswer`, since the
  * driver is loaded at runtime from wherever the project installs it.
  */
 export type LoadedProbe = z.infer<typeof ProbeExport>;

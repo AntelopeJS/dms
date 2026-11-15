@@ -1,3 +1,4 @@
+import type { JsonValue } from "#dms-core/app/types/json";
 import type {
   ModuleCatalogEntry,
   ModuleWithAccess,
@@ -37,12 +38,16 @@ export const DEFAULT_MODULE_SORT_MODE: ModuleSortMode = "name";
 
 const MODULE_SORT_MODES: readonly ModuleSortMode[] = ["name", "recent"];
 
-function isModuleSortMode(value: unknown): value is ModuleSortMode {
+function isModuleSortMode(
+  value: JsonValue | undefined,
+): value is ModuleSortMode {
   return MODULE_SORT_MODES.some((mode) => mode === value);
 }
 
 /** A remembered sort mode, or the default when it is missing or unknown. */
-export function parseModuleSortMode(value: unknown): ModuleSortMode {
+export function parseModuleSortMode(
+  value: JsonValue | undefined,
+): ModuleSortMode {
   return isModuleSortMode(value) ? value : DEFAULT_MODULE_SORT_MODE;
 }
 

@@ -1,5 +1,6 @@
 import { HTTPResult } from "@antelopejs/interface-api";
 import { Logging } from "@antelopejs/interface-core/logging";
+import type { JsonValue } from "@antelopejs/interface-dms/json";
 import { z } from "zod";
 import {
   assertFrontendBootstrap,
@@ -126,7 +127,7 @@ export function assertFrontendReadyAllowed(
 }
 
 export function parseFrontendReady(
-  body: unknown,
+  body: JsonValue | undefined,
 ): ReturnType<typeof frontendReadySchema.parse> {
   const parsed = frontendReadySchema.safeParse(body);
   if (parsed.success) return parsed.data;

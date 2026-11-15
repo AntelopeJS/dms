@@ -23,6 +23,7 @@ import { IfAuthUser } from "@antelopejs/interface-dms/auth";
 import type { User } from "@antelopejs/interface-dms/auth/db";
 import { getRequestTenantId } from "@antelopejs/interface-dms/request-tenant";
 import { assert } from "@antelopejs/interface-api-util";
+import type { JsonValue } from "@antelopejs/interface-dms/json";
 import {
   type ModuleCatalogContext,
   GetPageLayoutBySlug,
@@ -82,7 +83,7 @@ export class DMSController extends Controller("/dms") {
   }
 
   @Post("/frontend/ready")
-  frontendReady(@JSONBody() body: unknown): void {
+  frontendReady(@JSONBody() body: JsonValue | undefined): void {
     assertFrontendReadyAllowed(this.bootstrapHeader);
     const { modules, version } = parseFrontendReady(body);
     recordFrontendReady(modules, version);

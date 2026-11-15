@@ -145,7 +145,7 @@ function sourceDriver(fields: SourceFields): Identity {
 }
 
 /** A step's `source`, as JSON: `UNKNOWN` when its type, package or path is not a string. */
-function stepSourceDriver(source: unknown): Identity {
+function stepSourceDriver(source: ConfigValue): Identity {
   if (source === undefined) {
     return undefined;
   }

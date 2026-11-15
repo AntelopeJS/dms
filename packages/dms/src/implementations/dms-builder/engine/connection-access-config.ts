@@ -50,8 +50,8 @@ const ThrownSchema = z
 
 type Thrown = z.infer<typeof ThrownSchema>;
 
-function thrown(error: unknown): Thrown {
-  return ThrownSchema.parse(error);
+function thrown(cause: unknown): Thrown {
+  return ThrownSchema.parse(cause);
 }
 
 function refuseWrite(): Promise<never> {

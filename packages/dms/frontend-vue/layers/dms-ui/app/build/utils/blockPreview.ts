@@ -346,7 +346,7 @@ function issueFor(
     : undefined;
 }
 
-function clampSketchHeight(height: unknown): number {
+function clampSketchHeight(height: JsonWritable | undefined): number {
   if (!isNumber(height) || !Number.isFinite(height)) {
     return SKETCH_DEFAULT_HEIGHT_PX;
   }

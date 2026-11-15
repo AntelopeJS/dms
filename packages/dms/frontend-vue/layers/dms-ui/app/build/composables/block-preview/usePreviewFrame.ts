@@ -6,6 +6,7 @@ import {
   type ShallowRef,
   watch,
 } from "vue";
+import type { JsonValue } from "../../../../../dms-core/app/types/json";
 import {
   parsePreviewOutboundMessage,
   type PreviewBlockRect,
@@ -73,7 +74,7 @@ export function usePreviewFrame(options: PreviewFrameOptions): PreviewFrame {
     },
   };
 
-  function onMessage(event: MessageEvent): void {
+  function onMessage(event: MessageEvent<JsonValue>): void {
     const target = options.frame.value?.contentWindow;
     if (!target || event.source !== target) return;
     const message = parsePreviewOutboundMessage(event.data);

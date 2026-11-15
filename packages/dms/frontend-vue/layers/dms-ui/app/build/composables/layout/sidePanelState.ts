@@ -1,4 +1,5 @@
 import type { ComputedRef, Ref } from "vue";
+import type { JsonValue } from "#dms-core/app/types/json";
 import { isObject, isString } from "#dms-core/app/utils/type-check";
 import {
   resolveSidePanelWidthBounds,
@@ -43,7 +44,7 @@ function emptyPreferences(): SidePanelPreferences {
   return { openId: null, widths: {} };
 }
 
-function readWidths(value: unknown): Record<string, number> {
+function readWidths(value: JsonValue | undefined): Record<string, number> {
   if (!isObject(value) || value === null) return {};
   return Object.fromEntries(
     Object.entries(value).filter((entry): entry is [string, number] =>
@@ -58,7 +59,9 @@ function readWidths(value: unknown): Record<string, number> {
  *
  * @internal
  */
-export function readSidePanelPreferences(value: unknown): SidePanelPreferences {
+export function readSidePanelPreferences(
+  value: JsonValue | SidePanelPreferences | undefined,
+): SidePanelPreferences {
   if (!isObject(value) || value === null) return emptyPreferences();
   const openId = isString(value.openId) ? value.openId : null;
   return { openId, widths: readWidths(value.widths) };

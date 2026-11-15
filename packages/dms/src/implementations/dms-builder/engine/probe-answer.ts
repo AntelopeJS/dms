@@ -63,7 +63,8 @@ const ProbeAnswerSchema = z.discriminatedUnion("outcome", [
   }),
 ]) satisfies z.ZodType<ProbeAnswer>;
 
-const ReadProbeAnswer = ProbeAnswerSchema.optional().catch(undefined);
+/** Reads what a driver's `probe` answered: the answer, or `undefined` when it answered in another shape. */
+export const ReadProbeAnswer = ProbeAnswerSchema.optional().catch(undefined);
 
 type SignedIn = Extract<ProbeAnswer, { outcome: "signed-in" }>;
 
@@ -87,11 +88,6 @@ function signedIn({
     access.reason = unreadable === undefined ? NO_READ : UNREADABLE[unreadable];
   }
   return access;
-}
-
-/** What a driver's `probe` answered, or `undefined` when it answered in another shape. */
-export function readProbeAnswer(answer: unknown): ProbeAnswer | undefined {
-  return ReadProbeAnswer.parse(answer);
 }
 
 /**

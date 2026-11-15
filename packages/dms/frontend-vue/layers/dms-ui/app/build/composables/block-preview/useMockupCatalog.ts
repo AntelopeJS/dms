@@ -5,6 +5,7 @@ import {
   type ComputedRef,
   type Ref,
 } from "vue";
+import type { JsonValue } from "../../../../../dms-core/app/types/json";
 import { MOCKUP_LIST_ENDPOINT } from "../../utils/mockup";
 import {
   parseBlockCatalog,
@@ -28,7 +29,9 @@ export function useMockupCatalog(authFetch: AuthFetch): MockupCatalog {
   const hasFailed = shallowRef(false);
   onMounted(async () => {
     try {
-      const parsed = parseBlockCatalog(await authFetch(CATALOG_ENDPOINT));
+      const parsed = parseBlockCatalog(
+        await authFetch<JsonValue>(CATALOG_ENDPOINT),
+      );
       blocks.value = parsed ?? [];
       hasFailed.value = !parsed;
     } catch {

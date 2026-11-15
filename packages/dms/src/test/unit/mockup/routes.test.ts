@@ -3,6 +3,7 @@ import { type ClientRequest, get, type IncomingMessage } from "node:http";
 import { join } from "node:path";
 import { expect } from "chai";
 import type { AxiosInstance } from "axios";
+import type { JsonValue } from "@antelopejs/interface-dms/json";
 import { z } from "zod";
 import { closeMockupStreams, type MockupEngine } from "../../../mockup";
 import { getBaseUrl } from "../../helpers/http";
@@ -80,8 +81,8 @@ const idsSchema = rowsSchema.transform((page) =>
   page.results.map((row) => row._id),
 );
 
-function ids(data: unknown): string[] {
-  return idsSchema.parse(data);
+function ids(response: { data: JsonValue }): string[] {
+  return idsSchema.parse(response.data);
 }
 
 describe("[unit] mockup routes: listing and fixtures", () => {
@@ -108,10 +109,10 @@ describe("[unit] mockup routes: listing and fixtures", () => {
     const searched = await owner.get(`${rows}?search=acme&sortKey=total`);
     const all = await owner.get(rows);
 
-    expect(ids(sorted.data)).to.deep.equal(["o4", "o5"]);
+    expect(ids(sorted)).to.deep.equal(["o4", "o5"]);
     expect(rowsSchema.parse(sorted.data).total).to.equal(5);
-    expect(ids(searched.data)).to.deep.equal(["o1", "o4"]);
-    expect(ids(all.data)).to.deep.equal(["o1", "o2", "o3", "o4", "o5"]);
+    expect(ids(searched)).to.deep.equal(["o1", "o4"]);
+    expect(ids(all)).to.deep.equal(["o1", "o2", "o3", "o4", "o5"]);
   });
 
   it("serves a fixture as JSON and refuses rows over one that is not an array", async () => {
@@ -129,19 +130,17 @@ describe("[unit] mockup routes: listing and fixtures", () => {
     const ascending = await owner.get(rows);
     const descending = await owner.get(`${rows}&sortDirection=desc`);
 
-    expect(ids(ascending.data)).to.deep.equal(["b", "d", "a", "c", "e"]);
-    expect(ids(descending.data)).to.deep.equal(["c", "a", "d", "b", "e"]);
+    expect(ids(ascending)).to.deep.equal(["b", "d", "a", "c", "e"]);
+    expect(ids(descending)).to.deep.equal(["c", "a", "d", "b", "e"]);
   });
 
   it("sorts numbers and numeric text by value in one order, whatever the rows' order", async () => {
     const orders = await Promise.all(
       ["mixed", "mixedReversed", "mixedRotated"].map(async (key) =>
         ids(
-          (
-            await owner.get(
-              `${BASE}/desk/pages/home/fixtures/${key}/rows?sortKey=v`,
-            )
-          ).data,
+          await owner.get(
+            `${BASE}/desk/pages/home/fixtures/${key}/rows?sortKey=v`,
+          ),
         ),
       ),
     );
