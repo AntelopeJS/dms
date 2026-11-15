@@ -9,7 +9,53 @@ const { createRequire } = require("node:module");
 const { pathToFileURL } = require("node:url");
 
 const legacy = require("./frontend-legacy.cjs");
-const { frontend, layers, ts, evaluate, load } = legacy;
+const { frontend, layers, ts, evaluate, load, isObjectLike } = legacy;
+
+/** @typedef {{ dirs: string[]; presets: string[]; imports: Array<{ from: string; name: string }> }} UnimportInput */
+
+/**
+ * @param {URL} url
+ * @returns {Promise<{ createUnimport: (options: UnimportInput) => import("unimport").Unimport }>}
+ */
+const importUnimport = (url) => import(url);
+
+/** @type {(filename: string) => { autoImportDirectories: (roots: Array<{ id: string; root: string }>, builds: Array<{ id: string; setup: unknown }>, fail: (message: string) => never) => string[] }} */
+const loadBuildLoader = load;
+
+/** @type {(source: string, filename: string, globals: legacy.ProbeBindings, imports: legacy.ProbeBindings) => { default: unknown }} */
+const evaluateBuildFile = evaluate;
+
+/** @type {{ runInNewContext: (code: string, context: object) => Array<Record<string, string[]>> }} */
+const defaultsVm = vm;
+
+/**
+ * @param {string} templates
+ * @returns {{ config: import("typescript").SourceFile; configuredImports: import("typescript").ArrayLiteralExpression }}
+ */
+function templateImports(templates) {
+  const config = ts.createSourceFile(
+    "vite.ts",
+    fs.readFileSync(path.join(templates, "vite.config.ts"), "utf8"),
+    ts.ScriptTarget.Latest,
+    true,
+  );
+  /** @type {{ initializer?: import("typescript").Expression }} */
+  const configured = {};
+  /** @param {import("typescript").Node} node */
+  const visit = (node) => {
+    if (
+      ts.isPropertyAssignment(node) &&
+      node.name.getText(config) === "imports"
+    )
+      configured.initializer = node.initializer;
+    ts.forEachChild(node, visit);
+  };
+  visit(config);
+  const configuredImports = configured.initializer;
+  if (!configuredImports || !ts.isArrayLiteralExpression(configuredImports))
+    throw new TypeError("The template Vite config has no imports array");
+  return { config, configuredImports };
+}
 
 async function autoImports() {
   const buildReq = createRequire(
@@ -19,15 +65,20 @@ async function autoImports() {
     path.dirname(buildReq.resolve("@antelopejs/dms-frontend/package.json")),
     "templates/vue",
   );
-  const { autoImportDirectories } = load(
+  const { autoImportDirectories } = loadBuildLoader(
     path.join(templates, "frontend-build-loader.ts"),
   );
   const buildFile = path.join(frontend, "dms.frontend.build.ts");
-  const { default: setup } = evaluate(
+  const { default: setup } = evaluateBuildFile(
     fs.readFileSync(buildFile, "utf8"),
     buildFile,
     {},
-    { "#dms/frontend-build": { defineDmsFrontendBuild: (value) => value } },
+    {
+      "#dms/frontend-build": {
+        /** @param {unknown} value */
+        defineDmsFrontendBuild: (value) => value,
+      },
+    },
   );
   const dirs = autoImportDirectories(
     [{ id: "dms", root: frontend }],
@@ -36,35 +87,21 @@ async function autoImports() {
       throw new Error(message);
     },
   );
-  const config = ts.createSourceFile(
-    "vite.ts",
-    fs.readFileSync(path.join(templates, "vite.config.ts"), "utf8"),
-    ts.ScriptTarget.Latest,
-    true,
-  );
-  let configuredImports;
-  const visit = (node) => {
-    if (
-      ts.isPropertyAssignment(node) &&
-      node.name.getText(config) === "imports"
-    )
-      configuredImports = node.initializer;
-    ts.forEachChild(node, visit);
-  };
-  visit(config);
-  const defaults = vm.runInNewContext(
+  const { config, configuredImports } = templateImports(templates);
+  const defaults = defaultsVm.runInNewContext(
     `[${configuredImports.elements
       .filter(ts.isObjectLiteralExpression)
       .map((node) => node.getText(config))
       .join(",")} ]`.replaceAll("import.meta.dirname", "templateRoot"),
     {
       templateRoot: templates,
+      /** @param {unknown} value */
       normalizePath: (value) => value,
       resolve: path.resolve,
     },
   );
-  const { createUnimport } = await import(
-    pathToFileURL(buildReq.resolve("unimport"))
+  const { createUnimport } = await importUnimport(
+    pathToFileURL(buildReq.resolve("unimport")),
   );
   const importer = createUnimport({
     dirs,
@@ -129,12 +166,26 @@ async function autoImports() {
   }
 }
 
+/**
+ * @param {import("typescript").SourceFile} source
+ * @returns {source is import("typescript").SourceFile & { parseDiagnostics: readonly unknown[] }}
+ */
+function hasParseDiagnostics(source) {
+  return (
+    Object.hasOwn(source, "parseDiagnostics") &&
+    "parseDiagnostics" in source &&
+    Array.isArray(source.parseDiagnostics)
+  );
+}
+
+/** @param {import("typescript").Program} program */
 function describeTypes(program) {
   const checker = program.getTypeChecker();
   const flags =
     ts.TypeFormatFlags.NoTruncation |
     ts.TypeFormatFlags.InTypeAlias |
     ts.TypeFormatFlags.UseStructuralFallback;
+  /** @type {Map<string, string>} */
   const dictionaries = new Map();
   for (const source of program.getSourceFiles()) {
     for (const node of source.statements.filter(ts.isTypeAliasDeclaration)) {
@@ -159,6 +210,10 @@ function describeTypes(program) {
         );
     }
   }
+  /**
+   * @param {string} text
+   * @returns {string}
+   */
   const normalize = (text) => {
     const normalized = text
       .replaceAll(frontend.replaceAll("\\", "/"), "<frontend>")
@@ -180,6 +235,8 @@ function describeTypes(program) {
       true,
     );
     const declaration = source.statements[0];
+    if (!hasParseDiagnostics(source))
+      throw new TypeError("The TypeScript parser reports no parse diagnostics");
     if (
       source.parseDiagnostics.length ||
       !ts.isTypeAliasDeclaration(declaration) ||
@@ -192,6 +249,11 @@ function describeTypes(program) {
     );
     return `{ ${members.map((member) => member.getText(source)).join(" ")} }`;
   };
+  /**
+   * @param {import("typescript").Type} type
+   * @param {Set<import("typescript").Type>} [seen]
+   * @returns {string}
+   */
   const describe = (type, seen = new Set()) => {
     if (seen.has(type))
       return normalize(checker.typeToString(type, undefined, flags));
@@ -213,6 +275,10 @@ function describeTypes(program) {
   return { describe, normalize };
 }
 
+/**
+ * @param {import("typescript").Program} program
+ * @param {{ entries: import("unimport").Import[]; globals: string; options: import("typescript").CompilerOptions; injected: Set<string> }} context
+ */
 function signatures(program, { entries, globals, options, injected }) {
   const checker = program.getTypeChecker();
   const { describe, normalize } = describeTypes(program);
@@ -279,10 +345,46 @@ function signatures(program, { entries, globals, options, injected }) {
   );
 }
 
+/**
+ * @typedef {{ default: { setup: (sdk: object) => void } }} FrontendEntry
+ */
+
+/** @type {(source: string, filename: string, globals: legacy.ProbeBindings, imports: legacy.ProbeBindings, transformers: import("typescript").CustomTransformers) => FrontendEntry} */
+const evaluateFrontendEntry = evaluate;
+
+/** @type {(source: string, filename: string, globals: legacy.ProbeBindings, imports: legacy.ProbeBindings) => { default: () => void }} */
+const evaluateRegister = evaluate;
+
+/**
+ * @param {unknown} value
+ * @returns {value is { loader: unknown }}
+ */
+function hasLoader(value) {
+  const holder = isObjectLike(value) || typeof value === "function";
+  return holder && "loader" in value && Boolean(value.loader);
+}
+
+/**
+ * @param {import("typescript").Expression} expression
+ * @returns {string}
+ */
+function patternText(expression) {
+  if (!ts.isStringLiteralLike(expression))
+    throw new TypeError("import.meta.glob takes string literal patterns");
+  return expression.text;
+}
+
 function registrations() {
+  /** @type {unknown[][]} */
   const events = [];
+  /**
+   * @param {string} file
+   * @returns {FrontendEntry}
+   */
   const evaluateEntry = (file) => {
+    /** @type {import("typescript").TransformerFactory<import("typescript").SourceFile>} */
     const transform = (context) => (node) => {
+      /** @type {import("typescript").Visitor} */
       const visit = (node) => {
         if (
           ts.isPropertyAccessExpression(node) &&
@@ -295,8 +397,8 @@ function registrations() {
         ) {
           const arg = node.arguments[0];
           const patterns = ts.isArrayLiteralExpression(arg)
-            ? arg.elements.map((item) => item.text)
-            : [arg.text];
+            ? arg.elements.map(patternText)
+            : [patternText(arg)];
           const files = fs.globSync(
             patterns.filter((pattern) => !pattern.startsWith("!")),
             {
@@ -330,8 +432,9 @@ function registrations() {
             return { defineAsyncComponent: () => ({ loader: true }) };
           if (name === "#dms/frontend-module")
             return { useDmsRuntimeConfig: () => ({ public: {} }) };
-          if (name.startsWith(".")) {
-            const target = path.resolve(path.dirname(file), name);
+          const specifier = String(name);
+          if (specifier.startsWith(".")) {
+            const target = path.resolve(path.dirname(file), specifier);
             if (target.includes("/app/entries"))
               return evaluateEntry(
                 target.endsWith(".ts") ? target : `${target}.ts`,
@@ -341,7 +444,7 @@ function registrations() {
         },
       },
     );
-    return evaluate(
+    return evaluateFrontendEntry(
       fs.readFileSync(file, "utf8"),
       file,
       { probeLoader: () => {} },
@@ -350,19 +453,18 @@ function registrations() {
     );
   };
   const module = evaluateEntry(path.join(frontend, "dms.frontend.ts")).default;
-  const sdk = new Proxy(
-    { options: { public: {} } },
-    {
-      get(target, key) {
-        if (key in target) return target[key];
-        return (...args) =>
-          events.push([
-            key,
-            ...args.map((value) => (value?.loader ? "<component>" : value)),
-          ]);
-      },
+  /** @type {Record<PropertyKey, unknown>} */
+  const sdkTarget = { options: { public: {} } };
+  const sdk = new Proxy(sdkTarget, {
+    get(target, key) {
+      if (key in target) return target[key];
+      return /** @param {...unknown} args */ (...args) =>
+        events.push([
+          key,
+          ...args.map((value) => (hasLoader(value) ? "<component>" : value)),
+        ]);
     },
-  );
+  });
   module.setup(sdk);
   const registerFile = path.join(layers, "dms-ui/app/plugins/register.ts");
   const registrations = new Proxy(
@@ -376,13 +478,75 @@ function registrations() {
         ),
     },
   );
-  evaluate(
+  evaluateRegister(
     fs.readFileSync(registerFile, "utf8"),
     registerFile,
-    { defineDmsPlugin: (setup) => setup },
+    {
+      /** @param {unknown} setup */
+      defineDmsPlugin: (setup) => setup,
+    },
     registrations,
   ).default();
   return events;
+}
+
+/**
+ * @typedef {{
+ *   success: boolean;
+ *   testResults: Array<{ assertionResults: Array<{ fullName: string; status: string }> }>;
+ * }} VitestReport
+ */
+
+/**
+ * @param {unknown} value
+ * @returns {value is { fullName: string; status: string }}
+ */
+function isAssertionResult(value) {
+  return (
+    isObjectLike(value) &&
+    Object.hasOwn(value, "fullName") &&
+    typeof value.fullName === "string" &&
+    Object.hasOwn(value, "status") &&
+    typeof value.status === "string"
+  );
+}
+
+/**
+ * @param {unknown} value
+ * @returns {value is { assertionResults: Array<{ fullName: string; status: string }> }}
+ */
+function isFileResult(value) {
+  return (
+    isObjectLike(value) &&
+    Object.hasOwn(value, "assertionResults") &&
+    Array.isArray(value.assertionResults) &&
+    value.assertionResults.every(isAssertionResult)
+  );
+}
+
+/**
+ * @param {unknown} value
+ * @returns {value is VitestReport}
+ */
+function isVitestReport(value) {
+  return (
+    isObjectLike(value) &&
+    Object.hasOwn(value, "success") &&
+    typeof value.success === "boolean" &&
+    Object.hasOwn(value, "testResults") &&
+    Array.isArray(value.testResults) &&
+    value.testResults.every(isFileResult)
+  );
+}
+
+/**
+ * @param {unknown} error
+ * @returns {error is { stack: string }}
+ */
+function hasStack(error) {
+  return (
+    isObjectLike(error) && "stack" in error && typeof error.stack === "string"
+  );
 }
 
 function behavioralTests() {
@@ -406,8 +570,10 @@ function behavioralTests() {
       ],
       { cwd: frontend, stdio: "pipe", maxBuffer: 16 * 1024 * 1024 },
     );
+    /** @type {unknown} */
     const result = JSON.parse(fs.readFileSync(report, "utf8"));
-    if (!result.success) throw new Error("Frontend behavioral tests failed");
+    if (!isVitestReport(result) || !result.success)
+      throw new Error("Frontend behavioral tests failed");
     return result.testResults
       .flatMap((file) =>
         file.assertionResults.map((test) => ({
@@ -422,6 +588,7 @@ function behavioralTests() {
 }
 
 (async () => {
+  /** @type {Awaited<ReturnType<typeof legacy.observe>> & { autoImports: Awaited<ReturnType<typeof autoImports>>; registrations: ReturnType<typeof registrations>; behavioralTests?: ReturnType<typeof behavioralTests> }} */
   const result = {
     ...(await legacy.observe()),
     autoImports: await autoImports(),
@@ -430,7 +597,10 @@ function behavioralTests() {
   if (process.argv.includes("--tests"))
     result.behavioralTests = behavioralTests();
   process.stdout.write(`${JSON.stringify(result)}\n`);
-})().catch((error) => {
-  process.stderr.write(`${error.stack}\n`);
-  process.exitCode = 1;
-});
+})().catch(
+  /** @param {unknown} error */
+  (error) => {
+    process.stderr.write(`${hasStack(error) ? error.stack : undefined}\n`);
+    process.exitCode = 1;
+  },
+);

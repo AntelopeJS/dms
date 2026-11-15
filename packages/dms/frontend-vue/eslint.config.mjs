@@ -1,4 +1,3 @@
-// @ts-check
 import rendererGlobals from "@antelopejs/dms-frontend/eslint-globals";
 import { TEST_FILE_GLOBS } from "@antelopejs/tooling-configs/oxc/guardrails";
 import eslint from "@eslint/js";
@@ -7,7 +6,7 @@ import typescriptParser from "@typescript-eslint/parser";
 import vue from "eslint-plugin-vue";
 import globals from "globals";
 import dmsGlobals from "./eslint-globals.generated.mjs";
-import testQuality from "./eslint-test-quality.mjs";
+import testQuality from "./scripts/eslint-test-quality.mjs";
 
 const sourceFiles = ["**/*.{js,mjs,cjs,ts,vue}"];
 

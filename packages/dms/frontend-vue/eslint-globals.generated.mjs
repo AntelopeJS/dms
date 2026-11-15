@@ -4,945 +4,262 @@
  * `@antelopejs/dms-frontend/eslint-globals`. Written by
  * `pnpm eslint-globals`.
  */
-export default Object.freeze({
-  ABSENT_VALUE_PARTS: "readonly",
-  ABSENT_VALUE_TEXT: "readonly",
-  ACCOUNTS_LIST_ROUTE: "readonly",
-  ACCOUNT_MENU_ENTRIES: "readonly",
-  APEX_TYPE_CONFIGS: "readonly",
-  AXIS_CHART_BOTTOM_OFFSET: "readonly",
-  AccessMode: "readonly",
-  AccessibilityPreferencesRefs: "readonly",
-  AccountMenuEntry: "readonly",
-  ActionConfirm: "readonly",
-  ActionTarget: "readonly",
-  AndRule: "readonly",
-  AnyFieldRule: "readonly",
-  ApexClickHandler: "readonly",
-  ApexClickOpts: "readonly",
-  ApexTypeConfig: "readonly",
-  ApiDataContext: "readonly",
-  ApiDataHandler: "readonly",
-  ApiDataRequest: "readonly",
-  ApiDataResult: "readonly",
-  ApiErrorAction: "readonly",
-  ApiErrorNotice: "readonly",
-  ApiErrorParams: "readonly",
-  ApiErrorPresenter: "readonly",
-  ApiErrorSeverity: "readonly",
-  ApiErrorToastId: "readonly",
-  ApiFieldError: "readonly",
-  ApiFieldErrorParams: "readonly",
-  ApiPagedDataContext: "readonly",
-  ApiPagedDataHandler: "readonly",
-  ApiPagedDataResult: "readonly",
-  AppTranslation: "readonly",
-  AppWidget: "readonly",
-  AuthLink: "readonly",
-  AwaitRouteOptions: "readonly",
-  AxeOrientation: "readonly",
-  BANNER_TONE_ICONS: "readonly",
-  BLOCK_REFRESH_EVENT: "readonly",
-  BUILDER_ACTION_ID: "readonly",
-  BannerTone: "readonly",
-  BeforeStateMapper: "readonly",
-  BlockFunctions: "readonly",
-  BlockText: "readonly",
-  BreadcrumbTargetSource: "readonly",
-  ButtonVariant: "readonly",
-  CARDS_DISPLAY_ID: "readonly",
-  CASCADER_FETCH_LIMIT: "readonly",
-  CASCADER_PATH_SEPARATOR: "readonly",
-  CHART_EVENT_NAMES: "readonly",
-  CHART_TYPES: "readonly",
-  CIRCULAR_CHART_TYPES: "readonly",
-  CODE_INCOMPLETE_MESSAGE: "readonly",
-  COLOR_MODE_COOKIE: "readonly",
-  COMMAND_PALETTE_FUSE_OPTIONS: "readonly",
-  COMMAND_PALETTE_SEARCH_TEXT_KEY: "readonly",
-  CONTENT_LANGUAGE_HEADER: "readonly",
-  CalendarBucket: "readonly",
-  CascaderAncestry: "readonly",
-  CascaderKeyMapping: "readonly",
-  CascaderNode: "readonly",
-  CascaderRowsReader: "readonly",
-  CascaderSelectionRules: "readonly",
-  CascaderTreeOptions: "readonly",
-  CascaderValueReads: "readonly",
-  CategoryInfo: "readonly",
-  ChartAnnotation: "readonly",
-  ChartAutoYRange: "readonly",
-  ChartCandlePoint: "readonly",
-  ChartCardResponse: "readonly",
-  ChartClickPayload: "readonly",
-  ChartCurve: "readonly",
-  ChartGroupPoint: "readonly",
-  ChartLegendPosition: "readonly",
-  ChartRangePoint: "readonly",
-  ChartResponse: "readonly",
-  ChartSeries: "readonly",
-  ChartSeriesPoint: "readonly",
-  ChartTextTranslate: "readonly",
-  ChartType: "readonly",
-  ChartXAxis: "readonly",
-  ChartXAxisFormatter: "readonly",
-  ClickPointValue: "readonly",
-  Color: "readonly",
-  ColorModeOption: "readonly",
-  ColorModePreference: "readonly",
-  ColorValue: "readonly",
-  CommandPaletteAssistant: "readonly",
-  CommandPaletteAssistantAnswerProps: "readonly",
-  CommandPaletteAssistantSuggestion: "readonly",
-  CommandPaletteSource: "readonly",
-  ComparisonContext: "readonly",
-  ComparisonStyle: "readonly",
-  ComponentChild: "readonly",
-  ComponentEventData: "readonly",
-  ComponentId: "readonly",
-  ComponentInfo: "readonly",
-  ComponentOptionsData: "readonly",
-  ComponentOrNoInput: "readonly",
-  ComponentShortcuts: "readonly",
-  ComposableText: "readonly",
-  ComposedText: "readonly",
-  ComposedTextContext: "readonly",
-  ComposedTextCountParam: "readonly",
-  ComposedTextDateFormat: "readonly",
-  ComposedTextDateParam: "readonly",
-  ComposedTextMoneyParam: "readonly",
-  ComposedTextNumberFormat: "readonly",
-  ComposedTextNumberParam: "readonly",
-  ComposedTextParam: "readonly",
-  ComposedTextParamType: "readonly",
-  ComposedTextRelativeDateParam: "readonly",
-  ComposedTextTranslate: "readonly",
-  ComposedTextTypedParam: "readonly",
-  ConfirmActionError: "readonly",
-  ConfirmBodyRender: "readonly",
-  ConfirmColor: "readonly",
-  ConfirmDialog: "readonly",
-  ConfirmDialogColor: "readonly",
-  ConfirmDialogDownloadTarget: "readonly",
-  ConfirmDialogField: "readonly",
-  ConfirmDialogFrom: "readonly",
-  ConfirmDialogImpact: "readonly",
-  ConfirmDialogLinkTarget: "readonly",
-  ConfirmDialogSecondaryAction: "readonly",
-  ConfirmDialogSecondaryTarget: "readonly",
-  ConfirmFromOptions: "readonly",
-  ConfirmImpact: "readonly",
-  ConfirmInitialFocus: "readonly",
-  ConfirmNotice: "readonly",
-  ConfirmOptions: "readonly",
-  ConfirmPartialOutcome: "readonly",
-  ConfirmSecondaryAction: "readonly",
-  ConfirmTextError: "readonly",
-  ConfirmValues: "readonly",
-  ContainerColor: "readonly",
-  ContainerInstance: "readonly",
-  ContainerOptions: "readonly",
-  ContainerPatch: "readonly",
-  CurrentModule: "readonly",
-  CustomButton: "readonly",
-  CustomButtonVariant: "readonly",
-  CustomRowAction: "readonly",
-  CustomRowActionBulk: "readonly",
-  CustomRowActionBulkOptions: "readonly",
-  DEFAULT_CASCADER_KEY_MAPPING: "readonly",
-  DEFAULT_COMPARISONS: "readonly",
-  DEFAULT_KEYBOARD_PLATFORM: "readonly",
-  DEFAULT_PAGE_HEADER_ACTIONS_ORDER: "readonly",
-  DEFAULT_PAGE_ICON: "readonly",
-  DEFAULT_PRESETS: "readonly",
-  DEFAULT_TABLE_SEARCH_SHORTCUT: "readonly",
-  Data: "readonly",
-  DataType: "readonly",
-  DataTypeConfig: "readonly",
-  DataTypeFilterEditorValue: "readonly",
-  DataTypeFormatter: "readonly",
-  DataTypeSelectSource: "readonly",
-  DataTypeValueComparer: "readonly",
-  DateFormatPreference: "readonly",
-  DatetimeBuckets: "readonly",
-  DefaultComponentProps: "readonly",
-  DevReload: "readonly",
-  DmsMenuItem: "readonly",
-  DonutRecord: "readonly",
-  DownloadActionTarget: "readonly",
-  DrawerDirection: "readonly",
-  DrawerInstance: "readonly",
-  DrawerOptions: "readonly",
-  DrawerPatch: "readonly",
-  DrawerRowHeader: "readonly",
-  DrawerTargetOptions: "readonly",
-  DurationFormatOptions: "readonly",
-  DurationPrecision: "readonly",
-  ENDPOINT_MODULES_LISTING: "readonly",
-  ENDPOINT_STORE_LISTING: "readonly",
-  END_OF_DAY_HOURS: "readonly",
-  END_OF_DAY_MINUTES: "readonly",
-  END_OF_DAY_MS: "readonly",
-  END_OF_DAY_SECONDS: "readonly",
-  EnclosingForm: "readonly",
-  EventError: "readonly",
-  Events: "readonly",
-  ExportJobStatusResponse: "readonly",
-  ExportJobTicket: "readonly",
-  FIELD_KEY: "readonly",
-  FIELD_OPERATORS: "readonly",
-  FORM_CONTENT_LANGUAGE_KEY: "readonly",
-  FORM_FIELD_LOADING_KEY: "readonly",
-  FORM_FIELD_SAVED_KEY: "readonly",
-  FORM_VALIDATOR_KEY: "readonly",
-  FROM_ACCOUNTS_QUERY: "readonly",
-  FavoritePage: "readonly",
-  FavoritePageMetadata: "readonly",
-  FavoritePageSource: "readonly",
-  FavoriteRouteResolver: "readonly",
-  FeedCounts: "readonly",
-  FieldCondition: "readonly",
-  FieldControl: "readonly",
-  FieldEqualsRule: "readonly",
-  FieldErrorAria: "readonly",
-  FieldErrorCode: "readonly",
-  FieldErrorResolution: "readonly",
-  FieldGroup: "readonly",
-  FieldInRule: "readonly",
-  FieldNotEqualsRule: "readonly",
-  FieldNotInRule: "readonly",
-  FieldOperatorKey: "readonly",
-  FieldRule: "readonly",
-  FieldValueComparer: "readonly",
-  FileConstraintViolation: "readonly",
-  FileFieldConstraints: "readonly",
-  FoldedCrumbs: "readonly",
-  FooterLink: "readonly",
-  FormData: "readonly",
-  FormEvents: "readonly",
-  FormFetchResponse: "readonly",
-  FormField: "readonly",
-  FormFieldBadge: "readonly",
-  FormFieldLink: "readonly",
-  FormFieldOrGroup: "readonly",
-  FormFieldReadonly: "readonly",
-  FormFieldValue: "readonly",
-  FormFunctions: "readonly",
-  FormProps: "readonly",
-  FormSection: "readonly",
-  FormSectionNav: "readonly",
-  FormServerFieldError: "readonly",
-  FormSubmitResponse: "readonly",
-  FormValidator: "readonly",
-  FormattedValueParts: "readonly",
-  FrontendBreak: "readonly",
-  FrontendRequirement: "readonly",
-  FrontendVersionSource: "readonly",
-  GROUPED_DISPLAY_ID: "readonly",
-  HTTP_BAD_REQUEST: "readonly",
-  HTTP_FORBIDDEN: "readonly",
-  HTTP_INTERNAL_SERVER_ERROR: "readonly",
-  HTTP_NOT_FOUND: "readonly",
-  HTTP_PRECONDITION_FAILED: "readonly",
-  HTTP_UNAUTHORIZED: "readonly",
-  HandleApiErrorOptions: "readonly",
-  HeaderAction: "readonly",
-  HttpMethod: "readonly",
-  I18nTranslate: "readonly",
-  INVALID_REQUEST: "readonly",
-  ImageItemValue: "readonly",
-  ImageResizeBounds: "readonly",
-  InputNumberAdjustment: "readonly",
-  InputNumberAdjustmentReason: "readonly",
-  InterfaceImplementation: "readonly",
-  InterfaceScale: "readonly",
-  JsonPrimitive: "readonly",
-  JsonValue: "readonly",
-  KANBAN_DISPLAY_BRIDGE_KEY: "readonly",
-  KANBAN_DISPLAY_ID: "readonly",
-  KEYBOARD_KEY_LABELS: "readonly",
-  KEYBOARD_PLATFORM_COOKIE: "readonly",
-  KanbanColumnDef: "readonly",
-  KanbanConfig: "readonly",
-  KanbanDisplayBridge: "readonly",
-  KanbanLabelTranslator: "readonly",
-  KanbanSelectItemOption: "readonly",
-  KeyboardPlatform: "readonly",
-  KeyboardPlatformNavigator: "readonly",
-  KpiCardResponse: "readonly",
-  LIVE_BLOCK_REFRESH_EVENT: "readonly",
-  LIVE_PAUSE_SOURCE: "readonly",
-  LOGICAL_OPERATOR_KEYS: "readonly",
-  LayoutBanner: "readonly",
-  LayoutBannerScope: "readonly",
-  LayoutBannerVariant: "readonly",
-  LeaveGuardCallback: "readonly",
-  LeaveGuardEntry: "readonly",
-  LeaveGuardRegistry: "readonly",
-  LiveFormHandle: "readonly",
-  LivePauseSource: "readonly",
-  LocalizedSchema: "readonly",
-  LogicalRule: "readonly",
-  MAX_PREFERENCES_COOKIE_BYTES: "readonly",
-  MENU_STATUS_CHIP_COLORS: "readonly",
-  MENU_STATUS_TEXT_CLASSES: "readonly",
-  MOCKUP_ASSISTANT_PROMPT_EVENT: "readonly",
-  MODULE_URL_PREFIX: "readonly",
-  MS_PER_DAY: "readonly",
-  MS_PER_HOUR: "readonly",
-  MarkFieldSaved: "readonly",
-  MaybePromise: "readonly",
-  MenuItemBadgeTone: "readonly",
-  MenuItemQuery: "readonly",
-  MenuItemStatus: "readonly",
-  MenuItemTarget: "readonly",
-  MenuItemType: "readonly",
-  MenuItemVariant: "readonly",
-  MenuLock: "readonly",
-  MenuOptions: "readonly",
-  MenuRouteState: "readonly",
-  MissingInterface: "readonly",
-  MixedSeriesDef: "readonly",
-  MockupAssistantPrompt: "readonly",
-  MockupAssistantPromptBlock: "readonly",
-  MockupAssistantPromptSource: "readonly",
-  MockupAssistantPromptTarget: "readonly",
-  ModalOptions: "readonly",
-  ModalSize: "readonly",
-  ModuleCatalogEntry: "readonly",
-  ModuleHistoryApi: "readonly",
-  ModuleHistoryEntry: "readonly",
-  ModuleInfo: "readonly",
-  ModuleReadoutLine: "readonly",
-  ModuleReadoutTone: "readonly",
-  ModuleSourceKind: "readonly",
-  ModuleStatus: "readonly",
-  ModuleWithAccess: "readonly",
-  ModulesListingError: "readonly",
-  NESTED_CHART_INJECT_KEY: "readonly",
-  NavItem: "readonly",
-  NestedChartContext: "readonly",
-  NotRule: "readonly",
-  NotificationEvents: "readonly",
-  NotificationTone: "readonly",
-  OnboardingInfo: "readonly",
-  OrRule: "readonly",
-  PAGE_COMPONENTS_WAIT_MS: "readonly",
-  PAGE_FILL_HEIGHT_CLASSES: "readonly",
-  PAGE_GUARD_PREFIX: "readonly",
-  PAGE_ROUTE_PREFIX: "readonly",
-  PAGE_SEARCH_SHORTCUTS: "readonly",
-  PASSWORD_RULES_MESSAGE: "readonly",
-  PENDING_SCOPE_TIMEOUT_MS: "readonly",
-  POSITIVE_ACCENT: "readonly",
-  PROFILE_ROUTE: "readonly",
-  PageBlocksRefreshDetail: "readonly",
-  PageHeaderActionsHost: "readonly",
-  PageHeaderActionsOptions: "readonly",
-  PageHeaderActionsRender: "readonly",
-  PageInfo: "readonly",
-  PageLayout: "readonly",
-  PageLiveNote: "readonly",
-  PageLiveNoteInput: "readonly",
-  PageLiveNoteTone: "readonly",
-  PageLiveOptions: "readonly",
-  PageLivePeriod: "readonly",
-  PageLiveRefresh: "readonly",
-  PageLiveRefreshOptions: "readonly",
-  PageLiveSlowRate: "readonly",
-  PageLiveState: "readonly",
-  PageRealtimeApi: "readonly",
-  PageRecordDeletionSource: "readonly",
-  PageRecordLabel: "readonly",
-  PageSetupCleanup: "readonly",
-  PageSetupContext: "readonly",
-  PageSetupFunction: "readonly",
-  PageToolbarSize: "readonly",
-  PageToolbarSizeState: "readonly",
-  PageValidation: "readonly",
-  PasswordRequirement: "readonly",
-  PeriodClock: "readonly",
-  PeriodComparison: "readonly",
-  PeriodPreset: "readonly",
-  PeriodQueryKeys: "readonly",
-  PeriodRange: "readonly",
-  PeriodState: "readonly",
-  PresentApiErrorOptions: "readonly",
-  PresignResponse: "readonly",
-  Primitive: "readonly",
-  QUICK_ACTION_ADD: "readonly",
-  QUICK_ACTION_BUTTON: "readonly",
-  QUICK_ACTION_BUTTON_KEY: "readonly",
-  QUICK_ACTION_COMPONENT_KEY: "readonly",
-  QUICK_ACTION_QUERY_KEY: "readonly",
-  QueryParamFilter: "readonly",
-  QueryParamFilters: "readonly",
-  QueryParams: "readonly",
-  QuickActionCategoryGroup: "readonly",
-  QuickActionCategoryInfo: "readonly",
-  QuickActionInfo: "readonly",
-  QuickActionIntent: "readonly",
-  QuickActionTarget: "readonly",
-  QuickActionsPayload: "readonly",
-  REQUIRED_MESSAGE: "readonly",
-  RESERVED_TABLE_VIEW_DISPLAY_IDS: "readonly",
-  ReadonlyBehavior: "readonly",
-  ReadonlyBehaviorMode: "readonly",
-  RealtimeEvent: "readonly",
-  RealtimeSnapshotEvent: "readonly",
-  RealtimeTopicHandler: "readonly",
-  RecordWithDefault: "readonly",
-  RegionalFormatLocale: "readonly",
-  RegionalFormatOptions: "readonly",
-  RegionalNumberFormatter: "readonly",
-  RegionalOptionsSettings: "readonly",
-  RegionalPreferenceFields: "readonly",
-  RegionalPreferences: "readonly",
-  RegisterValidator: "readonly",
-  RelativeDistanceOptions: "readonly",
-  ResolveApiErrorOptions: "readonly",
-  ResolveFieldErrorsOptions: "readonly",
-  ResolvedComponentInfo: "readonly",
-  RouteParamFilter: "readonly",
-  RouteParamFilters: "readonly",
-  RowActionConfig: "readonly",
-  RowActionRule: "readonly",
-  RowClickAction: "readonly",
-  RowClickActionOptions: "readonly",
-  RowNavigation: "readonly",
-  RunExportJobOptions: "readonly",
-  SETTINGS_ROUTE: "readonly",
-  SOFT_TINT: "readonly",
-  SWITCH_ACCOUNT_ROUTE: "readonly",
-  ScaleOption: "readonly",
-  SemanticColor: "readonly",
-  SetFieldLoading: "readonly",
-  ShortcutCondition: "readonly",
-  ShortcutMetadata: "readonly",
-  SidePanel: "readonly",
-  SidePanelControls: "readonly",
-  SidePanelNotFoundTexts: "readonly",
-  SidePanelTargetOptions: "readonly",
-  SidePanelWidthBounds: "readonly",
-  SidebarWidget: "readonly",
-  SidebarWidgetPosition: "readonly",
-  SiteLayout: "readonly",
-  SiteLayoutTree: "readonly",
-  Size: "readonly",
-  SortDirection: "readonly",
-  SparklineTrend: "readonly",
-  SseCloseReason: "readonly",
-  SseEventHandler: "readonly",
-  SseStreamHandle: "readonly",
-  SseStreamOptions: "readonly",
-  StackAlignment: "readonly",
-  StackDistribution: "readonly",
-  StoreActionBody: "readonly",
-  StoreDependencyChoice: "readonly",
-  StoreFrontendNotice: "readonly",
-  StoreFrontendState: "readonly",
-  StoreListing: "readonly",
-  StoreListingEntry: "readonly",
-  StoreModuleState: "readonly",
-  StoreOperation: "readonly",
-  StoreOperationKind: "readonly",
-  StoreOperationStep: "readonly",
-  StoredAccount: "readonly",
-  SubmitDataContext: "readonly",
-  SubmitField: "readonly",
-  SubmitTarget: "readonly",
-  SwitchAccountResponse: "readonly",
-  SystemState: "readonly",
-  SystemStateMeta: "readonly",
-  TABLE_DISPLAY_ID: "readonly",
-  TABLE_VIEW_DELETE_METADATA: "readonly",
-  TABLE_VIEW_ESCAPE_METADATA: "readonly",
-  TABLE_VIEW_J_METADATA: "readonly",
-  TABLE_VIEW_K_METADATA: "readonly",
-  TABLE_VIEW_META_R_METADATA: "readonly",
-  TABLE_VIEW_PANEL_ESCAPE_METADATA: "readonly",
-  TABLE_VIEW_SHIFT_A_METADATA: "readonly",
-  TABLE_VIEW_SHIFT_F_METADATA: "readonly",
-  TABLE_VIEW_SHIFT_N_METADATA: "readonly",
-  TABLE_VIEW_SHORTCUTS_METADATA: "readonly",
-  TAB_SHIFT_LETTER_METADATA: "readonly",
-  TAB_SHORTCUTS_METADATA: "readonly",
-  TIME_ZONE_COOKIE: "readonly",
-  TabBadges: "readonly",
-  TabEvents: "readonly",
-  TabItem: "readonly",
-  TabProps: "readonly",
-  TabVariant: "readonly",
-  TableColumn: "readonly",
-  TableEmits: "readonly",
-  TableFilter: "readonly",
-  TableProps: "readonly",
-  TableQueryParams: "readonly",
-  TableRowActionOptions: "readonly",
-  TableSharedData: "readonly",
-  TableViewCardConfig: "readonly",
-  TableViewCardProps: "readonly",
-  TableViewCardReorder: "readonly",
-  TableViewColumn: "readonly",
-  TableViewColumnDisplay: "readonly",
-  TableViewConfig: "readonly",
-  TableViewDisplay: "readonly",
-  TableViewDisplayActions: "readonly",
-  TableViewDisplayAvailabilityContext: "readonly",
-  TableViewDisplayCapabilities: "readonly",
-  TableViewDisplayConfig: "readonly",
-  TableViewDisplayContext: "readonly",
-  TableViewDisplayPagination: "readonly",
-  TableViewDisplayReorder: "readonly",
-  TableViewDisplaySelection: "readonly",
-  TableViewEmptyStateConfig: "readonly",
-  TableViewEmptyStateControls: "readonly",
-  TableViewEmptyStateKind: "readonly",
-  TableViewEmptyStatesConfig: "readonly",
-  TableViewEvents: "readonly",
-  TableViewExpandableConfig: "readonly",
-  TableViewExpandableField: "readonly",
-  TableViewExpandedRowProps: "readonly",
-  TableViewFooter: "readonly",
-  TableViewFooterSummaryConfig: "readonly",
-  TableViewFunctions: "readonly",
-  TableViewGroupBy: "readonly",
-  TableViewGroupedConfig: "readonly",
-  TableViewLayout: "readonly",
-  TableViewListResponse: "readonly",
-  TableViewLiveHoldOptions: "readonly",
-  TableViewPaginationMode: "readonly",
-  TableViewPresenceActor: "readonly",
-  TableViewPresenceMap: "readonly",
-  TableViewQuickFilter: "readonly",
-  TableViewQuickFilterMode: "readonly",
-  TableViewReorderConfig: "readonly",
-  TableViewReorderHandle: "readonly",
-  TableViewSourceCapabilities: "readonly",
-  TableViewSourceConfig: "readonly",
-  TableViewTab: "readonly",
-  TableViewTabNavBadge: "readonly",
-  TableViewViewColumns: "readonly",
-  TableViewViewConfig: "readonly",
-  TableViewViewSort: "readonly",
-  TableViewViewStateConfig: "readonly",
-  TableViewViewsConfig: "readonly",
-  TableViewViewsLayout: "readonly",
-  TenantAssignmentRequiredResponse: "readonly",
-  TimeFormatPreference: "readonly",
-  Tone: "readonly",
-  TopListCardResponse: "readonly",
-  TopListItem: "readonly",
-  TrailingDeduper: "readonly",
-  TwoFactorRequiredResponse: "readonly",
-  UiColor: "readonly",
-  UseApexChartInput: "readonly",
-  UseApexChartOutput: "readonly",
-  UseApiDataOptions: "readonly",
-  UseChartFetchOptions: "readonly",
-  UseChartFetchReturn: "readonly",
-  UseExportJobLabels: "readonly",
-  UseFieldErrorsOptions: "readonly",
-  UseFormDirtyOptions: "readonly",
-  UseFormDirtyReturn: "readonly",
-  UseFormOptions: "readonly",
-  UseLeaveGuardReturn: "readonly",
-  UsePeriodOptions: "readonly",
-  UsePeriodReturn: "readonly",
-  UseTabReturn: "readonly",
-  UseUnsavedChangesOptions: "readonly",
-  UseUnsavedChangesReturn: "readonly",
-  User: "readonly",
-  UserAvatar: "readonly",
-  UserNotification: "readonly",
-  UserPreferences: "readonly",
-  UserRealtimeApi: "readonly",
-  ValidateAccountResponse: "readonly",
-  ValidationFunction: "readonly",
-  ValidationIssue: "readonly",
-  ValidationRouteContext: "readonly",
-  ValueFormat: "readonly",
-  ValuePrecision: "readonly",
-  WallTime: "readonly",
-  WatchAction: "readonly",
-  WatchActionCondition: "readonly",
-  WatchActionFunction: "readonly",
-  WeekStartPreference: "readonly",
-  alignmentMap: "readonly",
-  apiErrorStatus: "readonly",
-  apiErrorText: "readonly",
-  appendPeriodToUrl: "readonly",
-  applyMenuRouteState: "readonly",
-  browserTimeZone: "readonly",
-  bucketAxisFormatter: "readonly",
-  bucketTooltipFormatter: "readonly",
-  buildAnnotations: "readonly",
-  buildAutoYRange: "readonly",
-  buildBreadcrumbTarget: "readonly",
-  buildCascaderPathLabels: "readonly",
-  buildCascaderTree: "readonly",
-  buildFavoritePage: "readonly",
-  buildKanbanColumns: "readonly",
-  buildLinkWithQuery: "readonly",
-  buildPageSearchShortcuts: "readonly",
-  buildPageTarget: "readonly",
-  buildPlotOptions: "readonly",
-  buildTabShortcuts: "readonly",
-  buildTableViewShortcuts: "readonly",
-  buildValidationSchema: "readonly",
-  cascaderValueId: "readonly",
-  cascaderValuePath: "readonly",
-  cascaderValueReads: "readonly",
-  categoryLabelStep: "readonly",
-  chartFrameHeight: "readonly",
-  checkFileConstraints: "readonly",
-  childComponentId: "readonly",
-  clearChartColorCache: "readonly",
-  clearedFieldValue: "readonly",
-  cloneFormValue: "readonly",
-  codeEntryError: "readonly",
-  collectOpenItemIds: "readonly",
-  collectPageLayoutComponentNames: "readonly",
-  collectSubmitData: "readonly",
-  combineSaveStates: "readonly",
-  computeResetState: "readonly",
-  createActionValidator: "readonly",
-  createFieldValueComparer: "readonly",
-  createTableViewDeleteShortcut: "readonly",
-  createTableViewEscapeShortcut: "readonly",
-  createTableViewMetaRShortcut: "readonly",
-  createTableViewShiftAShortcut: "readonly",
-  createTableViewShiftFShortcut: "readonly",
-  createTableViewShiftNShortcut: "readonly",
-  createTrailingDeduper: "readonly",
-  currentRegionalPreferences: "readonly",
-  describeApiError: "readonly",
-  describeFieldErrors: "readonly",
-  detectDatetimeBuckets: "readonly",
-  detectKeyboardPlatform: "readonly",
-  dispatchQuickActionTarget: "readonly",
-  distributionMap: "readonly",
-  downloadFile: "readonly",
-  ensureApexLocale: "readonly",
-  evaluateRowActionRule: "readonly",
-  extractRouteParams: "readonly",
-  fieldErrorId: "readonly",
-  fieldValuesOfSubmitDefaults: "readonly",
-  fillRouteParams: "readonly",
-  findCascaderNode: "readonly",
-  findNavigableCategory: "readonly",
-  firstAccessiblePagePath: "readonly",
-  flattenCascaderTree: "readonly",
-  focusFirstFormError: "readonly",
-  foldBreadcrumb: "readonly",
-  formIssueMessage: "readonly",
-  formShowsActions: "readonly",
-  formatCascaderPath: "readonly",
-  formatDate: "readonly",
-  formatDateTime: "readonly",
-  formatDeltaPercent: "readonly",
-  formatDuration: "readonly",
-  formatKeyboardShortcut: "readonly",
-  formatNumber: "readonly",
-  formatPercentage: "readonly",
-  formatPlainAxisValue: "readonly",
-  formatPrice: "readonly",
-  formatRelativeDistance: "readonly",
-  formatRelativeTime: "readonly",
-  formatTime: "readonly",
-  formatValue: "readonly",
-  formatValueParts: "readonly",
-  getAppComposedText: "readonly",
-  getAppTranslation: "readonly",
-  getPluginI18n: "readonly",
-  heatmapRangeColors: "readonly",
-  hideSearchTextMatches: "readonly",
-  holdPageHeaderActions: "readonly",
-  injectPageHeaderActionsHost: "readonly",
-  interpolateRowText: "readonly",
-  interpolateUrl: "readonly",
-  isAcceptanceField: "readonly",
-  isAccountMenuRoute: "readonly",
-  isActionEnabled: "readonly",
-  isActionVisible: "readonly",
-  isBigint: "readonly",
-  isBlankValue: "readonly",
-  isBoolean: "readonly",
-  isCalendarPreset: "readonly",
-  isCascaderNodeSelectable: "readonly",
-  isClearedFieldValue: "readonly",
-  isComposedText: "readonly",
-  isConfirmFrom: "readonly",
-  isDarkSurface: "readonly",
-  isDate: "readonly",
-  isDefinitiveMetadataFailure: "readonly",
-  isEligibleKanbanColumn: "readonly",
-  isFavoritePathValid: "readonly",
-  isFieldGroup: "readonly",
-  isFieldMarkedRequired: "readonly",
-  isFocusInsideOverlay: "readonly",
-  isFoldedCrumbs: "readonly",
-  isFromAccountsList: "readonly",
-  isFunction: "readonly",
-  isJSON: "readonly",
-  isKeyword: "readonly",
-  isKnownTimeZone: "readonly",
-  isLayoutBannerInScope: "readonly",
-  isMenuItemActive: "readonly",
-  isModuleAreaPath: "readonly",
-  isNull: "readonly",
-  isNumber: "readonly",
-  isObject: "readonly",
-  isReducedMotionActive: "readonly",
-  isRelativePreset: "readonly",
-  isRichTextBlank: "readonly",
-  isSamePageQuery: "readonly",
-  isSameRouteParams: "readonly",
-  isSegmentChart: "readonly",
-  isSidebarWidgetVisible: "readonly",
-  isString: "readonly",
-  isStringDate: "readonly",
-  isStringJSON: "readonly",
-  isStringNumber: "readonly",
-  isSymbol: "readonly",
-  isTableViewEscapeActive: "readonly",
-  isUnauthorizedStreamError: "readonly",
-  isUndefined: "readonly",
-  isViewStateKey: "readonly",
-  keyboardKeyLabel: "readonly",
-  layoutUrlWithQuery: "readonly",
-  localClock: "readonly",
-  localeWeekStart: "readonly",
-  localizeDonutRecords: "readonly",
-  localizeSchema: "readonly",
-  localizeSeries: "readonly",
-  localizedSubmitValue: "readonly",
-  makeFieldSchemaRequired: "readonly",
-  matchMimetype: "readonly",
-  msUntilNextMidnight: "readonly",
-  namesRowField: "readonly",
-  niceStep: "readonly",
-  normalizeActionConfig: "readonly",
-  onLivePageBlocksRefresh: "readonly",
-  onPageBlocksRefresh: "readonly",
-  openDynamicContainer: "readonly",
-  openSseStream: "readonly",
-  pageQueryValues: "readonly",
-  pageRoutePath: "readonly",
-  parse: "readonly",
-  parseLinkQuery: "readonly",
-  parseObject: "readonly",
-  parseTimeSpan: "readonly",
-  passwordSchema: "readonly",
-  periodQueryKeys: "readonly",
-  preloadPageLayoutComponents: "readonly",
-  providePageFillHeight: "readonly",
-  providePageHeaderActions: "readonly",
-  providePageRealtime: "readonly",
-  readCascaderAncestry: "readonly",
-  readPointValue: "readonly",
-  readQuickActionIntent: "readonly",
-  readRegionalPreferences: "readonly",
-  readThemeBorder: "readonly",
-  readThemeBorderAccented: "readonly",
-  readThemeDimmed: "readonly",
-  readThemeHighlighted: "readonly",
-  readThemeMonoFont: "readonly",
-  readThemeMuted: "readonly",
-  readThemeSurface: "readonly",
-  readThemeTrack: "readonly",
-  readTimeSpan: "readonly",
-  readTranslationKey: "readonly",
-  readableNumberFormat: "readonly",
-  readerClock: "readonly",
-  readerTimeZone: "readonly",
-  refreshLivePageBlocks: "readonly",
-  refreshPageBlocks: "readonly",
-  refreshSessionSurfaces: "readonly",
-  regionalDateTimeFormat: "readonly",
-  regionalDayKey: "readonly",
-  regionalDayNumber: "readonly",
-  regionalFormatLocale: "readonly",
-  regionalWeekStart: "readonly",
-  registerAuthLink: "readonly",
-  registerCommandPaletteAssistant: "readonly",
-  registerCommandPaletteSource: "readonly",
-  registerFooterLink: "readonly",
-  registerHeaderAction: "readonly",
-  registerPeriodScope: "readonly",
-  registerSidePanel: "readonly",
-  registerTableViewDisplay: "readonly",
-  replaceUrlVariables: "readonly",
-  requiredError: "readonly",
-  resizeImageToBounds: "readonly",
-  resolveApiErrorMessage: "readonly",
-  resolveApiErrorTitle: "readonly",
-  resolveApiMessage: "readonly",
-  resolveCascaderKeyMapping: "readonly",
-  resolveChartColor: "readonly",
-  resolveChartColors: "readonly",
-  resolveComparisonRange: "readonly",
-  resolveComponentChildren: "readonly",
-  resolveComposedText: "readonly",
-  resolveDisplayCapabilities: "readonly",
-  resolveDmsComponent: "readonly",
-  resolveDmsComponentName: "readonly",
-  resolveFieldErrors: "readonly",
-  resolveFormFieldErrors: "readonly",
-  resolveI18nKey: "readonly",
-  resolveLayoutBannerPresentation: "readonly",
-  resolveMetadataRetryDelay: "readonly",
-  resolveModuleLandingSlug: "readonly",
-  resolveOptionalI18nKey: "readonly",
-  resolvePresetRange: "readonly",
-  resolveRowClickAction: "readonly",
-  resolveSidePanelWidthBounds: "readonly",
-  resolveSidebarWidgetPosition: "readonly",
-  resolveSparklineAccent: "readonly",
-  resolveSubmitDefaults: "readonly",
-  resolveSubmitTarget: "readonly",
-  resolvesPeriodsAsBrowser: "readonly",
-  ringFitsSliceLabels: "readonly",
-  rowCustomActions: "readonly",
-  runCustomValidation: "readonly",
-  runDeduped: "readonly",
-  scrollToBlock: "readonly",
-  searchCascaderTree: "readonly",
-  setOnboardingComplete: "readonly",
-  setReaderTimeZoneSource: "readonly",
-  setRegionalPreferencesSource: "readonly",
-  settledRenderedBellCounts: "readonly",
-  shouldExpandMenuItem: "readonly",
-  siblingComponentId: "readonly",
-  snapshotFormState: "readonly",
-  stripQueryAndHash: "readonly",
-  tableSearchShortcuts: "readonly",
-  thinnedCategoryFormatter: "readonly",
-  toBucketSeries: "readonly",
-  toDonutRecords: "readonly",
-  translateMenuItem: "readonly",
-  translateMenuItems: "readonly",
-  unregisterCommandPaletteAssistant: "readonly",
-  unregisterCommandPaletteSource: "readonly",
-  unregisterFooterLink: "readonly",
-  unregisterSidePanel: "readonly",
-  useAccessibilityPreferences: "readonly",
-  useApexChart: "readonly",
-  useApiData: "readonly",
-  useApiErrorPresenter: "readonly",
-  useApiPagedData: "readonly",
-  useAppOverlay: "readonly",
-  useAppSidePanels: "readonly",
-  useAppWidgets: "readonly",
-  useAuthFetch: "readonly",
-  useAuthLinks: "readonly",
-  useChartFetch: "readonly",
-  useColorModePreference: "readonly",
-  useCommandPaletteAssistant: "readonly",
-  useCommandPaletteGroups: "readonly",
-  useComponentEvent: "readonly",
-  useComposedText: "readonly",
-  useConfirm: "readonly",
-  useConfirmFrom: "readonly",
-  useControlError: "readonly",
-  useCooldown: "readonly",
-  useCurrentModule: "readonly",
-  useCurrentUser: "readonly",
-  useDataTypes: "readonly",
-  useDefinedFunctions: "readonly",
-  useDevReload: "readonly",
-  useDiscardChangesPrompt: "readonly",
-  useDrawer: "readonly",
-  useEnclosingForm: "readonly",
-  useEventedAction: "readonly",
-  useExportJob: "readonly",
-  useFavoritePages: "readonly",
-  useFieldErrors: "readonly",
-  useFileReadUrls: "readonly",
-  useFirstAccessiblePagePath: "readonly",
-  useFooterLinks: "readonly",
-  useForm: "readonly",
-  useFormDirty: "readonly",
-  useHeaderActions: "readonly",
-  useHomepage: "readonly",
-  useInfiniteScroll: "readonly",
-  useInstalledModuleCount: "readonly",
-  useInstalledModules: "readonly",
-  useInstantSaveHeader: "readonly",
-  useInterfaceScale: "readonly",
-  useIsOwner: "readonly",
-  useKeyboardPlatform: "readonly",
-  useLayoutBanners: "readonly",
-  useLeaveGuard: "readonly",
-  useLiveFormErrors: "readonly",
-  useLivePauseSource: "readonly",
-  useLocalizedSchema: "readonly",
-  useLogout: "readonly",
-  useMenuLocks: "readonly",
-  useModal: "readonly",
-  useModuleHistory: "readonly",
-  useModuleStore: "readonly",
-  useModuleStoreActions: "readonly",
-  useModulesListing: "readonly",
-  useMultiAccount: "readonly",
-  useNotifications: "readonly",
-  useOAuthErrorToast: "readonly",
-  useOnboarding: "readonly",
-  usePageFillHeight: "readonly",
-  usePageHeaderActions: "readonly",
-  usePageLayout: "readonly",
-  usePageLeaveGuard: "readonly",
-  usePageLive: "readonly",
-  usePageLiveRefresh: "readonly",
-  usePageRealtime: "readonly",
-  usePageRecordDeletion: "readonly",
-  usePageRecordLabel: "readonly",
-  usePageToolbarSize: "readonly",
-  usePasswordStrength: "readonly",
-  usePeriod: "readonly",
-  usePeriodScope: "readonly",
-  usePeriodScopeComparison: "readonly",
-  usePeriodScopePreset: "readonly",
-  usePermissions: "readonly",
-  usePostLoginRedirect: "readonly",
-  usePreferences: "readonly",
-  usePresenceEditWarning: "readonly",
-  useQuickActions: "readonly",
-  useRealtimeTopic: "readonly",
-  useRegionalFormat: "readonly",
-  useRenderedBellCounts: "readonly",
-  useRenderedSiteLayout: "readonly",
-  useServedHeaderActions: "readonly",
-  useSessionRecovery: "readonly",
-  useSidePanel: "readonly",
-  useSidebarWidgets: "readonly",
-  useSiteLayout: "readonly",
-  useSystemState: "readonly",
-  useTab: "readonly",
-  useTabShortcuts: "readonly",
-  useTableDataChanges: "readonly",
-  useTableViewDisplays: "readonly",
-  useTableViewEmptyState: "readonly",
-  useTableViewExport: "readonly",
-  useThemeRevision: "readonly",
-  useTimeZoneCookie: "readonly",
-  useTrailingDeduper: "readonly",
-  useTranslation: "readonly",
-  useUniqueLocales: "readonly",
-  useUnsavedChanges: "readonly",
-  useUploadWithProgress: "readonly",
-  useUserLanguage: "readonly",
-  useUserRealtime: "readonly",
-  useUserRegionalPreferences: "readonly",
-  useWatch: "readonly",
-  validateAccount: "readonly",
-  validateRequiredQueryParams: "readonly",
-  validationIssueMessage: "readonly",
-  waitForPageBlocksRefresh: "readonly",
-  withAccountsFlag: "readonly",
-  withConditionFields: "readonly",
-  withParentCrumb: "readonly",
-  withPeriodQuery: "readonly",
-  withRegionalOptions: "readonly",
-  zonedClock: "readonly",
-});
+const NAMES = `
+ABSENT_VALUE_PARTS ABSENT_VALUE_TEXT ACCOUNTS_LIST_ROUTE ACCOUNT_MENU_ENTRIES
+APEX_TYPE_CONFIGS AXIS_CHART_BOTTOM_OFFSET AccessMode
+AccessibilityPreferencesRefs AccountMenuEntry ActionConfirm ActionTarget
+AndRule AnyFieldRule ApexClickHandler ApexClickOpts ApexTypeConfig
+ApiDataContext ApiDataHandler ApiDataRequest ApiDataResult ApiErrorAction
+ApiErrorNotice ApiErrorParams ApiErrorPresenter ApiErrorSeverity
+ApiErrorToastId ApiFieldError ApiFieldErrorParams ApiPagedDataContext
+ApiPagedDataHandler ApiPagedDataResult AppTranslation AppWidget AuthLink
+AwaitRouteOptions AxeOrientation BANNER_TONE_ICONS BLOCK_REFRESH_EVENT
+BUILDER_ACTION_ID BannerTone BeforeStateMapper BlockFunctions BlockText
+BreadcrumbTargetSource ButtonVariant CARDS_DISPLAY_ID CASCADER_FETCH_LIMIT
+CASCADER_PATH_SEPARATOR CHART_EVENT_NAMES CHART_TYPES CIRCULAR_CHART_TYPES
+CODE_INCOMPLETE_MESSAGE COLOR_MODE_COOKIE COMMAND_PALETTE_FUSE_OPTIONS
+COMMAND_PALETTE_SEARCH_TEXT_KEY CONTENT_LANGUAGE_HEADER CalendarBucket
+CascaderAncestry CascaderKeyMapping CascaderNode CascaderRowsReader
+CascaderSelectionRules CascaderTreeOptions CascaderValueReads CategoryInfo
+ChartAnnotation ChartAutoYRange ChartCandlePoint ChartCardResponse
+ChartClickPayload ChartCurve ChartGroupPoint ChartLegendPosition
+ChartRangePoint ChartResponse ChartSeries ChartSeriesPoint ChartTextTranslate
+ChartType ChartXAxis ChartXAxisFormatter ClickPointValue Color ColorModeOption
+ColorModePreference ColorValue CommandPaletteAssistant
+CommandPaletteAssistantAnswerProps CommandPaletteAssistantSuggestion
+CommandPaletteSource ComparisonContext ComparisonStyle ComponentChild
+ComponentEventData ComponentId ComponentInfo ComponentOptionsData
+ComponentOrNoInput ComponentShortcuts ComposableText ComposedText
+ComposedTextContext ComposedTextCountParam ComposedTextDateFormat
+ComposedTextDateParam ComposedTextMoneyParam ComposedTextNumberFormat
+ComposedTextNumberParam ComposedTextParam ComposedTextParamType
+ComposedTextRelativeDateParam ComposedTextTranslate ComposedTextTypedParam
+ConfirmActionError ConfirmBodyRender ConfirmColor ConfirmDialog
+ConfirmDialogColor ConfirmDialogDownloadTarget ConfirmDialogField
+ConfirmDialogFrom ConfirmDialogImpact ConfirmDialogLinkTarget
+ConfirmDialogSecondaryAction ConfirmDialogSecondaryTarget ConfirmFromOptions
+ConfirmImpact ConfirmInitialFocus ConfirmNotice ConfirmOptions
+ConfirmPartialOutcome ConfirmSecondaryAction ConfirmTextError ConfirmValues
+ContainerColor ContainerInstance ContainerOptions ContainerPatch CurrentModule
+CustomButton CustomButtonVariant CustomRowAction CustomRowActionBulk
+CustomRowActionBulkOptions DEFAULT_CASCADER_KEY_MAPPING DEFAULT_COMPARISONS
+DEFAULT_KEYBOARD_PLATFORM DEFAULT_PAGE_HEADER_ACTIONS_ORDER DEFAULT_PAGE_ICON
+DEFAULT_PRESETS DEFAULT_TABLE_SEARCH_SHORTCUT Data DataType DataTypeConfig
+DataTypeFilterEditorValue DataTypeFormatter DataTypeSelectSource
+DataTypeValueComparer DateFormatPreference DatetimeBuckets
+DefaultComponentProps DevReload DmsMenuItem DonutRecord DownloadActionTarget
+DrawerDirection DrawerInstance DrawerOptions DrawerPatch DrawerRowHeader
+DrawerTargetOptions DurationFormatOptions DurationPrecision
+ENDPOINT_MODULES_LISTING ENDPOINT_STORE_LISTING END_OF_DAY_HOURS
+END_OF_DAY_MINUTES END_OF_DAY_MS END_OF_DAY_SECONDS EnclosingForm EventError
+Events ExportJobStatusResponse ExportJobTicket FIELD_KEY FIELD_OPERATORS
+FORM_CONTENT_LANGUAGE_KEY FORM_FIELD_LOADING_KEY FORM_FIELD_SAVED_KEY
+FORM_VALIDATOR_KEY FROM_ACCOUNTS_QUERY FavoritePage FavoritePageMetadata
+FavoritePageSource FavoriteRouteResolver FeedCounts FieldCondition
+FieldControl FieldEqualsRule FieldErrorAria FieldErrorCode
+FieldErrorResolution FieldGroup FieldInRule FieldNotEqualsRule FieldNotInRule
+FieldOperatorKey FieldRule FieldValueComparer FileConstraintViolation
+FileFieldConstraints FoldedCrumbs FooterLink FormData FormEvents
+FormFetchResponse FormField FormFieldBadge FormFieldLink FormFieldOrGroup
+FormFieldReadonly FormFieldValue FormFunctions FormProps FormSection
+FormSectionNav FormServerFieldError FormSubmitResponse FormValidator
+FormattedValueParts FrontendBreak FrontendRequirement FrontendVersionSource
+GROUPED_DISPLAY_ID HTTP_BAD_REQUEST HTTP_FORBIDDEN HTTP_INTERNAL_SERVER_ERROR
+HTTP_NOT_FOUND HTTP_PRECONDITION_FAILED HTTP_UNAUTHORIZED
+HandleApiErrorOptions HeaderAction HttpMethod I18nTranslate INVALID_REQUEST
+ImageItemValue ImageResizeBounds InputNumberAdjustment
+InputNumberAdjustmentReason InterfaceImplementation InterfaceScale
+JsonPrimitive JsonValue KANBAN_DISPLAY_BRIDGE_KEY KANBAN_DISPLAY_ID
+KEYBOARD_KEY_LABELS KEYBOARD_PLATFORM_COOKIE KanbanColumnDef KanbanConfig
+KanbanDisplayBridge KanbanLabelTranslator KanbanSelectItemOption
+KeyboardPlatform KeyboardPlatformNavigator KpiCardResponse
+LIVE_BLOCK_REFRESH_EVENT LIVE_PAUSE_SOURCE LOGICAL_OPERATOR_KEYS LayoutBanner
+LayoutBannerScope LayoutBannerVariant LeaveGuardCallback LeaveGuardEntry
+LeaveGuardRegistry LiveFormHandle LivePauseSource LocalizedSchema LogicalRule
+MAX_PREFERENCES_COOKIE_BYTES MENU_STATUS_CHIP_COLORS MENU_STATUS_TEXT_CLASSES
+MOCKUP_ASSISTANT_PROMPT_EVENT MODULE_URL_PREFIX MS_PER_DAY MS_PER_HOUR
+MarkFieldSaved MaybePromise MenuItemBadgeTone MenuItemQuery MenuItemStatus
+MenuItemTarget MenuItemType MenuItemVariant MenuLock MenuOptions
+MenuRouteState MissingInterface MixedSeriesDef MockupAssistantPrompt
+MockupAssistantPromptBlock MockupAssistantPromptSource
+MockupAssistantPromptTarget ModalOptions ModalSize ModuleCatalogEntry
+ModuleHistoryApi ModuleHistoryEntry ModuleInfo ModuleReadoutLine
+ModuleReadoutTone ModuleSourceKind ModuleStatus ModuleWithAccess
+ModulesListingError NESTED_CHART_INJECT_KEY NavItem NestedChartContext NotRule
+NotificationEvents NotificationTone OnboardingInfo OrRule
+PAGE_COMPONENTS_WAIT_MS PAGE_FILL_HEIGHT_CLASSES PAGE_GUARD_PREFIX
+PAGE_ROUTE_PREFIX PAGE_SEARCH_SHORTCUTS PASSWORD_RULES_MESSAGE
+PENDING_SCOPE_TIMEOUT_MS POSITIVE_ACCENT PROFILE_ROUTE PageBlocksRefreshDetail
+PageHeaderActionsHost PageHeaderActionsOptions PageHeaderActionsRender
+PageInfo PageLayout PageLiveNote PageLiveNoteInput PageLiveNoteTone
+PageLiveOptions PageLivePeriod PageLiveRefresh PageLiveRefreshOptions
+PageLiveSlowRate PageLiveState PageRealtimeApi PageRecordDeletionSource
+PageRecordLabel PageSetupCleanup PageSetupContext PageSetupFunction
+PageToolbarSize PageToolbarSizeState PageValidation PasswordRequirement
+PeriodClock PeriodComparison PeriodPreset PeriodQueryKeys PeriodRange
+PeriodState PresentApiErrorOptions PresignResponse Primitive QUICK_ACTION_ADD
+QUICK_ACTION_BUTTON QUICK_ACTION_BUTTON_KEY QUICK_ACTION_COMPONENT_KEY
+QUICK_ACTION_QUERY_KEY QueryParamFilter QueryParamFilters QueryParams
+QuickActionCategoryGroup QuickActionCategoryInfo QuickActionInfo
+QuickActionIntent QuickActionTarget QuickActionsPayload REQUIRED_MESSAGE
+RESERVED_TABLE_VIEW_DISPLAY_IDS ReadonlyBehavior ReadonlyBehaviorMode
+RealtimeEvent RealtimeSnapshotEvent RealtimeTopicHandler RecordWithDefault
+RegionalFormatLocale RegionalFormatOptions RegionalNumberFormatter
+RegionalOptionsSettings RegionalPreferenceFields RegionalPreferences
+RegisterValidator RelativeDistanceOptions ResolveApiErrorOptions
+ResolveFieldErrorsOptions ResolvedComponentInfo RouteParamFilter
+RouteParamFilters RowActionConfig RowActionRule RowClickAction
+RowClickActionOptions RowNavigation RunExportJobOptions SETTINGS_ROUTE
+SOFT_TINT SWITCH_ACCOUNT_ROUTE ScaleOption SemanticColor SetFieldLoading
+ShortcutCondition ShortcutMetadata SidePanel SidePanelControls
+SidePanelNotFoundTexts SidePanelTargetOptions SidePanelWidthBounds
+SidebarWidget SidebarWidgetPosition SiteLayout SiteLayoutTree Size
+SortDirection SparklineTrend SseCloseReason SseEventHandler SseStreamHandle
+SseStreamOptions StackAlignment StackDistribution StoreActionBody
+StoreDependencyChoice StoreFrontendNotice StoreFrontendState StoreListing
+StoreListingEntry StoreModuleState StoreOperation StoreOperationKind
+StoreOperationStep StoredAccount SubmitDataContext SubmitField SubmitTarget
+SwitchAccountResponse SystemState SystemStateMeta TABLE_DISPLAY_ID
+TABLE_VIEW_DELETE_METADATA TABLE_VIEW_ESCAPE_METADATA TABLE_VIEW_J_METADATA
+TABLE_VIEW_K_METADATA TABLE_VIEW_META_R_METADATA
+TABLE_VIEW_PANEL_ESCAPE_METADATA TABLE_VIEW_SHIFT_A_METADATA
+TABLE_VIEW_SHIFT_F_METADATA TABLE_VIEW_SHIFT_N_METADATA
+TABLE_VIEW_SHORTCUTS_METADATA TAB_SHIFT_LETTER_METADATA TAB_SHORTCUTS_METADATA
+TIME_ZONE_COOKIE TabBadges TabEvents TabItem TabProps TabVariant TableColumn
+TableEmits TableFilter TableProps TableQueryParams TableRowActionOptions
+TableSharedData TableViewCardConfig TableViewCardProps TableViewCardReorder
+TableViewColumn TableViewColumnDisplay TableViewConfig TableViewDisplay
+TableViewDisplayActions TableViewDisplayAvailabilityContext
+TableViewDisplayCapabilities TableViewDisplayConfig TableViewDisplayContext
+TableViewDisplayPagination TableViewDisplayReorder TableViewDisplaySelection
+TableViewEmptyStateConfig TableViewEmptyStateControls TableViewEmptyStateKind
+TableViewEmptyStatesConfig TableViewEvents TableViewExpandableConfig
+TableViewExpandableField TableViewExpandedRowProps TableViewFooter
+TableViewFooterSummaryConfig TableViewFunctions TableViewGroupBy
+TableViewGroupedConfig TableViewLayout TableViewListResponse
+TableViewLiveHoldOptions TableViewPaginationMode TableViewPresenceActor
+TableViewPresenceMap TableViewQuickFilter TableViewQuickFilterMode
+TableViewReorderConfig TableViewReorderHandle TableViewSourceCapabilities
+TableViewSourceConfig TableViewTab TableViewTabNavBadge TableViewViewColumns
+TableViewViewConfig TableViewViewSort TableViewViewStateConfig
+TableViewViewsConfig TableViewViewsLayout TenantAssignmentRequiredResponse
+TimeFormatPreference Tone TopListCardResponse TopListItem TrailingDeduper
+TwoFactorRequiredResponse UiColor UseApexChartInput UseApexChartOutput
+UseApiDataOptions UseChartFetchOptions UseChartFetchReturn UseExportJobLabels
+UseFieldErrorsOptions UseFormDirtyOptions UseFormDirtyReturn UseFormOptions
+UseLeaveGuardReturn UsePeriodOptions UsePeriodReturn UseTabReturn
+UseUnsavedChangesOptions UseUnsavedChangesReturn User UserAvatar
+UserNotification UserPreferences UserRealtimeApi ValidateAccountResponse
+ValidationFunction ValidationIssue ValidationRouteContext ValueFormat
+ValuePrecision WallTime WatchAction WatchActionCondition WatchActionFunction
+WeekStartPreference alignmentMap apiErrorStatus apiErrorText appendPeriodToUrl
+applyMenuRouteState browserTimeZone bucketAxisFormatter bucketTooltipFormatter
+buildAnnotations buildAutoYRange buildBreadcrumbTarget buildCascaderPathLabels
+buildCascaderTree buildFavoritePage buildKanbanColumns buildLinkWithQuery
+buildPageSearchShortcuts buildPageTarget buildPlotOptions buildTabShortcuts
+buildTableViewShortcuts buildValidationSchema cascaderValueId
+cascaderValuePath cascaderValueReads categoryLabelStep chartFrameHeight
+checkFileConstraints childComponentId clearChartColorCache clearedFieldValue
+cloneFormValue codeEntryError collectOpenItemIds
+collectPageLayoutComponentNames collectSubmitData combineSaveStates
+computeResetState createActionValidator createFieldValueComparer
+createTableViewDeleteShortcut createTableViewEscapeShortcut
+createTableViewMetaRShortcut createTableViewShiftAShortcut
+createTableViewShiftFShortcut createTableViewShiftNShortcut
+createTrailingDeduper currentRegionalPreferences describeApiError
+describeFieldErrors detectDatetimeBuckets detectKeyboardPlatform
+dispatchQuickActionTarget distributionMap downloadFile ensureApexLocale
+evaluateRowActionRule extractRouteParams fieldErrorId
+fieldValuesOfSubmitDefaults fillRouteParams findCascaderNode
+findNavigableCategory firstAccessiblePagePath flattenCascaderTree
+focusFirstFormError foldBreadcrumb formIssueMessage formShowsActions
+formatCascaderPath formatDate formatDateTime formatDeltaPercent formatDuration
+formatKeyboardShortcut formatNumber formatPercentage formatPlainAxisValue
+formatPrice formatRelativeDistance formatRelativeTime formatTime formatValue
+formatValueParts getAppComposedText getAppTranslation getPluginI18n
+heatmapRangeColors hideSearchTextMatches holdPageHeaderActions
+injectPageHeaderActionsHost interpolateRowText interpolateUrl
+isAcceptanceField isAccountMenuRoute isActionEnabled isActionVisible isBigint
+isBlankValue isBoolean isCalendarPreset isCascaderNodeSelectable
+isClearedFieldValue isComposedText isConfirmFrom isDarkSurface isDate
+isDefinitiveMetadataFailure isEligibleKanbanColumn isFavoritePathValid
+isFieldGroup isFieldMarkedRequired isFocusInsideOverlay isFoldedCrumbs
+isFromAccountsList isFunction isJSON isKeyword isKnownTimeZone
+isLayoutBannerInScope isMenuItemActive isModuleAreaPath isNull isNumber
+isObject isReducedMotionActive isRelativePreset isRichTextBlank
+isSamePageQuery isSameRouteParams isSegmentChart isSidebarWidgetVisible
+isString isStringDate isStringJSON isStringNumber isSymbol
+isTableViewEscapeActive isUnauthorizedStreamError isUndefined isViewStateKey
+keyboardKeyLabel layoutUrlWithQuery localClock localeWeekStart
+localizeDonutRecords localizeSchema localizeSeries localizedSubmitValue
+makeFieldSchemaRequired matchMimetype msUntilNextMidnight namesRowField
+niceStep normalizeActionConfig onLivePageBlocksRefresh onPageBlocksRefresh
+openDynamicContainer openSseStream pageQueryValues pageRoutePath parse
+parseLinkQuery parseObject parseTimeSpan passwordSchema periodQueryKeys
+preloadPageLayoutComponents providePageFillHeight providePageHeaderActions
+providePageRealtime readCascaderAncestry readPointValue readQuickActionIntent
+readRegionalPreferences readThemeBorder readThemeBorderAccented
+readThemeDimmed readThemeHighlighted readThemeMonoFont readThemeMuted
+readThemeSurface readThemeTrack readTimeSpan readTranslationKey
+readableNumberFormat readerClock readerTimeZone refreshLivePageBlocks
+refreshPageBlocks refreshSessionSurfaces regionalDateTimeFormat regionalDayKey
+regionalDayNumber regionalFormatLocale regionalWeekStart registerAuthLink
+registerCommandPaletteAssistant registerCommandPaletteSource
+registerFooterLink registerHeaderAction registerPeriodScope registerSidePanel
+registerTableViewDisplay replaceUrlVariables requiredError resizeImageToBounds
+resolveApiErrorMessage resolveApiErrorTitle resolveApiMessage
+resolveCascaderKeyMapping resolveChartColor resolveChartColors
+resolveComparisonRange resolveComponentChildren resolveComposedText
+resolveDisplayCapabilities resolveDmsComponent resolveDmsComponentName
+resolveFieldErrors resolveFormFieldErrors resolveI18nKey
+resolveLayoutBannerPresentation resolveMetadataRetryDelay
+resolveModuleLandingSlug resolveOptionalI18nKey resolvePresetRange
+resolveRowClickAction resolveSidePanelWidthBounds resolveSidebarWidgetPosition
+resolveSparklineAccent resolveSubmitDefaults resolveSubmitTarget
+resolvesPeriodsAsBrowser ringFitsSliceLabels rowCustomActions
+runCustomValidation runDeduped scrollToBlock searchCascaderTree
+setOnboardingComplete setReaderTimeZoneSource setRegionalPreferencesSource
+settledRenderedBellCounts shouldExpandMenuItem siblingComponentId
+snapshotFormState stripQueryAndHash tableSearchShortcuts
+thinnedCategoryFormatter toBucketSeries toDonutRecords translateMenuItem
+translateMenuItems unregisterCommandPaletteAssistant
+unregisterCommandPaletteSource unregisterFooterLink unregisterSidePanel
+useAccessibilityPreferences useApexChart useApiData useApiErrorPresenter
+useApiPagedData useAppOverlay useAppSidePanels useAppWidgets useAuthFetch
+useAuthLinks useChartFetch useColorModePreference useCommandPaletteAssistant
+useCommandPaletteGroups useComponentEvent useComposedText useConfirm
+useConfirmFrom useControlError useCooldown useCurrentModule useCurrentUser
+useDataTypes useDefinedFunctions useDevReload useDiscardChangesPrompt
+useDrawer useEnclosingForm useEventedAction useExportJob useFavoritePages
+useFieldErrors useFileReadUrls useFirstAccessiblePagePath useFooterLinks
+useForm useFormDirty useHeaderActions useHomepage useInfiniteScroll
+useInstalledModuleCount useInstalledModules useInstantSaveHeader
+useInterfaceScale useIsOwner useKeyboardPlatform useLayoutBanners
+useLeaveGuard useLiveFormErrors useLivePauseSource useLocalizedSchema
+useLogout useMenuLocks useModal useModuleHistory useModuleStore
+useModuleStoreActions useModulesListing useMultiAccount useNotifications
+useOAuthErrorToast useOnboarding usePageFillHeight usePageHeaderActions
+usePageLayout usePageLeaveGuard usePageLive usePageLiveRefresh usePageRealtime
+usePageRecordDeletion usePageRecordLabel usePageToolbarSize
+usePasswordStrength usePeriod usePeriodScope usePeriodScopeComparison
+usePeriodScopePreset usePermissions usePostLoginRedirect usePreferences
+usePresenceEditWarning useQuickActions useRealtimeTopic useRegionalFormat
+useRenderedBellCounts useRenderedSiteLayout useServedHeaderActions
+useSessionRecovery useSidePanel useSidebarWidgets useSiteLayout useSystemState
+useTab useTabShortcuts useTableDataChanges useTableViewDisplays
+useTableViewEmptyState useTableViewExport useThemeRevision useTimeZoneCookie
+useTrailingDeduper useTranslation useUniqueLocales useUnsavedChanges
+useUploadWithProgress useUserLanguage useUserRealtime
+useUserRegionalPreferences useWatch validateAccount
+validateRequiredQueryParams validationIssueMessage waitForPageBlocksRefresh
+withAccountsFlag withConditionFields withParentCrumb withPeriodQuery
+withRegionalOptions zonedClock
+`;
+
+export default Object.freeze(
+  Object.fromEntries(
+    NAMES.split(/\s+/u)
+      .filter(Boolean)
+      .map((name) => [name, "readonly"]),
+  ),
+);

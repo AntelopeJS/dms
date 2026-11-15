@@ -45,6 +45,48 @@ const FIXTURE_FILES = {
   "frontend-vue/app/custom-layouts/Board.vue": "<template><div /></template>",
 };
 
+/**
+ * @typedef {object} DiagnoseOptions
+ * @property {string} [screen]
+ * @property {string} [script]
+ * @property {string} [backend]
+ * @property {boolean} [renderer]
+ * @property {boolean} [asserted]
+ */
+
+/**
+ * @param {unknown} error
+ * @returns {string}
+ */
+function messageOf(error) {
+  if (!(error instanceof Error)) throw error;
+  return error.message;
+}
+
+/**
+ * @param {unknown} value
+ * @returns {value is Record<string, unknown>}
+ */
+function isRecord(value) {
+  return typeof value === "object" && value !== null;
+}
+
+/**
+ * @param {unknown} value
+ * @returns {value is { checkDmsComponents: typeof checkDmsComponents }}
+ */
+function isChecker(value) {
+  return (
+    isRecord(value) &&
+    Object.hasOwn(value, "checkDmsComponents") &&
+    typeof value.checkDmsComponents === "function"
+  );
+}
+
+/**
+ * @param {DiagnoseOptions} options
+ * @returns {Promise<string[]>}
+ */
 async function diagnose({
   screen = "<div />",
   script = "",
@@ -81,7 +123,8 @@ async function diagnose({
     if (asserted)
       return await assertDmsComponents(options).then(
         () => [],
-        (error) => error.message.replaceAll(layer, "<layer>").split("\n"),
+        /** @param {unknown} error */
+        (error) => messageOf(error).replaceAll(layer, "<layer>").split("\n"),
       );
     const diagnostics = await checkDmsComponents(options);
     return diagnostics.map((line) =>
@@ -228,6 +271,7 @@ const BROKEN_PARSERS = {
   },
 };
 
+/** @returns {Promise<string>} */
 async function checkWithoutParsers() {
   const root = mkdtempSync(join(tmpdir(), "dms-components-parsers-"));
   try {
@@ -240,6 +284,7 @@ async function checkWithoutParsers() {
     for (const file of [
       "scripts/check-dms-components.mjs",
       "scripts/dms-components-dependencies.mjs",
+      "scripts/dms-components-script.mjs",
       "package.json",
     ])
       copyFileSync(
@@ -253,12 +298,16 @@ async function checkWithoutParsers() {
     const layer = join(root, "layer");
     mkdirSync(layer);
     writeFileSync(join(layer, "package.json"), "{}");
+    /** @type {unknown} */
     const copy = await import(
       pathToFileURL(join(frontend, "scripts", "check-dms-components.mjs")).href
     );
+    if (!isChecker(copy))
+      throw new Error("The copy of the check exports no checkDmsComponents");
     return await copy.checkDmsComponents({ layer }).then(
       () => "",
-      (error) => error.message.replaceAll(layer, "<layer>"),
+      /** @param {unknown} error */
+      (error) => messageOf(error).replaceAll(layer, "<layer>"),
     );
   } finally {
     rmSync(root, { recursive: true, force: true });

@@ -3,6 +3,11 @@
   "compilerOptions": {
     "types": ["node", "vite/client"]
   },
-  "include": ["**/*.ts", "**/*.vue"],
+  "include": [
+    "**/*.ts",
+    "**/*.vue",
+    "eslint.config.mjs",
+    "eslint-globals.generated.mjs"
+  ],
   "exclude": ["node_modules", "tests"]
 }

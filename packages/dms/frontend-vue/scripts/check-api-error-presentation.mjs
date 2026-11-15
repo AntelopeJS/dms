@@ -17,6 +17,46 @@ const PRESENTER = fileURLToPath(
 );
 const SKIP = new Set(["node_modules", "dist", "tests", "test", "fixtures"]);
 
+/** @typedef {typeof import("typescript")} TypeScript */
+/** @typedef {import("typescript").Node} TsNode */
+/** @typedef {import("typescript").Expression} TsExpression */
+/** @typedef {import("typescript").SourceFile} TsSourceFile */
+/** @typedef {import("../../checks/api-error-presentation.mjs").ApiErrorScript} ApiErrorScript */
+/** @typedef {import("../../checks/api-error-presentation.mjs").ApiErrorToastCall} ApiErrorToastCall */
+/** @typedef {import("../../checks/api-error-presentation.mjs").SfcParser} SfcParser */
+
+/**
+ * @typedef {object} DestructuredBinding
+ * @property {string} binding
+ * @property {TsExpression} owner
+ */
+
+/** @typedef {Map<string, TsExpression | DestructuredBinding>} Bindings */
+
+/**
+ * @typedef {object} Scope
+ * @property {TypeScript} ts
+ * @property {TsSourceFile} tree
+ * @property {Bindings} bindings
+ */
+
+/**
+ * @typedef {object} Dependencies
+ * @property {TypeScript} ts
+ * @property {SfcParser["parse"]} parse
+ */
+
+/**
+ * @typedef {((id: "typescript") => TypeScript) & ((id: "vue/compiler-sfc") => typeof import("vue/compiler-sfc"))} DependencyLoader
+ */
+
+/** @type {(from: string) => DependencyLoader} */
+const requireFrom = createRequire;
+
+/**
+ * @param {string} root
+ * @returns {Dependencies}
+ */
 function dependencies(root) {
   let directory = resolve(root);
   if (!statSync(directory).isDirectory()) directory = dirname(directory);
@@ -26,7 +66,7 @@ function dependencies(root) {
     directory = parent;
   }
   try {
-    const require = createRequire(join(directory, "package.json"));
+    const require = requireFrom(join(directory, "package.json"));
     return {
       ts: require("typescript"),
       parse: require("vue/compiler-sfc").parse,
@@ -39,7 +79,11 @@ function dependencies(root) {
   }
 }
 
-/** Runtime sources only. Test fixtures and generated directories are excluded. */
+/**
+ * Runtime sources only. Test fixtures and generated directories are excluded.
+ * @param {string} root
+ * @returns {string[]}
+ */
 export function apiErrorSources(root) {
   if (!statSync(root).isDirectory()) return [resolve(root)];
   return readdirSync(root, { withFileTypes: true }).flatMap((entry) => {
@@ -53,14 +97,20 @@ export function apiErrorSources(root) {
   });
 }
 
-/** Parses both Vue script blocks without treating template text as JavaScript. */
+/**
+ * Parses both Vue script blocks without treating template text as JavaScript.
+ * @param {string} file
+ * @param {string} source
+ * @param {SfcParser} tools
+ * @returns {ApiErrorScript[]}
+ */
 export function apiErrorScripts(file, source, tools) {
   if (!file.endsWith(".vue")) return [{ source, offset: 0 }];
   const { descriptor, errors } = tools.parse(source, { filename: file });
   if (errors.length)
     throw new Error(`Cannot parse ${file}: ${errors.join(", ")}`);
   return [descriptor.script, descriptor.scriptSetup]
-    .filter(Boolean)
+    .filter((block) => block !== null && block !== undefined)
     .map((block) => ({
       source: block.content,
       offset: block.loc.start.offset,
@@ -68,8 +118,15 @@ export function apiErrorScripts(file, source, tools) {
     }));
 }
 
+/**
+ * @param {TsSourceFile} tree
+ * @param {TypeScript} ts
+ * @returns {Bindings}
+ */
 function bindingsOf(tree, ts) {
+  /** @type {Bindings} */
   const bindings = new Map();
+  /** @param {TsNode} node */
   const visit = (node) => {
     if (ts.isVariableDeclaration(node) && node.initializer) {
       if (ts.isIdentifier(node.name))
@@ -90,7 +147,186 @@ function bindingsOf(tree, ts) {
   return bindings;
 }
 
-/** Analyzes local toast bindings and failure regions. Cross-file effects are not inferred. */
+/**
+ * @param {TypeScript} ts
+ * @param {TsNode | undefined} node
+ * @returns {TsNode | undefined}
+ */
+function unwrap(ts, node) {
+  while (
+    node &&
+    (ts.isParenthesizedExpression(node) ||
+      ts.isAsExpression(node) ||
+      ts.isSatisfiesExpression(node) ||
+      ts.isNonNullExpression(node))
+  )
+    node = node.expression;
+  return node;
+}
+
+/**
+ * @param {Scope} scope
+ * @param {TsNode | undefined} node
+ * @param {Set<string>} [seen]
+ * @returns {TsNode | undefined}
+ */
+function resolveBinding(scope, node, seen = new Set()) {
+  const { ts, bindings } = scope;
+  node = unwrap(ts, node);
+  if (
+    node &&
+    ts.isIdentifier(node) &&
+    bindings.has(node.text) &&
+    !seen.has(node.text)
+  ) {
+    seen.add(node.text);
+    const next = bindings.get(node.text);
+    if (next && !("binding" in next)) return resolveBinding(scope, next, seen);
+  }
+  return node;
+}
+
+/**
+ * @param {Scope} scope
+ * @param {TsNode | undefined} node
+ * @returns {boolean}
+ */
+function isToast(scope, node) {
+  const { ts, tree } = scope;
+  node = resolveBinding(scope, node);
+  return Boolean(
+    node &&
+      ((ts.isIdentifier(node) && node.text === "toast") ||
+        (ts.isCallExpression(node) &&
+          node.expression.getText(tree) === "useToast")),
+  );
+}
+
+/**
+ * @param {string} name
+ * @returns {name is "add" | "update"}
+ */
+function isToastMethod(name) {
+  return name === "add" || name === "update";
+}
+
+/**
+ * @param {Scope} scope
+ * @param {import("typescript").CallExpression} call
+ * @returns {"add" | "update" | null}
+ */
+function methodOf(scope, call) {
+  const { ts, bindings } = scope;
+  const expression = unwrap(ts, call.expression);
+  if (
+    expression &&
+    ts.isPropertyAccessExpression(expression) &&
+    isToast(scope, expression.expression) &&
+    isToastMethod(expression.name.text)
+  )
+    return expression.name.text;
+  if (expression && ts.isIdentifier(expression)) {
+    const binding = bindings.get(expression.text);
+    if (
+      binding &&
+      "binding" in binding &&
+      isToast(scope, binding.owner) &&
+      isToastMethod(binding.binding)
+    )
+      return binding.binding;
+  }
+  return null;
+}
+
+/**
+ * @param {Scope} scope
+ * @param {TsNode | undefined} payload
+ * @returns {string}
+ */
+function colorOf(scope, payload) {
+  const { ts, tree } = scope;
+  payload = resolveBinding(scope, payload);
+  if (!payload || !ts.isObjectLiteralExpression(payload)) return "dynamic";
+  if (payload.properties.some(ts.isSpreadAssignment)) return "dynamic";
+  const color = payload.properties.find(
+    (property) => property.name?.getText(tree).replace(/["']/g, "") === "color",
+  );
+  if (!color) return "neutral";
+  const value = resolveBinding(
+    scope,
+    ts.isPropertyAssignment(color) ? color.initializer : undefined,
+  );
+  if (!value) return "dynamic";
+  if (ts.isStringLiteral(value)) return value.text;
+  if (
+    ts.isPropertyAccessExpression(value) &&
+    value.expression.getText(tree) === "Color"
+  )
+    return value.name.text;
+  return "dynamic";
+}
+
+/**
+ * @param {Scope} scope
+ * @param {TsNode} node
+ * @param {string | null} failure
+ * @param {ApiErrorToastCall[]} calls
+ */
+function collectToastCalls(scope, node, failure, calls) {
+  const { ts, tree } = scope;
+  if (ts.isCatchClause(node)) {
+    collectToastCalls(
+      scope,
+      node.block,
+      node.variableDeclaration?.name.getText(tree) ?? "",
+      calls,
+    );
+    return;
+  }
+  if (ts.isCallExpression(node)) {
+    const method = methodOf(scope, node);
+    if (method) {
+      const payload = node.arguments[method === "update" ? 1 : 0];
+      const color = colorOf(scope, payload);
+      if (color === "error" || (failure !== null && color !== "success"))
+        calls.push({ node, payload, method, failure, color, tree });
+    }
+    const expression = unwrap(ts, node.expression);
+    if (
+      expression &&
+      ts.isPropertyAccessExpression(expression) &&
+      ["catch", "then"].includes(expression.name.text)
+    ) {
+      const rejectionIndex = expression.name.text === "catch" ? 0 : 1;
+      collectToastCalls(scope, expression, failure, calls);
+      node.arguments.forEach((argument, index) => {
+        const rejected =
+          index === rejectionIndex &&
+          (ts.isArrowFunction(argument) || ts.isFunctionExpression(argument));
+        collectToastCalls(
+          scope,
+          argument,
+          rejected
+            ? (argument.parameters[0]?.name.getText(tree) ?? "")
+            : failure,
+          calls,
+        );
+      });
+      return;
+    }
+  }
+  ts.forEachChild(node, (child) =>
+    collectToastCalls(scope, child, failure, calls),
+  );
+}
+
+/**
+ * Analyzes local toast bindings and failure regions. Cross-file effects are not inferred.
+ * @param {string} source
+ * @param {string} file
+ * @param {TypeScript} ts
+ * @returns {ApiErrorToastCall[]}
+ */
 export function analyzeApiErrorScript(source, file, ts) {
   const tree = ts.createSourceFile(
     file,
@@ -99,121 +335,22 @@ export function analyzeApiErrorScript(source, file, ts) {
     true,
     ts.ScriptKind.TS,
   );
-  const bindings = bindingsOf(tree, ts);
-  const unwrap = (node) => {
-    while (
-      node &&
-      (ts.isParenthesizedExpression(node) ||
-        ts.isAsExpression(node) ||
-        ts.isSatisfiesExpression(node) ||
-        ts.isNonNullExpression(node))
-    )
-      node = node.expression;
-    return node;
-  };
-  const resolveBinding = (node, seen = new Set()) => {
-    node = unwrap(node);
-    if (
-      node &&
-      ts.isIdentifier(node) &&
-      bindings.has(node.text) &&
-      !seen.has(node.text)
-    ) {
-      seen.add(node.text);
-      const next = bindings.get(node.text);
-      if (!next.binding) return resolveBinding(next, seen);
-    }
-    return node;
-  };
-  const isToast = (node) => {
-    node = resolveBinding(node);
-    return (
-      node &&
-      ((ts.isIdentifier(node) && node.text === "toast") ||
-        (ts.isCallExpression(node) &&
-          node.expression.getText(tree) === "useToast"))
-    );
-  };
-  const methodOf = (call) => {
-    const expression = unwrap(call.expression);
-    if (
-      ts.isPropertyAccessExpression(expression) &&
-      isToast(expression.expression) &&
-      ["add", "update"].includes(expression.name.text)
-    )
-      return expression.name.text;
-    if (ts.isIdentifier(expression)) {
-      const binding = bindings.get(expression.text);
-      if (
-        binding?.binding &&
-        isToast(binding.owner) &&
-        ["add", "update"].includes(binding.binding)
-      )
-        return binding.binding;
-    }
-    return null;
-  };
-  const colorOf = (payload) => {
-    payload = resolveBinding(payload);
-    if (!payload || !ts.isObjectLiteralExpression(payload)) return "dynamic";
-    if (payload.properties.some(ts.isSpreadAssignment)) return "dynamic";
-    const color = payload.properties.find(
-      (property) =>
-        property.name?.getText(tree).replace(/["']/g, "") === "color",
-    );
-    if (!color) return "neutral";
-    const value = resolveBinding(color.initializer);
-    if (!value) return "dynamic";
-    if (ts.isStringLiteral(value)) return value.text;
-    if (
-      ts.isPropertyAccessExpression(value) &&
-      value.expression.getText(tree) === "Color"
-    )
-      return value.name.text;
-    return "dynamic";
-  };
+  /** @type {ApiErrorToastCall[]} */
   const calls = [];
-  const visit = (node, failure = null) => {
-    if (ts.isCatchClause(node)) {
-      visit(node.block, node.variableDeclaration?.name.getText(tree) ?? "");
-      return;
-    }
-    if (ts.isCallExpression(node)) {
-      const method = methodOf(node);
-      if (method) {
-        const payload = node.arguments[method === "update" ? 1 : 0];
-        const color = colorOf(payload);
-        if (color === "error" || (failure !== null && color !== "success"))
-          calls.push({ node, payload, method, failure, color, tree });
-      }
-      const expression = unwrap(node.expression);
-      if (
-        ts.isPropertyAccessExpression(expression) &&
-        ["catch", "then"].includes(expression.name.text)
-      ) {
-        const rejectionIndex = expression.name.text === "catch" ? 0 : 1;
-        visit(expression, failure);
-        node.arguments.forEach((argument, index) => {
-          const rejected =
-            index === rejectionIndex &&
-            (ts.isArrowFunction(argument) || ts.isFunctionExpression(argument));
-          visit(
-            argument,
-            rejected
-              ? (argument.parameters[0]?.name.getText(tree) ?? "")
-              : failure,
-          );
-        });
-        return;
-      }
-    }
-    ts.forEachChild(node, (child) => visit(child, failure));
-  };
-  visit(tree);
+  collectToastCalls(
+    { ts, tree, bindings: bindingsOf(tree, ts) },
+    tree,
+    null,
+    calls,
+  );
   return calls;
 }
 
-/** Returns diagnostics for local failure toasts outside the canonical presenter. */
+/**
+ * Returns diagnostics for local failure toasts outside the canonical presenter.
+ * @param {string[]} roots
+ * @returns {string[]}
+ */
 export function checkApiErrorPresentation(roots) {
   return roots.flatMap((root) => {
     const tools = dependencies(root);
@@ -231,7 +368,10 @@ export function checkApiErrorPresentation(roots) {
   });
 }
 
-/** Runs the checker with development dependencies resolved from each frontend root. */
+/**
+ * Runs the checker with development dependencies resolved from each frontend root.
+ * @param {string[]} roots
+ */
 export function assertApiErrorPresentation(roots) {
   const diagnostics = checkApiErrorPresentation(roots);
   if (diagnostics.length) throw new Error(diagnostics.join("\n"));
