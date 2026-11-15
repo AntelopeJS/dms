@@ -41,7 +41,7 @@ import type {
   TableFilter,
   TableSharedData,
 } from "./Table.types";
-import { HEADER_MATCH_BG, theme } from "./tableComponentTheme";
+import { HEADER_MATCH_BG, theme, themeOverride } from "./tableComponentTheme";
 import { useTableComponentGroups } from "./tableComponentGroups";
 import { useTableComponentRows } from "./tableComponentRows";
 import { useTableComponentScroll } from "./tableComponentScroll";
@@ -61,9 +61,7 @@ const props = withDefaults(defineProps<TableProps<T>>(), {
 });
 const emits = defineEmits<TableEmits<T>>();
 
-const appConfig = useDmsAppConfig() as ReturnType<typeof useDmsAppConfig> & {
-  ui: { table: Partial<typeof theme> };
-};
+const appConfig = useDmsAppConfig();
 
 const globalFilterState = defineModel<string>("globalFilter", {
   default: "",
@@ -210,7 +208,7 @@ const isUsingDefaultSort = computed(() => {
 
 const uiTableRoot = tv({
   extend: tv(theme),
-  ...appConfig.ui?.table,
+  ...themeOverride("table"),
 });
 const uiTable = computed(() =>
   uiTableRoot({

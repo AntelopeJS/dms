@@ -1,4 +1,5 @@
 <script setup lang="ts" generic="T extends Data">
+import { themeOverride } from "./tableComponentTheme";
 import { injectLocal } from "@vueuse/core";
 import { tv } from "tailwind-variants";
 import type { ShallowRef } from "vue";
@@ -28,9 +29,7 @@ const theme = tv({
 const emits = defineEmits<MenuRootEmits>();
 const { t } = useI18n();
 
-const appConfig = useDmsAppConfig() as ReturnType<typeof useDmsAppConfig> & {
-  ui: { tableMenuRoot: Partial<typeof theme> };
-};
+const appConfig = useDmsAppConfig();
 
 const tableSharedData =
   injectLocal<ShallowRef<TableSharedData<T>>>("tableSharedData");
@@ -104,7 +103,7 @@ const navItems = computed((): NavItem[] => {
 
 const uiTableMenuRootVariant = tv({
   extend: tv(theme),
-  ...appConfig.ui?.tableMenuRoot,
+  ...themeOverride("tableMenuRoot"),
 });
 const uiTableMenuRoot = computed(() => uiTableMenuRootVariant());
 </script>

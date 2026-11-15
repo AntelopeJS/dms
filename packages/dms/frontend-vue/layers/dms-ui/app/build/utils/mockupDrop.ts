@@ -244,7 +244,7 @@ export function insertionAfter(
   selection: string | undefined,
   type: string,
   catalog: ReadonlyMap<string, MockupBlockType>,
-): { parent: string | null; index: number } {
+): Pick<MockupDropTarget, "parent" | "index"> {
   const context = { spec, page, blocks: [], paths: {}, catalog };
   let current = selection;
   while (current !== undefined) {

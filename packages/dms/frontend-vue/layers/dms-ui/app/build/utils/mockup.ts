@@ -172,9 +172,9 @@ export function isMockupWidth(value: string | undefined): value is MockupWidth {
 
 /** The first value of a query parameter, `undefined` when it is absent or empty. */
 export function readQueryValue(
-  value: Parameters<typeof isString>[0] | readonly unknown[],
+  value: string | null | undefined | readonly (string | null)[],
 ): string | undefined {
-  const first = Array.isArray(value) ? value[0] : value;
+  const first = isString(value) ? value : value?.[0];
   return isString(first) && first !== "" ? first : undefined;
 }
 
@@ -311,7 +311,7 @@ function isBuiltPage(
 
 function isSummaryBase(
   value: Parameters<typeof isObject>[0],
-): value is Record<string, unknown> & MockupSummaryBase {
+): value is MockupSummaryBase {
   return (
     isRecord(value) &&
     isString(value.name) &&
@@ -326,7 +326,7 @@ function isSummaryBase(
 function isSummary(
   value: Parameters<typeof isObject>[0],
 ): value is MockupSummary {
-  if (!isSummaryBase(value)) return false;
+  if (!isRecord(value) || !isSummaryBase(value)) return false;
   if (value.status === "draft") return true;
   return (
     value.status === "built" &&

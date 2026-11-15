@@ -22,7 +22,7 @@ function viewerLink(name: string): string {
 
 onMounted(async () => {
   try {
-    const answer = await $authFetch(MOCKUP_LIST_ENDPOINT);
+    const answer: unknown = await $authFetch(MOCKUP_LIST_ENDPOINT);
     const list = parseMockupList(answer);
     hasFailed.value = list === undefined;
     mockups.value = list ?? [];

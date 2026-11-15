@@ -13,6 +13,7 @@ import {
   type MockupSpecDocument,
 } from "../../utils/mockupSpec";
 import type { MockupIssue } from "../../utils/mockup";
+import type { JsonValue } from "../../../../../dms-core/app/types/json";
 import MockupInspectorField from "./MockupInspectorField.vue";
 import MockupIssues from "./MockupIssues.vue";
 import MockupPageInspector from "./MockupPageInspector.vue";
@@ -62,12 +63,12 @@ const hasData = computed(() => {
   );
 });
 
-function optionValue(key: string): unknown {
+function optionValue(key: string): JsonValue | undefined {
   const options = node.value?.options ?? {};
   return Object.hasOwn(options, key) ? options[key] : undefined;
 }
 
-function setOption(key: string, value: unknown): void {
+function setOption(key: string, value: JsonValue | undefined): void {
   const pointer = props.selection;
   if (!pointer) return;
   emit("edit", { kind: "setOption", pointer, key, value }, `${pointer}:${key}`);

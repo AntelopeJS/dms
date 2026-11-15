@@ -1,6 +1,7 @@
 <script setup lang="ts" generic="T extends Record<string, unknown>">
 import { defineComponent, markRaw, type Component } from "vue";
 import { get } from "@nuxt/ui/runtime/utils/index.js";
+import { isObject, isString } from "#dms-core/app/utils/type-check";
 import TablePagination from "../table/TablePagination.vue";
 import TableEmpty from "../table/TableEmpty.vue";
 import CardGridSkeleton from "./CardGridSkeleton.vue";
@@ -8,7 +9,6 @@ import CardAvatar from "./CardAvatar.vue";
 import CardRowActions from "./CardRowActions.vue";
 import type { TableViewColumn } from "../../../composables/table-view/types/column";
 import type {
-  TableViewCardConfig,
   TableViewCardReorder,
   TableViewDisplayContext,
 } from "../../../composables/table-view/types/display";
@@ -64,18 +64,44 @@ const subtitleOf = (item: T): string | undefined =>
     { processText, isStringTranslated: false },
   )?.text;
 
-const card = computed(
-  () =>
-    (props.context.options as { card?: TableViewCardConfig } | undefined)?.card,
-);
+const isStringList = (
+  value: Parameters<typeof isString>[0],
+): value is string[] => Array.isArray(value) && value.every(isString);
+
+const optionalString = (value: Parameters<typeof isString>[0]) =>
+  isString(value) ? value : undefined;
+
+const nestedObject = (value: Parameters<typeof isString>[0]) =>
+  isObject(value) && value !== null ? value : undefined;
+
+/**
+ * The `card` option the backend declares, read field by field: what is not of
+ * the shape a card option takes is left out.
+ */
+const card = computed(() => {
+  const declared = nestedObject(props.context.options?.card);
+  const component = nestedObject(declared?.component);
+  const componentName = optionalString(component?.componentName);
+  return {
+    fields: isStringList(declared?.fields) ? declared.fields : undefined,
+    minWidth: optionalString(declared?.minWidth),
+    skeletonHeight: optionalString(declared?.skeletonHeight),
+    component: componentName
+      ? {
+          componentName,
+          options: nestedObject(component?.options) ?? {},
+        }
+      : undefined,
+  };
+});
 
 const cardComponent = computed(() => {
-  const name = card.value?.component?.componentName;
+  const name = card.value.component?.componentName;
   return name ? resolveDmsComponent(name) || name : undefined;
 });
 
 const fieldColumns = computed<TableViewColumn[]>(() =>
-  cardFieldColumns(props.context.columns, card.value?.fields, {
+  cardFieldColumns(props.context.columns, card.value.fields, {
     labelKey: props.context.labelKey,
     rowIdKey: props.context.rowIdKey,
   }),
@@ -94,8 +120,8 @@ const rowActionsFor = (id: string): Component => {
       defineComponent({
         name: "CardRowActionsOf",
         render: () =>
-          h(CardRowActions, {
-            table: props.context.table as TableViewDisplayContext["table"],
+          h(CardRowActions<T>, {
+            table: props.context.table,
             rowId: id,
           }),
       }),

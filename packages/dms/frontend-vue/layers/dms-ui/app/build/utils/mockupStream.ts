@@ -1,4 +1,6 @@
+import type { JsonValue } from "../../../../dms-core/app/types/json";
 import { isString } from "../../../../dms-core/app/utils/type-check";
+import { isJsonValue } from "./json";
 import {
   MOCKUP_ANNOTATIONS_EVENT,
   MOCKUP_STATE_EVENT,
@@ -29,12 +31,13 @@ interface StreamState {
   isClosed: boolean;
 }
 
-function readJson(event: Event): unknown {
+function readJson(event: Event): JsonValue | undefined {
   if (!(event instanceof MessageEvent) || !isString(event.data)) {
     return undefined;
   }
   try {
-    return JSON.parse(event.data);
+    const parsed: unknown = JSON.parse(event.data);
+    return isJsonValue(parsed) ? parsed : undefined;
   } catch {
     return undefined;
   }

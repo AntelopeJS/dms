@@ -1,4 +1,5 @@
 <script setup lang="ts" generic="T extends Data">
+import { themeOverride } from "./tableComponentTheme";
 import { readableNumberFormat } from "#dms-core/app/utils/formatter";
 import { injectLocal, useIntersectionObserver } from "@vueuse/core";
 import { tv } from "tailwind-variants";
@@ -43,9 +44,7 @@ const theme = tv({
   },
 });
 
-const appConfig = useDmsAppConfig() as ReturnType<typeof useDmsAppConfig> & {
-  ui: { tablePagination: Partial<typeof theme> };
-};
+const appConfig = useDmsAppConfig();
 
 const tableSharedDataRef =
   injectLocal<ShallowRef<TableSharedData<T>>>("tableSharedData");
@@ -115,7 +114,7 @@ const currentPage = computed(
 
 const uiTablePaginationVariant = tv({
   extend: tv(theme),
-  ...appConfig.ui?.tablePagination,
+  ...themeOverride("tablePagination"),
 });
 const uiTablePagination = computed(() => uiTablePaginationVariant());
 </script>

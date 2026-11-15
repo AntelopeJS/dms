@@ -14,6 +14,8 @@ import {
   type MockupSpecNode,
   type MockupSpecPage,
 } from "./mockupSpec";
+import type { JsonValue } from "../../../../dms-core/app/types/json";
+import type { JsonObject } from "./json";
 
 /** One change the `/mockup` editor makes to a spec. */
 export type MockupEdit =
@@ -22,7 +24,7 @@ export type MockupEdit =
       pointer: string;
       key: string;
       /** Undefined removes the option. */
-      value: unknown;
+      value: JsonValue | undefined;
     }
   | {
       kind: "insertNode";
@@ -33,7 +35,7 @@ export type MockupEdit =
       index: number;
       node: MockupSpecNode;
       /** Fixtures the node reads, added to the page by the same edit. */
-      fixtures?: Record<string, unknown>;
+      fixtures?: JsonObject;
     }
   | {
       kind: "moveNode";
@@ -50,7 +52,7 @@ export type MockupEdit =
       pointer: string;
       node: MockupSpecNode;
       /** Fixtures the node reads, added to its page by the same edit. */
-      fixtures?: Record<string, unknown>;
+      fixtures?: JsonObject;
     }
   | { kind: "addPage"; title: string }
   | { kind: "updatePage"; page: string; title?: string; id?: string }
@@ -141,11 +143,11 @@ function withFreeId(
 function withOption(
   node: MockupSpecNode,
   key: string,
-  value: unknown,
+  value: JsonValue | undefined,
 ): MockupSpecNode {
   const current = node.options ?? {};
   const entries = Object.entries(current).flatMap(
-    ([name, entry]): Array<[string, unknown]> => {
+    ([name, entry]): Array<[string, JsonValue]> => {
       if (name !== key) return [[name, entry]];
       return value === undefined ? [] : [[name, value]];
     },
@@ -232,7 +234,7 @@ function insertNode(
 function withFixtures(
   spec: MockupSpecDocument,
   page: number,
-  added: Record<string, unknown> | undefined,
+  added: JsonObject | undefined,
 ): MockupSpecDocument {
   if (!added || !Object.keys(added).length) return spec;
   return {

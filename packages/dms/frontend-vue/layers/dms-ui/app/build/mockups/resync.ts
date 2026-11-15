@@ -2,9 +2,17 @@ import { isObject, isString } from "#dms-core/app/utils/type-check";
 
 const FROM_PAGE_ENDPOINT = "/api/mockup/from-page";
 
+/** What `POST /api/mockup/from-page` reads: the page, its mockup, and whether to replace a stale one. */
+interface FromPageRequest {
+  path: string;
+  mockup: string;
+  replace?: boolean;
+  digest?: string;
+}
+
 type Fetch = (
   url: string,
-  options: { method: "POST"; body: Record<string, unknown> },
+  options: { method: "POST"; body: FromPageRequest },
 ) => Promise<Parameters<typeof isObject>[0]>;
 
 interface FromPageAnswer {

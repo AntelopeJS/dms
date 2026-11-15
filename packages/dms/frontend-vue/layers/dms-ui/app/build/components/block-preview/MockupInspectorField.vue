@@ -5,6 +5,7 @@ import {
   isNumber,
   isString,
 } from "../../../../../dms-core/app/utils/type-check";
+import type { JsonValue } from "../../../../../dms-core/app/types/json";
 import type { MockupInspectorField } from "../../utils/mockupInspector";
 
 /**
@@ -15,7 +16,7 @@ const props = defineProps<{
   field: MockupInspectorField;
   value: unknown;
 }>();
-const emit = defineEmits<{ update: [value: unknown] }>();
+const emit = defineEmits<{ update: [value: JsonValue | undefined] }>();
 
 const UNSET = "\u0000unset";
 const COLOR_PATTERN = /^#[0-9a-f]{6}$/i;
@@ -60,7 +61,9 @@ const selected = computed(() =>
     : UNSET,
 );
 
-function emitChoice(next: unknown): void {
+function emitChoice(
+  next: MockupInspectorField["choices"][number]["value"],
+): void {
   emit("update", next === UNSET ? undefined : next);
 }
 

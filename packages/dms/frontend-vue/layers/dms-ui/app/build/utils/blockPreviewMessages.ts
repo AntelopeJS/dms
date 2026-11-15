@@ -168,6 +168,10 @@ function isRecord(
   return isObject(value) && value !== null && !Array.isArray(value);
 }
 
+function isOptionalString(value: Parameters<typeof isString>[0]): boolean {
+  return value === undefined || isString(value);
+}
+
 function isNavigationItem(value: unknown): value is PreviewNavigationItem {
   return (
     isRecord(value) &&
@@ -232,28 +236,43 @@ function parseBlockRects(value: unknown): PreviewBlockRect[] | undefined {
   return blocks.every((block) => block !== undefined) ? blocks : undefined;
 }
 
-function isOptionalString(value: Parameters<typeof isString>[0]): boolean {
-  return value === undefined || isString(value);
+function isRenderMessage(
+  value: Parameters<typeof isRecord>[0],
+): value is PreviewRenderMessage {
+  return (
+    isRecord(value) &&
+    value.channel === PREVIEW_CHANNEL &&
+    value.type === "render" &&
+    isPreviewTree(value.tree) &&
+    (value.theme === undefined || isPreviewTheme(value.theme)) &&
+    (value.locale === undefined || isString(value.locale)) &&
+    (value.transparent === undefined || isBoolean(value.transparent)) &&
+    (value.padding === undefined || isBoolean(value.padding)) &&
+    (value.navigation === undefined || isPreviewNavigation(value.navigation))
+  );
 }
 
-function isOptionalBoolean(value: Parameters<typeof isBoolean>[0]): boolean {
-  return value === undefined || isBoolean(value);
+function isThemeMessage(
+  value: Parameters<typeof isRecord>[0],
+): value is PreviewThemeMessage {
+  return (
+    isRecord(value) &&
+    value.channel === PREVIEW_CHANNEL &&
+    value.type === "theme" &&
+    isPreviewTheme(value.theme)
+  );
 }
 
-const INBOUND_VALIDATORS: Record<
-  Extract<Parameters<typeof Object.hasOwn>[1], string>,
-  (data: Record<string, unknown>) => boolean
-> = {
-  render: (data) =>
-    isPreviewTree(data.tree) &&
-    (data.theme === undefined || isPreviewTheme(data.theme)) &&
-    isOptionalString(data.locale) &&
-    isOptionalBoolean(data.transparent) &&
-    isOptionalBoolean(data.padding) &&
-    (data.navigation === undefined || isPreviewNavigation(data.navigation)),
-  theme: (data) => isPreviewTheme(data.theme),
-  inspect: (data) => isBoolean(data.enabled),
-};
+function isInspectMessage(
+  value: Parameters<typeof isRecord>[0],
+): value is PreviewInspectMessage {
+  return (
+    isRecord(value) &&
+    value.channel === PREVIEW_CHANNEL &&
+    value.type === "inspect" &&
+    isBoolean(value.enabled)
+  );
+}
 
 /**
  * The preview message `data` is, or undefined for anything else posted to the
@@ -262,14 +281,9 @@ const INBOUND_VALIDATORS: Record<
 export function parsePreviewMessage(
   data: Parameters<typeof isRecord>[0],
 ): PreviewInboundMessage | undefined {
-  if (!isRecord(data) || data.channel !== PREVIEW_CHANNEL) return undefined;
-  const isKnownType =
-    isString(data.type) && Object.hasOwn(INBOUND_VALIDATORS, data.type);
-  const validate = isKnownType
-    ? INBOUND_VALIDATORS[data.type as string]
+  return isRenderMessage(data) || isThemeMessage(data) || isInspectMessage(data)
+    ? data
     : undefined;
-  if (!validate?.(data)) return undefined;
-  return data as PreviewInboundMessage & typeof data;
 }
 
 export function previewReadyMessage(): PreviewReadyMessage {
@@ -319,9 +333,21 @@ export function previewInspectMessage(enabled: boolean): PreviewInspectMessage {
   return { channel: PREVIEW_CHANNEL, type: "inspect", enabled };
 }
 
+/** The fields of a posted message the outbound parsers read, unchecked. */
+interface PostedFields {
+  height?: unknown;
+  message?: unknown;
+  path?: unknown;
+  blocks?: unknown;
+  text?: unknown;
+  rect?: unknown;
+  font?: unknown;
+  id?: unknown;
+}
+
 const OUTBOUND_PARSERS: Record<
   Extract<Parameters<typeof Object.hasOwn>[1], string>,
-  (data: Record<string, unknown>) => PreviewOutboundMessage | undefined
+  (data: PostedFields) => PreviewOutboundMessage | undefined
 > = {
   ready: () => previewReadyMessage(),
   resize: ({ height }) =>

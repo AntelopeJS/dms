@@ -42,7 +42,7 @@ function isOutOfSync(mockup: MockupSummary): boolean {
   );
 }
 
-function statusOf(mockup: MockupSummary): { label: string; color: string } {
+function statusOf(mockup: MockupSummary) {
   if (isOutOfSync(mockup)) {
     return { label: t("dms.mockup.status_out_of_sync"), color: "warning" };
   }

@@ -10,7 +10,7 @@
  * `added` from another one, `removed` to another one.
  */
 import { useSortable } from "@vueuse/integrations/useSortable";
-import { ref, watch } from "vue";
+import { type VNode, ref, watch } from "vue";
 
 export interface SortableListChange<Item> {
   added?: { element: Item; newIndex: number };
@@ -44,7 +44,7 @@ const props = defineProps<{
 const emit = defineEmits<{ change: [change: SortableListChange<Item>] }>();
 
 defineSlots<{
-  item(props: { element: Item; index: number }): unknown;
+  item(props: { element: Item; index: number }): VNode | VNode[];
 }>();
 
 /** What this list reads of SortableJS's events. */

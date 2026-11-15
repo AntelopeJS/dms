@@ -51,10 +51,10 @@ export function buttonLinkProps(declared: string | undefined) {
     to,
     external: true,
     noRel: true,
-    onClick: (event: MouseEvent) => {
+    onClick: async (event: MouseEvent) => {
       if (!isPlainClick(event)) return;
       event.preventDefault();
-      void navigateDms(pathOnThisSite(to));
+      await navigateDms(pathOnThisSite(to));
     },
   };
 }

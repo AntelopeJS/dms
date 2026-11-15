@@ -1,9 +1,10 @@
+import type { JsonValue } from "../../../../dms-core/app/types/json";
 import {
   isBoolean,
   isNumber,
-  isObject,
   isString,
 } from "../../../../dms-core/app/utils/type-check";
+import { isJsonObject, isObjectValue, type JsonObject } from "./json";
 import type { MockupSpecNode } from "./mockupSpec";
 
 /**
@@ -24,7 +25,7 @@ export interface MockupOptionUi {
   max?: number;
   step?: number;
   valueLabels?: Record<string, string>;
-  initial?: unknown;
+  initial?: JsonValue;
   blockTypes?: string[];
 }
 
@@ -32,7 +33,7 @@ export interface MockupOptionUi {
 export interface MockupOptionSchema {
   type: string;
   optional?: boolean;
-  default?: unknown;
+  default?: JsonValue;
   enum?: Array<string | number | boolean>;
   ui?: MockupOptionUi;
 }
@@ -41,7 +42,7 @@ export interface MockupOptionSchema {
 export interface MockupInitialChild {
   id: string;
   type: string;
-  options: Record<string, unknown>;
+  options: JsonObject;
 }
 
 /** One registered block type (`BlockTypeDescriptor`). */
@@ -52,7 +53,7 @@ export interface MockupBlockType {
   container?: boolean;
   allowedChildren?: string[];
   config: Record<string, MockupOptionSchema>;
-  defaults: Record<string, unknown>;
+  defaults: JsonObject;
   initialChildren?: MockupInitialChild[];
 }
 
@@ -73,27 +74,23 @@ export interface MockupCatalogSection {
   blocks: MockupBlockType[];
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return isObject(value) && value !== null && !Array.isArray(value);
-}
-
-function isStringList(value: unknown): value is string[] {
+function isStringList(value: JsonValue): value is string[] {
   return Array.isArray(value) && value.every(isString);
 }
 
-function isOptionalOf(
-  value: unknown,
-  guard: (entry: unknown) => boolean,
-): boolean {
+function isOptionalOf<Value extends JsonValue>(
+  value: JsonValue | undefined,
+  guard: (entry: JsonValue) => entry is Value,
+): value is Value | undefined {
   return value === undefined || guard(value);
 }
 
-function isLabels(value: unknown): value is Record<string, string> {
-  return isRecord(value) && Object.values(value).every(isString);
+function isLabels(value: JsonValue): value is Record<string, string> {
+  return isObjectValue(value) && Object.values(value).every(isString);
 }
 
-function isOptionUi(value: unknown): value is MockupOptionUi {
-  if (!isRecord(value)) return false;
+function isOptionUi(value: JsonValue): value is JsonObject & MockupOptionUi {
+  if (!isObjectValue(value)) return false;
   const strings = ["label", "widget", "group", "placeholder"];
   const numbers = ["order", "min", "max", "step"];
   return (
@@ -106,35 +103,50 @@ function isOptionUi(value: unknown): value is MockupOptionUi {
   );
 }
 
-function isEnumValue(value: unknown): value is string | number | boolean {
+function isEnumValue(value: JsonValue): value is string | number | boolean {
   return isString(value) || isNumber(value) || isBoolean(value);
 }
 
-function isOptionSchema(value: unknown): value is MockupOptionSchema {
+function isEnumList(
+  value: JsonValue,
+): value is Array<string | number | boolean> {
+  return Array.isArray(value) && value.every(isEnumValue);
+}
+
+function isOptionSchema(
+  value: JsonValue,
+): value is JsonObject & MockupOptionSchema {
   return (
-    isRecord(value) &&
+    isObjectValue(value) &&
     isString(value.type) &&
     isOptionalOf(value.optional, isBoolean) &&
-    isOptionalOf(
-      value.enum,
-      (entry) => Array.isArray(entry) && entry.every(isEnumValue),
-    ) &&
+    isOptionalOf(value.enum, isEnumList) &&
     isOptionalOf(value.ui, isOptionUi)
   );
 }
 
-function isInitialChild(value: unknown): value is MockupInitialChild {
+function isInitialChild(
+  value: JsonValue,
+): value is JsonObject & MockupInitialChild {
   return (
-    isRecord(value) &&
+    isObjectValue(value) &&
     isString(value.id) &&
     isString(value.type) &&
-    isRecord(value.options)
+    isObjectValue(value.options)
   );
 }
 
-function isMeta(value: unknown): value is MockupBlockType["meta"] {
+function isInitialChildList(
+  value: JsonValue,
+): value is Array<JsonObject & MockupInitialChild> {
+  return Array.isArray(value) && value.every(isInitialChild);
+}
+
+function isMeta(
+  value: JsonValue,
+): value is JsonObject & MockupBlockType["meta"] {
   return (
-    isRecord(value) &&
+    isObjectValue(value) &&
     isString(value.name) &&
     isOptionalOf(value.icon, isString) &&
     isOptionalOf(value.description, isString) &&
@@ -142,29 +154,26 @@ function isMeta(value: unknown): value is MockupBlockType["meta"] {
   );
 }
 
-function isBlockType(value: unknown): value is MockupBlockType {
+function isBlockType(value: JsonValue): value is JsonObject & MockupBlockType {
   return (
-    isRecord(value) &&
+    isObjectValue(value) &&
     isString(value.type) &&
     isString(value.componentName) &&
     isMeta(value.meta) &&
     isOptionalOf(value.container, isBoolean) &&
     isOptionalOf(value.allowedChildren, isStringList) &&
-    isRecord(value.config) &&
+    isObjectValue(value.config) &&
     Object.values(value.config).every(isOptionSchema) &&
-    isRecord(value.defaults) &&
-    isOptionalOf(
-      value.initialChildren,
-      (entry) => Array.isArray(entry) && entry.every(isInitialChild),
-    )
+    isObjectValue(value.defaults) &&
+    isOptionalOf(value.initialChildren, isInitialChildList)
   );
 }
 
-/** The block types of a catalog answer, those it describes wrongly left out. */
+/** The block types of a catalog answer, those it describes wrongly left out; none when the answer is not a JSON object with a `blocks` list. */
 export function parseBlockCatalog(
   value: unknown,
 ): MockupBlockType[] | undefined {
-  if (!isRecord(value) || !Array.isArray(value.blocks)) return undefined;
+  if (!isJsonObject(value) || !Array.isArray(value.blocks)) return undefined;
   return value.blocks.filter(isBlockType);
 }
 
@@ -218,7 +227,7 @@ function placeholderFor(
   key: string,
   option: MockupOptionSchema,
   block: MockupBlockType,
-): unknown {
+): JsonValue | undefined {
   const [first] = option.enum ?? [];
   if (first !== undefined) return first;
   switch (option.type) {
@@ -240,8 +249,8 @@ function placeholderFor(
   }
 }
 
-function startingOptions(block: MockupBlockType): Record<string, unknown> {
-  const options: Record<string, unknown> = { ...block.defaults };
+function startingOptions(block: MockupBlockType): JsonObject {
+  const options: JsonObject = { ...block.defaults };
   for (const [key, option] of Object.entries(block.config)) {
     if (option.ui?.initial !== undefined) options[key] = option.ui.initial;
     const isMissing = !option.optional && !Object.hasOwn(options, key);
@@ -258,8 +267,8 @@ const MAX_NEW_BLOCK_DEPTH = 3;
 interface StarterScope {
   catalog: ReadonlyMap<string, MockupBlockType>;
   /** The page's fixtures, new ones included. */
-  fixtures: Record<string, unknown>;
-  added: Record<string, unknown>;
+  fixtures: JsonObject;
+  added: JsonObject;
 }
 
 const SAMPLE_ROWS = [
@@ -286,7 +295,7 @@ function formField(id: string, label: string, component: string) {
  */
 const CONTROLLER_STARTERS = new Map<
   string,
-  { sample: unknown; options: (reference: string) => Record<string, unknown> }
+  { sample: JsonValue; options: (reference: string) => JsonObject }
 >([
   [
     "TableView",
@@ -323,7 +332,7 @@ const CONTROLLER_STARTERS = new Map<
  * The options a new block starts with beyond its defaults, for a block that
  * draws nothing without them: a form with no fields shows an empty card.
  */
-const STARTER_OPTIONS = new Map<string, Record<string, unknown>>([
+const STARTER_OPTIONS = new Map<string, JsonObject>([
   [
     "Form",
     {
@@ -341,7 +350,7 @@ const STARTER_OPTIONS = new Map<string, Record<string, unknown>>([
 ]);
 
 /** `wanted`, or the first `<wanted>-<n>` the page has no fixture under. */
-function freshKey(fixtures: Record<string, unknown>, wanted: string): string {
+function freshKey(fixtures: JsonObject, wanted: string): string {
   let key = wanted;
   for (let suffix = 2; Object.hasOwn(fixtures, key); suffix += 1) {
     key = `${wanted}-${suffix}`;
@@ -411,7 +420,7 @@ function startingBlock(
 /** A block placed from the catalog: its node and the page fixtures it adds. */
 export interface MockupNewBlock {
   node: MockupSpecNode;
-  fixtures: Record<string, unknown>;
+  fixtures: JsonObject;
 }
 
 /**
@@ -425,7 +434,7 @@ export interface MockupNewBlock {
 export function newBlock(
   block: MockupBlockType,
   catalog: ReadonlyMap<string, MockupBlockType>,
-  pageFixtures: Record<string, unknown> = {},
+  pageFixtures: JsonObject = {},
 ): MockupNewBlock {
   const scope: StarterScope = {
     catalog,

@@ -1,5 +1,7 @@
+import { isString } from "../../../../dms-core/app/utils/type-check";
+import { type JsonWritableObject, isJsonWritableObject } from "./json";
+
 /** An input component, with the options its field declares. */
-import { isString, isObject } from "../../../../dms-core/app/utils/type-check";
 interface ComponentWithOptions {
   options?: object;
 }
@@ -10,7 +12,6 @@ interface FieldWithOptions {
 }
 
 type Translate = (key: string) => string;
-type Options = Record<string, unknown>;
 
 const TEXT_OPTIONS = [
   "placeholder",
@@ -24,19 +25,15 @@ const TEXT_OPTIONS = [
 const LIST_OPTIONS = ["items", "columns"] as const;
 const ENTRY_TEXTS = ["label", "description"] as const;
 
-const isText = (value: unknown): value is string => isString(value);
-
-const isOptions = (value: unknown): value is Options =>
-  isObject(value) && value !== null && !Array.isArray(value);
-
 function translateTexts(
-  source: Options,
+  source: JsonWritableObject,
   keys: readonly string[],
   processI18n: Translate,
-) {
+): JsonWritableObject {
   const translated = { ...source };
   for (const key of keys) {
-    if (isText(source[key])) translated[key] = processI18n(source[key]);
+    const text = Object.hasOwn(source, key) ? source[key] : undefined;
+    if (isString(text)) translated[key] = processI18n(text);
   }
   return translated;
 }
@@ -46,8 +43,11 @@ function translateTexts(
  * editor's value) has the options of that field's component translated too,
  * so a select inside a repeater shows its options in the reader's language.
  */
-function translateNestedField(entry: Options, processI18n: Translate) {
-  if (!isOptions(entry.component)) return entry;
+function translateNestedField(
+  entry: JsonWritableObject,
+  processI18n: Translate,
+): JsonWritableObject {
+  if (!isJsonWritableObject(entry.component)) return entry;
   return {
     ...entry,
     component: translateComponent(entry.component, processI18n),
@@ -58,21 +58,23 @@ function translateComponent<C extends ComponentWithOptions>(
   component: C,
   processI18n: Translate,
 ): C {
-  const opts = component.options as Options | undefined;
-  if (!opts) return component;
+  const opts = component.options;
+  if (!isJsonWritableObject(opts)) return component;
 
   const options = translateTexts(opts, TEXT_OPTIONS, processI18n);
   for (const key of LIST_OPTIONS) {
-    const list = opts[key];
+    const list = Object.hasOwn(opts, key) ? opts[key] : undefined;
     if (!Array.isArray(list)) continue;
-    options[key] = list.map((entry: Options) =>
-      translateNestedField(
-        translateTexts(entry, ENTRY_TEXTS, processI18n),
-        processI18n,
-      ),
+    options[key] = list.map((entry) =>
+      isJsonWritableObject(entry)
+        ? translateNestedField(
+            translateTexts(entry, ENTRY_TEXTS, processI18n),
+            processI18n,
+          )
+        : entry,
     );
   }
-  if (isOptions(opts.value)) {
+  if (isJsonWritableObject(opts.value)) {
     options.value = translateNestedField(opts.value, processI18n);
   }
 

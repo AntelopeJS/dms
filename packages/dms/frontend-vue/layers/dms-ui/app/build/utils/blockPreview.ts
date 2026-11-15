@@ -12,12 +12,19 @@ import {
   isBoolean,
   isNumber,
 } from "../../../../dms-core/app/utils/type-check";
+import {
+  isJsonWritable,
+  isWritableObject,
+  type JsonObject,
+  type JsonWritable,
+  type JsonWritableObject,
+} from "./json";
 export interface PreviewNode {
   /** Block registry type, e.g. `KpiCard`. Wins over `componentName`. */
   type?: string;
   /** Component a registered block type emits, e.g. `dms-kpi-card`. */
   componentName?: string;
-  options?: Record<string, unknown>;
+  options?: JsonWritableObject;
   children?: PreviewChildNode[];
 }
 
@@ -47,7 +54,7 @@ export interface PreviewState {
 export interface PreviewBlockType {
   componentName: string;
   /** Options the factory sets whatever its caller passes. */
-  fixedOptions?: Record<string, unknown>;
+  fixedOptions?: JsonObject;
   /** Takes a controller class: drawn only when built from a route instead. */
   needsController?: boolean;
 }
@@ -91,7 +98,7 @@ export interface PreviewIssue {
 export interface PreviewResolvedNode {
   id: string;
   componentName?: string;
-  options: Record<string, unknown>;
+  options: JsonWritableObject;
   children: PreviewResolvedNode[];
   slot?: string;
   colSpan?: number;
@@ -119,41 +126,43 @@ function isOptionalString(value: Parameters<typeof isString>[0]): boolean {
   return value === undefined || isString(value);
 }
 
-function isPreviewNode(value: unknown): value is PreviewNode {
-  if (!isRecord(value)) return false;
+function isPreviewNode(
+  value: JsonWritable,
+): value is JsonWritableObject & PreviewNode {
+  if (!isWritableObject(value)) return false;
   if (!isOptionalString(value.type)) return false;
   if (!isOptionalString(value.componentName)) return false;
-  if (value.options !== undefined && !isRecord(value.options)) return false;
+  if (value.options !== undefined && !isWritableObject(value.options))
+    return false;
   if (value.children === undefined) return true;
   return Array.isArray(value.children) && value.children.every(isPreviewNode);
 }
 
-/** Whether `value` is a node or a list of nodes. */
-export function isPreviewTree(value: unknown): value is PreviewTree {
+function isTreeValue(value: JsonWritable): value is JsonWritable & PreviewTree {
   return Array.isArray(value)
     ? value.every(isPreviewNode)
     : isPreviewNode(value);
+}
+
+/** Whether `value` is JSON, and a node or a list of nodes. */
+export function isPreviewTree(value: unknown): value is PreviewTree {
+  return isJsonWritable(value) && isTreeValue(value);
 }
 
 export function isPreviewTheme(value: unknown): value is PreviewTheme {
   return PREVIEW_THEMES.some((theme) => theme === value);
 }
 
-function isOptionalBoolean(value: Parameters<typeof isBoolean>[0]): boolean {
-  return value === undefined || isBoolean(value);
-}
-
-function hasValidStateExtras(value: Record<string, unknown>): boolean {
-  if (value.theme !== undefined && !isPreviewTheme(value.theme)) return false;
-  if (!isOptionalString(value.locale)) return false;
-  return (
-    isOptionalBoolean(value.padding) && isOptionalBoolean(value.transparent)
-  );
-}
-
 function isPreviewState(value: unknown): value is PreviewState {
   return (
-    isRecord(value) && isPreviewTree(value.tree) && hasValidStateExtras(value)
+    isJsonWritable(value) &&
+    isWritableObject(value) &&
+    value.tree !== undefined &&
+    isTreeValue(value.tree) &&
+    (value.theme === undefined || isPreviewTheme(value.theme)) &&
+    (value.locale === undefined || isString(value.locale)) &&
+    (value.padding === undefined || isBoolean(value.padding)) &&
+    (value.transparent === undefined || isBoolean(value.transparent))
   );
 }
 
@@ -291,7 +300,7 @@ function matchBlockType(
  * (`TableView.fromSource`): it reads `source.fetchUrl`, which a preview can
  * call like any other block's URL.
  */
-function readsRouteSource(options: Record<string, unknown>): boolean {
+function readsRouteSource(options: JsonWritableObject): boolean {
   const source = options[ROUTE_SOURCE_OPTION];
   return isRecord(source) && isString(source.fetchUrl);
 }
@@ -303,7 +312,7 @@ function readsRouteSource(options: Record<string, unknown>): boolean {
  */
 function readsSerializedForm(
   blockType: PreviewBlockType,
-  options: Record<string, unknown>,
+  options: JsonWritableObject,
 ): boolean {
   return (
     blockType.componentName === "dms-form-block" &&
@@ -316,7 +325,7 @@ function readsSerializedForm(
 function issueFor(
   node: PreviewNode,
   match: MatchedBlockType | undefined,
-  options: Record<string, unknown>,
+  options: JsonWritableObject,
 ): PreviewIssue | undefined {
   if (!match) {
     return {
@@ -353,7 +362,7 @@ function clampSketchHeight(height: unknown): number {
  * default instead of refusing the sketch.
  */
 function parseSketch(
-  options: Record<string, unknown> | undefined,
+  options: JsonWritableObject | undefined,
 ): PreviewSketch | undefined {
   if (!options || !isString(options.html)) return undefined;
   const sketch: PreviewSketch = {
