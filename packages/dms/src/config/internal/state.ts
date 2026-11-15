@@ -371,7 +371,8 @@ export function getProvisioningLeaseConfig(): ProvisioningLeaseConfig {
   return { ...DEFAULT_PROVISIONING_LEASE, ...globalConfig.provisioningLease };
 }
 
-export function setDevClientBaseUrl(url: string): void {
+/** `undefined` drops the dev override, back to the configured origin. */
+export function setDevClientBaseUrl(url: string | undefined): void {
   devClientBaseUrl = url;
 }
 

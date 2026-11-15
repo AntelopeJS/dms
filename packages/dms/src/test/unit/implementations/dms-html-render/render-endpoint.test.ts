@@ -1,11 +1,7 @@
 import { createServer, type Server } from "node:http";
 import { expect } from "chai";
 import { z } from "zod";
-import {
-  getClientBaseUrl,
-  getHtmlRenderConfig,
-  setDevClientBaseUrl,
-} from "../../../../config";
+import { getHtmlRenderConfig, setDevClientBaseUrl } from "../../../../config";
 import { GenerateHtml } from "../../../../implementations/dms-html-render";
 
 const TEMPLATE = { name: "welcome" };
@@ -17,7 +13,6 @@ describe("[unit] implementations/dms-html-render — render endpoint", () => {
   let dashboard: Server;
   let dashboardOrigin = "";
   let configuredEndpoint: string | undefined;
-  let clientBaseUrl: string | undefined;
 
   before(async () => {
     dashboard = createServer((request, response) => {
@@ -39,7 +34,6 @@ describe("[unit] implementations/dms-html-render — render endpoint", () => {
     expect(port).to.not.equal(3001);
     dashboardOrigin = `http://127.0.0.1:${port}`;
     configuredEndpoint = getHtmlRenderConfig().renderEndpoint;
-    clientBaseUrl = getClientBaseUrl();
   });
 
   after(async () => {
@@ -47,7 +41,7 @@ describe("[unit] implementations/dms-html-render — render endpoint", () => {
     if (configuredEndpoint) {
       getHtmlRenderConfig().renderEndpoint = configuredEndpoint;
     }
-    if (clientBaseUrl) setDevClientBaseUrl(clientBaseUrl);
+    setDevClientBaseUrl(undefined);
     await new Promise((resolve) => dashboard.close(resolve));
   });
 
