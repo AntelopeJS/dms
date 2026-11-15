@@ -127,7 +127,7 @@ const MAPPED_FIELD = z.object({
           .regex(/^[A-Z]{3}$/)
           .optional()
           .describe(
-            "ISO 4217 code of the amount (`USD`). Left out, the column keeps the price the relation's mapping holds or its analysis proposes, with the currency the Builder read from the column comment or a one-value currency column; with no such price, it is written plain. Send a code to write a price neither holds.",
+            "ISO 4217 code of the amount (`USD`). Left out, the field is sent as if it left `display` out: it takes the display the relation's mapping holds or its analysis proposes, a price in the currency the Builder read from the column comment or a one-value currency column, and with neither it is written plain. Send a code to write a price neither holds.",
           ),
       }),
     ])

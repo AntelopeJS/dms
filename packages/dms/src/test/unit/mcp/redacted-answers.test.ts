@@ -14,6 +14,8 @@ const ROW_VALUES = [
   "The Rock",
   "qx@acme.io",
   "4471",
+  "john-smith",
+  "dup key",
 ];
 
 const REFUSED = "the page refused owner@example.test: its layout answered 403";
@@ -33,7 +35,7 @@ function verifyReport(): PageVerifyReport {
     dashboardUrl: "http://localhost:5173",
     account: { kind: "owner", email: "owner@example.test" },
     screenshots: ".antelope/page-verify/run",
-    notes: ["Writes held back (submit: false): PUT /api/orders/zq_paid"],
+    notes: ["Writes held back (submit: false): PUT /api/orders/john-smith"],
     pages: [
       {
         page: "/orders",
@@ -46,15 +48,34 @@ function verifyReport(): PageVerifyReport {
             type: "TableView",
             state: "ok",
             viewport: "desktop",
+            source: "/api/orders?status=zq_paid",
           },
         ],
         errors: {
-          console: [],
+          console: [
+            {
+              viewport: "desktop",
+              text: 'E11000 dup key { email: "qx@acme.io" }',
+            },
+            { viewport: "desktop", text: 'TypeError: no row "Qx Acme"' },
+          ],
           failedRequests: [
             {
               viewport: "desktop",
               method: "GET",
               url: "http://localhost:5173/api/orders/4471?status=zq_paid",
+              status: 500,
+            },
+            {
+              viewport: "desktop",
+              method: "GET",
+              url: "http://localhost:5173/api/customers/john-smith",
+              status: 404,
+            },
+            {
+              viewport: "desktop",
+              method: "GET",
+              url: "http://localhost:5173/api/orders?page=2",
               status: 500,
             },
           ],
@@ -142,11 +163,20 @@ describe("[unit] the previews and page checks the AI reads", () => {
     expect(orders.interactions[2].detail).to.equal(
       "not checked: the click opened a menu",
     );
-    expect(orders.errors.failedRequests[0].url).to.equal(
-      "http://localhost:5173/api/orders/:value",
-    );
+    expect(
+      orders.errors.failedRequests.map((entry) => entry.url),
+    ).to.deep.equal([
+      "http://localhost:5173/…",
+      "http://localhost:5173/…",
+      "http://localhost:5173/api/orders",
+    ]);
+    expect(orders.errors.console.map((entry) => entry.text)).to.deep.equal([
+      "console error",
+      "TypeError",
+    ]);
+    expect(orders.data[0].source).to.equal("/api/orders");
     expect(redacted.notes).to.deep.equal([
-      "Writes held back (submit: false): PUT /api/orders/:value",
+      "Writes held back (submit: false): PUT /…",
     ]);
     expect(orders.failures).to.include(
       "tab: tab #1: stayed unselected after a click",

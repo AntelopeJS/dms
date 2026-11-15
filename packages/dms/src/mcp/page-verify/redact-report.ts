@@ -1,15 +1,19 @@
 import { listFailures } from "./failures";
 import type {
+  ConsoleError,
+  DataBlock,
   FailedRequest,
   Interaction,
   PageReport,
   PageVerifyReport,
 } from "./report";
 
-/** A path segment that names a route rather than a record: lowercase words and dashes. */
-const ROUTE_WORD = /^[a-z][a-z-]*$/;
-const PATH_IN_TEXT = /\/[^\s,]*/g;
+const PATH_IN_TEXT = /\/[^\s,:]*/g;
+const UNKNOWN_PATH = "/…";
+const URL_BASE = "http://dms.invalid";
 const WEB_SCHEMES: ReadonlySet<string> = new Set(["http:", "https:"]);
+const ERROR_NAME = /^[A-Z][A-Za-z]*(?:Error|Exception)\b/;
+const CONSOLE_ERROR = "console error";
 
 /** The details that quote what the page shows, cut where the page's text begins. */
 const PAGE_TEXT_DETAILS: readonly RegExp[] = [
@@ -17,21 +21,16 @@ const PAGE_TEXT_DETAILS: readonly RegExp[] = [
   /^could not open/,
 ];
 
-/** A path with every segment that is not a route word, such as a record key, replaced. */
-function redactPath(path: string): string {
-  return path
-    .split("/")
-    .map((segment) =>
-      segment === "" || ROUTE_WORD.test(segment) ? segment : ":value",
-    )
-    .join("/");
+function pathOf(url: string): string {
+  return new URL(url, URL_BASE).pathname;
 }
 
-function redactUrl(text: string): string {
-  const url = new URL(text);
-  return WEB_SCHEMES.has(url.protocol)
-    ? `${url.origin}${redactPath(url.pathname)}`
-    : url.protocol;
+/**
+ * A path the report may show: one a block of the page reads, which the Builder or the caller wrote
+ * into its options. Any other path can hold a record key, and becomes `/…`.
+ */
+function redactPath(path: string, known: ReadonlySet<string>): string {
+  return known.has(path) ? path : UNKNOWN_PATH;
 }
 
 function redactDetail(detail: string): string {
@@ -59,17 +58,43 @@ function redactInteractions(interactions: Interaction[]): Interaction[] {
   });
 }
 
-function redactRequest(request: FailedRequest): FailedRequest {
-  return { ...request, url: redactUrl(request.url) };
+function redactRequest(
+  request: FailedRequest,
+  known: ReadonlySet<string>,
+): FailedRequest {
+  const url = new URL(request.url);
+  return {
+    ...request,
+    url: WEB_SCHEMES.has(url.protocol)
+      ? `${url.origin}${redactPath(url.pathname, known)}`
+      : url.protocol,
+  };
 }
 
-function redactPage(page: PageReport): PageReport {
+/** A console error by its error class only: its message can quote what a server answered. */
+function redactConsole(error: ConsoleError): ConsoleError {
+  return {
+    ...error,
+    text: ERROR_NAME.exec(error.text)?.[0] ?? CONSOLE_ERROR,
+  };
+}
+
+function redactSource(block: DataBlock): DataBlock {
+  return block.source === undefined
+    ? block
+    : { ...block, source: pathOf(block.source) };
+}
+
+function redactPage(page: PageReport, known: ReadonlySet<string>): PageReport {
   const redacted: PageReport = {
     ...page,
+    data: page.data.map(redactSource),
     interactions: redactInteractions(page.interactions),
     errors: {
-      console: page.errors.console,
-      failedRequests: page.errors.failedRequests.map(redactRequest),
+      console: page.errors.console.map(redactConsole),
+      failedRequests: page.errors.failedRequests.map((request) =>
+        redactRequest(request, known),
+      ),
     },
   };
   const derived = new Set(listFailures(page));
@@ -82,14 +107,24 @@ function redactPage(page: PageReport): PageReport {
 
 /**
  * A `page_verify` report as the AI reads it: each link, tab, column, search, form and button is
- * named by its kind and an ordinal, the menu items and errors a click showed are left out, and the
- * paths of requests and held-back writes keep only their route words. The data state of each
- * block, the render and the permissions stay.
+ * named by its kind and an ordinal, the menu items and errors a click showed are left out, a
+ * console error keeps only its class, a block's source loses its query, and a request or
+ * held-back write shows its path only when a block of the run reads that path. The data state of
+ * each block, the render and the permissions stay.
  */
 export function redactVerifyReport(report: PageVerifyReport): PageVerifyReport {
+  const known = new Set(
+    report.pages.flatMap((page) =>
+      page.data.flatMap((block) =>
+        block.source === undefined ? [] : [pathOf(block.source)],
+      ),
+    ),
+  );
   return {
     ...report,
-    notes: report.notes.map((note) => note.replace(PATH_IN_TEXT, redactPath)),
-    pages: report.pages.map(redactPage),
+    notes: report.notes.map((note) =>
+      note.replace(PATH_IN_TEXT, (path) => redactPath(path, known)),
+    ),
+    pages: report.pages.map((page) => redactPage(page, known)),
   };
 }
