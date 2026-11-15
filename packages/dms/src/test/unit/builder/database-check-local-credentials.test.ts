@@ -14,6 +14,8 @@ const TIMEOUT_MS = 1000;
 const ENV_SECRETS = {
   PGPASSWORD: "env-password-6d1f",
   PGUSER: "env-user-6d1f",
+  PGAPPNAME: "env-app-6d1f",
+  PGOPTIONS: "-c search_path=env_6d1f",
 };
 /**
  * What the check answers for a URL its driver refuses before it signs in: the probe's refusal, or
