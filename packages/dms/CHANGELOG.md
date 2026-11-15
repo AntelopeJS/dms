@@ -1,5 +1,18 @@
 # Changelog
 
+## v0.20.6
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/v0.20.5...v0.20.6)
+
+### 🩹 Fixes
+
+- **dms:** Take no screenshot in page_verify ([#1072](https://github.com/AntelopeJS/dms/pull/1072))
+- **dms:** Hide the row values a mapping wrote from the builder tools that read its code ([#1073](https://github.com/AntelopeJS/dms/pull/1073))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli ([@Upd4ting](http://github.com/Upd4ting))
+
 ## v0.20.5
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/v0.20.4...v0.20.5)
