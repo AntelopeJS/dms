@@ -248,7 +248,7 @@ jobs:
 
   verify-map:
     needs: select
-    if: contains(fromJSON(needs.select.outputs.packages), 'agents')
+    if: contains(fromJSON(needs.select.outputs.packages), 'verify-dms')
     runs-on: ${{ matrix.os }}
     timeout-minutes: 5
     strategy:

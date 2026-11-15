@@ -8,17 +8,19 @@ import { matchesGlob } from "node:path/posix";
  *
  * `root` owns a path by its longest matching prefix, so a package nested in
  * another owns its own files. `reads` lists the paths outside `root` that the
- * package's tests or checks read, and `dependsOn` lists the packages whose
- * change can break it. When a test starts reading a new path, add the path
- * here.
+ * package's tests or checks read, documentation included, and `dependsOn`
+ * lists the packages whose change can break it. When a test starts reading a
+ * new path, add the path here.
  *
- * - `dms` reads frontend-vue through the package-contents test, the shared
- *   fixtures, the locales, the e-mail templates, the layer manifests and
- *   `scripts/backend-checks.cjs`.
+ * - `dms` reads frontend-vue through the package-contents test (which packs
+ *   with the layer's ignore files), the shared fixtures, the locales, the
+ *   e-mail templates, the layer manifests and `scripts/backend-checks.cjs`, and
+ *   the docs examples through the mockup compile test.
  * - `frontend-vue` reads `packages/dms/data`, `packages/dms/checks`,
  *   `packages/dms/package.json` and the playground layer.
- * - `.agents` holds the TLA+ formal models and the verify-dms map, which cover
- *   code in every package.
+ * - `verify-dms` is the verify-map check: its features name documentation
+ *   pages and its config names playground files.
+ * - `agents` holds the TLA+ formal models, which cover code in every package.
  *
  * @type {TestPackage[]}
  */
@@ -46,7 +48,9 @@ export const PACKAGES = [
       "packages/dms/frontend-vue/layers/dms-layout/app/emails/**",
       "packages/dms/frontend-vue/server/private-options.ts",
       "packages/dms/frontend-vue/tests/fixtures/**",
+      "packages/dms/frontend-vue/**/.{gitignore,npmignore}",
       "packages/dms/playground/frontend-vue/package.json",
+      "packages/dms/docs-data/examples.json",
     ],
     dependsOn: ["interface-dms", "interface-dms-builder"],
   },
@@ -68,6 +72,18 @@ export const PACKAGES = [
     dependsOn: ["interface-dms", "dms", "frontend-vue"],
   },
   {
+    name: "verify-dms",
+    root: ".agents/skills/verify-dms",
+    reads: ["packages/*/docs/**"],
+    dependsOn: [
+      "interface-dms",
+      "interface-dms-builder",
+      "dms",
+      "frontend-vue",
+      "playground",
+    ],
+  },
+  {
     name: "agents",
     root: ".agents",
     reads: [".claude/**"],
@@ -86,6 +102,7 @@ const DOCS = [
   "docs-data/examples.json",
   "packages/*/README.md",
   "packages/*/docs/**",
+  "packages/*/docs/**/.*",
   "packages/*/docs-data/examples.json",
 ];
 
@@ -113,8 +130,9 @@ const owner = (path) =>
 
 /**
  * The names of the packages whose tests a change can affect: the packages it
- * touches and, transitively, the packages that depend on them. A path no
- * package owns or reads is shared tooling and selects every package.
+ * touches and, transitively, the packages that depend on them. A documentation
+ * path selects only the packages that read it. Any other path no package owns
+ * or reads is shared tooling and selects every package.
  *
  * @param {string[]} files Changed repository paths.
  * @returns {string[]} Package names, in table order.
@@ -123,11 +141,11 @@ export const affectedPackages = (files) => {
   /** @type {Set<string>} */
   const selected = new Set();
   for (const file of files) {
-    if (matchesAny(file, DOCS)) continue;
-    const owning = owner(file);
     const reading = PACKAGES.filter(({ reads }) => matchesAny(file, reads));
+    const docs = matchesAny(file, DOCS);
+    const owning = docs ? undefined : owner(file);
     const touched = owning === undefined ? reading : [owning, ...reading];
-    const names = touched.length === 0 ? PACKAGES : touched;
+    const names = touched.length === 0 && !docs ? PACKAGES : touched;
     for (const { name } of names) selected.add(name);
   }
   let size = -1;

@@ -57,13 +57,14 @@ await test("the fast tier with a base selects what the diff against it affects (
     return ["packages/dms/src/index.ts"];
   });
   assert.deepEqual(bases, ["abc"]);
-  assert.deepEqual(selection, ["dms", "playground", "agents"]);
+  assert.deepEqual(selection, ["dms", "playground", "verify-dms", "agents"]);
 });
 
 await test("a backend source change selects its dependents and not the Vue layer (catches missing dependents and a backend edge to the Vue layer)", () => {
   assert.deepEqual(affectedPackages(["packages/dms/src/server/api.ts"]), [
     "dms",
     "playground",
+    "verify-dms",
     "agents",
   ]);
 });
@@ -73,14 +74,14 @@ await test("a Vue layer file selects the Vue layer and its dependents, not the b
     affectedPackages([
       "packages/dms/frontend-vue/layers/dms-ui/app/components/X.vue",
     ]),
-    ["frontend-vue", "playground", "agents"],
+    ["frontend-vue", "playground", "verify-dms", "agents"],
   );
 });
 
 await test("a Vue fixture the backend tests read selects the backend too (catches a dropped read edge)", () => {
   assert.deepEqual(
     affectedPackages(["packages/dms/frontend-vue/tests/fixtures/page.json"]),
-    ["dms", "frontend-vue", "playground", "agents"],
+    ["dms", "frontend-vue", "playground", "verify-dms", "agents"],
   );
 });
 
@@ -89,6 +90,7 @@ await test("a backend data file the Vue tests read selects the Vue layer too (ca
     "dms",
     "frontend-vue",
     "playground",
+    "verify-dms",
     "agents",
   ]);
 });
@@ -99,6 +101,7 @@ await test("a page interface change selects every package that imports it (catch
     "dms",
     "frontend-vue",
     "playground",
+    "verify-dms",
     "agents",
   ]);
 });
@@ -106,7 +109,14 @@ await test("a page interface change selects every package that imports it (catch
 await test("a builder interface change selects every package that imports it (catches a builder change that stops at its own package)", () => {
   assert.deepEqual(
     affectedPackages(["packages/interface-dms-builder/src/index.ts"]),
-    ["interface-dms-builder", "dms", "frontend-vue", "playground", "agents"],
+    [
+      "interface-dms-builder",
+      "dms",
+      "frontend-vue",
+      "playground",
+      "verify-dms",
+      "agents",
+    ],
   );
 });
 
@@ -117,17 +127,43 @@ await test("a documentation-only change selects no package (catches a docs path 
       "docs/guide.md",
       "docs-data/examples.json",
       "packages/dms/README.md",
-      "packages/dms/docs/a/b.md",
+      "packages/dms/docs/02.building/.navigation.yml",
       "packages/interface-dms/docs-data/examples.json",
     ]),
     [],
   );
 });
 
+await test("a documentation page selects only the map that names it (catches a docs page that skips verify-map)", () => {
+  assert.deepEqual(
+    affectedPackages(["packages/dms/docs/08.ai/10.mcp-server.md"]),
+    ["verify-dms"],
+  );
+});
+
+await test("the docs examples select the backend that compiles them (catches a docs read edge dropped by the docs filter)", () => {
+  assert.deepEqual(affectedPackages(["packages/dms/docs-data/examples.json"]), [
+    "dms",
+    "playground",
+    "verify-dms",
+    "agents",
+  ]);
+});
+
+await test("an ignore file of the Vue layer selects the backend that packs it (catches a package-contents edge left out)", () => {
+  assert.deepEqual(affectedPackages(["packages/dms/frontend-vue/.gitignore"]), [
+    "dms",
+    "frontend-vue",
+    "playground",
+    "verify-dms",
+    "agents",
+  ]);
+});
+
 await test("a playground file is not documentation (catches the docs list skipping the playground)", () => {
   assert.deepEqual(
-    affectedPackages(["packages/dms/playground/antelope.config.json"]),
-    ["playground"],
+    affectedPackages(["packages/dms/playground/tsconfig.json"]),
+    ["playground", "verify-dms"],
   );
 });
 
@@ -144,10 +180,17 @@ await test("an agent skill change selects only the agents package (catches share
   assert.deepEqual(affectedPackages([".agents/skills/x/SKILL.md"]), ["agents"]);
 });
 
+await test("a verify-dms skill change selects only the map, not the formal models (catches the nested skill owned by agents)", () => {
+  assert.deepEqual(
+    affectedPackages([".agents/skills/verify-dms/features/auth.md"]),
+    ["verify-dms"],
+  );
+});
+
 await test("a documentation file next to a code change does not narrow the selection (catches a docs file that ends the scan)", () => {
   assert.deepEqual(
     affectedPackages(["README.md", "packages/dms/src/index.ts"]),
-    ["dms", "playground", "agents"],
+    ["dms", "playground", "verify-dms", "agents"],
   );
 });
 
