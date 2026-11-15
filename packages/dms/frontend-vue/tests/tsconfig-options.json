@@ -4,6 +4,6 @@
     "allowJs": true,
     "maxNodeModuleJsDepth": 1
   },
-  "include": ["./**/*.ts"],
+  "include": ["./**/*.ts", "./**/*.js"],
   "exclude": []
 }
