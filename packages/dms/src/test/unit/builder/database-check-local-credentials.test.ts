@@ -10,6 +10,9 @@ import {
   signInRefusal,
 } from "../../../implementations/dms-builder/engine";
 
+/** How long a spec of several checks may take: each check starts a Node process for its probe. */
+const PROCESS_TIMEOUT_MS = 20_000;
+
 const TIMEOUT_MS = 1000;
 const ENV_SECRETS = {
   PGPASSWORD: "env-password-6d1f",
@@ -126,7 +129,8 @@ async function withEnvironment<Result>(
   }
 }
 
-describe("what a PostgreSQL check sends of this computer", () => {
+describe("what a PostgreSQL check sends of this computer", function () {
+  this.timeout(PROCESS_TIMEOUT_MS);
   const LOCAL_FILES = REFUSED;
 
   /** Fails on a check that lets `pg` fill a missing password, user or option from `PG*` variables. */
@@ -242,7 +246,8 @@ describe("what a PostgreSQL check sends of this computer", () => {
   });
 });
 
-describe("an ssl value a PostgreSQL check refuses", () => {
+describe("an ssl value a PostgreSQL check refuses", function () {
+  this.timeout(PROCESS_TIMEOUT_MS);
   /** A server that accepts TLS, which is when `pg` reads a key of the `ssl` it was given. */
   function tlsAcceptingServer(): Promise<Listener> {
     const chunks: Buffer[] = [];
@@ -295,7 +300,8 @@ describe("an ssl value a PostgreSQL check refuses", () => {
   });
 });
 
-describe("the URL options a MySQL check passes on", () => {
+describe("the URL options a MySQL check passes on", function () {
+  this.timeout(PROCESS_TIMEOUT_MS);
   const SSL_SETTING = REFUSED;
 
   /** Fails on a check that hands `mysql2` a client certificate of this computer, or an option value of a type it dereferences on a socket event. */
@@ -343,7 +349,8 @@ describe("the URL options a MySQL check passes on", () => {
   });
 });
 
-describe("what a MongoDB check sends of this computer", () => {
+describe("what a MongoDB check sends of this computer", function () {
+  this.timeout(PROCESS_TIMEOUT_MS);
   const OTHER_MECHANISM = REFUSED;
   const LOCAL_FILES = REFUSED;
 
@@ -430,10 +437,11 @@ describe("what a MongoDB check sends of this computer", () => {
         "Nothing is listening at this host and port.",
       );
     }
-  }).timeout(10_000);
+  }).timeout(PROCESS_TIMEOUT_MS);
 });
 
-describe("how long the check takes to word a long message", () => {
+describe("how long the check takes to word a long message", function () {
+  this.timeout(PROCESS_TIMEOUT_MS);
   function slowest(word: (message: string) => string, message: string): number {
     let best = Number.POSITIVE_INFINITY;
     for (let round = 0; round < 3; round += 1) {
@@ -458,5 +466,5 @@ describe("how long the check takes to word a long message", () => {
         expect(long / short, JSON.stringify(filler)).to.be.lessThan(30);
       }
     }
-  }).timeout(20_000);
+  }).timeout(PROCESS_TIMEOUT_MS);
 });

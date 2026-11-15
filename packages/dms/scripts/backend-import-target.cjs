@@ -85,7 +85,7 @@ const processPins = {
     'return (0, node_os_1.platform)() === "win32"\n        ? execFileAsync(windowsCommandLine(manager, args), {\n            ...options,\n            shell: "cmd.exe",\n        })\n        : execFileAsync(manager, args, options);',
   "dist/implementations/dms-builder/engine/probe-process.js:7":
     'const node_child_process_1 = require("node:child_process");',
-  "dist/implementations/dms-builder/engine/probe-process.js:81":
+  "dist/implementations/dms-builder/engine/probe-process.js:80":
     'const child = (0, node_child_process_1.spawn)(process.execPath, [CHILD], {\n            env: childEnvironment(request),\n            stdio: ["ignore", "pipe", "pipe"],\n            windowsHide: true,\n        });',
   "dist/test/helpers/replica-process.js:4":
     'const node_child_process_1 = require("node:child_process");',

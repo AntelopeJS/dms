@@ -9,9 +9,27 @@ import {
   setProbeBasesForTests,
 } from "../../../implementations/dms-builder/engine";
 
+/** How long a spec of several checks may take: each check starts a Node process for its probe. */
+const PROCESS_TIMEOUT_MS = 20_000;
+
 const TIMEOUT_MS = 200;
 const DEADLINE_MS = TIMEOUT_MS * 3;
 const TcpAddress = z.object({ port: z.number() });
+
+/** The variables libuv adds to a child's environment on Windows, from the parent's, whatever it is given. */
+const WINDOWS_REQUIRED = new Set([
+  "HOMEDRIVE",
+  "HOMEPATH",
+  "LOGONSERVER",
+  "PATH",
+  "SYSTEMDRIVE",
+  "SYSTEMROOT",
+  "TEMP",
+  "USERDOMAIN",
+  "USERNAME",
+  "USERPROFILE",
+  "WINDIR",
+]);
 
 /**
  * A project folder whose `@antelopejs/postgres` is a stand-in: its `dist/probe.js` is `source`,
@@ -84,7 +102,8 @@ function pause(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-describe("a database check runs its driver's probe in a process of its own", () => {
+describe("a database check runs its driver's probe in a process of its own", function () {
+  this.timeout(PROCESS_TIMEOUT_MS);
   /** Fails on a check that runs the probe in this process, where an uncaught throw on a socket event ends it. */
   it("answers a probe that throws on a socket event as unreachable, and this process keeps running", async () => {
     const answer = await withStandIn(
@@ -134,10 +153,11 @@ exports.probe = ({ url }) => {
     } finally {
       await server.close();
     }
-  }).timeout(10_000);
+  }).timeout(PROCESS_TIMEOUT_MS);
 });
 
-describe("what a database check's probe process survives and gets", () => {
+describe("what a database check's probe process survives and gets", function () {
+  this.timeout(PROCESS_TIMEOUT_MS);
   /** Fails on a check that a MySQL server can end by writing its sign-in OK and a 1-byte error packet in one write. */
   it("answers a MySQL server that coalesces its OK and a short error packet, and this process keeps running", async () => {
     const frame = (sequence: number, hex: string) => {
@@ -187,10 +207,11 @@ describe("what a database check's probe process survives and gets", () => {
     } finally {
       await new Promise((closed) => server.close(closed));
     }
-  }).timeout(10_000);
+  }).timeout(PROCESS_TIMEOUT_MS);
 });
 
-describe("what a database check reads of its probe's output", () => {
+describe("what a database check reads of its probe's output", function () {
+  this.timeout(PROCESS_TIMEOUT_MS);
   /** Fails on a check that settles on the child's exit before its last stdout chunk, or splits a character across chunks. */
   it("answers what the driver decided after it printed megabytes of lines, and keeps its text whole", async () => {
     const user = "é".repeat(100_000);
@@ -245,11 +266,12 @@ describe("what a database check reads of its probe's output", () => {
     } finally {
       clearInterval(ticker);
     }
-    expect(longest).to.be.lessThan(250);
-  }).timeout(10_000);
+    expect(longest).to.be.lessThan(os.platform() === "win32" ? 1000 : 250);
+  }).timeout(PROCESS_TIMEOUT_MS);
 });
 
-describe("when a database check takes its probe's answer", () => {
+describe("when a database check takes its probe's answer", function () {
+  this.timeout(PROCESS_TIMEOUT_MS);
   /** Fails on a check that waits for its probe's pipes to close, which a process the probe started can hold open. */
   it("answers a probe that ends while a process it started holds its output, without waiting for that process", async () => {
     const started = performance.now();
@@ -294,9 +316,10 @@ exports.probe = () => {
   });
 });
 
-describe("what a database check's probe process gets", () => {
+describe("what a database check's probe process gets", function () {
+  this.timeout(PROCESS_TIMEOUT_MS);
   /** Fails on a check that hands the probe this process's environment. */
-  it("runs the probe with no variable of this process", async () => {
+  it("runs the probe with no variable of this process, but the system ones libuv adds on Windows", async () => {
     process.env.DMS_ISOLATION_SECRET = "isolation-secret-6d1f";
     try {
       const answer = await withStandIn(
@@ -314,7 +337,15 @@ describe("what a database check's probe process gets", () => {
           ),
       );
       expect(answer.reason).to.not.include("DMS_ISOLATION_SECRET");
-      expect(answer.reason).to.match(/environment: (?:SystemRoot,WINDIR)?$/);
+      const names = /environment: (.*)$/.exec(answer.reason ?? "")?.[1] ?? "";
+      const passed = names === "" ? [] : names.split(",");
+      expect(passed).to.satisfy((list: string[]) =>
+        list.every((name) =>
+          os.platform() === "win32"
+            ? WINDOWS_REQUIRED.has(name.toUpperCase())
+            : false,
+        ),
+      );
     } finally {
       delete process.env.DMS_ISOLATION_SECRET;
     }

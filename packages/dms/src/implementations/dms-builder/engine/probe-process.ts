@@ -11,7 +11,6 @@ import {
 
 const CHILD = path.join(__dirname, "probe-child.js");
 const STDERR_LIMIT = 65_536;
-const LINE_LIMIT = 65_536;
 const ANSWER_LIMIT = 16_777_216;
 const TOO_LARGE = "The driver's probe answered with more than the check reads.";
 const ENDED = "The driver's probe ended without an answer";
@@ -57,47 +56,48 @@ function outcomeOf(line: string): ProbeOutcome {
   }
 }
 
+/** What starts the child's answer: the mark, on a line of its own, as the child writes it. */
+const ANSWER_START = `\n${OUTCOME_MARK}`;
+
 /**
- * Reads the child's stdout as it comes, line by line, and calls `found` with the outcome of the
- * first marked line. Only the line not yet ended is kept, so whatever a driver prints costs the
- * check no more than one pass over it: an unmarked line longer than `LINE_LIMIT` is dropped as it
- * comes, and a marked one longer than `ANSWER_LIMIT` is answered as a failure.
+ * Reads the child's stdout as it comes, and calls `found` with the outcome of the first marked
+ * line. Until the mark it only searches each chunk for it, keeping the few characters a mark split
+ * across two chunks needs, so whatever a driver prints costs one scan; from the mark it keeps the
+ * answer's line, and answers a failure when that line grows past `ANSWER_LIMIT`.
  */
 function outcomeReader(
   found: (outcome: ProbeOutcome) => void,
 ): (text: string) => void {
-  let pending = "";
-  let dropping = false;
+  let carry = "\n";
+  let answer: string | undefined;
   let done = false;
-  const finish = (line: string) => {
-    if (!dropping && line.startsWith(OUTCOME_MARK)) {
+  const take = (text: string) => {
+    const end = text.indexOf("\n");
+    answer = (answer ?? "") + (end < 0 ? text : text.slice(0, end));
+    if (end >= 0) {
       done = true;
-      found(outcomeOf(line));
+      found(outcomeOf(answer));
+    } else if (answer.length > ANSWER_LIMIT) {
+      done = true;
+      found({ kind: "failed", message: TOO_LARGE });
     }
-    dropping = false;
   };
   return (text) => {
-    let start = 0;
-    let end = text.indexOf("\n");
-    while (!done && end >= 0) {
-      finish(pending + text.slice(start, end));
-      pending = "";
-      start = end + 1;
-      end = text.indexOf("\n", start);
-    }
-    if (done || dropping) {
+    if (done) {
       return;
     }
-    pending += text.slice(start);
-    const marked = pending.startsWith(OUTCOME_MARK);
-    if (pending.length > (marked ? ANSWER_LIMIT : LINE_LIMIT)) {
-      if (marked) {
-        done = true;
-        found({ kind: "failed", message: TOO_LARGE });
-      }
-      pending = "";
-      dropping = true;
+    if (answer !== undefined) {
+      take(text);
+      return;
     }
+    const scanned = carry + text;
+    const start = scanned.indexOf(ANSWER_START);
+    if (start < 0) {
+      carry = scanned.slice(-(ANSWER_START.length - 1));
+      return;
+    }
+    answer = "";
+    take(scanned.slice(start + 1));
   };
 }
 
