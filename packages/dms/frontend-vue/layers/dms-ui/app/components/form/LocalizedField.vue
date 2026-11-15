@@ -31,7 +31,7 @@ const isExpanded = ref(false);
 function withAllLocales(current: Record<string, string>) {
   const updated = { ...current };
   locales.value.forEach((lang) => {
-    if (!(lang.code in updated)) {
+    if (!Object.hasOwn(updated, lang.code)) {
       updated[lang.code] = "";
     }
   });
@@ -45,7 +45,7 @@ watch(
       fieldValue.value = withAllLocales({});
       return;
     }
-    if (locales.value.some((lang) => !(lang.code in value))) {
+    if (locales.value.some((lang) => !Object.hasOwn(value, lang.code))) {
       fieldValue.value = withAllLocales(value);
     }
   },

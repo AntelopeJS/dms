@@ -1,10 +1,6 @@
 <script setup lang="ts">
 import { pageLink } from "../../build/composables/page/pageUrlValues";
 import type { FormProps } from "../../composables/form/types/props";
-import type {
-  FormData,
-  FormFieldValue,
-} from "../../composables/form/types/value";
 import type { FormField } from "../../composables/form/types/field";
 import {
   cloneFormValue,
@@ -258,7 +254,7 @@ const instantSave = isInstant
       fields: allFields,
       isTouched: () => isTouched,
       isFieldValid,
-      submit: (changes) => submitChanges(changes as FormData),
+      submit: (changes) => submitChanges(changes),
       onRefused: reportSubmitError,
     })
   : undefined;
@@ -329,16 +325,15 @@ provide(FORM_CONTENT_LANGUAGE_KEY, "*");
 allFields.value.forEach((field) => {
   if (field.defaultValue === undefined) return;
   state.value[field.id] = cloneFormValue(field.defaultValue);
-  initialValues.value[field.id] = cloneFormValue(
-    field.defaultValue,
-  ) as FormFieldValue;
+  initialValues.value[field.id] =
+    cloneFormValue(field.defaultValue) ?? field.defaultValue;
 });
 
 for (const [id, value] of Object.entries(
   fieldValuesOfSubmitDefaults(allFields.value, effectiveSubmitDefaults.value),
 )) {
   state.value[id] = cloneFormValue(value);
-  initialValues.value[id] = cloneFormValue(value) as FormFieldValue;
+  initialValues.value[id] = cloneFormValue(value) ?? value;
 }
 
 let recordLoad: FormRecordLoad | undefined;

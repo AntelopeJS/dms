@@ -15,7 +15,7 @@ function failureStatus(
   error: Parameters<typeof apiErrorStatus>[0],
 ): number | undefined {
   if (!error || !isObject(error)) return undefined;
-  const { statusCode, status } = error as FetchFailure;
+  const { statusCode, status }: FetchFailure = error;
   return statusCode ?? status;
 }
 
