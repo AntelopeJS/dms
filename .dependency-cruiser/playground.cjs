@@ -82,6 +82,12 @@ module.exports = {
       from: { path: `^${source}` },
       to: { path: "^packages/dms/(?:playground/)?frontend-vue/" },
     },
+    {
+      name: "playground-frontend-no-server",
+      severity: "error",
+      from: { path: "^packages/dms/playground/frontend-vue/" },
+      to: { path: `^${source}` },
+    },
     ...modules.flatMap(({ name, rank }) => {
       const rejected = modules.filter(
         (target) => target.name !== name && target.rank >= rank,

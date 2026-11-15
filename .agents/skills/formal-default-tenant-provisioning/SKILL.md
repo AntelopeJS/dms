@@ -39,11 +39,11 @@ One run each, Docker Java 21. Every configuration runs 2 provisioning steps. Hea
 - Exit 1 means a rule changed. `BROKEN` names a rule that held and now breaks. `CHANGED` names a finding whose shortest counterexample changed length. `HOLDS` names a finding that no longer breaks. TLC's output is kept in a printed temporary folder. The run stops at the first configuration that changed.
 - Exit 2 means TLC or Java could not run, or the arguments were wrong.
 
-The lines that name a changed rule match `^(?:BROKEN|CHANGED|HOLDS) +(\w+)`. A rule that still holds prints as lowercase `holds`. A finding is judged by the length of its shortest counterexample alone, so a longer new counterexample exits 0. While F1 stands, `dms-control formal` fails any diff that changes the covered behaviour. A `BROKEN` trace comes from a one-worker rerun, so its length is stable.
+The lines that name a changed rule match `^(?:BROKEN|CHANGED|HOLDS) +(\w+)`. A rule that still holds prints as lowercase `holds`. A finding is judged by the length of its shortest counterexample alone, so a longer new counterexample exits 0. While F1 stands, `dms-control formal` prints `VIOLATED` for this check. A `BROKEN` trace comes from a one-worker rerun, so its length is stable.
 
 ## When to run it
 
-Run `check.mjs --full` when a change touches a file in the coverage record below, or this folder. Run `history.mjs` too when the change touches this folder. A changed rule (exit 1) makes the Verdict FAIL. The recorded finding fails it only when the diff changes what the covered code does, which `dms-control formal` decides by comparing the covered files' JavaScript statements on the base and on HEAD (`verify-dms` verdict rule 5). `dms-control formal` runs `check.mjs` only. CI runs `check.mjs` and `history.mjs` on every push.
+Run `check.mjs --full` when a change touches a file in the coverage record below, or this folder. Run `history.mjs` too when the change touches this folder. A changed rule (exit 1) makes `dms-control formal` print `ERROR` or `VIOLATED`, and the verifier explains it in the reply (`verify-dms` verdict rule 5). `dms-control formal` runs `check.mjs` only. CI runs `check.mjs` and `history.mjs` on every push.
 
 ## The rules
 

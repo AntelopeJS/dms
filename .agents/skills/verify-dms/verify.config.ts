@@ -9,30 +9,15 @@ export interface DoorRule {
 }
 
 /**
- * How the gate decides whether a diff changed what the covered code does:
- * `emit` compares the JavaScript statements of the covered files on the
- * base and on HEAD (types, comments, formatting, imports and export
- * keywords left out); `probe` runs a command on a checkout of each, the
- * checkout's path as last argument, and compares what it prints.
- */
-export type Behaviour = { kind: "emit" } | { kind: "probe"; command: string[] };
-
-/**
  * A formal check: the source files it covers, the check's own files, the
- * command that runs it, how its output names a violated and a passing rule,
- * how the gate decides that a diff changed the covered behaviour, and the
- * command run on the base when it did or when the check's own files changed
- * (`command` when absent).
+ * command that runs it and how its output names a violated rule.
  */
 export interface FormalCheck {
   name: string;
   covers: string[];
   files: string[];
   command: string[];
-  baseCommand?: string[];
   violation: RegExp | null;
-  passing: RegExp | null;
-  behaviour: Behaviour;
 }
 
 /** The repo-owned layer of the verification skill, read by `dms-control`. */
@@ -180,7 +165,6 @@ const config: VerifyConfig = {
         "packages/interface-dms/package.json",
         "packages/*/.release-it.json",
         ".github/workflows/release*.yml",
-        "checks/release-range.mjs",
       ],
       funnels: [],
       why: "the package names, their files, their interface range and the release workflows claim names in the npm registry",
@@ -206,10 +190,7 @@ const config: VerifyConfig = {
       ],
       files: [".agents/skills/formal-onboarding-bootstrap/**"],
       command: ["node", ".agents/skills/formal-onboarding-bootstrap/check.mjs", "--full"],
-      baseCommand: ["node", ".agents/skills/formal-onboarding-bootstrap/check.mjs"],
       violation: /^(?:finding|BROKEN|CHANGED|HOLDS) +(\w+)/gm,
-      passing: /(?<=^holds +(?:\w+, )*)(\w+)(?=,| \()/gm,
-      behaviour: { kind: "emit" },
     },
     {
       name: "formal-tenant-lifecycle",
@@ -222,10 +203,7 @@ const config: VerifyConfig = {
       ],
       files: [".agents/skills/formal-tenant-lifecycle/**"],
       command: ["node", ".agents/skills/formal-tenant-lifecycle/check.mjs", "--full"],
-      baseCommand: ["node", ".agents/skills/formal-tenant-lifecycle/check.mjs"],
       violation: /^(?:finding|BROKEN|CHANGED|HOLDS) +(\w+)/gm,
-      passing: /(?<=^holds +(?:\w+, )*)(\w+)(?=,| \()/gm,
-      behaviour: { kind: "emit" },
     },
     {
       name: "formal-default-tenant-provisioning",
@@ -237,10 +215,7 @@ const config: VerifyConfig = {
       ],
       files: [".agents/skills/formal-default-tenant-provisioning/**"],
       command: ["node", ".agents/skills/formal-default-tenant-provisioning/check.mjs", "--full"],
-      baseCommand: ["node", ".agents/skills/formal-default-tenant-provisioning/check.mjs"],
       violation: /^(?:finding|BROKEN|CHANGED|HOLDS) +(\w+)/gm,
-      passing: /(?<=^holds +(?:\w+, )*)(\w+)(?=,| \()/gm,
-      behaviour: { kind: "emit" },
     },
     {
       name: "formal-realtime-tabs",
@@ -271,19 +246,7 @@ const config: VerifyConfig = {
       ],
       files: [".agents/skills/formal-realtime-tabs/**"],
       command: ["node", ".agents/skills/formal-realtime-tabs/check.mjs", "--full"],
-      baseCommand: ["node", ".agents/skills/formal-realtime-tabs/check.mjs"],
       violation: /^(?:finding|BROKEN|CHANGED|HOLDS) +(\w+)/gm,
-      passing: /(?<=^holds +(?:\w+, )*)(\w+)(?=,| \()/gm,
-      behaviour: { kind: "emit" },
-    },
-    {
-      name: "formal-release-range",
-      covers: ["checks/release-range.mjs", "checks/release-range.test.mjs", "checks/bounded-range.test.mjs", ".github/workflows/release.yml"],
-      files: ["checks/release-range.test.mjs", "checks/bounded-range.test.mjs", ".agents/skills/formal-release-range/**"],
-      command: ["node", "--test", "--test-reporter=tap", "checks/release-range.test.mjs", "checks/bounded-range.test.mjs"],
-      violation: /^not ok \d+ - (.+?)(?: # TODO.*)?$/gm,
-      passing: /^ok \d+ - (.+?)(?: # TODO.*)?$/gm,
-      behaviour: { kind: "probe", command: ["node", ".agents/skills/formal-release-range/probe.mjs"] },
     },
   ],
 };

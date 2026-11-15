@@ -5,7 +5,6 @@ import { join } from "node:path";
 import test from "node:test";
 import {
   formatTimings,
-  markdownTimings,
   readTimings,
   summarize,
   timed,
@@ -119,16 +118,6 @@ await test("the plain table aligns its columns and ends with the total line", ()
       "total           123.4",
     ].join("\n"),
   );
-});
-
-await test("the Markdown table has the same cells as the plain one", () => {
-  const summary = summarize([entry("up", 2000, "00")]);
-  assert.deepEqual(markdownTimings(summary), [
-    "| phase | count | total s | median ms | max ms |",
-    "|---|---|---|---|---|",
-    "| up | 1 | 2.0 | 2000 | 2000 |",
-    "| total |  | 2.0 |  |  |",
-  ]);
 });
 
 await test("timed records the phase and returns what the action returned", async (t) => {

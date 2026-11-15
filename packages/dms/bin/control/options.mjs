@@ -28,7 +28,6 @@ export const OPTIONS = /** @type {const} */ ({
   key: { type: "string" },
   path: { type: "string" },
   body: { type: "string" },
-  pr: { type: "string" },
   all: { type: "boolean" },
 });
 

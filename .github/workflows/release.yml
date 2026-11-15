@@ -42,19 +42,8 @@ jobs:
           test "$GITHUB_REF" = "refs/heads/$release_branch"
           node --input-type=module <<'NODE'
           import { readFileSync } from 'node:fs'
-          import { satisfiesBoundedRange, satisfiesImplementedRange } from './checks/release-range.mjs'
-          const readJson = (path) => JSON.parse(readFileSync(path, 'utf8'))
-          const pkg = readJson('./packages/dms/package.json')
-          const iface = readJson('./packages/interface-dms/package.json')
-          const builder = readJson('./packages/interface-dms-builder/package.json')
-          // The interface packages of this repository the runtime may provide, by manifest.
-          const implementable = new Map([
-            ['@antelopejs/interface-dms', iface],
-            ['@antelopejs/interface-dms-builder', builder],
-          ])
-          const implementsInTree = (name) =>
-            implementable.has(name) &&
-            satisfiesImplementedRange(implementable.get(name).version, pkg.dependencies[name])
+          const pkg = JSON.parse(readFileSync('./packages/dms/package.json', 'utf8'))
+          const inTree = ['@antelopejs/interface-dms', '@antelopejs/interface-dms-builder']
           if (
             pkg.name !== '@antelopejs/dms' ||
             pkg.private === true ||
@@ -63,13 +52,21 @@ jobs:
             pkg.publishConfig.registry !== 'https://registry.npmjs.org/' ||
             pkg.publishConfig.access !== 'public' ||
             pkg.publishConfig.provenance !== true ||
-            !satisfiesBoundedRange(builder.version, pkg.dependencies['@antelopejs/interface-dms-builder']) ||
-            // The runtime provides interface-dms, and otherwise only interface packages of this
-            // repository, each at a range its version in the tree satisfies.
             !pkg.antelopeJs.implements.includes('@antelopejs/interface-dms') ||
-            !pkg.antelopeJs.implements.every(implementsInTree)
+            !pkg.antelopeJs.implements.every((name) => inTree.includes(name))
           ) process.exit(1)
           NODE
+      # The runtime implements both in-tree interfaces, so each range must admit
+      # the version in the tree and stop below its next minor.
+      - name: Validate the interface ranges
+        run: |
+          for name in interface-dms interface-dms-builder; do
+            version=$(node -p "require('./packages/$name/package.json').version")
+            range=$(node -p "require('./packages/dms/package.json').dependencies['@antelopejs/$name']")
+            next_minor=$(npx --yes semver@7 -i minor "$version")
+            npx --yes semver@7 -r "$range" "$version" >/dev/null
+            if npx --yes semver@7 -r "$range" "$next_minor" >/dev/null; then exit 1; fi
+          done
       # A module released while an interface it depends on has unreleased source
       # points at a published interface that lacks what the module calls. Release
       # the interface first.

@@ -1,22 +1,17 @@
 import assert from "node:assert/strict";
-import { execFileSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { basename, dirname, join } from "node:path";
+import { dirname, join } from "node:path";
 import test from "node:test";
-import { formalGate, runFormalCheck, touchedFormalChecks } from "./formal.mjs";
+import { evidenceText } from "../helpers/evidence.mjs";
+import { runFormalCheck, touchedFormalChecks } from "./formal.mjs";
 
-const ADD = "export function add(a, b) {\n  return a + b;\n}\n";
-const CHECK = `import { readFileSync } from "node:fs";
-const source = readFileSync("src/math.js", "utf8");
-console.log(source.includes("a + b") ? "holds AddWorks" : "BROKEN AddWorks");
+const CHECK = `console.log("holds AddWorks");
+console.log("BROKEN Overflow");
 console.log("finding NegativeZero");
+console.log("finding NegativeZero");
+process.exit(1);
 `;
-const CHECK_WITHOUT_RULE = CHECK.replace(/console\.log\("finding[^\n]*\n/, "");
-const CHECK_FIXED = CHECK.replace(
-  '"finding NegativeZero"',
-  '"holds NegativeZero"',
-);
 
 const CHECK_CONFIG = {
   name: "formal-add",
@@ -24,128 +19,76 @@ const CHECK_CONFIG = {
   files: [".agents/skills/formal-add/**"],
   command: ["node", ".agents/skills/formal-add/check.mjs"],
   violation: /^(?:finding|BROKEN) (\w+)/gm,
-  passing: /^holds (\w+)/gm,
-  behaviour: { kind: "emit" },
 };
 
 /**
- * @param {string} repo
- * @param {...string} args
- */
-function git(repo, ...args) {
-  return execFileSync("git", args, { cwd: repo, encoding: "utf8" }).trim();
-}
-
-/**
- * @param {string} repo
- * @param {Record<string, string>} files
- * @param {string} message
- */
-function commit(repo, files, message) {
-  for (const [path, content] of Object.entries(files)) {
-    mkdirSync(dirname(join(repo, path)), { recursive: true });
-    writeFileSync(join(repo, path), content);
-  }
-  git(repo, "add", "-A");
-  git(
-    repo,
-    "-c",
-    "user.name=t",
-    "-c",
-    "user.email=t@example.com",
-    "-c",
-    "commit.gpgsign=false",
-    "commit",
-    "-q",
-    "-m",
-    message,
-  );
-  return git(repo, "rev-parse", "HEAD");
-}
-
-/**
  * @param {import("node:test").TestContext} t
- * @param {Record<string, string>} head
+ * @param {string} check What the check script holds
  */
-function formalRepo(t, head) {
+function formalRepo(t, check) {
   const root = mkdtempSync(join(tmpdir(), "dms-control-formal-test-"));
   t.after(() => rmSync(root, { recursive: true, force: true }));
-  git(root, "init", "-q");
-  const baseSha = commit(
-    root,
-    {
-      "src/math.js": ADD,
-      ".agents/skills/formal-add/check.mjs": CHECK,
-    },
-    "base",
-  );
-  const headSha = commit(root, head, "head");
-  const changed = git(root, "diff", "--name-only", baseSha, headSha)
-    .split("\n")
-    .filter(Boolean);
-  const evidence = join(root, "..", `${basename(root)}-evidence`);
+  const script = join(root, ".agents/skills/formal-add/check.mjs");
+  mkdirSync(dirname(script), { recursive: true });
+  writeFileSync(script, check);
+  const evidence = join(root, "evidence");
   mkdirSync(evidence);
-  t.after(() => rmSync(evidence, { recursive: true, force: true }));
-  const skill = { repo: root, config: { formal: [CHECK_CONFIG] } };
-  return { skill, state: { evidence }, diff: { baseSha, headSha, changed } };
+  return {
+    skill: { repo: root, config: { formal: [CHECK_CONFIG] } },
+    evidence,
+  };
 }
 
-/**
- * @param {ReturnType<typeof formalRepo>} repo
- */
-function gated({ skill, state, diff }) {
-  const [check] = touchedFormalChecks(skill, diff.changed);
-  return check ? runFormalCheck(skill, state, check, diff) : null;
-}
-
-await test("a rule counts as fixed only when HEAD reports it passing, never when HEAD drops it", (t) => {
-  const fixed = gated(
-    formalRepo(t, {
-      "src/math.js": ADD.replace("a + b", "a + b + 0"),
-      ".agents/skills/formal-add/check.mjs": CHECK_FIXED,
-    }),
-  );
-  assert.deepEqual(fixed.fixed, ["NegativeZero"]);
-  assert.deepEqual(fixed.missing, []);
-  const dropped = gated(
-    formalRepo(t, {
-      "src/math.js": ADD.replace("a + b", "a + b + 0"),
-      ".agents/skills/formal-add/check.mjs": CHECK_WITHOUT_RULE,
-    }),
-  );
-  assert.deepEqual(dropped.fixed, []);
-  assert.deepEqual(dropped.missing, ["NegativeZero"]);
-});
-
-await test("a diff that touches only a check's own files runs the check and gates it against the base", (t) => {
-  const result = gated(
-    formalRepo(t, {
-      ".agents/skills/formal-add/check.mjs": CHECK_WITHOUT_RULE,
-    }),
-  );
-  assert.deepEqual(result.missing, ["NegativeZero"]);
-  assert.deepEqual(formalGate(result), {
-    fails: true,
-    outcome: "rules the base broke are absent at HEAD: NegativeZero",
+await test("a run records each violated rule once with the command, output and exit code; a runner that reports only the exit code loses the rule names", (t) => {
+  const { skill, evidence } = formalRepo(t, CHECK);
+  const result = runFormalCheck(skill, { evidence }, CHECK_CONFIG);
+  assert.deepEqual(result, {
+    name: "formal-add",
+    exitCode: 1,
+    violated: ["Overflow", "NegativeZero"],
+    folder: join("formal", "formal-add"),
   });
-});
-
-await test("a finding that only an edit to the check turns passing is dropped, not fixed, and fails the gate", (t) => {
-  const result = gated(
-    formalRepo(t, {
-      ".agents/skills/formal-add/check.mjs": CHECK_FIXED,
-    }),
+  const folder = join(evidence, "formal", "formal-add");
+  assert.deepEqual(JSON.parse(evidenceText(folder, "result.json")), result);
+  assert.equal(
+    evidenceText(folder, "command.txt"),
+    "node .agents/skills/formal-add/check.mjs\n",
   );
-  assert.deepEqual(result.fixed, []);
-  assert.deepEqual(result.dropped, ["NegativeZero"]);
-  assert.deepEqual(formalGate(result), {
-    fails: true,
-    outcome:
-      "findings the base broke are gone at HEAD, though the covered behaviour is unchanged (emit): NegativeZero",
-  });
+  assert.equal(
+    evidenceText(folder, "stdout.txt"),
+    "holds AddWorks\nBROKEN Overflow\nfinding NegativeZero\nfinding NegativeZero\n",
+  );
+  assert.equal(evidenceText(folder, "exit-code.txt"), "1\n");
 });
 
-await test("a diff that touches neither the covered files nor the check's files does not touch the check", (t) => {
-  const { skill, diff } = formalRepo(t, { "README.md": "# Demo\n" });
-  assert.deepEqual(touchedFormalChecks(skill, diff.changed), []);
+await test("a check that holds reports no violated rule; a runner that counts a printed holds line as a violation fails it", (t) => {
+  const { skill, evidence } = formalRepo(t, 'console.log("holds AddWorks");\n');
+  const result = runFormalCheck(skill, { evidence }, CHECK_CONFIG);
+  assert.deepEqual([result.exitCode, result.violated], [0, []]);
+});
+
+await test("a check with no violation pattern reports the property when it exits non-zero and nothing when it exits zero", (t) => {
+  const check = { ...CHECK_CONFIG, violation: null };
+  const failing = formalRepo(t, "process.exit(1);\n");
+  assert.deepEqual(
+    runFormalCheck(failing.skill, { evidence: failing.evidence }, check)
+      .violated,
+    ["property"],
+  );
+  const passing = formalRepo(t, "");
+  assert.deepEqual(
+    runFormalCheck(passing.skill, { evidence: passing.evidence }, check)
+      .violated,
+    [],
+  );
+});
+
+await test("a diff touches a check through a covered file or one of its own files; a diff of neither leaves it untouched", (t) => {
+  const { skill } = formalRepo(t, CHECK);
+  assert.deepEqual(touchedFormalChecks(skill, ["src/math.js"]), [CHECK_CONFIG]);
+  assert.deepEqual(
+    touchedFormalChecks(skill, [".agents/skills/formal-add/check.mjs"]),
+    [CHECK_CONFIG],
+  );
+  assert.deepEqual(touchedFormalChecks(skill, ["README.md"]), []);
 });

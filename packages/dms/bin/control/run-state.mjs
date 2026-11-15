@@ -216,7 +216,7 @@ const isStoredRun = objectOf(
  * creates or reads that folder. An account that `down` left without its
  * `password` reads with an empty one. Only a command that never reads,
  * starts, signals or forgets a process the run recorded opens its run here:
- * `mail`, `timings`, `api`, `onboard` and `verdict`. Every other command
+ * `mail`, `timings`, `api` and `onboard`. Every other command
  * opens it with {@link loadRun}.
  *
  * @param {string} dir The run root, as `up` printed it

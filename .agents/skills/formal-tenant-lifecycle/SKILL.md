@@ -38,11 +38,11 @@ One run each, Docker Java 21, load near 40. The two-owner healthy run takes most
 
 The lines that name a changed rule match `^(?:BROKEN|CHANGED|HOLDS) +(\w+)`. A rule that still holds prints as lowercase `holds`.
 
-No rule has a recorded finding now. If one is recorded, it is judged by the length of its shortest counterexample alone, so a longer new counterexample exits 0; while a finding stands, `dms-control formal` fails any diff that changes the covered behaviour. A `BROKEN` trace comes from a run on every core, so its length, and which of two broken rules it names, can vary. Findings run on one worker, so their lengths are stable.
+No rule has a recorded finding now. If one is recorded, it is judged by the length of its shortest counterexample alone, so a longer new counterexample exits 0; while a finding stands, `dms-control formal` prints `VIOLATED` for this check. A `BROKEN` trace comes from a run on every core, so its length, and which of two broken rules it names, can vary. Findings run on one worker, so their lengths are stable.
 
 ## When to run it
 
-Run `--full` when a change touches a file in the coverage record below, or this folder. A changed rule (exit 1) makes the Verdict FAIL. The recorded finding fails it only when the diff changes what the covered code does, which `dms-control formal` decides by comparing the covered files' JavaScript statements on the base and on HEAD (`verify-dms` verdict rule 5). CI runs the CI configuration on every push.
+Run `--full` when a change touches a file in the coverage record below, or this folder. A changed rule (exit 1) makes `dms-control formal` print `ERROR` or `VIOLATED`, and the verifier explains it in the reply (`verify-dms` verdict rule 5). CI runs the CI configuration on every push.
 
 ## The rules
 
@@ -125,7 +125,7 @@ The model leaves out:
 - the atomicity of `atomicMutation`. The model takes it from the database adapter, and the integration test "arbitrates simultaneous closure and admission on one revision" exercises it on MongoDB.
 - a process that dies. For these rules, that is an actor that stalls forever, which the model already allows.
 - a dropped `tenant_lifecycle` row. A new row would be open, and the docs forbid dropping it. `cleanupTenantData` leaves it in place.
-- the status boundary of `isClientErrorStatus` (lifecycle.ts:22). `WorkRefuses` and `WorkFails` are free choices; only the verdict gate sees such a change.
+- the status boundary of `isClientErrorStatus` (lifecycle.ts:22). `WorkRefuses` and `WorkFails` are free choices, so no check sees such a change.
 - the operator. `releaseTenantLifecycleAttempt` (lifecycle.ts:142-147) retires an admission on the operator's word, which no rule can check. The model never calls it.
 - the pause between release tries (lifecycle.ts:60). Time is not modeled; a pause is a stall, which the model already allows.
 - nested calls. The docstring of `runTenantLifecycleOperation` says each call takes its own admission, as `changeTenantMembers` says. Each model attempt is one top-level call.

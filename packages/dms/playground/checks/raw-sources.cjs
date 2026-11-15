@@ -2,6 +2,7 @@ const { execFileSync } = require("node:child_process");
 const { createRequire } = require("node:module");
 const {
   existsSync,
+  globSync,
   lstatSync,
   readFileSync,
   realpathSync,
@@ -13,10 +14,7 @@ const ts = require("typescript");
 
 const playground = nodePath.resolve(__dirname, "..");
 const repository = nodePath.resolve(playground, "../../..");
-const {
-  vue: { parse },
-  glob: { globSync },
-} = require("./frontend-tools.cjs");
+const { parse } = require("../../frontend-vue/node_modules/vue/compiler-sfc");
 const {
   ANTELOPE_IGNORE_PATTERNS,
 } = require("@antelopejs/tooling-configs/oxc/lint");
@@ -204,12 +202,18 @@ function addGlob(call, file) {
     return;
   }
   const cwd = nodePath.resolve(repository, nodePath.dirname(file));
-  for (const match of globSync(sources, {
-    cwd,
-    absolute: true,
-    ignore: ["**/node_modules/**"],
-  }))
-    rawFiles.add(repositoryPath(match));
+  const excluded = sources.filter((pattern) => pattern.startsWith("!"));
+  for (const match of globSync(
+    sources.filter((pattern) => !pattern.startsWith("!")),
+    {
+      cwd,
+      exclude: [
+        ...excluded.map((pattern) => pattern.slice(1)),
+        "**/node_modules/**",
+      ],
+    },
+  ))
+    rawFiles.add(repositoryPath(nodePath.resolve(cwd, match)));
 }
 
 /**
