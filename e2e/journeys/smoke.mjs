@@ -11,6 +11,7 @@ const INVITATIONS = "/settings/workspace/invites";
 export const journeys = [
   {
     id: "smoke",
+    tag: "@smoke",
     title: "a fresh platform onboards, its admin signs in, invites a member, and the invitation survives a reload",
     entryPoint: "POST /api/onboarding/register, then the sign-in form and Settings > Members > Invite members",
     async run(/** @type {Ctx} */ ctx) {

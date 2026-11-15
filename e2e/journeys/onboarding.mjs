@@ -54,6 +54,7 @@ async function signInAs(/** @type {Ctx} */ ctx, /** @type {string} */ name, /** 
 export const journeys = [
   {
     id: "wizard-creates-admin",
+    tag: "@smoke",
     title: "the wizard names the platform, creates the owner, signs it in, and the platform stays onboarded",
     entryPoint: "/onboarding wizard (Platform, Administrator, Ready)",
     onboard: false,

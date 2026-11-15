@@ -35,6 +35,7 @@ async function paletteListens(/** @type {Tab} */ tab) {
 export const journeys = [
   {
     id: "sidebar-navigation",
+    tag: "@smoke",
     title: "the sidebar opens a page, the breadcrumb names it, and a reload stays on it",
     entryPoint: "sidebar navigation and breadcrumb",
     async run(/** @type {Ctx} */ ctx) {

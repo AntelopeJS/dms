@@ -70,6 +70,7 @@ export const journeys = [
   },
   {
     id: "login-wrong-password",
+    tag: "@smoke",
     title: "a wrong password keeps the visitor on the sign-in page with an error, and the API refuses it",
     entryPoint: "/auth sign-in form, POST /api/auth/login",
     async run(/** @type {Ctx} */ ctx) {

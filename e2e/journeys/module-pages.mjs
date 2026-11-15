@@ -43,6 +43,7 @@ async function search(/** @type {Tab} */ tab, /** @type {string} */ text) {
 export const journeys = [
   {
     id: "table-create-record",
+    tag: "@smoke",
     title: "New entry creates a user that the table lists, and it survives a reload and a backend restart",
     entryPoint: "/table-view/table-view-users > New entry",
     async run(/** @type {Ctx} */ ctx) {
