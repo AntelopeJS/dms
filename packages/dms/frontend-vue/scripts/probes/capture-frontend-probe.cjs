@@ -2,9 +2,11 @@
 
 const path = require("node:path");
 const { createRequire } = require("node:module");
-const viteRequire = createRequire(require.resolve("vite/package.json"));
-const { buildSync } = viteRequire("esbuild");
+/** @type {(id: string) => typeof import("esbuild")} */
+const loadEsbuild = createRequire(require.resolve("vite/package.json"));
+const { buildSync } = loadEsbuild("esbuild");
 
+/** @param {string} outfile */
 function captureProbe(outfile) {
   buildSync({
     entryPoints: [path.join(__dirname, "frontend-behavior.cjs")],

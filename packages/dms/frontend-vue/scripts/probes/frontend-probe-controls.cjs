@@ -8,13 +8,75 @@ const { execFileSync } = require("node:child_process");
 const { createRequire } = require("node:module");
 const { captureProbe } = require("./capture-frontend-probe.cjs");
 
+/** @typedef {{ name: string; signature: string; injected: boolean }} AutoImport */
+
+/** @typedef {{ autoImports: AutoImport[]; registrations: unknown[] }} ProbeResult */
+
+/**
+ * @param {unknown} value
+ * @returns {value is Record<string, unknown>}
+ */
+function isObjectLike(value) {
+  return typeof value === "object" && value !== null;
+}
+
+/**
+ * @param {unknown} value
+ * @returns {value is AutoImport}
+ */
+function isAutoImport(value) {
+  return (
+    isObjectLike(value) &&
+    Object.hasOwn(value, "name") &&
+    typeof value.name === "string" &&
+    Object.hasOwn(value, "signature") &&
+    typeof value.signature === "string" &&
+    Object.hasOwn(value, "injected") &&
+    typeof value.injected === "boolean"
+  );
+}
+
+/**
+ * @param {unknown} value
+ * @returns {value is ProbeResult}
+ */
+function isProbeResult(value) {
+  return (
+    isObjectLike(value) &&
+    Object.hasOwn(value, "autoImports") &&
+    Array.isArray(value.autoImports) &&
+    value.autoImports.every(isAutoImport) &&
+    Object.hasOwn(value, "registrations") &&
+    Array.isArray(value.registrations)
+  );
+}
+
+/**
+ * @param {unknown} value
+ * @returns {value is import("typescript").Node & { name: { text: string } }}
+ */
+function hasTextName(value) {
+  return (
+    isObjectLike(value) &&
+    Object.hasOwn(value, "name") &&
+    isObjectLike(value.name) &&
+    typeof value.name.text === "string"
+  );
+}
+
+/**
+ * @type {(from: string) => (id: string) => typeof import("typescript")}
+ */
+const createTypeScriptRequire = createRequire;
+
 const root = path.resolve(process.argv[2]);
 const frontend = path.join(root, "packages/dms/frontend-vue");
 const temporary = fs.mkdtempSync(path.join(os.tmpdir(), "frontend-controls-"));
 const copy = path.join(temporary, "packages/dms/frontend-vue");
 const probe = path.join(temporary, "captured-probe.cjs");
-const run = () =>
-  JSON.parse(
+const run = () => {
+  /** @type {unknown} */
+  const result = JSON.parse(
     execFileSync(
       process.execPath,
       ["--max-old-space-size=650", probe, temporary],
@@ -25,6 +87,14 @@ const run = () =>
       },
     ),
   );
+  if (!isProbeResult(result))
+    throw new TypeError("The captured probe printed an unexpected result");
+  return result;
+};
+/**
+ * @param {ProbeResult} result
+ * @param {string} name
+ */
 const entry = (result, name) =>
   result.autoImports.find((item) => item.name === name);
 
@@ -58,21 +128,25 @@ try {
     "layers/dms-ui/app/composables/chart/apexDatetimeBuckets.ts",
   );
   const originalBucket = fs.readFileSync(bucket, "utf8");
-  const ts = createRequire(path.join(frontend, "package.json"))("typescript");
+  const ts = createTypeScriptRequire(path.join(frontend, "package.json"))(
+    "typescript",
+  );
   const ast = ts.createSourceFile(
     bucket,
     originalBucket,
     ts.ScriptTarget.Latest,
     true,
   );
+  /** @type {import("typescript").TypeNode | undefined} */
   let timestamp;
+  /** @param {import("typescript").Node} node */
   const visit = (node) => {
     if (ts.isParameter(node) && node.name.getText(ast) === "timestamp")
       timestamp = node.type;
     ts.forEachChild(node, visit);
   };
   const formatter = ast.statements.find(
-    (node) => node.name?.text === "bucketAxisFormatter",
+    (node) => hasTextName(node) && node.name.text === "bucketAxisFormatter",
   );
   visit(formatter);
   assert.ok(timestamp);
@@ -181,12 +255,15 @@ try {
     ts.ScriptTarget.Latest,
     true,
   );
-  const components = runtimeAst.statements.find(
-    (node) =>
-      ts.isVariableStatement(node) &&
-      node.declarationList.declarations[0].name.getText(runtimeAst) ===
-        "components",
-  );
+  /**
+   * @param {import("typescript").Node} node
+   * @returns {node is import("typescript").VariableStatement}
+   */
+  const isComponentsDeclaration = (node) =>
+    ts.isVariableStatement(node) &&
+    node.declarationList.declarations[0].name.getText(runtimeAst) ===
+      "components";
+  const components = runtimeAst.statements.find(isComponentsDeclaration);
   const initializer = components?.declarationList.declarations[0].initializer;
   if (initializer?.getText(runtimeAst).includes("import.meta.glob")) {
     const entryFile = path.join(
@@ -197,7 +274,9 @@ try {
     const expression = initializer
       .getText(runtimeAst)
       .replaceAll("./layers/", `${prefix}layers/`);
+    /** @type {Set<string>} */
     const references = new Set();
+    /** @param {import("typescript").Node} node */
     const collectReferences = (node) => {
       if (ts.isIdentifier(node)) references.add(node.text);
       ts.forEachChild(node, collectReferences);

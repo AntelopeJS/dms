@@ -7,6 +7,27 @@ const { createRequire } = require("node:module");
 
 const root = path.resolve(process.argv[2]);
 const frontend = path.join(root, "packages/dms/frontend-vue");
+
+/**
+ * @typedef {Omit<typeof import("@vue/compiler-sfc"), "registerTS"> & {
+ *   registerTS: (load: () => typeof import("typescript")) => void;
+ * }} CompilerSfc
+ */
+
+/**
+ * @typedef {{
+ *   (id: "typescript"): typeof import("typescript");
+ *   (id: "@vue/compiler-sfc"): CompilerSfc;
+ *   (id: "vue"): {
+ *     mergeDefaults: (raw: unknown, defaults: unknown) => unknown;
+ *     mergeModels: (first: unknown, second: unknown) => unknown;
+ *   };
+ *   (id: "vite"): typeof import("vite");
+ *   (id: "node:path"): typeof import("node:path");
+ * }} FrontendRequire
+ */
+
+/** @type {FrontendRequire} */
 const req = createRequire(path.join(frontend, "package.json"));
 const ts = {
   ...req("typescript"),
@@ -137,13 +158,31 @@ const compilerOptions = {
   module: ts.ModuleKind.CommonJS,
   target: ts.ScriptTarget.ES2022,
 };
+
+/** @type {Record<string, () => unknown>} */
 const dependencyLoaders = {
   "node:path": () => req("node:path"),
   vite: () => req("vite"),
 };
 
+/** @typedef {Record<string, unknown>} ProbeBindings */
+
+/**
+ * Runs one transpiled source in a fresh context and returns its exports. The
+ * exports follow the file, so each caller binds the type of the file it loads.
+ * @param {string} source
+ * @param {string} filename
+ * @param {ProbeBindings} [globals]
+ * @param {ProbeBindings} [imports]
+ * @param {import("typescript").CustomTransformers} [transformers]
+ * @returns {any}
+ */
 function evaluate(source, filename, globals = {}, imports = {}, transformers) {
   const module = { exports: {} };
+  /**
+   * @param {string} specifier
+   * @returns {unknown}
+   */
   const localRequire = (specifier) => {
     if (specifier in imports) return imports[specifier];
     if (specifier.startsWith(".")) {
@@ -177,14 +216,36 @@ function evaluate(source, filename, globals = {}, imports = {}, transformers) {
   return module.exports;
 }
 
+/**
+ * @param {string} filename
+ * @param {ProbeBindings} [globals]
+ * @returns {any}
+ */
 function load(filename, globals) {
   return evaluate(fs.readFileSync(filename, "utf8"), filename, globals);
 }
 
+/**
+ * @typedef {{
+ *   (url: string, options: object): Promise<unknown>;
+ *   raw: (url: string, options: object) => Promise<unknown>;
+ * }} AuthFetch
+ */
+
+/** @type {(filename: string, globals: ProbeBindings) => { useAuthFetch: () => { $authFetch: AuthFetch } }} */
+const loadAuthFetch = load;
+
+/** @param {boolean} raw */
 async function authRetry(raw) {
+  /** @type {number[]} */
   const reads = [];
+  /** @type {Array<{ unauthorized: true } | { token: string | null; retry: string | null }>} */
   const calls = [];
   let refreshes = 0;
+  /**
+   * @param {unknown} _request
+   * @param {{ headers: Headers }} options
+   */
   const baseFetch = async (_request, options) => {
     calls.push(
       calls.length
@@ -202,7 +263,7 @@ async function authRetry(raw) {
     layers,
     "dms-core/app/composables/auth/useAuthFetch.ts",
   );
-  const { useAuthFetch } = load(filename, {
+  const { useAuthFetch } = loadAuthFetch(filename, {
     HTTP_UNAUTHORIZED: 401,
     useDmsUserSession: () => ({ loggedIn: { value: true } }),
     useSessionRecovery: () => ({
@@ -215,6 +276,10 @@ async function authRetry(raw) {
     }),
     useDmsRuntimeConfig: () => ({ public: { dms: { baseURL: "/api" } } }),
     useDmsApp: () => ({ $i18n: { locale: { value: "en" } } }),
+    /**
+     * @param {unknown} _key
+     * @param {() => unknown} initial
+     */
     useDmsState: (_key, initial) => ({ value: initial() }),
     $fetch: { create: () => baseFetch },
   });
@@ -233,14 +298,20 @@ async function authRetry(raw) {
   return { result, reads, refreshes, calls };
 }
 
+/** @type {(filename: string) => { writeAt: (tree: object, path: string[], value: unknown) => void; readAt: (tree: object, path: string[]) => unknown }} */
+const loadPreferences = load;
+
 function preferences() {
   const filename = path.join(
     layers,
     "dms-core/app/build/composables/user/preferencesCookie.ts",
   );
-  const { writeAt, readAt } = load(filename);
+  const { writeAt, readAt } = loadPreferences(filename);
+  /** @type {string[]} */
   const events = [];
+  /** @type {{ leaf?: string }} */
   const first = {};
+  /** @type {{ leaf?: string }} */
   const second = {};
   let reads = 0;
   const tree = Object.defineProperty({}, "branch", {
@@ -253,8 +324,11 @@ function preferences() {
   writeAt(tree, ["branch", "leaf"], "written");
   const plain = {};
   writeAt(plain, ["a", "b"], 7);
+  /** @type {string[]} */
   const creationEvents = [];
+  /** @type {{ leaf?: string }} */
   const afterAssignment = {};
+  /** @type {{ leaf?: string }} */
   let assigned;
   let creationReads = 0;
   const creatingTree = Object.defineProperty({}, "branch", {
@@ -262,6 +336,7 @@ function preferences() {
       creationEvents.push(`get:${++creationReads}`);
       return creationReads === 1 ? undefined : afterAssignment;
     },
+    /** @param {{ leaf?: string }} value */
     set(value) {
       creationEvents.push("set");
       assigned = value;
@@ -281,6 +356,21 @@ function preferences() {
   };
 }
 
+/**
+ * @typedef {{
+ *   setup: (
+ *     props: object,
+ *     context: { expose: () => void },
+ *   ) => {
+ *     HANDOFF_ACTIONS: object;
+ *     runHandoffAction: (handoff: object) => unknown;
+ *   };
+ * }} OauthComponent
+ */
+
+/** @type {(source: string, filename: string, globals: ProbeBindings, imports: ProbeBindings) => { default: OauthComponent }} */
+const evaluateOauth = evaluate;
+
 function oauth() {
   const filename = path.join(
     layers,
@@ -290,13 +380,14 @@ function oauth() {
     filename,
   });
   const compiled = sfc.compileScript(descriptor, { id: "oauth-probe" });
-  const { default: component } = evaluate(
+  const { default: component } = evaluateOauth(
     compiled.content,
     filename,
     {
       useDmsRoute: () => ({ query: {} }),
       useHomepage: () => "/home",
       useDmsApp: () => ({}),
+      /** @param {() => unknown} get */
       computed: (get) => ({
         get value() {
           return get();
@@ -304,14 +395,24 @@ function oauth() {
       }),
       onMounted: () => {},
     },
-    { vue: { defineComponent: (options) => options } },
+    {
+      vue: {
+        /** @param {object} options */
+        defineComponent: (options) => options,
+      },
+    },
   );
   const exposed = component.setup({}, { expose() {} });
+  /** @type {string[]} */
   const events = [];
   const actions = exposed.HANDOFF_ACTIONS;
   Object.defineProperty(actions, "none", {
     get() {
       events.push("action:get");
+      /**
+       * @this {unknown}
+       * @param {{ token: string }} handoff
+       */
       return function (handoff) {
         events.push(
           this === actions ? "receiver:actions" : "receiver:undefined",
@@ -331,6 +432,43 @@ function oauth() {
   return { result, events };
 }
 
+/**
+ * @param {unknown} value
+ * @returns {value is (...args: never[]) => unknown}
+ */
+function isCallable(value) {
+  return typeof value === "function";
+}
+
+/**
+ * @param {unknown} value
+ * @returns {value is Record<string, unknown>}
+ */
+function isObjectLike(value) {
+  return typeof value === "object" && value !== null;
+}
+
+/**
+ * @param {unknown} value
+ * @returns {value is unknown[]}
+ */
+function isList(value) {
+  return Array.isArray(value);
+}
+
+/**
+ * @param {unknown} error
+ * @returns {error is { message: string }}
+ */
+function hasMessage(error) {
+  return (
+    isObjectLike(error) &&
+    "message" in error &&
+    typeof error.message === "string"
+  );
+}
+
+/** @param {string} expression */
 function runtimeDeclaration(expression) {
   try {
     const javascript = ts.transpileModule(`module.exports = (${expression});`, {
@@ -343,15 +481,19 @@ function runtimeDeclaration(expression) {
       _mergeDefaults: vue.mergeDefaults,
       _mergeModels: vue.mergeModels,
     });
+    /**
+     * @param {unknown} value
+     * @returns {unknown}
+     */
     const serialize = (value) => {
       if (value === undefined) return { undefined: true };
-      if (typeof value === "function")
+      if (isCallable(value))
         return {
           function: value.name || null,
           code: value.toString().replace(/\s+/g, " "),
         };
-      if (Array.isArray(value)) return Array.from(value, serialize);
-      if (value && typeof value === "object")
+      if (isList(value)) return Array.from(value, serialize);
+      if (isObjectLike(value))
         return Object.fromEntries(
           Object.entries(value).map(([key, entry]) => [key, serialize(entry)]),
         );
@@ -359,15 +501,19 @@ function runtimeDeclaration(expression) {
     };
     return { status: "evaluated", value: serialize(module.exports) };
   } catch (error) {
+    if (!hasMessage(error)) throw error;
     return { status: "runtime-unresolved", reason: error.message };
   }
 }
+
+/** @typedef {{ compiled: string; runtime: ReturnType<typeof runtimeDeclaration> }} DeclarationContract */
 
 function contracts() {
   const manifest = Object.entries(componentManifest).flatMap(
     ([prefix, files]) => files.map((file) => `${prefix}${file}`),
   );
   const printer = ts.createPrinter({ removeComments: true });
+  /** @param {string} source */
   const normalize = (source) =>
     printer
       .printFile(
@@ -399,6 +545,7 @@ function contracts() {
         ts.ScriptTarget.Latest,
         true,
       );
+      /** @type {{ path: string; status: string; props: DeclarationContract | null; emits: DeclarationContract | null; macros: string[]; [key: string]: unknown }} */
       const result = {
         path: relative,
         status: "compiled",
@@ -406,6 +553,7 @@ function contracts() {
         emits: null,
         macros: [],
       };
+      /** @param {import("typescript").Node} node */
       const inspect = (node) => {
         if (
           ts.isPropertyAssignment(node) &&
@@ -426,6 +574,7 @@ function contracts() {
         ts.ScriptTarget.Latest,
         true,
       );
+      /** @param {import("typescript").Node} node */
       const macro = (node) => {
         if (
           ts.isCallExpression(node) &&
@@ -440,6 +589,7 @@ function contracts() {
       macro(raw);
       return result;
     } catch (error) {
+      if (!hasMessage(error)) throw error;
       return {
         path: relative,
         status: "compiler-unresolved",
@@ -459,6 +609,7 @@ module.exports = {
   ts,
   evaluate,
   load,
+  isObjectLike,
   observe: async () => ({
     authRetry: await authRetry(false),
     authRawRetry: await authRetry(true),
