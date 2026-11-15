@@ -25,6 +25,64 @@ const NOT_UNDERSTOOD =
   "The server answered in a way this check does not understand.";
 const AUTHENTICATION_FAILED = 18;
 const UNAUTHORIZED = 13;
+const OTHER_MECHANISM =
+  "This check signs in with the user name and password of the URL only: remove authMechanism, or set it to SCRAM-SHA-256, SCRAM-SHA-1 or PLAIN.";
+const LOCAL_FILES =
+  "This check reads no certificate or key file of this computer: remove tlsCAFile, tlsCRLFile and tlsCertificateKeyFile from the URL.";
+const UNREADABLE_URL = "This URL could not be read.";
+
+/** The mechanisms that sign in with the URL's user name and password, and nothing of this computer. */
+const URL_MECHANISMS = new Set([
+  "DEFAULT",
+  "SCRAM-SHA-1",
+  "SCRAM-SHA-256",
+  "PLAIN",
+]);
+
+/** The options, lowercased, for which `mongodb` reads a file of this computer. */
+const LOCAL_FILE_OPTIONS = new Set([
+  "tlscafile",
+  "tlscrlfile",
+  "tlscertificatekeyfile",
+  "tlscertificatekeyfilepassword",
+]);
+
+/** What splits the URL into the `key=value` pairs the check reads: wherever a query could start or go on. */
+const PAIR_SEPARATORS = /[?&;]/;
+
+/**
+ * Why the check refuses `url` before `mongodb` reads it: a mechanism that signs in with an identity
+ * of this computer (its AWS keys, a Kerberos ticket, an OIDC token file or metadata service, a
+ * certificate), or an option that reads a file of it. `mongodb` matches `authMechanism` as a regular
+ * expression while it builds the client, so a value outside the four names is refused here, before
+ * it can hold the process. Every `key=value` of the whole URL is read, percent-decoded and compared
+ * without regard to case, so a pair the client reads is never missed. `undefined` when it signs in
+ * with what the URL carries only.
+ */
+function localRefusal(url: string): string | undefined {
+  for (const pair of url.split(PAIR_SEPARATORS).slice(1)) {
+    const equals = pair.indexOf("=");
+    let key: string;
+    let value: string;
+    try {
+      key = decodeURIComponent(
+        (equals < 0 ? pair : pair.slice(0, equals)).replaceAll("+", " "),
+      ).toLowerCase();
+      value = decodeURIComponent(
+        (equals < 0 ? "" : pair.slice(equals + 1)).replaceAll("+", " "),
+      );
+    } catch {
+      return UNREADABLE_URL;
+    }
+    if (key === "authmechanism" && !URL_MECHANISMS.has(value.toUpperCase())) {
+      return OTHER_MECHANISM;
+    }
+    if (LOCAL_FILE_OPTIONS.has(key)) {
+      return LOCAL_FILES;
+    }
+  }
+  return undefined;
+}
 
 const Privilege = z.object({
   resource: z.object({
@@ -79,6 +137,10 @@ export const probeMongodb: Probe = async (url, timeoutMs, connections) => {
   const mongodb = loadClient("mongodb");
   if (!mongodb) {
     return missingClient("mongodb", "MongoDB");
+  }
+  const refused = localRefusal(url);
+  if (refused !== undefined) {
+    return unanswered(refused);
   }
   try {
     const client = new mongodb.MongoClient(url, {

@@ -40,7 +40,7 @@ const NO_READ = "This account cannot read this database.";
 const NOT_CHECKED = "Could not check the database";
 const REDACTED = "[hidden]";
 const USERINFO = /^[a-z][a-z0-9+.-]*:\/\/([^/?#]*)@/i;
-const CONNECTION_STRING = /[a-z][a-z0-9+.-]*:\/\/[^\s"']+/gi;
+const CONNECTION_STRING = /(?<![a-z0-9+.-])[a-z0-9+.-]+:\/\/[^\s"']+/gi;
 
 const NO_ANSWER_REASONS: readonly (readonly [RegExp, string])[] = [
   [/ECONNREFUSED/, "Nothing is listening at this host and port."],
@@ -144,7 +144,7 @@ export function failureMessage(error: unknown): string {
  * `in:`, and the command document of MongoDB's authorization error.
  */
 const QUERY_ECHOES: readonly RegExp[] = [
-  /\s+in:\s*\n[\s\S]*$/,
+  /(?<!\s)\s+in:\s*\n[\s\S]*$/,
   /(?<=\bcommand) \{[\s\S]*$/,
 ];
 
