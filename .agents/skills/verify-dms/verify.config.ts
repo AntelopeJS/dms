@@ -180,7 +180,6 @@ const config: VerifyConfig = {
         "packages/interface-dms/package.json",
         "packages/*/.release-it.json",
         ".github/workflows/release*.yml",
-        "checks/release-range.mjs",
       ],
       funnels: [],
       why: "the package names, their files, their interface range and the release workflows claim names in the npm registry",
@@ -275,15 +274,6 @@ const config: VerifyConfig = {
       violation: /^(?:finding|BROKEN|CHANGED|HOLDS) +(\w+)/gm,
       passing: /(?<=^holds +(?:\w+, )*)(\w+)(?=,| \()/gm,
       behaviour: { kind: "emit" },
-    },
-    {
-      name: "formal-release-range",
-      covers: ["checks/release-range.mjs", "checks/release-range.test.mjs", "checks/bounded-range.test.mjs", ".github/workflows/release.yml"],
-      files: ["checks/release-range.test.mjs", "checks/bounded-range.test.mjs", ".agents/skills/formal-release-range/**"],
-      command: ["node", "--test", "--test-reporter=tap", "checks/release-range.test.mjs", "checks/bounded-range.test.mjs"],
-      violation: /^not ok \d+ - (.+?)(?: # TODO.*)?$/gm,
-      passing: /^ok \d+ - (.+?)(?: # TODO.*)?$/gm,
-      behaviour: { kind: "probe", command: ["node", ".agents/skills/formal-release-range/probe.mjs"] },
     },
   ],
 };

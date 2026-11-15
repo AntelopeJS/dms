@@ -1,9 +1,11 @@
 import fs from "node:fs";
 import { fileURLToPath } from "node:url";
+import semver from "semver";
 import { z } from "zod";
-import { raisedDmsRange, withDmsRange } from "../../../checks/dms-range.mjs";
 
-const interfaceManifest = z
+const DMS_DEPENDENCY = /("@antelopejs\/interface-dms":\s*")([^"]*)(")/g;
+
+const { version } = z
   .object({ version: z.string() })
   .parse(
     JSON.parse(
@@ -14,15 +16,20 @@ const dmsPath = fileURLToPath(
   new URL("../../dms/package.json", import.meta.url),
 );
 const dmsText = fs.readFileSync(dmsPath, "utf8");
-const dmsManifest = z
+const range = z
   .object({
     dependencies: z.object({ "@antelopejs/interface-dms": z.string() }),
   })
-  .parse(JSON.parse(dmsText));
+  .parse(JSON.parse(dmsText)).dependencies["@antelopejs/interface-dms"];
 
-const raised = raisedDmsRange(
-  interfaceManifest.version,
-  dmsManifest.dependencies["@antelopejs/interface-dms"],
-);
-if (raised !== undefined)
-  fs.writeFileSync(dmsPath, withDmsRange(dmsText, raised));
+const nextMinor = semver.inc(version, "minor");
+if (!semver.satisfies(version, range) || semver.satisfies(nextMinor, range)) {
+  const raised = `>=${version} <${nextMinor}`;
+  fs.writeFileSync(
+    dmsPath,
+    dmsText.replace(
+      DMS_DEPENDENCY,
+      (_, head, __, tail) => head + raised + tail,
+    ),
+  );
+}
