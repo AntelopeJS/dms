@@ -5,6 +5,7 @@ import type {
   useForm,
 } from "../../../composables/form/useForm";
 import { fieldErrorPattern } from "./formEntryContext";
+import { detach } from "./detached";
 import {
   changedServerErrorFields,
   keptServerErrors,
@@ -60,7 +61,7 @@ export function formComponentErrors(source: FormErrorsSource) {
       });
     }
     showsErrorSummary.value = shown.length > 0;
-    void source.focusField(target.errors[0]?.name);
+    detach(source.focusField(target.errors[0]?.name));
     return shown.length > 0;
   }
 
@@ -68,7 +69,7 @@ export function formComponentErrors(source: FormErrorsSource) {
     errors: Array<{ name?: string }>;
   }): void {
     showsErrorSummary.value = true;
-    void source.focusField(event.errors[0]?.name);
+    detach(source.focusField(event.errors[0]?.name));
   }
 
   return {

@@ -2,6 +2,7 @@ import type { Data } from "../../components/table/TableRoot.vue";
 import { isObject, isNumber } from "#dms-core/app/utils/type-check";
 import type { DropdownMenuItem } from "@nuxt/ui/components/DropdownMenu.vue";
 import { get } from "@nuxt/ui/runtime/utils/index.js";
+import { rowIdOf } from "./utils/rowId";
 import { createMenuItem } from "./utils/menuItemFactory";
 import {
   FormContainerType,
@@ -76,7 +77,7 @@ const isActionDisabled = <T extends Data>(
     config.data.value,
     config.rowIdKey,
   );
-  return !validator.canPerformAction(get(rowData, config.rowIdKey));
+  return !validator.canPerformAction(rowIdOf(rowData, config.rowIdKey));
 };
 
 const rowText = <T extends Data>(
@@ -96,7 +97,9 @@ export const menuLabel = <T extends Data>(
 
   const declared = config.rowActions?.menuLabel;
   if (declared) return rowText(context, declared, rowData);
-  const label = config.labelKey ? get(rowData, config.labelKey) : undefined;
+  const label: unknown = config.labelKey
+    ? get(rowData, config.labelKey)
+    : undefined;
   return isString(label) || isNumber(label)
     ? t("dms.table.row_actions_for", { label })
     : t("dms.table.row_actions");
@@ -116,7 +119,7 @@ const isCustomActionDisabled = <T extends Data>(
     config.data.value,
     config.rowIdKey,
   );
-  return !validator.canPerformAction(get(rowData, config.rowIdKey));
+  return !validator.canPerformAction(rowIdOf(rowData, config.rowIdKey));
 };
 
 const buildCopyLinkOnSelect = <T extends Data>(
@@ -135,12 +138,12 @@ const buildCopyLinkOnSelect = <T extends Data>(
         ? config.formPages?.view
         : undefined;
     if (viewPageUrl) {
-      const itemId = get(rowData, config.rowIdKey);
+      const itemId = rowIdOf(rowData, config.rowIdKey);
       itemUrl = `${window.location.origin}${fillFormPageUrl(viewPageUrl, config.routeParams, itemId)}`;
     } else {
       const updatedQuery = {
         ...currentRoute.query,
-        [`${config.componentId}:id`]: get(rowData, config.rowIdKey),
+        [`${config.componentId}:id`]: rowIdOf(rowData, config.rowIdKey),
       };
       itemUrl = `${window.location.origin}${currentRoute.path}?${new URLSearchParams(updatedQuery).toString()}`;
     }
@@ -164,7 +167,7 @@ const copyLinkAfterConfirm = async <T extends Data>(
   if (declared) {
     const isConfirmed = await confirmAction(declared, {
       row: rowData,
-      urlParams: { id: get(rowData, config.rowIdKey) },
+      urlParams: { id: rowIdOf(rowData, config.rowIdKey) },
     });
     if (!isConfirmed) return;
   }
@@ -242,7 +245,8 @@ const buildBuiltInActionDescriptors = <T extends Data>(
       key: "duplicate",
       label: builtInLabel(context, "duplicate", t("dms.button.duplicate")),
       icon: builtInIcon(context, "duplicate", "i-ph-copy"),
-      onSelect: () => config.emits("duplicate", get(rowData, config.rowIdKey)),
+      onSelect: () =>
+        config.emits("duplicate", rowIdOf(rowData, config.rowIdKey)),
       disabled: isActionDisabled(
         context,
         config.rowActions?.duplicate,
@@ -254,7 +258,8 @@ const buildBuiltInActionDescriptors = <T extends Data>(
       key: "delete",
       label: builtInLabel(context, "delete", t("dms.button.delete")),
       icon: builtInIcon(context, "delete", "i-ph-trash"),
-      onSelect: () => config.emits("delete", [get(rowData, config.rowIdKey)]),
+      onSelect: () =>
+        config.emits("delete", [rowIdOf(rowData, config.rowIdKey)]),
       disabled: isActionDisabled(context, config.rowActions?.delete, rowData),
       visible: isActionVisible(config.rowActions?.delete),
       color: Color.error,
@@ -263,7 +268,8 @@ const buildBuiltInActionDescriptors = <T extends Data>(
       key: "archive",
       label: builtInLabel(context, "archive", t("dms.button.archive")),
       icon: builtInIcon(context, "archive", "i-ph-archive"),
-      onSelect: () => config.emits("archive", [get(rowData, config.rowIdKey)]),
+      onSelect: () =>
+        config.emits("archive", [rowIdOf(rowData, config.rowIdKey)]),
       disabled: isActionDisabled(context, config.rowActions?.archive, rowData),
       visible: isActionVisible(config.rowActions?.archive),
     },
@@ -271,7 +277,8 @@ const buildBuiltInActionDescriptors = <T extends Data>(
       key: "restore",
       label: builtInLabel(context, "restore", t("dms.button.restore")),
       icon: builtInIcon(context, "restore", "i-ph-arrow-counter-clockwise"),
-      onSelect: () => config.emits("restore", [get(rowData, config.rowIdKey)]),
+      onSelect: () =>
+        config.emits("restore", [rowIdOf(rowData, config.rowIdKey)]),
       disabled: isActionDisabled(context, config.rowActions?.restore, rowData),
       visible: isActionVisible(config.rowActions?.restore),
     },

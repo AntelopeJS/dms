@@ -17,10 +17,16 @@ interface FieldControlOffer {
   routeParams: Record<string, string> | undefined;
 }
 
-function isComponentOptions(
-  value: unknown,
-): value is Record<string, unknown> | ((...args: never[]) => unknown) {
-  return (isObject(value) && value !== null) || isFunction(value);
+/** The members of a component that declare props: its own, those of its `extends` and of its `mixins`. */
+interface ComponentDeclaration {
+  props?: unknown;
+  extends?: unknown;
+  mixins?: unknown;
+}
+
+function isComponentDeclaration(value: unknown): value is ComponentDeclaration {
+  if (!isFunction(value) && !(isObject(value) && value !== null)) return false;
+  return "props" in value || "extends" in value || "mixins" in value;
 }
 
 function ownPropNames(props: unknown): string[] {
@@ -28,18 +34,33 @@ function ownPropNames(props: unknown): string[] {
   return isObject(props) && props !== null ? Object.keys(props) : [];
 }
 
+function declarationOf(
+  component: Component | ComponentDeclaration,
+): ComponentDeclaration {
+  return {
+    props: "props" in component ? component.props : undefined,
+    extends: "extends" in component ? component.extends : undefined,
+    mixins: "mixins" in component ? component.mixins : undefined,
+  };
+}
+
 /**
  * The props `component` declares, those of its `extends` and `mixins`
  * included, camelized as Vue matches them.
  */
-function declaredProps(component: unknown, names = new Set<string>()) {
-  if (!isComponentOptions(component)) return names;
-  const props = "props" in component ? component.props : undefined;
-  for (const name of ownPropNames(props)) names.add(camelize(name));
-  if ("extends" in component) declaredProps(component.extends, names);
-  const mixins = "mixins" in component ? component.mixins : undefined;
+function declaredProps(
+  component: Component | ComponentDeclaration | undefined,
+  names = new Set<string>(),
+) {
+  if (!component) return names;
+  const declaration = declarationOf(component);
+  for (const name of ownPropNames(declaration.props)) names.add(camelize(name));
+  if (isComponentDeclaration(declaration.extends))
+    declaredProps(declaration.extends, names);
+  const { mixins } = declaration;
   if (Array.isArray(mixins))
-    for (const mixin of mixins) declaredProps(mixin, names);
+    for (const mixin of mixins)
+      if (isComponentDeclaration(mixin)) declaredProps(mixin, names);
   return names;
 }
 
@@ -48,12 +69,15 @@ function declaredProps(component: unknown, names = new Set<string>()) {
  * component itself. A loader that fails yields nothing, and the wrapper shows
  * its own failure.
  */
-async function loadedComponent(component: Component): Promise<unknown> {
-  const loader =
+async function loadedComponent(
+  component: Component,
+): Promise<Component | ComponentDeclaration | undefined> {
+  const loader: unknown =
     "__asyncLoader" in component ? component.__asyncLoader : undefined;
   if (!isFunction(loader)) return component;
   try {
-    return await loader();
+    const loaded = await loader();
+    return isComponentDeclaration(loaded) ? loaded : undefined;
   } catch {
     return undefined;
   }
