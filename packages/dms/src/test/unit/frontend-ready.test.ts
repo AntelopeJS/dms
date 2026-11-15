@@ -1,9 +1,10 @@
 import { HTTPResult } from "@antelopejs/interface-api";
+import type { JsonValue } from "@antelopejs/interface-dms/json";
 import { assert, expect } from "chai";
 import { parseFrontendReady } from "../../store/frontend";
 
 const HTTP_BAD_REQUEST = 400;
-const MALFORMED_BODIES = [
+const MALFORMED_BODIES: JsonValue[] = [
   null,
   [],
   "ready",
@@ -28,7 +29,7 @@ function statusOf(run: () => void): number {
 
 describe("[unit] frontend ready report", () => {
   it("parses a report into its modules and version, dropping unknown keys", () => {
-    const body = {
+    const body: JsonValue = {
       modules: [
         { name: "dms-ui", version: "1.2.3", extra: true },
         { name: "x" },

@@ -12,6 +12,7 @@ import { GetMetadata } from "@antelopejs/interface-core";
 import { RegisterDataController } from "@antelopejs/interface-data-api";
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import type { User } from "@antelopejs/interface-dms/auth/db";
+import type { JsonValue } from "@antelopejs/interface-dms/json";
 import { authenticateRequestPrincipal } from "@antelopejs/interface-dms/auth/internal/request-principal";
 import { withRequiredPermissions } from "@antelopejs/interface-dms/internal/permission-requirements";
 import {
@@ -119,7 +120,9 @@ const rolesMeta = GetMetadata(roleSettingDataAPI, TableViewMeta);
 rolesMeta.addComponentBuilder(rolesEditor);
 
 /** A row's `permissions` as a list of ids; undefined when it is not one. */
-function parsePermissionList(value: unknown): string[] | undefined {
+function parsePermissionList(
+  value: JsonValue | undefined,
+): string[] | undefined {
   return z.array(z.string()).safeParse(value).data;
 }
 
@@ -142,10 +145,13 @@ async function assertTableGrant(
   );
 }
 
+/** A role row or a write to one, as the table routes hand it to a guard. */
+type RoleRow = Record<string, JsonValue | undefined>;
+
 rolesMeta.setControllerGuards({
-  new: (ctx, { body }) =>
+  new: (ctx, { body }: { body: RoleRow }) =>
     assertTableGrant(ctx, parsePermissionList(body.permissions)),
-  edit: (ctx, { body, current }) =>
+  edit: (ctx, { body, current }: { body: RoleRow; current: RoleRow }) =>
     assertTableGrant(
       ctx,
       parsePermissionList(body.permissions),

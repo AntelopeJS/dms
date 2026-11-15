@@ -5,7 +5,7 @@ import type {
 import { failureMessage, noAnswerReason, unanswered } from "./database-access";
 import { missingDriver, probeTarget, testProbeLoader } from "./driver-probe";
 import { probeInChild } from "./probe-process";
-import { accessOf, readProbeAnswer } from "./probe-answer";
+import { accessOf, ReadProbeAnswer } from "./probe-answer";
 
 /** How long a probe waits for a server to connect, and for each answer. */
 export const CONNECT_TIMEOUT_MS = 5000;
@@ -25,7 +25,10 @@ async function probeWithDriver(
   if (loader) {
     const probe = loader(engine);
     return probe
-      ? accessOf(readProbeAnswer(await probe({ url, timeoutMs, signal })), url)
+      ? accessOf(
+          ReadProbeAnswer.parse(await probe({ url, timeoutMs, signal })),
+          url,
+        )
       : unanswered(missingDriver(engine));
   }
   const outcome = await probeInChild(
@@ -38,7 +41,7 @@ async function probeWithDriver(
     case "failed":
       return unanswered(noAnswerReason(outcome.message, url));
     case "answer":
-      return accessOf(readProbeAnswer(outcome.answer), url);
+      return accessOf(ReadProbeAnswer.parse(outcome.answer), url);
   }
 }
 
