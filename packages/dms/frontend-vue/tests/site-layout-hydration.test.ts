@@ -1,18 +1,16 @@
-import { ref, type Ref } from "vue";
+import type { Ref } from "vue";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
+import { sharedDmsState, type StateValue } from "./state-stub";
 import { useSiteLayout } from "../layers/dms-core/app/composables/page/useSiteLayout";
 
-const state = new Map<string, Ref>();
+const state = new Map<string, Ref<StateValue>>();
 const authFetch = vi.fn();
 
 beforeEach(() => {
   state.clear();
   const app = {};
   vi.stubGlobal("useDmsApp", () => app);
-  vi.stubGlobal("useDmsState", <T>(key: string, initial: () => T) => {
-    if (!state.has(key)) state.set(key, ref(initial()));
-    return state.get(key);
-  });
+  vi.stubGlobal("useDmsState", sharedDmsState(state));
   vi.stubGlobal("useAuthFetch", () => ({ $authFetch: authFetch }));
 });
 

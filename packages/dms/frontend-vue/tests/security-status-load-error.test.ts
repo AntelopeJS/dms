@@ -99,10 +99,11 @@ it("says a failed summary failed, with a retry, instead of loading forever", asy
 
   authFetch.mockClear();
   host.querySelector("button")!.click();
-  await vi.waitFor(() =>
-    expect(authFetch).toHaveBeenCalledExactlyOnceWith(
+  await vi.waitFor(() => {
+    expect(authFetch).toHaveBeenCalledOnce();
+    expect(authFetch.mock.calls[0]?.[0]).toBe(
       "/dms/pages/settings/user/security",
-      expect.objectContaining({ signal: expect.any(AbortSignal) }),
-    ),
-  );
+    );
+    expect(authFetch.mock.calls[0]?.[1]?.signal).toBeInstanceOf(AbortSignal);
+  });
 });

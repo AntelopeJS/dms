@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { describe, expect, it, vi } from "vitest";
+import { z } from "zod";
 import { serveModuleRoutes } from "@antelopejs/dms-frontend/templates/vue/server/module-testing.mjs";
 import dmsServer from "../dms.server";
 import { createServerRoutesFixture } from "./helpers/server-routes-fixture";
@@ -28,12 +29,9 @@ function registerRouteDeclarationAndLoginTests(
   });
 
   it("proxies /api and /dms with the session, the storage's signed URLs without, and nothing else", () => {
-    const proxies = fixture.moduleRoutes.modules.proxies.map(
-      (proxy: { path: string; auth: string; owner: string }) => ({
-        path: proxy.path,
-        auth: proxy.auth,
-      }),
-    );
+    const proxies = z
+      .array(z.object({ path: z.string(), auth: z.string() }))
+      .parse(fixture.moduleRoutes.modules.proxies);
     expect(proxies).toEqual(
       expect.arrayContaining([
         { path: "/api/**", auth: "session" },

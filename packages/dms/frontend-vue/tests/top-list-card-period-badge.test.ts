@@ -51,13 +51,19 @@ afterEach(() => vi.unstubAllGlobals());
 describe("TopListCard period badge", () => {
   it("prints the preset of a selector set up before it", async () => {
     const html = await render(() => {
-      const state = { preset: "last_30_days" };
+      const state: PeriodState = {
+        preset: "last-30-days",
+        comparison: "none",
+        range: null,
+        compareRange: null,
+        key: "last-30-days",
+      };
       registerPeriodScope(
         "dashboard-period",
-        computed(() => state as PeriodState),
+        computed(() => state),
       );
     });
-    expect(html).toContain("dms.period.presets.last_30_days");
+    expect(html).toContain("dms.period.presets.last-30-days");
     expect(html).not.toContain("data-skeleton");
   });
 

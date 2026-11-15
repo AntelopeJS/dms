@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * Nuxt UI's key hints (`<UKbd value="meta">`) through a server render and its
  * hydration, on the renderer's own runtime: the renderer prints them through
@@ -21,7 +21,12 @@ import {
 } from "vue";
 import { renderToString } from "vue/server-renderer";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { DmsAppContext, DmsFrontendRuntime } from "#dms/frontend-module";
+import type {
+  DmsAppContext,
+  DmsFrontendRuntime,
+  DmsPluginSetup,
+} from "#dms/frontend-module";
+import { dmsAppContext } from "./fixtures/dmsAppContext";
 import { KEYBOARD_PLATFORM_COOKIE } from "../layers/dms-ui/app/composables/global/keyboardPlatform";
 
 type Engine = typeof import("#dms/frontend-module");
@@ -46,18 +51,16 @@ let kbdPlatformPlugin: ((context: DmsAppContext) => void) | undefined;
 let app: App | undefined;
 
 beforeEach(async () => {
-  // A fresh renderer: the browser keeps one ref per cookie for the page's life.
   vi.resetModules();
   engine = await import("#dms/frontend-module");
   vi.stubGlobal("useDmsCookie", engine.useDmsCookie);
   vi.stubGlobal("useDmsState", engine.useDmsState);
   vi.stubGlobal("isDmsHydrating", engine.isDmsHydrating);
   vi.stubGlobal("provideDmsKbdPlatform", engine.provideDmsKbdPlatform);
-  // A plugin's file calls the renderer's `defineDmsPlugin` as it loads.
-  vi.stubGlobal("defineDmsPlugin", (setup: unknown) => setup);
+  vi.stubGlobal("defineDmsPlugin", (setup: DmsPluginSetup) => setup);
   kbdPlatformPlugin = (
     await import("../layers/dms-ui/app/plugins/kbd-platform")
-  ).default as unknown as (context: DmsAppContext) => void;
+  ).default;
 });
 
 afterEach(() => {
@@ -134,9 +137,7 @@ function dmsApp(
   const created = createSSRApp(root);
   engine.provideDmsFrontendRuntime(created, runtime);
   if (withPlugin)
-    created.runWithContext(() =>
-      kbdPlatformPlugin!({ vueApp: created } as unknown as DmsAppContext),
-    );
+    created.runWithContext(() => kbdPlatformPlugin!(dmsAppContext(created)));
   return created;
 }
 

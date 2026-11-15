@@ -4,7 +4,10 @@ import { computed, createApp, defineComponent, h, ref, type App } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import CardsDisplay from "../layers/dms-ui/app/entries/components/table-view/CardsDisplay";
 import type { TableViewColumn } from "../layers/dms-ui/app/composables/table-view/types/column";
-import type { TableViewCardConfig } from "../layers/dms-ui/app/composables/table-view/types/display";
+import type {
+  TableViewCardConfig,
+  TableViewDisplayContext,
+} from "../layers/dms-ui/app/composables/table-view/types/display";
 import type { DataTypeFormatter } from "../layers/dms-core/app/composables/data-types/useDataType";
 import { displayContext } from "./fixtures/displayContext";
 import { tableViewColumn } from "./fixtures/tableViewColumn";
@@ -34,7 +37,7 @@ const formatter = (typeId: string) => ({
 let app: App | undefined;
 
 function mountCards(columns: TableViewColumn[], card?: TableViewCardConfig) {
-  const context = displayContext<Record<string, unknown>>({
+  const context = displayContext<TableViewDisplayContext["items"][number]>({
     items: [{ _id: "team-05", name: "Platform", lead: "ada.png", done: 3 }],
     columns,
     labelKey: "name",

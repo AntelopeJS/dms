@@ -170,9 +170,12 @@ describe("module-supplied widget strings and the $ convention", () => {
     });
 
     expect(clicked).toMatchObject({ seriesName: "Sends" });
+    const sendsPayload: unknown = expect.objectContaining({
+      seriesName: "Sends",
+    });
     expect(componentEvents).toContainEqual({
       component: CHART_ID,
-      data: expect.objectContaining({ seriesName: "Sends" }),
+      data: sendsPayload,
     });
   });
 });

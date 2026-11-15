@@ -198,7 +198,7 @@ describe("side panel registry", () => {
     const { default: plugin } = await import(
       "../layers/dms-layout/app/plugins/side-panel-host"
     );
-    plugin(dmsAppContext(emptyApp()));
+    await plugin(dmsAppContext(emptyApp()));
     expect(useDmsState(OVERLAYS_STATE_KEY).value).toEqual(["DmsSidePanelHost"]);
   });
 });

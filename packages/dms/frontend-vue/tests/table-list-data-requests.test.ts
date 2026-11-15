@@ -5,6 +5,7 @@
  * again, one that changes reads again, and each request carries the run's
  * abort signal, so a run replaced or dropped cancels its request.
  */
+import { surfaceRejection } from "./surface-rejection";
 import { computed, createApp, defineComponent, h, nextTick, ref } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fetchClient } from "./fixtures/fetchClient";
@@ -65,17 +66,23 @@ async function mountTable() {
       const rows = useTableRows({ api, location: LOCATION, columns: COLUMNS });
       const keys = { componentId: "orders", pageId: "sales", rows };
       const archiveQuery = computed(() => (void tick.value, {}));
-      useTableListData({
-        ...keys,
-        query: computed(() => (void tick.value, { limit: limit.value })),
-        archiveQuery,
-        isSelfManaged: computed(() => false),
-      });
-      useTableCountsData({
-        ...keys,
-        queries: computed(() => (void tick.value, [{ id: "all", query: {} }])),
-        archiveQuery,
-      });
+      surfaceRejection(
+        useTableListData({
+          ...keys,
+          query: computed(() => (void tick.value, { limit: limit.value })),
+          archiveQuery,
+          isSelfManaged: computed(() => false),
+        }),
+      );
+      surfaceRejection(
+        useTableCountsData({
+          ...keys,
+          queries: computed(
+            () => (void tick.value, [{ id: "all", query: {} }]),
+          ),
+          archiveQuery,
+        }),
+      );
       return () => h("i");
     },
   });
@@ -152,20 +159,24 @@ describe("a source table's requests", () => {
         });
         const keys = { componentId: "report", pageId: "stats", rows };
         const archiveQuery = computed(() => ({}));
-        useTableListData({
-          ...keys,
-          query: computed(() => ({ limit: 10, offset: 0 })),
-          archiveQuery,
-          isSelfManaged: computed(() => false),
-        });
-        useTableCountsData({
-          ...keys,
-          queries: computed(() => [
-            { id: "all", query: {} },
-            { id: "open", query: { filter_status: "is:open" } },
-          ]),
-          archiveQuery,
-        });
+        surfaceRejection(
+          useTableListData({
+            ...keys,
+            query: computed(() => ({ limit: 10, offset: 0 })),
+            archiveQuery,
+            isSelfManaged: computed(() => false),
+          }),
+        );
+        surfaceRejection(
+          useTableCountsData({
+            ...keys,
+            queries: computed(() => [
+              { id: "all", query: {} },
+              { id: "open", query: { filter_status: "is:open" } },
+            ]),
+            archiveQuery,
+          }),
+        );
         return () => h("i");
       },
     });
@@ -179,7 +190,9 @@ describe("a source table's requests", () => {
     await settle();
 
     expect(
-      calls.map(({ url, query }) => [url, query?.filter_status]).sort(),
+      calls
+        .map(({ url, query }) => [url, query?.filter_status])
+        .sort((left, right) => String(left).localeCompare(String(right))),
     ).toEqual([
       ["/api/report", undefined],
       ["/api/report", "is:open"],

@@ -5,6 +5,7 @@
  * when the period changes, and it requests nothing (keeping its skeleton)
  * until the selector has registered the scope.
  */
+import { surfaceRejection } from "./surface-rejection";
 import {
   computed,
   createApp,
@@ -57,25 +58,29 @@ const SourceTable = defineComponent({
       source: { fetchUrl: FETCH_URL, capabilities: {}, periodScope: SCOPE },
       columns: COLUMNS,
     });
-    void useTableListData({
-      componentId: "report",
-      pageId: "reports",
-      rows,
-      query: computed(() => ({ offset: 0, limit: 10 })),
-      archiveQuery: computed(() => ({})),
-      isSelfManaged: computed(() => false),
-    }).then(({ data }) => {
-      listed = data;
-    });
-    void useTableCountsData({
-      componentId: "report",
-      pageId: "reports",
-      rows,
-      queries: computed(() => [{ id: "all", query: {} }]),
-      archiveQuery: computed(() => ({})),
-    }).then(({ data }) => {
-      counted = data;
-    });
+    surfaceRejection(
+      useTableListData({
+        componentId: "report",
+        pageId: "reports",
+        rows,
+        query: computed(() => ({ offset: 0, limit: 10 })),
+        archiveQuery: computed(() => ({})),
+        isSelfManaged: computed(() => false),
+      }).then(({ data }) => {
+        listed = data;
+      }),
+    );
+    surfaceRejection(
+      useTableCountsData({
+        componentId: "report",
+        pageId: "reports",
+        rows,
+        queries: computed(() => [{ id: "all", query: {} }]),
+        archiveQuery: computed(() => ({})),
+      }).then(({ data }) => {
+        counted = data;
+      }),
+    );
     return () => h("div");
   },
 });

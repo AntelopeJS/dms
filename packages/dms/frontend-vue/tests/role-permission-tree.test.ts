@@ -186,8 +186,10 @@ describe("nested role permission tree", () => {
       closed.click();
       await nextTick();
     }
-    expect([...new Set(shownIds(host))].sort()).toEqual(
-      [...index.allIds].sort(),
+    const byId = (a: string | null, b: string | null) =>
+      (a ?? "").localeCompare(b ?? "");
+    expect([...new Set(shownIds(host))].sort(byId)).toEqual(
+      [...index.allIds].sort(byId),
     );
   });
 

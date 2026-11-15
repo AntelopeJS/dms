@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { afterEach, beforeAll, describe, expect, it } from "vitest";
 import { isFunction } from "../layers/dms-core/app/utils/type-check";
-import { spoiledShapes } from "./helpers/cookie-shapes";
+import * as cookieSpoilage from "./helpers/cookie-shapes";
 import { createServerRoutesFixture } from "./helpers/server-routes-fixture";
 import {
   type ask,
@@ -13,15 +13,13 @@ import {
   sealedCookie,
 } from "./helpers/server-routes-fixtures";
 
-interface Reply {
-  status: number;
-  body: unknown;
-}
-
+type Reply = NonNullable<ReturnType<(typeof answerOverrides)["get"]>>;
+type ReplyBody = Reply["body"];
 type AskInit = Parameters<typeof ask>[2];
+type AskBody = NonNullable<AskInit>["body"];
 type Answer = Awaited<ReturnType<typeof ask>>;
 
-const ok = (body: unknown): Reply => ({ status: 200, body });
+const ok = (body: ReplyBody): Reply => ({ status: 200, body });
 const FAILED: Reply = {
   status: 502,
   body: { message: "error.500.description" },
@@ -49,24 +47,24 @@ const ASSIGNMENT = {
 };
 const SIGN_IN = { email: "ada@example.test", password: "secret" };
 
-const NOT_RECORDS = spoiledShapes({}, {}, []);
-const SPOILED_USERS = spoiledShapes(
+const NOT_RECORDS = cookieSpoilage.spoiledShapes({}, {}, []);
+const SPOILED_USERS = cookieSpoilage.spoiledShapes(
   USER,
   { _id: [5], email: [5], name: [null], language: [5, null] },
   [],
 );
-const SPOILED_PAIRS = spoiledShapes(
+const SPOILED_PAIRS = cookieSpoilage.spoiledShapes(
   PAIR,
   { access_token: [5, ""], refresh_token: [5, ""] },
   ["access_token"],
 );
 const SPOILED_OUTCOMES = [
-  ...spoiledShapes(
+  ...cookieSpoilage.spoiledShapes(
     TOKENS,
     { access_token: [5, ""], refresh_token: [5, ""], user: SPOILED_USERS },
     ["access_token"],
   ),
-  ...spoiledShapes(
+  ...cookieSpoilage.spoiledShapes(
     CHALLENGE,
     {
       requires_2fa: ["yes"],
@@ -75,7 +73,7 @@ const SPOILED_OUTCOMES = [
     },
     ["two_factor_token", "methods"],
   ),
-  ...spoiledShapes(
+  ...cookieSpoilage.spoiledShapes(
     ASSIGNMENT,
     {
       requires_tenant_assignment: ["yes"],
@@ -123,64 +121,64 @@ function seen(answer: Answer) {
   return { ...answer, calls: answer.calls.map((call) => call.path) };
 }
 
-describe("the backend answers and request bodies the DMS's server routes read", () => {
-  const fixture = createServerRoutesFixture();
-  let clients = 0;
+const fixture = createServerRoutesFixture();
+let clients = 0;
 
-  beforeAll(() => {
-    process.env.DMS_CLIENT_IP_HEADER = "x-client-ip";
+beforeAll(() => {
+  process.env.DMS_CLIENT_IP_HEADER = "x-client-ip";
+});
+
+afterEach(() => answerOverrides.clear());
+
+/** Asks `route` while the backend answers each of `replies`' paths with its reply. */
+function askReplying(
+  route: string,
+  replies: Record<string, Reply>,
+  init: AskInit | ((base: string) => Promise<AskInit>) = {},
+): Promise<Answer> {
+  return fixture.askDms(route, async (base) => {
+    const options = isFunction(init) ? await init(base) : init;
+    answerOverrides.clear();
+    for (const [path, reply] of Object.entries(replies))
+      answerOverrides.set(path, reply);
+    return options;
   });
+}
 
-  afterEach(() => answerOverrides.clear());
-
-  /** Asks `route` while the backend answers each of `replies`' paths with its reply. */
-  function askReplying(
-    route: string,
-    replies: Record<string, Reply>,
-    init: AskInit | ((base: string) => Promise<AskInit>) = {},
-  ): Promise<Answer> {
-    return fixture.askDms(route, async (base) => {
-      const options = isFunction(init) ? await init(base) : init;
-      answerOverrides.clear();
-      for (const [path, reply] of Object.entries(replies))
-        answerOverrides.set(path, reply);
-      return options;
+/** The cookies of a session whose refresh token no other test spends. */
+async function signedIn(base: string): Promise<string> {
+  answerOverrides.set(
+    "/api/auth/login",
+    ok({ ...TOKENS, refresh_token: randomUUID() }),
+  );
+  try {
+    return await cookiesOf(base, "/auth/login", {
+      body: { ...SIGN_IN, keep_login: true },
     });
+  } finally {
+    answerOverrides.delete("/api/auth/login");
   }
+}
 
-  /** The cookies of a session whose refresh token no other test spends. */
-  async function signedIn(base: string): Promise<string> {
-    answerOverrides.set(
-      "/api/auth/login",
-      ok({ ...TOKENS, refresh_token: randomUUID() }),
-    );
-    try {
-      return await cookiesOf(base, "/auth/login", {
-        body: { ...SIGN_IN, keep_login: true },
-      });
-    } finally {
-      answerOverrides.delete("/api/auth/login");
-    }
-  }
+function providerRequest(): AskInit {
+  clients += 1;
+  return {
+    method: "GET",
+    origin: false,
+    headers: {
+      "x-client-ip": `10.1.${Math.floor(clients / 200)}.${clients % 200}`,
+    },
+    cookie: sealedCookie("dms_oauth_flow", {
+      state: "state-1",
+      expiresAt: Date.now() + 60_000,
+      redirect: "/projects",
+      language: "",
+      invite: "",
+    }),
+  };
+}
 
-  function providerRequest(): AskInit {
-    clients += 1;
-    return {
-      method: "GET",
-      origin: false,
-      headers: {
-        "x-client-ip": `10.1.${Math.floor(clients / 200)}.${clients % 200}`,
-      },
-      cookie: sealedCookie("dms_oauth_flow", {
-        state: "state-1",
-        expiresAt: Date.now() + 60_000,
-        redirect: "/projects",
-        language: "",
-        invite: "",
-      }),
-    };
-  }
-
+describe("the backend answers the DMS's server routes read to sign in", () => {
   it("opens no session from a sign-in answer of another shape, and answers it as a failed backend", async () => {
     for (const { route, backend, body } of SIGN_IN_ROUTES) {
       const signIn = (reply: Reply) =>
@@ -235,7 +233,9 @@ describe("the backend answers and request bodies the DMS's server routes read", 
       expect(answer.body).toEqual(step);
     }
   });
+});
 
+describe("the backend answers the DMS's server routes read for a provider sign-in", () => {
   it("ends a provider sign-in on an answer of another shape as on a failed backend, and hands over each step", async () => {
     const callback = async (reply: Reply) =>
       seen(
@@ -251,7 +251,7 @@ describe("the backend answers and request bodies the DMS's server routes read", 
       expect(await callback(ok(answer)), JSON.stringify(answer)).toEqual(
         failed,
       );
-    const handoffOf = async (step: unknown) => {
+    const handoffOf = async (step: ReplyBody) => {
       const answer = await callback(ok(step));
       expect(answer.location).toBe("/auth/oauth/complete");
       return answer.cookies.find((cookie) =>
@@ -302,14 +302,16 @@ describe("the backend answers and request bodies the DMS's server routes read", 
       );
     const failed = await start(FAILED);
     expect(failed.location).toBe("/auth?oauth_error=error.oauth.failed");
-    for (const answer of spoiledShapes(
+    for (const answer of cookieSpoilage.spoiledShapes(
       { state: "state-1", authorizeUrl: "https://github.example/authorize" },
       { state: [5, ""], authorizeUrl: [5, ""] },
       ["state", "authorizeUrl"],
     ))
       expect(await start(ok(answer)), JSON.stringify(answer)).toEqual(failed);
   });
+});
 
+describe("the backend answers the DMS's server routes read to renew or switch a session", () => {
   it("renews no session from a refresh or user answer of another shape, and keeps it as on a failed backend", async () => {
     const renew = (replies: Record<string, Reply>) =>
       askReplying("/api/_auth/session", replies, async (base) => ({
@@ -381,7 +383,9 @@ describe("the backend answers and request bodies the DMS's server routes read", 
         JSON.stringify(user),
       ).toEqual(userFailed);
   });
+});
 
+describe("the request bodies the DMS's server routes read", () => {
   it("answers a body whose unread field nests deeper than a recursive walk reaches as one without it", async () => {
     const accountId = randomUUID();
     const cookie = sealedCookie(
@@ -441,7 +445,8 @@ describe("the backend answers and request bodies the DMS's server routes read", 
         headers: { origin: base, "content-type": "application/json" },
         body: "{",
       });
-      const notJson = { status: response.status, body: await response.json() };
+      const notJsonBody: unknown = await response.json();
+      const notJson = { status: response.status, body: notJsonBody };
       expect(notJson.status).toBe(400);
       for (const body of NOT_RECORDS) {
         const answer = await fixture.askDms(route, { body });
@@ -455,7 +460,7 @@ describe("the backend answers and request bodies the DMS's server routes read", 
   });
 
   it("refuses a render body that is no object as one whose template name is no string", async () => {
-    const render = (body: unknown) =>
+    const render = (body: AskBody) =>
       fixture.askDms("/api/html/render", {
         origin: false,
         headers: { "x-dms-service-token": renderToken() },

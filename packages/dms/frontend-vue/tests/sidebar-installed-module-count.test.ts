@@ -12,6 +12,7 @@ import {
   watch,
   type App,
 } from "vue";
+import { isObject } from "../layers/dms-core/app/utils/type-check";
 import type { NavigationMenuItem } from "@nuxt/ui";
 import {
   hydrate,
@@ -64,20 +65,23 @@ function storeEntry(id: string, state: "active" | "available") {
 }
 
 /** The modules page's data: the assistant registers pages, the Builder does not. */
-const ANSWERS: Record<string, unknown> = {
-  [ENDPOINT_MODULES_LISTING]: [ASSISTANT],
-  [ENDPOINT_STORE_LISTING]: {
-    enabled: true,
-    busy: false,
-    dev: true,
-    interfaceVersion: "0.10.3",
-    modules: [
-      storeEntry("ai", "active"),
-      storeEntry("builder", "active"),
-      storeEntry("mailing", "available"),
-    ],
-  },
-};
+const ANSWERS = new Map([
+  [ENDPOINT_MODULES_LISTING, [ASSISTANT]],
+  [
+    ENDPOINT_STORE_LISTING,
+    {
+      enabled: true,
+      busy: false,
+      dev: true,
+      interfaceVersion: "0.10.3",
+      modules: [
+        storeEntry("ai", "active"),
+        storeEntry("builder", "active"),
+        storeEntry("mailing", "available"),
+      ],
+    },
+  ],
+]);
 
 const Navigation = defineComponent({
   props: ["items"],
@@ -90,7 +94,7 @@ const Navigation = defineComponent({
           { href: item.to },
           [
             item.label,
-            typeof item.badge === "object" ? ` ${item.badge.label}` : "",
+            isObject(item.badge) ? ` ${String(item.badge.label)}` : "",
           ].join(""),
         ),
       ),
@@ -136,7 +140,7 @@ function installRuntime() {
     findMatchingRoute: () => null,
     findMatchingRouteOrCategory: () => null,
   }));
-  stubModuleReads(ANSWERS);
+  stubModuleReads(Object.fromEntries(ANSWERS));
   vi.stubGlobal("useFavoritePages", () => ({
     cleanupInvalidFavorites: vi.fn(),
     sortedFavorites: ref([]),
@@ -203,11 +207,13 @@ it("badges Modules with the installed modules the Modules page lists, one of the
 
 describe("with the real data reads", () => {
   const storeReads = vi.fn(async (url: string) =>
-    structuredClone(ANSWERS[url]),
+    structuredClone(ANSWERS.get(url)),
   );
   const Page = defineComponent({
     setup() {
-      useApiData(ENDPOINT_STORE_LISTING);
+      useApiData(ENDPOINT_STORE_LISTING).catch((error: unknown) => {
+        throw error;
+      });
       return () => h("main");
     },
   });
@@ -219,7 +225,7 @@ describe("with the real data reads", () => {
   beforeEach(() => {
     storeReads.mockReset();
     storeReads.mockImplementation(async (url: string) =>
-      structuredClone(ANSWERS[url]),
+      structuredClone(ANSWERS.get(url)),
     );
     stubApiData(storeReads);
     vi.stubGlobal("useApiData", useApiData);
@@ -263,7 +269,7 @@ describe("with the real data reads", () => {
     storeReads.mockImplementation(async (url: string) =>
       url === ENDPOINT_STORE_LISTING
         ? new Promise<never>(() => {})
-        : structuredClone(ANSWERS[url]),
+        : structuredClone(ANSWERS.get(url)),
     );
     const { app: mounted, container } = mountInBrowser(
       Layout(false),
@@ -286,7 +292,7 @@ describe("with the real data reads", () => {
   it("counts the registered modules when the store listing cannot be read", async () => {
     storeReads.mockImplementation(async (url: string) => {
       if (url === ENDPOINT_STORE_LISTING) throw new Error("registry down");
-      return structuredClone(ANSWERS[url]);
+      return structuredClone(ANSWERS.get(url));
     });
     const { app: mounted, container } = mountInBrowser(
       Layout(false),

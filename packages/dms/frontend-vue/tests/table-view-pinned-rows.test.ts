@@ -3,6 +3,7 @@
  * base language of a languages table stays on top whichever column the user
  * sorts on, and on the first page.
  */
+import type { TableViewDisplayContext } from "../layers/dms-ui/app/composables/table-view/types/display";
 import { describe, expect, it } from "vitest";
 import {
   processSourceRows,
@@ -137,7 +138,8 @@ describe("the rows a paging table shows, pinned page by page", () => {
   }));
 
   const SHOWN = ["a1", "a3", "a0", "a2", "a6", "a7", "a4", "a5", "a8", "a9"];
-  const idsOf = (rows: Record<string, unknown>[]) => rows.map((row) => row._id);
+  const idsOf = (rows: TableViewDisplayContext["items"]) =>
+    rows.map((row) => row._id);
 
   function controllerRows() {
     const api = fetchClient(

@@ -142,9 +142,12 @@ function serverRender(path: string) {
   runtime.route.matched = [{}];
   engine.provideDmsFrontendRuntime(app, runtime);
 
-  for (const plugin of [onboardingPreload, permissionsPreload])
-    app.runWithContext(() => plugin(context));
-  return { app, html: renderToString(app) };
+  const preloads = Promise.all(
+    [onboardingPreload, permissionsPreload].map((plugin) =>
+      app.runWithContext(async () => plugin(context)),
+    ),
+  );
+  return { app, html: renderToString(app), preloads };
 }
 
 beforeEach(async () => {
@@ -170,8 +173,9 @@ beforeEach(async () => {
 
 describe("the requests a server render's middlewares wait on", () => {
   it("start together, and each middleware joins its own", async () => {
-    const { html } = serverRender("/orders");
+    const { html, preloads } = serverRender("/orders");
     const rounds = await answerRounds();
+    await preloads;
 
     expect(rounds).toEqual([[PERMISSIONS, ONBOARDING].sort()]);
     expect(asked.sort()).toEqual([PERMISSIONS, ONBOARDING].sort());
@@ -180,8 +184,9 @@ describe("the requests a server render's middlewares wait on", () => {
 
   it("ask for no permission set the middleware would not load", async () => {
     pagePublic = true;
-    const { html } = serverRender("/orders");
+    const { html, preloads } = serverRender("/orders");
     await answerRounds();
+    await preloads;
     expect(asked).toEqual([ONBOARDING]);
     expect(await html).toContain("cannot read");
 
@@ -191,6 +196,7 @@ describe("the requests a server render's middlewares wait on", () => {
     session.loggedIn.value = false;
     const signedOut = serverRender("/orders");
     await answerRounds();
+    await signedOut.preloads;
     expect(asked).toEqual([ONBOARDING]);
     await signedOut.html.catch(() => undefined);
   });

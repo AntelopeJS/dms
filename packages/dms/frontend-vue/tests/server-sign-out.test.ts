@@ -1,5 +1,7 @@
 import { createServer } from "node:http";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { z } from "zod";
+import { isObject } from "../layers/dms-core/app/utils/type-check";
 import { SESSION_RECONFIRM_AFTER_MS } from "@antelopejs/dms-frontend/templates/vue/server/auth-hooks.mjs";
 import {
   handleModuleRoute,
@@ -16,6 +18,13 @@ import {
   listen,
 } from "./helpers/server-routes-fixtures";
 
+const routingModules = z.custom<Parameters<typeof requestOwner>[2]>(
+  (value) =>
+    isObject(value) &&
+    Array.isArray(value.routes) &&
+    Array.isArray(value.proxies),
+);
+
 describe("signing out of the DMS", () => {
   const fixture = createServerRoutesFixture();
 
@@ -29,7 +38,7 @@ describe("signing out of the DMS", () => {
     base: string;
     stop: () => Promise<void>;
   }> {
-    const { modules } = fixture.moduleRoutes;
+    const modules = routingModules.parse(fixture.moduleRoutes.modules);
     const server = createServer(async (request, response) => {
       if (!isServerRequest(request)) return void response.writeHead(400).end();
       const { pathname } = new URL(request.url, "http://frontend.local");

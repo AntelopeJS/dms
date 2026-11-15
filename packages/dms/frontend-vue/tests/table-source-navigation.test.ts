@@ -5,6 +5,7 @@
  * cache: whether the link keeps the page mounted (the watch) or remounts it
  * (a fresh instance binding to the cached entry of its key).
  */
+import { surfaceRejection } from "./surface-rejection";
 import {
   computed,
   createApp,
@@ -56,17 +57,21 @@ const SourceTable = defineComponent({
     });
     const archiveQuery = computed(() => ({}));
     const keys = { componentId: "requests", pageId: "sources", rows };
-    void useTableListData({
-      ...keys,
-      query: computed(() => ({ offset: 0, limit: 10 })),
-      archiveQuery,
-      isSelfManaged: computed(() => false),
-    });
-    void useTableCountsData({
-      ...keys,
-      queries: computed(() => TAB_QUERIES),
-      archiveQuery,
-    });
+    surfaceRejection(
+      useTableListData({
+        ...keys,
+        query: computed(() => ({ offset: 0, limit: 10 })),
+        archiveQuery,
+        isSelfManaged: computed(() => false),
+      }),
+    );
+    surfaceRejection(
+      useTableCountsData({
+        ...keys,
+        queries: computed(() => TAB_QUERIES),
+        archiveQuery,
+      }),
+    );
     return () => h("div");
   },
 });

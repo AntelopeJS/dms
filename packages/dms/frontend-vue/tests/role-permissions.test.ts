@@ -386,10 +386,16 @@ function registerPermissionSelectionTests(
       "refund",
       identity,
     );
-    expect(hits).toEqual([
+    expect(
+      hits.map((hit) => ({
+        heading: hit.heading,
+        nodeId: hit.node.id,
+        areaId: hit.areaId,
+      })),
+    ).toEqual([
       {
         heading: "Pages › Sales › Orders",
-        node: expect.objectContaining({ id: "pages.sales.orders.refund" }),
+        nodeId: "pages.sales.orders.refund",
         areaId: "pages.sales",
       },
     ]);

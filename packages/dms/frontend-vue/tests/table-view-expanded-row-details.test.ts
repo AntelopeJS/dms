@@ -65,7 +65,7 @@ describe("lazyLoad expanded rows", () => {
 });
 
 describe("expanded row props", () => {
-  it("hands a band its row, actions, open and the table's refresh", () => {
+  it("hands a band its row, actions, open and the table's refresh", async () => {
     const open = vi.fn();
     const refresh = vi.fn();
     const actions: TableViewDisplayActions<Order> = {
@@ -97,7 +97,8 @@ describe("expanded row props", () => {
     expect(props.actions).toBe(actions);
     props.open();
     expect(open).toHaveBeenCalledWith(row);
-    props.refresh();
+    const refreshed = props.refresh();
     expect(refresh).toHaveBeenCalledOnce();
+    await refreshed;
   });
 });

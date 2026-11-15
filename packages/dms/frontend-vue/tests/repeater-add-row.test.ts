@@ -54,7 +54,7 @@ const Button = defineComponent({
       h("button", { onClick: () => emit("click") }, props.label),
 });
 
-type Rows = Record<string, unknown>[] | null | undefined;
+type Rows = InstanceType<typeof Repeater>["$props"]["modelValue"];
 
 async function mount(
   rows: Rows,

@@ -81,7 +81,9 @@ const RunPanel = defineComponent({
         props.rowData?.name ?? "none",
         h("button", {
           "data-save": "",
-          onClick: () => props.onSuccessCallback?.(),
+          onClick: () => {
+            props.onSuccessCallback?.();
+          },
         }),
       ]);
   },

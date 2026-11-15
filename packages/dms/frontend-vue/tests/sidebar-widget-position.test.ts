@@ -1,4 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { z } from "zod";
+import { isObject, isString } from "../layers/dms-core/app/utils/type-check";
 import {
   isSidebarWidgetVisible,
   resolveSidebarWidgetPosition,
@@ -7,13 +9,20 @@ import {
   useSidebarWidgets,
 } from "../layers/dms-layout/app/composables/useSidebarWidgets";
 
-const UNKNOWN_POSITION = "top" as SidebarWidgetPosition;
-
 const widget = (extra: Partial<SidebarWidget> = {}): SidebarWidget => ({
   id: "widget",
   component: "Widget",
   ...extra,
 });
+
+const registeredWidget = z.custom<SidebarWidget>(
+  (value) => isObject(value) && isString(value.id) && isString(value.component),
+);
+
+const widgetAtUnknownPosition = (
+  extra: Omit<Partial<SidebarWidget>, "position"> = {},
+): SidebarWidget =>
+  registeredWidget.parse({ ...widget(extra), position: "top" });
 
 describe("resolveSidebarWidgetPosition", () => {
   it("keeps the pre-position placement of an unscoped widget", () => {
@@ -45,13 +54,11 @@ describe("resolveSidebarWidgetPosition", () => {
   });
 
   it("falls back to the default rather than dropping an unknown position", () => {
+    expect(resolveSidebarWidgetPosition(widgetAtUnknownPosition())).toBe(
+      SidebarWidgetPosition.ABOVE_SEARCH_BAR,
+    );
     expect(
-      resolveSidebarWidgetPosition(widget({ position: UNKNOWN_POSITION })),
-    ).toBe(SidebarWidgetPosition.ABOVE_SEARCH_BAR);
-    expect(
-      resolveSidebarWidgetPosition(
-        widget({ module: "demo", position: UNKNOWN_POSITION }),
-      ),
+      resolveSidebarWidgetPosition(widgetAtUnknownPosition({ module: "demo" })),
     ).toBe(SidebarWidgetPosition.BELOW_SEARCH_BAR);
   });
 });

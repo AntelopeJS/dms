@@ -1,4 +1,5 @@
 /** @vitest-environment jsdom */
+import type { TableViewDisplayContext } from "../layers/dms-ui/app/composables/table-view/types/display";
 import "./helpers/table-runtime";
 import {
   computed,
@@ -22,6 +23,8 @@ import type { TableViewColumn } from "../layers/dms-ui/app/composables/table-vie
 import { displayContext } from "./fixtures/displayContext";
 import { tableViewColumn } from "./fixtures/tableViewColumn";
 
+type DisplayRow = TableViewDisplayContext["items"][number];
+
 type Row = {
   _id: string;
   name: string;
@@ -36,8 +39,8 @@ const rows: Row[] = [
 
 function createContext() {
   const selected = ref<string[]>(["t2"]);
-  const opened: Array<Record<string, unknown>> = [];
-  const context = displayContext<Record<string, unknown>>({
+  const opened: DisplayRow[] = [];
+  const context = displayContext<DisplayRow>({
     items: rows,
     labelKey: "name",
     options: { card: { component: { componentName: "TaskCard" } } },
@@ -93,7 +96,15 @@ describe("cards display with a custom card", () => {
     props: cardProps,
     setup: (props) => () => {
       received.push({ ...props });
-      return h("button", { onClick: () => props.open?.() }, props.rowId);
+      return h(
+        "button",
+        {
+          onClick: () => {
+            props.open?.();
+          },
+        },
+        props.rowId,
+      );
     },
   });
 

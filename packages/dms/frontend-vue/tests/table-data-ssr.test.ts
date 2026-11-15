@@ -107,7 +107,8 @@ const Table = defineComponent({
       h("p", [
         `rows:${list.data.value?.total ?? "-"}`,
         ` counts:${counts.data.value ? counts.data.value.all : "-"}`,
-        ` sum:${footer.value?.summaries?.[0]?.value ?? "-"}`,
+        " sum:",
+        footer.value?.summaries?.[0]?.value ?? "-",
       ]);
   },
 });

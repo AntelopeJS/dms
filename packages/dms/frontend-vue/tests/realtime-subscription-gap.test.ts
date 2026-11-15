@@ -201,18 +201,17 @@ beforeEach(() => {
   server = createRealtimeServer();
   installRealtimeFetch(server);
   const backend = globalThis.fetch;
-  globalThis.fetch = (async (url: string, init?: RequestInit) => {
-    if (!url.startsWith(SUBSCRIBE_PREFIX)) return backend(url, init);
-    if (holdSubscribes) {
-      await new Promise<void>((resolve) => heldSubscribes.push(resolve));
-    }
-    await backend(url, init);
-    return {
-      ok: true,
-      status: 200,
-      json: async () => ({ ok: true, topics: [ROW_TOPIC] }),
-    };
-  }) as typeof fetch;
+  globalThis.fetch = vi.fn(
+    async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = input instanceof Request ? input.url : String(input);
+      if (!url.startsWith(SUBSCRIBE_PREFIX)) return backend(input, init);
+      if (holdSubscribes) {
+        await new Promise<void>((resolve) => heldSubscribes.push(resolve));
+      }
+      await backend(input, init);
+      return Response.json({ ok: true, topics: [ROW_TOPIC] });
+    },
+  );
 });
 
 afterEach(async () => {

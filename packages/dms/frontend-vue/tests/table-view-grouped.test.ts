@@ -284,7 +284,7 @@ describe("useGroupedRows", () => {
             rows,
             countQuery: (filter) => ({
               search: "late",
-              [`filter_${filter.accessorKey}`]: `${filter.mode}:${filter.value}`,
+              [`filter_${filter.accessorKey}`]: `${filter.mode}:${String(filter.value)}`,
             }),
             countBatch: async (queries) => {
               asked.push(queries);

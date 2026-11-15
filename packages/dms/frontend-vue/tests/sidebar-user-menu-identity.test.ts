@@ -10,7 +10,9 @@ import {
   ref,
   watch,
   type App,
+  type Ref,
 } from "vue";
+import { sharedDmsState, type StateValue } from "./state-stub";
 import SidebarUserMenu from "../layers/dms-layout/app/entries/components/layout/SidebarUserMenu";
 import type { User } from "../layers/dms-core/app/types/user";
 import {
@@ -33,7 +35,7 @@ const READ_URLS = {
 const user = ref<Partial<User> | null>(null);
 const route = reactive({ path: "/", query: {} });
 const resolved = ref<Record<string, string>>({});
-const states = new Map<string, ReturnType<typeof ref>>();
+const states = new Map<string, Ref<StateValue>>();
 let menuItems: MenuItemStub[][] = [];
 let app: App;
 let host: HTMLDivElement;
@@ -55,10 +57,7 @@ function installRuntime(): void {
   vi.stubGlobal("useUserLanguage", () => ({ changeLanguage: vi.fn() }));
   vi.stubGlobal("ACCOUNT_MENU_ENTRIES", ACCOUNT_MENU_ENTRIES);
   vi.stubGlobal("useDmsCookie", () => ref(false));
-  vi.stubGlobal("useDmsState", <T>(key: string, init: () => T) => {
-    if (!states.has(key)) states.set(key, ref(init()));
-    return states.get(key);
-  });
+  vi.stubGlobal("useDmsState", sharedDmsState(states));
   vi.stubGlobal("useFileReadUrls", () => ({
     getUrl: (key: string) => resolved.value[key],
     resolve: async (key: keyof typeof READ_URLS) => {

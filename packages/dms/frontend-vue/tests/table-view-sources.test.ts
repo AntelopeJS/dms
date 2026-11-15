@@ -22,6 +22,8 @@ const ROWS: LogRow[] = [
 
 const COLUMNS = [tableViewColumn("path"), tableViewColumn("duration")];
 
+const ANY_SIGNAL: unknown = expect.any(AbortSignal);
+
 type Api = Parameters<typeof useTableRows>[0]["api"];
 
 interface PageRoute {
@@ -94,7 +96,7 @@ function registerTableSourceQueryTests() {
     const page = await rows.list({ offset: 20, limit: 10, search: "x" });
     expect(api).toHaveBeenCalledWith("/api/log", {
       query: { offset: 20, limit: 10 },
-      signal: expect.any(AbortSignal),
+      signal: ANY_SIGNAL,
     });
     expect(page).toMatchObject({ total: 120, offset: 20, limit: 10 });
     expect(await rows.getRow("a")).toBeUndefined();
@@ -156,7 +158,7 @@ function registerTableSourceUrlTests() {
       await rows.list({});
       expect(api).toHaveBeenCalledWith(
         "/api/ws/ws-1/requests?route=GET%20%2Fapi%2Fa%3Fb%3Dc",
-        { query: {}, signal: expect.any(AbortSignal) },
+        { query: {}, signal: ANY_SIGNAL },
       );
     });
 

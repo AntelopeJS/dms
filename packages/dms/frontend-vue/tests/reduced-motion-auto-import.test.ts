@@ -9,6 +9,7 @@ import { autoImportDirectories } from "@antelopejs/dms-frontend/templates/vue/fr
 import { scanDirExports } from "unimport";
 import { afterEach, expect, it, vi } from "vitest";
 import setup from "../dms.frontend.build";
+import { isReducedMotionActive } from "../layers/dms-ui/app/utils/reducedMotion";
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -39,13 +40,11 @@ it("auto-imports isReducedMotionActive for modules", async () => {
   const entry = await autoImported("isReducedMotionActive");
 
   expect(entry?.from).toMatch(/\/layers\/dms-ui\/app\/utils\//);
-  const helper: unknown = (await import(entry?.from ?? ""))[
-    "isReducedMotionActive"
-  ];
-  if (typeof helper !== "function") throw new Error("not a function");
+  const loaded: unknown = await import(entry?.from ?? "");
+  expect(loaded).toHaveProperty("isReducedMotionActive", isReducedMotionActive);
   vi.stubGlobal("matchMedia", () => ({ matches: false }));
   htmlClasses();
-  expect(helper()).toBe(false);
+  expect(isReducedMotionActive()).toBe(false);
   htmlClasses("dms-reduce-motion");
-  expect(helper()).toBe(true);
+  expect(isReducedMotionActive()).toBe(true);
 });
