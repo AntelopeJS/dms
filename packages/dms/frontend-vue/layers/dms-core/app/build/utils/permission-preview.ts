@@ -183,12 +183,11 @@ export function quickActionKey(action: {
 
 /**
  * What `applyPreviewLocks` reads from a menu entry. Children are walked as
- * entries of the same kind (Nuxt UI types them as child items, which carry the
- * same `fullId` at runtime).
+ * entries of the same kind, `Child`.
  */
-export interface PreviewLockableEntry {
+export interface PreviewLockableEntry<Child = object> {
   fullId?: string;
-  children?: readonly object[];
+  children?: readonly Child[];
 }
 
 /**
@@ -196,7 +195,7 @@ export interface PreviewLockableEntry {
  * pass each entry the preview locks to `lock`. Labels, collapsed groups and
  * nested entries are all visited; an entry without a `fullId` is left as is.
  */
-export function applyPreviewLocks<T extends PreviewLockableEntry>(
+export function applyPreviewLocks<T extends PreviewLockableEntry<T>>(
   items: readonly T[],
   isLocked: (fullId: string | undefined) => boolean,
   lock: (item: T) => T,
@@ -212,18 +211,14 @@ export function applyPreviewLocks<T extends PreviewLockableEntry>(
  * Walk a menu like `applyPreviewLocks`, passing each entry with a preview
  * state (refused or partial) to `decorate` along with that state.
  */
-export function applyPreviewEntryStates<T extends PreviewLockableEntry>(
+export function applyPreviewEntryStates<T extends PreviewLockableEntry<T>>(
   items: readonly T[],
   stateOf: (fullId: string | undefined) => PreviewEntryState | null,
   decorate: (item: T, state: PreviewEntryState) => T,
 ): T[] {
   return items.map((item) => {
     const children = item.children
-      ? applyPreviewEntryStates(
-          item.children as readonly T[],
-          stateOf,
-          decorate,
-        )
+      ? applyPreviewEntryStates(item.children, stateOf, decorate)
       : undefined;
     const visited = children ? { ...item, children } : item;
     const state = stateOf(item.fullId);

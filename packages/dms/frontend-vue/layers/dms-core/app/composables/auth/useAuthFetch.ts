@@ -30,7 +30,12 @@ function withRetryHeader(
   return merged;
 }
 
-function isUnauthorized(error: unknown): boolean {
+/** A failed request the backend answered with a 401. */
+interface UnauthorizedError {
+  response: { status: typeof HTTP_UNAUTHORIZED };
+}
+
+function isUnauthorized(error: unknown): error is UnauthorizedError {
   if (!isObject(error) || error === null) return false;
   const { response } = error;
   return (

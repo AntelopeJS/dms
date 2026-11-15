@@ -144,7 +144,7 @@ function followLivePause<
 >(result: R, options: PolledReadOptions | undefined): R {
   if (typeof window === "undefined" || !isGatedPolling(options)) return result;
   let pausedAt = 0;
-  watch(useLivePauseSource(), (isPaused) => {
+  watch(useLivePauseSource(), async (isPaused) => {
     if (isPaused) {
       pausedAt = Date.now();
       return;
@@ -153,7 +153,7 @@ function followLivePause<
     if (!period || period <= 0 || Date.now() - pausedAt < period) return;
 
     if (result.status.value === "idle" && options.immediate === false) return;
-    void result.refresh({ dedupe: "defer" });
+    await result.refresh({ dedupe: "defer" });
   });
   return result;
 }
