@@ -24,7 +24,7 @@ import { reloadedAtOnce } from "./reload-stub";
 const CONNECTION = "erp";
 const ORDERS = "erp.orders";
 
-/** Every value the rows of `erp.orders` hold that a profile reads, and the labels made of them. */
+/** Every value the rows of `erp.orders` hold that a profile reads, and the labels and tab ids made of them. */
 const ROW_VALUES = [
   "zq_paid",
   "zq_held",
@@ -32,6 +32,9 @@ const ROW_VALUES = [
   "Zq paid",
   "Zq held",
   "Zq void",
+  "zq-paid",
+  "zq-held",
+  "zq-void",
   "JPY",
   "4471.5",
   "9901.25",
@@ -141,8 +144,18 @@ const MAPPED: JsonValue = {
 
 const WrittenSchema = z.object({
   data: z.object({
-    resources: z.array(z.object({ files: z.array(z.string()) })),
+    resources: z.array(
+      z.object({
+        ref: z.string(),
+        page: z.string(),
+        files: z.array(z.string()),
+      }),
+    ),
   }),
+});
+
+const PageSchema = z.object({
+  data: z.object({ page: z.object({ filepath: z.string() }) }),
 });
 
 let app: Fixture;
@@ -157,15 +170,8 @@ async function valueFree(name: string, args: JsonValue): Promise<string> {
   return text;
 }
 
-/**
- * The AI gets the shape of a connected database, never its values. Each tool that reads the
- * database answers with every value above left out; an implementation that passes a profile's
- * range, category values or months through, or a proposal's badge items or currency, or a written
- * file's diff, fails here.
- */
-describe("[unit] the tools that read a connected database answer no value of a row", function () {
-  this.timeout(OP_TIMEOUT);
-
+/** Maps the module's interface and serves `erp.orders` through a catalog connection. */
+function connectDatabase(): void {
   before(() => {
     ImplementInterface(Builder, implementation);
   });
@@ -204,6 +210,19 @@ describe("[unit] the tools that read a connected database answer no value of a r
     setModuleReloadForTests();
     destroyFixture();
   });
+}
+
+/**
+ * The AI gets the shape of a connected database, never its values. Each tool that reads the
+ * database answers with every value above left out; an implementation that passes a profile's
+ * range, category values or months through, or a proposal's badge items or currency, or a written
+ * file's diff, or a structure or edit of the mapped code that shows its badge items, tabs or
+ * currency, fails here.
+ */
+describe("[unit] the tools that read a connected database answer no value of a row", function () {
+  this.timeout(OP_TIMEOUT);
+
+  connectDatabase();
 
   it("lists, describes and profiles the relation by counts only", async () => {
     await valueFree("database_relations", { connection: CONNECTION });
@@ -254,5 +273,59 @@ describe("[unit] the tools that read a connected database answer no value of a r
       module: MODULE,
     });
     expect(mapping).to.include('{"kind":"badge","values":3}');
+  });
+
+  it("reads the code it wrote back with the values it read from rows hidden, and keeps them on an edit", async () => {
+    await valueFree("builder_analyse_database", {
+      connection: CONNECTION,
+      module: MODULE,
+    });
+    const written = WrittenSchema.parse(
+      JSON.parse(await valueFree("builder_map_resources", MAPPED)),
+    );
+    const [orders] = written.data.resources;
+    if (orders === undefined)
+      expect.fail("builder_map_resources mapped no resource");
+    const fields = await valueFree("builder_resource_structure", {
+      ref: orders.ref,
+    });
+    expect(fields).to.include('"items":{"$hidden":3}');
+    expect(fields).to.include('"currency":{"$hidden":1}');
+    const page = await valueFree("builder_page_structure", {
+      pageRef: orders.page,
+    });
+    expect(page).to.include('"tabs":{"$hidden":4}');
+    const pageFile = PageSchema.parse(JSON.parse(page)).data.page.filepath;
+    const relabelled = await valueFree("builder_configure_field", {
+      path: `${orders.ref}#status`,
+      patch: { label: "State" },
+    });
+    const recaptioned = await valueFree("builder_configure_block", {
+      path: `${orders.page}#table`,
+      patch: { caption: "Placed orders" },
+    });
+    const restyled = await valueFree("builder_configure_table_view", {
+      pageRef: orders.page,
+      kanban: { groupBy: "status" },
+    });
+    for (const edit of [relabelled, recaptioned, restyled]) {
+      expect(edit).to.include('"kind":"modify"');
+      expect(edit).to.not.include('"diff"');
+    }
+    const echoed = await run(mockupTool("builder_configure_block"), {
+      path: `${orders.page}#table`,
+      patch: { tabs: { $hidden: 4 } },
+    });
+    expect(echoed.isError).to.equal(true);
+    expect(echoed.text).to.include("$hidden");
+    const code = [...orders.files, pageFile]
+      .map((file) => projectFile(app.root, path.relative(app.root, file)))
+      .join("\n");
+    expect(code).to.include("State");
+    expect(code).to.include("Placed orders");
+    expect(code).to.include("groupByField");
+    expect(code).to.include("status-zq-paid");
+    expect(code).to.include("zq_paid");
+    expect(code).to.include("JPY");
   });
 });
