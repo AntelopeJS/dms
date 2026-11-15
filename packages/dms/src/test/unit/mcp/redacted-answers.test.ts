@@ -82,18 +82,22 @@ function verifyReport(): PageVerifyReport {
  */
 describe("[unit] the previews and page checks the AI reads", () => {
   it("answer a query preview's types, not its values", () => {
-    const redacted = redactPreview({
-      output: "series",
-      response: "items",
-      truncated: false,
-      body: {
-        items: [
-          { id: 1, title: "Qx Acme", value: 4471.5, delta: null },
-          { id: 2, title: "Qx Globex", value: 12, delta: 3 },
-        ],
+    const redacted = redactPreview(
+      {
+        output: "series",
+        response: "items",
+        truncated: false,
+        body: {
+          items: [
+            { id: 1, title: "Qx Acme", value: 4471.5, delta: null },
+            { id: 2, title: "Qx Globex", value: 12, delta: 3 },
+          ],
+        },
       },
-    });
+      "ok",
+    );
     expectNoRowValue(redacted);
+    expect(redacted.status).to.equal("ok");
     expect(redacted.body).to.deep.equal({
       items: {
         length: 2,

@@ -123,8 +123,13 @@ export type JsonTypes =
 
 /** A query preview, as the AI reads it: the types its body holds, not its data. */
 export type RedactedQueryPreview = Omit<QueryPreview, "body"> & {
+  /** `empty`: no rows; `zero`: rows, but every figure is zero or missing. */
+  status?: PreviewStatus;
   body: JsonTypes;
 };
+
+/** What a preview's answer would render: something, nothing, or only zeros. */
+export type PreviewStatus = "ok" | "empty" | "zero";
 
 function measured<T, U>(
   measure: Measure<T>,
@@ -263,12 +268,15 @@ const JsonTypesSchema: z.ZodType<JsonTypes, z.ZodTypeDef, unknown> = z.lazy(
     ]),
 );
 
-/** A query preview with its body reduced to the types it holds. */
-export function redactPreview(preview: QueryPreview): RedactedQueryPreview {
-  return {
-    ...preview,
-    body: JsonTypesSchema.parse(JSON.parse(JSON.stringify(preview.body))),
-  };
+/** A query preview with its body reduced to the types it holds, and `status` when one is given. */
+export function redactPreview(
+  preview: QueryPreview,
+  status?: PreviewStatus,
+): RedactedQueryPreview {
+  const body = JsonTypesSchema.parse(JSON.parse(JSON.stringify(preview.body)));
+  return status === undefined
+    ? { ...preview, body }
+    : { ...preview, status, body };
 }
 
 /** The data of each builder operation an MCP tool answers redacted. */

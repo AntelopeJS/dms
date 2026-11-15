@@ -132,7 +132,7 @@ const MAPPED: JsonValue = {
           display: { kind: "badge", values: 3 },
         },
         { column: "currency" },
-        { column: "total" },
+        { column: "total", display: { kind: "price" } },
         { column: "placed_at" },
       ],
     },
@@ -235,7 +235,7 @@ describe("[unit] the tools that read a connected database answer no value of a r
     expect(analysed).to.include('{"kind":"price"}');
   });
 
-  it("writes the badge and the currency it reads itself, and answers neither", async () => {
+  it("writes the badge and the currency it reads itself when they are sent back as shown, and answers neither", async () => {
     await valueFree("builder_analyse_database", {
       connection: CONNECTION,
       module: MODULE,

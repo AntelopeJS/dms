@@ -93,6 +93,12 @@ const MAPPED_FIELD = z.object({
     .union([
       z.object({
         kind: z.literal("badge"),
+        values: z
+          .number()
+          .optional()
+          .describe(
+            "How many values the badge draws, as the proposal and builder_mapping show it; read, never written.",
+          ),
         items: z
           .array(
             z.object({
@@ -111,7 +117,7 @@ const MAPPED_FIELD = z.object({
           )
           .optional()
           .describe(
-            "Left out, the Builder reads the column's values itself: the badge the relation's mapping holds, else the one its analysis proposes.",
+            "Left out, the Builder reads the column's values itself: the badge the relation's mapping holds, else the one its analysis proposes; with neither, the column is written plain.",
           ),
       }),
       z.object({
@@ -351,7 +357,7 @@ const analyseDatabase = defineTool({
   name: "builder_analyse_database",
   title: "Analyse database",
   description:
-    "Runs the Builder's analysis of a connected database: it reads the catalog and the profiles and proposes a mapping by fixed rules, writing nothing. Answers the proposal: resources in the shape builder_map_resources takes, each choice with its rule and `kind` (`fact` from the catalog, or `default`, a judgement to check), the relations excluded and why, and `open`: what the rules could not decide, each with its options. It carries the database's redact, never a value from its rows: a field's `profile` holds traits, nulls, distinct and the rows of each category, a badge `{ kind: \"badge\", values }` says how many values it draws, and a price names no currency; builder_map_resources reads the values itself. Profiling is slow: when the analysis is still running after a minute this answers its progress and `job`; call again with that `job` to read on.",
+    "Runs the Builder's analysis of a connected database: it reads the catalog and the profiles and proposes a mapping by fixed rules, writing nothing. Answers the proposal: resources in the shape builder_map_resources takes, each choice with its rule and `kind` (`fact` from the catalog, or `default`, a judgement to check), the relations excluded and why, and `open`: what the rules could not decide, each with its options. It carries the database's shape, never a value from its rows: a field's `profile` holds traits, nulls, distinct and the rows of each category, a badge `{ kind: \"badge\", values }` says how many values it draws, and a price names no currency; builder_map_resources reads the values itself. Profiling is slow: when the analysis is still running after a minute this answers its progress and `job`; call again with that `job` to read on.",
   effect: "read",
   input: AnalyseDatabaseInputSchema,
   async run(args) {

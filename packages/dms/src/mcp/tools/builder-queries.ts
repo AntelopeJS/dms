@@ -31,7 +31,7 @@ const QUERY_ENDPOINT = z
   );
 
 const QUERY_PARAMS = JsonObjectSchema.describe(
-  "The template's parameters, keyed exactly as the `params` schema builder_query_templates reports for it — that schema documents every key and value redact, and an unrecognised key is rejected.",
+  "The template's parameters, keyed exactly as the `params` schema builder_query_templates reports for it — that schema documents every key and value shape, and an unrecognised key is rejected.",
 );
 
 const QUERY_RESPONSE = z
@@ -110,17 +110,19 @@ const previewQuery = defineTool({
   name: "builder_preview_query",
   title: "Preview query",
   description: withEscalationNote(
-    'Runs a query that is not saved and answers the shape of what its route would, as `{ body, truncated }`, writing nothing. `body` holds no value from a row: each leaf is its type (`"string"`, `"number"`, `"boolean"`, `"null"`) and each list `{ length, items }`, with the distinct shapes of its elements. Takes builder_add_query\'s query fields (no page) and `args`. A `series` or `items` of length 0 in `body` means the block reading it renders empty: fix the query before wiring its route.',
+    'Runs a query that is not saved and answers the shape of what its route would, as `{ status, body, truncated }`, writing nothing. `status` is `empty` when it found no rows, `zero` when every figure is zero or missing, else `ok`. `body` holds no value from a row, so no figure can be read from it: each leaf is its type (`"string"`, `"number"`, `"boolean"`, `"null"`) and each list `{ length, items }`, with the distinct shapes of its elements. Takes builder_add_query\'s query fields (no page) and `args`. A `status` of `empty` or `zero` means the block reading it renders nothing useful: fix the query before wiring its route.',
   ),
   effect: "read",
   input: z.object({ ...QUERY_FIELDS, args: QUERY_ARGS.optional() }),
-  run: async ({ args, ...query }) =>
-    containsExprSentinel.parse({ query, args })
-      ? exprRefusal()
-      : redactedOpResult(
-          await PreviewQuery(args === undefined ? { query } : { query, args }),
-          redactPreview,
-        ),
+  async run({ args, ...query }) {
+    if (containsExprSentinel.parse({ query, args })) return exprRefusal();
+    const { answerStatus } =
+      await import("../../implementations/dms-builder/engine");
+    return redactedOpResult(
+      await PreviewQuery(args === undefined ? { query } : { query, args }),
+      (preview) => redactPreview(preview, answerStatus(preview.body)),
+    );
+  },
 });
 
 const configureQuery = defineTool({
