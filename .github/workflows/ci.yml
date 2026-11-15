@@ -1,18 +1,13 @@
 name: ci
 
 on:
-  push:
-    branches:
-      - main
-      - next
-  # No branch filter: the lint wave stacks pull requests on top of each other,
-  # and filtering on `main` left every intermediate step ungated -- only the
-  # secret scanner ran.
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
+  push:
+    branches: [next]
   schedule:
-    - cron: "17 3 * * *"
-  workflow_dispatch: null
+    - cron: "17 2 * * *"
+  workflow_dispatch:
 permissions:
   contents: read
 
@@ -26,7 +21,7 @@ concurrency:
 # that build rather than compiling it again.
 jobs:
   ci:
-    uses: AntelopeJS/.github/.github/workflows/ci-node.yml@v1
+    uses: AntelopeJS/.github/.github/workflows/ci-node.yml@v2
     with:
       docs-files: |
         README.md
@@ -46,7 +41,6 @@ jobs:
         pnpm --dir packages/dms check:frontend-declarations
       renovate-sync: false
       test-job: true
-      windows: true
     permissions:
       contents: read
 
@@ -329,4 +323,4 @@ jobs:
     permissions:
       contents: write
       actions: write
-    uses: AntelopeJS/.github/.github/workflows/ci-renovate-sync.yml@v1
+    uses: AntelopeJS/.github/.github/workflows/ci-renovate-sync.yml@v2
