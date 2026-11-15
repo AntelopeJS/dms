@@ -1,3 +1,4 @@
+import type { JsonValue } from "../../../../../dms-core/app/types/json";
 import {
   isString,
   isObject,
@@ -362,7 +363,9 @@ function isStringRecord(value: unknown): value is Record<string, string> {
   );
 }
 
-function isRememberedPeriods(store: unknown): store is RememberedPeriods {
+function isRememberedPeriods(
+  store: JsonValue | undefined,
+): store is RememberedPeriods {
   return (
     isObject(store) &&
     store !== null &&
@@ -370,7 +373,7 @@ function isRememberedPeriods(store: unknown): store is RememberedPeriods {
   );
 }
 
-function storedPeriods(store: unknown): RememberedPeriods {
+function storedPeriods(store: JsonValue | undefined): RememberedPeriods {
   return isRememberedPeriods(store) ? store : {};
 }
 
@@ -380,7 +383,7 @@ function storedPeriods(store: unknown): RememberedPeriods {
  * cookie, which must not grow with every page a user ever opened.
  */
 export function rememberPeriod(
-  store: unknown,
+  store: JsonValue | undefined,
   key: string,
   query: Record<string, string>,
   limit = REMEMBERED_PERIODS_LIMIT,

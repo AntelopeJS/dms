@@ -1,5 +1,5 @@
 <script setup lang="ts" generic="R extends boolean, M extends boolean">
-import { formatDate } from "#dms-core/app/utils/formatter";
+import { formatDate, type DateInput } from "#dms-core/app/utils/formatter";
 import { isObject, isString } from "#dms-core/app/utils/type-check";
 import { useUserRegionalPreferences } from "#dms-core/app/composables/user/useUserRegionalPreferences";
 import type {
@@ -265,9 +265,7 @@ function forwardEmit(event: EmitEvent, value: EmitValue): void {
 const forwarded = useForwardPropsEmits(convertedProps, wrappedEmits);
 const buttonProps = reactivePick(props, "disabled");
 
-function formatDateLabel(
-  value: Parameters<typeof formatDate>[0],
-): string | undefined {
+function formatDateLabel(value: DateInput | CalendarDate): string | undefined {
   if (value === undefined || value === null) {
     return undefined;
   }
@@ -295,7 +293,7 @@ const label = computed(() => {
         .join(" – ") || undefined
     );
   }
-  return formatDateLabel(value);
+  return formatDateLabel(modelValue.value);
 });
 </script>
 

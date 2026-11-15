@@ -15,19 +15,6 @@ function isCountedNavBadge(value: unknown): value is CountedNavBadge {
   return tone === undefined || (isString(tone) && isDmsTone(tone));
 }
 
-/** The counted badges among a visit's `navBadges`. */
-function countedNavBadgesOf(
-  navBadges: unknown,
-): Record<string, CountedNavBadge> | undefined {
-  if (navBadges === null || !isObject(navBadges)) return undefined;
-  return Object.fromEntries(
-    Object.entries(navBadges).filter(
-      (entry): entry is [string, CountedNavBadge] =>
-        isCountedNavBadge(entry[1]),
-    ),
-  );
-}
-
 /**
  * Draws the navigation badges each page visit carries (`navBadges`): they
  * are counted for the visit and travel with the page, not with the site
@@ -42,7 +29,17 @@ export function useVisitNavBadges(): void {
       const page: unknown = inertiaPage.props.page;
       return page !== null && isObject(page) ? page.navBadges : undefined;
     },
-    (navBadges) => applyCountedNavBadges(countedNavBadgesOf(navBadges)),
+    (navBadges) =>
+      applyCountedNavBadges(
+        navBadges === null || !isObject(navBadges)
+          ? undefined
+          : Object.fromEntries(
+              Object.entries(navBadges).filter(
+                (entry): entry is [string, CountedNavBadge] =>
+                  isCountedNavBadge(entry[1]),
+              ),
+            ),
+      ),
     { immediate: true },
   );
 }

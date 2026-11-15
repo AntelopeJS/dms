@@ -178,8 +178,19 @@ const defaultTimeFormatterOptions: Intl.DateTimeFormatOptions = {
   second: "2-digit",
 };
 
+/** What a date formatter reads: a date, a timestamp, a date text, or no value. */
+export type DateInput = Date | string | number | null | undefined;
+
+/** Whether `value` is a {@link DateInput}. */
+export const isDateInput = (value: unknown): value is DateInput =>
+  isUndefined(value) ||
+  isNull(value) ||
+  isString(value) ||
+  isNumber(value) ||
+  value instanceof Date;
+
 export function formatDate(
-  date: unknown,
+  date: DateInput,
   locale: string = DEFAULT_LOCALE,
   options?: Intl.DateTimeFormatOptions,
 ): string | null {
@@ -208,7 +219,7 @@ export function formatDate(
 }
 
 export function formatTime(
-  date: Date | string | number | undefined | null,
+  date: DateInput,
   locale: string = DEFAULT_LOCALE,
   options?: Intl.DateTimeFormatOptions,
 ): string | null {
@@ -216,7 +227,7 @@ export function formatTime(
 }
 
 export function formatDateTime(
-  date: Date | string | number | undefined | null,
+  date: DateInput,
   locale: string = DEFAULT_LOCALE,
   options?: Intl.DateTimeFormatOptions,
 ): string | null {

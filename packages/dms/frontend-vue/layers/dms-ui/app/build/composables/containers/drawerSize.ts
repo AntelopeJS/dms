@@ -1,3 +1,4 @@
+import type { JsonValue } from "../../../../../dms-core/app/types/json";
 import {
   isObject,
   isNumber,
@@ -73,11 +74,10 @@ function emptyPreferences(): DrawerSizePreferences {
   return { widths: {}, heights: {} };
 }
 
-function readSizes(value: unknown): Record<string, number> {
+function readSizes(value: JsonValue | undefined): Record<string, number> {
   if (!isObject(value) || value === null) return {};
-  const entries: [string, unknown][] = Object.entries(value);
   return Object.fromEntries(
-    entries.filter(
+    Object.entries(value).filter(
       (entry): entry is [string, number] =>
         isNumber(entry[1]) && Number.isFinite(entry[1]),
     ),
@@ -91,7 +91,7 @@ function readSizes(value: unknown): Record<string, number> {
  * @internal
  */
 export function readDrawerSizePreferences(
-  value: unknown,
+  value: JsonValue | DrawerSizePreferences | undefined,
 ): DrawerSizePreferences {
   if (!isObject(value) || value === null) return emptyPreferences();
   const record = value;

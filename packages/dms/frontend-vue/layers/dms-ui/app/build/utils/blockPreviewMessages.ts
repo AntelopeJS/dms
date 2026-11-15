@@ -1,9 +1,11 @@
+import type { JsonValue } from "../../../../dms-core/app/types/json";
 import {
   isBoolean,
   isNumber,
   isObject,
   isString,
 } from "../../../../dms-core/app/utils/type-check";
+import { isObjectValue } from "./json";
 import {
   isPreviewTheme,
   isPreviewTree,
@@ -194,12 +196,12 @@ export function isPreviewNavigation(
   );
 }
 
-function isFiniteNumber(value: unknown): value is number {
+function isFiniteNumber(value: JsonValue | undefined): value is number {
   return isNumber(value) && Number.isFinite(value);
 }
 
-function parseRect(value: unknown): PreviewRect | undefined {
-  if (!isRecord(value)) return undefined;
+function parseRect(value: JsonValue | undefined): PreviewRect | undefined {
+  if (!isObjectValue(value)) return undefined;
   const { x, y, width, height } = value;
   return isFiniteNumber(x) &&
     isFiniteNumber(y) &&
@@ -209,8 +211,8 @@ function parseRect(value: unknown): PreviewRect | undefined {
     : undefined;
 }
 
-function parseFont(value: unknown): PreviewFont | undefined {
-  if (!isRecord(value)) return undefined;
+function parseFont(value: JsonValue | undefined): PreviewFont | undefined {
+  if (!isObjectValue(value)) return undefined;
   const { family, size, weight, lineHeight, letterSpacing, color, align } =
     value;
   return isString(family) &&
@@ -224,13 +226,17 @@ function parseFont(value: unknown): PreviewFont | undefined {
     : undefined;
 }
 
-function parseBlockRect(value: unknown): PreviewBlockRect | undefined {
-  if (!isRecord(value) || !isString(value.path)) return undefined;
+function parseBlockRect(
+  value: JsonValue | undefined,
+): PreviewBlockRect | undefined {
+  if (!isObjectValue(value) || !isString(value.path)) return undefined;
   const rect = parseRect(value.rect);
   return rect ? { path: value.path, rect } : undefined;
 }
 
-function parseBlockRects(value: unknown): PreviewBlockRect[] | undefined {
+function parseBlockRects(
+  value: JsonValue | undefined,
+): PreviewBlockRect[] | undefined {
   if (!Array.isArray(value)) return undefined;
   const blocks = value.map(parseBlockRect);
   return blocks.every((block) => block !== undefined) ? blocks : undefined;
@@ -335,14 +341,14 @@ export function previewInspectMessage(enabled: boolean): PreviewInspectMessage {
 
 /** The fields of a posted message the outbound parsers read, unchecked. */
 interface PostedFields {
-  height?: unknown;
-  message?: unknown;
-  path?: unknown;
-  blocks?: unknown;
-  text?: unknown;
-  rect?: unknown;
-  font?: unknown;
-  id?: unknown;
+  height?: JsonValue;
+  message?: JsonValue;
+  path?: JsonValue;
+  blocks?: JsonValue;
+  text?: JsonValue;
+  rect?: JsonValue;
+  font?: JsonValue;
+  id?: JsonValue;
 }
 
 const OUTBOUND_PARSERS: Record<
@@ -378,9 +384,11 @@ const OUTBOUND_PARSERS: Record<
  * the embedding page ignores those.
  */
 export function parsePreviewOutboundMessage(
-  data: Parameters<typeof isRecord>[0],
+  data: JsonValue | undefined,
 ): PreviewOutboundMessage | undefined {
-  if (!isRecord(data) || data.channel !== PREVIEW_CHANNEL) return undefined;
+  if (!isObjectValue(data) || data.channel !== PREVIEW_CHANNEL) {
+    return undefined;
+  }
   const type = data.type;
   if (!isString(type) || !Object.hasOwn(OUTBOUND_PARSERS, type))
     return undefined;

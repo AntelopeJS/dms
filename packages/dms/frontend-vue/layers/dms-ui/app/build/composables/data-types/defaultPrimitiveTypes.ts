@@ -9,7 +9,11 @@ import {
   dateFilterEditorValue,
   numberFilterEditorValue,
 } from "../table/utils/filterEditorValue";
-import { formatDuration } from "#dms-core/app/utils/formatter";
+import {
+  formatDuration,
+  isDateInput,
+  type DateInput,
+} from "#dms-core/app/utils/formatter";
 import { withNumberSuffix } from "./numberSuffix";
 import { DMS_TONE_TEXT } from "../../utils/tone";
 import { getAppTranslation } from "../../../../../dms-core/app/composables/translation/useTranslation";
@@ -36,13 +40,14 @@ function renderBoolean(value: CellValue) {
   ]);
 }
 
-function dateBoundsOf(value: CellValue): [unknown, unknown] {
-  if (Array.isArray(value)) {
-    const pair: unknown[] = value;
-    return [pair[0], pair[1]];
-  }
-  const bounds: { start?: unknown; end?: unknown } = value ?? {};
-  return [bounds.start, bounds.end];
+function dateBoundsOf(value: CellValue): [DateInput, DateInput] {
+  const bounds: { start?: unknown; end?: unknown } = Array.isArray(value)
+    ? { start: value[0], end: value[1] }
+    : (value ?? {});
+  const [start, end] = [bounds.start, bounds.end].map((bound) =>
+    isDateInput(bound) ? bound : String(bound),
+  );
+  return [start, end];
 }
 
 function formatDateBetween(value: CellValue, locale: string): string {
@@ -148,12 +153,19 @@ export const registerDateType = (
     formatter: {
       default: (value, locale) => {
         const { t } = getAppTranslation();
-        return formatDate(value, locale) ?? t("dms.date.undefined");
+        return (
+          formatDate(isDateInput(value) ? value : String(value), locale) ??
+          t("dms.date.undefined")
+        );
       },
       cell: (value, locale) => {
         const { t } = getAppTranslation();
         return (
-          formatDate(value, locale, CELL_DATE_FORMAT) ?? t("dms.date.undefined")
+          formatDate(
+            isDateInput(value) ? value : String(value),
+            locale,
+            CELL_DATE_FORMAT,
+          ) ?? t("dms.date.undefined")
         );
       },
       is_between: formatDateBetween,

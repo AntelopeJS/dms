@@ -79,16 +79,16 @@ const isSelectItem = (item: unknown): item is SelectItem =>
   isString(item.value) &&
   isString(item.label);
 
-const selectItems = (options: unknown): SelectItem[] =>
-  isObject(options) && options !== null && Array.isArray(options.items)
-    ? options.items.filter(isSelectItem)
-    : [];
-
 register({
   id: "select",
   formatter: {
-    default: (value, _locale, options) =>
-      selectItems(options).find((item) => item.value === value)?.label,
+    default: (value, _locale, options) => {
+      const items =
+        isObject(options) && options !== null && Array.isArray(options.items)
+          ? options.items.filter(isSelectItem)
+          : [];
+      return items.find((item) => item.value === value)?.label;
+    },
   },
 });
 

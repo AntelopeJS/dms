@@ -6,6 +6,7 @@ import {
   readSealedCookie,
   writeSealedCookie,
 } from "@antelopejs/dms-frontend/templates/vue/server/auth/session.mjs";
+import type { JsonValue } from "../../layers/dms-core/app/types/json";
 import {
   isNull,
   isNumber,
@@ -288,7 +289,7 @@ async function cookiesOf(
 }
 
 /** The Cookie header pair a browser would send for a sealed cookie of `value`. */
-function sealedCookie(name: string, value: unknown): string {
+function sealedCookie(name: string, value: JsonValue | undefined): string {
   const response = new ServerResponse(new IncomingMessage(new Socket()));
   writeSealedCookie(response, name, value, undefined);
   const header = response.getHeader("set-cookie");

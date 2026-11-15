@@ -8,7 +8,7 @@ import {
 } from "../layers/dms-ui/app/entries/utils/mockupCatalog";
 import { inspectorFields } from "../layers/dms-ui/app/entries/utils/mockupInspector";
 
-const KPI: MockupBlockType = {
+const KPI = {
   type: "KpiCard",
   componentName: "dms-kpi-card",
   meta: { name: "KPI card", icon: "i-ph-trend-up", group: "visualization" },
@@ -72,7 +72,7 @@ const KPI: MockupBlockType = {
     untagged: { type: "string", optional: true },
   },
   defaults: { variant: "card" },
-};
+} satisfies MockupBlockType;
 
 const CHART_LINE: MockupBlockType = {
   type: "ChartLine",

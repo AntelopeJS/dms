@@ -52,19 +52,21 @@ function isComponent(value: unknown): value is Component {
   return isObject(value) && !isNull(value) && isFunction(value.setup);
 }
 
-function rekaComponent(reka: unknown, name: string): Component {
-  const component = isObject(reka) && !isNull(reka) ? reka[name] : undefined;
+const nuxtUiReka: unknown = await import(
+  pathToFileURL(nuxtUiRequire.resolve("reka-ui")).href
+);
+
+function rekaComponent(name: string): Component {
+  const component =
+    isObject(nuxtUiReka) && !isNull(nuxtUiReka) ? nuxtUiReka[name] : undefined;
   if (!isComponent(component)) {
     throw new Error(`Nuxt UI's reka-ui exports no ${name} component`);
   }
   return component;
 }
 
-const nuxtUiReka: unknown = await import(
-  pathToFileURL(nuxtUiRequire.resolve("reka-ui")).href
-);
-const DialogContent = rekaComponent(nuxtUiReka, "DialogContent");
-const DialogRoot = rekaComponent(nuxtUiReka, "DialogRoot");
+const DialogContent = rekaComponent("DialogContent");
+const DialogRoot = rekaComponent("DialogRoot");
 
 const BackdropStub = defineComponent({
   setup() {

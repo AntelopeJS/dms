@@ -4,7 +4,12 @@ import {
   isNumber,
   isString,
 } from "../../../../dms-core/app/utils/type-check";
-import { isJsonObject, isObjectValue, type JsonObject } from "./json";
+import {
+  isJsonObject,
+  isObjectValue,
+  type JsonObject,
+  type JsonWritable,
+} from "./json";
 import type { MockupSpecNode } from "./mockupSpec";
 
 /**
@@ -171,7 +176,7 @@ function isBlockType(value: JsonValue): value is JsonObject & MockupBlockType {
 
 /** The block types of a catalog answer, those it describes wrongly left out; none when the answer is not a JSON object with a `blocks` list. */
 export function parseBlockCatalog(
-  value: unknown,
+  value: JsonWritable | undefined,
 ): MockupBlockType[] | undefined {
   if (!isJsonObject(value) || !Array.isArray(value.blocks)) return undefined;
   return value.blocks.filter(isBlockType);

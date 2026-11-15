@@ -29,7 +29,7 @@ function isComponentDeclaration(value: unknown): value is ComponentDeclaration {
   return "props" in value || "extends" in value || "mixins" in value;
 }
 
-function ownPropNames(props: unknown): string[] {
+function ownPropNames({ props }: ComponentDeclaration): string[] {
   if (Array.isArray(props)) return props.filter(isString);
   return isObject(props) && props !== null ? Object.keys(props) : [];
 }
@@ -54,7 +54,7 @@ function declaredProps(
 ) {
   if (!component) return names;
   const declaration = declarationOf(component);
-  for (const name of ownPropNames(declaration.props)) names.add(camelize(name));
+  for (const name of ownPropNames(declaration)) names.add(camelize(name));
   if (isComponentDeclaration(declaration.extends))
     declaredProps(declaration.extends, names);
   const { mixins } = declaration;

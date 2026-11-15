@@ -7,7 +7,7 @@
  * registered formatter must write its text through the application's
  * composer instead, in its active locale.
  */
-import { createApp, defineComponent, h, isVNode } from "vue";
+import { createApp, defineComponent, h, isVNode, type VNodeChild } from "vue";
 import { createI18n, useI18n } from "vue-i18n";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import type { DataTypeConfig } from "../layers/dms-core/app/types/data-type";
@@ -200,10 +200,13 @@ describe("the price formatter", () => {
     );
     const { renderer, app } = mountRenderer(useColumnValueRenderer);
     try {
-      const text = (node: unknown): string =>
-        isVNode(node) && typeChecks.isString(node.children)
-          ? node.children
-          : String(node);
+      const text = (node: VNodeChild): string => {
+        if (isVNode(node) && typeChecks.isString(node.children)) {
+          return node.children;
+        }
+        if (typeChecks.isString(node)) return node;
+        throw new Error("the cell did not render as text");
+      };
       const typed = {
         accessorKey: "total",
         type: dataType("price", { currency: "USD" }),

@@ -7,11 +7,13 @@ import {
   type ComputedRef,
   type ShallowRef,
 } from "vue";
+import type { JsonValue } from "../../../../../dms-core/app/types/json";
 import {
   isNumber,
   isObject,
   isString,
 } from "../../../../../dms-core/app/utils/type-check";
+import { isObjectValue } from "../../utils/json";
 import {
   mockupEndpoint,
   type MockupIssue,
@@ -112,12 +114,8 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return isObject(value) && value !== null && !Array.isArray(value);
 }
 
-function isList(value: unknown): value is unknown[] {
-  return Array.isArray(value);
-}
-
-function parseSource(value: unknown): SpecSource | undefined {
-  if (!isRecord(value) || !isString(value.digest)) return undefined;
+function parseSource(value: JsonValue | undefined): SpecSource | undefined {
+  if (!isObjectValue(value) || !isString(value.digest)) return undefined;
   const spec = parseMockupSpec(value.spec);
   return spec ? { spec, digest: value.digest } : undefined;
 }
@@ -126,23 +124,25 @@ type WriteAnswer =
   | { ok: true; digest: string }
   | { ok: false; issue: MockupIssue };
 
-function parseWriteAnswer(value: unknown): WriteAnswer | undefined {
-  if (!isRecord(value)) return undefined;
+function parseWriteAnswer(
+  value: JsonValue | undefined,
+): WriteAnswer | undefined {
+  if (!isObjectValue(value)) return undefined;
   if (value.ok === true && isString(value.digest)) {
     return { ok: true, digest: value.digest };
   }
-  const [first] = isList(value.errors) ? value.errors : [];
-  if (value.ok !== false || !isRecord(first)) return undefined;
+  const [first] = Array.isArray(value.errors) ? value.errors : [];
+  if (value.ok !== false || !isObjectValue(first)) return undefined;
   const { path, message } = first;
   return isString(path) && isString(message)
     ? { ok: false, issue: { path, message } }
     : undefined;
 }
 
-function statusOf(error: unknown): number | undefined {
-  if (!isRecord(error)) return undefined;
-  const response = isRecord(error.response) ? error.response : {};
-  return [error.status, error.statusCode, response.status].find(isNumber);
+function statusOf(cause: unknown): number | undefined {
+  if (!isRecord(cause)) return undefined;
+  const response = isRecord(cause.response) ? cause.response : {};
+  return [cause.status, cause.statusCode, response.status].find(isNumber);
 }
 
 function sameSpec(
@@ -186,7 +186,9 @@ class MockupSpecSync {
     onError?: (cause: unknown) => void,
   ): Promise<SpecSource | undefined> {
     try {
-      const source = parseSource(await this.options.authFetch(this.endpoint));
+      const source = parseSource(
+        await this.options.authFetch<JsonValue>(this.endpoint),
+      );
       if (!source) onError?.(new Error("spec.json could not be read"));
       return source;
     } catch (error) {
@@ -352,7 +354,7 @@ class MockupSpecSync {
     this.isWriting = true;
     try {
       const answer = parseWriteAnswer(
-        await this.options.authFetch(this.endpoint, {
+        await this.options.authFetch<JsonValue>(this.endpoint, {
           method: "PUT",
           body: { spec, digest: this.digest },
         }),
