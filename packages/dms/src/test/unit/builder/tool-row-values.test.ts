@@ -159,6 +159,22 @@ const PageSchema = z.object({
   data: z.object({ page: z.object({ filepath: z.string() }) }),
 });
 
+/** Tabs the AI writes itself over the mapped `status` column, with values no row holds. */
+const OWN_TABS: JsonValue = [
+  { id: "all", label: "All" },
+  {
+    id: "own-open",
+    label: "Own open",
+    filter: { accessorKey: "status", value: "own_open", mode: "is" },
+  },
+];
+
+/** A select the AI writes itself on a form field, of values no row holds. */
+const OWN_SELECT: JsonValue = {
+  $dataType: "select",
+  config: { items: [{ label: "Own low", value: "own_low" }] },
+};
+
 let app: Fixture;
 
 /** Calls a tool and answers its text, failing on an error answer or on any value of a row. */
@@ -393,5 +409,60 @@ describe("[unit] the builder tools over a mapped module's code answer no value o
     });
     expect(unreadable).to.include('"kind":"modify"');
     expect(unreadable).to.not.include('"diff"');
+  });
+});
+
+/**
+ * Over a mapped resource, the AI writes tabs and select items of its own. Each builder tool that
+ * reads a page answers those as written and the mapping's still hidden; an implementation that
+ * hides every literal of code over a mapped module fails here.
+ */
+describe("[unit] the builder tools over a mapped resource answer the literals the AI wrote", function () {
+  this.timeout(OP_TIMEOUT);
+
+  connectDatabase();
+
+  it("shows the tabs and select items the AI wrote over a mapped resource, beside the hidden ones the mapping wrote", async () => {
+    const orders = await mapOrders();
+    await valueFree("builder_add_block", {
+      page: orders.page,
+      name: "mine",
+      type: "TableView",
+      controller: orders.ref,
+      config: { caption: "Mine", tabs: OWN_TABS },
+    });
+    await valueFree("builder_add_block", {
+      page: orders.page,
+      name: "note",
+      type: "Form",
+      config: { fields: [{ id: "priority", type: OWN_SELECT }] },
+    });
+    const mappedPage = await valueFree("builder_page_structure", {
+      pageRef: orders.page,
+    });
+    expect(mappedPage).to.include('"tabs":{"$hidden":4}');
+    expect(mappedPage).to.include(JSON.stringify(OWN_TABS));
+    expect(mappedPage).to.include(JSON.stringify(OWN_SELECT));
+    await valueFree("builder_create_category", {
+      name: "ops",
+      displayName: "Ops",
+    });
+    await valueFree("builder_create_page", {
+      name: "own-orders",
+      displayName: "Own orders",
+      category: "pages.ops",
+    });
+    await valueFree("builder_add_block", {
+      page: "/ops/own-orders",
+      name: "table",
+      type: "TableView",
+      controller: orders.ref,
+      config: { caption: "Own orders", tabs: OWN_TABS },
+    });
+    const ownPage = await valueFree("builder_page_structure", {
+      pageRef: "/ops/own-orders",
+    });
+    expect(ownPage).to.include(JSON.stringify(OWN_TABS));
+    expect(ownPage).to.not.include("$hidden");
   });
 });
