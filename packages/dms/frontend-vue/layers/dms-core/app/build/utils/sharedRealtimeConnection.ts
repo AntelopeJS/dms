@@ -3,6 +3,7 @@ import {
   openSseStream,
   type SseEventHandler,
   type SseStreamHandle,
+  streamRetryAfterMs,
 } from "../../composables/realtime/useSseStream";
 import { isString, isUndefined } from "../../utils/type-check";
 import {
@@ -147,7 +148,8 @@ export interface SharedRealtimeConnection {
 
 export interface Reconnector {
   isCancelled(): boolean;
-  schedule(open: () => void): void;
+  /** Waits the backoff delay, or `minDelayMs` when that is longer. */
+  schedule(open: () => void, minDelayMs?: number): void;
   resetDelay(): void;
   cancel(): void;
 }
@@ -158,12 +160,15 @@ export const createReconnector = (): Reconnector => {
   let timer: ReturnType<typeof setTimeout> | undefined;
   return {
     isCancelled: () => isCancelled,
-    schedule: (open) => {
+    schedule: (open, minDelayMs = 0) => {
       if (isCancelled || timer) return;
-      timer = setTimeout(() => {
-        timer = undefined;
-        open();
-      }, delay);
+      timer = setTimeout(
+        () => {
+          timer = undefined;
+          open();
+        },
+        Math.max(delay, minDelayMs),
+      );
       delay = Math.min(delay * RECONNECT_MULTIPLIER, RECONNECT_MAX_DELAY_MS);
     },
     resetDelay: () => {
@@ -180,19 +185,17 @@ export const createReconnector = (): Reconnector => {
 /** Retries after a failure, refreshing the browser session first on a 401. */
 export const recoverFromError = (
   error: Parameters<typeof isUnauthorizedStreamError>[0],
-  retry: () => void,
+  retry: (minDelayMs?: number) => void,
   recovery: StreamRecovery,
 ): void => {
   if (!isUnauthorizedStreamError(error)) {
-    retry();
+    retry(streamRetryAfterMs(error));
     return;
   }
-  void recovery
-    .refreshSession()
-    .then(
-      (isRefreshed) => (isRefreshed ? retry() : recovery.redirectToAuth()),
-      retry,
-    );
+  void recovery.refreshSession().then(
+    (isRefreshed) => (isRefreshed ? retry() : recovery.redirectToAuth()),
+    () => retry(),
+  );
 };
 
 interface StreamCallbacks extends StreamRecovery {
@@ -238,7 +241,8 @@ const connectWithBackoff = (
     });
     activeHandle = handle;
   };
-  const reconnect = () => reconnector.schedule(open);
+  const reconnect = (minDelayMs?: number) =>
+    reconnector.schedule(open, minDelayMs);
   const retire = (handle: SseStreamHandle): boolean => {
     if (handle !== activeHandle || reconnector.isCancelled()) return false;
     activeHandle = undefined;

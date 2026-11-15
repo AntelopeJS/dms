@@ -31,6 +31,32 @@ export interface SseStreamHandle {
 
 interface StreamError extends Error {
   status?: number;
+  /** Delay the server asked for with `Retry-After`, in milliseconds. */
+  retryAfterMs?: number;
+}
+
+const MS_PER_SECOND = 1000;
+const RETRY_AFTER_SECONDS = /^\d+$/;
+
+/** Reads a `Retry-After` value, delta-seconds or HTTP-date, as milliseconds. */
+export function parseRetryAfterMs(
+  value: string | null,
+  now: number = Date.now(),
+): number | undefined {
+  const trimmed = value?.trim();
+  if (!trimmed) return undefined;
+  if (RETRY_AFTER_SECONDS.test(trimmed)) {
+    return Number(trimmed) * MS_PER_SECOND;
+  }
+  const date = Date.parse(trimmed);
+  return Number.isNaN(date) ? undefined : Math.max(0, date - now);
+}
+
+/** The delay a stream error asks the caller to wait, if it carries one. */
+export function streamRetryAfterMs(error: unknown): number | undefined {
+  if (!isObject(error) || error === null) return undefined;
+  const { retryAfterMs } = error;
+  return typeof retryAfterMs === "number" ? retryAfterMs : undefined;
 }
 
 interface ParsedFrame {
@@ -133,6 +159,7 @@ async function connect(
       `SSE request failed: ${response.status}`,
     );
     error.status = response.status;
+    error.retryAfterMs = parseRetryAfterMs(response.headers.get("Retry-After"));
     throw error;
   }
   if (signal.aborted) {
