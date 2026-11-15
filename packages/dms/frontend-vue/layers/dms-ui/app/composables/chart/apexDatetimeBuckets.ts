@@ -1,4 +1,8 @@
-import { isString, isNumber } from "../../../../dms-core/app/utils/type-check";
+import {
+  isString,
+  isNumber,
+  isObject,
+} from "../../../../dms-core/app/utils/type-check";
 import type { ChartSeries } from "./types";
 import type { UseApexChartInput } from "./useApexChart.types";
 
@@ -122,7 +126,7 @@ function calendarDayOf(
 }
 
 function pointX(point: ChartSeries["data"][number]) {
-  return typeof point === "object" && point !== null ? point.x : undefined;
+  return isNumber(point) || !point ? undefined : point.x;
 }
 
 /** Each series' days, in order, or `null` when a point is not a day. */
@@ -256,9 +260,9 @@ export function toBucketSeries(
     ...entry,
     data: buckets.keys.map((key, position) => {
       const point = entry.data[buckets.sourceIndexes[seriesIndex]![position]!];
-      return typeof point === "object"
-        ? { ...point, x: key }
-        : { x: key, y: null };
+      return isNumber(point) || !isObject(point)
+        ? { x: key, y: null }
+        : { ...point, x: key };
     }),
   }));
 }

@@ -1,4 +1,5 @@
 import { isFunction } from "../../../../dms-core/app/utils/type-check";
+import type { JsonValue } from "../../../../dms-core/app/types/json";
 import {
   computed,
   getCurrentScope,
@@ -33,7 +34,7 @@ export interface UseChartFetchOptions<T> {
   fetchUrlMethod?: string;
   periodScope?: string;
   realtimeTopic?: string | string[];
-  watchSource?: () => unknown;
+  watchSource?: () => JsonValue | undefined;
   staticData?: T | null | (() => T | null);
 }
 
@@ -259,9 +260,7 @@ export function useChartFetch<T>(
 function useStaticChartData<T>(
   options: UseChartFetchOptions<T>,
 ): UseChartFetchReturn<T> {
-  const data = ref<T | null>(
-    readStaticData(options.staticData),
-  ) as Ref<T | null>;
+  const data = shallowRef<T | null>(readStaticData(options.staticData));
   if (isFunction(options.staticData))
     watch(
       () => readStaticData(options.staticData),

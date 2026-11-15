@@ -1,4 +1,4 @@
-import { isString } from "../../../../dms-core/app/utils/type-check";
+import { isNumber, isString } from "../../../../dms-core/app/utils/type-check";
 import type { ChartSeries, DonutRecord } from "./types";
 
 /** Writes one display string in the reader's language (`processI18n`). */
@@ -22,7 +22,7 @@ function localizePoint(
   point: ChartSeriesEntry,
   translate: ChartTextTranslate,
 ): ChartSeriesEntry {
-  if (typeof point !== "object" || point === null) return point;
+  if (isNumber(point) || !point) return point;
   const localized: typeof point & { label?: string } = { ...point };
   if ("x" in point) localized.x = translateText(point.x, translate);
   if ("label" in point) localized.label = translateText(point.label, translate);

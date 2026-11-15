@@ -1,5 +1,10 @@
 <script setup lang="ts">
 import { computed, inject, ref, watch } from "vue";
+import {
+  isNumber,
+  isObject,
+  isString,
+} from "../../../../dms-core/app/utils/type-check";
 import DmsEmptyState from "../empty-state/EmptyState.vue";
 import DmsChartSkeleton from "../../build/components/chart/internal/ChartSkeleton.vue";
 import {
@@ -26,6 +31,7 @@ import {
 import {
   CHART_EVENT_NAMES,
   isSegmentChart,
+  readPointLabel,
   readPointValue,
   type ChartClickPayload,
 } from "../../composables/chart/events";
@@ -134,19 +140,30 @@ function localized(series: ChartSeries[]): ChartSeries[] {
   return series.map((entry) => localizeSeries(entry, processI18n));
 }
 
+function isStaticSeries(
+  entry: ChartSeries | DonutRecord,
+): entry is ChartSeries {
+  return isObject(entry) && isString(entry.name) && Array.isArray(entry.data);
+}
+
+function isStaticDonutRecord(
+  entry: ChartSeries | DonutRecord,
+): entry is DonutRecord {
+  return isObject(entry) && isString(entry.label) && isNumber(entry.value);
+}
+
 const staticSeries = computed<ChartSeries[]>(() => {
   if (isCircular.value) return [];
   if (!props.staticDataset) return [];
-  return localized(props.staticDataset as ChartSeries[]);
+  const dataset: Array<ChartSeries | DonutRecord> = props.staticDataset;
+  return localized(dataset.filter(isStaticSeries));
 });
 
 const staticDonut = computed<DonutRecord[]>(() => {
   if (!isCircular.value) return [];
   if (!props.staticDataset) return [];
-  return localizeDonutRecords(
-    props.staticDataset as DonutRecord[],
-    processI18n,
-  );
+  const dataset: Array<ChartSeries | DonutRecord> = props.staticDataset;
+  return localizeDonutRecords(dataset.filter(isStaticDonutRecord), processI18n);
 });
 
 const isNested = computed(() => !!nestedContext);
@@ -211,10 +228,7 @@ function buildXyClickPayload(opts: {
   );
   const point = series?.data[dataPointIndex];
   const pointValue = readPointValue(point);
-  const label =
-    typeof point === "object" && point !== null && "label" in point
-      ? point.label
-      : undefined;
+  const label = readPointLabel(point);
   return {
     dataPointIndex,
     seriesIndex: opts.seriesIndex,

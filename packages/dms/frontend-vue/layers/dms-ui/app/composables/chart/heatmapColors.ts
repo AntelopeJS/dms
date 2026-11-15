@@ -17,7 +17,7 @@ function parseHex(color: string): RgbColor | null {
   const digits = color.slice(1);
   const long =
     digits.length === HEX_SHORT_LENGTH
-      ? [...digits].map((digit) => digit + digit).join("")
+      ? Array.from(digits, (digit) => digit + digit).join("")
       : digits;
   if (long.length !== HEX_LONG_LENGTH) return null;
   const value = Number.parseInt(long, HEX_RADIX);
