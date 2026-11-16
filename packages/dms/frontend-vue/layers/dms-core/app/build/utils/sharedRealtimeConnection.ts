@@ -2,8 +2,8 @@ import {
   isUnauthorizedStreamError,
   openSseStream,
   type SseEventHandler,
+  SseRequestError,
   type SseStreamHandle,
-  streamRetryAfterMs,
 } from "../../composables/realtime/useSseStream";
 import { isString, isUndefined } from "../../utils/type-check";
 import {
@@ -191,7 +191,7 @@ export const recoverFromError = (
   recovery: StreamRecovery,
 ): void => {
   if (!isUnauthorizedStreamError(error)) {
-    retry(streamRetryAfterMs(error));
+    retry(error instanceof SseRequestError ? error.retryAfterMs : undefined);
     return;
   }
   void recovery.refreshSession().then(
