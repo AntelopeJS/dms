@@ -162,6 +162,7 @@
     "axios": "^1.7.9",
     "chai": "^4.5.0",
     "fast-check": "^4.10.2",
+    "ioredis": "^5.10.1",
     "knip": "^6.34.0",
     "mongodb": "^7.1.1",
     "mongodb-memory-server-core": "^11.0.1",
