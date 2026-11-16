@@ -100,7 +100,8 @@ export type SelectTypeOptions = {
    * belongs to, holds in the rows the caller may list, read when a table view
    * serves the page, each labelled and drawn in a tone by the DMS's status
    * rules. A column holding more than 25 values, or that cannot be read,
-   * shows its values plain. Any text is a valid value.
+   * shows its values plain, and so does a `multiple` column whose rows hold
+   * more than 1,000 distinct lists. Any text is a valid value.
    */
   itemsFrom?: { column: string };
   placeholder?: string;
