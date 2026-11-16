@@ -1,6 +1,7 @@
 ---
 covers:
   - packages/dms/src/pages/settings/users/role*.ts
+  - packages/dms/src/db/role-holders.ts
   - packages/dms/src/pages/permissions.ts
   - packages/dms/src/implementations/dms/permissions.ts
   - packages/dms/src/implementations/dms/permissions-resolver.ts

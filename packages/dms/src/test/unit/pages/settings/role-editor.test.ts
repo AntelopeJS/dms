@@ -1,14 +1,9 @@
 import { expect } from "chai";
-import type {
-  Role,
-  TenantMember,
-  UserInvite,
-} from "@antelopejs/interface-dms/db";
+import type { Role } from "@antelopejs/interface-dms/db";
 import type { PermissionTree } from "@antelopejs/interface-dms/permissions";
 import {
   collectPermissionIds,
   countKnownPermissions,
-  countRoleHolders,
   mapRoleEditorTree,
   orderRoleEditorTree,
   replaceRoleReference,
@@ -20,42 +15,9 @@ import {
 } from "../../../../pages/permissions";
 
 const NOW = new Date("2026-06-01T00:00:00Z");
-const TOMORROW = new Date("2026-06-02T00:00:00Z");
-const YESTERDAY = new Date("2026-05-31T00:00:00Z");
 
 function role(id: string, name: string, permissions: string[]): Role {
   return { _id: id, name, permissions, createdAt: NOW, updatedAt: NOW };
-}
-
-function member(
-  userId: string,
-  roleIds: string[],
-  isTenantOwner = false,
-): TenantMember {
-  return {
-    _id: `t:${userId}`,
-    userId,
-    roleIds,
-    isTenantOwner,
-    joinedAt: NOW,
-    invitedBy: null,
-  };
-}
-
-function invite(rolesIds: string[], expiresAt: Date): UserInvite {
-  return {
-    _id: `i:${rolesIds.join()}`,
-    roles_ids: rolesIds,
-    expiresAt,
-    createdAt: NOW,
-    email: "invite@role-editor.test",
-    firstname: null,
-    lastname: null,
-    language: "en",
-    token: "role-editor-invite",
-    asTenantOwner: false,
-    extensions: null,
-  };
 }
 
 function registerMapRoleEditorTreeCases(): void {
@@ -285,46 +247,58 @@ function registerOrderRoleEditorTreeCases(): void {
 
 function registerRoleSummaryCases(): void {
   describe("summarizeRoles", () => {
-    const members = [
-      member("u1", ["r-admin"], true),
-      member("u2", ["r-admin", "r-support"]),
-      member("u3", ["r-admin"]),
-      member("u4", ["r-admin"]),
-    ];
     const userNames = new Map([
       ["u1", "Ada"],
       ["u2", "Bob"],
     ]);
 
-    it("sorts by name and counts members, pending invites and permissions", () => {
-      const [admin, support] = summarizeRoles({
+    it("sorts by name and reports the counted holders, previews and known permissions", () => {
+      const [admin, support, unheld] = summarizeRoles({
         roles: [
           role("r-support", "Support", ["a"]),
           role("r-admin", "Admin", ["a", "a.b", "legacy"]),
+          role("r-unheld", "Unheld", []),
         ],
-        members,
-        invites: [
-          invite(["r-support"], TOMORROW),
-          invite(["r-support"], YESTERDAY),
-        ],
+        holders: new Map([
+          [
+            "r-admin",
+            {
+              memberCount: 4,
+              previewUserIds: ["u1", "u2", "u3", "u4"],
+              inviteCount: 0,
+            },
+          ],
+          [
+            "r-support",
+            { memberCount: 1, previewUserIds: ["u2"], inviteCount: 1 },
+          ],
+        ]),
         userNames,
         knownPermissionIds: new Set(["a", "a.b"]),
-        now: NOW,
       });
 
       expect(admin.name).to.equal("Admin");
       expect(admin.memberCount).to.equal(4);
+      expect(admin.members).to.deep.equal([
+        { userId: "u1", name: "Ada" },
+        { userId: "u2", name: "Bob" },
+        { userId: "u3", name: "" },
+      ]);
       expect(admin.members).to.have.length(ROLE_MEMBER_PREVIEW_LIMIT);
-      expect(admin.members[0]).to.deep.equal({ userId: "u1", name: "Ada" });
       expect(admin.permissionCount).to.equal(2);
       expect(admin.permissions).to.include("legacy");
       expect(support.memberCount).to.equal(1);
       expect(support.inviteCount).to.equal(1);
       expect(support.description).to.equal("");
+      expect(unheld).to.deep.include({
+        memberCount: 0,
+        members: [],
+        inviteCount: 0,
+      });
     });
 
     it("summarizes the tenant owners", () => {
-      expect(summarizeOwners(members, userNames)).to.deep.equal({
+      expect(summarizeOwners(["u1"], userNames)).to.deep.equal({
         memberCount: 1,
         members: [{ userId: "u1", name: "Ada" }],
       });
@@ -344,16 +318,6 @@ function registerRoleSummaryCases(): void {
       expect(replaceRoleReference(["b"], "b", "c")).to.deep.equal(["c"]);
       expect(replaceRoleReference(["c", "b"], "b", "c")).to.deep.equal(["c"]);
     });
-  });
-
-  it("counts the members and pending invitations holding a role", () => {
-    const holders = countRoleHolders(
-      "r",
-      [member("u1", ["r"]), member("u2", ["x"])],
-      [invite(["r"], TOMORROW), invite(["r"], YESTERDAY)],
-      NOW,
-    );
-    expect(holders).to.equal(2);
   });
 }
 
