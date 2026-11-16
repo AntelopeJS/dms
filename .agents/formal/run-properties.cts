@@ -46,8 +46,15 @@ export function rule<Ts extends unknown[]>(name: string, property: fc.IProperty<
 
 /** Where a run starts: one seed, so a run reproduces. */
 const DEFAULT_SEED = 20261116;
-const CI_RUNS = 5000;
-const FULL_RUNS = 100000;
+
+/** How many cases each rule draws in a run: the CI configuration and `--full`. */
+export interface RunSizes {
+  readonly ci: number;
+  readonly full: number;
+}
+
+/** The sizes of a target whose cases cost a few microseconds each. */
+export const CHEAP_RUNS: RunSizes = { ci: 5000, full: 100000 };
 
 /**
  * Checks every rule and prints one line each: `holds <rule>` for a rule that
@@ -59,8 +66,9 @@ const FULL_RUNS = 100000;
  * @param rules The rules in run order.
  * @param findings The rules that break on the code today, by name.
  * @param argv The arguments after the script: `--full` runs more cases, `--seed <n>` starts elsewhere, `--verbose` also prints the counterexample of each finding.
+ * @param sizes How many cases each rule draws in a run.
  */
-export function runProperties(rules: readonly PropertyCheck[], findings: ReadonlySet<string>, argv: readonly string[]): void {
+export function runProperties(rules: readonly PropertyCheck[], findings: ReadonlySet<string>, argv: readonly string[], sizes: RunSizes = CHEAP_RUNS): void {
   const full = argv.includes("--full");
   const seedAt = argv.indexOf("--seed");
   const seed = seedAt === -1 ? DEFAULT_SEED : Number(argv[seedAt + 1]);
@@ -72,7 +80,7 @@ export function runProperties(rules: readonly PropertyCheck[], findings: Readonl
   }
   let changed = false;
   for (const { name, run } of rules) {
-    const result = run({ seed, numRuns: full ? FULL_RUNS : CI_RUNS });
+    const result = run({ seed, numRuns: full ? sizes.full : sizes.ci });
     const breaks = result.broke;
     const recorded = findings.has(name);
     if (breaks && recorded) console.log(`finding ${name}`);
