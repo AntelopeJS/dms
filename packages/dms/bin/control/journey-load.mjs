@@ -4,7 +4,7 @@ import { isRecord, isString } from "./json.mjs";
 import { isBackendMode } from "./run-state.mjs";
 
 /**
- * @typedef {{ id: string, title: string, entryPoint: string, database?: string, onboard?: boolean, backend?: import("./run-state.mjs").BackendMode, standby?: boolean, tag?: string | string[], knownFailures?: Readonly<Record<string, string>>, last?: boolean, run: (context: import("./journey.mjs").JourneyContext) => Promise<void> }} Journey `backend` pins how the backend of its fresh database runs, whatever mode `up` gave the run; `standby: false` serves its fresh database with a backend started for it, not a standby, and starts no standby while it runs; `tag` is its Playwright tags, such as `@smoke`; `knownFailures` maps the name of each check that fails today to the finding that makes it fail; `last: true` runs it after every other journey of the suite, for a journey that leaves the run's playground changed for every later backend
+ * @typedef {{ id: string, title: string, entryPoint: string, database?: string, onboard?: boolean, backend?: import("./run-state.mjs").BackendMode, standby?: boolean, tag?: string | string[], knownFailures?: Readonly<Record<string, string>>, last?: boolean, frontend?: "dev", run: (context: import("./journey.mjs").JourneyContext) => Promise<void> }} Journey `backend` pins how the backend of its fresh database runs, whatever mode `up` gave the run; `standby: false` serves its fresh database with a backend started for it, not a standby, and starts no standby while it runs; `tag` is its Playwright tags, such as `@smoke`; `knownFailures` maps the name of each check that fails today to the finding that makes it fail; `last: true` runs it after every other journey of the suite, for a journey that leaves the run's playground changed for every later backend; `frontend: "dev"` needs a run whose dashboard `ajs dms dev` serves (`up --dev-frontend`), for what only development renders
  */
 
 const TAG = /^@[a-z0-9-]+$/;
@@ -50,10 +50,21 @@ function isJourney(value) {
       (value.database !== "shared" && isBackendMode(value.backend))) &&
     (value.standby === undefined ||
       (value.database !== "shared" && typeof value.standby === "boolean")) &&
+    isSuiteJourney(value) &&
+    typeof value.run === "function"
+  );
+}
+
+/**
+ * @param {Record<string, unknown>} value A journey
+ * @returns {value is Pick<Journey, "tag" | "knownFailures" | "last" | "frontend">} True when the fields the Playwright suite reads are absent or valid
+ */
+function isSuiteJourney(value) {
+  return (
     isTags(value.tag) &&
     isKnownFailures(value.knownFailures) &&
     (value.last === undefined || typeof value.last === "boolean") &&
-    typeof value.run === "function"
+    (value.frontend === undefined || value.frontend === "dev")
   );
 }
 
@@ -73,7 +84,20 @@ export async function loadJourneys(file) {
   const journeys = entries.filter(isJourney);
   if (journeys.length !== entries.length)
     throw new Error(
-      `${file} exports a journey without an id, title, entry point or run function, pins a backend or standby on a shared database, or has a tag that is not @kebab-case, a known failure without its finding or a last that is not a boolean`,
+      `${file} exports a journey without an id, title, entry point or run function, pins a backend or standby on a shared database, or has a tag that is not @kebab-case, a known failure without its finding, a last that is not a boolean or a frontend other than "dev"`,
     );
   return journeys;
+}
+
+/**
+ * @param {Journey[]} journeys The journeys a command would run
+ * @param {import("./run-state.mjs").FrontendMode | undefined} mode How the run serves its dashboard
+ * @returns {string | null} Why the run cannot serve some of them, or `null` when it serves them all
+ */
+export function frontendRefusal(journeys, mode) {
+  if (mode === "dev") return null;
+  const dev = journeys.filter((journey) => journey.frontend === "dev");
+  return dev.length === 0
+    ? null
+    : `${dev.map((journey) => journey.id).join(", ")} need the development dashboard: start the run with up --dev-frontend`;
 }

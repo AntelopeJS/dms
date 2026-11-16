@@ -1,5 +1,6 @@
 import { parseArgs } from "node:util";
 import { startRun } from "./commands-stack.mjs";
+import { declaredSuite, upArgs } from "./e2e-suite.mjs";
 import { OPTIONS } from "./options.mjs";
 import { loadRun } from "./run-state.mjs";
 import { down } from "./stack.mjs";
@@ -8,17 +9,30 @@ const RUN = "DMS_E2E_RUN";
 
 /**
  * Playwright's global setup of a journeys suite, once per `playwright test`.
- * With `DMS_E2E_RUN` set, the tests drive that run and it stops nothing.
- * Otherwise it starts a run as `dms-control up --prepare` does (`up` alone
- * with `DMS_E2E_PREBUILT=1`), publishes its folder in `DMS_E2E_RUN` for the
- * workers, and returns the teardown that stops it. The run outlives the
- * worker Playwright replaces after a failed test.
+ * With `DMS_E2E_RUN` set, the tests drive that run and it stops nothing; a
+ * run whose dashboard is not served the way the suite asks is refused.
+ * Otherwise it starts a run as `dms-control up --prepare` does, on the
+ * config's skill and with `--dev-frontend` for a `frontend: "dev"` suite
+ * (`up` alone with `DMS_E2E_PREBUILT=1`), publishes its folder in
+ * `DMS_E2E_RUN` for the workers, and returns the teardown that stops it.
+ * The run outlives the worker Playwright replaces after a failed test.
  *
  * @returns {Promise<(() => Promise<void>) | undefined>} The teardown of the run it started
+ * @throws When the adopted run serves its dashboard another way than the suite asks
  */
 export default async function globalSetup() {
-  if (process.env[RUN]) return undefined;
-  const args = process.env.DMS_E2E_PREBUILT === "1" ? [] : ["--prepare"];
+  const suite = declaredSuite();
+  const adopted = process.env[RUN];
+  if (adopted) {
+    const mode = loadRun(adopted).frontendMode ?? "build";
+    if (mode !== suite.frontend) {
+      throw new Error(
+        `${RUN} serves a ${mode} dashboard, and this suite runs the journeys of a ${suite.frontend} one`,
+      );
+    }
+    return undefined;
+  }
+  const args = upArgs(suite, process.env.DMS_E2E_PREBUILT === "1");
   const { values } = parseArgs({ args, options: OPTIONS });
   const state = await startRun(values, process.cwd());
   process.env[RUN] = state.dir;
