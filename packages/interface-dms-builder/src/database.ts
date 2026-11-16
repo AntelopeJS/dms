@@ -149,36 +149,6 @@ export interface EntryConnection {
   access?: "read" | "read-write";
 }
 
-/** The rows to sample from a relation of a catalog connection. */
-export interface RowSampleRequest {
-  relation: string;
-  columns?: string[];
-  /** At most the catalog's sample limit. */
-  limit: number;
-}
-
-/** A sampled value as text, cut at the catalog's text length. */
-export interface SampledText {
-  text: string;
-  truncated: boolean;
-}
-
-/** A binary value, answered by its length only. */
-export interface SampledBinary {
-  bytes: number;
-}
-
-export type SampledValue = SampledText | SampledBinary | null;
-
-/** Rows of a relation, each value in the order of `columns`. */
-export interface RowSample {
-  relation: string;
-  columns: string[];
-  rows: SampledValue[][];
-  /** How the relation was sampled before its first rows were read, when it was. */
-  sample: { percent: number; rows: number } | null;
-}
-
 /**
  * The builder's catalog connections, each with its provider's `Info()` or why it did not answer.
  *
@@ -266,16 +236,3 @@ export const SetDatabaseConnectionUrl =
  */
 export const ListEntryConnections =
   InterfaceFunction<(module: string) => Promise<OpResult<EntryConnection[]>>>();
-
-/**
- * Sample rows of a relation of a catalog connection; `not_found` for an unknown connection.
- *
- * Owner path only: no MCP tool exposes it, so only an owner-authenticated entry calls it.
- */
-export const SampleDatabaseRows =
-  InterfaceFunction<
-    (
-      connection: string,
-      request: RowSampleRequest,
-    ) => Promise<OpResult<RowSample>>
-  >();
