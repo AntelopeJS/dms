@@ -273,6 +273,20 @@ const config: VerifyConfig = {
       ],
       files: [".agents/skills/formal-option-patch-prune/**", ".agents/formal/run-properties.cts"],
       command: ["node", ".agents/skills/formal-option-patch-prune/check.mjs", "--full"],
+      name: "formal-theme-logo-orphans",
+      covers: [
+        "packages/dms/src/implementations/dms-builder/engine/theme.ts",
+        "packages/dms/src/implementations/dms-builder/engine/theme-assets.ts",
+        "packages/dms/src/implementations/dms-builder/engine/theme-app-config.ts",
+        "packages/dms/src/implementations/dms-builder/engine/theme-config-imports.ts",
+        "packages/dms/src/implementations/dms-builder/engine/theme-literals.ts",
+      ],
+      files: [
+        ".agents/skills/formal-theme-logo-orphans/**",
+        "packages/dms/src/test/unit/builder/theme-logo-orphans.formal.test.ts",
+        "packages/dms/src/test/unit/builder/helpers/logo-spellings.ts",
+      ],
+      command: ["node", ".agents/skills/formal-theme-logo-orphans/check.mjs"],
       violation: /^(?:finding|BROKEN|CHANGED|HOLDS) +(\w+)/gm,
     },
     {
