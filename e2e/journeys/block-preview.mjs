@@ -6,7 +6,7 @@ import { readFileSync } from "node:fs";
 import { fieldOf, isRecord, parseJson } from "../mcp-bridge.mjs";
 
 const STARTERS = new URL("../../packages/dms/frontend-vue/tests/fixtures/mockup-starters/nodes.json", import.meta.url);
-const CRASH_TEXT = /Server error|is not iterable|Cannot read properties/;
+const NOT_DRAWN_TEXT = /Server error|is not iterable|Cannot read properties|is not a registered block type/;
 
 /** The nodes the /mockup Add tab starts each block as, but those reading a mockup fixture, which only the dev mockup engine serves. */
 function starterNodes() {
@@ -148,7 +148,7 @@ export const journeys = [
         const drawn = await tab.page.locator("[data-dms-block-preview]").waitFor({ state: "attached", timeout: 30_000 }).then(() => true, () => false);
         await tab.page.waitForTimeout(500);
         const text = await tab.page.evaluate(() => document.body.innerText);
-        if (!drawn || errors.length > before || CRASH_TEXT.test(text)) crashed.set(type, errors.slice(before).join("; ") || text.match(CRASH_TEXT)?.[0] || "no preview drawn");
+        if (!drawn || errors.length > before || NOT_DRAWN_TEXT.test(text)) crashed.set(type, errors.slice(before).join("; ") || text.match(NOT_DRAWN_TEXT)?.[0] || "no preview drawn");
       }
       await ctx.verify("no starter crashes the preview", [
         ctx.holds(`${starters.length} starters drawn`, starters.length > 30, starters.length),
