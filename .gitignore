@@ -33,7 +33,6 @@ logs
 .antelope
 # The production frontend workspace `ajs dms build` writes into a project
 .dms-frontend
-.amp
 generated-layers.json
 i18n-registry.generated.ts
 
