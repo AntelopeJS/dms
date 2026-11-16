@@ -270,7 +270,9 @@ jobs:
         check:
           - formal-default-tenant-provisioning
           - formal-onboarding-bootstrap
+          - formal-option-patch-prune
           - formal-realtime-tabs
+          - formal-route-patterns
           - formal-tenant-lifecycle
     steps:
       - uses: actions/checkout@v4

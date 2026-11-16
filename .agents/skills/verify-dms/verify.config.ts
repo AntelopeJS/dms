@@ -248,6 +248,28 @@ const config: VerifyConfig = {
       command: ["node", ".agents/skills/formal-realtime-tabs/check.mjs", "--full"],
       violation: /^(?:finding|BROKEN|CHANGED|HOLDS) +(\w+)/gm,
     },
+    {
+      name: "formal-route-patterns",
+      covers: [
+        "packages/dms/src/mockup/model.ts",
+        "packages/dms/frontend-vue/layers/dms-ui/app/build/utils/mockup.ts",
+        "packages/dms/frontend-vue/layers/dms-ui/app/build/utils/urlVariables.ts",
+      ],
+      files: [".agents/skills/formal-route-patterns/**", ".agents/formal/run-properties.cts"],
+      command: ["node", ".agents/skills/formal-route-patterns/check.mjs", "--full"],
+      violation: /^(?:finding|BROKEN|CHANGED|HOLDS) +(\w+)/gm,
+    },
+    {
+      name: "formal-option-patch-prune",
+      covers: [
+        "packages/dms/src/implementations/dms-builder/engine/options-patch.ts",
+        "packages/dms/src/implementations/dms-builder/engine/local-bindings.ts",
+        "packages/dms/src/implementations/dms-builder/engine/writable.ts",
+      ],
+      files: [".agents/skills/formal-option-patch-prune/**", ".agents/formal/run-properties.cts"],
+      command: ["node", ".agents/skills/formal-option-patch-prune/check.mjs", "--full"],
+      violation: /^(?:finding|BROKEN|CHANGED|HOLDS) +(\w+)/gm,
+    },
   ],
 };
 
