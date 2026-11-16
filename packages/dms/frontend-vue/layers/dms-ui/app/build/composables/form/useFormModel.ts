@@ -306,21 +306,16 @@ const zodObjectSchema = z.custom<z.ZodObject<Record<string, z.ZodTypeAny>>>(
   (value) => value instanceof z.ZodObject,
 );
 
-const parseZodType = (value: unknown): z.ZodTypeAny =>
-  zodTypeSchema.parse(value);
-
-const parseZodTypes = (value: unknown): z.ZodTypeAny[] =>
-  z.array(zodTypeSchema).parse(value);
-
 export function makeFieldSchemaRequired(schema: z.ZodTypeAny): z.ZodTypeAny {
   if (schema instanceof z.ZodOptional || schema instanceof z.ZodNullable)
-    return makeFieldSchemaRequired(parseZodType(schema.unwrap()));
+    return makeFieldSchemaRequired(zodTypeSchema.parse(schema.unwrap()));
   if (schema instanceof z.ZodDefault)
-    return makeFieldSchemaRequired(parseZodType(schema.removeDefault()));
+    return makeFieldSchemaRequired(zodTypeSchema.parse(schema.removeDefault()));
   if (schema instanceof z.ZodUnion) {
-    const nonNullOptions = parseZodTypes(schema.options).filter(
-      (option) => !(option instanceof z.ZodNull),
-    );
+    const nonNullOptions = z
+      .array(zodTypeSchema)
+      .parse(schema.options)
+      .filter((option) => !(option instanceof z.ZodNull));
     if (nonNullOptions.length === 1)
       return makeFieldSchemaRequired(nonNullOptions[0]!);
     return schema;
@@ -421,12 +416,7 @@ export function watchFieldChanges(
   function sendChanges(newState: FormState): void {
     for (const fieldId of Object.keys(newState)) {
       if (INTERNAL_STATE_KEYS.has(fieldId)) continue;
-      let newJson: string;
-      try {
-        newJson = JSON.stringify(newState[fieldId]);
-      } catch {
-        newJson = String(newState[fieldId]);
-      }
+      const newJson = JSON.stringify(newState[fieldId]);
       if (newJson !== previousValuesJson.get(fieldId)) {
         sendComponentEvent(FormEvents.FIELD_CHANGE, id, {
           fieldId,
