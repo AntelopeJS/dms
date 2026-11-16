@@ -302,8 +302,7 @@ function planned(
   descriptions: RelationDescription[],
   defaults: ReadonlyMap<string, DisplayDefaults>,
 ): MappingPlan | OpResult<MapResourcesResult> {
-  const rows = withRowWrites(input, descriptions);
-  const readOnly = writableMappingRefusal(rows.input);
+  const readOnly = writableMappingRefusal(input);
   if (readOnly) {
     return invalidConfig<MapResourcesResult>(readOnly);
   }
@@ -321,6 +320,7 @@ function planned(
       `module "${input.module}" has no src/index.ts`,
     );
   }
+  const rows = withRowWrites(input, descriptions);
   try {
     const chosen = withDeclaredRelations(rows.input, descriptions);
     const plan = planMapping(

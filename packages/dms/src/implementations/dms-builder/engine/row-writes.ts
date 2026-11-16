@@ -31,7 +31,10 @@ export function withRowWrites(
       .map((description) => relationName(description)),
   );
   const narrowed = input.resources.filter(
-    (resource) => resource.writable && readOnly.has(resource.relation),
+    (resource) =>
+      resource.tableView &&
+      resource.writable &&
+      readOnly.has(resource.relation),
   );
   return {
     input: {

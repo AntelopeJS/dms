@@ -23,14 +23,19 @@ import {
 } from "./mapped-database";
 import { reloadedAtOnce } from "./reload-stub";
 
-const NO_ROW_WRITES = { insert: false, update: false, delete: false };
+const WRITES_BY_RELATION = new Map([
+  ["accounts", { insert: false, update: false, delete: false }],
+  ["products", { insert: true, update: false, delete: false }],
+]);
 
-/** The catalog of an account that may create tables but write no row of `sales.accounts`. */
-const DESCRIBED: RelationDescription[] = DESCRIPTIONS.map((description) =>
-  description.name === "accounts"
-    ? { ...description, writes: NO_ROW_WRITES }
-    : description,
-);
+/**
+ * The catalog of an account that may create tables, writes no row of `sales.accounts` and may
+ * only insert into `sales.products`.
+ */
+const DESCRIBED: RelationDescription[] = DESCRIPTIONS.map((description) => ({
+  ...description,
+  writes: WRITES_BY_RELATION.get(description.name) ?? description.writes,
+}));
 
 const CATALOG: Partial<CatalogConnection> = {
   async ListRelations() {
@@ -85,7 +90,7 @@ describe("mapping a relation the database account may not write", function () {
     });
   });
 
-  it("keeps the write routes of a relation the account may write", () => {
+  it("keeps the write routes of a relation the account may write in part", () => {
     expect(dataApi("products")).to.include("TableViewRoutes.All");
   });
 });
