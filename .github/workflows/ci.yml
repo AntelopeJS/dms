@@ -400,6 +400,7 @@ jobs:
       matrix:
         check:
           - formal-ai-answers-no-row-values
+          - formal-block-writes-judge-request-targets
     env:
       DMS_PREBUILT: "1"
     steps:

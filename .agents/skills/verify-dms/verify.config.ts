@@ -302,6 +302,25 @@ const config: VerifyConfig = {
       command: ["node", ".agents/skills/formal-ai-answers-no-row-values/check.mjs"],
       violation: /^(?:finding|BROKEN|CHANGED|HOLDS) +(\w+)/gm,
     },
+    {
+      name: "formal-block-writes-judge-request-targets",
+      covers: [
+        "packages/dms/src/mcp/tools/builder-request-targets.ts",
+        "packages/dms/src/mcp/tools/builder-pages.ts",
+        "packages/dms/src/mcp/tools/builder-compose.ts",
+        "packages/dms/src/mcp/tools/mockup-apply-to-page.ts",
+        "packages/dms/src/mcp/tools/index.ts",
+        "packages/dms/src/mockup/apply-to-page.ts",
+        "packages/dms/src/implementations/dms-builder/engine/configure-target.ts",
+      ],
+      files: [
+        ".agents/skills/formal-block-writes-judge-request-targets/**",
+        "packages/dms/src/test/formal/block-writes-judge-request-targets.test.ts",
+        "packages/dms/src/test/formal/helpers/**",
+      ],
+      command: ["node", ".agents/skills/formal-block-writes-judge-request-targets/check.mjs"],
+      violation: /^(?:finding|BROKEN|CHANGED|HOLDS) +(\w+)/gm,
+    },
   ],
 };
 
