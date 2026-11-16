@@ -63,6 +63,7 @@
     "!data/*.mmdb",
     "package.json",
     "README.md",
+    "E2E.md",
     "CHANGELOG.md",
     "LICENSE"
   ],

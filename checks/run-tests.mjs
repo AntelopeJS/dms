@@ -12,6 +12,7 @@ const DMS_TESTS = [
   "bin/control/build-key",
   "bin/control/build-layout",
   "bin/control/consumer-install",
+  "bin/control/e2e-suite",
   "bin/control/forwarder",
   "bin/control/frontend-mode",
   "bin/control/frontend-workspace",

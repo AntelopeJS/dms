@@ -6,7 +6,7 @@ import { launchBrowser, newContext, screenshot } from "./browser.mjs";
 import { startDatabase, stopDatabase } from "./database.mjs";
 import { capturedMail } from "./mail.mjs";
 import { abortMessage, judge } from "./journey-judge.mjs";
-import { loadJourneys } from "./journey-load.mjs";
+import { frontendRefusal, loadJourneys } from "./journey-load.mjs";
 import { readRecordList } from "./json.mjs";
 import { saveRun } from "./run-state.mjs";
 import {
@@ -552,6 +552,8 @@ export async function runJourneyFile(state, request) {
     request.ids.length > 0
       ? journeys.filter((journey) => request.ids.includes(journey.id))
       : journeys;
+  const refusal = frontendRefusal(selected, state.frontendMode);
+  if (refusal) throw new Error(refusal);
   /** @type {FeatureResult[]} */
   const results = [];
   for (const journey of selected)
