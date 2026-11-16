@@ -7,7 +7,7 @@
 import { createApp, defineComponent, h, type App } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { interpolateUrl } from "../layers/dms-core/app/utils/url-interpolation";
-import { useActionConfirm } from "../layers/dms-ui/app/build/composables/confirm/useActionConfirm";
+import { useActionConfirm } from "../layers/dms-ui/app/entries/composables/confirm/useActionConfirm";
 import type { ConfirmOptions } from "../layers/dms-ui/app/composables/confirm/types";
 import { useConfirmFrom } from "../layers/dms-ui/app/composables/confirm/useConfirmFrom";
 import { isConfirmTextMatch } from "../layers/dms-ui/app/entries/composables/confirm/confirmTextMatch";
