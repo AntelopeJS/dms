@@ -24,6 +24,7 @@ import type { User } from "@antelopejs/interface-dms/auth/db";
 import { getRequestTenantId } from "@antelopejs/interface-dms/request-tenant";
 import { assert } from "@antelopejs/interface-api-util";
 import type { JsonValue } from "@antelopejs/interface-dms/json";
+import { withLayoutRequest } from "@antelopejs/interface-dms/page/internal/layout-request";
 import {
   type ModuleCatalogContext,
   GetPageLayoutBySlug,
@@ -169,13 +170,15 @@ export class DMSController extends Controller("/dms") {
     const handler = GetPageLayoutBySlug(normalizedSlug);
     assert(handler, 404, "error.page_not_found");
 
-    return handler({
-      user,
-      memberModel,
-      roleModel,
-      tenantId: getRequestTenantId(requestContext),
-      query: pageQueryOf(requestContext),
-    });
+    return withLayoutRequest(requestContext, () =>
+      handler({
+        user,
+        memberModel,
+        roleModel,
+        tenantId: getRequestTenantId(requestContext),
+        query: pageQueryOf(requestContext),
+      }),
+    );
   }
 
   @Get("/page")
