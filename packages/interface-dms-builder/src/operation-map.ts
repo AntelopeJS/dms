@@ -13,6 +13,7 @@ import {
   ListEntryConnections,
   RemoveDatabaseConnection,
   RepairDatabaseConnections,
+  SampleDatabaseRows,
   SetDatabaseConnectionUrl,
 } from "./database";
 import { PreviewLayout, PreviewQuery, SetPageBlocks } from "./drafts";
@@ -119,6 +120,7 @@ export const Operations = {
   RemoveField,
   RemoveQuery,
   RepairDatabaseConnections,
+  SampleDatabaseRows,
   SetDatabaseConnectionUrl,
   SetPageBlocks,
   SetTheme,

@@ -10,6 +10,7 @@ import {
   GetDatabaseConnection,
   GetDatabaseProject,
   ListDatabaseConnections,
+  SampleDatabaseRows,
 } from "../../../implementations/dms-builder";
 import {
   checkConnection,
@@ -195,7 +196,7 @@ describe("checking a database whose driver is not installed", () => {
   });
 });
 
-/** Fails on a listing that one failing provider empties. */
+/** Fails on a listing that one failing provider empties, or a sample that throws past its result, even when the provider fails to load. */
 describe("the builder's catalog connections", () => {
   const info = {
     engine: "postgresql",
@@ -203,11 +204,23 @@ describe("the builder's catalog connections", () => {
     database: "erp",
     role: "reader",
   };
+  const rows = {
+    relation: "sales.orders",
+    columns: ["id"],
+    rows: [[{ text: "1", truncated: false }]],
+    sample: null,
+  };
 
   before(() => {
     setCatalogConnectionsForTests({
       erp: {
         Info: async () => info,
+        SampleRows: async ({ relation }) => {
+          if (relation !== rows.relation) {
+            throw new Error(`relation ${relation} does not exist`);
+          }
+          return rows;
+        },
       },
       archive: {},
       broken: {
@@ -226,6 +239,33 @@ describe("the builder's catalog connections", () => {
       { id: "archive", error: "the spec supplied no Info for this catalog" },
       { id: "broken", error: "the provider does not export the catalog" },
     ]);
+  });
+
+  it("answers a provider that fails to load as a result, for the list and for a sample", async () => {
+    const sampled = await SampleDatabaseRows("broken", {
+      relation: "sales.orders",
+      limit: 1,
+    });
+    expect(JSON.stringify(sampled)).to.include(
+      "the provider does not export the catalog",
+    );
+    expect(sampled.ok).to.equal(false);
+  });
+
+  it("samples a relation, and answers a provider's refusal and an unknown connection as results", async () => {
+    expect(
+      await SampleDatabaseRows("erp", { relation: rows.relation, limit: 1 }),
+    ).to.deep.equal({ ok: true, data: rows, changes: [] });
+    const refused = await SampleDatabaseRows("erp", {
+      relation: "sales.missing",
+      limit: 1,
+    });
+    expect(JSON.stringify(refused)).to.include(
+      "relation sales.missing does not exist",
+    );
+    expect(
+      await SampleDatabaseRows("ledger", { relation: rows.relation, limit: 1 }),
+    ).to.deep.equal({ ok: false, error: { code: "not_found", ref: "ledger" } });
   });
 });
 
