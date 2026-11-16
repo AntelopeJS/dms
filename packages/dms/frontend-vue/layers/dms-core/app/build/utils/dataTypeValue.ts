@@ -1,4 +1,5 @@
 import type { DataTypeRow, DataTypeValue } from "../../types/data-type";
+import { isString } from "../../utils/type-check";
 
 /** Whether a value is a row: an object that is neither a list nor a date. */
 export function isDataTypeRow(value: DataTypeValue): value is DataTypeRow {
@@ -26,9 +27,10 @@ export function textOf(value: DataTypeValue): string {
 }
 
 /**
- * The value a row holds at a dotted path (`customer.name`, `lines.0.total`),
- * or `undefined` once the path leaves the row. A numeric step reads the item
- * of a list, or the member of a row under that number.
+ * The value a row holds at a dotted path (`customer.name`, `lines.0.total`,
+ * `tags.length`), or `undefined` once the path leaves the row. A numeric step
+ * reads the item of a list or the character of a text, or the member of a row
+ * under that number; `length` reads the length of a list or a text.
  */
 export function readFieldPath(
   row: DataTypeRow | undefined,
@@ -37,7 +39,8 @@ export function readFieldPath(
   let value: DataTypeValue = row;
   for (const step of path.split(".")) {
     const index = Number(step);
-    if (Array.isArray(value)) value = value[index];
+    if (Array.isArray(value) || isString(value))
+      value = step === "length" ? value.length : value[index];
     else if (isDataTypeRow(value))
       value = value[Number.isNaN(index) ? step : String(index)];
     else return undefined;

@@ -57,11 +57,13 @@ describe("readFieldPath", () => {
     }
   });
 
-  it("reads no member of a text or a list beyond its items", () => {
-    expect(readFieldPath({ tags: ["a"], name: "Ada" }, "tags.length")).toBe(
-      undefined,
-    );
-    expect(readFieldPath({ name: "Ada" }, "name.length")).toBe(undefined);
+  it("reads the length and items of a list or a text, as get does", () => {
+    const row = { tags: ["a", "b"], name: "Ada" };
+    for (const path of ["tags.length", "tags.1", "name.length", "name.0"]) {
+      expect(readFieldPath(row, path)).toEqual(get(row, path));
+    }
+    expect(readFieldPath(row, "tags.length")).toBe(2);
+    expect(interpolateRowText("n={{row.tags.length}}", row)).toBe("n=2");
   });
 });
 
