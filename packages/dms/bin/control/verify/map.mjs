@@ -1,5 +1,5 @@
 import { existsSync, readdirSync } from "node:fs";
-import { join, matchesGlob } from "node:path";
+import { join, matchesGlob, relative } from "node:path";
 import { git } from "../git.mjs";
 import { loadJourneys } from "../journey-load.mjs";
 import { journeysFile, readFeatures } from "./skill.mjs";
@@ -75,7 +75,7 @@ async function featureProblems(skill, feature, tracked) {
   const file = journeysFile(skill, feature.name);
   const journeys = existsSync(file) ? await loadJourneys(file) : null;
   if (!journeys)
-    problems.push(`${feature.file}: no journeys/${feature.name}.mjs`);
+    problems.push(`${feature.file}: no ${relative(skill.repo, file)}`);
   for (const journey of journeys ?? []) {
     if (!feature.body.includes(`\`${journey.id}\``)) {
       problems.push(
@@ -164,7 +164,9 @@ export async function checkMap(skill) {
     )) {
       const name = file.replace(/\.mjs$/, "");
       if (!features.some((feature) => feature.name === name)) {
-        problems.push(`journeys/${file} has no features/${name}.md`);
+        problems.push(
+          `${relative(skill.repo, join(skill.journeysDir, file))} has no features/${name}.md`,
+        );
       }
     }
   }

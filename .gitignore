@@ -43,3 +43,9 @@ Antelopejs-DMS-Dashboard v1.1/
 
 # The throwaway apps the builder specs rewrite
 .test-app-*/
+
+# The Playwright suite's reports and test output
+e2e/playwright-report
+e2e/test-results
+e2e/blob-report
+e2e/blob-reports

@@ -5,6 +5,7 @@ import { withBaseBackend } from "./base.mjs";
 import { launchBrowser, newContext, screenshot } from "./browser.mjs";
 import { startDatabase, stopDatabase } from "./database.mjs";
 import { capturedMail } from "./mail.mjs";
+import { abortMessage, judge } from "./journey-judge.mjs";
 import { loadJourneys } from "./journey-load.mjs";
 import { readRecordList } from "./json.mjs";
 import { saveRun } from "./run-state.mjs";
@@ -26,11 +27,11 @@ import { Tab } from "./tab.mjs";
 import { recordTiming, stopwatch, timed } from "./timing.mjs";
 
 /**
- * @typedef {{ name: string, pass: boolean, detail: string }} Check
+ * @typedef {import("./verify/types.mjs").JourneyCheck} Check
  * @typedef {ReturnType<typeof capturedMail>[number]} CapturedMail
  * @typedef {import("./verify/types.mjs").FeatureResult} FeatureResult
  * @typedef {import("./journey-load.mjs").Journey} Journey
- * @typedef {{ name: string, folder: string, checks: Check[] }} Step
+ * @typedef {import("./verify/types.mjs").JourneyStep} Step
  */
 
 const EXPECT_TIMEOUT_MS = 15_000;
@@ -38,7 +39,13 @@ const POLL_MS = 250;
 const DETAIL_LENGTH = 300;
 const UNIQUE_BYTES = 3;
 
-class JourneyAbort extends Error {}
+class JourneyAbort extends Error {
+  /** @param {string} step The critical step that failed */
+  constructor(step) {
+    super(abortMessage(step));
+    this.step = step;
+  }
+}
 
 /**
  * @param {string} text The text
@@ -172,9 +179,7 @@ export class JourneyContext {
     writeJson(join(folder, "checks.json"), checks);
     const passed = checks.every((check) => check.pass);
     if (!passed && options.critical) {
-      throw new JourneyAbort(
-        `critical step ${relative(this.folder, folder)} failed`,
-      );
+      throw new JourneyAbort(relative(this.folder, folder));
     }
     return passed;
   }
@@ -299,7 +304,12 @@ export class JourneyContext {
     return this.state.secrets.DMS_SETUP_TOKEN;
   }
 
-  /** Creates the administrator through `POST /api/onboarding/register`, then signs it in. */
+  /**
+   * Creates the administrator through `POST /api/onboarding/register`, then signs it in.
+   *
+   * @param {{ platformName?: string }} [options] Wizard details
+   * @returns {Promise<{ register: import("./session.mjs").ApiAnswer, login: import("./session.mjs").ApiAnswer | null }>} Both answers
+   */
   onboard(options = {}) {
     return onboard(this.state, options);
   }
@@ -427,23 +437,25 @@ async function prepare(state, feature, journey, context) {
 /**
  * Runs one journey: by default on a fresh database with an onboarded
  * administrator (`database: "shared"` keeps the current one, `onboard:
- * false` skips the administrator), with a fresh browser, and writes its
- * result.json.
+ * false` skips the administrator), with fresh browser contexts, and writes
+ * its result.json. The contexts open in `browser`, which it leaves open, or
+ * else in a browser it launches and closes.
  *
  * @param {import("./run-state.mjs").RunState} state The run
  * @param {string} feature The feature it belongs to
  * @param {Journey} journey The journey
  * @param {import("./verify/skill.mjs").Skill} skill The skill the journey belongs to
+ * @param {import("playwright-core").Browser} [browser] The browser to open its contexts in, such as Playwright Test's
  * @returns {Promise<FeatureResult>} The result
  */
-export async function runJourney(state, feature, journey, skill) {
+export async function runJourney(state, feature, journey, skill, browser) {
   const stop = stopwatch();
   const detail = { feature, journey: journey.id };
   /** @type {Omit<FeatureResult, "ms"> | undefined} */
   let result;
   let lap = { ms: 0, startedAt: "" };
   try {
-    result = await driveJourney(state, feature, journey, skill);
+    result = await driveJourney(state, feature, journey, skill, browser);
   } finally {
     lap = stop();
     recordTiming(state, "journey", lap, result?.status === "PASS", detail);
@@ -460,16 +472,19 @@ export async function runJourney(state, feature, journey, skill) {
  * @param {string} feature The feature it belongs to
  * @param {Journey} journey The journey
  * @param {import("./verify/skill.mjs").Skill} skill The skill the journey belongs to
+ * @param {import("playwright-core").Browser | undefined} given The browser to open its contexts in, or none to launch one
  * @returns {Promise<Omit<FeatureResult, "ms">>} The result, without its duration
  */
-async function driveJourney(state, feature, journey, skill) {
+async function driveJourney(state, feature, journey, skill, given) {
   const detail = { feature, journey: journey.id };
-  const browser = await timed(
-    state,
-    "browser-launch",
-    () => launchBrowser(resolutionFolders(state)),
-    detail,
-  );
+  const browser =
+    given ??
+    (await timed(
+      state,
+      "browser-launch",
+      () => launchBrowser(resolutionFolders(state)),
+      detail,
+    ));
   const context = new JourneyContext(
     state,
     feature,
@@ -477,15 +492,16 @@ async function driveJourney(state, feature, journey, skill) {
     browser,
     skill,
   );
+  /** @type {string | null} */
   let error = null;
+  /** @type {string | null} */
+  let abortedAt = null;
   try {
     await prepare(state, feature, journey, context);
     await timed(state, "journey-run", () => journey.run(context), detail);
   } catch (failure) {
-    error =
-      failure instanceof JourneyAbort
-        ? failure.message
-        : String(failure?.stack ?? failure);
+    if (failure instanceof JourneyAbort) abortedAt = failure.step;
+    else error = String(failure?.stack ?? failure);
   } finally {
     try {
       await context.close();
@@ -493,20 +509,22 @@ async function driveJourney(state, feature, journey, skill) {
       const closing = `closing the journey failed: ${String(failure?.stack ?? failure)}`;
       error = error === null ? closing : `${error}\n${closing}`;
     }
-    await browser.close();
+    if (given === undefined) await browser.close();
   }
-  const failed =
-    error !== null ||
-    context.steps.some((step) => step.checks.some((check) => !check.pass));
+  const judged = judge(
+    context.steps,
+    { error, abortedAt },
+    journey.knownFailures ?? {},
+  );
   return {
     feature,
     journey: journey.id,
     title: journey.title,
     entryPoint: journey.entryPoint,
-    status: failed ? "FAIL" : "PASS",
+    status: judged.status,
     database: state.database,
-    steps: context.steps,
-    error,
+    steps: judged.steps,
+    error: judged.error,
     folder: relative(state.evidence, context.folder),
   };
 }

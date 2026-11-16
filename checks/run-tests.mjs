@@ -17,6 +17,7 @@ const DMS_TESTS = [
   "bin/control/frontend-workspace",
   "bin/control/identity",
   "bin/control/journey",
+  "bin/control/journey-judge",
   "bin/control/json",
   "bin/control/mail",
   "bin/control/module-root",
@@ -78,7 +79,7 @@ const STEPS = [
   },
   {
     when: (selected) => selected.has("verify-dms"),
-    command: "node --test .agents/skills/verify-dms/rows.test.mjs",
+    command: "node --test e2e/rows.test.mjs",
   },
   {
     when: (selected) => selected.has("dms"),

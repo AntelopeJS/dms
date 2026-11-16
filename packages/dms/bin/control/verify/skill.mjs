@@ -12,7 +12,7 @@ const OUTPUT_LIMIT = 64 * 1024 * 1024;
 
 /**
  * @typedef {{ dir: string, name: string, repo: string, config: SkillConfig, featuresDir: string, journeysDir: string }} Skill
- * @typedef {{ playground: string, renderer?: string, prepare: string[][], userFacing: string[], notUserFacing: string[], shared: string[], notShared: string[], smoke: string, smokeJourney: string, doors: Record<string, { globs: string[], funnels: string[], why: string } | null>, formal: import("./types.mjs").FormalCheck[] }} SkillConfig
+ * @typedef {{ playground: string, renderer?: string, prepare: string[][], userFacing: string[], notUserFacing: string[], shared: string[], notShared: string[], smoke: string, smokeJourney: string, journeys?: string, doors: Record<string, { globs: string[], funnels: string[], why: string } | null>, formal: import("./types.mjs").FormalCheck[] }} SkillConfig
  */
 
 /**
@@ -86,7 +86,9 @@ export async function loadSkill(option, cwd) {
     repo: root,
     config,
     featuresDir: join(dir, "features"),
-    journeysDir: join(dir, "journeys"),
+    journeysDir: config.journeys
+      ? resolve(root, config.journeys)
+      : join(dir, "journeys"),
   };
 }
 
