@@ -221,6 +221,7 @@ function arriveTableViews(context: ReturnType<typeof createTableViewState>) {
   let isUrlViewUnavailable = false;
   let isUrlViewPending = false;
   let isOpenedOnArrival = false;
+  let isDefaultViewOpenedOnFirstVisit = false;
   if (urlView.isCleared) {
     openDefaultListing();
   } else if (urlView.value && findView(urlView.value)) {
@@ -231,6 +232,7 @@ function arriveTableViews(context: ReturnType<typeof createTableViewState>) {
   } else if (persistedViewId === undefined) {
     if (views?.defaultView) openView(views.defaultView);
     isOpenedOnArrival = !!views?.defaultView;
+    isDefaultViewOpenedOnFirstVisit = isOpenedOnArrival;
   } else {
     restoreKeptView(persistedViewId);
   }
@@ -261,7 +263,7 @@ function arriveTableViews(context: ReturnType<typeof createTableViewState>) {
 
   onMounted(() => {
     arriveOnceMounted();
-    keepActiveView();
+    if (isDefaultViewOpenedOnFirstVisit) keepActiveView();
     if (urlView.ignoredShortKey && import.meta.env.DEV) {
       console.warn(
         `[DMS] "?${VIEW_URL_KEY}=" is ignored on a page with several table views: name the table, "?${urlScope.tableId}.${VIEW_URL_KEY}=".`,
