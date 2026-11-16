@@ -28,6 +28,14 @@ export type PriceTypeOptions = NumberTypeOptions & {
    * are written in euros.
    */
   currency?: string;
+  /**
+   * Reads the currency from the rows instead of stating it: the one ISO 4217
+   * code that `column`, a column of the table the field belongs to, holds in
+   * every row the caller may list, read when a table view serves the page.
+   * Amounts are written in euros when the column holds several codes, none,
+   * or cannot be read. `currency` wins when both are given.
+   */
+  currencyFrom?: { column: string };
 };
 
 export type StringTypeOptions = {
@@ -86,6 +94,15 @@ export type BooleanTypeOptions = {
 
 export type SelectTypeOptions = {
   items: FormComponents.SelectOption[];
+  /**
+   * Reads the options from the rows instead of listing them in `items`
+   * (left `[]`): the values `column`, a column of the table the field
+   * belongs to, holds in the rows the caller may list, read when a table view
+   * serves the page, each labelled and drawn in a tone by the DMS's status
+   * rules. A column holding more than 25 values, or that cannot be read,
+   * shows its values plain. Any text is a valid value.
+   */
+  itemsFrom?: { column: string };
   placeholder?: string;
   multiple?: boolean;
   deselectable?: boolean;

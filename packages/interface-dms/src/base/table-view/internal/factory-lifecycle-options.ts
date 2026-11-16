@@ -17,6 +17,7 @@ import { eraseRowType } from "./erase-row-type";
 import { serializeTableViewTabs } from "./tabs";
 import { serializeTableViewViews } from "./views";
 import { serializeEmptyStates, serializeFooter } from "./footer";
+import { readColumnValuesInForm, tableViewColumnValues } from "./column-values";
 
 interface SerializationState<T extends ControllerClass> {
   controller: T;
@@ -65,8 +66,30 @@ export function prepareTableViewSerialization<T extends ControllerClass>(
   };
 }
 
-/** @internal */
-export function serializeTableViewOptions<T extends ControllerClass>(
+/**
+ * The options a table view registers, and what its filter reads for each
+ * request: the declarations, and the columns its options read from the rows.
+ * The forms it opens as pages of their own read those columns too.
+ *
+ * @internal
+ */
+export function serializeTableView<T extends ControllerClass>(
+  prepared: ReturnType<typeof prepareTableViewSerialization<T>>,
+) {
+  const { serialization, declarations } = prepared;
+  const options = serializeTableViewOptions(serialization);
+  const columnValues = tableViewColumnValues(
+    serialization.controller,
+    options,
+    serialization.options.tabsFrom,
+  );
+  for (const form of Object.values(serialization.forms)) {
+    if (form && columnValues) readColumnValuesInForm(columnValues, form);
+  }
+  return { options, declarations: { ...declarations, columnValues } };
+}
+
+function serializeTableViewOptions<T extends ControllerClass>(
   state: SerializationState<T>,
 ): TableViewOptionsSerialized {
   const {

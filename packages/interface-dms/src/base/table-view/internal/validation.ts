@@ -98,6 +98,8 @@ const QUICK_FILTER_VALUED_TYPES = new Set([
 
 interface QuickFilterInputOptions {
   items?: unknown[];
+  /** A select's column whose values the page reads as its items. */
+  itemsFrom?: unknown;
   /** A tags column's suggested tags. */
   suggestions?: unknown[];
   searchUrl?: string;
@@ -118,6 +120,7 @@ function offersQuickFilterValues(type: DataType): boolean {
       type.inputComponent().options ?? {};
     return (
       (options.items?.length ?? 0) > 0 ||
+      options.itemsFrom !== undefined ||
       (options.suggestions?.length ?? 0) > 0 ||
       !!options.searchUrl
     );
@@ -536,6 +539,31 @@ export function assertTabTargets(
 }
 
 /**
+ * Tabs are listed in `tabs` or read from a column with `tabsFrom`, never
+ * both, and the column they are read from is a filterable one.
+ *
+ * @internal
+ */
+export function assertTabsFrom(
+  controllerName: string,
+  meta: TableViewMeta,
+  options: Pick<TableViewOptions, "tabs" | "tabsFrom">,
+): void {
+  const { tabs, tabsFrom } = options;
+  if (!tabsFrom) return;
+  if (tabs !== undefined) {
+    throw new Error(
+      `TableView on ${controllerName} gives both tabs and tabsFrom: list the tabs or read them from a column, not both`,
+    );
+  }
+  if (!meta.columns[tabsFrom.column]?.filterable) {
+    throw new Error(
+      `TableView tabsFrom on ${controllerName} reads "${tabsFrom.column}", which is not a filterable column`,
+    );
+  }
+}
+
+/**
  * Every declaration check `TableView()` runs before it builds anything: the
  * options naming columns, displays, tabs and sizes name ones the table view
  * can have.
@@ -569,4 +597,5 @@ export function validateTableViewOptions<T extends object>(
   validateQuickFilters(controllerName, meta, options.quickFilters);
   validatePageSize(controllerName, options.pageSize);
   assertTabTargets(controllerName, options.tabs);
+  assertTabsFrom(controllerName, meta, options);
 }

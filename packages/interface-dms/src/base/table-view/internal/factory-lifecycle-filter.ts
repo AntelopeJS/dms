@@ -10,6 +10,7 @@ import {
 } from "./request-filter";
 import { resolveTableViewTabs } from "./tabs";
 import { resolveTableViewViews } from "./views";
+import { type TableViewColumnValues, withColumnValues } from "./column-values";
 
 type FilterArguments = Parameters<
   Parameters<ComponentBuilder<TableViewOptionsSerialized>["onFilter"]>[0]
@@ -25,6 +26,8 @@ interface FilterDeclarations<T extends object> {
   meta: TableViewMeta;
   /** Whether the controller mounts a `new` route: without it nobody can add. */
   hasNewEndpoint: boolean;
+  /** The columns the options and the tabs read from the rows, when they read any. */
+  columnValues?: TableViewColumnValues;
 }
 
 /** @internal */
@@ -39,6 +42,7 @@ export async function filterTableViewOptions<T extends object>(
     declaredViews,
     meta,
     hasNewEndpoint,
+    columnValues,
   } = declarations;
   const [permissions, options, permissionId, context] = request;
   const held = await resolveTableViewGrants(permissions, permissionId);
@@ -85,7 +89,7 @@ export async function filterTableViewOptions<T extends object>(
     permissionId,
   );
 
-  return {
+  const served: TableViewOptionsSerialized = {
     ...options,
     enableTableExport: options.enableTableExport && grants.export,
     formComponents: adaptedFormComponents,
@@ -94,4 +98,7 @@ export async function filterTableViewOptions<T extends object>(
     tabs: adaptedTabs,
     views: adaptedViews,
   };
+  return columnValues
+    ? withColumnValues(columnValues, served, permissions, context)
+    : served;
 }

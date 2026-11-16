@@ -18,6 +18,7 @@ import {
   type RouteCallbackContext,
 } from "./page-registration";
 import { pageLayoutHandlers } from "./registry";
+import { withLayoutRequest } from "./layout-request";
 
 /** @internal */
 export function hiddenComponentsFlag(
@@ -47,14 +48,16 @@ export function registerLayoutRoute(
   const routeId = RegisterRoute({
     location: pageInfo.layoutUrl,
     callback: async function (this: RouteCallbackContext) {
-      return resolvePageLayout({
-        user: this.user,
-        memberModel: this.memberModel,
-        roleModel: this.roleModel,
-        tenantId: this.tenantId,
-        query: this.pageQuery,
-        params: this.pageParams,
-      });
+      return withLayoutRequest(this.layoutRequest, () =>
+        resolvePageLayout({
+          user: this.user,
+          memberModel: this.memberModel,
+          roleModel: this.roleModel,
+          tenantId: this.tenantId,
+          query: this.pageQuery,
+          params: this.pageParams,
+        }),
+      );
     },
     method: "GET",
     mode: "handler",

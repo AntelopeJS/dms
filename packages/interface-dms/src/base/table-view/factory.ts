@@ -30,7 +30,7 @@ import { tableViewCreated } from "./internal/factory-lifecycle-created";
 import { filterTableViewOptions } from "./internal/factory-lifecycle-filter";
 import {
   prepareTableViewSerialization,
-  serializeTableViewOptions,
+  serializeTableView,
 } from "./internal/factory-lifecycle-options";
 
 /**
@@ -112,7 +112,6 @@ export function TableView<T extends ControllerClass>(
   const access = tableViewAccess(options.rowActions, capabilities);
   const isWriting = access === "write";
   const forms = buildTableViewForms(controller, options, access);
-  const { view: viewForm } = forms;
 
   const prepared = prepareTableViewSerialization(options, {
     controller,
@@ -138,15 +137,16 @@ export function TableView<T extends ControllerClass>(
 
   registerTableViewActions(builder, {
     ...capabilities,
-    hasViewForm: !!viewForm,
+    hasViewForm: !!forms.view,
     isExportEnabled,
     formsArePages: isPageMode,
   });
 
   recordTableView(meta, builder, access, options);
 
+  const served = serializeTableView(prepared);
   builder
-    .options(serializeTableViewOptions(prepared.serialization))
+    .options(served.options)
     .meta({
       name: options.caption || "TableView",
       icon: "i-ph-table",
@@ -166,7 +166,7 @@ export function TableView<T extends ControllerClass>(
       );
     })
     .onFilter((permissions, options, permissionId, context) => {
-      return filterTableViewOptions(prepared.declarations, [
+      return filterTableViewOptions(served.declarations, [
         permissions,
         options,
         permissionId,
