@@ -59,6 +59,8 @@ export interface OpWarning {
     | "setting_dropped"
     /** A relation of a batch was left out because one of its choices was refused; the others were written. */
     | "relation_skipped"
+    /** A relation asked writable was mapped read-only, because the database account may not insert, update or delete its rows. */
+    | "relation_read_only"
     /** A column display was not written because it does not suit the column; the column is written plain. */
     | "display_dropped"
     /** A column was marked filterable or sortable because a view, footer figure, tab or grouping needs it. */

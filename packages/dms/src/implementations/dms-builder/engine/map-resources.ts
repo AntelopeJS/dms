@@ -28,6 +28,7 @@ import {
   withDeclaredRelations,
 } from "./map-resources-references";
 import { MappingRefusal } from "./mapping-refusal";
+import { withRowWrites } from "./row-writes";
 import { pageOf } from "./mapped-displays";
 import { recordWrittenLiterals } from "./mapped-literals";
 import { markMapped, suspendRowLiterals } from "./mapped-modules";
@@ -301,7 +302,8 @@ function planned(
   descriptions: RelationDescription[],
   defaults: ReadonlyMap<string, DisplayDefaults>,
 ): MappingPlan | OpResult<MapResourcesResult> {
-  const readOnly = writableMappingRefusal(input);
+  const rows = withRowWrites(input, descriptions);
+  const readOnly = writableMappingRefusal(rows.input);
   if (readOnly) {
     return invalidConfig<MapResourcesResult>(readOnly);
   }
@@ -320,14 +322,15 @@ function planned(
     );
   }
   try {
-    const chosen = withDeclaredRelations(input, descriptions);
-    return planMapping(
+    const chosen = withDeclaredRelations(rows.input, descriptions);
+    const plan = planMapping(
       chosen,
       descriptions,
       src,
       mappedTargets(chosen, descriptions),
       defaults,
     );
+    return { ...plan, warnings: [...rows.warnings, ...plan.warnings] };
   } catch (error) {
     if (error instanceof MappingRefusal) {
       return invalidConfig<MapResourcesResult>(error.message);
