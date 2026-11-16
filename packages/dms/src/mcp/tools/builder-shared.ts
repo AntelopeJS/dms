@@ -41,6 +41,16 @@ export async function mappedFileTest(): Promise<(file: string) => boolean> {
   return holdsMappedCode;
 }
 
+/** Structures as the AI reads them, with the row literals a mapping wrote hidden. */
+export async function shownStructures(): Promise<
+  Pick<
+    typeof import("../../implementations/dms-builder/engine"),
+    "shownPageStructure" | "shownResourceStructure"
+  >
+> {
+  return import("../../implementations/dms-builder/engine");
+}
+
 async function shownChanges(
   changes: FileChange[],
 ): Promise<(FileChange | RedactedChange)[]> {

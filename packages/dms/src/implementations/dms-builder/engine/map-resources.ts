@@ -29,7 +29,8 @@ import {
 } from "./map-resources-references";
 import { MappingRefusal } from "./mapping-refusal";
 import { pageOf } from "./mapped-displays";
-import { markMapped } from "./mapped-modules";
+import { recordWrittenLiterals } from "./mapped-literals";
+import { markMapped, suspendRowLiterals } from "./mapped-modules";
 import { targetModule } from "./modules";
 import { changesModule, watchReloadOf } from "./module-reload";
 import { commit, invalidConfig, unsupported } from "./ops";
@@ -383,12 +384,15 @@ export function mapDescribedResources(
       `pages not approved for removal: ${unapproved.join(", ")}. The mapping would remove them now; nothing was written. Preview the mapping again and ask before removing them.`,
     );
   }
+  const kept = suspendRowLiterals(input.module);
   const { result } = writeAll(input, plan);
   if (!result.ok) {
+    recordWrittenLiterals(input.module, kept);
     return result;
   }
   recordMapping(input, plan);
   const pages = writePages(input, plan, result.data);
+  recordWrittenLiterals(input.module, kept);
   const data = {
     resources: result.data,
     leftOut: plan.leftOut,
