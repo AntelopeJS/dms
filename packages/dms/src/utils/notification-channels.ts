@@ -47,7 +47,7 @@ export function registeredChannelOffers(
   return offers;
 }
 
-export function subjectPreferenceKey(subject: NotificationSubjectInfo): string {
+function subjectPreferenceKey(subject: NotificationSubjectInfo): string {
   return `${subject.category.id}:${subject.id}`;
 }
 
@@ -65,7 +65,7 @@ export function channelPreferenceKey(
 }
 
 /** What a stored preference key switches. */
-export interface PreferenceTarget {
+interface PreferenceTarget {
   subject: NotificationSubjectInfo;
   /** Unset for the in-app switch. */
   channel?: NotificationChannelId;

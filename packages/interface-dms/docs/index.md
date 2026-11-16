@@ -82,7 +82,7 @@ Each subpath is its own entry point, and importing one does not load the others.
 | `/base/table-view` | `TableView`, `@Column`, `TableViewRoutes`, guards, row actions | [Base](/docs/interfaces/base/tables) |
 | `/base/data-types` | `DataType`, the registration decorators, `DefaultDataTypes`, `DefaultDataCompareTypes`, `StatusType` | [Base](/docs/interfaces/base/data-types) |
 | `/base/…` | The per-component subpaths, such as `chart`, `grid`, `stack`, `tab`, `custom`, `layouts` and `helpers/…` | [Base](/docs/interfaces/base/introduction) |
-| `/notifications`, `/notifications/types` | Categories, subjects, the notification builder and its dispatch targets | [Notifications](/docs/interfaces/notifications/introduction) |
+| `/notifications`, `/notifications/types` | Categories, subjects, the notification builder, its dispatch targets and delivery channels | [Notifications](/docs/interfaces/notifications/introduction) |
 | `/html-render` | `RegisterHtmlTemplate`, `GenerateHtml` and the template reference types | [HTML Render](/docs/interfaces/html-render/introduction) |
 
 Beyond these entry points, built files are importable through the `./*` export (`@antelopejs/interface-dms/base/form-types`). Moving or renaming a public path is a breaking change, like removing an export.
