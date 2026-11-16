@@ -6,15 +6,25 @@ import { readFileSync } from "node:fs";
 import { fieldOf, isRecord, parseJson } from "../mcp-bridge.mjs";
 
 const STARTERS = new URL("../../packages/dms/frontend-vue/tests/fixtures/mockup-starters/nodes.json", import.meta.url);
-const NOT_DRAWN_TEXT = /Server error|is not iterable|Cannot read properties|is not a registered block type/;
+const NOT_DRAWN_TEXT = /Server error|is not iterable|Cannot read properties|is not a registered block type|reads a backend resource, which a preview does not have|was not drawn/;
+const SITE_PATH_OR_URL = /^(\/|[a-z][a-z0-9+.-]*:)/i;
 
-/** The nodes the /mockup Add tab starts each block as, but those reading a mockup fixture, which only the dev mockup engine serves. */
+/**
+ * The nodes the /mockup Add tab starts each block as, but those reading a mockup fixture, which only the dev mockup
+ * engine serves, and those whose `fetchUrl` is a label for the user to replace, such as Guard's "Data source", which
+ * the preview refuses by design.
+ */
 function starterNodes() {
   const starters = parseJson(readFileSync(STARTERS, "utf8"));
   const types = isRecord(starters) ? Object.keys(starters) : [];
   return types
     .map((type) => ({ type, node: fieldOf(fieldOf(starters, type), "node") }))
-    .filter(({ node }) => node !== undefined && !JSON.stringify(node).includes('"fixture:'));
+    .filter(({ node }) => {
+      if (node === undefined) return false;
+      const json = JSON.stringify(node);
+      const urls = [...json.matchAll(/"fetchUrl":"([^"]*)"/g)].map((match) => match[1]);
+      return !json.includes('"fixture:') && urls.every((url) => SITE_PATH_OR_URL.test(url));
+    });
 }
 
 const CHANNEL = "dms-preview";
