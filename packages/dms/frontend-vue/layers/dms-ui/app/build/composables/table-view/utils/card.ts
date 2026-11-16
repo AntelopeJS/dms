@@ -7,6 +7,7 @@ import type {
 import type { TableViewColumn } from "../../../../composables/table-view/types/column";
 import type { DataTypeFormatter } from "#dms-core/app/composables/data-types/useDataType";
 import { isNull, isObject, isString } from "#dms-core/app/utils/type-check";
+import { readFieldPath } from "#dms-core/app/build/utils/dataTypeValue";
 
 const FALLBACK_CARD_FIELD_COUNT = 4;
 
@@ -138,11 +139,12 @@ export function cardSubtitle(
 ): Parameters<DataTypeFormatter>[0] {
   const row = rowOf(item);
   if (identity.subtitleField) {
-    const subtitle: unknown = get(row, identity.subtitleField);
+    const subtitle = readFieldPath(row, identity.subtitleField);
     if (hasValue(subtitle)) return subtitle;
   }
   if (shown.rowIdKey === DATABASE_ID_KEY) return undefined;
-  if (!shown.labelKey || !hasValue(get(row, shown.labelKey))) return undefined;
+  if (!shown.labelKey || !hasValue(readFieldPath(row, shown.labelKey)))
+    return undefined;
   const id = cardRowId(item, shown.rowIdKey);
   return id || undefined;
 }

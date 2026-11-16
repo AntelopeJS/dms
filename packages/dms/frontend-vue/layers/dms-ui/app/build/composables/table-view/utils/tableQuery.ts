@@ -1,5 +1,6 @@
 import type { PaginationState, SortingState } from "@tanstack/vue-table";
 import type { TableFilter } from "../../../components/table/TableRoot.vue";
+import { textOf } from "#dms-core/app/build/utils/dataTypeValue";
 
 interface QueryConfig {
   pagination: PaginationState;
@@ -41,7 +42,7 @@ const buildFiltersQuery = (filters: TableFilter[]): Record<string, string> => {
   return filters
     .filter(isFilterEffective)
     .reduce<Record<string, string>>((acc, val) => {
-      acc[`filter_${val.accessorKey}`] = `${val.mode}:${String(val.value)}`;
+      acc[`filter_${val.accessorKey}`] = `${val.mode}:${textOf(val.value)}`;
       return acc;
     }, {});
 };

@@ -1,4 +1,5 @@
-<script setup lang="ts" generic="T extends Record<string, unknown>">
+<script setup lang="ts" generic="T extends DataTypeRow">
+import type { DataTypeRow } from "#dms-core/app/types/data-type";
 import { computed } from "vue";
 import { FlexRender, type Table } from "@tanstack/vue-table";
 import { ACTIONS_COLUMN_ID } from "../../composables/table/constants";
@@ -9,7 +10,7 @@ import { ACTIONS_COLUMN_ID } from "../../composables/table/constants";
  * rules and confirmations, as the row does in the grid. Nothing is drawn
  * outside a table (no TanStack instance) or for a table with no row action.
  */
-export interface CardRowActionsProps<T extends Record<string, unknown>> {
+export interface CardRowActionsProps<T extends DataTypeRow> {
   table?: Table<T>;
   rowId: string;
 }

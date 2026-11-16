@@ -13,6 +13,7 @@ import {
   installReadOnlyRefusal,
 } from "./helpers/read-only-refusal";
 import type { TableViewColumn } from "../layers/dms-ui/app/composables/table-view/types";
+import { textOf } from "../layers/dms-core/app/entries/utils/dataTypeValue";
 import {
   type App,
   Suspense,
@@ -91,7 +92,7 @@ const translate = (
   >[1],
 ) =>
   key === "dms.field_errors.named_required"
-    ? `${String(params?.field)} est obligatoire.`
+    ? `${textOf(params?.field)} est obligatoire.`
     : key;
 
 let app: App | undefined;

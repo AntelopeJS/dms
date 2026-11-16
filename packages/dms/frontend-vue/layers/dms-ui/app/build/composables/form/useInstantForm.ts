@@ -1,16 +1,16 @@
 import { type ComputedRef, type Ref, watch } from "vue";
 import type { FormField } from "../../../composables/form/types/field";
-import type { validateFormState } from "./formValidation";
+import type { FormData } from "../../../composables/form/types/value";
 import { cloneFormValue } from "../../../composables/form/useForm";
+import type { ComponentWatchState } from "#dms-core/app/types/watch";
+import type { DataTypeValue } from "#dms-core/app/types/data-type";
 import type { apiErrorStatus } from "#dms-core/app/composables/useFieldErrors";
 import { detach } from "../detach";
-import { sameFormValue } from "../unsaved-changes/formValue";
+import { fieldValueOf, sameFormValue } from "../unsaved-changes/formValue";
 import {
   type InstantSave,
   useInstantSave,
 } from "../instant-save/useInstantSave";
-
-type FormValues = Parameters<typeof validateFormState>[1];
 
 const TYPED_FIELD_TYPES = new Set([
   "string",
@@ -38,30 +38,29 @@ export function savesOnPause(
 }
 
 export interface InstantFormOptions {
-  state: Ref<FormValues>;
+  state: Ref<ComponentWatchState>;
   fields: ComputedRef<FormField[]>;
   /** Until the user acts on the form, a change is a control settling. */
   isTouched: () => boolean;
   /** Validates one field: an invalid value is shown, never sent. */
   isFieldValid: (field: FormField) => Promise<boolean>;
   /** Sends the changed fields, alone (a partial submit). */
-  submit: (changes: FormValues) => Promise<void>;
+  submit: (changes: FormData) => Promise<void>;
   /** Says why a save was refused, once its values are put back. */
   onRefused: (error: Parameters<typeof apiErrorStatus>[0]) => void;
 }
 
-export interface InstantForm extends InstantSave<FormValues> {
+export interface InstantForm extends InstantSave<FormData> {
   /** The form loaded or was reset: its values are the confirmed ones. */
   start: () => void;
   /**
    * A field the server stored on its own (a rotated secret): its value is the
    * confirmed one, not a change to save again.
    */
-  confirmField: (id: string, value: FormValues[string]) => void;
+  confirmField: (id: string, value: DataTypeValue) => void;
 }
 
-const clone = (value: FormValues[string]): FormValues[string] =>
-  cloneFormValue(value);
+const clone = (value: DataTypeValue): DataTypeValue => cloneFormValue(value);
 
 /**
  * The instant save of a `Form` (`saveMode: "instant"`): each field the user
@@ -70,12 +69,12 @@ const clone = (value: FormValues[string]): FormValues[string] =>
  * server last confirmed when refused.
  */
 export function useInstantForm(options: InstantFormOptions): InstantForm {
-  const shown = new Map<string, unknown>();
+  const shown = new Map<string, DataTypeValue>();
 
   const checks = new Map<string, number>();
 
-  const instant = useInstantSave<FormValues>({
-    read: (key) => options.state.value[key],
+  const instant = useInstantSave<FormData>({
+    read: (key) => fieldValueOf(options.state.value, key),
     write: (key, value) => {
       shown.set(key, clone(value));
       options.state.value[key] = clone(value);
@@ -85,16 +84,16 @@ export function useInstantForm(options: InstantFormOptions): InstantForm {
   });
 
   function start(): void {
-    const values: FormValues = {};
+    const values: FormData = {};
     for (const field of options.fields.value) {
-      const value = clone(options.state.value[field.id]);
+      const value = clone(fieldValueOf(options.state.value, field.id));
       shown.set(field.id, value);
       values[field.id] = value;
     }
     instant.confirm(values);
   }
 
-  function confirmField(id: string, value: FormValues[string]): void {
+  function confirmField(id: string, value: DataTypeValue): void {
     const confirmed = clone(value);
     shown.set(id, confirmed);
     instant.confirm({ [id]: confirmed });
@@ -102,7 +101,7 @@ export function useInstantForm(options: InstantFormOptions): InstantForm {
 
   async function saveField(
     field: FormField,
-    value: FormValues[string],
+    value: DataTypeValue,
   ): Promise<void> {
     const check = (checks.get(field.id) ?? 0) + 1;
     checks.set(field.id, check);
@@ -119,7 +118,7 @@ export function useInstantForm(options: InstantFormOptions): InstantForm {
     () => options.fields.value.map((field) => options.state.value[field.id]),
     () => {
       for (const field of options.fields.value) {
-        const value = clone(options.state.value[field.id]);
+        const value = clone(fieldValueOf(options.state.value, field.id));
         if (sameFormValue(shown.get(field.id), value)) continue;
         shown.set(field.id, value);
         if (!options.isTouched()) {
