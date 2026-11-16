@@ -28,6 +28,7 @@ import {
   withDeclaredRelations,
 } from "./map-resources-references";
 import { MappingRefusal } from "./mapping-refusal";
+import { withRowWrites } from "./row-writes";
 import { pageOf } from "./mapped-displays";
 import { recordWrittenLiterals } from "./mapped-literals";
 import { markMapped, suspendRowLiterals } from "./mapped-modules";
@@ -319,15 +320,17 @@ function planned(
       `module "${input.module}" has no src/index.ts`,
     );
   }
+  const rows = withRowWrites(input, descriptions);
   try {
-    const chosen = withDeclaredRelations(input, descriptions);
-    return planMapping(
+    const chosen = withDeclaredRelations(rows.input, descriptions);
+    const plan = planMapping(
       chosen,
       descriptions,
       src,
       mappedTargets(chosen, descriptions),
       defaults,
     );
+    return { ...plan, warnings: [...rows.warnings, ...plan.warnings] };
   } catch (error) {
     if (error instanceof MappingRefusal) {
       return invalidConfig<MapResourcesResult>(error.message);
