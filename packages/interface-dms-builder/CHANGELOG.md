@@ -18,18 +18,12 @@
 ### 💅 Refactors
 
 - **dms:** Check a database connection with the probe its driver exports ([#1055](https://github.com/AntelopeJS/dms/pull/1055))
-- **interface-dms-builder:** Remove the SampleDatabaseRows operation ([#1093](https://github.com/AntelopeJS/dms/pull/1093))
-- **interface-dms-builder:** Restore the SampleDatabaseRows operation ([#1098](https://github.com/AntelopeJS/dms/pull/1098))
 
 ### 📖 Documentation
 
 - **interface-dms-builder:** Say when a second catalog provider needs exportPriority or a pin ([#1026](https://github.com/AntelopeJS/dms/pull/1026))
 - **dms:** Replace dms-ai and dms-builder with dms-assistant ([#894](https://github.com/AntelopeJS/dms/pull/894))
 - **interface-dms-builder:** Allow disabledExports on the own database's catalog ([#1043](https://github.com/AntelopeJS/dms/pull/1043))
-
-#### ⚠️ Breaking Changes
-
-- **interface-dms-builder:** Remove the SampleDatabaseRows operation ([#1093](https://github.com/AntelopeJS/dms/pull/1093))
 
 ### ❤️ Contributors
 
