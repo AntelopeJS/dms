@@ -29,7 +29,7 @@ import { stringLiteralValue } from "./literals";
 import { contentVersion, pageVersion } from "./page-structure";
 import { parseBlockPath } from "./paths";
 import { moduleMismatch } from "./modules";
-import { pruningOrphans, writePatch } from "./options-patch";
+import { blockPatch, pruningOrphans, writePatch } from "./options-patch";
 import {
   type PatchedOptions,
   patchRequestIssues,
@@ -353,7 +353,12 @@ export function configureBlock(
   try {
     const metaWritten = pruningOrphans(context.sourceFile, () => {
       const options = ensureOptionsObject(resolved.target);
-      writePatch(options, patch, opts?.replace ?? false, ctx);
+      writePatch(
+        options,
+        blockPatch(resolved.target.type, patch),
+        opts?.replace ?? false,
+        ctx,
+      );
       if (!opts?.meta) return true;
       const metaObject = ensureChildMetaObject(resolved.target);
       if (metaObject) writePatch(metaObject, opts.meta, false, ctx);

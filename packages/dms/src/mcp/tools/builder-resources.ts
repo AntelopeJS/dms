@@ -117,7 +117,7 @@ const resourceStructure = defineTool({
   name: "builder_resource_structure",
   title: "Resource structure",
   description: withEscalationNote(
-    "Returns a resource's fields with their semantic aspects, its `routes` (absent when it serves the full set), and a version hash for optimistic concurrency. Hand-edited or relation fields come back marked `opaque` — safe mode cannot reconfigure those. A select's `items` and a price's `currency` that a mapping from a connected database wrote read `{ $hidden: n }`, n the values it read from rows: leave `dataType` out of a patch to keep them. The ones you wrote read as written.",
+    "Returns a resource's fields with their semantic aspects, its `routes` (absent when it serves the full set), and a version hash for optimistic concurrency. Hand-edited or relation fields come back marked `opaque` — safe mode cannot reconfigure those. In a module mapped from a connected database, a badge's select reads its items from a column (`itemsFrom: { column }`, `items: []`) and a price may read its currency from one (`currencyFrom: { column }`): the DMS reads those values from the rows when it serves the page. A select's `items` and a price's `currency` that a mapping wrote before that read `{ $hidden: n }`, n the values it read from rows: leave `dataType` out of a patch to keep them. The ones you wrote read as written.",
   ),
   effect: "read",
   input: z.object({ ref: z.string() }),

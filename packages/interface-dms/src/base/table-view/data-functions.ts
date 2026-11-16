@@ -7,6 +7,7 @@ import type { RowActionRule } from "../types/row-action";
 import type { TableViewMeta } from "./meta";
 import type { TableViewFooterSummary } from "./options";
 import type {
+  ColumnValues,
   FooterSummaryValues,
   RowBulkOperationParams,
 } from "./internal/data-functions";
@@ -60,6 +61,24 @@ export const summarizeWithSearch = InterfaceFunction<
     permissions?: Set<string>,
   ) => Promise<FooterSummaryValues>
 >();
+
+/**
+ * The distinct values of each column over every row a list request reads,
+ * its filters and archive view included: at most `MAX_COLUMN_VALUES + 1`
+ * read per column. A column the controller does not list answers nothing.
+ *
+ * @internal
+ */
+export const distinctWithSearch =
+  InterfaceFunction<
+    (
+      thisObj: DataControllerInstance,
+      ctx: RequestContext,
+      columns: string[],
+      user?: User,
+      permissions?: Set<string>,
+    ) => Promise<ColumnValues[]>
+  >();
 
 /**
  * A table's rows as a route outside its data controller reads them (a page's

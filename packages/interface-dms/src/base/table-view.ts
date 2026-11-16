@@ -27,6 +27,7 @@ export {
   BULK_ALL_MATCHING_KEY,
   type BulkRowSource,
   countWithSearch,
+  distinctWithSearch,
   MAX_BULK_MATCHING_ROWS,
   resolveBulkRowIds,
   summarizeWithSearch,

@@ -2,26 +2,30 @@ import fs from "node:fs";
 import path from "node:path";
 import { expect } from "chai";
 import { mockupTool, run } from "../../helpers/mockup-mcp";
-import {
-  CONNECTION,
-  connectDatabase,
-  createOpsCategory,
-  fixture,
-  MAPPED,
-  mapOrders,
-  ORDERS,
-  PageSchema,
-  valueFree,
-  WrittenSchema,
-} from "./helpers/mapped-orders";
 import { projectFile } from "./helpers/project-files";
 import { MODULE, OP_TIMEOUT } from "./mapped-database";
+import {
+  CONNECTION,
+  ORDERS,
+  ROW_VALUES,
+  PageSchema,
+  ITEMS_FROM_STATUS,
+  CURRENCY_FROM_CURRENCY,
+  TABS_FROM_STATUS,
+  moduleCode,
+  valueFree,
+  mapOrders,
+  writtenWithRowValues,
+  connectDatabase,
+  fixture,
+} from "./helpers/mapped-orders";
 
 /**
  * The AI gets the shape of a connected database, never its values. Each tool that reads the
- * database answers with every value above left out; an implementation that passes a profile's
- * range, category values or months through, or a proposal's badge items or currency, or a written
- * file's diff, fails here.
+ * database answers with every value above left out, and the module it maps holds none in any of
+ * its files; an implementation that passes a profile's range, category values or months through,
+ * or a proposal's badge items or currency, or a written file's diff, or that writes a badge's
+ * items, a currency or tabs read from rows into the code, fails here.
  */
 describe("[unit] the tools that read a connected database answer no value of a row", function () {
   this.timeout(OP_TIMEOUT);
@@ -58,22 +62,15 @@ describe("[unit] the tools that read a connected database answer no value of a r
     expect(analysed).to.include('{"kind":"price"}');
   });
 
-  it("writes the badge and the currency it reads itself when they are sent back as shown, and answers neither", async () => {
-    await valueFree("builder_analyse_database", {
-      connection: CONNECTION,
-      module: MODULE,
-    });
-    const written = WrittenSchema.parse(
-      JSON.parse(await valueFree("builder_map_resources", MAPPED)),
-    );
-    const code = written.data.resources
-      .flatMap((resource) => resource.files)
-      .map((file) =>
-        projectFile(fixture().root, path.relative(fixture().root, file)),
-      )
-      .join("\n");
-    expect(code).to.include("zq_paid");
-    expect(code).to.include("JPY");
+  it("writes the badge, the currency and the tabs as references to their columns, and no value of a row in the module", async () => {
+    await mapOrders();
+    const code = moduleCode();
+    for (const value of ROW_VALUES) {
+      expect(code, `the module's code holds ${value}`).to.not.include(value);
+    }
+    expect(code).to.match(ITEMS_FROM_STATUS);
+    expect(code).to.match(CURRENCY_FROM_CURRENCY);
+    expect(code).to.match(TABS_FROM_STATUS);
     const mapping = await valueFree("builder_mapping", {
       connection: CONNECTION,
       module: MODULE,
@@ -83,18 +80,19 @@ describe("[unit] the tools that read a connected database answer no value of a r
 });
 
 /**
- * The code a mapping wrote holds badge items, tabs and a currency read from rows. Each builder tool
- * that reads or edits that code answers with every value above left out; an implementation that
- * shows a structure or a diff of the mapped code, or of a mapped page moved out of its module,
- * fails here, and so does one that lets an edit drop what it hides.
+ * A module mapped before references holds badge items, tabs and a currency read from rows. Each
+ * builder tool that reads or edits that code answers with every value above left out; an
+ * implementation that shows a structure or a diff of the mapped code, or of a mapped page moved
+ * out of its module, fails here, and so does one that lets an edit drop what it hides.
  */
-describe("[unit] the builder tools over a mapped module's code answer no value of a row", function () {
+describe("[unit] the builder tools over a module mapped before references answer no value of a row", function () {
   this.timeout(OP_TIMEOUT);
 
   connectDatabase();
 
-  it("reads the code it wrote back with the values it read from rows hidden, and keeps them on an edit", async () => {
+  it("reads the code back with the values it holds from rows hidden, and keeps them on an edit", async () => {
     const orders = await mapOrders();
+    await writtenWithRowValues(orders);
     const fields = await valueFree("builder_resource_structure", {
       ref: orders.ref,
     });
@@ -155,7 +153,11 @@ describe("[unit] the builder tools over a mapped module's code answer no value o
 
   it("keeps the values hidden on a mapped page moved into a project category", async () => {
     const orders = await mapOrders();
-    await createOpsCategory();
+    await writtenWithRowValues(orders);
+    await valueFree("builder_create_category", {
+      name: "ops",
+      displayName: "Ops",
+    });
     const moved = await valueFree("builder_configure_page", {
       pageRef: orders.page,
       patch: { category: "pages.ops" },

@@ -1,3 +1,4 @@
+import type { RequestContext } from "@antelopejs/interface-api";
 import { Logging } from "@antelopejs/interface-core/logging";
 import type { User } from "../../auth/db";
 import { RoleModel, TenantMemberModel } from "../../db";
@@ -12,6 +13,8 @@ export interface RouteCallbackContext {
   pageQuery: Record<string, string>;
   /** The route parameters of the layout request: the page URL's own. */
   pageParams: Record<string, string>;
+  /** The layout request, which the components it serves read their rows as. */
+  layoutRequest: RequestContext;
 }
 
 /**

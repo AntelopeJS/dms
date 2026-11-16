@@ -1,3 +1,4 @@
+import path from "node:path";
 import { ImplementInterface } from "@antelopejs/interface-core";
 import type {
   MeasureValue,
@@ -10,6 +11,7 @@ import { expect } from "chai";
 import { z } from "zod";
 import * as implementation from "../../../../implementations/dms-builder";
 import {
+  recordWrittenLiterals,
   setCatalogConnectionsForTests,
   setModuleReloadForTests,
 } from "../../../../implementations/dms-builder/engine";
@@ -17,6 +19,7 @@ import { mockupTool, run } from "../../../helpers/mockup-mcp";
 import { Column, INFO, Relation } from "../analysis-catalog";
 import { createFixture, destroyFixture, type Fixture } from "../harness";
 import { MODULE } from "../mapped-database";
+import { projectTree } from "./project-files";
 import { reloadedAtOnce } from "../reload-stub";
 
 export const CONNECTION = "erp";
@@ -117,8 +120,19 @@ const PROFILE: RelationProfile = {
   inbound: [],
 };
 
-/** The call that maps `erp.orders`, with `status` drawn as `display`. */
-export function mappingOfOrders(display: JsonValue): JsonValue {
+/** The call that maps `erp.orders`, with `status` drawn as `display` and the columns `keeps` keeps. */
+export function mappingOfOrders(
+  display: JsonValue,
+  keeps = (_column: string) => true,
+): JsonValue {
+  const columns: { [key: string]: JsonValue; column: string }[] = [
+    { column: "id" },
+    { column: "status", filterable: true, display },
+    { column: "currency" },
+    { column: "total", display: { kind: "price" } },
+    { column: "placed_at" },
+  ];
+  const fields = columns.filter((field) => keeps(field.column));
   return {
     module: MODULE,
     connection: CONNECTION,
@@ -127,13 +141,7 @@ export function mappingOfOrders(display: JsonValue): JsonValue {
         relation: ORDERS,
         tableView: true,
         writable: false,
-        fields: [
-          { column: "id" },
-          { column: "status", filterable: true, display },
-          { column: "currency" },
-          { column: "total", display: { kind: "price" } },
-          { column: "placed_at" },
-        ],
+        fields,
       },
     ],
   };
@@ -157,11 +165,27 @@ export const PageSchema = z.object({
   data: z.object({ page: z.object({ filepath: z.string() }) }),
 });
 
+export const MappingSchema = z.object({
+  data: z.array(
+    z.object({ resource: z.object({ tabs: z.unknown().optional() }) }),
+  ),
+});
+
+export const ITEMS_FROM_STATUS = /itemsFrom:\s*\{\s*column:\s*"status"\s*\}/;
+export const CURRENCY_FROM_CURRENCY =
+  /currencyFrom:\s*\{\s*column:\s*"currency"\s*\}/;
+export const TABS_FROM_STATUS = /tabsFrom:\s*\{\s*column:\s*"status"\s*\}/;
+
 let app: Fixture;
 
 /** The fixture the current test runs on. */
 export function fixture(): Fixture {
   return app;
+}
+
+/** Every file of the mapped module, as one text. */
+export function moduleCode(): string {
+  return projectTree(app.root, path.join("modules", MODULE));
 }
 
 /** Creates the project's own category `pages.ops`. */
@@ -202,6 +226,61 @@ export async function mapOrders(): Promise<MappedOrders> {
   if (orders === undefined) {
     expect.fail("builder_map_resources mapped no resource");
   }
+  return orders;
+}
+
+/** The badge items of `status` a mapping wrote before references. */
+const STATUS_ITEMS = [
+  { label: "Zq paid", value: "zq_paid", textColor: "success" },
+  { label: "Zq held", value: "zq_held", textColor: "primary" },
+  { label: "Zq void", value: "zq_void", textColor: "secondary" },
+];
+
+/** The tabs a mapping wrote before references, one per badge item of `status`. */
+const STATUS_TABS = [
+  { id: "all", label: "All" },
+  ...STATUS_ITEMS.map(({ label, value, textColor }) => ({
+    id: `status-${value.replace("_", "-")}`,
+    label,
+    filter: { accessorKey: "status", value, mode: "is" },
+    textColor,
+  })),
+];
+
+/**
+ * Leaves the mapped code as dms 0.20.8 and before wrote it: the badge items, the currency and the
+ * tabs hold the values of the rows of `erp.orders`, and the module records them as its mapping's.
+ */
+export async function writtenWithRowValues(
+  orders: MappedOrders,
+): Promise<void> {
+  const edits = [
+    await run(mockupTool("builder_configure_field"), {
+      path: `${orders.ref}#status`,
+      patch: {
+        dataType: { $dataType: "select", config: { items: STATUS_ITEMS } },
+      },
+    }),
+    await run(mockupTool("builder_configure_field"), {
+      path: `${orders.ref}#total`,
+      patch: { dataType: { $dataType: "price", config: { currency: "JPY" } } },
+    }),
+    await run(mockupTool("builder_configure_block"), {
+      path: `${orders.page}#table`,
+      patch: { caption: "Orders", tabs: STATUS_TABS },
+      replace: true,
+    }),
+  ];
+  for (const { isError, text } of edits) {
+    expect(isError, text).to.equal(false);
+  }
+  recordWrittenLiterals(MODULE, []);
+}
+
+/** {@link mapOrders}, then the code left as dms 0.20.8 and before wrote it ({@link writtenWithRowValues}). */
+export async function mapOrdersWithRowValues(): Promise<MappedOrders> {
+  const orders = await mapOrders();
+  await writtenWithRowValues(orders);
   return orders;
 }
 

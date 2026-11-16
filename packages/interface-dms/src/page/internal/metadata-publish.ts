@@ -1,4 +1,5 @@
 /** @internal */
+import { Context } from "@antelopejs/interface-api";
 import { UnregisterPermission } from "../../permissions";
 import { internal, isOwnerOnly } from "../categories";
 import type { PageMetadata } from "../metadata";
@@ -67,6 +68,7 @@ export function publish(
   context.auth(pageInfo);
   RequestQueryProperty()(prototypeOf(controller), "pageQuery");
   RequestRouteParametersProperty()(prototypeOf(controller), "pageParams");
+  Context()(prototypeOf(controller), "layoutRequest");
   context.route(pageInfo);
 }
 
