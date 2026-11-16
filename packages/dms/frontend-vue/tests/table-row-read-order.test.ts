@@ -194,3 +194,21 @@ it("never writes a row read into the row that took its place after a delete", as
   expect(container.textContent).toContain("Order B");
   expect(container.textContent).not.toContain("Order A");
 });
+
+it("keeps the newer version when a row read of a view that unmounted answers after the view mounts again", async () => {
+  const { app, container, remount } = await mountTableView();
+  apps.push(app);
+  await settleRead();
+
+  await save("Order v1");
+  rename("r1", "Order v2");
+  remount();
+  await settleRead();
+  await settleRead();
+  expect(container.textContent).toContain("Order v2");
+
+  await answer(readsOf("get")[0]);
+
+  expect(container.textContent).toContain("Order v2");
+  expect(container.textContent).not.toContain("Order v1");
+});

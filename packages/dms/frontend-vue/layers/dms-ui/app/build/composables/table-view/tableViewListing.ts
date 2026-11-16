@@ -111,7 +111,6 @@ export function useTableViewListState<T extends Data>(
   const { activeGroupedOptions } = scope.groupingOptions;
   const { isGroupedDisplay, pickedSorting } = scope.querySorting;
   const { rowSelect } = scope.urlFilters;
-  let listReadCount = 0;
   const listData = useTableListData<T>({
     componentId,
     pageId,
@@ -120,11 +119,8 @@ export function useTableViewListState<T extends Data>(
     archiveQuery,
     isSelfManaged: isActiveDisplaySelfManaged,
     heldQuery: liveHold.heldQuery,
-    onRead: () => {
-      listReadCount += 1;
-    },
   });
-  const { data, status, error } = listData;
+  const { data, status, error, readOrder } = listData;
   const refresh: typeof listData.refresh = (...args) =>
     listData.refresh(...args);
 
@@ -177,7 +173,7 @@ export function useTableViewListState<T extends Data>(
     shownData,
     isFirstPageLoading,
     listNotFound,
-    listReads: () => listReadCount,
+    readOrder,
   };
 }
 

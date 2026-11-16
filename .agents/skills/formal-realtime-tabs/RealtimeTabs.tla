@@ -268,7 +268,7 @@ SubscribeServed(t) ==
 (* reads the record again, since a save made before them sent no event:   *)
 (* through the live gate, which a page without `live` passes, the page    *)
 (* arms its burst (usePageDataRefresh.ts:45-53) and the table reads its   *)
-(* list again (tableViewRealtime.ts:173-175, tableViewLive.ts:114-122).   *)
+(* list again (tableViewRealtime.ts:170-172, tableViewLive.ts:114-122).   *)
 CatchUp(r) ==
   IF View = "page" THEN [r EXCEPT !.burst = TRUE] ELSE ReadList(r)
 SubscribeAnswered(t) ==
@@ -320,7 +320,7 @@ GetReads(t, w) ==
 
 (* Its answer replaces the row unless the answer of a read that started   *)
 (* later already did; events arrive in write order, so w orders the reads *)
-(* (tableViewRealtime.ts:65-79). A list read that left since dropped it   *)
+(* (tableViewRealtime.ts:62-76). A list read that left since dropped it   *)
 (* (ReadList).                                                             *)
 GetAnswers(t, w) ==
   /\ IsOpen(t)

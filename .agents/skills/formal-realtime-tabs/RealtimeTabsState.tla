@@ -119,7 +119,7 @@ OnConnection(r, next) ==
                      !.ask = IF next # 0 THEN AskSent(next) ELSE NoAsk] \* useUserRealtime.ts:323, 264-272
 
 (* The table's list read leaves: a row read still in flight will drop its *)
-(* answer (tableViewListing.ts:123-125, tableViewRealtime.ts:69, 72).      *)
+(* answer (useTableListData.ts:96-106, tableViewRealtime.ts:66, 69).     *)
 ReadList(r) == [r EXCEPT !.run = RunSent, !.gets = [w \in Writes |-> NoRun]]
 
 (* An event of P's topics reaches the consumer of the record. *)
@@ -130,10 +130,10 @@ OnData(r, w) ==
   \* timer through the live gate, which a page without `live` passes
   \* (usePageDataRefresh.ts:37-38, currentPageLive.ts:131-135).
   THEN IF r.topics THEN [r EXCEPT !.burst = TRUE] ELSE r
-  \* The row topic handler is on from mount (tableViewRealtime.ts:159-171);
+  \* The row topic handler is on from mount (tableViewRealtime.ts:156-168);
   \* a table whose list is loading, not answered yet or read again, reads
-  \* its list again, which aborts the read in flight (tableViewRealtime.ts:136-139,
-  \* tableViewListing.ts:138-140), else it reads the row (tableViewRealtime.ts:140-143, 71).
+  \* its list again, which aborts the read in flight (tableViewRealtime.ts:133-136,
+  \* tableViewListing.ts:134-136), else it reads the row (tableViewRealtime.ts:137-140, 68).
   ELSE IF r.loaded /\ r.run = NoRun THEN [r EXCEPT !.gets[w] = RunSent] ELSE ReadList(r)
 
 (* A relayed frame: the tab's listener keeps frames of the connection it   *)
