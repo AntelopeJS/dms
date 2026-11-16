@@ -2,9 +2,13 @@ import { InterfaceFunction } from "@antelopejs/interface-core";
 import type { BlockPath, PageRef } from "./addressing";
 import type { QueryPreviewRequest } from "./drafts";
 import type { AddQueryInput, QueryPreview, QueryRef } from "./queries";
-import type { AddBlockInput, CreatePageInput } from "./operations";
+import type {
+  AddBlockInput,
+  BlockWriteOpts,
+  CreatePageInput,
+} from "./operations";
 import type { ResourceRef } from "./resources";
-import type { MutationOpts, OpResult } from "./results";
+import type { OpResult } from "./results";
 
 /**
  * The query a data block reads, in {@link AddQueryInput}'s shape. The route it
@@ -109,6 +113,6 @@ export const ComposePage =
   InterfaceFunction<
     (
       input: ComposePageInput,
-      opts?: MutationOpts,
+      opts?: BlockWriteOpts,
     ) => Promise<OpResult<ComposePageData>>
   >();

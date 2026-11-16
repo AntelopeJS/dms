@@ -9,6 +9,7 @@ import type {
   ConfirmValues,
 } from "../../../composables/confirm/types";
 import { resolveConfirmDialog } from "./confirmDialogTexts";
+import { drawableFetchedDialog } from "./fetchedConfirmDialog";
 import type { DownloadFetch } from "../../utils/fileDownload";
 import { secondaryTargetRunner } from "./secondaryTarget";
 import { namesPageValue, resolveLinkVariables } from "../../utils/urlVariables";
@@ -61,7 +62,11 @@ export function useActionConfirm() {
       ...request.urlParams,
     });
     try {
-      return await $authFetch<ConfirmDialog>(url);
+      const drawable = drawableFetchedDialog(
+        await $authFetch<ConfirmDialog>(url),
+      );
+      if (!drawable) throw new Error(`${url} answered a field it cannot draw`);
+      return drawable;
     } catch (error) {
       errorPresenter.presentError(error, {
         fallbackKey: "dms.action_error.generic",

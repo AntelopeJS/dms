@@ -64,6 +64,7 @@ export interface TableViewOptionsSerialized extends Omit<
   | "forms"
   | "expandable"
   | "tabs"
+  | "tabsFrom"
   | "views"
   | "footer"
   | "emptyStates"
@@ -303,6 +304,15 @@ export interface TableViewOptions<
    * registration when a table declares tabs without it.
    */
   tabs?: TableViewTab[];
+  /**
+   * Reads the tabs from the rows instead of listing them in `tabs`: "All",
+   * then a tab per value `column`, a filterable column of the controller,
+   * holds in the rows the caller may list, filtering the rows that hold it
+   * and drawn in the tone the DMS's status rules give it. Read when the page
+   * is served; no tabs show when the column holds none, more than 10 values,
+   * or cannot be read. Registration refuses it together with `tabs`.
+   */
+  tabsFrom?: { column: string };
   /**
    * When false, disables realtime broadcast/presence for this resource.
    * Defaults to true (realtime is opt-out).

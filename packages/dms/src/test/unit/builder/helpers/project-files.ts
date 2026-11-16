@@ -57,6 +57,17 @@ export function projectFile(root: string, relativePath: string): string {
   return fs.readFileSync(path.join(root, relativePath), "utf8");
 }
 
+/** Every file under a fixture project's directory, at any depth, as one text. */
+export function projectTree(root: string, relativePath: string): string {
+  const directory = path.join(root, relativePath);
+  return fs
+    .readdirSync(directory, { recursive: true, encoding: "utf8" })
+    .map((file) => path.join(directory, file))
+    .filter((file) => fs.statSync(file).isFile())
+    .map((file) => fs.readFileSync(file, "utf8"))
+    .join("\n");
+}
+
 /** The names a fixture project's directory holds. */
 export function projectDirectory(root: string, relativePath: string): string[] {
   return fs.readdirSync(path.join(root, relativePath));

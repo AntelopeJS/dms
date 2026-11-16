@@ -81,6 +81,13 @@ export const SHOP: RelationDescription[] = [
   ),
 ];
 
+/** A select reading its items from the rows of `status`, as the mapping writes it. */
+export const ITEMS_FROM_STATUS =
+  /items: \[\],\s*itemsFrom:\s*\{\s*column:\s*"status"\s*\}/;
+
+/** Tabs reading their values from the rows of `status`, as the mapping writes them. */
+export const TABS_FROM_STATUS = /tabsFrom:\s*\{\s*column:\s*"status"\s*\}/;
+
 export const STATUS: ColumnDisplay = {
   kind: "badge",
   items: [

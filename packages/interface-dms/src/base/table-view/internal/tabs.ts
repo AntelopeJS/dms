@@ -95,10 +95,11 @@ export async function resolveTableViewTabs(
  * @internal
  */
 export function declaresCounters(
-  options: Pick<TableViewOptions, "tabs" | "views" | "grouped">,
+  options: Pick<TableViewOptions, "tabs" | "tabsFrom" | "views" | "grouped">,
 ): boolean {
   return (
     (options.tabs?.length ?? 0) > 0 ||
+    options.tabsFrom !== undefined ||
     !!options.views?.items.some((view) => view.count) ||
     !!options.grouped?.count
   );

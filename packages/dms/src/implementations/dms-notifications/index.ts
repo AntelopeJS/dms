@@ -18,6 +18,7 @@ import {
   UserNotificationsModel,
   buildNewUserNotification,
 } from "../../db/models";
+import { userIdsHoldingAnyRole } from "../../db";
 import type { UserNotification } from "../../db/tables";
 import { getRealtimeBroker, buildUserNotificationTopic } from "../../realtime";
 import { runInBatches } from "../../utils/run-in-batches/index";
@@ -304,7 +305,10 @@ export namespace internal {
       return;
     }
 
-    const userIds = await collectUserIdsWithRoles(roleIds, options.tenantId);
+    const userIds = await userIdsHoldingAnyRole(
+      GetModel(TenantMemberModel, options.tenantId ?? CROSS_INSTANCE),
+      roleIds,
+    );
 
     if (userIds.length === 0) {
       return;
@@ -319,29 +323,6 @@ export namespace internal {
     );
   }
 
-  async function collectUserIdsWithRoles(
-    roleIds: string[],
-    tenantId: string | undefined,
-  ): Promise<string[]> {
-    const targetRoleIds = new Set(roleIds);
-    const memberModel = GetModel(TenantMemberModel, tenantId ?? CROSS_INSTANCE);
-    const userIds = new Set<string>();
-    let offset = 0;
-    while (true) {
-      const members = await memberModel.table
-        .slice(offset, offset + NOTIFICATION_RECIPIENT_PAGE_SIZE)
-        .run();
-      for (const member of members) {
-        if (member.roleIds?.some((roleId) => targetRoleIds.has(roleId))) {
-          userIds.add(member.userId);
-        }
-      }
-      if (members.length < NOTIFICATION_RECIPIENT_PAGE_SIZE) break;
-      offset += NOTIFICATION_RECIPIENT_PAGE_SIZE;
-    }
-    return Array.from(userIds);
-  }
-
   export async function SendToAll(
     data: NotificationData,
     readScope: ReadScope = "individual",
@@ -354,7 +335,9 @@ export namespace internal {
     let offset = 0;
     while (true) {
       const users = await userModel.table
-        .slice(offset, offset + NOTIFICATION_RECIPIENT_PAGE_SIZE)
+        .orderBy("_id")
+        .slice(offset, NOTIFICATION_RECIPIENT_PAGE_SIZE)
+        .pluck("_id")
         .run();
       await sendToUsersWithGroupId(
         users.map((user) => user._id),

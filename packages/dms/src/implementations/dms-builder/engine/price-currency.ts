@@ -91,6 +91,55 @@ export function currencyOfSibling(
 }
 
 /**
+ * What a price writes for its currency: a code as written, a currency column of its relation the
+ * page reads the code from, or none (euros).
+ */
+export type PriceCurrency =
+  | { currency: string }
+  | { currencyFrom: { column: string } }
+  | undefined;
+
+/** What the database states about an amount column's currency, read from its schema alone. */
+export interface CurrencySchema {
+  /** The code the amount column's comment states. */
+  stated?: string;
+  /** The relation's columns named like a currency (`currency`, `currency_code`). */
+  columns: string[];
+  /** The columns the mapping declares. */
+  mapped: ReadonlySet<string>;
+}
+
+/** The columns of a relation named like a currency: the only ones a code read from rows comes from. */
+export function currencyColumnsOf(description: RelationDescription): string[] {
+  return description.columns
+    .map((column) => column.name)
+    .filter(isCurrencyColumn);
+}
+
+/**
+ * How a price writes `given`, the currency its display holds. The code the amount column's
+ * comment states is schema, written as such. A relation with currency columns may have given its
+ * code from their rows, so it is never written: its one mapped currency column is read when the
+ * page is served, else the price is plain. In a relation without one, a code the caller gave is
+ * written.
+ */
+export function priceCurrency(
+  given: string | undefined,
+  { stated, columns, mapped }: CurrencySchema,
+): PriceCurrency {
+  if (given !== undefined && given === stated) {
+    return { currency: given };
+  }
+  const [only, ...rest] = columns;
+  if (only === undefined) {
+    return given === undefined ? undefined : { currency: given };
+  }
+  return rest.length === 0 && mapped.has(only)
+    ? { currencyFrom: { column: only } }
+    : undefined;
+}
+
+/**
  * The currency an amount column is in, when the database says: its comment, else a sibling
  * currency column that holds one code.
  */

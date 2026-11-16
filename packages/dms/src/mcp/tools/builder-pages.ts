@@ -1,7 +1,6 @@
 import {
   AddBlock,
   ConfigureBlock,
-  type ConfigureBlockOpts,
   ConfigureCategory,
   ConfigurePage,
   CreateCategory,
@@ -31,7 +30,6 @@ import {
   refusalResult,
   TARGET_MODULE,
 } from "./builder-shared";
-import { foreignRequestRefusal, judgePatch } from "./builder-request-targets";
 
 const listPages = defineTool({
   name: "builder_list_pages",
@@ -48,7 +46,7 @@ const pageStructure = defineTool({
   name: "builder_page_structure",
   title: "Builder page structure",
   description: withEscalationNote(
-    `Returns a page's block tree (each block's path, type, editability, config) plus a version hash for optimistic concurrency. ${BLOCK_PATH_FORMAT} A TableView's \`tabs\`, a select's \`items\` and a price's \`currency\` that a mapping from a connected database wrote read \`{ $hidden: n }\`, n the values it read from rows: leave that key out of a patch to keep it. The ones you wrote read as written.`,
+    `Returns a page's block tree (each block's path, type, editability, config) plus a version hash for optimistic concurrency. ${BLOCK_PATH_FORMAT} A mapped TableView reads its tabs from a column (\`tabsFrom: { column }\`), which the DMS reads from the rows when it serves the page. A TableView's \`tabs\`, a select's \`items\` and a price's \`currency\` that a mapping from a connected database wrote before that read \`{ $hidden: n }\`, n the values it read from rows: leave that key out of a patch to keep it. The ones you wrote read as written.`,
   ),
   effect: "read",
   input: z.object({ pageRef: z.string() }),
@@ -145,10 +143,7 @@ const addBlock = defineTool({
     const { isBlockName } =
       await import("../../implementations/dms-builder/engine");
     if (!isBlockName(input.name)) return nameRefusal(input.name);
-    return (
-      (await foreignRequestRefusal(input.config, "/config")) ??
-      opResult(await AddBlock(input))
-    );
+    return opResult(await AddBlock(input, { agent: true }));
   },
 });
 
@@ -212,13 +207,9 @@ const configureBlock = defineTool({
         `replace:true would drop ${dropped.join(", ")}, which builder_page_structure hides because a mapping wrote them from rows. Merge the patch without replace to keep them, or send them yourself.`,
       );
     }
-    const judged = await judgePatch(path, patch, replace);
-    if (!judged.ok) return judged.refusal;
-    const opts: ConfigureBlockOpts = { replace };
-    if (judged.expectedVersion !== undefined) {
-      opts.expectedVersion = judged.expectedVersion;
-    }
-    return opResult(await ConfigureBlock(path, patch, opts));
+    return opResult(
+      await ConfigureBlock(path, patch, { replace, agent: true }),
+    );
   },
 });
 

@@ -89,7 +89,7 @@ export class SalesPage extends PageController("sales", {
 | `@antelopejs/interface-database-decorators` | `>=0.5.2 <0.6.0` | `0.5.2`     |
 | `@antelopejs/interface-dms`                 | `workspace:^`    | `0.14.3`    |
 | `@antelopejs/interface-dms-automation`      | `>=0.7.0 <0.8.0` | `0.7.0`     |
-| `@antelopejs/interface-dms-builder`         | `workspace:^`    | `0.5.1`     |
+| `@antelopejs/interface-dms-builder`         | `workspace:^`    | `0.5.2`     |
 | `@antelopejs/interface-email`               | `>=0.2.1 <0.3.0` | `0.2.1`     |
 | `@antelopejs/interface-file-storage`        | `>=0.1.4 <0.2.0` | `0.1.4`     |
 | `@antelopejs/interface-redis`               | `>=0.0.9 <0.1.0` | `0.0.9`     |

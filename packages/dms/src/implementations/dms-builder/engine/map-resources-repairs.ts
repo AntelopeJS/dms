@@ -1,13 +1,13 @@
 import type {
-  ColumnDisplay,
   FieldSpec,
   MappedResource,
   MapResourcesInput,
   OpWarning,
   TableViewSettings,
+  TabsChoice,
 } from "@antelopejs/interface-dms-builder";
 import type { RelationDescription } from "@antelopejs/interface-database-catalog";
-import { type TabConfig, plannedTabs } from "./column-display";
+import { type TabsPlanning, plannedTabs } from "./column-display";
 import { MappingRefusal } from "./mapping-refusal";
 
 const ID_COLUMN = "_id";
@@ -107,33 +107,18 @@ export function raiseFlags(
 }
 
 /** Tabs the table cannot show are left out with a warning, the page is written without them. */
-/** The tabs of a table, and whether they were left out. */
+/** The column a table's tabs read, and whether they were left out. */
 interface SafeTabs {
-  tabs?: TabConfig[];
+  tabs?: TabsChoice;
   dropped: boolean;
 }
 
 export function safeTabs(
-  choice: {
-    resource: MappedResource;
-    where: string;
-    apiFields: FieldSpec[];
-    displays: ReadonlyMap<string, ColumnDisplay>;
-    proposed: boolean;
-  },
+  planning: TabsPlanning,
   warnings: OpWarning[],
 ): SafeTabs {
   try {
-    return {
-      tabs: plannedTabs(
-        choice.resource,
-        choice.where,
-        choice.apiFields,
-        choice.displays,
-        choice.proposed,
-      ),
-      dropped: false,
-    };
+    return { tabs: plannedTabs(planning), dropped: false };
   } catch (error) {
     if (!(error instanceof MappingRefusal)) {
       throw error;

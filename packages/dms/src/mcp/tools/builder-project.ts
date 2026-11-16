@@ -117,7 +117,7 @@ const MAPPED_FIELD = z.object({
           )
           .optional()
           .describe(
-            "Left out, the Builder reads the column's values itself: the badge the relation's mapping holds, else the one its analysis proposes; with neither, the column is written plain.",
+            "Never written into the code: a mapped badge reads its values from the column's rows when the page is served, labelled and toned by the DMS. Left out, the column is a badge when the relation's mapping holds one, else when its analysis proposes one; with neither, the column is written plain.",
           ),
       }),
       z.object({
@@ -127,7 +127,7 @@ const MAPPED_FIELD = z.object({
           .regex(/^[A-Z]{3}$/)
           .optional()
           .describe(
-            "ISO 4217 code of the amount (`USD`). Left out, the field is sent as if it left `display` out: it takes the display the relation's mapping holds or its analysis proposes, a price in the currency the Builder read from the column comment or a one-value currency column, and with neither it is written plain. Send a code to write a price neither holds.",
+            "ISO 4217 code of the amount (`USD`). Left out, the field is sent as if it left `display` out: it takes the display the relation's mapping holds or its analysis proposes, a price in the currency the column comment states, else in the one its relation's currency column holds, read from the rows when the page is served, and with neither it is written plain. Send a code to write a price neither holds; a relation with a currency column reads that column instead.",
           ),
       }),
     ])

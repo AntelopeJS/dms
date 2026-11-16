@@ -11,6 +11,10 @@ import {
 } from "./options";
 import { BOOLEAN_INPUTS, SINGLE_PICK_DISPLAYS, SELECT_INPUTS } from "./inputs";
 import { NumberType } from "./numbers";
+import {
+  CURRENCY_FROM_KEY,
+  withColumnReference,
+} from "../../internal/column-references";
 
 /**
  * The `boolean` data type.
@@ -99,7 +103,15 @@ export class SelectType extends DataType {
     return { default: FormComponents.InputSelect(options) };
   }
 
-  getValidation() {
+  getValidation():
+    | z.ZodNever
+    | z.ZodEnum<[string, ...string[]]>
+    | z.ZodArray<z.ZodNever | z.ZodEnum<[string, ...string[]]>>
+    | z.ZodString
+    | z.ZodArray<z.ZodString> {
+    if (this.options.itemsFrom) {
+      return this.options.multiple ? z.array(z.string()) : z.string();
+    }
     const [first, ...rest] = this.options.items.map((item) =>
       String(item.value),
     );
@@ -126,15 +138,22 @@ export class PriceType extends NumberType {
   }
 
   protected defaultInputComponent() {
-    return FormComponents.InputNumber({
-      min: this.options.min,
-      max: this.options.max,
-      step: this.options.step,
-      placeholder: this.options.placeholder,
-      suffix: this.options.suffix,
-      width: this.options.width,
-      ...(this.options.currency && { currency: this.options.currency }),
-    });
+    const { currency, currencyFrom } = this.options;
+    return FormComponents.InputNumber(
+      withColumnReference(
+        {
+          min: this.options.min,
+          max: this.options.max,
+          step: this.options.step,
+          placeholder: this.options.placeholder,
+          suffix: this.options.suffix,
+          width: this.options.width,
+          ...(currency && { currency }),
+        },
+        CURRENCY_FROM_KEY,
+        currency ? undefined : currencyFrom,
+      ),
+    );
   }
 }
 

@@ -8,7 +8,6 @@ import type {
   OpResult,
   OpWarning,
 } from "@antelopejs/interface-dms-builder";
-import type { TabConfig } from "./column-display";
 import { getStringProperty } from "./literals";
 import type { MappingPlan, PlannedResource } from "./map-resources-plan";
 import { addBlock, configureBlock } from "./ops";
@@ -48,12 +47,14 @@ export function errorText(error: BuilderError): string {
 type TableConfig = {
   caption: string;
   labelKey?: string;
-  tabs?: TabConfig[] | undefined;
+  tabsFrom?: { column: string } | undefined;
+  tabs?: undefined;
 };
 
 /**
  * The table block's caption and, when the relation has them, the label its rows are named by and
- * its tabs. A relation without tabs leaves the `tabs` a page holds as they are.
+ * the column its tabs read from the rows. A relation without tabs leaves the tabs a page holds as
+ * they are.
  */
 function tableConfig(resource: PlannedResource): TableConfig {
   const config: TableConfig = { caption: resource.displayName };
@@ -61,7 +62,7 @@ function tableConfig(resource: PlannedResource): TableConfig {
     config.labelKey = resource.label;
   }
   if (resource.tabs) {
-    config.tabs = resource.tabs;
+    config.tabsFrom = { column: resource.tabs.column };
   }
   return config;
 }
@@ -215,12 +216,16 @@ function pagePatch(
 /**
  * A remapped TableView keeps its page, with the caption and label the new choices give its table
  * and, when they change it, the title, icon, description and order. Its tabs follow the choices
- * when they set tabs, or turn the ones the mapping wrote off; tabs left out keep the page's.
+ * when they set tabs, over the tabs it listed, or turn the ones the mapping wrote off; tabs left
+ * out keep the page's.
  */
 function updatePage(ref: string, resource: PlannedResource): OpResult<string> {
   const patch = tableConfig(resource);
-  if (resource.clearTabs) {
+  if (resource.tabs || resource.clearTabs) {
     patch.tabs = undefined;
+  }
+  if (resource.clearTabs) {
+    patch.tabsFrom = undefined;
   }
   const configured = configureBlock(`${ref}#${TABLE_BLOCK}`, patch);
   if (!configured.ok) {

@@ -8,49 +8,15 @@ import type {
   ProposedCategory,
   TabsChoice,
 } from "@antelopejs/interface-dms-builder";
+import { badgeItems } from "@antelopejs/interface-dms/base/internal/column-badges";
 import { refuse } from "./mapping-refusal";
-import { humanized, words } from "./name-words";
-import { isCurrencyCode } from "./price-currency";
+import { words } from "./name-words";
+import { isCurrencyCode, type PriceCurrency } from "./price-currency";
+import { isPlainObject } from "./value";
 
 const BADGE_MIN_VALUES = 2;
 const BADGE_MAX_VALUES = 10;
 const TABS_MAX_VALUES = 6;
-
-/** The value words a status is toned by; a word in none of these takes the next tone of the cycle. */
-const TONE_WORDS: readonly (readonly [DisplayTone, readonly string[]])[] = [
-  [
-    "success",
-    ["paid", "active", "done", "completed", "shipped", "delivered", "approved"],
-  ],
-  ["warning", ["pending", "draft", "processing", "waiting", "review"]],
-  [
-    "error",
-    [
-      "failed",
-      "cancelled",
-      "canceled",
-      "refunded",
-      "rejected",
-      "error",
-      "blocked",
-    ],
-  ],
-  ["info", ["new", "open"]],
-];
-
-const TONE_OF_WORD = new Map<string, DisplayTone>(
-  TONE_WORDS.flatMap(([tone, list]) =>
-    list.map((word): [string, DisplayTone] => [word, tone]),
-  ),
-);
-
-/** The tones the values no word tones take in turn, in category order. */
-const TONE_CYCLE: readonly DisplayTone[] = [
-  "primary",
-  "secondary",
-  "info",
-  "neutral",
-];
 
 const TONES: ReadonlySet<string> = new Set<DisplayTone>([
   "neutral",
@@ -105,23 +71,6 @@ export interface ChosenDisplay {
   rule: "D1" | "D2";
 }
 
-/** A code such as a country or currency code (`NL`, `EUR`), which reads as written, not humanized. */
-const CODE_VALUE = /^[A-Z][A-Z0-9_-]*$/;
-
-function badgeLabel(value: string): string {
-  return CODE_VALUE.test(value) ? value : humanized(value) || value;
-}
-
-/** The items of a badge, the values given in the order the tones are dealt. */
-export function badgeItems(values: string[]): BadgeItem[] {
-  let cycled = 0;
-  return values.map((value) => {
-    const known = TONE_OF_WORD.get(value.trim().toLowerCase());
-    const tone = known ?? TONE_CYCLE[cycled++ % TONE_CYCLE.length];
-    return { value, label: badgeLabel(value), tone };
-  });
-}
-
 /** Whether a value is text, as a JSON body or a profile holds it. */
 function isText(value: unknown): value is string {
   return Object.prototype.toString.call(value) === "[object String]";
@@ -130,6 +79,19 @@ function isText(value: unknown): value is string {
 function stringValues(categories: ProposedCategory[]): string[] | undefined {
   const values = categories.map((category) => category.value);
   return values.every(isText) ? values : undefined;
+}
+
+/**
+ * The badge of the values a profile counts in a column, the most frequent
+ * first; none when one is not text.
+ */
+export function profiledBadge(
+  categories: ProposedCategory[],
+): BadgeItem[] | undefined {
+  const values = stringValues(
+    [...categories].sort((left, right) => right.rows - left.rows),
+  );
+  return values && badgeItems(values);
 }
 
 /**
@@ -150,11 +112,9 @@ function proposeBadge(facts: DisplayFacts): ColumnDisplay | undefined {
     return undefined;
   }
   const covered = categories.reduce((sum, category) => sum + category.rows, 0);
-  const values = stringValues(
-    [...categories].sort((left, right) => right.rows - left.rows),
-  );
-  return values && covered === rows - (facts.nulls ?? 0)
-    ? { kind: "badge", items: badgeItems(values) }
+  const items = profiledBadge(categories);
+  return items && covered === rows - (facts.nulls ?? 0)
+    ? { kind: "badge", items }
     : undefined;
 }
 
@@ -230,45 +190,27 @@ export function displayRefusal(
   if (display.kind !== "badge") {
     return `unknown display ${JSON.stringify(display)}`;
   }
-  if (declared !== BADGE_DECLARATION) {
-    return `a badge display needs a ${BADGE_DECLARATION} column, not ${declared}`;
-  }
-  if (display.items.length === 0) {
-    return "a badge display needs at least one item";
-  }
-  const seen = new Set<string>();
-  for (const item of display.items) {
-    if (!isText(item.value) || seen.has(item.value)) {
-      return `the badge item "${String(item.value)}" is not a string, or is given twice`;
-    }
-    seen.add(item.value);
-    if (!isText(item.label) || item.label === "") {
-      return `the badge item "${item.value}" has no label`;
-    }
-    if (!TONES.has(item.tone)) {
-      return `the badge item "${item.value}" has the tone "${String(item.tone)}", which is not a tone of the dashboard`;
-    }
-  }
-  return undefined;
+  return declared === BADGE_DECLARATION
+    ? undefined
+    : `a badge display needs a ${BADGE_DECLARATION} column, not ${declared}`;
 }
 
-/** The DataType a display writes on the controller's field. */
-export function displayDataType(display: ColumnDisplay): DataTypeValue {
+/**
+ * The DataType a display writes on the controller's field `column`: a badge
+ * reads its items from the column's rows when the page is served, and a price
+ * writes the currency `currency` says. No value of a row is written.
+ */
+export function displayDataType(
+  display: ColumnDisplay,
+  column: string,
+  currency: PriceCurrency,
+): DataTypeValue {
   if (display.kind === PRICE) {
-    return display.currency
-      ? { $dataType: PRICE, config: { currency: display.currency } }
+    return currency
+      ? { $dataType: PRICE, config: { ...currency } }
       : { $dataType: PRICE };
   }
-  return {
-    $dataType: SELECT,
-    config: {
-      items: display.items.map((item) => ({
-        label: item.label,
-        value: item.value,
-        textColor: item.tone,
-      })),
-    },
-  };
+  return { $dataType: SELECT, config: { items: [], itemsFrom: { column } } };
 }
 
 function isTone(value: unknown): value is DisplayTone {
@@ -289,7 +231,18 @@ function badgeItemOf(entry: StoredItem | null): BadgeItem | undefined {
     : undefined;
 }
 
-/** The display a controller field's DataType was written from, when it is one this module writes. */
+/** Whether a DataType's config reads its select items from the column it names. */
+function readsItemsFrom(config: DataTypeValue["config"]): boolean {
+  const itemsFrom = config?.itemsFrom;
+  return isPlainObject(itemsFrom) && isText(itemsFrom.column);
+}
+
+/**
+ * The display a controller field's DataType was written from, when it is one this module writes:
+ * a badge reading its items from the rows answers no item, a price reading its currency from them
+ * no currency. A badge or a currency written as values, by a mapping before them, reads back as
+ * written.
+ */
 export function displayOfDataType(
   dataType: DataTypeValue | undefined,
 ): ColumnDisplay | undefined {
@@ -297,8 +250,14 @@ export function displayOfDataType(
     const currency: unknown = dataType.config?.currency;
     return priceDisplay(isCurrencyCode(currency) ? currency : undefined);
   }
-  const items: unknown = dataType?.config?.items;
-  if (dataType?.$dataType !== SELECT || !Array.isArray(items)) {
+  if (dataType?.$dataType !== SELECT) {
+    return undefined;
+  }
+  if (readsItemsFrom(dataType.config)) {
+    return { kind: "badge", items: [] };
+  }
+  const items: unknown = dataType.config?.items;
+  if (!Array.isArray(items)) {
     return undefined;
   }
   const badges = items.map(badgeItemOf);
@@ -307,81 +266,37 @@ export function displayOfDataType(
     : undefined;
 }
 
-/** A tab of the TableView, as the page's block config holds it. */
-export type TabConfig = {
-  id: string;
-  label: string;
-  filter?: { accessorKey: string; value: string; mode: string };
-  textColor?: DisplayTone;
-};
-
-function tabId(column: string, value: string): string {
-  return [...words(column), ...words(value)].join("-");
-}
-
-/** "All", then a tab per value of the badge, in its order, drawn in its tone. */
-export function tabsOf(column: string, display: ColumnDisplay): TabConfig[] {
-  if (display.kind !== "badge") {
-    return [];
-  }
-  const taken = new Set<string>(["all"]);
-  const tabs = display.items.map((item, index) => {
-    const id = tabId(column, item.value);
-    const unique = taken.has(id) ? `${id}-${index}` : id;
-    taken.add(unique);
-    return {
-      id: unique,
-      label: item.label,
-      filter: { accessorKey: column, value: item.value, mode: "is" },
-      textColor: item.tone,
-    };
-  });
-  return [{ id: "all", label: "All" }, ...tabs];
-}
-
-/**
- * The DataType of a controller field: its display's when it has one, which must suit the
- * declaration; else the declaration's own.
- */
-export function fieldDataType(
-  display: ColumnDisplay | undefined,
-  declared: string,
-  plain: DataTypeValue,
-  where: string,
-): DataTypeValue {
-  if (!display) {
-    return plain;
-  }
-  const refusal = displayRefusal(display, declared);
-  if (refusal) {
-    refuse(`${where}: ${refusal}`);
-  }
-  return displayDataType(display);
-}
-
 /** Whether a default display may be written on a column of this declaration. */
 export function suits(display: ColumnDisplay, declared: string): boolean {
   return displayRefusal(display, declared) === undefined;
 }
 
+/** What the tabs of a relation's TableView are planned from. */
+export interface TabsPlanning {
+  resource: MappedResource;
+  where: string;
+  apiFields: FieldSpec[];
+  displays: ReadonlyMap<string, ColumnDisplay>;
+  /** Whether the relation was not mapped before, so the rules propose its tabs. */
+  proposed: boolean;
+  /** The column of the tabs the mapping wrote on its page before, when it was mapped. */
+  kept?: TabsChoice;
+}
+
 /**
- * The tabs of a TableView, over a badge column the controller shows and filters. Tabs left out are
- * proposed (T1) for a relation not mapped before, from the displays its columns are drawn with;
- * a relation mapped before keeps its page's tabs. Tabs of null write none.
+ * The column a TableView's tabs read from the rows: a badge column the controller shows and
+ * filters. Tabs left out are proposed (T1) for a relation not mapped before, from the displays its
+ * columns are drawn with, and a relation mapped before keeps the column of the tabs its mapping
+ * wrote. Tabs of null write none.
  */
-export function plannedTabs(
-  resource: MappedResource,
-  where: string,
-  apiFields: FieldSpec[],
-  displays: ReadonlyMap<string, ColumnDisplay>,
-  proposed: boolean,
-): TabConfig[] | undefined {
+export function plannedTabs(planning: TabsPlanning): TabsChoice | undefined {
+  const { resource, where, apiFields, displays } = planning;
   if (!resource.tableView || resource.tabs === null) {
     return undefined;
   }
   const chosen =
     resource.tabs ??
-    (proposed
+    (planning.proposed
       ? proposeTabs(
           apiFields.map((spec) => ({
             column: spec.name,
@@ -389,16 +304,15 @@ export function plannedTabs(
             filterable: spec.filterable === true,
           })),
         )
-      : undefined);
+      : planning.kept);
   if (chosen === undefined) {
     return undefined;
   }
   const shown = apiFields.find((spec) => spec.name === chosen.column);
-  const badge = displays.get(chosen.column);
-  if (!shown?.filterable || badge?.kind !== "badge") {
+  if (!shown?.filterable || displays.get(chosen.column)?.kind !== "badge") {
     refuse(
       `tabs by ${where}.${chosen.column} need a column the TableView shows and filters, with a badge display`,
     );
   }
-  return tabsOf(chosen.column, badge);
+  return { column: chosen.column };
 }

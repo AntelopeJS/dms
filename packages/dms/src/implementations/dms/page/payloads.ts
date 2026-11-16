@@ -14,6 +14,7 @@ import type { User } from "@antelopejs/interface-dms/auth/db";
 import type { LayoutBannerContext } from "@antelopejs/interface-dms/layout-banners";
 import { TenantMemberModel, RoleModel } from "@antelopejs/interface-dms/db";
 import type { ResolvedNavBadges } from "@antelopejs/interface-dms/page/internal/nav-badges";
+import { withLayoutRequest } from "@antelopejs/interface-dms/page/internal/layout-request";
 import { resolveMenuNavBadges } from "../nav-badges";
 import { getQuickActionsForUser } from "../quick-actions";
 import { moduleRegistry, categoriesByFullId, navigationTree } from "./state";
@@ -154,7 +155,7 @@ export async function buildPagePayload(
     roleModel,
     tenantId,
   );
-  const [layout, navBadges] = await Promise.all([
+  const serveLayout = () =>
     handler({
       user,
       memberModel,
@@ -163,7 +164,11 @@ export async function buildPagePayload(
       query:
         requestContext && pageQueryOf(requestContext, PAGE_REQUEST_PARAMETERS),
       params: pageParamsOf(registeredSlug, normalizedSlug),
-    }),
+    });
+  const [layout, navBadges] = await Promise.all([
+    requestContext
+      ? withLayoutRequest(requestContext, serveLayout)
+      : serveLayout(),
     resolvePageNavBadges(user, context, requestContext),
   ]);
   const routes = withCategoryRefs(

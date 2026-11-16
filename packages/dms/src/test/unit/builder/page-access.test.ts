@@ -1,6 +1,6 @@
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import type { PermissionTree } from "@antelopejs/interface-dms";
-import { RoleModel } from "@antelopejs/interface-dms/db";
+import { RoleModel, TenantMemberModel } from "@antelopejs/interface-dms/db";
 import { expect } from "chai";
 import {
   ConfigurePage,
@@ -265,5 +265,48 @@ function readsThePermissionAPageNames(): void {
         permissions: ["pages.shop.board"],
       },
     ]);
+  });
+
+  it("counts the members of each role as the in-memory tally did", async function () {
+    this.timeout(30_000);
+    const tenant = "page-access-holder-counts";
+    const [editorsId, readersId, unheldId] = await GetModel(
+      RoleModel,
+      tenant,
+    ).insert([
+      { name: "Editors", permissions: [] },
+      { name: "Readers", permissions: [] },
+      { name: "Unheld", permissions: [] },
+    ]);
+    await GetModel(TenantMemberModel, tenant).insert(
+      [[editorsId], [editorsId, readersId], [readersId], []].map(
+        (roleIds, index) => ({
+          userId: `page-access-holder-${index}`,
+          roleIds: roleIds.map(String),
+          isTenantOwner: false,
+          joinedAt: new Date(),
+          invitedBy: null,
+        }),
+      ),
+    );
+    const tally = new Map<string, number>();
+    for (const member of await GetModel(TenantMemberModel, tenant).getAll()) {
+      for (const roleId of member.roleIds ?? []) {
+        tally.set(roleId, (tally.get(roleId) ?? 0) + 1);
+      }
+    }
+
+    const access = await pageAccess("/shop/board", tenant);
+
+    expect(
+      access?.roles?.map((role) => [role.name, role.members]),
+    ).to.deep.equal(
+      [
+        ["Editors", editorsId],
+        ["Readers", readersId],
+        ["Unheld", unheldId],
+      ].map(([name, id]) => [name, tally.get(String(id)) ?? 0]),
+    );
+    expect(tally.get(String(readersId))).to.equal(2);
   });
 }

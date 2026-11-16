@@ -1,7 +1,10 @@
 import { isDeepStrictEqual } from "node:util";
 import path from "node:path";
 import type { ColumnDisplay } from "@antelopejs/interface-dms-builder";
-import { displayOfDataType, tabsOf } from "./column-display";
+import { badgeTabs } from "@antelopejs/interface-dms/base/internal/column-badges";
+import { displayOfDataType } from "./column-display";
+import { isString } from "./scalar-guards";
+import { isPlainObject } from "./value";
 import { TABLE_BLOCK } from "./map-resources-pages";
 import { buildPageStructure } from "./page-structure";
 import type { ResourceRecord } from "./resource-index";
@@ -55,8 +58,10 @@ export function currentColumns(record: ResourceRecord): CurrentColumns {
 }
 
 /**
- * The column whose badge the tabs of the page's TableView were written from: tabs edited by hand
- * are not the mapping's, so no column is answered for them.
+ * The column whose values the tabs of the page's TableView were written from: the badge column its
+ * `tabsFrom` reads, or, on a page a mapping wrote before tabs were read from the rows, the badge
+ * column its `tabs` list the items of. Tabs edited by hand are not the mapping's, so no column is
+ * answered for them.
  */
 export function tabsColumnOf(
   page: PageRecord | undefined,
@@ -66,10 +71,16 @@ export function tabsColumnOf(
   const table = structure?.ok
     ? structure.data.blocks.find((block) => block.name === TABLE_BLOCK)
     : undefined;
+  const tabsFrom = table?.config?.tabsFrom;
+  if (isPlainObject(tabsFrom) && isString(tabsFrom.column)) {
+    return displays.get(tabsFrom.column)?.kind === "badge"
+      ? tabsFrom.column
+      : undefined;
+  }
   const stored = table?.config?.tabs;
   return [...displays].find(
     ([column, display]) =>
       display.kind === "badge" &&
-      isDeepStrictEqual(stored, tabsOf(column, display)),
+      isDeepStrictEqual(stored, badgeTabs(column, display.items)),
   )?.[0];
 }

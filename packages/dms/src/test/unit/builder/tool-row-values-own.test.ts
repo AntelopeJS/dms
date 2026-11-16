@@ -8,6 +8,7 @@ import {
   createOpsCategory,
   fixture,
   mapOrders,
+  mapOrdersWithRowValues,
   mappingOfOrders,
   PageSchema,
   valueFree,
@@ -77,7 +78,8 @@ function unrecordRowLiterals(): () => void {
 }
 
 /**
- * Over a mapped resource, the AI writes tabs and select items of its own. Each builder tool that
+ * Over a resource mapped by dms 0.20.8 or before, whose code holds the values of its rows, the AI
+ * writes tabs and select items of its own. Each builder tool that
  * reads a page answers those as written and the mapping's still hidden; an implementation that
  * hides every literal of code over a mapped module fails here.
  */
@@ -87,7 +89,7 @@ describe("[unit] the builder tools over a mapped resource answer the literals th
   connectDatabase();
 
   it("shows the tabs and select items the AI wrote over a mapped resource, beside the hidden ones the mapping wrote", async () => {
-    const orders = await mapOrders();
+    const orders = await mapOrdersWithRowValues();
     await valueFree("builder_add_block", {
       page: orders.page,
       name: "mine",
@@ -149,7 +151,7 @@ describe("[unit] the builder tools over a mapped resource answer the literals th
   });
 
   it("keeps a mapped badge and its tabs hidden once a person relabels one of their items", async () => {
-    const orders = await mapOrders();
+    const orders = await mapOrdersWithRowValues();
     const page = PageSchema.parse(
       JSON.parse(
         await valueFree("builder_page_structure", { pageRef: orders.page }),
@@ -173,7 +175,7 @@ describe("[unit] the builder tools over a mapped resource answer the literals th
   });
 
   it("keeps the tabs of a moved page hidden when a module mapped before dms recorded them drops its badge", async () => {
-    const orders = await mapOrders();
+    const orders = await mapOrdersWithRowValues();
     unrecordRowLiterals();
     await createOpsCategory();
     await valueFree("builder_configure_page", {

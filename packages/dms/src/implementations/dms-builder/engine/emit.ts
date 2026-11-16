@@ -7,6 +7,7 @@ import type { ImportDeclaration, SourceFile } from "ts-morph";
 import { propertyKey } from "./paths";
 import { indentationText, resolveProjectRoot } from "./project";
 import { type EmitContext, inlineOrBlock, serializeValue } from "./value";
+import { assertOneTabsSource } from "./tabs-sources";
 
 /** Past this, a formatter breaks an import across lines; so does the builder. */
 const IMPORT_LINE_LIMIT = 80;
@@ -210,6 +211,7 @@ export function blockCallText(
   ctx: EmitContext,
   controllerText?: string,
 ): string {
+  assertOneTabsSource(type, config);
   const options = objectText(config, ctx);
   if (controllerText !== undefined) {
     return options

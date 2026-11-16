@@ -126,6 +126,8 @@ function planResource(
       apiFields,
       displays,
       proposed: relationDefaults?.kind === "new",
+      kept:
+        relationDefaults?.kind === "mapped" ? relationDefaults.tabs : undefined,
     },
     warnings,
   );
@@ -152,7 +154,7 @@ function planResource(
     clearTabs:
       (target.resource.tabs === null || dropped) &&
       relationDefaults?.kind === "mapped" &&
-      relationDefaults.generatedTabs,
+      relationDefaults.tabs !== undefined,
   };
 }
 
