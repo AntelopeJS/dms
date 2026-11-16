@@ -15,7 +15,12 @@ function catalogConnections(): InterfaceConnection[] {
  */
 export type CatalogConnection = Pick<
   typeof Catalog,
-  "Info" | "ListRelations" | "DescribeRelations" | "Profile" | "CheckReference"
+  | "Info"
+  | "ListRelations"
+  | "DescribeRelations"
+  | "Profile"
+  | "CheckReference"
+  | "SampleRows"
 >;
 
 type CatalogResolver = (id: string) => CatalogConnection | undefined;
@@ -33,6 +38,7 @@ const CATALOG_FUNCTIONS = [
   "DescribeRelations",
   "Profile",
   "CheckReference",
+  "SampleRows",
 ] satisfies (keyof CatalogConnection)[];
 
 /** Whether a provider's module exports what `@antelopejs/interface-database-catalog` declares. */
@@ -73,6 +79,7 @@ function specCatalog(supplied: Partial<CatalogConnection>): CatalogConnection {
     DescribeRelations: unsupplied("DescribeRelations"),
     Profile: unsupplied("Profile"),
     CheckReference: unsupplied("CheckReference"),
+    SampleRows: unsupplied("SampleRows"),
     ...supplied,
   };
 }
