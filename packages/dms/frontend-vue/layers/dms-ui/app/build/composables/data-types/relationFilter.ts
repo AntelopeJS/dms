@@ -1,5 +1,6 @@
 import { isEmptyFormValue, sameFormValue } from "../unsaved-changes/formValue";
 import { isBoolean, isNumber, isString } from "#dms-core/app/utils/type-check";
+import type { DataTypeValue } from "#dms-core/app/types/data-type";
 
 /**
  * A relation picker narrowed by another field of its form: the related
@@ -37,18 +38,18 @@ export function relationFilterParams(
 
 /** The source field and the pick, before and after a change of either. */
 export interface RelationPickChange {
-  source: unknown;
-  pick: unknown;
-  previousSource: unknown;
-  previousPick: unknown;
+  source: DataTypeValue;
+  pick: DataTypeValue;
+  previousSource: DataTypeValue;
+  previousPick: DataTypeValue;
   /** The source value the current pick was made (or loaded) with. */
-  pickSource: unknown;
+  pickSource: DataTypeValue;
 }
 
 /** Whether to clear the pick, and the source value the pick now goes with. */
 export interface RelationPickOutcome {
   shouldClear: boolean;
-  pickSource: unknown;
+  pickSource: DataTypeValue;
 }
 
 /** Whether a picker holds a value. */

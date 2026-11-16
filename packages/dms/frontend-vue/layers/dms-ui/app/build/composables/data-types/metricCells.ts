@@ -8,6 +8,7 @@ import type {
   DataTypeFormatter,
 } from "#dms-core/app/composables/data-types/useDataType";
 import StatusPill from "../../../components/status-pill/StatusPill.vue";
+import { textOf } from "#dms-core/app/entries/utils/dataTypeValue";
 import MonoCell from "../../components/table/MonoCell.vue";
 import { getAppComposedText } from "../../../../../dms-core/app/composables/translation/useComposedText";
 import {
@@ -64,7 +65,7 @@ function renderStatusPill(
   const { processI18n } = getAppTranslation();
   const { processText } = getAppComposedText();
   const opts: StatusPillOptions = options ?? {};
-  const key = String(value);
+  const key = textOf(value);
   const item = opts.typeOptions?.items?.find(
     (candidate) => String(candidate.value) === key,
   );
@@ -317,7 +318,7 @@ export const registerMetricCellTypes = (
       default: (value, _locale, options) => {
         const opts: MonoOptions = options ?? {};
         return h(MonoCell, {
-          value: String(value),
+          value: textOf(value),
           copy: !!opts.copy,
           class: CELL_TEXT_CLASS,
         });

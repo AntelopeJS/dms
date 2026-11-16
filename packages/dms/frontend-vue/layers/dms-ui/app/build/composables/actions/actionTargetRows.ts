@@ -1,6 +1,7 @@
 import { get } from "@nuxt/ui/runtime/utils/index.js";
 import type { Component } from "vue";
 import { isString } from "#dms-core/app/utils/type-check";
+import { readFieldPath } from "#dms-core/app/entries/utils/dataTypeValue";
 import type { ActionTarget } from "../../../composables/table-view/types/action-target";
 import type { ActionTargetsConfig } from "./useActionTargets";
 import type { RowTarget, SidePanelTarget } from "./actionTargetTypes";
@@ -12,6 +13,7 @@ import {
   type WrittenRecord,
 } from "../table-view/utils/recordLink";
 import { fillRowChildren, fillRowOptions } from "./rowComponentOptions";
+import { isJsonObject } from "../../utils/json";
 import { resolveComponentChildren } from "../../../utils/componentTree";
 import TargetComponentTree from "../../components/containers/TargetComponentTree.vue";
 import { resolveConfirmText } from "../confirm/confirmDialogTexts";
@@ -87,7 +89,10 @@ export function createTargetRows(config: ActionTargetsConfig) {
     const id = rowIdOf(row);
     const tokens = row && id !== undefined ? { ...row, id } : row;
     const declared = component?.options ?? {};
-    const options = tokens ? fillRowOptions(declared, tokens) : declared;
+    const options =
+      tokens && isJsonObject(declared)
+        ? fillRowOptions(declared, tokens)
+        : declared;
     const children = component?.children;
     if (!component?.componentName || !children?.length) return options;
     const targetTree: ResolvedComponentInfo = {
@@ -105,9 +110,7 @@ export function createTargetRows(config: ActionTargetsConfig) {
     return (row?: Data): void => recordId(rowIdOf(row));
   };
   const rowUrlParams = (rowData?: Data) => {
-    const id: unknown = rowData
-      ? get(rowData, config.rowIdKey ?? DEFAULT_ROW_ID_KEY)
-      : undefined;
+    const id = readFieldPath(rowData, config.rowIdKey ?? DEFAULT_ROW_ID_KEY);
     return id === undefined || id === null ? undefined : { id };
   };
   return {

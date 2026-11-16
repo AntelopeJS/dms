@@ -1,6 +1,5 @@
 import type { DataTypeFormatter } from "../composables/data-types/useDataType";
-
-import { get } from "@nuxt/ui/runtime/utils/index.js";
+import { readFieldPath, textOf } from "../build/utils/dataTypeValue";
 
 const ROW_TOKEN = /\{\{\s*row\.([^{}\s]+)\s*\}\}/g;
 
@@ -29,9 +28,9 @@ const rowValue = (
   data: NonNullable<Parameters<DataTypeFormatter>[3]>,
   key: string,
 ): string => {
-  const field: unknown = get(data, key);
+  const field = readFieldPath(data, key);
   const value = Array.isArray(field) ? field.map(scalarOf) : scalarOf(field);
-  return value === undefined || value === null ? "" : String(value);
+  return value === undefined || value === null ? "" : textOf(value);
 };
 
 const ENCODED_COLON = /%3A/gi;

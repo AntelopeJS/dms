@@ -1,3 +1,4 @@
+import type { DataTypeRow } from "#dms-core/app/types/data-type";
 import type { RowActionRule } from "#dms-core/app/types/row-action";
 import { evaluateRowActionRule } from "#dms-core/app/utils/row-action-rule-evaluator";
 
@@ -11,7 +12,7 @@ interface PartitionedRows<T> {
  * in the order they came in: the sort keeps ordering both, it no longer
  * decides which rows lead.
  */
-export function pinRows<T extends Record<string, unknown>>(
+export function pinRows<T extends DataTypeRow>(
   rows: T[],
   pinnedRows: RowActionRule | undefined,
 ): T[] {
@@ -32,7 +33,7 @@ export function pinRows<T extends Record<string, unknown>>(
  * `rows` as a table reading `span` of them at a time shows them: the pinned
  * rows lead each read, not the whole list. `rows` starts at a read's first.
  */
-export function pinRowsBySpan<T extends Record<string, unknown>>(
+export function pinRowsBySpan<T extends DataTypeRow>(
   rows: T[],
   span: number,
   pinnedRows: RowActionRule | undefined,

@@ -3,6 +3,7 @@ import type {
   DataTypeFormatter,
 } from "#dms-core/app/composables/data-types/useDataType";
 import { isString } from "#dms-core/app/utils/type-check";
+import { textOf } from "#dms-core/app/entries/utils/dataTypeValue";
 import UAvatar from "@nuxt/ui/components/Avatar.vue";
 import UIcon from "@nuxt/ui/runtime/vue/components/Icon.vue";
 import ULink from "@nuxt/ui/components/Link.vue";
@@ -27,7 +28,7 @@ interface LinkRendererOptions {
 
 function createLinkRenderer(options: LinkRendererOptions) {
   return (value: CellValue, _locale: string) => {
-    if (!value || !isString(value)) return String(value);
+    if (!value || !isString(value)) return textOf(value);
 
     const href = options.hrefPrefix ? `${options.hrefPrefix}${value}` : value;
 

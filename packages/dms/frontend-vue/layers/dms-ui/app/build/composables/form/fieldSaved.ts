@@ -3,9 +3,7 @@ import type { MarkFieldSaved } from "../../../composables/form/types/field-saved
 import type { FormData } from "../../../composables/form/types/value";
 import { cloneFormValue } from "../../../composables/form/useForm";
 import type { UseFormDirtyReturn } from "../../../composables/unsaved-changes/useFormDirty";
-import type { InstantForm, InstantFormOptions } from "./useInstantForm";
-
-type FormValues = InstantFormOptions["state"]["value"];
+import type { InstantForm } from "./useInstantForm";
 
 /** What a field the server saved on its own updates in its form. */
 export interface FieldSavedTargets {
@@ -14,7 +12,7 @@ export interface FieldSavedTargets {
   /** The values "Discard" puts back. */
   initialValues: Ref<FormData>;
   /** The values the form reads as unchanged. */
-  dirty: Pick<UseFormDirtyReturn<FormValues>, "baseline" | "markClean">;
+  dirty: Pick<UseFormDirtyReturn<FormData>, "baseline" | "markClean">;
   /** The instant save of a form saving as it goes. */
   instantSave?: Pick<InstantForm, "confirmField">;
 }

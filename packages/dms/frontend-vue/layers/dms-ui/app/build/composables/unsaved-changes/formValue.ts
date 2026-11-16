@@ -3,6 +3,7 @@ import {
   isObject,
   isNumber,
 } from "../../../../../dms-core/app/utils/type-check";
+import type { ComponentWatchState } from "#dms-core/app/types/watch";
 /**
  * Value comparison behind the "unsaved changes" state of every form: a form
  * is dirty when what it holds differs, by value, from what it loaded (or last
@@ -13,6 +14,19 @@ import {
 type FormValue = Parameters<BeforeStateMapper>[0];
 
 type PlainObject = Record<string, FormValue>;
+
+/**
+ * The value `state` holds for the field `fieldId`. A form's state also holds
+ * the sets of fields its watches disable, hide or require, never under a
+ * field's id.
+ */
+export function fieldValueOf(
+  state: ComponentWatchState,
+  fieldId: string,
+): FormValue {
+  const value = state[fieldId];
+  return value instanceof Set ? undefined : value;
+}
 
 /** Whether a value is a plain object (not a list, a date, a file or an instance). */
 export function isPlainObject(value: FormValue): value is PlainObject {
