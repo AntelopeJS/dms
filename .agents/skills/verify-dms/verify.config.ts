@@ -275,6 +275,33 @@ const config: VerifyConfig = {
       command: ["node", ".agents/skills/formal-option-patch-prune/check.mjs", "--full"],
       violation: /^(?:finding|BROKEN|CHANGED|HOLDS) +(\w+)/gm,
     },
+    {
+      name: "formal-ai-answers-no-row-values",
+      covers: [
+        "packages/dms/src/mcp/tool.ts",
+        "packages/dms/src/mcp/hidden-values.ts",
+        "packages/dms/src/mcp/redact.ts",
+        "packages/dms/src/mcp/page-verify/redact-report.ts",
+        "packages/dms/src/mcp/tools/index.ts",
+        "packages/dms/src/mcp/tools/builder-shared.ts",
+        "packages/dms/src/mcp/tools/builder-pages.ts",
+        "packages/dms/src/mcp/tools/builder-resources.ts",
+        "packages/dms/src/mcp/tools/builder-compose.ts",
+        "packages/dms/src/mcp/tools/builder-project.ts",
+        "packages/dms/src/mcp/tools/builder-queries.ts",
+        "packages/dms/src/mcp/tools/builder-table-view.ts",
+        "packages/dms/src/mcp/tools/database.ts",
+        "packages/dms/src/mcp/tools/page-verify.ts",
+        "packages/dms/src/implementations/dms-builder/engine/mapped-modules.ts",
+      ],
+      files: [
+        ".agents/skills/formal-ai-answers-no-row-values/**",
+        "packages/dms/src/test/formal/ai-answers-no-row-values.test.ts",
+        "packages/dms/src/test/formal/helpers/**",
+      ],
+      command: ["node", ".agents/skills/formal-ai-answers-no-row-values/check.mjs"],
+      violation: /^(?:finding|BROKEN|CHANGED|HOLDS) +(\w+)/gm,
+    },
   ],
 };
 

@@ -205,6 +205,30 @@ export async function mapOrders(): Promise<MappedOrders> {
   return orders;
 }
 
+/** The catalog connection `erp`, which describes and profiles `erp.orders` with the values above in its rows. */
+export const ERP_CONNECTION = {
+  async Info() {
+    return INFO;
+  },
+  async ListRelations() {
+    return DESCRIPTIONS;
+  },
+  async DescribeRelations() {
+    return DESCRIPTIONS;
+  },
+  async Profile() {
+    return PROFILE;
+  },
+  async CheckReference() {
+    return ok({
+      containment: 1,
+      checkedRows: 10,
+      sampled: false,
+      targetIsKey: true,
+    });
+  },
+};
+
 /** Maps the module's interface and serves `erp.orders` through a catalog connection. */
 export function connectDatabase(): void {
   before(() => {
@@ -213,30 +237,7 @@ export function connectDatabase(): void {
 
   beforeEach(() => {
     app = createFixture({ modules: [MODULE] });
-    setCatalogConnectionsForTests({
-      [CONNECTION]: {
-        async Info() {
-          return INFO;
-        },
-        async ListRelations() {
-          return DESCRIPTIONS;
-        },
-        async DescribeRelations() {
-          return DESCRIPTIONS;
-        },
-        async Profile() {
-          return PROFILE;
-        },
-        async CheckReference() {
-          return ok({
-            containment: 1,
-            checkedRows: 10,
-            sampled: false,
-            targetIsKey: true,
-          });
-        },
-      },
-    });
+    setCatalogConnectionsForTests({ [CONNECTION]: ERP_CONNECTION });
     setModuleReloadForTests(reloadedAtOnce);
   });
 

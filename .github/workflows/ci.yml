@@ -388,6 +388,32 @@ jobs:
       - if: matrix.check == 'formal-default-tenant-provisioning'
         run: node .agents/skills/formal-default-tenant-provisioning/history.mjs
 
+  # The formal checks that call the real code with generated inputs: they build
+  # the module and boot the test harness, which the TLA+ checks above do not.
+  formal-generated:
+    needs: select
+    if: contains(fromJSON(needs.select.outputs.packages), 'agents')
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        check:
+          - formal-ai-answers-no-row-values
+    env:
+      DMS_PREBUILT: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/mongodb-binaries
+            packages/dms/.antelope/cache
+          key: dms-test-harness-${{ runner.os }}-${{ hashFiles('packages/dms/src/test/antelope.test.ts', 'packages/dms/antelope-lock/**') }}
+      - run: pnpm --dir packages/dms build
+      - run: node .agents/skills/${{ matrix.check }}/check.mjs
+
   # The one check branch protection requires was the single job's name, so it
   # stays: green only when every job above is. A job the package selection
   # skipped does not fail it, and docs-playground may be skipped on a pull
@@ -405,6 +431,7 @@ jobs:
       - verify-map
       - formal
       - e2e
+      - formal-generated
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
