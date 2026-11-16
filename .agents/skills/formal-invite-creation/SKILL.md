@@ -9,7 +9,7 @@ description: TLA+ model of concurrent invitations of one email in @antelopejs/in
 
 Each database round trip is one step: a read, an insert on the unique `(email, creationResolutionId)` index, a delete, the `settleFresh` compare-and-set, or the revision compare-and-set of a decision. TLC checks every order of those steps across callers and retirers, within the bounds below.
 
-- `InviteCreation.tla` holds the variables, the actions and the rules. The module header says what each file name stands for.
+- `InviteCreation.tla` holds the next-state relation and the rules. It extends `InviteCreationResolve.tla` (a decision, a retry, its completion, a cancel, an acceptance, an expiry), which extends `InviteCreationFresh.tla` (a fresh invite, its withdrawal, `currentInviteOf`), which extends `InviteCreationState.tla` (the constants, variables, initial state and helpers). Each is under the 20,000-byte file ceiling. The header of `InviteCreation.tla` says what each source file name stands for.
 - `Callers.cfg` (four callers, one with other content) and `Retirers.cfg` (three callers, one a resend, plus a cancel and an acceptance) are the full configurations. Each has a `.ci.cfg` twin, the CI configuration.
 - `Pre974.cfg` replays the code before #974. `history.mjs` runs it.
 

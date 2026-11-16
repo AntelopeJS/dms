@@ -336,6 +336,9 @@ const config: VerifyConfig = {
         "packages/dms/src/test/formal/helpers/**",
       ],
       command: ["node", ".agents/skills/formal-block-writes-judge-request-targets/check.mjs"],
+      violation: /^(?:finding|BROKEN|CHANGED|HOLDS) +(\w+)/gm,
+    },
+    {
       name: "formal-builder-option-echo",
       covers: [
         "packages/dms/src/implementations/dms-builder/engine/config-literal.ts",
