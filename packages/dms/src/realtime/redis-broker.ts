@@ -92,6 +92,11 @@ export class RedisBroker implements RealtimeBroker {
   private subscriber?: RedisClient;
   private initPromise?: Promise<void>;
 
+  /** @param connect Answers the shared Redis client; defaults to the redis interface's. */
+  constructor(
+    private readonly connect: () => Promise<RedisClient> = GetClient,
+  ) {}
+
   private async ensureInit(): Promise<void> {
     if (!this.initPromise) {
       this.initPromise = this.initialize();
@@ -100,9 +105,12 @@ export class RedisBroker implements RealtimeBroker {
   }
 
   private async initialize(): Promise<void> {
-    const client = await GetClient();
+    const client = await this.connect();
     this.publisher = client;
     this.subscriber = client.duplicate();
+    this.subscriber.on("error", (error: Error) =>
+      Logging.Warn("RedisBroker: subscriber connection error", error),
+    );
     this.subscriber.on("message", (_channel: string, message: string) =>
       this.dispatchMessage(message),
     );
