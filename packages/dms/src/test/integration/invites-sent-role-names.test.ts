@@ -12,22 +12,33 @@ import { findUserByEmail } from "../helpers/fixtures";
 
 const HOUR_MS = 3_600_000;
 const HTTP_OK = 200;
+const INVITE_COUNT = 60;
+const MAX_ROLES_PER_INVITE = 6;
 const EXPORT = `${pageRoutePath("/settings/user/profile")}/account-export`;
 
 describe("[integration] account export — roles of the invitations a user sent", () => {
   beforeEach(resetDatabase);
 
-  it("names each invitation's roles, as one role query per invitation did (order aside)", async () => {
+  it("names each invitation's roles exactly as one role query per invitation did", async () => {
     const owner = await registerUser({ owner: true });
     const roles = GetModel(RoleModel, DEFAULT_TENANT_ID);
-    const [editors, readers, unused] = await roles.insert([
-      { name: "Editors", permissions: [] },
-      { name: "Readers", permissions: [] },
-      { name: "Unused", permissions: [] },
-    ]);
+    const roleIds = await roles.insert(
+      ["Zeta", "Mid", "Alpha", "Omega", "Beta", "Unused"].map((name) => ({
+        name,
+        permissions: [],
+      })),
+    );
     const ownerRow = await findUserByEmail(owner.email);
     const invites = GetModel(UserInviteModel, DEFAULT_TENANT_ID);
-    const sent = [[editors], [readers, editors], [], [editors, "deleted-role"]];
+    const pool = [...roleIds.slice(0, 5), "deleted-role"];
+    const sent = Array.from({ length: INVITE_COUNT }, (_, index) =>
+      Array.from(
+        { length: index % MAX_ROLES_PER_INVITE },
+        (_unused, slot) =>
+          pool[(index * 7 + slot * slot * 3 + slot) % pool.length],
+      ),
+    );
+    expect(sent.some((ids) => new Set(ids).size < ids.length)).to.equal(true);
     await invites.insert(
       sent.map((roles_ids, index) => ({
         email: `sent-${index}@test.local`,
@@ -41,7 +52,7 @@ describe("[integration] account export — roles of the invitations a user sent"
     );
     await invites.insert({
       email: "other@test.local",
-      roles_ids: [unused],
+      roles_ids: [roleIds[5]],
       language: "en",
       token: "other-token",
       asTenantOwner: false,
@@ -53,20 +64,17 @@ describe("[integration] account export — roles of the invitations a user sent"
       invitesSent: { email: string; roles: string[] }[];
     }>(EXPORT);
     expect(response.status, JSON.stringify(response.data)).to.equal(HTTP_OK);
-    const file = response.data;
 
     const byEmail = new Map(
-      file.invitesSent.map((invite) => [invite.email, invite.roles]),
+      response.data.invitesSent.map((invite) => [invite.email, invite.roles]),
     );
-    expect(byEmail.size).to.equal(sent.length);
+    expect(byEmail.size).to.equal(INVITE_COUNT);
     for (const [index, ids] of sent.entries()) {
-      const expected =
+      const before =
         ids.length === 0
           ? []
           : (await roles.getBy("_id", ...ids)).map((role) => role.name);
-      expect(byEmail.get(`sent-${index}@test.local`)).to.have.members(expected);
+      expect(byEmail.get(`sent-${index}@test.local`)).to.deep.equal(before);
     }
-    expect(byEmail.get("sent-0@test.local")).to.deep.equal(["Editors"]);
-    expect(byEmail.get("sent-2@test.local")).to.deep.equal([]);
   });
 });
