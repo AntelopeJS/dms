@@ -4,7 +4,6 @@ import type { ConfirmValues } from "../../../composables/confirm/types";
 import type { ActionTargetsConfig } from "./useActionTargets";
 import type { BulkSelection } from "./bulkSelection";
 import { resolveResponseToast } from "../../utils/responseWarning";
-import { textOf } from "#dms-core/app/entries/utils/dataTypeValue";
 import { resolveConfirmText } from "../confirm/confirmDialogTexts";
 import { readBulkCount } from "../table-view/utils/bulkActions";
 import { type DownloadFetch, saveDownload } from "../../utils/fileDownload";
@@ -99,7 +98,7 @@ export function createActionRequests(
       ...(Object.keys(body).length > 0 ? { body } : undefined),
     });
     if (target.copy)
-      await copyToClipboard(textOf(response?.[target.copy] ?? ""));
+      await copyToClipboard(String(response?.[target.copy] ?? ""));
     const toastParams = selection
       ? { ...rowData, count: readBulkCount(response) ?? selection.count }
       : (rowData ?? {});

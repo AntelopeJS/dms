@@ -1,7 +1,8 @@
 import { h, type VNodeChild } from "vue";
+import { get } from "@nuxt/ui/runtime/utils/index.js";
 import type { DataTypeFormatter } from "#dms-core/app/composables/data-types/useDataType";
 import { isNumber, isString } from "#dms-core/app/utils/type-check";
-import { childOf, readRowField } from "./cellHelpers";
+import { childOf } from "./cellHelpers";
 
 /**
  * A data type a column borrows for its cells only: the column keeps its own
@@ -10,7 +11,7 @@ import { childOf, readRowField } from "./cellHelpers";
  */
 export interface ColumnDisplay {
   type: string;
-  options?: Parameters<DataTypeFormatter>[2];
+  options?: NonNullable<Parameters<DataTypeFormatter>[3]>;
 }
 
 interface ResolvedColumnRenderer {
@@ -125,10 +126,8 @@ export function useColumnValueRenderer() {
     surface: ColumnValueSurface = "cell",
   ): VNodeChild => {
     const key = column.accessorKey ?? column.id;
-    const value = readRowField(
-      row,
-      key === undefined ? undefined : String(key),
-    );
+    const value: unknown =
+      key === undefined ? undefined : get(row, String(key));
     return renderValue(column, value, row, surface);
   };
 

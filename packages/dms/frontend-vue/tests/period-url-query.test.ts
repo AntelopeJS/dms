@@ -280,7 +280,7 @@ describe("the order of the sources", () => {
   });
 
   it("skips an invalid stored value for the default", () => {
-    const broken = { query: { period: "42", compare: "?" }, keys: STORED };
+    const broken = { query: { period: 42, compare: "?" }, keys: STORED };
     expect(
       resolvePeriodSelection(
         [{ query: {}, keys: PAGE }, broken],

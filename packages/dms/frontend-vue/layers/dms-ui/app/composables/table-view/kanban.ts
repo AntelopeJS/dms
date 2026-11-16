@@ -1,7 +1,5 @@
 import type { InjectionKey, Ref } from "vue";
 import type { TableViewColumn } from "./types";
-import type { DataTypeValue } from "#dms-core/app/types/data-type";
-import { textOf } from "#dms-core/app/entries/utils/dataTypeValue";
 
 /**
  * The few inputs the (unchanged) KanbanBoard needs beyond the generic
@@ -26,13 +24,13 @@ export interface KanbanColumnDef {
   /** Stringified value, used as key and in filter queries */
   value: string;
   /** Raw value persisted on the item when a card is dropped here */
-  rawValue: DataTypeValue;
+  rawValue: unknown;
   label: string;
   color?: string;
 }
 
 export interface KanbanSelectItemOption {
-  value: DataTypeValue;
+  value: unknown;
   label: string;
   icon?: string;
   iconColor?: string;
@@ -102,7 +100,7 @@ const buildSelectColumns = ({
   translate,
 }: KanbanColumnBuilderContext): KanbanColumnDef[] =>
   (options?.items ?? []).map((item) => ({
-    value: textOf(item.value),
+    value: String(item.value),
     rawValue: item.value,
     label: translate(item.label),
     color: item.iconColor || item.textColor,

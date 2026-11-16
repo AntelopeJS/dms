@@ -2,7 +2,6 @@ import type { ActionTarget } from "../../../composables/table-view/types/action-
 import type { CustomRowAction } from "../../../types/row-action";
 import { namesRowField } from "#dms-core/app/utils/url-interpolation";
 import { isObject } from "#dms-core/app/utils/type-check";
-import { textOf } from "#dms-core/app/entries/utils/dataTypeValue";
 import { dropRowTokens } from "../../utils/urlVariables";
 
 /** Query flag of a bulk request covering every matching row. */
@@ -30,7 +29,7 @@ export function bulkSelectionQuery(selection: BulkSelection) {
   };
   for (const [key, value] of Object.entries(selection.matching ?? {})) {
     if (value !== undefined && value !== null && value !== "") {
-      query[key] = textOf(value);
+      query[key] = String(value);
     }
   }
   return query;

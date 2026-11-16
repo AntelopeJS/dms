@@ -10,13 +10,12 @@ import {
 } from "../../utils/cascader";
 import { MAX_RELATION_BADGES } from "../../build/composables/data-types/relationBadges";
 import { useRelationRows } from "../../build/composables/data-types/relationRows";
-import type { DataTypeValue } from "#dms-core/app/types/data-type";
 
 const DEFAULT_VALUE_KEY = "_id";
 
 interface CascaderPathProps {
   /** One picked value, or the list a multiple cascader holds. */
-  value: DataTypeValue;
+  value: unknown;
   searchUrl?: string;
   keyMapping?: Partial<CascaderKeyMapping>;
 }
@@ -43,7 +42,7 @@ const keyMapping = computed(() =>
   }),
 );
 
-const values = computed<DataTypeValue[]>(() =>
+const values = computed<unknown[]>(() =>
   Array.isArray(props.value) ? props.value : [props.value],
 );
 const reads = computed(() =>

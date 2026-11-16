@@ -12,7 +12,6 @@ import {
   searchCascaderTree,
   type CascaderKeyMapping,
 } from "../layers/dms-ui/app/utils/cascader";
-import type { DataTypeRow } from "../layers/dms-core/app/types/data-type";
 
 const keyMapping: CascaderKeyMapping = {
   label: "name",
@@ -21,7 +20,7 @@ const keyMapping: CascaderKeyMapping = {
   disabled: "inactive",
 };
 
-interface CategoryRow extends DataTypeRow {
+interface CategoryRow extends Record<string, unknown> {
   _id: string;
   name: string;
   parent_id: string | null;

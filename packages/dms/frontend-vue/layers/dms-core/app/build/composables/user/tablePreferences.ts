@@ -1,29 +1,23 @@
 import { isRecord } from "../../utils/record";
 import { isBranch, type PreferencesTree } from "./preferencesCookie";
 import { isNumber, isString } from "../../../utils/type-check";
-import { isJsonValue } from "../../utils/json";
-import type { DataTypeValue } from "../../../types/data-type";
 
 /**
  * @internal
  * The state of a table view that the server render reads to list and draw
- * the right rows, as it reads back from the preferences cookie.
+ * the right rows: kept in the preferences cookie, compactly.
  */
-export interface ServerTableFieldValues {
-  sorting: SortEntry[];
-  columnFilters: FilterEntry[];
-  columnVisibility: Record<string, boolean>;
-  pagination: PaginationEntry;
-  paginationScope: string;
-  activeTab: string;
-  viewMode: string;
-  activeView: string;
-  linkScope: string;
-  shownLink: string;
-}
-
-/** @internal A server field, kept in the preferences cookie, compactly. */
-export type ServerTableField = keyof ServerTableFieldValues;
+export type ServerTableField =
+  | "sorting"
+  | "columnFilters"
+  | "columnVisibility"
+  | "pagination"
+  | "paginationScope"
+  | "activeTab"
+  | "viewMode"
+  | "activeView"
+  | "linkScope"
+  | "shownLink";
 
 /**
  * @internal
@@ -105,10 +99,10 @@ interface SortEntry {
 
 interface FilterEntry {
   accessorKey: string;
-  value?: DataTypeValue;
+  value?: unknown;
   mode: string;
   pinned?: boolean;
-  initialValue?: DataTypeValue;
+  initialValue?: unknown;
 }
 
 interface PaginationEntry {
@@ -122,14 +116,16 @@ interface PaginationEntry {
  * form. `encode` gets the field's default so that it can keep only what
  * differs from it; a value whose form equals the default's is not written.
  */
-export interface ServerFieldCodec<V = PreferencesTree[string]> {
+export interface ServerFieldCodec {
   key: string;
   encode: (
     value: PreferencesTree[string],
     defaultValue: PreferencesTree[string],
   ) => PreferencesTree[string];
-  /** Throws on a stored form it cannot read, which then reads as the default. */
-  decode: (stored: PreferencesTree[string], defaultValue: V | undefined) => V;
+  decode: (
+    stored: PreferencesTree[string],
+    defaultValue: PreferencesTree[string],
+  ) => PreferencesTree[string];
 }
 
 const encodeSorting: ServerFieldCodec["encode"] = (value) => {
@@ -174,7 +170,7 @@ const decodeFilters = (
   if (!Array.isArray(stored)) throw new TypeError("columnFilters");
   return stored.map(([accessorKey, value, mode]: unknown[]) => ({
     accessorKey: String(accessorKey),
-    value: isJsonValue(value) ? value : undefined,
+    value,
     mode: isString(mode) ? mode : DEFAULT_FILTER_MODE,
   }));
 };
@@ -192,15 +188,13 @@ const encodeVisibility: ServerFieldCodec["encode"] = (value, defaultValue) => {
     );
 };
 
-const decodeVisibility: ServerFieldCodec<
-  ServerTableFieldValues["columnVisibility"]
->["decode"] = (stored, defaultValue) => {
+const decodeVisibility: ServerFieldCodec["decode"] = (stored, defaultValue) => {
   if (!Array.isArray(stored)) throw new TypeError("columnVisibility");
-  const changes = stored.map((token: string): [string, boolean] => [
+  const changes = stored.map((token: string) => [
     token.slice(1),
     token.startsWith(SHOWN_PREFIX),
   ]);
-  return { ...defaultValue, ...Object.fromEntries(changes) };
+  return { ...visibilityOf(defaultValue), ...Object.fromEntries(changes) };
 };
 
 const isPaginationEntry = (value: unknown): value is PaginationEntry =>
@@ -225,19 +219,11 @@ const decodePagination = (
   return { pageIndex, pageSize };
 };
 
-const textField = (key: string): ServerFieldCodec<string> => ({
+const plainField = (key: string): ServerFieldCodec => ({
   key,
   encode: (value) => value,
-  decode: (stored) => {
-    if (!isString(stored)) throw new TypeError(key);
-    return stored;
-  },
+  decode: (stored) => stored,
 });
-
-/** @internal The codec of each server field, reading back its own value. */
-export type ServerTableFieldCodecs = {
-  [F in ServerTableField]: ServerFieldCodec<ServerTableFieldValues[F]>;
-};
 
 /**
  * @internal
@@ -245,7 +231,7 @@ export type ServerTableFieldCodecs = {
  * `"-name"`, a filter `["status", "open"]`, a hidden column `"-email"`, a
  * page size `50`.
  */
-export const SERVER_TABLE_FIELDS: ServerTableFieldCodecs = {
+export const SERVER_TABLE_FIELDS: Record<ServerTableField, ServerFieldCodec> = {
   sorting: { key: "s", encode: encodeSorting, decode: decodeSorting },
   columnFilters: { key: "f", encode: encodeFilters, decode: decodeFilters },
   columnVisibility: {
@@ -254,12 +240,12 @@ export const SERVER_TABLE_FIELDS: ServerTableFieldCodecs = {
     decode: decodeVisibility,
   },
   pagination: { key: "p", encode: encodePagination, decode: decodePagination },
-  paginationScope: textField("q"),
-  activeTab: textField("t"),
-  viewMode: textField("d"),
-  activeView: textField("w"),
-  linkScope: textField("l"),
-  shownLink: textField("k"),
+  paginationScope: plainField("q"),
+  activeTab: plainField("t"),
+  viewMode: plainField("d"),
+  activeView: plainField("w"),
+  linkScope: plainField("l"),
+  shownLink: plainField("k"),
 };
 
 /** @internal Whether `field` is kept in the cookie. */
@@ -288,19 +274,16 @@ export const encodeServerField = (
 };
 
 /** @internal The value `entry` keeps for `field`, else `defaultValue`. */
-export const decodeServerField = <
-  F extends ServerTableField,
-  D extends ServerTableFieldValues[F] | undefined,
->(
-  field: F,
+export const decodeServerField = <T>(
+  field: ServerTableField,
   entry: CompactTableEntry | undefined,
-  defaultValue: D,
-): ServerTableFieldValues[F] | D => {
+  defaultValue: T,
+): T => {
   const codec = SERVER_TABLE_FIELDS[field];
   const stored = entry?.[codec.key];
   if (stored === undefined) return defaultValue;
   try {
-    return codec.decode(stored, defaultValue);
+    return codec.decode(stored, defaultValue) as T;
   } catch {
     return defaultValue;
   }

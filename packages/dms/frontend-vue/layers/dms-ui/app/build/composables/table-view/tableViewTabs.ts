@@ -34,7 +34,7 @@ export function useTableViewTabs<T extends Data>(
 
   const activeTabId = ref<string>(
     readTableUrlTab(route.query, urlScope) ??
-      tablePreferences.get("activeTab", ALL_TAB_ID),
+      tablePreferences.get<string>("activeTab", ALL_TAB_ID),
   );
 
   const hasConfiguredAllTab = (tabs ?? []).some((tab) => tab.id === ALL_TAB_ID);

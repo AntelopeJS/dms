@@ -108,9 +108,9 @@ const decodeConfig = (code: string): SerializedTableConfig => {
   return parsed;
 };
 
-export const useTableConfigClipboard = () => {
+export const useTableConfigClipboard = <T extends Data>() => {
   const tableSharedData =
-    injectLocal<ShallowRef<TableSharedData<Data>>>("tableSharedData");
+    injectLocal<ShallowRef<TableSharedData<T>>>("tableSharedData");
   const toast = useToast();
   const { t } = useI18n();
   const presenter = useApiErrorPresenter();

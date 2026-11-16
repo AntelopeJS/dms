@@ -4,7 +4,6 @@ import {
   namesRowField,
 } from "#dms-core/app/utils/url-interpolation";
 import { isString } from "#dms-core/app/utils/type-check";
-import { isJsonObject } from "../../utils/json";
 
 type Options = NonNullable<ComponentInfo<Data>["options"]>;
 type OptionValue = Options[string];
@@ -41,7 +40,10 @@ function fillValue(value: OptionValue, key: string, row: Options): OptionValue {
  * read through the table's `rowIdKey`. Filled anew for each row shown; a
  * nested table's row actions keep theirs for their own rows.
  */
-export function fillRowOptions(options: Options, row: Options): Options {
+export function fillRowOptions(
+  options: NonNullable<ComponentInfo["options"]>,
+  row: Options,
+): Options {
   return Object.fromEntries(
     Object.entries(options).map(([key, value]) => [
       key,
@@ -63,7 +65,7 @@ export function fillRowChildren(
     ...child,
     component: {
       ...child.component,
-      options: isJsonObject(child.component.options)
+      options: child.component.options
         ? fillRowOptions(child.component.options, row)
         : child.component.options,
       children: child.component.children

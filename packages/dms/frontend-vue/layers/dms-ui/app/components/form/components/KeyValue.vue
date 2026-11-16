@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import type { ComponentOptionsData } from "#dms-core/app/types/component";
 import type { ComponentInfo } from "#dms-core/app/types/page";
 import { useControlError } from "../../../composables/form/useControlError";
 import {
@@ -9,11 +8,10 @@ import {
   keyValueObject,
 } from "../../../build/composables/form/keyValueRows";
 import DmsInputRepeater from "./InputRepeater.vue";
-import type { DataTypeRow } from "#dms-core/app/types/data-type";
 
 interface KeyValueColumn {
   type?: string;
-  component: ComponentInfo<ComponentOptionsData>;
+  component: ComponentInfo;
 }
 
 interface KeyValueProps {
@@ -27,7 +25,9 @@ interface KeyValueProps {
 }
 
 const props = defineProps<KeyValueProps>();
-const model = defineModel<DataTypeRow | null | undefined>();
+const model = defineModel<
+  Record<string, KeyValueRow["value"]> | null | undefined
+>();
 const { t } = useI18n();
 const { report } = useControlError();
 

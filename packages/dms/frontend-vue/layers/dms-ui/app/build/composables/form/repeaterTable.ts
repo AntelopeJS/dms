@@ -5,14 +5,13 @@ import type {
 } from "#dms-core/app/composables/data-types/useDataType";
 import type { RenderableColumn } from "../data-types/useColumnValueRenderer";
 import { NotFoundRelation } from "../data-types/relationRows";
-import { textOf } from "#dms-core/app/entries/utils/dataTypeValue";
 
 /** A column of a read-only list: a field of its rows. */
 export interface RepeaterTableColumn {
   id: string;
   label?: string;
   type?: string;
-  component: ComponentInfo<ComponentOptionsData>;
+  component: ComponentInfo;
 }
 
 /** Where a relation column reads the rows its values name. */
@@ -32,7 +31,7 @@ export function renderableColumn(
     compareModes: [],
     filterComponents: {},
 
-    inputComponent: column.component,
+    inputComponent: column.component as ComponentInfo<ComponentOptionsData>,
   };
   return { id: column.id, type };
 }
@@ -45,7 +44,7 @@ export function relationLabelSource(
   column: RepeaterTableColumn,
   dataType: Pick<DataType, "selectSource"> | undefined,
 ): RelationLabelSource | undefined {
-  const { options } = column.component;
+  const options: { multiple?: unknown } | undefined = column.component.options;
   const source = dataType?.selectSource?.(options);
   return source ? { ...source, multiple: !!options?.multiple } : undefined;
 }
@@ -69,11 +68,11 @@ export function joinRelationValue(
   value: Parameters<DataTypeFormatter>[0],
   { rowsByValue, readIds }: RelationColumnRows,
   multiple: boolean,
-): Parameters<DataTypeFormatter>[0] {
+): ReturnType<DataTypeFormatter> {
   const join = (item: Parameters<DataTypeFormatter>[0]) => {
     const row = rowsByValue.get(item);
     if (row) return row;
-    const id = textOf(item);
+    const id = String(item);
     return readIds.has(id) ? new NotFoundRelation(id) : item;
   };
   if (multiple && Array.isArray(value)) return value.map(join);

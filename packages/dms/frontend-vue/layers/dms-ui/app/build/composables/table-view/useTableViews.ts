@@ -214,7 +214,10 @@ function arriveTableViews(context: ReturnType<typeof createTableViewState>) {
   } = context;
 
   const urlView = readTableUrlKey(route.query, urlScope, VIEW_URL_KEY);
-  const persistedViewId = preferences.get("activeView", undefined);
+  const persistedViewId = preferences.get<string | undefined>(
+    "activeView",
+    undefined,
+  );
   let isUrlViewUnavailable = false;
   let isUrlViewPending = false;
   let isOpenedOnArrival = false;

@@ -18,12 +18,11 @@ import {
   type App,
 } from "vue";
 import CascaderPath from "../layers/dms-ui/app/components/table-view/CascaderPath.vue";
-import type { DataTypeRow } from "../layers/dms-core/app/types/data-type";
 
 const SEARCH_URL = "/api/categories/select";
 const KEY_MAPPING = { label: "name", value: "_id", parent: "parent" };
 
-interface CategoryRow extends DataTypeRow {
+interface CategoryRow {
   _id: string;
   name: string;
   parent?: string;

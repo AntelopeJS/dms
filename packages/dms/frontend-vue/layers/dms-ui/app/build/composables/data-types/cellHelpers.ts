@@ -1,10 +1,11 @@
+import { get } from "@nuxt/ui/runtime/utils/index.js";
 import type { DataTypeFormatter } from "#dms-core/app/composables/data-types/useDataType";
 import {
-  isDataTypeRow,
-  readFieldPath,
-  textOf,
-} from "#dms-core/app/entries/utils/dataTypeValue";
-import { isBoolean, isNumber, isString } from "#dms-core/app/utils/type-check";
+  isBoolean,
+  isNumber,
+  isObject,
+  isString,
+} from "#dms-core/app/utils/type-check";
 import { isVNode, type VNodeChild } from "vue";
 import type { BlockText } from "../../../../../dms-core/app/types/composed-text";
 import {
@@ -17,9 +18,7 @@ import { DMS_TONE_TEXT, isDmsTone } from "../../utils/tone";
 export type Row = Parameters<DataTypeFormatter>[3];
 
 /** What Vue draws for `value` as a child: text for anything but a node, a list or an atom. */
-export function childOf(
-  value: Parameters<DataTypeFormatter>[0] | ReturnType<DataTypeFormatter>,
-): VNodeChild {
+export function childOf(value: Parameters<DataTypeFormatter>[0]): VNodeChild {
   if (Array.isArray(value)) return value.map(childOf);
   if (
     value === null ||
@@ -31,13 +30,13 @@ export function childOf(
   ) {
     return value;
   }
-  return textOf(value);
+  return String(value);
 }
 
 export const readRowField = (
   row: Row,
   field: string | undefined,
-): NonNullable<Row>[string] => (field ? readFieldPath(row, field) : undefined);
+): NonNullable<Row>[string] => (field && row ? get(row, field) : undefined);
 
 /**
  * The `Tone` a row field holds (`toneField` of a display), or nothing when the
@@ -66,7 +65,7 @@ export const stringOf = (
 ): string | undefined =>
   value === null || value === undefined || value === ""
     ? undefined
-    : textOf(value);
+    : String(value);
 
 /** Truthy the way a status reads it: a non-empty list, a set flag. */
 export const isSet = (value: Parameters<DataTypeFormatter>[0]): boolean => {
@@ -123,10 +122,10 @@ export interface SublineReading {
 
 const isCellSubline = (
   value: Parameters<DataTypeFormatter>[0],
-): value is NonNullable<Row> & CellSubline =>
-  isDataTypeRow(value) &&
-  (isString(value.text) || isComposedText(value.text)) &&
-  (value.tone === undefined || isString(value.tone)) &&
+): value is CellSubline =>
+  isObject(value) &&
+  value !== null &&
+  "text" in value &&
   !isComposedText(value);
 
 const toSubline = (text: string, tone?: string): ResolvedSubline | undefined =>

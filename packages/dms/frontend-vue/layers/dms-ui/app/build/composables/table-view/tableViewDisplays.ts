@@ -47,7 +47,10 @@ export function useTableViewDisplayOptions<T extends Data>(
     ? declaredGroupedOptions
     : undefined;
 
-  const persistedDisplay = tablePreferences.get("viewMode", defaultDisplay);
+  const persistedDisplay = tablePreferences.get<string>(
+    "viewMode",
+    defaultDisplay,
+  );
 
   const isDefaultDisplayStandalone =
     resolvedDisplay(defaultDisplay)?.capabilities?.header === false;

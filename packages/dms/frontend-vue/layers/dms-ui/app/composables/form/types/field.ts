@@ -1,4 +1,3 @@
-import type { DataTypeOptions } from "#dms-core/app/types/data-type";
 import type { FormFieldValue } from "./value";
 
 /** A pill beside a read-only field's value. */
@@ -31,7 +30,7 @@ export interface FormField {
   description?: string;
   /** A grey help line under the control. */
   hint?: string;
-  component: ComponentInfo<DataTypeOptions>;
+  component: ComponentInfo;
   disabled?: boolean;
   /** Shown, not edited: `true`, or with a pill and a link. */
   readonly?: boolean | FormFieldReadonly;

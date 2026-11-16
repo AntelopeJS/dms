@@ -5,7 +5,7 @@
  * empty grid would lift the pagination footer for a beat, then drop it when
  * the cards land.
  */
-import type { DataTypeRow } from "../layers/dms-core/app/types/data-type";
+import { isObject } from "../layers/dms-core/app/utils/type-check";
 import "./helpers/table-runtime";
 import {
   computed,
@@ -37,7 +37,9 @@ const RecordSiteCard = {
     h(lazyRecord, { rowId: props.rowId }),
 };
 
-type PlainRow = DataTypeRow;
+type PlainRow = typeof isObject extends (value: unknown) => value is infer Row
+  ? Row
+  : never;
 
 let app: App | undefined;
 let container: HTMLElement;

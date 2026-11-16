@@ -1,5 +1,15 @@
 <script setup lang="ts">
-import { isNull, isObject } from "../../../../dms-core/app/utils/type-check";
+import {
+  isBigint,
+  isBoolean,
+  isFunction,
+  isNull,
+  isNumber,
+  isObject,
+  isString,
+  isSymbol,
+  isUndefined,
+} from "../../../../dms-core/app/utils/type-check";
 import {
   computed,
   defineAsyncComponent,
@@ -8,15 +18,12 @@ import {
   onMounted,
   ref,
   shallowRef,
+  toRaw,
   watch,
   type Component,
 } from "vue";
 import type { VueApexChartsComponentMethods } from "vue3-apexcharts";
-import {
-  type ApexInput,
-  type RawOptionSection,
-  toApexInput,
-} from "../../build/composables/chart/apexRawOptions";
+import type { RawOptionSection } from "../../build/composables/chart/apexRawOptions";
 import { ensureApexLocale } from "../../composables/chart/apexLocales";
 
 interface Props {
@@ -82,14 +89,67 @@ onBeforeUnmount(() => {
   hostResizes?.disconnect();
 });
 
+type ApexFunction = typeof isFunction extends (
+  value: unknown,
+) => value is infer F
+  ? F
+  : never;
+
+/** A value Apex is handed: its options and series, formatters and dates included. */
+type ApexInput =
+  | string
+  | number
+  | boolean
+  | bigint
+  | symbol
+  | null
+  | undefined
+  | Date
+  | ApexFunction
+  | ApexInput[]
+  | { [key: string]: ApexInput };
+
+function isApexLeaf(
+  value: unknown,
+): value is Exclude<ApexInput, ApexInput[] | { [key: string]: ApexInput }> {
+  return (
+    isString(value) ||
+    isNumber(value) ||
+    isBoolean(value) ||
+    isBigint(value) ||
+    isSymbol(value) ||
+    isNull(value) ||
+    isUndefined(value) ||
+    isFunction(value) ||
+    value instanceof Date
+  );
+}
+
 /**
  * A plain, non-reactive copy of a value handed to Apex. Apex writes into the
  * series and options it is given, and the wrapper deep-watches its `series`
  * prop: a reactive series (fetched data, a card's reactive context) turns
  * each of Apex's own writes into another update, until Vue gives up with
  * "Maximum recursive updates". A copy Apex may scribble on, marked raw so the
- * deep watcher only reacts to a new series, breaks that loop.
+ * deep watcher only reacts to a new series, breaks that loop. Functions
+ * (formatters, event handlers) and dates are kept as they are.
  */
+// oxlint-disable-next-line anti-slop/no-unknown-parameters -- Recursive copy of the untyped Props.series and RawOptionSection values: each nested value it walks is only known once isApexLeaf, Array.isArray or isObject classifies it.
+function toApexInput(value: unknown): ApexInput {
+  const raw = toRaw(value);
+  if (isApexLeaf(raw)) return raw;
+  if (Array.isArray(raw)) {
+    return raw.map((entry) => toApexInput(entry));
+  }
+  const copy: { [key: string]: ApexInput } = {};
+  if (isObject(raw)) {
+    for (const [key, entry] of Object.entries(raw)) {
+      copy[key] = toApexInput(entry);
+    }
+  }
+  return copy;
+}
+
 // oxlint-disable-next-line anti-slop/no-unknown-parameters -- Takes Props.series, which the component declares unknown, and the RawOptionSection options, and hands both to toApexInput.
 function rawApexInput(value: unknown): ApexInput {
   const copy = toApexInput(value);

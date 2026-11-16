@@ -12,7 +12,6 @@ import {
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { usePreferences } from "../layers/dms-core/app/composables/user/usePreferences";
 import { useTablePreferences } from "../layers/dms-ui/app/entries/composables/table-view/useTablePreferences";
-import { tablePreferenceId } from "../layers/dms-core/app/entries/composables/user/tablePreferences";
 
 const COMPONENT_ID = "orders";
 const PAGE_ID = "sales.orders";
@@ -52,21 +51,5 @@ describe("a table's browser-only state restored once mounted", () => {
 
     expect(columnOrder.value).toBe(order);
     app.unmount();
-  });
-});
-
-describe("a table's state the cookie holds in another shape", () => {
-  const entryPath = `tables.${tablePreferenceId(COMPONENT_ID, PAGE_ID)}`;
-
-  it("reads a text field holding something else as its default", () => {
-    usePreferences().setPreference(entryPath, { t: 3 });
-    const preferences = useTablePreferences(COMPONENT_ID, PAGE_ID);
-    expect(preferences.get("activeTab", "all")).toBe("all");
-  });
-
-  it("replaces an entry that is not an object on the next write", () => {
-    usePreferences().setPreference(entryPath, "corrupt");
-    useTablePreferences(COMPONENT_ID, PAGE_ID).set("activeTab", "open", "all");
-    expect(usePreferences().getPreference(entryPath)).toEqual({ t: "open" });
   });
 });

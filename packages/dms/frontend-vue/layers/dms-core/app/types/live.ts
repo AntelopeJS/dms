@@ -1,5 +1,3 @@
-import type { DataTypeRow } from "./data-type";
-
 /**
  * Mirror of `PageLivePeriod` from `@antelopejs/interface-dms/page`: whole
  * minutes, hours or days (`"30m"`, `"24h"`, `"7d"`).
@@ -36,7 +34,9 @@ export type PageLiveNoteTone = "neutral" | "warning" | "error";
  */
 export interface PageLiveNote {
   text: string;
-  params?: DataTypeRow;
+  params?: Parameters<
+    import("#dms-core/app/composables/translation/useTranslation").I18nTranslate
+  >[1];
   tone?: PageLiveNoteTone;
 }
 

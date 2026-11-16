@@ -18,11 +18,6 @@ import { compareValues } from "./compareValues";
 import { sortValueKind } from "./sortableColumns";
 import { isNumber, isObject, isString } from "#dms-core/app/utils/type-check";
 import type { DataTypeFormatter } from "#dms-core/app/composables/data-types/useDataType";
-import {
-  isDataTypeRow,
-  readFieldPath,
-  textOf,
-} from "#dms-core/app/entries/utils/dataTypeValue";
 
 /** Key of the group of rows without a value. */
 export const NO_GROUP_KEY = "";
@@ -54,8 +49,10 @@ function weekStartDay(dayNumber: number, weekStart: number): number {
 function valueKey(value: Parameters<DataTypeFormatter>[0]): string {
   if (value === null || value === undefined) return NO_GROUP_KEY;
   if (Array.isArray(value)) return value.map(valueKey).join(",");
-  if (isDataTypeRow(value) && value._id !== undefined) return textOf(value._id);
-  if (isObject(value)) return JSON.stringify(value);
+  if (isObject(value)) {
+    const id = value._id;
+    return id === undefined ? JSON.stringify(value) : String(id);
+  }
   return String(value);
 }
 
@@ -226,17 +223,13 @@ export function orderGroupedRows<
   const by = grouped.by ?? "value";
   const groupOf = new Map<string, number>();
   const entries = rows.map((row, index) => {
-    const key = rowGroupKey(
-      readFieldPath(row, grouped.groupByField),
-      by,
-      locale,
-    );
+    const key = rowGroupKey(get(row, grouped.groupByField), by, locale);
     if (!groupOf.has(key)) groupOf.set(key, groupOf.size);
     return { row, index, group: groupOf.get(key)! };
   });
   const direction = sort.desc ? -1 : 1;
   const valueOf = (row: T): Parameters<typeof compareValues>[0] =>
-    readFieldPath(row, sort.id);
+    get(row, sort.id);
   return entries
     .sort(
       (a, b) =>

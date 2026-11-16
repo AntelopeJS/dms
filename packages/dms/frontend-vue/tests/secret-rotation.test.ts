@@ -21,6 +21,8 @@ import { useFormDirty } from "../layers/dms-ui/app/composables/unsaved-changes/u
 const OLD_KEY = "sk_live_old0000619e";
 const NEW_KEY = "sk_live_new00004b2d";
 
+type FormValues = Parameters<typeof useInstantForm>[0]["state"]["value"];
+
 describe("a field the server saved on its own", () => {
   function form() {
     const state = ref({
@@ -28,7 +30,7 @@ describe("a field the server saved on its own", () => {
       apiKey: OLD_KEY,
     });
     const initialValues = ref<FormData>({ name: "Acme", apiKey: OLD_KEY });
-    const dirty = useFormDirty<FormData>(() => ({
+    const dirty = useFormDirty<FormValues>(() => ({
       ...state.value,
     }));
     const instantSave = { confirmField: vi.fn() };

@@ -3,11 +3,7 @@ import type {
   BeforeStateMapper,
   DataTypeValueComparer,
 } from "#dms-core/app/composables/data-types/useDataType";
-import { isNumber, isString } from "#dms-core/app/utils/type-check";
-import {
-  isDataTypeRow,
-  textOf,
-} from "#dms-core/app/entries/utils/dataTypeValue";
+import { isNumber, isObject, isString } from "#dms-core/app/utils/type-check";
 
 /** The key a related row is referenced by when `keyMapping.value` maps none. */
 export const DEFAULT_RELATION_VALUE_KEY = "_id";
@@ -25,15 +21,6 @@ const relationOptionsOf = (
   options: Parameters<BeforeStateMapper>[1],
 ): RelationValueOptions => options ?? {};
 
-/** The id of a related row under `valueKey`, a value that is no object as it is. */
-const idOf = (
-  item: Parameters<BeforeStateMapper>[0],
-  valueKey: string,
-): ReturnType<BeforeStateMapper> => {
-  if (isDataTypeRow(item)) return item[valueKey];
-  return Array.isArray(item) || item instanceof Date ? undefined : item;
-};
-
 /**
  * The form state of a relation value: the id of each row it references, as
  * the picker holds it, whether the server sent the joined rows or their ids.
@@ -41,16 +28,26 @@ const idOf = (
 export function mapRelationBeforeState(
   value: Parameters<BeforeStateMapper>[0],
   options: Parameters<BeforeStateMapper>[1],
-): ReturnType<BeforeStateMapper> {
+) {
   if (!value) return value;
 
   const opts = relationOptionsOf(options);
   const valueKey = opts.keyMapping?.value || DEFAULT_RELATION_VALUE_KEY;
 
+  if (isString(value) || isNumber(value)) return value;
+
   if (opts.multiple && Array.isArray(value)) {
-    return value.map((item) => idOf(item, valueKey));
+    const items: unknown[] = value;
+    return items.map((item) =>
+      isObject(item) && item !== null ? item[valueKey] : item,
+    );
   }
-  return idOf(value, valueKey);
+
+  if (isObject(value) && value !== null) {
+    return value[valueKey];
+  }
+
+  return value;
 }
 
 function relationIds(
@@ -65,7 +62,7 @@ function compareIdText(
   left: ReturnType<typeof relationIds>[number],
   right: ReturnType<typeof relationIds>[number],
 ): number {
-  return textOf(left).localeCompare(textOf(right));
+  return String(left).localeCompare(String(right));
 }
 
 /**

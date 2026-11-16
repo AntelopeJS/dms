@@ -86,7 +86,7 @@ export function useTableViewPinnedFilters<T extends Data>(
 ) {
   const { tablePreferences } = scope.arrival;
   const { defaultFilters } = scope.configuration;
-  const savedFilters = tablePreferences.get("columnFilters", []);
+  const savedFilters = tablePreferences.get<TableFilter[]>("columnFilters", []);
 
   const buildPinnedFilters = (): TableFilter[] =>
     (defaultFilters || []).map((def) => {
@@ -136,7 +136,10 @@ export function useTableViewFilterState<T extends Data>(
   const { offeredDisplayIds, fallbackDisplayId } = scope.displayOptions;
   const columnFilters = ref<TableFilter[]>(initialFilters);
   const columnVisibility = ref<VisibilityState>(
-    tablePreferences.get("columnVisibility", initialVisibility),
+    tablePreferences.get<VisibilityState>(
+      "columnVisibility",
+      initialVisibility,
+    ),
   );
   const columnSizing = ref<ColumnSizingState>({});
   tablePreferences.restore("columnSizing", columnSizing);

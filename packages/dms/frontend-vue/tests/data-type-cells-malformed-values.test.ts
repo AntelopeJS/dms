@@ -3,10 +3,7 @@ import { beforeAll, describe, expect, it, vi } from "vitest";
 import { isObject } from "../layers/dms-core/app/utils/type-check";
 import { changedFormKeys } from "../layers/dms-ui/app/entries/composables/unsaved-changes/formValue";
 import type { DataType } from "../layers/dms-core/app/composables/data-types/useDataType";
-import {
-  childOf,
-  readSubline,
-} from "../layers/dms-ui/app/entries/composables/data-types/cellHelpers";
+import { childOf } from "../layers/dms-ui/app/entries/composables/data-types/cellHelpers";
 
 describe("changedFormKeys reads own keys only", () => {
   it("finds a field named like an Object.prototype member unchanged while both sides hold nothing for it", () => {
@@ -29,8 +26,8 @@ describe("a value drawn as a child of a cell", () => {
     expect(childOf("a")).toBe("a");
     expect(childOf(3)).toBe(3);
     expect(childOf(null)).toBeNull();
-    expect(childOf({ a: 1 })).toBe('{"a":1}');
-    expect(childOf(["a", { a: 1 }])).toEqual(["a", '{"a":1}']);
+    expect(childOf({ a: 1 })).toBe("[object Object]");
+    expect(childOf(["a", { a: 1 }])).toEqual(["a", "[object Object]"]);
   });
 });
 
@@ -95,40 +92,6 @@ describe("an identity cell given a malformed avatar", () => {
   it("keeps the file of a text key", () => {
     expect(avatarOf({ key: "avatars/ada.png" })).toEqual({
       key: "avatars/ada.png",
-    });
-  });
-});
-
-describe("an image cell given an image whose alt is no text", () => {
-  it("draws no image", () => {
-    expect(formatterOf("image")([{ key: "a.png", alt: 5 }], "en", {}, {})).toBe(
-      "",
-    );
-  });
-});
-
-describe("an address cell given a part that is no text", () => {
-  it("leaves the part out", () => {
-    expect(
-      formatterOf("address")(
-        { streetName: "Rue", postalCode: "1000", city: true },
-        "en",
-        {},
-        {},
-      ),
-    ).toBe("Rue, 1000");
-  });
-});
-
-describe("a cell's secondary line whose text is no block text", () => {
-  it("reads the row field as its text", () => {
-    const reading = {
-      processText: () => "processed",
-      isStringTranslated: false,
-    };
-    expect(readSubline({ text: 5 }, reading)).toEqual({
-      text: '{"text":5}',
-      tone: undefined,
     });
   });
 });

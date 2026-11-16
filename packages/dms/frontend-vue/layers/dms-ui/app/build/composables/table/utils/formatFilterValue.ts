@@ -1,6 +1,5 @@
 import type { TableFilter } from "../../../components/table/TableRoot.vue";
 import { isString } from "#dms-core/app/utils/type-check";
-import { textOf } from "#dms-core/app/entries/utils/dataTypeValue";
 
 interface FilterColumn {
   value: string;
@@ -39,21 +38,21 @@ export function formatFilterValue(
   getDataType: (id: string) => DataType | undefined,
   locale: string,
 ): string {
-  if (!filter.value) return textOf(filter.value ?? "");
+  if (!filter.value) return String(filter.value ?? "");
 
   const column = columns.find((col) => col.value === filter.accessorKey);
-  if (!column || !column.type) return textOf(filter.value);
+  if (!column || !column.type) return String(filter.value);
 
   const dataType = getDataType(column.type.id);
-  if (!dataType?.formatter) return textOf(filter.value);
+  if (!dataType?.formatter) return String(filter.value);
 
   const formatter =
     dataType.formatter[filter.mode] || dataType.formatter.default;
 
   try {
     const result = formatter(readableValue(filter), locale);
-    return isString(result) && result !== "" ? result : textOf(filter.value);
+    return isString(result) && result !== "" ? result : String(filter.value);
   } catch {
-    return textOf(filter.value);
+    return String(filter.value);
   }
 }

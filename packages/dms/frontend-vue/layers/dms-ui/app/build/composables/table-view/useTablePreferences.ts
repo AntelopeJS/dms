@@ -9,13 +9,11 @@ import {
   readLocalTableEntry,
   SERVER_TABLE_FIELDS,
   type ServerTableField,
-  type ServerTableFieldValues,
   type TableField,
   TABLES_PREFERENCE_KEY,
   tablePreferenceId,
   writeLocalTableEntry,
 } from "#dms-core/app/entries/composables/user/tablePreferences";
-import { isBranch } from "#dms-core/app/entries/composables/user/preferencesCookie";
 
 /**
  * The preferences of one table view. A field the server render needs
@@ -24,14 +22,8 @@ import { isBranch } from "#dms-core/app/entries/composables/user/preferencesCook
  * setup, on both sides, and is restored from `localStorage` once mounted.
  */
 export interface TablePreferences {
-  /** A server field's stored value, else `defaultValue`. */
-  get: <
-    F extends ServerTableField,
-    D extends ServerTableFieldValues[F] | undefined,
-  >(
-    field: F,
-    defaultValue: D,
-  ) => ServerTableFieldValues[F] | D;
+  /** A server field's stored value, else `defaultValue`; a local field's default. */
+  get: <T>(field: TableField, defaultValue: T) => T;
   /** Stores `value`, or forgets the field when `value` is its default. */
   set: <T>(field: TableField, value: T, defaultValue: T) => void;
   /**
@@ -72,14 +64,10 @@ function useServerTableEntry(id: string) {
   const { getPreference, setPreference, removePreference } = usePreferences();
   const path = `${TABLES_PREFERENCE_KEY}.${id}`;
 
-  const entry = (): CompactTableEntry | undefined => {
-    const stored = getPreference(path);
-    return isBranch(stored) ? stored : undefined;
-  };
-  const tables = (): CompactTableEntry => {
-    const stored = getPreference(TABLES_PREFERENCE_KEY);
-    return isBranch(stored) ? stored : {};
-  };
+  const entry = (): CompactTableEntry | undefined =>
+    getPreference<CompactTableEntry | undefined>(path, undefined);
+  const tables = () =>
+    getPreference<CompactTableEntry>(TABLES_PREFERENCE_KEY, {});
 
   const forget = () => {
     const isLastEntry = Object.keys(tables()).every((key) => key === id);
@@ -155,7 +143,9 @@ export function useTablePreferences(
 
   return {
     get: (field, defaultValue) =>
-      decodeServerField(field, server.entry(), defaultValue),
+      isServerTableField(field)
+        ? decodeServerField(field, server.entry(), defaultValue)
+        : defaultValue,
     set: (field, value, defaultValue) =>
       isServerTableField(field)
         ? server.set(field, value, defaultValue)

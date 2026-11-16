@@ -1,6 +1,5 @@
 import type { DataTypeFormatter } from "../../../dms-core/app/composables/data-types/useDataType";
 import { isObject } from "../../../dms-core/app/utils/type-check";
-import { textOf } from "../../../dms-core/app/entries/utils/dataTypeValue";
 
 /** A row of the flat list the tree is built from: what a `select` route answers. */
 type CascaderRow = NonNullable<Parameters<DataTypeFormatter>[3]>;
@@ -59,7 +58,7 @@ function rowField(row: CascaderRow, key: string): CascaderRow[string] {
 function rowValue(row: CascaderRow, key: string): string | undefined {
   const value = rowField(row, key);
   if (value === null || value === undefined || value === "") return undefined;
-  return textOf(value);
+  return String(value);
 }
 
 function createNode(
