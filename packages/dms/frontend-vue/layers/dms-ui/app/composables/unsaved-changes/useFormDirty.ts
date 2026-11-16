@@ -1,5 +1,4 @@
 import { computed, shallowRef, type ComputedRef, type ShallowRef } from "vue";
-import type { DataTypeValue } from "#dms-core/app/types/data-type";
 import {
   sameFormValue,
   snapshotFormValue,
@@ -26,9 +25,6 @@ export interface UseFormDirtyReturn<T> {
   markClean: (values?: T) => void;
 }
 
-/** A shallow ref of `value`, typed for any `V`: `shallowRef` cannot type one over a constrained `T`. */
-const snapshotRef = <V>(value: V): ShallowRef<V> => shallowRef(value);
-
 /**
  * The "unsaved changes" state of a form: dirty while its values differ, deeply
  * and by value, from the ones it loaded or last saved. Putting the original
@@ -37,11 +33,11 @@ const snapshotRef = <V>(value: V): ShallowRef<V> => shallowRef(value);
  *
  * @param values - The current values (read reactively).
  */
-export function useFormDirty<T extends DataTypeValue>(
+export function useFormDirty<T>(
   values: () => T,
   options: UseFormDirtyOptions<T> = {},
 ): UseFormDirtyReturn<T> {
-  const baseline = snapshotRef(snapshotFormValue(values()));
+  const baseline = shallowRef<T>(snapshotFormValue(values()));
   const dirty = computed(
     () =>
       !sameFormValue(

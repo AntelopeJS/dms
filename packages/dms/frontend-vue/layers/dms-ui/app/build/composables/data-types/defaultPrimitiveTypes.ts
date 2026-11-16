@@ -2,11 +2,7 @@ import type {
   DataType,
   DataTypeFormatter,
 } from "#dms-core/app/composables/data-types/useDataType";
-import { isNumber, isObject, isString } from "#dms-core/app/utils/type-check";
-import {
-  isDataTypeRow,
-  textOf,
-} from "#dms-core/app/entries/utils/dataTypeValue";
+import { isObject } from "#dms-core/app/utils/type-check";
 import UIcon from "@nuxt/ui/runtime/vue/components/Icon.vue";
 import { childOf, readRowTone, type Row } from "./cellHelpers";
 import {
@@ -23,7 +19,7 @@ type CellOptions = Parameters<DataTypeFormatter>[2];
 type CellValue = Parameters<DataTypeFormatter>[0];
 
 const convertToBoolean = (value: CellValue): boolean =>
-  parse(textOf(value)) === true;
+  parse(String(value)) === true;
 
 const getBooleanLabel = (value: CellValue): string => {
   const { processI18n } = getAppTranslation();
@@ -40,11 +36,13 @@ function renderBoolean(value: CellValue) {
   ]);
 }
 
-function dateBoundsOf(value: CellValue): [CellValue, CellValue] {
-  if (Array.isArray(value)) return [value[0], value[1]];
-  return isDataTypeRow(value)
-    ? [value.start, value.end]
-    : [undefined, undefined];
+function dateBoundsOf(value: CellValue): [unknown, unknown] {
+  if (Array.isArray(value)) {
+    const pair: unknown[] = value;
+    return [pair[0], pair[1]];
+  }
+  const bounds: { start?: unknown; end?: unknown } = value ?? {};
+  return [bounds.start, bounds.end];
 }
 
 function formatDateBetween(value: CellValue, locale: string): string {
@@ -59,24 +57,18 @@ function formatAddress(value: CellValue): string {
   if (!value || !isObject(value)) return " ";
 
   const { processI18n } = getAppTranslation();
-  const part = (key: string): string | number | undefined => {
-    const text = isDataTypeRow(value) ? value[key] : undefined;
-    return isString(text) || isNumber(text) ? text : undefined;
-  };
-  const countryCode = part("countryCode");
-  const countryName = countryCode
-    ? processI18n(`$country.${countryCode}`)
-    : countryCode;
-  const number = [part("houseNumber"), part("boxNumber")]
-    .filter(Boolean)
-    .join("/");
-  const street = [part("streetName"), number].filter(Boolean).join(" ");
+  const addr = value;
+  const countryName = addr.countryCode
+    ? processI18n(`$country.${String(addr.countryCode)}`)
+    : addr.countryCode;
+  const number = [addr.houseNumber, addr.boxNumber].filter(Boolean).join("/");
+  const street = [addr.streetName, number].filter(Boolean).join(" ");
   const parts = [
     street,
-    part("addressLine2"),
-    part("postalCode"),
-    part("city"),
-    part("countrySubdivision"),
+    addr.addressLine2,
+    addr.postalCode,
+    addr.city,
+    addr.countrySubdivision,
     countryName,
   ].filter(Boolean);
   return parts.join(", ");

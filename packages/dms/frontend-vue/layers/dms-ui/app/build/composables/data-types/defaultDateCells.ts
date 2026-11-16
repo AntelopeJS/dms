@@ -1,6 +1,5 @@
 import type { DataTypeFormatter } from "#dms-core/app/composables/data-types/useDataType";
 import { isNumber, isString } from "#dms-core/app/utils/type-check";
-import { textOf } from "#dms-core/app/entries/utils/dataTypeValue";
 import { readRowField, type Row, toneClass } from "./cellHelpers";
 import {
   firstNameOf,
@@ -50,7 +49,7 @@ const NOW_DOT_CLASS =
 const dateOf = (value: CellValue): Date =>
   isString(value) || isNumber(value) || value instanceof Date
     ? new Date(value)
-    : new Date(textOf(value));
+    : new Date(String(value));
 
 /**
  * `relative_date`: a date as the distance to now, with an "active now"
@@ -65,7 +64,7 @@ export function renderRelativeDate(
   const { processI18n } = getAppTranslation();
   const opts: RelativeDateOptions = options ?? {};
   const date = dateOf(value);
-  if (Number.isNaN(date.getTime())) return textOf(value);
+  if (Number.isNaN(date.getTime())) return String(value);
 
   const now = serverRenderNow() ?? Date.now();
   const deltaMs = date.getTime() - now;

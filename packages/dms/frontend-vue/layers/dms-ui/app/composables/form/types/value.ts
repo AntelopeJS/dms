@@ -1,9 +1,12 @@
-import type { DataTypeValue } from "#dms-core/app/types/data-type";
+export type FormFieldValue =
+  | string
+  | number
+  | boolean
+  | Date
+  | null
+  | Record<string, string>
+  | FormFieldValue[];
 
-/** What a form holds for a field once it has a value: a data type's value. */
-export type FormFieldValue = Exclude<DataTypeValue, undefined>;
-
-/** The values a form holds, by field id. */
 export interface FormData {
-  [field: string]: DataTypeValue;
+  [key: string]: FormFieldValue;
 }

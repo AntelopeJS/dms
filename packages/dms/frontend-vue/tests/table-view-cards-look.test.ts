@@ -10,7 +10,6 @@ import type {
 } from "../layers/dms-ui/app/composables/table-view/types/display";
 import type { DataTypeFormatter } from "../layers/dms-core/app/composables/data-types/useDataType";
 import { displayContext } from "./fixtures/displayContext";
-import { textOf } from "../layers/dms-core/app/entries/utils/dataTypeValue";
 import { tableViewColumn } from "./fixtures/tableViewColumn";
 
 const column = (
@@ -26,13 +25,13 @@ const formatter = (typeId: string) => ({
     options: Parameters<DataTypeFormatter>[2],
     row?: Parameters<DataTypeFormatter>[3],
   ) =>
-    `${typeId}(${textOf(value)}|${JSON.stringify(options ?? {})}|${textOf(row?._id)})`,
+    `${typeId}(${String(value)}|${JSON.stringify(options ?? {})}|${String(row?._id)})`,
   empty: (
     _value: Parameters<DataTypeFormatter>[0],
     _locale: string,
     _options: Parameters<DataTypeFormatter>[2],
     row?: Parameters<DataTypeFormatter>[3],
-  ) => `${typeId}-empty(${textOf(row?._id)})`,
+  ) => `${typeId}-empty(${String(row?._id)})`,
 });
 
 let app: App | undefined;

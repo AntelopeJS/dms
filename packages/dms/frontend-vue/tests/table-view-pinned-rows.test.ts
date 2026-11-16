@@ -16,9 +16,8 @@ import {
 import { rowLocator } from "../layers/dms-ui/app/entries/composables/table-view/utils/locateRow";
 import { fetchClient } from "./fixtures/fetchClient";
 import { tableViewColumn } from "./fixtures/tableViewColumn";
-import type { DataTypeRow } from "../layers/dms-core/app/types/data-type";
 
-interface LanguageRow extends DataTypeRow {
+interface LanguageRow extends Record<string, unknown> {
   _id: string;
   name: string;
   coverage: number;

@@ -4,7 +4,6 @@ import {
   type RealtimeTopicHandler,
 } from "#dms-core/app/composables/realtime/useUserRealtime";
 import { isString } from "#dms-core/app/utils/type-check";
-import { textOf } from "#dms-core/app/entries/utils/dataTypeValue";
 import type { RealtimePresenceMap } from "./tableViewTypes";
 import { detach } from "../detach";
 import type { TableViewScope } from "./tableViewScope";
@@ -44,7 +43,7 @@ export function useTableViewRowRealtime<T extends Data>(
   const getRowId = (row: T): string | undefined => {
     const value = row[rowIdKey];
     if (value === undefined || value === null) return undefined;
-    return textOf(value);
+    return String(value);
   };
 
   const removeRowsLocal = (ids: string[]) => {

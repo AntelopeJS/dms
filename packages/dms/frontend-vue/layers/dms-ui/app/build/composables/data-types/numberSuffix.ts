@@ -1,13 +1,14 @@
 import type { DataTypeFormatter } from "#dms-core/app/composables/data-types/useDataType";
-import { isNumber } from "#dms-core/app/utils/type-check";
+import type { formatNumber } from "#dms-core/app/utils/formatter";
+import { isNumber, isString } from "#dms-core/app/utils/type-check";
 import { getAppTranslation } from "../../../../../dms-core/app/composables/translation/useTranslation";
 
 /** A formatter writing a number for a locale, with Intl's options. */
 type NumberFormatter = (
-  value: number,
+  value: Parameters<typeof formatNumber>[0],
   locale: string,
-  options?: Intl.NumberFormatOptions,
-) => string;
+  options?: Parameters<typeof formatNumber>[2],
+) => ReturnType<typeof formatNumber>;
 
 /** The options of a numeric field a cell reads besides Intl's. */
 interface NumberSuffixOptions {
@@ -29,12 +30,13 @@ const UNIT_SEPARATOR = " ";
  */
 export function withNumberSuffix(format: NumberFormatter): DataTypeFormatter {
   return (value, locale, options) => {
-    if (!isNumber(value)) return value;
     const opts: (Intl.NumberFormatOptions & NumberSuffixOptions) | undefined =
       options ?? undefined;
     const formatted = format(value, locale, opts);
     const suffix = opts?.suffix;
-    if (!suffix) return formatted;
+    if (!suffix || !isNumber(value) || !isString(formatted)) {
+      return formatted;
+    }
     const unit = getAppTranslation().processI18n(suffix);
     return `${formatted}${UNIT_SEPARATOR}${unit}`;
   };

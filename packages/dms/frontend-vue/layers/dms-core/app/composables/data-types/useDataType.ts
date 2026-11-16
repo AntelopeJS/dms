@@ -1,15 +1,9 @@
-import type { Component, VNodeChild } from "vue";
-import type {
-  DataTypeOptions,
-  DataTypeRow,
-  DataTypeValue,
-} from "../../types/data-type";
+import type { Component } from "vue";
 
 export type RecordWithDefault<T> = Record<string, T> & { default: T };
 
 /**
- * Turns a value into its display, or returns a value that needs none, drawn
- * as its text. `row` is the whole listed row when the value
+ * Turns a value into its display. `row` is the whole listed row when the value
  * is drawn in a table (cell, detail band), so a formatter can compose sibling
  * fields; it is absent elsewhere (forms, filters) and must be optional.
  *
@@ -18,21 +12,18 @@ export type RecordWithDefault<T> = Record<string, T> & { default: T };
  * null/undefined value), and one per compare mode for filter chips.
  */
 export type DataTypeFormatter = (
-  value: DataTypeValue,
+  value: unknown,
   locale: string,
-  options?: DataTypeOptions,
-  row?: DataTypeRow,
-) => VNodeChild | DataTypeValue;
+  options?: unknown,
+  row?: Record<string, unknown>,
+) => unknown;
 
 /**
  * Reshapes a server value into its form-state representation.
  * Must be idempotent: form reset re-applies the mapper to values that
  * may already be mapped (e.g. restored from a submit-success snapshot).
  */
-export type BeforeStateMapper = (
-  value: DataTypeValue,
-  options?: DataTypeOptions,
-) => DataTypeValue;
+export type BeforeStateMapper = (value: unknown, options?: unknown) => unknown;
 
 /**
  * Whether two values of a data type are the same value, whatever shape each
@@ -40,9 +31,9 @@ export type BeforeStateMapper = (
  * its control holds through it, to tell an edited field from an untouched one.
  */
 export type DataTypeValueComparer = (
-  left: DataTypeValue,
-  right: DataTypeValue,
-  options?: DataTypeOptions,
+  left: unknown,
+  right: unknown,
+  options?: unknown,
 ) => boolean;
 
 /**
@@ -51,10 +42,7 @@ export type DataTypeValueComparer = (
  * input refuses `"0"`, a date range wants its two days. The filter itself
  * keeps its text, so the query is unchanged.
  */
-export type DataTypeFilterEditorValue = (
-  text: string,
-  mode: string,
-) => DataTypeValue;
+export type DataTypeFilterEditorValue = (text: string, mode: string) => unknown;
 
 /**
  * Where the rows a value names are read: the `select` route of the table a

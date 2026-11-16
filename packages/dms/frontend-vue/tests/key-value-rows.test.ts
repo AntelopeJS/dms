@@ -49,10 +49,4 @@ describe("key-value rows", () => {
     expect(keyValueRows(null, false)).toEqual([]);
     expect(keyValueRows(undefined, true)).toEqual([]);
   });
-
-  it("reads a pair whose enabled flag is no boolean as on", () => {
-    expect(keyValueRows({ a: { value: 1, enabled: "no" } }, true)).toEqual([
-      { key: "a", value: 1, enabled: true },
-    ]);
-  });
 });

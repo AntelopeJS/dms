@@ -1,5 +1,4 @@
 import type { InjectionKey, Ref } from "vue";
-import type { DataTypeValue } from "#dms-core/app/types/data-type";
 import type { useWatch } from "#dms-core/app/composables/watch/useWatch";
 import type { SaveStatusState } from "../../../components/save-bar/SaveStatus.vue";
 import type { FormField } from "../../../composables/form/types/field";
@@ -35,7 +34,9 @@ export interface FormEntryContext {
   /** Whether a field holds a value it did not load (or last save) with. */
   isFieldChanged: (fieldId: string) => boolean;
   /** The value a field loaded (or was last saved) with. */
-  baselineValue: (fieldId: string) => DataTypeValue;
+  baselineValue: (
+    fieldId: string,
+  ) => FormEntryContext["state"]["value"][string];
   /** The instant-save state of a field: `idle` unless the form saves so. */
   fieldSaveState: (fieldId: string) => SaveStatusState;
   /** Saves again the changes whose save failed. */

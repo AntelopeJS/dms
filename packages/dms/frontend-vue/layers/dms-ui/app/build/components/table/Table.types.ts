@@ -27,7 +27,6 @@ import type {
   FormPageUrls,
 } from "../../composables/table-view/useTableViewConfig";
 import type { CustomRowAction } from "../../../types/row-action";
-import type { DataTypeValue } from "#dms-core/app/types/data-type";
 import type { TableViewRowClick } from "../../utils/rowClickTrigger";
 import type { RowActionConfig } from "#dms-core/app/types/row-action";
 import type { TableTabItem } from "./TableTabs.vue";
@@ -317,10 +316,10 @@ export interface TableEmits<T> {
 
 export interface TableFilter {
   accessorKey: string;
-  value?: DataTypeValue;
+  value?: unknown;
   mode: string;
   pinned?: boolean;
-  initialValue?: DataTypeValue;
+  initialValue?: unknown;
 }
 
 /** A filter the page URL applies and shows (see `TableProps.urlFilters`). */

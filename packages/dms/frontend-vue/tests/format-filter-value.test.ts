@@ -8,13 +8,12 @@ import { describe, expect, it } from "vitest";
 import type { DataType } from "../layers/dms-core/app/composables/data-types/useDataType";
 import { registerFieldTypes } from "../layers/dms-ui/app/entries/composables/data-types/registerFieldTypes";
 import { formatFilterValue } from "../layers/dms-ui/app/entries/composables/table/utils/formatFilterValue";
-import { textOf } from "../layers/dms-core/app/entries/utils/dataTypeValue";
 
 const dataTypes = new Map<string, DataType>();
 registerFieldTypes((dataType) => dataTypes.set(dataType.id, dataType));
 dataTypes.set("code_name", {
   id: "code_name",
-  formatter: { default: (value) => textOf(value).toUpperCase() },
+  formatter: { default: (value) => String(value).toUpperCase() },
 });
 const getDataType = (id: string) => dataTypes.get(id);
 

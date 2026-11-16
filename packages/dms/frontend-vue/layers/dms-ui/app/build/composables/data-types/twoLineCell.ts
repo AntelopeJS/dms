@@ -4,7 +4,6 @@ import type {
   DataTypeFormatter,
 } from "#dms-core/app/composables/data-types/useDataType";
 import { isNumber, isString } from "#dms-core/app/utils/type-check";
-import { textOf } from "#dms-core/app/entries/utils/dataTypeValue";
 import { getAppComposedText } from "../../../../../dms-core/app/composables/translation/useComposedText";
 import {
   type ComposableText,
@@ -35,7 +34,7 @@ interface TwoLineOptions {
   /** The column's own data type, which writes its value. */
   columnType?: string;
   /** The column's own type options (a select's items). */
-  typeOptions?: Parameters<DataTypeFormatter>[2];
+  typeOptions?: unknown;
 }
 
 const composableOf = (
@@ -47,7 +46,7 @@ const composableOf = (
   isString(value) ||
   isComposedText(value)
     ? value
-    : textOf(value);
+    : String(value);
 
 const isBlank = (value: Parameters<DataTypeFormatter>[0]): boolean =>
   value === null || value === undefined || value === "";
@@ -64,7 +63,7 @@ function formatColumnValue(
     ? getDataType(opts.columnType)?.formatter
     : undefined;
   const format = formatter?.cell ?? formatter?.default;
-  if (!format) return textOf(value);
+  if (!format) return String(value);
   return childOf(format(value, locale, opts.typeOptions, row));
 }
 

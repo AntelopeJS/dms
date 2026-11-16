@@ -13,10 +13,10 @@ import type {
 import { Size } from "../layers/dms-core/app/types/size";
 import { isObject } from "../layers/dms-core/app/utils/type-check";
 
-type RelationOptions = {
+interface RelationOptions {
   multiple?: boolean;
   keyMapping?: { label?: string; value?: string };
-};
+}
 
 type RelationRow = Record<string, string | number | null>;
 

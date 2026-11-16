@@ -24,10 +24,7 @@ import {
   useRelationRows,
 } from "../../../build/composables/data-types/relationRows";
 import type { FormProps } from "../../../composables/form/types";
-import {
-  fieldValueOf,
-  sameFormValue,
-} from "../../../build/composables/unsaved-changes/formValue";
+import { sameFormValue } from "../../../build/composables/unsaved-changes/formValue";
 import { FORM_ENTRY_CONTEXT_KEY } from "../../../build/composables/form/formEntryContext";
 import {
   type RelationFilterBy,
@@ -123,7 +120,7 @@ const searchTermDebounced = refDebounced(searchTerm, SEARCH_DEBOUNCE_MS);
 const formContext = inject(FORM_ENTRY_CONTEXT_KEY, null);
 const filterSourceValue = computed(() =>
   props.filterBy && formContext
-    ? fieldValueOf(formContext.state.value, props.filterBy.from)
+    ? formContext.state.value[props.filterBy.from]
     : undefined,
 );
 const filterParams = computed(() =>
@@ -352,7 +349,7 @@ watch(
 // loading both values changes them in the same tick.
 const pickValue = computed(() =>
   formContext && props.id
-    ? fieldValueOf(formContext.state.value, props.id)
+    ? formContext.state.value[props.id]
     : props.modelValue,
 );
 let pickSource = loadedFilterSource;
