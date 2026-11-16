@@ -271,6 +271,7 @@ jobs:
           - formal-default-tenant-provisioning
           - formal-onboarding-bootstrap
           - formal-realtime-tabs
+          - formal-route-patterns
           - formal-tenant-lifecycle
     steps:
       - uses: actions/checkout@v4

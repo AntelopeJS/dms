@@ -248,6 +248,17 @@ const config: VerifyConfig = {
       command: ["node", ".agents/skills/formal-realtime-tabs/check.mjs", "--full"],
       violation: /^(?:finding|BROKEN|CHANGED|HOLDS) +(\w+)/gm,
     },
+    {
+      name: "formal-route-patterns",
+      covers: [
+        "packages/dms/src/mockup/model.ts",
+        "packages/dms/frontend-vue/layers/dms-ui/app/build/utils/mockup.ts",
+        "packages/dms/frontend-vue/layers/dms-ui/app/build/utils/urlVariables.ts",
+      ],
+      files: [".agents/skills/formal-route-patterns/**", ".agents/formal/run-properties.cts"],
+      command: ["node", ".agents/skills/formal-route-patterns/check.mjs", "--full"],
+      violation: /^(?:finding|BROKEN|CHANGED|HOLDS) +(\w+)/gm,
+    },
   ],
 };
 
