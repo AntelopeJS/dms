@@ -11,9 +11,15 @@ importers:
       '@antelopejs/core':
         specifier: ~1.24.0
         version: 1.24.0
+      '@antelopejs/dms':
+        specifier: workspace:*
+        version: link:packages/dms
       '@antelopejs/tooling-configs':
         specifier: '>=0.8.0 <0.9.0'
-        version: 0.8.0(knip@6.34.0)(mongodb-memory-server@11.3.0(socks@2.8.7))(oxfmt@0.66.0)(oxlint@1.81.0(oxlint-tsgolint@7.0.2001))(pixelmatch@8.0.0)(playwright-core@1.65.0)(sharp@0.35.5)
+        version: 0.8.0(knip@6.34.0)(mongodb-memory-server@11.3.0(socks@2.8.7))(oxfmt@0.66.0)(oxlint@1.81.0(oxlint-tsgolint@7.0.2001))(pixelmatch@8.0.0)(playwright-core@1.65.1)(sharp@0.35.5)
+      '@playwright/test':
+        specifier: ~1.65.0
+        version: 1.65.1
       dependency-cruiser:
         specifier: ^18.7.0
         version: 18.7.0
@@ -43,7 +49,7 @@ importers:
         version: 8.0.0
       playwright-core:
         specifier: ^1.65.0
-        version: 1.65.0
+        version: 1.65.1
       semver:
         specifier: ^7.7.2
         version: 7.8.5
@@ -75,10 +81,10 @@ importers:
         specifier: '>=0.5.2 <0.6.0'
         version: 0.5.2(@antelopejs/interface-api@0.3.2(@antelopejs/interface-core@0.5.1))(@antelopejs/interface-core@0.5.1)(@antelopejs/interface-database@0.4.1(@antelopejs/interface-core@0.5.1))
       '@antelopejs/interface-dms':
-        specifier: '>=0.14.0 <0.15.0'
+        specifier: workspace:^
         version: link:../interface-dms
       '@antelopejs/interface-dms-builder':
-        specifier: '>=0.5.0 <0.6.0'
+        specifier: workspace:^
         version: link:../interface-dms-builder
       '@antelopejs/interface-email':
         specifier: '>=0.2.1 <0.3.0'
@@ -167,7 +173,10 @@ importers:
         version: 1.10.2
       '@antelopejs/tooling-configs':
         specifier: '>=0.8.0 <0.9.0'
-        version: 0.8.0(knip@6.34.0)(mongodb-memory-server@11.3.0(socks@2.8.7))(oxfmt@0.66.0)(oxlint@1.81.0(oxlint-tsgolint@7.0.2001))(pixelmatch@8.0.0)(playwright-core@1.65.0)(sharp@0.35.5)
+        version: 0.8.0(knip@6.34.0)(mongodb-memory-server@11.3.0(socks@2.8.7))(oxfmt@0.66.0)(oxlint@1.81.0(oxlint-tsgolint@7.0.2001))(pixelmatch@8.0.0)(playwright-core@1.65.1)(sharp@0.35.5)
+      '@playwright/test':
+        specifier: ~1.65.0
+        version: 1.65.1
       '@types/archiver':
         specifier: ^6.0.4
         version: 6.0.4
@@ -204,6 +213,12 @@ importers:
       chai:
         specifier: ^4.5.0
         version: 4.5.0
+      fast-check:
+        specifier: ^4.10.2
+        version: 4.10.2
+      ioredis:
+        specifier: ^5.10.1
+        version: 5.11.0
       knip:
         specifier: ^6.34.0
         version: 6.34.0
@@ -261,7 +276,7 @@ importers:
         version: 0.0.9(@antelopejs/interface-core@0.5.1)
       playwright-core:
         specifier: ~1.65.0
-        version: 1.65.0
+        version: 1.65.1
 
   packages/dms/frontend-vue:
     dependencies:
@@ -2350,6 +2365,11 @@ packages:
   '@pkgjs/parseargs@0.11.0':
     resolution: {integrity: sha512-+1VkjdD0QBLPodGrJUeqarH8VAIvQODIbwh9XpP5Syisf7YoQgsJKPNFoqqLQlu+VQ/tVSshMR6loPMn8U+dPg==}
     engines: {node: '>=14'}
+
+  '@playwright/test@1.65.1':
+    resolution: {integrity: sha512-y+NCIRm2LvY4slUVWvGh1nujJ8RF/hEisIsq2mtUPgdQC4L701bq5hZGMhrpeXjACvwvO9tj5dJqhvM6TP9lbw==}
+    engines: {node: '>=20'}
+    hasBin: true
 
   '@polka/url@1.0.0-next.29':
     resolution: {integrity: sha512-wwQAWhWSuHaag8c4q/KN/vCoeOJYshAIvMQwD4GpSb3OiZklFfvAgmj0VCBBImRpuF/aFgIRzllXlVX93Jevww==}
@@ -5765,8 +5785,13 @@ packages:
   pkg-types@2.3.1:
     resolution: {integrity: sha512-y+ichcgc2LrADuhLNAx8DFjVfgz91pRxfZdI3UDhxHvcVEZsenLO+7XaU5vOp0u/7V/wZ+plyuQxtrDlZJ+yeg==}
 
-  playwright-core@1.65.0:
-    resolution: {integrity: sha512-vNSKgH6YqtN7cdT/L334zo0a+YwkrpicyrHJlWWPIm/Q+Nn2SWInil01oT0mbu96U4GgoRtCYQD9CzJQgju+lA==}
+  playwright-core@1.65.1:
+    resolution: {integrity: sha512-hqPpz7blSMPxWVdoeE1yiBSzXsKiVOd2k+kjCvmUywD2GPO2Dd9HfcWnq9NN0GHbNZDFgZ9JfBFr+X5/BLo0qw==}
+    engines: {node: '>=20'}
+    hasBin: true
+
+  playwright@1.65.1:
+    resolution: {integrity: sha512-vJ1FuoOrNwOKHUIVEvSt3jT1L+wjjDpwhwIstKtfvTh8XIG4FG4bIFuvNdMxi81LGfAhUgUZleVFaOLY4RIUUw==}
     engines: {node: '>=20'}
     hasBin: true
 
@@ -7320,7 +7345,7 @@ snapshots:
     optionalDependencies:
       '@antelopejs/interface-rethinkdb': 0.1.1(@antelopejs/interface-core@0.5.1)
 
-  '@antelopejs/tooling-configs@0.8.0(knip@6.34.0)(mongodb-memory-server@11.3.0(socks@2.8.7))(oxfmt@0.66.0)(oxlint@1.81.0(oxlint-tsgolint@7.0.2001))(pixelmatch@8.0.0)(playwright-core@1.65.0)(sharp@0.35.5)':
+  '@antelopejs/tooling-configs@0.8.0(knip@6.34.0)(mongodb-memory-server@11.3.0(socks@2.8.7))(oxfmt@0.66.0)(oxlint@1.81.0(oxlint-tsgolint@7.0.2001))(pixelmatch@8.0.0)(playwright-core@1.65.1)(sharp@0.35.5)':
     dependencies:
       '@oxlint/plugins': 1.81.0
       dts-bundle-generator: 9.5.1
@@ -7354,7 +7379,7 @@ snapshots:
       oxfmt: 0.66.0
       oxlint: 1.81.0(oxlint-tsgolint@7.0.2001)
       pixelmatch: 8.0.0
-      playwright-core: 1.65.0
+      playwright-core: 1.65.1
       sharp: 0.35.5(@types/node@26.6.5)
 
   '@antfu/install-pkg@1.1.0':
@@ -8197,8 +8222,7 @@ snapshots:
 
   '@intlify/shared@11.4.8': {}
 
-  '@ioredis/commands@1.10.0':
-    optional: true
+  '@ioredis/commands@1.10.0': {}
 
   '@isaacs/cliui@8.0.2':
     dependencies:
@@ -8896,6 +8920,10 @@ snapshots:
 
   '@pkgjs/parseargs@0.11.0':
     optional: true
+
+  '@playwright/test@1.65.1':
+    dependencies:
+      playwright: 1.65.1
 
   '@polka/url@1.0.0-next.29': {}
 
@@ -10277,8 +10305,7 @@ snapshots:
       strip-ansi: 6.0.1
       wrap-ansi: 7.0.0
 
-  cluster-key-slot@1.1.1:
-    optional: true
+  cluster-key-slot@1.1.1: {}
 
   code-block-writer@13.0.3: {}
 
@@ -10448,8 +10475,7 @@ snapshots:
 
   delayed-stream@1.0.0: {}
 
-  denque@2.1.0:
-    optional: true
+  denque@2.1.0: {}
 
   dependency-cruiser@18.7.0:
     dependencies:
@@ -11270,7 +11296,6 @@ snapshots:
       standard-as-callback: 2.1.0
     transitivePeerDependencies:
       - supports-color
-    optional: true
 
   ip-address@10.1.0: {}
 
@@ -12388,7 +12413,11 @@ snapshots:
       exsolve: 1.1.1
       pathe: 2.0.3
 
-  playwright-core@1.65.0: {}
+  playwright-core@1.65.1: {}
+
+  playwright@1.65.1:
+    dependencies:
+      playwright-core: 1.65.1
 
   plimit-lit@1.6.1:
     dependencies:
@@ -12634,13 +12663,11 @@ snapshots:
     dependencies:
       resolve: 1.22.13
 
-  redis-errors@1.2.0:
-    optional: true
+  redis-errors@1.2.0: {}
 
   redis-parser@3.0.0:
     dependencies:
       redis-errors: 1.2.0
-    optional: true
 
   reflect-metadata@0.2.2: {}
 
@@ -12972,8 +12999,7 @@ snapshots:
 
   stackback@0.0.2: {}
 
-  standard-as-callback@2.1.0:
-    optional: true
+  standard-as-callback@2.1.0: {}
 
   std-env@3.10.0: {}
 

@@ -86,6 +86,31 @@ describe("[unit] user notifications — inbox filters, counts and undo", () => {
   });
 });
 
+describe("[unit] user notifications — visible reads", () => {
+  beforeEach(clear);
+  after(clear);
+
+  it("lists and queries what the dismissed filter used to keep, in the same order", async () => {
+    const kept = [
+      await seed(USER_ID, "first"),
+      await seed(OTHER_USER_ID, "foreign"),
+      await seed(USER_ID, "second"),
+    ];
+    const dismissed = await seed(USER_ID, "dismissed");
+    await model.table.get(dismissed).update({ isDismissed: true }).run();
+    const raw = (await model.table.run()).map((row) => row._id);
+    const expected = (ids: string[]) => raw.filter((id) => ids.includes(id));
+
+    expect((await model.getAll()).map((row) => row._id)).to.deep.equal(
+      expected(kept),
+    );
+    expect(
+      (await model.getBy("userId", USER_ID)).map((row) => row._id),
+    ).to.deep.equal(expected([kept[0], kept[2]]));
+    expect(await model.getBy("userId", "nobody")).to.deep.equal([]);
+  });
+});
+
 describe("[unit] user notifications — inbox filters, counts and undo, batches", () => {
   beforeEach(clear);
   after(clear);

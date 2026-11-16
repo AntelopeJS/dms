@@ -24,6 +24,20 @@ export interface TableListDataOptions<T extends Record<string, unknown>> {
   heldQuery?: () => Query;
 }
 
+/**
+ * How the reads of a table list's rows left, shared by every view bound to
+ * the list's key: a row answer is dropped when a list read left after its
+ * row read, or when a later row read of that row already answered.
+ */
+export interface TableReadOrder {
+  /** List reads that left. */
+  lists: number;
+  /** Row reads that left. */
+  rows: number;
+  /** The newest row read applied since the last list read left, by row id. */
+  applied: Map<string, number>;
+}
+
 /** One counter: its id and its list query, as the table view builds it. */
 export interface TableCountRequest {
   id: string;
@@ -79,16 +93,23 @@ export function useTableListData<T extends Record<string, unknown>>(
     isSelfManaged: isSelfManaged.value,
     sourceUrl: rows.sourceUrl.value,
   });
-  return useDmsAsyncData(
+  const readOrder = useDmsState<TableReadOrder>(`${key}-read-order`, () => ({
+    lists: 0,
+    rows: 0,
+    applied: new Map(),
+  })).value;
+  const listData = useDmsAsyncData(
     key,
 
-    ({ signal }): Promise<TableViewListResponse<T> | null> =>
-      isSelfManaged.value
-        ? Promise.resolve(EMPTY_LIST_RESULT)
-        : rows.list(
-            { ...query.value, ...archiveQuery.value, ...heldQuery() },
-            signal,
-          ),
+    ({ signal }): Promise<TableViewListResponse<T> | null> => {
+      if (isSelfManaged.value) return Promise.resolve(EMPTY_LIST_RESULT);
+      readOrder.lists += 1;
+      readOrder.applied.clear();
+      return rows.list(
+        { ...query.value, ...archiveQuery.value, ...heldQuery() },
+        signal,
+      );
+    },
     {
       watch: [
         byValue(query),
@@ -101,6 +122,7 @@ export function useTableListData<T extends Record<string, unknown>>(
       refreshOnPageRefresh: false,
     },
   );
+  return Object.assign(listData, { readOrder });
 }
 
 /**

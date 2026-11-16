@@ -35,6 +35,8 @@ export interface VerifyConfig {
   notShared: string[];
   smoke: string;
   smokeJourney: string;
+  /** The folder of the journeys modules, relative to the repository root. Absent: `journeys/` in the skill folder. */
+  journeys?: string;
   doors: Record<DoorKind, DoorRule | null>;
   formal: FormalCheck[];
 }
@@ -74,10 +76,13 @@ const config: VerifyConfig = {
     "packages/dms/src/config/**",
     "packages/interface-dms/src/**",
     ".agents/skills/verify-dms/verify.config.ts",
+    "e2e/*.mjs",
+    "e2e/*.ts",
   ],
-  notShared: ["packages/dms/test-hosts/**", "packages/interface-dms/src/**/*.test.ts"],
+  notShared: ["packages/dms/test-hosts/**", "packages/interface-dms/src/**/*.test.ts", "e2e/*.test.mjs"],
   smoke: "smoke",
   smokeJourney: "onboard → login → invite a member → reload",
+  journeys: "e2e/journeys",
   doors: {
     data: {
       globs: [
@@ -246,6 +251,129 @@ const config: VerifyConfig = {
       ],
       files: [".agents/skills/formal-realtime-tabs/**"],
       command: ["node", ".agents/skills/formal-realtime-tabs/check.mjs", "--full"],
+      violation: /^(?:finding|BROKEN|CHANGED|HOLDS) +(\w+)/gm,
+    },
+    {
+      name: "formal-route-patterns",
+      covers: [
+        "packages/dms/src/mockup/model.ts",
+        "packages/dms/frontend-vue/layers/dms-ui/app/build/utils/mockup.ts",
+        "packages/dms/frontend-vue/layers/dms-ui/app/build/utils/urlVariables.ts",
+      ],
+      files: [".agents/skills/formal-route-patterns/**", ".agents/formal/run-properties.cts"],
+      command: ["node", ".agents/skills/formal-route-patterns/check.mjs", "--full"],
+      violation: /^(?:finding|BROKEN|CHANGED|HOLDS) +(\w+)/gm,
+    },
+    {
+      name: "formal-option-patch-prune",
+      covers: [
+        "packages/dms/src/implementations/dms-builder/engine/options-patch.ts",
+        "packages/dms/src/implementations/dms-builder/engine/local-bindings.ts",
+        "packages/dms/src/implementations/dms-builder/engine/writable.ts",
+      ],
+      files: [".agents/skills/formal-option-patch-prune/**", ".agents/formal/run-properties.cts"],
+      command: ["node", ".agents/skills/formal-option-patch-prune/check.mjs", "--full"],
+      violation: /^(?:finding|BROKEN|CHANGED|HOLDS) +(\w+)/gm,
+    },
+    {
+      name: "formal-theme-logo-orphans",
+      covers: [
+        "packages/dms/src/implementations/dms-builder/engine/theme.ts",
+        "packages/dms/src/implementations/dms-builder/engine/theme-assets.ts",
+        "packages/dms/src/implementations/dms-builder/engine/theme-app-config.ts",
+        "packages/dms/src/implementations/dms-builder/engine/theme-config-imports.ts",
+        "packages/dms/src/implementations/dms-builder/engine/theme-literals.ts",
+      ],
+      files: [
+        ".agents/skills/formal-theme-logo-orphans/**",
+        "packages/dms/src/test/unit/builder/theme-logo-orphans.formal.test.ts",
+        "packages/dms/src/test/unit/builder/helpers/logo-spellings.ts",
+      ],
+      command: ["node", ".agents/skills/formal-theme-logo-orphans/check.mjs"],
+      violation: /^(?:finding|BROKEN|CHANGED|HOLDS) +(\w+)/gm,
+    },
+    {
+      name: "formal-ai-answers-no-row-values",
+      covers: [
+        "packages/dms/src/mcp/tool.ts",
+        "packages/dms/src/mcp/hidden-values.ts",
+        "packages/dms/src/mcp/redact.ts",
+        "packages/dms/src/mcp/page-verify/redact-report.ts",
+        "packages/dms/src/mcp/tools/index.ts",
+        "packages/dms/src/mcp/tools/builder-shared.ts",
+        "packages/dms/src/mcp/tools/builder-pages.ts",
+        "packages/dms/src/mcp/tools/builder-resources.ts",
+        "packages/dms/src/mcp/tools/builder-compose.ts",
+        "packages/dms/src/mcp/tools/builder-project.ts",
+        "packages/dms/src/mcp/tools/builder-queries.ts",
+        "packages/dms/src/mcp/tools/builder-table-view.ts",
+        "packages/dms/src/mcp/tools/database.ts",
+        "packages/dms/src/mcp/tools/page-verify.ts",
+        "packages/dms/src/implementations/dms-builder/engine/mapped-modules.ts",
+      ],
+      files: [
+        ".agents/skills/formal-ai-answers-no-row-values/**",
+        "packages/dms/src/test/formal/ai-answers-no-row-values.test.ts",
+        "packages/dms/src/test/formal/helpers/**",
+      ],
+      command: ["node", ".agents/skills/formal-ai-answers-no-row-values/check.mjs"],
+      violation: /^(?:finding|BROKEN|CHANGED|HOLDS) +(\w+)/gm,
+    },
+    {
+      name: "formal-block-writes-judge-request-targets",
+      covers: [
+        "packages/dms/src/mcp/tools/builder-request-targets.ts",
+        "packages/dms/src/mcp/tools/builder-pages.ts",
+        "packages/dms/src/mcp/tools/builder-compose.ts",
+        "packages/dms/src/mcp/tools/mockup-apply-to-page.ts",
+        "packages/dms/src/mcp/tools/index.ts",
+        "packages/dms/src/mockup/apply-to-page.ts",
+        "packages/dms/src/implementations/dms-builder/engine/configure-target.ts",
+      ],
+      files: [
+        ".agents/skills/formal-block-writes-judge-request-targets/**",
+        "packages/dms/src/test/formal/block-writes-judge-request-targets.test.ts",
+        "packages/dms/src/test/formal/helpers/**",
+      ],
+      command: ["node", ".agents/skills/formal-block-writes-judge-request-targets/check.mjs"],
+      violation: /^(?:finding|BROKEN|CHANGED|HOLDS) +(\w+)/gm,
+    },
+    {
+      name: "formal-builder-option-echo",
+      covers: [
+        "packages/dms/src/implementations/dms-builder/engine/config-literal.ts",
+        "packages/dms/src/implementations/dms-builder/engine/held-value.ts",
+        "packages/dms/src/implementations/dms-builder/engine/literal-overrides.ts",
+        "packages/dms/src/implementations/dms-builder/engine/local-bindings.ts",
+        "packages/dms/src/implementations/dms-builder/engine/ops-categories.ts",
+        "packages/dms/src/implementations/dms-builder/engine/ops.ts",
+        "packages/dms/src/implementations/dms-builder/engine/options-patch.ts",
+        "packages/dms/src/implementations/dms-builder/engine/page-draft.ts",
+        "packages/dms/src/implementations/dms-builder/engine/page-structure.ts",
+      ],
+      files: [
+        ".agents/skills/formal-builder-option-echo/**",
+        "packages/dms/src/test/unit/builder/builder-option-echo.formal.test.ts",
+        "packages/dms/src/test/unit/builder/helpers/option-spellings.ts",
+      ],
+      command: ["node", ".agents/skills/formal-builder-option-echo/check.mjs"],
+      violation: /^(?:finding|BROKEN|CHANGED|HOLDS) +(\w+)/gm,
+    },
+    {
+      name: "formal-invite-creation",
+      covers: [
+        "packages/interface-dms/src/invites.ts",
+        "packages/interface-dms/src/invite-resolution.ts",
+        "packages/interface-dms/src/internal/invite-resolution.ts",
+        "packages/interface-dms/src/internal/invite-replacement.ts",
+        "packages/interface-dms/src/internal/invite-content.ts",
+        "packages/interface-dms/src/db/internal/inviteResolutions.model.ts",
+        "packages/interface-dms/src/db/models/user_invites.model.ts",
+        "packages/interface-dms/src/db/tables/user_invites.table.ts",
+        "packages/interface-dms/src/db/tables/inviteResolutions.table.ts",
+      ],
+      files: [".agents/skills/formal-invite-creation/**"],
+      command: ["node", ".agents/skills/formal-invite-creation/check.mjs", "--full"],
       violation: /^(?:finding|BROKEN|CHANGED|HOLDS) +(\w+)/gm,
     },
   ],

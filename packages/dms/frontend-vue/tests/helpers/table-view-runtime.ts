@@ -134,12 +134,15 @@ export async function mountTableView(
     ...overrides,
   };
   const registrations: Array<ReturnType<typeof register>> = [];
+  const generation = vue.ref(0);
   const mounted = mountInBrowser(
     vue.defineComponent({
       setup: () => () =>
-        vue.h(vue.Suspense, null, {
-          default: () => vue.h(TableView, config),
-        }),
+        vue.h(
+          vue.Suspense,
+          { key: generation.value },
+          { default: () => vue.h(TableView, config) },
+        ),
     }),
     (app) =>
       app.runWithContext(() => {
@@ -149,5 +152,11 @@ export async function mountTableView(
       }),
   );
   for (const registration of registrations) await registration;
-  return mounted;
+  return {
+    ...mounted,
+    /** Unmounts the table view and mounts it again in the same app. */
+    remount: () => {
+      generation.value += 1;
+    },
+  };
 }

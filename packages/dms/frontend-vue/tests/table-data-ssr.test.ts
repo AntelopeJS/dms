@@ -22,6 +22,7 @@ import { tableViewColumn } from "./fixtures/tableViewColumn";
 const engine = await import("#dms/frontend-module");
 vi.stubGlobal("computed", computed);
 vi.stubGlobal("useDmsAsyncData", engine.useDmsAsyncData);
+vi.stubGlobal("useDmsState", engine.useDmsState);
 vi.stubGlobal("useI18n", () => ({ locale: { value: "en" } }));
 vi.stubGlobal("useTranslation", () => ({
   processI18n: (text: string) => text,

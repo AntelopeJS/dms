@@ -50,19 +50,24 @@ export async function targetOf(values, cwd) {
 }
 
 /**
- * @param {Values} values
- * @returns {Promise<number>}
+ * Starts a run the way `up` does: with `prepare`, the skill's install and
+ * build commands first, then the stack on the skill's playground and
+ * renderer.
+ *
+ * @param {Values} values The options of `up`
+ * @param {string} cwd Where the command runs, which finds the skill
+ * @returns {Promise<import("./run-state.mjs").RunState>} The run
  */
-async function commandUp(values) {
+export async function startRun(values, cwd) {
   const skill = values.skill ? resolve(values.skill) : undefined;
   /** @type {import("./timing.mjs").TimingEntry[]} */
   let prepared = [];
   if (values.prepare) {
-    const loaded = await loadSkill(skill, process.cwd());
+    const loaded = await loadSkill(skill, cwd);
     prepared = runPrepare(loaded, loaded.repo);
   }
   const state = await up({
-    ...(await targetOf(values, process.cwd())),
+    ...(await targetOf(values, cwd)),
     runs: values.runs,
     mongoUrl: values["mongo-url"],
     env: values.env,
@@ -81,7 +86,15 @@ async function commandUp(values) {
       `dms-control: the frontend build was not cached: ${state.frontendBuild.reason}\n`,
     );
   }
-  print(state.dir);
+  return state;
+}
+
+/**
+ * @param {Values} values
+ * @returns {Promise<number>}
+ */
+async function commandUp(values) {
+  print((await startRun(values, process.cwd())).dir);
   return 0;
 }
 

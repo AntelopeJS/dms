@@ -1,6 +1,6 @@
 {
   "name": "@antelopejs/dms",
-  "version": "0.20.7",
+  "version": "0.20.8",
   "description": "AntelopeJS DMS. Plug in your PostgreSQL, MySQL, MariaDB, MongoDB or RethinkDB database and your coding agent builds a back office and analytics dashboard as typed TypeScript. Real-time updates on the data the DMS manages.",
   "keywords": [
     "antelopejs",
@@ -41,6 +41,7 @@
   "files": [
     "bin",
     "!bin/tsconfig.json",
+    "!bin/tsconfig.types.json",
     "dist",
     "!dist/.tsbuildinfo",
     "!dist/test",
@@ -62,6 +63,7 @@
     "!data/*.mmdb",
     "package.json",
     "README.md",
+    "E2E.md",
     "CHANGELOG.md",
     "LICENSE"
   ],
@@ -71,7 +73,7 @@
     "node": "^20.19.0 || >=22.12.0"
   },
   "scripts": {
-    "build": "pnpm --filter @antelopejs/interface-dms --filter @antelopejs/interface-dms-builder build && rimraf dist && tsc && tsc-alias",
+    "build": "pnpm --filter @antelopejs/interface-dms --filter @antelopejs/interface-dms-builder build && rimraf dist && tsc && tsc-alias && tsc -p bin/tsconfig.types.json",
     "dev": "ajs project run --inspect -w -p playground",
     "frontend:dev": "pnpm --dir playground frontend:dev",
     "frontend:build": "pnpm --dir playground frontend:build",
@@ -116,8 +118,8 @@
     "@antelopejs/interface-data-api": ">=0.8.0 <0.9.0",
     "@antelopejs/interface-database": ">=0.4.0 <0.5.0",
     "@antelopejs/interface-database-decorators": ">=0.5.2 <0.6.0",
-    "@antelopejs/interface-dms": ">=0.14.0 <0.15.0",
-    "@antelopejs/interface-dms-builder": ">=0.5.0 <0.6.0",
+    "@antelopejs/interface-dms": "workspace:^",
+    "@antelopejs/interface-dms-builder": "workspace:^",
     "@antelopejs/interface-email": ">=0.2.1 <0.3.0",
     "@antelopejs/interface-file-storage": ">=0.1.4 <0.2.0",
     "@csstools/css-tokenizer": "4.0.0",
@@ -149,6 +151,7 @@
     "@antelopejs/postgres": ">=0.4.1 <0.5.0",
     "@antelopejs/rethinkdb": "~1.10.2",
     "@antelopejs/tooling-configs": ">=0.8.0 <0.9.0",
+    "@playwright/test": "~1.65.0",
     "@types/archiver": "^6.0.4",
     "@types/chai": "^4.3.20",
     "@types/jsdom": "^28.0.3",
@@ -161,6 +164,8 @@
     "ajv": "^8.17.1",
     "axios": "^1.7.9",
     "chai": "^4.5.0",
+    "fast-check": "^4.10.2",
+    "ioredis": "^5.10.1",
     "knip": "^6.34.0",
     "mongodb": "^7.1.1",
     "mongodb-memory-server-core": "^11.0.1",
@@ -199,6 +204,10 @@
       "types": "./frontend-vue/eslint-globals.generated.d.mts",
       "default": "./frontend-vue/eslint-globals.generated.mjs"
     },
+    "./e2e": {
+      "types": "./dist/bin/control/e2e.d.mts",
+      "default": "./bin/control/e2e.mjs"
+    },
     "./interfaces/*": null
   },
   "publishConfig": {
@@ -214,10 +223,14 @@
   },
   "peerDependencies": {
     "@antelopejs/core": "~1.24.0",
+    "@playwright/test": "^1.65.0",
     "typescript": ">=5.8.0 <7.0.0"
   },
   "peerDependenciesMeta": {
     "@antelopejs/core": {
+      "optional": true
+    },
+    "@playwright/test": {
       "optional": true
     },
     "typescript": {

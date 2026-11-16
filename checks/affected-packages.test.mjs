@@ -141,6 +141,12 @@ await test("a documentation page selects only the map that names it (catches a d
   );
 });
 
+await test("a journey of the e2e suite selects only the verify map that loads it (catches e2e/ left to no package, which selects every package)", () => {
+  assert.deepEqual(affectedPackages(["e2e/journeys/smoke.mjs"]), [
+    "verify-dms",
+  ]);
+});
+
 await test("the docs examples select the backend that compiles them (catches a docs read edge dropped by the docs filter)", () => {
   assert.deepEqual(affectedPackages(["packages/dms/docs-data/examples.json"]), [
     "dms",
