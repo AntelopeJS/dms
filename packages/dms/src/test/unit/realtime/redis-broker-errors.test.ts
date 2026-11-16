@@ -1,4 +1,3 @@
-import { EventEmitter } from "node:events";
 import { randomUUID } from "node:crypto";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -47,11 +46,11 @@ describe("[unit] RedisBroker subscriber errors", () => {
 
 describe("[unit] RedisBroker subscriber reconnect logging", () => {
   it("logs one warning when the connection is lost, one line when it is back and nothing per attempt", async () => {
-    const subscriber = Object.assign(new EventEmitter(), {
-      subscribe: async () => 1,
-    });
-    // SAFETY: RedisBroker reads only duplicate() from the client, which the stub answers.
-    const client = { duplicate: () => subscriber } as Redis;
+    const client = new Redis({ lazyConnect: true });
+    const subscriber = client.duplicate();
+    mock.method(client, "duplicate", () => subscriber);
+    mock.method(client, "publish", async () => 1);
+    mock.method(subscriber, "subscribe", async () => 1);
     const warn = mock.method(Logging, "Warn", () => undefined);
     const info = mock.method(Logging, "Info", () => undefined);
     try {
@@ -75,6 +74,8 @@ describe("[unit] RedisBroker subscriber reconnect logging", () => {
     } finally {
       warn.mock.restore();
       info.mock.restore();
+      client.disconnect();
+      subscriber.disconnect();
     }
   });
 });
