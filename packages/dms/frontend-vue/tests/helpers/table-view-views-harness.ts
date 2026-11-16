@@ -15,7 +15,10 @@ import type { ToastProps } from "@nuxt/ui";
 import { useMobileDisplay } from "../../layers/dms-ui/app/entries/composables/table-view/useMobileDisplay";
 import { useTableViews } from "../../layers/dms-ui/app/entries/composables/table-view/useTableViews";
 import type { TablePreferences } from "../../layers/dms-ui/app/entries/composables/table-view/useTablePreferences";
-import { linkedArrivalPreferences } from "../../layers/dms-ui/app/entries/composables/table-view/utils/linkedArrival";
+import {
+  linkedArrivalPreferences,
+  linkFollowingPreferences,
+} from "../../layers/dms-ui/app/entries/composables/table-view/utils/linkedArrival";
 import type { TableStateDefaults } from "../../layers/dms-ui/app/entries/composables/table-view/utils/views";
 import type { TableViewViewsConfig } from "../../layers/dms-ui/app/composables/table-view/types";
 import type {
@@ -37,6 +40,8 @@ interface HarnessOptions {
   isConfirmed?: boolean;
   /** Wires a phone's `mobileDisplay` after the views, as the table view does. */
   mobileDisplay?: string;
+  /** The column visibility the table restored from its kept state. */
+  columnVisibility?: VisibilityState;
 }
 
 export function createTableViewViewsFixture() {
@@ -51,6 +56,7 @@ export function createTableViewViewsFixture() {
 
     const restores: Array<() => void> = [];
     const tablePreferences = createRestorablePreferences(preferences, restores);
+    const linked = linkedPreferences(tablePreferences, options.isLinked);
     vi.stubGlobal("useDmsUserSession", () => ({
       user: ref({ _id: options.userId ?? "u1" }),
     }));
@@ -68,7 +74,7 @@ export function createTableViewViewsFixture() {
       columnFilters: ref<TableFilter[]>([]),
       globalFilter: ref<string | undefined>(),
       sorting: ref<SortingState>([]),
-      columnVisibility: ref<VisibilityState>({}),
+      columnVisibility: ref<VisibilityState>(options.columnVisibility ?? {}),
       columnOrder: ref<string[]>([]),
       display: ref("table"),
       density: ref<TableDensity>("default"),
@@ -86,6 +92,7 @@ export function createTableViewViewsFixture() {
       defineComponent({
         setup() {
           onMounted(() => restores.forEach((restore) => restore()));
+          onMounted(() => void linked?.settleArrival());
 
           tablePreferences.restore("density", state.density);
           tablePreferences.restore("columnOrder", state.columnOrder);
@@ -93,10 +100,8 @@ export function createTableViewViewsFixture() {
             views: options.views,
             defaults,
             state,
-            preferences: options.isLinked
-              ? linkedArrivalPreferences(tablePreferences)
-              : tablePreferences,
-            urlScope: { tableId: "content", isSoleTableView: true },
+            preferences: linked ?? tablePreferences,
+            urlScope: URL_SCOPE,
           });
           useMobileDisplay({
             mobileDisplay: options.mobileDisplay,
@@ -164,6 +169,20 @@ export function createTableViewViewsFixture() {
       return dialogs;
     },
   };
+}
+
+const URL_SCOPE = { tableId: "content", isSoleTableView: true };
+
+/** The preferences of a table arrived on a link, as the table view wraps them. */
+function linkedPreferences(preferences: TablePreferences, isLinked?: boolean) {
+  if (!isLinked) return undefined;
+  return linkFollowingPreferences(linkedArrivalPreferences(preferences), {
+    isLinkedArrival: true,
+    urlScope: URL_SCOPE,
+    linkScope: () => undefined,
+    linkKeys: () => undefined,
+    listingState: () => [],
+  });
 }
 
 function createRestorablePreferences(

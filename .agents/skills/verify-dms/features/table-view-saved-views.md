@@ -19,6 +19,7 @@ The views strip of a table view: named views (a module's own and the ones users 
 ## Sub-features
 
 - `table-view-strip-follows-filter-changes`: open *Failing*, which counts 1 and lists one run. A narrower extra filter (`Procedure is empty`) keeps *Failing* open and marked "Changed since the view was opened", its counter follows the table (0), no "Custom filters" shows, and Reset restores the count (1) and drops the extra filter. Clearing the view's own `Status is Failing` filter, changing it to `Paused`, or pressing "Clear filters" leaves the view: no view is drawn open, the strip reads "Custom filters" with Reset and "Save current view", the table lists all 32 runs (or the paused ones), and *Failing* still counts 1, what opening it lists. Clicking *Failing*, or Reset, opens it again. It fails when the strip keeps naming the view after the table left it (it read "Awaiting signature 14" over 14 drafts before AntelopeJS/dms#924).
+- `table-view-hidden-column-survives-reload`: on a first visit, which opens the default view *All runs*, hide *Output* from its header's options menu and reload: *All runs* is still open and *Output* still hidden. Then open *Failing*, hide *Status* and reload: *Failing* is still open and *Status* still hidden. It fails when the first visit does not keep the default view it opened, so every reload counts as a first visit and opens the view again over the columns the user hid (ANT-3381).
 
 ## How to get to it (user POV)
 

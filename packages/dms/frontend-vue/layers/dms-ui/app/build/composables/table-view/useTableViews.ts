@@ -252,8 +252,16 @@ function arriveTableViews(context: ReturnType<typeof createTableViewState>) {
     }
   };
 
+  const keepActiveView = () =>
+    preferences.set<string | undefined>(
+      "activeView",
+      keptViewId(activeViewId.value),
+      undefined,
+    );
+
   onMounted(() => {
     arriveOnceMounted();
+    keepActiveView();
     if (urlView.ignoredShortKey && import.meta.env.DEV) {
       console.warn(
         `[DMS] "?${VIEW_URL_KEY}=" is ignored on a page with several table views: name the table, "?${urlScope.tableId}.${VIEW_URL_KEY}=".`,
@@ -268,13 +276,7 @@ function arriveTableViews(context: ReturnType<typeof createTableViewState>) {
     });
   });
 
-  watch(activeViewId, (id) => {
-    preferences.set<string | undefined>(
-      "activeView",
-      keptViewId(id),
-      undefined,
-    );
-  });
+  watch(activeViewId, keepActiveView);
 
   const change = computed<TableViewChange>(() => {
     const view = activeView.value;
