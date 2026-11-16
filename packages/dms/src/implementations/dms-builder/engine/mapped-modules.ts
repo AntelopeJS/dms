@@ -195,22 +195,28 @@ export function markMapped(module: string, update: MappedRecordUpdate): void {
   });
 }
 
+/**
+ * Writes the digests of a mapped module's record, and answers the ones it kept. A module no
+ * mapping bound to a connection yet holds no value from rows: it is left without a record, and
+ * kept none to read back.
+ */
 function writeRowLiterals(
   module: string,
   digests: string[] | undefined,
 ): string[] | undefined {
   const root = targetModule(module)?.root;
-  if (!root) {
-    return undefined;
+  const current = root ? databaseRecord(readManifest(root)) : {};
+  if (!root || current.connection === undefined) {
+    return [];
   }
-  const current = databaseRecord(readManifest(root));
   writeDatabaseRecord(root, { ...current, rowLiterals: digests });
   return current.rowLiterals;
 }
 
 /**
  * Drops the digests a module's record keeps, so its row literals all count as written until
- * {@link recordRowLiterals} writes them back, and answers them: none for a module that kept none.
+ * {@link recordRowLiterals} writes them back, and answers them. A module mapped before dms
+ * recorded them answers none.
  */
 export function suspendRowLiterals(module: string): string[] | undefined {
   return writeRowLiterals(module, undefined);
