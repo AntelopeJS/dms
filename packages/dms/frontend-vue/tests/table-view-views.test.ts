@@ -144,6 +144,21 @@ function registerViewDefaultsAndSavingTests(
     expect(later.api.activeViewId.value).toBe(undefined);
   });
 
+  it("keeps a column hidden under the default view a first visit opened", async () => {
+    const shown = { ...DEFAULTS.visibility, owner: false };
+    const first = await fixture.mountViews({ views: fixture.VIEWS });
+    expect(first.api.activeViewId.value).toBe("all");
+    fixture.app?.unmount();
+
+    const later = await fixture.mountViews({
+      views: fixture.VIEWS,
+      preferences: Object.fromEntries(first.preferences),
+      columnVisibility: shown,
+    });
+    expect(later.api.activeViewId.value).toBe("all");
+    expect(later.state.columnVisibility.value).toEqual(shown);
+  });
+
   it("marks a view modified until it is reset", async () => {
     const { api, state } = await fixture.mountViews({
       views: fixture.VIEWS,

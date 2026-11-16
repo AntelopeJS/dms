@@ -53,6 +53,32 @@ async function narrowToNothing(tab) {
   await tab.click({ role: "button", name: "Add", exact: true, within: { role: "dialog", name: "Add a filter" } });
 }
 
+/**
+ * Hides a column of the Job runs table from its header's options menu.
+ *
+ * @param {Tab} tab
+ * @param {string} column The column's header
+ */
+async function hideColumn(tab, column) {
+  await tab.click({ role: "button", within: { role: "columnheader", name: column, exact: true }, nth: 1 });
+  await tab.click({ role: "menuitem", name: "Hide", exact: true });
+}
+
+/**
+ * @param {Tab} tab
+ * @param {string} column The column's header
+ * @param {boolean} hidden Whether the Job runs table hides it
+ * @returns {Promise<{ name: string, pass: boolean, detail: string }>} The check
+ */
+async function columnShown(tab, column, hidden) {
+  const header = tab.page.getByRole("table").first().getByRole("columnheader", { name: column, exact: true });
+  const isShown = await header.waitFor({ state: hidden ? "hidden" : "visible", timeout: 15_000 }).then(
+    () => !hidden,
+    () => hidden,
+  );
+  return { name: `the Job runs table ${hidden ? "hides" : "shows"} ${column}`, pass: isShown === !hidden, detail: tab.page.url() };
+}
+
 /** A table view's saved views: the strip names a view only while the table lists what the view lists. */
 export const journeys = [
   {
@@ -125,6 +151,39 @@ export const journeys = [
         tab.visible(CUSTOM),
         await openView(tab, "Failing 1", false),
         tab.visible({ role: "heading", name: ALL_RUNS }),
+      ]);
+    },
+  },
+  {
+    id: "table-view-hidden-column-survives-reload",
+    title: "a column hidden under the default view a first visit opened, or under a module's view, stays hidden after a reload",
+    entryPoint: "/table-view/table-view-views, the options menu of a column header of the Job runs table",
+    async run(/** @type {Ctx} */ ctx) {
+      const tab = await ctx.tab("admin");
+      await tab.signIn("admin");
+      await tab.goto(VIEWS_PAGE);
+      await hideColumn(tab, "Output");
+      await ctx.verify("hiding Output under the default view drops its column", [
+        await openView(tab, "All runs", true),
+        await columnShown(tab, "Output", true),
+      ]);
+      await tab.reload();
+      await ctx.verify("after a reload the default view is open and Output stays hidden", [
+        await openView(tab, "All runs", true),
+        await columnShown(tab, "Output", true),
+        await columnShown(tab, "Status", false),
+      ]);
+
+      await reopenFailing(tab);
+      await hideColumn(tab, "Status");
+      await ctx.verify("hiding Status under Failing drops its column", [
+        await openView(tab, /^Failing 1/, true),
+        await columnShown(tab, "Status", true),
+      ]);
+      await tab.reload();
+      await ctx.verify("after a reload Failing is open and Status stays hidden", [
+        await openView(tab, /^Failing 1/, true),
+        await columnShown(tab, "Status", true),
       ]);
     },
   },
