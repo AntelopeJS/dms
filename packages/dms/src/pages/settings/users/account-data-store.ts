@@ -115,21 +115,22 @@ async function invitesSentIn(
   const invites = rows
     .map((row) => UserInviteModel.fromDatabase(row))
     .filter((invite): invite is UserInvite => invite !== undefined);
-  const allRoleIds = [...new Set(invites.flatMap((i) => i.roles_ids ?? []))];
-  const roles =
-    allRoleIds.length === 0
-      ? []
-      : await GetModel(RoleModel, tenantId).getBy("_id", ...allRoleIds);
-  return invites.map((invite) => {
-    const held = new Set(invite.roles_ids ?? []);
-    return {
+  const namesByRoleIds = new Map<string, Promise<string[]>>();
+  const namesOf = (roleIds: string[]): Promise<string[]> => {
+    const key = JSON.stringify(roleIds);
+    const cached = namesByRoleIds.get(key);
+    if (cached) return cached;
+    const names = roleNamesOf(tenantId, roleIds);
+    namesByRoleIds.set(key, names);
+    return names;
+  };
+  return Promise.all(
+    invites.map(async (invite) => ({
       tenantId,
       invite,
-      roleNames: roles
-        .filter((role) => held.has(role._id))
-        .map((role) => role.name),
-    };
-  });
+      roleNames: await namesOf(invite.roles_ids ?? []),
+    })),
+  );
 }
 
 /** Invitations the user sent in the tenants they belong to. */
