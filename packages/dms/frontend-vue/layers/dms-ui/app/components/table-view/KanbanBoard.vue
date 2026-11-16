@@ -6,6 +6,7 @@ import type { RowActionConfig } from "#dms-core/app/types/row-action";
 import SortableList, {
   type SortableListChange,
 } from "../../build/components/sortable/SortableList.vue";
+import { sortableGroup } from "../../build/components/sortable/sortableGroup";
 import {
   AccessMode,
   type TableViewColumn,
@@ -317,6 +318,8 @@ const notifyMoveError = (error: Parameters<typeof presentError>[0]) => {
   );
 };
 
+const columnGroup = sortableGroup<T>();
+
 const onColumnChange = async (
   target: KanbanColumnDef,
   event: SortableListChange<T>,
@@ -494,7 +497,7 @@ const FieldValue = (fieldProps: { column: TableViewColumn; item: T }) =>
           <SortableList
             v-else
             :list="cells[col.value]?.items ?? []"
-            :group="`kanban-${componentId}`"
+            :group="columnGroup"
             :disabled="!isDragEnabled"
             :item-key="getRowId"
             filter=".kanban-card-locked"
