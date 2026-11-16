@@ -149,9 +149,10 @@ export async function notifyOutdatedModules(
   const eventId = `dms:module-updates:${JSON.stringify(
     modules.map((module) => [module.package, module.current, module.latest]),
   )}`;
-  const userIds = (await GetModel(UserModel).table.run()).map(
-    (user) => user._id,
-  );
+  const userIds = await GetModel(UserModel)
+    .table.pluck("_id")
+    .run()
+    .then((rows) => rows.map((row) => row._id));
   if (userIds.length === 0) {
     return;
   }
