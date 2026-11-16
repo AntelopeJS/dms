@@ -108,9 +108,17 @@ export class RedisBroker implements RealtimeBroker {
     const client = await this.resolveClient();
     this.publisher = client;
     this.subscriber = client.duplicate();
-    this.subscriber.on("error", (error: Error) =>
-      Logging.Warn("RedisBroker: subscriber connection error", error),
-    );
+    let connectionLost = false;
+    this.subscriber.on("error", (error: Error) => {
+      if (connectionLost) return;
+      connectionLost = true;
+      Logging.Warn("RedisBroker: subscriber connection lost", error);
+    });
+    this.subscriber.on("ready", () => {
+      if (!connectionLost) return;
+      connectionLost = false;
+      Logging.Info("RedisBroker: subscriber connection restored");
+    });
     this.subscriber.on("message", (_channel: string, message: string) =>
       this.dispatchMessage(message),
     );
