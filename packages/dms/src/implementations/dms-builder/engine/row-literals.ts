@@ -7,6 +7,7 @@ import type {
   PageStructure,
   ResourceStructure,
 } from "@antelopejs/interface-dms-builder";
+import { isString } from "./scalar-guards";
 
 /**
  * What becomes of a row literal: a literal of code that a mapping fills from rows, a select's
@@ -126,26 +127,24 @@ export function rowLiteralsOf(
   return values;
 }
 
-function byCodeUnits(left: string, right: string): number {
-  return left < right ? -1 : left > right ? 1 : 0;
-}
-
-function withSortedKeys(value: ConfigValue): ConfigValue {
-  if (Array.isArray(value)) return value.map(withSortedKeys);
-  if (!isConfigObject(value)) return value;
-  return Object.fromEntries(
-    Object.keys(value)
-      .sort(byCodeUnits)
-      .map((key) => [key, withSortedKeys(value[key])]),
-  );
+function elementValue(element: ConfigValue): ConfigValue {
+  if (!isConfigObject(element)) return element;
+  const { filter } = element;
+  return isConfigObject(filter) ? filter.value : element.value;
 }
 
 /**
- * The digest a module's record keeps for a row literal its mapping wrote: equal for two literals
- * that hold the same JSON whatever the order of their keys, and holding none of their values.
+ * The values from rows a row literal holds: each select item's `value`, each tab's filter
+ * `value`, or the currency itself. A tab with no filter, such as "All", holds none.
  */
-export function rowLiteralDigest(value: ConfigValue): string {
-  return createHash("sha256")
-    .update(JSON.stringify(withSortedKeys(value)))
-    .digest("hex");
+export function rowValuesOf(literal: ConfigValue): string[] {
+  const elements = Array.isArray(literal)
+    ? literal.map(elementValue)
+    : [literal];
+  return elements.filter(isString);
+}
+
+/** The digest a module's record keeps for a value from rows its mapping wrote, holding none of it. */
+export function rowValueDigest(value: string): string {
+  return createHash("sha256").update(value).digest("hex");
 }

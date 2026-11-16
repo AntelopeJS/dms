@@ -120,28 +120,29 @@ const PROFILE: RelationProfile = {
   inbound: [],
 };
 
-const MAPPED: JsonValue = {
-  module: MODULE,
-  connection: CONNECTION,
-  resources: [
-    {
-      relation: ORDERS,
-      tableView: true,
-      writable: false,
-      fields: [
-        { column: "id" },
-        {
-          column: "status",
-          filterable: true,
-          display: { kind: "badge", values: 3 },
-        },
-        { column: "currency" },
-        { column: "total", display: { kind: "price" } },
-        { column: "placed_at" },
-      ],
-    },
-  ],
-};
+/** The call that maps `erp.orders`, with `status` drawn as `display`. */
+function mappingOfOrders(display: JsonValue): JsonValue {
+  return {
+    module: MODULE,
+    connection: CONNECTION,
+    resources: [
+      {
+        relation: ORDERS,
+        tableView: true,
+        writable: false,
+        fields: [
+          { column: "id" },
+          { column: "status", filterable: true, display },
+          { column: "currency" },
+          { column: "total", display: { kind: "price" } },
+          { column: "placed_at" },
+        ],
+      },
+    ],
+  };
+}
+
+const MAPPED = mappingOfOrders({ kind: "badge", values: 3 });
 
 const WrittenSchema = z.object({
   data: z.object({
@@ -187,6 +188,27 @@ const ManifestSchema = z
   .passthrough();
 
 let app: Fixture;
+
+/**
+ * Leaves the mapped module's record as dms wrote it before it recorded row values, and answers
+ * how to put the record back.
+ */
+function unrecordRowLiterals(): () => void {
+  const manifest = path.join(app.root, "modules", MODULE, "package.json");
+  const record = ManifestSchema.parse(
+    JSON.parse(projectFile(app.root, path.relative(app.root, manifest))),
+  );
+  const { rowLiterals, ...unrecorded } = record.dmsBuilder.database;
+  expect(rowLiterals).to.not.have.lengthOf(0);
+  fs.writeFileSync(
+    manifest,
+    JSON.stringify({
+      ...record,
+      dmsBuilder: { ...record.dmsBuilder, database: unrecorded },
+    }),
+  );
+  return () => fs.writeFileSync(manifest, JSON.stringify(record));
+}
 
 /** Calls a tool and answers its text, failing on an error answer or on any value of a row. */
 async function valueFree(name: string, args: JsonValue): Promise<string> {
@@ -454,25 +476,13 @@ describe("[unit] the builder tools over a mapped resource answer the literals th
     expect(mappedPage).to.include('"tabs":{"$hidden":4}');
     expect(mappedPage).to.include(JSON.stringify(OWN_TABS));
     expect(mappedPage).to.include(JSON.stringify(OWN_SELECT));
-    const manifest = path.join(app.root, "modules", MODULE, "package.json");
-    const record = ManifestSchema.parse(
-      JSON.parse(projectFile(app.root, path.relative(app.root, manifest))),
-    );
-    const { rowLiterals, ...unrecorded } = record.dmsBuilder.database;
-    expect(rowLiterals).to.not.have.lengthOf(0);
-    fs.writeFileSync(
-      manifest,
-      JSON.stringify({
-        ...record,
-        dmsBuilder: { ...record.dmsBuilder, database: unrecorded },
-      }),
-    );
+    const restore = unrecordRowLiterals();
     const mappedBefore = await valueFree("builder_page_structure", {
       pageRef: orders.page,
     });
     expect(mappedBefore).to.not.include("own_open");
     expect(mappedBefore).to.not.include("own_low");
-    fs.writeFileSync(manifest, JSON.stringify(record));
+    restore();
     await valueFree("builder_create_category", {
       name: "ops",
       displayName: "Ops",
@@ -494,5 +504,44 @@ describe("[unit] the builder tools over a mapped resource answer the literals th
     });
     expect(ownPage).to.include(JSON.stringify(OWN_TABS));
     expect(ownPage).to.not.include("$hidden");
+  });
+
+  it("keeps a mapped badge and its tabs hidden once a person relabels one of their items", async () => {
+    const orders = await mapOrders();
+    const page = PageSchema.parse(
+      JSON.parse(
+        await valueFree("builder_page_structure", { pageRef: orders.page }),
+      ),
+    ).data.page.filepath;
+    for (const file of [...orders.files, page]) {
+      const code = projectFile(app.root, path.relative(app.root, file));
+      fs.writeFileSync(file, code.replaceAll("Zq paid", "Settled"));
+    }
+    const fields = await valueFree("builder_resource_structure", {
+      ref: orders.ref,
+    });
+    expect(fields).to.include('"items":{"$hidden":3}');
+    const tabs = await valueFree("builder_page_structure", {
+      pageRef: orders.page,
+    });
+    expect(tabs).to.include('"tabs":{"$hidden":4}');
+  });
+
+  it("keeps the tabs of a moved page hidden when a module mapped before dms recorded them drops its badge", async () => {
+    const orders = await mapOrders();
+    unrecordRowLiterals();
+    await valueFree("builder_create_category", {
+      name: "ops",
+      displayName: "Ops",
+    });
+    await valueFree("builder_configure_page", {
+      pageRef: orders.page,
+      patch: { category: "pages.ops" },
+    });
+    await valueFree("builder_map_resources", mappingOfOrders(null));
+    const moved = await valueFree("builder_page_structure", {
+      pageRef: "/ops/erp-orders",
+    });
+    expect(moved).to.include('"tabs":{"$hidden":4}');
   });
 });

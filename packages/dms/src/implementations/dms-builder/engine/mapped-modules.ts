@@ -8,7 +8,7 @@ import { ts } from "ts-morph";
 import { moduleOfFile, targetModule } from "./modules";
 import { resolveProjectRoot } from "./project";
 import { StepRefusal } from "./project-config";
-import { rowLiteralDigest } from "./row-literals";
+import { rowValueDigest, rowValuesOf } from "./row-literals";
 import { isString } from "./scalar-guards";
 import { isPlainObject } from "./value";
 
@@ -32,8 +32,9 @@ interface DatabaseRecord {
   /** Tables decided against, `"schema.name"` → why, so no analysis proposes them again. */
   excludedTables?: Record<string, string>;
   /**
-   * The {@link rowLiteralDigest} of each row literal a mapping wrote into the module. A module
-   * mapped before dms recorded them has none, and all of its row literals count as written.
+   * The {@link rowValueDigest} of each value from rows a mapping wrote into the module. A module
+   * mapped before dms recorded them, or while a mapping writes, has none, and all of its row
+   * literals count as written.
    */
   rowLiterals?: string[];
 }
@@ -194,19 +195,30 @@ export function markMapped(module: string, update: MappedRecordUpdate): void {
   });
 }
 
-/** Adds the digests of row literals a mapping wrote into a module to the ones its record keeps. */
-export function recordRowLiterals(module: string, digests: string[]): void {
+function writeRowLiterals(
+  module: string,
+  digests: string[] | undefined,
+): string[] | undefined {
   const root = targetModule(module)?.root;
   if (!root) {
-    return;
+    return undefined;
   }
   const current = databaseRecord(readManifest(root));
-  writeDatabaseRecord(root, {
-    ...current,
-    rowLiterals: [
-      ...new Set([...(current.rowLiterals ?? []), ...digests]),
-    ].sort(),
-  });
+  writeDatabaseRecord(root, { ...current, rowLiterals: digests });
+  return current.rowLiterals;
+}
+
+/**
+ * Drops the digests a module's record keeps, so its row literals all count as written until
+ * {@link recordRowLiterals} writes them back, and answers them: none for a module that kept none.
+ */
+export function suspendRowLiterals(module: string): string[] | undefined {
+  return writeRowLiterals(module, undefined);
+}
+
+/** Writes the digests of the values from rows a mapping wrote into a module into its record. */
+export function recordRowLiterals(module: string, digests: string[]): void {
+  writeRowLiterals(module, [...new Set(digests)].sort());
 }
 
 /** The connection the module holding a file mirrors, when that module is a mapped one. */
@@ -258,9 +270,22 @@ export function holdsMappedCode(filepath: string): boolean {
   }
 }
 
+/** Whether a file may hold code of a module's mapping; so it may when its record cannot be read. */
+export function holdsMappedCodeOf(filepath: string, module: string): boolean {
+  const root = targetModule(module)?.root;
+  try {
+    return root !== undefined && mappedRootsOf(filepath).includes(root);
+  } catch (error) {
+    if (error instanceof StepRefusal) {
+      return true;
+    }
+    throw error;
+  }
+}
+
 /**
- * Which row literals of a file a mapping wrote: those whose digest the records of the mapped
- * modules the file holds code of keep. Every one when a record keeps no digests or cannot be
+ * Which row literals of a file a mapping wrote: those holding a value whose digest the records
+ * of the mapped modules the file holds code of keep. Every one when a record keeps no digests or cannot be
  * read, none when the file holds no mapped code.
  */
 export function mappedLiteralTestOf(
@@ -274,7 +299,8 @@ export function mappedLiteralTestOf(
       return () => true;
     }
     const written = new Set(records.flat());
-    return (value) => written.has(rowLiteralDigest(value));
+    return (value) =>
+      rowValuesOf(value).some((item) => written.has(rowValueDigest(item)));
   } catch (error) {
     if (error instanceof StepRefusal) {
       return () => true;

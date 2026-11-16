@@ -1,59 +1,54 @@
-import type {
-  ConfigValue,
-  MapResourcesInput,
-} from "@antelopejs/interface-dms-builder";
-import { tabsOf } from "./column-display";
-import { TABLE_BLOCK } from "./map-resources-pages";
-import { currentColumns, pageOf } from "./mapped-displays";
-import { recordRowLiterals } from "./mapped-modules";
+import type { ConfigValue } from "@antelopejs/interface-dms-builder";
+import { holdsMappedCodeOf, recordRowLiterals } from "./mapped-modules";
 import { buildPageStructure } from "./page-structure";
-import { mappedRecordsOf, type ResourceRecord } from "./resource-index";
+import { mappedRecordsOf } from "./resource-index";
 import { buildResourceStructure } from "./resource-structure";
 import {
   mapPageRowLiterals,
   mapResourceRowLiterals,
-  rowLiteralDigest,
   rowLiteralsOf,
+  rowValueDigest,
+  rowValuesOf,
 } from "./row-literals";
+import { listPageRecords } from "./source-index";
 
-/**
- * The row literals a relation's mapping wrote: its fields' select items and currencies, the tabs
- * each of its badges makes, and the tabs its page's table holds.
- */
-function writtenRowLiterals(
-  connection: string,
-  record: ResourceRecord,
-): ConfigValue[] {
-  const resource = buildResourceStructure(record.ref);
-  const page = pageOf(connection, record);
-  const table = page && buildPageStructure(page.ref);
-  return [
-    ...(resource.ok
+/** The select items and currencies of the fields of a module's mapped relations. */
+function resourceLiterals(module: string): ConfigValue[] {
+  return [...mappedRecordsOf(module).values()].flatMap((record) => {
+    const resource = buildResourceStructure(record.ref);
+    return resource.ok
       ? rowLiteralsOf((map) => mapResourceRowLiterals(resource.data, map))
-      : []),
-    ...[...currentColumns(record).displays].flatMap(([column, display]) =>
-      display.kind === "badge" ? [tabsOf(column, display)] : [],
-    ),
-    ...(table?.ok
-      ? rowLiteralsOf((map) =>
-          mapPageRowLiterals(
-            {
-              ...table.data,
-              blocks: table.data.blocks.filter(
-                (block) => block.name === TABLE_BLOCK,
-              ),
-            },
-            map,
-          ),
-        )
-      : []),
-  ];
+      : [];
+  });
 }
 
-/** Records the digest of each row literal the module's relations were mapped with. */
-export function recordWrittenLiterals(input: MapResourcesInput): void {
-  const literals = [...mappedRecordsOf(input.module).values()].flatMap(
-    (record) => writtenRowLiterals(input.connection, record),
-  );
-  recordRowLiterals(input.module, literals.map(rowLiteralDigest));
+/** The row literals of every page that may hold code of a module's mapping, wherever it lies. */
+function pageLiterals(module: string): ConfigValue[] {
+  return listPageRecords()
+    .filter((page) => holdsMappedCodeOf(page.filepath, module))
+    .flatMap((page) => {
+      const structure = buildPageStructure(page.ref);
+      return structure.ok
+        ? rowLiteralsOf((map) => mapPageRowLiterals(structure.data, map))
+        : [];
+    });
+}
+
+/**
+ * Records the digest of each value from rows the module's relations were mapped with, beside the
+ * ones `kept` from before the mapping wrote. A module that kept none was mapped before dms
+ * recorded them: every page over its code counts as the mapping's, as it was read until now.
+ */
+export function recordWrittenLiterals(
+  module: string,
+  kept: string[] | undefined,
+): void {
+  const literals = [
+    ...resourceLiterals(module),
+    ...(kept === undefined ? pageLiterals(module) : []),
+  ];
+  recordRowLiterals(module, [
+    ...(kept ?? []),
+    ...literals.flatMap(rowValuesOf).map(rowValueDigest),
+  ]);
 }
