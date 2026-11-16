@@ -115,11 +115,20 @@ async function invitesSentIn(
   const invites = rows
     .map((row) => UserInviteModel.fromDatabase(row))
     .filter((invite): invite is UserInvite => invite !== undefined);
+  const namesByRoleIds = new Map<string, Promise<string[]>>();
+  const namesOf = (roleIds: string[]): Promise<string[]> => {
+    const key = JSON.stringify(roleIds);
+    const cached = namesByRoleIds.get(key);
+    if (cached) return cached;
+    const names = roleNamesOf(tenantId, roleIds);
+    namesByRoleIds.set(key, names);
+    return names;
+  };
   return Promise.all(
     invites.map(async (invite) => ({
       tenantId,
       invite,
-      roleNames: await roleNamesOf(tenantId, invite.roles_ids ?? []),
+      roleNames: await namesOf(invite.roles_ids ?? []),
     })),
   );
 }

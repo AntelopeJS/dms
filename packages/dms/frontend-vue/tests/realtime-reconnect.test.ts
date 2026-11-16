@@ -12,6 +12,7 @@ import {
 const PAGE_ID = "orders";
 const INITIAL_DELAY_MS = 500;
 const SECOND_DELAY_MS = 1000;
+const RETRY_AFTER_SECONDS = 10;
 const LONG_WAIT_MS = 120_000;
 
 const settle = async (): Promise<void> => {
@@ -220,6 +221,25 @@ function registerRealtimeStreamRecoveryTests() {
     await settle();
     expect(server.connections).toHaveLength(2);
     expect(server.lastConnection().isOpen()).toBe(true);
+  });
+
+  it("waits the Retry-After of a 429 before it reconnects, even when the backoff is shorter", async () => {
+    await loadApi();
+    await settle();
+    server.refusal = { status: 429, retryAfterSeconds: RETRY_AFTER_SECONDS };
+
+    server.lastConnection().end();
+    await settle();
+    await vi.advanceTimersByTimeAsync(INITIAL_DELAY_MS);
+    await settle();
+    expect(server.streamAttempts).toBe(2);
+
+    await vi.advanceTimersByTimeAsync(RETRY_AFTER_SECONDS * 1000 - 1);
+    expect(server.streamAttempts).toBe(2);
+    await vi.advanceTimersByTimeAsync(1);
+    await settle();
+    expect(server.streamAttempts).toBe(3);
+    expect(server.connections).toHaveLength(2);
   });
 
   it("does not reconnect after an intentional close", async () => {

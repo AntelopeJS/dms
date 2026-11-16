@@ -19,7 +19,8 @@ import { matchesGlob } from "node:path/posix";
  * - `frontend-vue` reads `packages/dms/data`, `packages/dms/checks`,
  *   `packages/dms/package.json` and the playground layer.
  * - `verify-dms` is the verify-map check: its features name documentation
- *   pages and its config names playground files.
+ *   pages, its config names playground files, and its journeys and their
+ *   Playwright suite live in `e2e/`.
  * - `agents` holds the TLA+ formal models, which cover code in every package.
  *
  * @type {TestPackage[]}
@@ -74,7 +75,7 @@ export const PACKAGES = [
   {
     name: "verify-dms",
     root: ".agents/skills/verify-dms",
-    reads: ["packages/*/docs/**"],
+    reads: ["packages/*/docs/**", "e2e/**"],
     dependsOn: [
       "interface-dms",
       "interface-dms-builder",
