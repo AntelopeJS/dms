@@ -23,7 +23,11 @@ const range = z
   .parse(JSON.parse(dmsText)).dependencies["@antelopejs/interface-dms"];
 
 const nextMinor = semver.inc(version, "minor");
-if (!semver.satisfies(version, range) || semver.satisfies(nextMinor, range)) {
+const followsSibling = range.startsWith("workspace:");
+if (
+  !followsSibling &&
+  (!semver.satisfies(version, range) || semver.satisfies(nextMinor, range))
+) {
   const raised = `>=${version} <${nextMinor}`;
   fs.writeFileSync(
     dmsPath,
