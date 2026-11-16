@@ -7,6 +7,7 @@ import type {
   MapResourcesInput,
   MappedResource,
   ProposedResource,
+  TabsChoice,
 } from "@antelopejs/interface-dms-builder";
 import { latestAnalysis } from "./analysis-job";
 import { displayFactsOf } from "./analysis-fields";
@@ -31,8 +32,8 @@ export type DisplayDefaults =
       displays: ReadonlyMap<string, ColumnDisplay>;
       /** The label each column of the controller shows. */
       labels: ReadonlyMap<string, string>;
-      /** Whether the page's tabs are the ones the mapping wrote from a badge. */
-      generatedTabs: boolean;
+      /** The column of the page's tabs, when they are the ones the mapping wrote from a badge. */
+      tabs?: TabsChoice;
     }
   | {
       kind: "new";
@@ -147,13 +148,12 @@ export async function displayDefaultsOf(
     const record = mapped.get(resource.relation);
     if (record) {
       const { displays, labels } = currentColumns(record);
+      const column = tabsColumnOf(pageOf(input.connection, record), displays);
       defaults.set(resource.relation, {
         kind: "mapped",
         displays,
         labels,
-        generatedTabs:
-          tabsColumnOf(pageOf(input.connection, record), displays) !==
-          undefined,
+        tabs: column === undefined ? undefined : { column },
       });
       continue;
     }

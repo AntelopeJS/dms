@@ -9,7 +9,13 @@ import {
   openShop,
   profiles,
 } from "./helpers/display-defaults-shop";
-import { handEditedTabs, ordersInput, pageText } from "./helpers/shop-orders";
+import {
+  handEditedTabs,
+  ITEMS_FROM_STATUS,
+  ordersInput,
+  pageText,
+  TABS_FROM_STATUS,
+} from "./helpers/shop-orders";
 import { OP_TIMEOUT } from "./mapped-database";
 
 describe("mapping with the display and the tabs left out", function () {
@@ -60,15 +66,15 @@ describe("mapping with the display and the tabs left out", function () {
 
   it("writes no tabs for tabs of null on a new relation, and removes the tabs the mapping wrote on a mapped one", async () => {
     expectOk(await MapResources(bareInput({ tabs: null })), "new, tabs null");
-    expect(await pageText()).to.not.include("status-paid");
+    expect(await pageText()).to.not.include("tabs");
     expect(moduleFile("shop/orders/data-api.ts")).to.include("SelectType");
     expectOk(await MapResources(ordersInput()), "tabs written");
-    expect(await pageText()).to.include("status-paid");
+    expect(await pageText()).to.match(TABS_FROM_STATUS);
     expectOk(
       await MapResources(bareInput({ tabs: null })),
       "remap with tabs null",
     );
-    expect(await pageText()).to.not.include("status-paid");
+    expect(await pageText()).to.not.include("tabs");
     expect(moduleFile("shop/orders/data-api.ts")).to.include("SelectType");
   });
 
@@ -97,8 +103,6 @@ describe("mapping with the display and the tabs left out", function () {
     await analysed();
     profiles.down = true;
     expectOk(await MapResources(bareInput()), "MapResources");
-    expect(moduleFile("shop/orders/data-api.ts")).to.include(
-      '{ label: "Cancelled", value: "cancelled", textColor: "error" }',
-    );
+    expect(moduleFile("shop/orders/data-api.ts")).to.match(ITEMS_FROM_STATUS);
   });
 });

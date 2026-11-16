@@ -58,6 +58,28 @@ export function pruningOrphans<T>(sourceFile: SourceFile, write: () => T): T {
   return result;
 }
 
+/** The two options a TableView takes its tabs from, of which it holds one at most. */
+const TABS_SOURCES = [
+  ["tabs", "tabsFrom"],
+  ["tabsFrom", "tabs"],
+] as const;
+
+/**
+ * A patch of a block of type `type`: on a TableView, a patch that lists the
+ * tabs removes the column they were read from, and one that reads them from
+ * a column removes the tabs it listed, since registration refuses both.
+ */
+export function blockPatch(
+  type: string | undefined,
+  patch: ConfigObject,
+): ConfigObject {
+  if (type !== "TableView") return patch;
+  const set = TABS_SOURCES.find(
+    ([key, other]) => patch[key] !== undefined && !Object.hasOwn(patch, other),
+  );
+  return set ? { ...patch, [set[1]]: undefined } : patch;
+}
+
 /**
  * {@link writePatch}, then the bindings only a replaced or removed value read
  * are dropped, as {@link pruningOrphans} drops them.

@@ -4,6 +4,7 @@ import type {
   RelationDescription,
 } from "@antelopejs/interface-database-catalog";
 import type {
+  BadgeItem,
   MappedRelation,
   OpResult,
   Proposed,
@@ -12,8 +13,8 @@ import type {
   ResourceFieldStructure,
   TabsChoice,
 } from "@antelopejs/interface-dms-builder";
-import { catalogOf } from "./catalog-connection";
-import { displayOfDataType } from "./column-display";
+import { type CatalogConnection, catalogOf } from "./catalog-connection";
+import { displayOfDataType, profiledBadge } from "./column-display";
 import { humanized } from "./name-words";
 import { pageOf, propertyName, tabsColumnOf } from "./mapped-displays";
 import { mappedConnectionOfFile } from "./mapped-modules";
@@ -196,6 +197,65 @@ function relationOf(
   };
 }
 
+/** The badges of a mapped relation that read their items from the rows, by column. */
+function referenceBadges(
+  relation: MappedRelation,
+): Map<string, { items: BadgeItem[] }> {
+  return new Map(
+    relation.resource.fields.flatMap((field) => {
+      const display = field.display?.value;
+      return display?.kind === "badge" && display.items.length === 0
+        ? [[field.column, display] as const]
+        : [];
+    }),
+  );
+}
+
+/** The badge a column's profile proposes, none when the profile cannot be read. */
+async function profiledBadges(
+  catalog: CatalogConnection,
+  relation: string,
+  columns: string[],
+): Promise<Map<string, BadgeItem[]>> {
+  try {
+    const profile = await catalog.Profile({ relation, columns });
+    return new Map(
+      (profile?.columns ?? []).flatMap((column) => {
+        const categories = column.categories;
+        const items =
+          categories?.status === "ok"
+            ? profiledBadge(categories.value.values)
+            : undefined;
+        return items ? [[column.name, items] as const] : [];
+      }),
+    );
+  } catch {
+    return new Map();
+  }
+}
+
+/**
+ * A mapped relation whose badges read their items from the rows answers the items its columns'
+ * profiles propose, as the analysis does, so the badge says how many values it draws; none when
+ * the profile cannot be read.
+ */
+async function withProfiledBadges(
+  catalog: CatalogConnection,
+  relation: MappedRelation,
+): Promise<MappedRelation> {
+  const references = referenceBadges(relation);
+  if (references.size === 0) {
+    return relation;
+  }
+  const profiled = await profiledBadges(catalog, relation.resource.relation, [
+    ...references.keys(),
+  ]);
+  for (const [column, display] of references) {
+    display.items = profiled.get(column) ?? [];
+  }
+  return relation;
+}
+
 /**
  * The relations a module maps for a connection, read back from its code as their current choices,
  * so they can be changed and mapped again. Columns the catalog lists and the module does not
@@ -236,15 +296,20 @@ export async function mappedChoices(
   const relations = new Map(
     records.map(([relation, record]) => [record.ref, relation]),
   );
-  const data = found.map(([relation, record]) =>
-    relationOf(
-      connection,
-      record,
-      descriptions.find(
-        (description) =>
-          `${description.schema}.${description.name}` === relation,
-      )!,
-      relations,
+  const data = await Promise.all(
+    found.map(([relation, record]) =>
+      withProfiledBadges(
+        catalog,
+        relationOf(
+          connection,
+          record,
+          descriptions.find(
+            (description) =>
+              `${description.schema}.${description.name}` === relation,
+          )!,
+          relations,
+        ),
+      ),
     ),
   );
   if (missing.length === 0) {

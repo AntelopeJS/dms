@@ -32,11 +32,18 @@ function hiddenValue(value: ConfigValue): HiddenValue {
   return { $hidden: Array.isArray(value) ? value.length : 1 };
 }
 
+/** Whether an option holds values: an empty list, as a select reading its items from the rows writes, holds none. */
+function holdsValues(value: ConfigValue): boolean {
+  return !Array.isArray(value) || value.length > 0;
+}
+
 function withOptionHidden<T extends ConfigObject>(
   object: T,
   option: string | undefined,
 ): T {
-  return option !== undefined && Object.hasOwn(object, option)
+  return option !== undefined &&
+    Object.hasOwn(object, option) &&
+    holdsValues(object[option])
     ? { ...object, [option]: hiddenValue(object[option]) }
     : object;
 }

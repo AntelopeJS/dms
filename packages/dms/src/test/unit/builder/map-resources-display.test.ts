@@ -16,9 +16,11 @@ import {
   type Fixture,
 } from "./harness";
 import {
+  ITEMS_FROM_STATUS,
   ordersInput,
   SHOP,
   STATUS,
+  TABS_FROM_STATUS,
   handEditedTabs,
   pageText,
 } from "./helpers/shop-orders";
@@ -115,16 +117,12 @@ describe("mapping columns with a display and a TableView with tabs", function ()
 });
 
 function writesEachDisplay(): void {
-  it("writes a badge as a select of toned items, a price as the price DataType, and the relation under its label", async () => {
+  it("writes a badge as a select reading its items from its column, a price as the price DataType, and the relation under its label", async () => {
     expectOk(await MapResources(ordersInput()), "MapResources");
     const orders = moduleFile("shop/orders/data-api.ts");
     expect(orders).to.include("new DefaultDataTypes.SelectType({");
-    expect(orders).to.include(
-      '{ label: "Paid", value: "paid", textColor: "success" }',
-    );
-    expect(orders).to.include(
-      '{ label: "Cancelled", value: "cancelled", textColor: "error" }',
-    );
+    expect(orders).to.match(ITEMS_FROM_STATUS);
+    expect(orders).to.not.include('value: "paid"');
     expect(orders).to.include("new DefaultDataTypes.PriceType()");
     expect(orders).to.include('name: "Customer"');
     expect(moduleFile("shop/orders/database.ts")).to.include(
@@ -166,16 +164,11 @@ function writesEachDisplay(): void {
 }
 
 function writesTheTabsAndReadsThemBack(): void {
-  it("writes the tabs: All, then a tab per value in the badge's order, in its tone", async () => {
+  it("writes the tabs as a read of the badge column's values", async () => {
     expectOk(await MapResources(ordersInput()), "MapResources");
-    const page = (await pageText()).replace(/\s+/g, " ");
-    expect(page).to.include('{ id: "all", label: "All" }');
-    expect(page).to.include(
-      '{ id: "status-paid", label: "Paid", filter: { accessorKey: "status", value: "paid", mode: "is" }, textColor: "success", }',
-    );
-    expect(page.indexOf("status-paid")).to.be.lessThan(
-      page.indexOf("status-pending"),
-    );
+    const page = await pageText();
+    expect(page).to.match(TABS_FROM_STATUS);
+    expect(page).to.not.include("status-paid");
   });
 
   it("reads the display and the tabs back, and a remap that sends them back changes nothing", async () => {
@@ -184,7 +177,7 @@ function writesTheTabsAndReadsThemBack(): void {
     const status = read.resource.fields.find(
       (field) => field.column === "status",
     );
-    expect(status?.display?.value).to.deep.equal(STATUS);
+    expect(status?.display?.value).to.deep.equal({ kind: "badge", items: [] });
     expect(
       read.resource.fields.find((field) => field.column === "total")?.display
         ?.value,
@@ -220,7 +213,7 @@ function keepsTheTabsAPersonEdited(): void {
     );
     const page = await pageText();
     expect(page).to.include('label: "Everything"');
-    expect(page).to.not.include("status-paid");
+    expect(page).to.not.include("tabsFrom");
     expect(moduleFile("shop/orders/data-api.ts")).to.include(
       "new DefaultDataTypes.SelectType({",
     );

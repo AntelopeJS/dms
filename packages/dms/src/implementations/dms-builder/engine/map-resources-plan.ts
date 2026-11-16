@@ -12,6 +12,7 @@ import type {
   MappedResource,
   OpWarning,
   ResourceRoute,
+  TabsChoice,
 } from "@antelopejs/interface-dms-builder";
 import { columnLabel } from "./column-label";
 import { nativeKind } from "./native-kind";
@@ -19,12 +20,12 @@ import { pascalCase } from "./emit";
 import type { ResourceNames } from "./resource-emit";
 import { RESERVED_FIELD_NAMES } from "./reserved-names";
 import { MixedTypeDeclarations } from "./mixed-types";
+import { displayDataType, displayRefusal, suits } from "./column-display";
 import {
-  type TabConfig,
-  displayRefusal,
-  fieldDataType,
-  suits,
-} from "./column-display";
+  currencyColumnOf,
+  currencyOfComment,
+  priceCurrency,
+} from "./price-currency";
 import type { DisplayDefaults } from "./display-defaults";
 import { refuse } from "./mapping-refusal";
 import type { PlannedPage } from "./planned-page";
@@ -66,7 +67,8 @@ export interface PlannedResource {
   displayName: string;
   /** The page's own options and the table options the mapping sets. */
   page: PlannedPage;
-  tabs?: TabConfig[];
+  /** The column the page's tabs read from the rows. */
+  tabs?: TabsChoice;
   /** The page's tabs are the ones a mapping wrote, and the call turns tabs off. */
   clearTabs: boolean;
 }
@@ -358,6 +360,32 @@ function usableDisplay(
   return undefined;
 }
 
+/**
+ * The DataType of a controller field drawn with `display`, else the declaration's own: a price
+ * writes the currency its column's schema and its relation's currency column call for.
+ */
+function displayedDataType(
+  plan: FieldPlan,
+  column: ColumnDescription,
+  display: ColumnDisplay | undefined,
+  plain: DataTypeValue,
+): DataTypeValue {
+  if (!display) {
+    return plain;
+  }
+  const currency =
+    display.kind === "price"
+      ? priceCurrency(display.currency, {
+          stated: currencyOfComment(column.comment),
+          column: currencyColumnOf(
+            plan.description,
+            new Set(plan.resource.fields.map((field) => field.column)),
+          ),
+        })
+      : undefined;
+  return displayDataType(display, column.name, currency);
+}
+
 /** The controller's field for a column, or why the TableView leaves it out. */
 function controllerField(
   plan: FieldPlan,
@@ -408,12 +436,7 @@ function controllerField(
       label: columnLabel(plan.defaults, field, column, target),
       dataType:
         "$dataType" in source
-          ? fieldDataType(
-              display,
-              declared,
-              source,
-              `${relationName(description)}.${field.column}`,
-            )
+          ? displayedDataType(plan, column, display, source)
           : relationDataType(source, field.column, plan.warnings),
       listable: field.listable ?? true,
       filterable: field.filterable ?? false,
