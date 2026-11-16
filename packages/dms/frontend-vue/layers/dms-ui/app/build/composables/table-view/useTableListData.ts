@@ -34,7 +34,7 @@ export interface TableReadOrder {
   lists: number;
   /** Row reads that left. */
   rows: number;
-  /** The newest row read applied, by row id. */
+  /** The newest row read applied since the last list read left, by row id. */
   applied: Map<string, number>;
 }
 
@@ -104,6 +104,7 @@ export function useTableListData<T extends Record<string, unknown>>(
     ({ signal }): Promise<TableViewListResponse<T> | null> => {
       if (isSelfManaged.value) return Promise.resolve(EMPTY_LIST_RESULT);
       readOrder.lists += 1;
+      readOrder.applied.clear();
       return rows.list(
         { ...query.value, ...archiveQuery.value, ...heldQuery() },
         signal,
