@@ -75,10 +75,10 @@ importers:
         specifier: '>=0.5.2 <0.6.0'
         version: 0.5.2(@antelopejs/interface-api@0.3.2(@antelopejs/interface-core@0.5.1))(@antelopejs/interface-core@0.5.1)(@antelopejs/interface-database@0.4.1(@antelopejs/interface-core@0.5.1))
       '@antelopejs/interface-dms':
-        specifier: '>=0.14.0 <0.15.0'
+        specifier: workspace:^
         version: link:../interface-dms
       '@antelopejs/interface-dms-builder':
-        specifier: '>=0.5.0 <0.6.0'
+        specifier: workspace:^
         version: link:../interface-dms-builder
       '@antelopejs/interface-email':
         specifier: '>=0.2.1 <0.3.0'
