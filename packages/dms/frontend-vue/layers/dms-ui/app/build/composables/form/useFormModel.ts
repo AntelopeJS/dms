@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { onMounted, unref } from "vue";
+import { onMounted } from "vue";
 import { jsonSchemaToZod } from "json-schema-to-zod";
 import type { FormProps } from "../../../composables/form/types";
 import { FormEvents } from "../../../composables/form/types/events";
@@ -21,13 +21,15 @@ import type { useWatch } from "#dms-core/app/composables/watch/useWatch";
 import type { useComponentEvent } from "#dms-core/app/composables/components/useComponentEvent";
 import { resolveFieldErrors } from "#dms-core/app/composables/useFieldErrors";
 import { isBlankValue } from "#dms-core/app/composables/useFormValidation";
+import { isObject, isString } from "#dms-core/app/utils/type-check";
+import { isJsonValue } from "../../utils/json";
+import type { JsonValue } from "#dms-core/app/types/json";
+import type { DataTypeValue } from "#dms-core/app/types/data-type";
 import {
-  isBoolean,
-  isNumber,
-  isObject,
-  isString,
-} from "#dms-core/app/utils/type-check";
-import { isPlainObject, sameFormValue } from "../unsaved-changes/formValue";
+  fieldValueOf,
+  isPlainObject,
+  sameFormValue,
+} from "../unsaved-changes/formValue";
 import { createStartingValueTracker } from "./fieldValueRule";
 import {
   type ReplaceUrlVariablesContext,
@@ -37,7 +39,6 @@ import {
 } from "../../utils/urlVariables";
 
 type FormState = ReturnType<typeof useWatch>["state"]["value"];
-type StateValue = FormState[string];
 type ResetStateValues = Record<string, FormFieldValue | undefined>;
 
 const INTERNAL_STATE_KEYS = new Set([
@@ -46,22 +47,17 @@ const INTERNAL_STATE_KEYS = new Set([
   "requiredFields",
 ]);
 
-function isFormFieldValue(value: unknown): value is FormFieldValue {
-  if (value === null || isString(value) || isNumber(value)) return true;
-  if (isBoolean(value)) return true;
-  if (Array.isArray(value)) return value.every(isFormFieldValue);
-  return isPlainObject(value) && Object.values(value).every(isFormFieldValue);
-}
-
-function parseClonedValue(json: string): FormFieldValue {
+function parseClonedValue(json: string): JsonValue {
   const parsed: unknown = JSON.parse(json);
-  if (!isFormFieldValue(parsed)) {
+  if (!isJsonValue(parsed)) {
     throw new TypeError("A JSON clone is not a form field value");
   }
   return parsed;
 }
 
-export function cloneFormValue(value: StateValue): FormFieldValue | undefined {
+export function cloneFormValue(
+  value: DataTypeValue,
+): FormFieldValue | undefined {
   if (value === undefined) return undefined;
   return parseClonedValue(JSON.stringify(value));
 }
@@ -88,7 +84,7 @@ export function computeResetState(state: FormState, initialValues: FormState) {
   const result: ResetStateValues = {};
   for (const key of Object.keys(state)) {
     if (INTERNAL_STATE_KEYS.has(key)) continue;
-    result[key] = cloneFormValue(initialValues[key]);
+    result[key] = cloneFormValue(fieldValueOf(initialValues, key));
   }
   return result;
 }
@@ -154,21 +150,19 @@ export function processBeforeStateMappers(
     result[field.id] = dataType.beforeStateMapper(
       result[field.id],
       field.component.options,
-    ) as FormFieldValue;
+    );
   }
   return result;
 }
 
 /** A cleared list submits an empty list; other cleared fields submit null. */
-export function clearedFieldValue(
-  initial: Parameters<typeof isBlankValue>[0],
-): FormFieldValue {
+export function clearedFieldValue(initial: DataTypeValue): FormFieldValue {
   return Array.isArray(initial) ? [] : null;
 }
 
 /** Blank controls are cleared, but arrays and non-Date instances are not. */
 export function isClearedFieldValue(
-  value: Parameters<typeof isBlankValue>[0],
+  value: DataTypeValue,
   type?: string,
 ): boolean {
   if (Array.isArray(value)) return false;
@@ -182,9 +176,9 @@ export function isClearedFieldValue(
 
 /** Normalizes blank languages while passing through non-localized values. */
 export function localizedSubmitValue(
-  value: Parameters<typeof isBlankValue>[0],
+  value: DataTypeValue,
   type?: string,
-) {
+): DataTypeValue {
   if (!isPlainObject(value)) return value;
   return Object.fromEntries(
     Object.entries(value).map(([locale, text]) => [
@@ -194,18 +188,15 @@ export function localizedSubmitValue(
   );
 }
 
-function isClearedField(
-  field: SubmitField,
-  value: Parameters<typeof isBlankValue>[0],
-): boolean {
+function isClearedField(field: SubmitField, value: DataTypeValue): boolean {
   if (field.localized) return value === undefined;
   return isClearedFieldValue(value, field.type);
 }
 
 function submittedFieldValue(
   field: SubmitField,
-  value: Parameters<typeof localizedSubmitValue>[0],
-) {
+  value: DataTypeValue,
+): DataTypeValue {
   return field.localized ? localizedSubmitValue(value, field.type) : value;
 }
 
@@ -243,7 +234,7 @@ const defaultFieldValueComparer: FieldValueComparer = (_field, left, right) =>
 /** The form context for collecting a submit body. */
 export interface SubmitDataContext {
   /** Loaded values, last saved values, or field defaults. */
-  initialValues?: FormState;
+  initialValues?: FormData;
   /** Values submitted even when they have no rendered field. */
   submitDefaults?: FormProps["submitDefaults"];
   /** Fields disabled by watch actions. */
@@ -263,21 +254,18 @@ export function collectSubmitData(
   const fieldData: FormData = {};
   const isSameValue = context.isSameValue ?? defaultFieldValueComparer;
   for (const field of fields) {
-    const value = unref(data[field.id]);
+    const value = fieldValueOf(data, field.id);
     const initial = context.initialValues?.[field.id];
     if (context.onlyChanged && isSameValue(field, value, initial)) continue;
     if (!isClearedField(field, value)) {
-      fieldData[field.id] = submittedFieldValue(field, value) as FormFieldValue;
+      fieldData[field.id] = submittedFieldValue(field, value);
       continue;
     }
     if (field.disabled || context.disabled?.has(field.id)) continue;
     if (isBlankValue(initial, field.type)) continue;
     fieldData[field.id] = clearedFieldValue(initial);
   }
-  return {
-    ...(context.submitDefaults as FormData | undefined),
-    ...fieldData,
-  };
+  return { ...context.submitDefaults, ...fieldData };
 }
 
 export function resolveSubmitDefaults(
@@ -305,7 +293,7 @@ export function fieldValuesOfSubmitDefaults(
   if (!submitDefaults) return values;
   for (const { id } of fields) {
     if (id in submitDefaults) {
-      values[id] = submitDefaults[id] as FormFieldValue;
+      values[id] = submitDefaults[id];
     }
   }
   return values;
@@ -318,21 +306,16 @@ const zodObjectSchema = z.custom<z.ZodObject<Record<string, z.ZodTypeAny>>>(
   (value) => value instanceof z.ZodObject,
 );
 
-const parseZodType = (value: unknown): z.ZodTypeAny =>
-  zodTypeSchema.parse(value);
-
-const parseZodTypes = (value: unknown): z.ZodTypeAny[] =>
-  z.array(zodTypeSchema).parse(value);
-
 export function makeFieldSchemaRequired(schema: z.ZodTypeAny): z.ZodTypeAny {
   if (schema instanceof z.ZodOptional || schema instanceof z.ZodNullable)
-    return makeFieldSchemaRequired(parseZodType(schema.unwrap()));
+    return makeFieldSchemaRequired(zodTypeSchema.parse(schema.unwrap()));
   if (schema instanceof z.ZodDefault)
-    return makeFieldSchemaRequired(parseZodType(schema.removeDefault()));
+    return makeFieldSchemaRequired(zodTypeSchema.parse(schema.removeDefault()));
   if (schema instanceof z.ZodUnion) {
-    const nonNullOptions = parseZodTypes(schema.options).filter(
-      (option) => !(option instanceof z.ZodNull),
-    );
+    const nonNullOptions = z
+      .array(zodTypeSchema)
+      .parse(schema.options)
+      .filter((option) => !(option instanceof z.ZodNull));
     if (nonNullOptions.length === 1)
       return makeFieldSchemaRequired(nonNullOptions[0]!);
     return schema;
@@ -433,18 +416,13 @@ export function watchFieldChanges(
   function sendChanges(newState: FormState): void {
     for (const fieldId of Object.keys(newState)) {
       if (INTERNAL_STATE_KEYS.has(fieldId)) continue;
-      let newJson: string;
-      try {
-        newJson = JSON.stringify(newState[fieldId]);
-      } catch {
-        newJson = String(newState[fieldId]);
-      }
+      const newJson = JSON.stringify(newState[fieldId]);
       if (newJson !== previousValuesJson.get(fieldId)) {
         sendComponentEvent(FormEvents.FIELD_CHANGE, id, {
           fieldId,
           value: newState[fieldId],
           formValues: newState,
-          initial: isInitial(fieldId, newState[fieldId]),
+          initial: isInitial(fieldId, fieldValueOf(newState, fieldId)),
         });
         previousValuesJson.set(fieldId, newJson);
       }

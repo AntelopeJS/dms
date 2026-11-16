@@ -1,6 +1,8 @@
 import { isRecord } from "../../utils/record";
 import { isBranch, type PreferencesTree } from "./preferencesCookie";
 import { isNumber, isString } from "../../../utils/type-check";
+import { isJsonValue } from "../../utils/json";
+import type { DataTypeValue } from "../../../types/data-type";
 
 /**
  * @internal
@@ -103,10 +105,10 @@ interface SortEntry {
 
 interface FilterEntry {
   accessorKey: string;
-  value?: unknown;
+  value?: DataTypeValue;
   mode: string;
   pinned?: boolean;
-  initialValue?: unknown;
+  initialValue?: DataTypeValue;
 }
 
 interface PaginationEntry {
@@ -172,7 +174,7 @@ const decodeFilters = (
   if (!Array.isArray(stored)) throw new TypeError("columnFilters");
   return stored.map(([accessorKey, value, mode]: unknown[]) => ({
     accessorKey: String(accessorKey),
-    value,
+    value: isJsonValue(value) ? value : undefined,
     mode: isString(mode) ? mode : DEFAULT_FILTER_MODE,
   }));
 };

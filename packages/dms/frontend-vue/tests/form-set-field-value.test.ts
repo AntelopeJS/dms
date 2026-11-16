@@ -129,6 +129,18 @@ describe("readSetFieldValueParams", () => {
     });
   });
 
+  it("reads nothing from params whose value or map is not JSON", () => {
+    expect(
+      readSetFieldValueParams({ targetField: "x", value: () => 1 }),
+    ).toBeUndefined();
+    expect(
+      readSetFieldValueParams({ targetField: "x", valueMap: { won: () => 1 } }),
+    ).toBeUndefined();
+    expect(
+      readSetFieldValueParams({ targetField: "x", valueMap: ["won"] }),
+    ).toBeUndefined();
+  });
+
   it("reads nothing from params that name no string target or hold a map that is no object", () => {
     expect(readSetFieldValueParams(undefined)).toBeUndefined();
     expect(readSetFieldValueParams({})).toBeUndefined();
@@ -179,7 +191,9 @@ describe("readFieldFlagParams", () => {
 
   it("reads nothing from params that name no string target", () => {
     expect(readFieldFlagParams(undefined, "setHidden")).toBeUndefined();
-    expect(readFieldFlagParams({ setHidden: true }, "setHidden")).toBeUndefined();
+    expect(
+      readFieldFlagParams({ setHidden: true }, "setHidden"),
+    ).toBeUndefined();
     expect(
       readFieldFlagParams({ targetField: 7, setHidden: true }, "setHidden"),
     ).toBeUndefined();

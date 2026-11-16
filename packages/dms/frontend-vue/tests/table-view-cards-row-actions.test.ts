@@ -21,6 +21,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import CardsDisplay from "../layers/dms-ui/app/entries/components/table-view/CardsDisplay";
 import type { TableViewDisplayContext } from "../layers/dms-ui/app/composables/table-view/types/display";
 import { displayContext } from "./fixtures/displayContext";
+import { textOf } from "../layers/dms-core/app/entries/utils/dataTypeValue";
 
 type Row = TableViewDisplayContext["items"][number];
 
@@ -36,7 +37,7 @@ const actionsColumn = (edited: string[]): ColumnDef<Row> => ({
       h(
         "button",
         {
-          "aria-label": `Actions for ${String(row.original.name)}`,
+          "aria-label": `Actions for ${textOf(row.original.name)}`,
           onClick: (event: Event) => {
             event.stopPropagation();
             edited.push(row.id);
@@ -62,7 +63,7 @@ function createTable(columns: ColumnDef<Row>[]): Table<Row> {
   return useVueTable({
     data: rows,
     columns,
-    getRowId: (row) => String(row._id),
+    getRowId: (row) => textOf(row._id),
     getCoreRowModel: getCoreRowModel(),
   });
 }

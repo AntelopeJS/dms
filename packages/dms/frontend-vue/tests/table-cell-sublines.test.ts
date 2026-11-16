@@ -68,10 +68,10 @@ register({
     default: (value) => `€${Number(value).toFixed(2)}`,
   },
 });
-interface SelectItem {
+type SelectItem = {
   value: string;
   label: string;
-}
+};
 
 const isSelectItem = (item: unknown): item is SelectItem =>
   isObject(item) &&

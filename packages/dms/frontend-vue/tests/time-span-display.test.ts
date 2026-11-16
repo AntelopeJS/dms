@@ -5,9 +5,13 @@
  * second argument is the locale, never a separator (`7hfr30m`).
  */
 import { h } from "vue";
-import { beforeAll, describe, expect, it, vi } from "vitest";
+import { assert, beforeAll, describe, expect, it, vi } from "vitest";
 import type { DataType } from "../layers/dms-core/app/composables/data-types/useDataType";
-import { isNumber, isObject } from "../layers/dms-core/app/utils/type-check";
+import {
+  isNumber,
+  isObject,
+  isString,
+} from "../layers/dms-core/app/utils/type-check";
 
 type Formatter = NonNullable<DataType["formatter"]>["default"];
 
@@ -35,14 +39,16 @@ const MINUTE = 60_000;
 describe("string_time display", () => {
   it("writes the duration in the locale, not the locale in it", () => {
     const format = formatters.get("string_time")!;
-    const text = String(format(7 * HOUR + 30 * MINUTE, "fr"));
+    const text = format(7 * HOUR + 30 * MINUTE, "fr");
+    assert(isString(text));
     expect(text).not.toContain("fr");
     expect(text.replace(/\s/g, " ")).toBe("7 h 30 min");
   });
 
   it("rounds the duration a cell shows", () => {
     const format = formatters.get("string_time")!;
-    const text = String(format(7 * HOUR + 30 * MINUTE + 15_250, "en"));
+    const text = format(7 * HOUR + 30 * MINUTE + 15_250, "en");
+    assert(isString(text));
     expect(text.replace(/\s/g, " ")).toBe("7 h 30 min");
   });
 

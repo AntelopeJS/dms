@@ -4,6 +4,7 @@ import { isString, isNumber } from "#dms-core/app/utils/type-check";
 import type { DataTypeFormatter } from "#dms-core/app/composables/data-types/useDataType";
 import type { FormField } from "../../../composables/form/types/field";
 import {
+  fieldValueOf,
   isEmptyFormValue,
   sameFormValue,
 } from "../../composables/unsaved-changes/formValue";
@@ -18,7 +19,7 @@ const context = inject(FORM_ENTRY_CONTEXT_KEY)!;
 const { t, locale } = useI18n();
 const { getDataType } = useDataTypes();
 
-const value = computed(() => context.state.value[props.field.id]);
+const value = computed(() => fieldValueOf(context.state.value, props.field.id));
 const baseline = computed(() => context.baselineValue(props.field.id));
 const defaultValue = computed(() => props.field.defaultValue);
 

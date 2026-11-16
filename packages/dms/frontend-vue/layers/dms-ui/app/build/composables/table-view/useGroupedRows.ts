@@ -1,5 +1,5 @@
 import { EYEBROW_CLASS } from "../../utils/eyebrow";
-import { get } from "@nuxt/ui/runtime/utils/index.js";
+import { readFieldPath } from "#dms-core/app/entries/utils/dataTypeValue";
 import { h, toValue, type ComputedRef, type MaybeRefOrGetter } from "vue";
 import type {
   TableViewColumn,
@@ -53,7 +53,7 @@ export function useGroupedRows(options: GroupedRowsOptions) {
   );
 
   const keyOf = (row: Data): string =>
-    rowGroupKey(get(row, field.value), by.value, locale.value);
+    rowGroupKey(readFieldPath(row, field.value), by.value, locale.value);
 
   const eyebrow = (text: string) =>
     h("span", { class: GROUP_EYEBROW_CLASS }, text);
@@ -69,7 +69,7 @@ export function useGroupedRows(options: GroupedRowsOptions) {
       );
     }
     if (!column.value) return key;
-    const value: unknown = get(row, field.value);
+    const value = readFieldPath(row, field.value);
     return renderColumnValue(column.value, { [field.value]: value });
   };
 

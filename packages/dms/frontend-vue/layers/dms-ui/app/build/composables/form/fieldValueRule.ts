@@ -5,12 +5,15 @@ import {
   isBoolean,
   isObject,
 } from "#dms-core/app/utils/type-check";
+import { isJsonObject, isJsonValue, type JsonObject } from "../../utils/json";
+import type { JsonValue } from "#dms-core/app/types/json";
+import type { DataTypeValue } from "#dms-core/app/types/data-type";
 
 /** What a `SetFieldValue` watch writes, and where. */
 export interface SetFieldValueParams {
   targetField: string;
-  value?: unknown;
-  valueMap?: object;
+  value?: JsonValue;
+  valueMap?: JsonObject;
 }
 
 /** The own member `key` of `source`, wrapped so that an absent one stays apart from an `undefined` one. */
@@ -46,7 +49,8 @@ export function readFieldFlagParams(
 
 /**
  * The params a `SetFieldValue` watch carries. Nothing when the watch names no
- * string `targetField`, or a `valueMap` that is not an object.
+ * string `targetField`, a `value` that is not JSON, or a `valueMap` that is
+ * not a JSON object.
  */
 export function readSetFieldValueParams(
   params: WatchAction["params"],
@@ -56,11 +60,13 @@ export function readSetFieldValueParams(
   if (!isString(targetField)) return undefined;
   const decoded: SetFieldValueParams = { targetField };
   if ("value" in params && Object.hasOwn(params, "value")) {
-    decoded.value = params.value;
+    const { value } = params;
+    if (value !== undefined && !isJsonValue(value)) return undefined;
+    decoded.value = value;
   }
   if ("valueMap" in params && params.valueMap) {
     const { valueMap } = params;
-    if (!isObject(valueMap)) return undefined;
+    if (!isJsonObject(valueMap)) return undefined;
     decoded.valueMap = valueMap;
   }
   return decoded;
@@ -87,7 +93,7 @@ export function isFieldChangePayload(
 }
 
 /** A value to write, or nothing to write. */
-export type FieldValueWrite = { value: unknown } | undefined;
+export type FieldValueWrite = { value: DataTypeValue } | undefined;
 
 type MapKey = string | number | boolean;
 
@@ -108,8 +114,10 @@ export function resolveFieldValueWrite(
   if (payload?.initial) return undefined;
   if (params.valueMap) {
     const key = payload?.value;
-    if (!isMapKey(key)) return undefined;
-    return ownMember(params.valueMap, String(key));
+    if (!isMapKey(key) || !Object.hasOwn(params.valueMap, String(key))) {
+      return undefined;
+    }
+    return { value: params.valueMap[String(key)] };
   }
   if (!Object.hasOwn(params, "value")) return undefined;
   return { value: params.value };
@@ -121,11 +129,8 @@ export function resolveFieldValueWrite(
  * coming back to that value is a change too.
  */
 export function createStartingValueTracker(
-  isStartingValue: (
-    fieldId: string,
-    value: FieldChangePayload["value"],
-  ) => boolean,
-): (fieldId: string, value: FieldChangePayload["value"]) => boolean {
+  isStartingValue: (fieldId: string, value: DataTypeValue) => boolean,
+): (fieldId: string, value: DataTypeValue) => boolean {
   const changedFieldIds = new Set<string>();
   return (fieldId, value) => {
     if (changedFieldIds.has(fieldId)) return false;

@@ -7,8 +7,9 @@ import {
 } from "../layers/dms-ui/app/entries/composables/table-view/useTableRows";
 import { fetchClient } from "./fixtures/fetchClient";
 import { tableViewColumn } from "./fixtures/tableViewColumn";
+import type { DataTypeRow } from "../layers/dms-core/app/types/data-type";
 
-interface LogRow extends Record<string, unknown> {
+interface LogRow extends DataTypeRow {
   _id: string;
   path: string;
   duration: number;

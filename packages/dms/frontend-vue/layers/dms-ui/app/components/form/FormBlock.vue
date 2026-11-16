@@ -2,6 +2,8 @@
 import { pageLink } from "../../build/composables/page/pageUrlValues";
 import type { FormProps } from "../../composables/form/types/props";
 import type { FormField } from "../../composables/form/types/field";
+import type { FormData } from "../../composables/form/types/value";
+import { fieldValueOf } from "../../build/composables/unsaved-changes/formValue";
 import {
   cloneFormValue,
   fieldValuesOfSubmitDefaults,
@@ -167,9 +169,12 @@ const container = inject(DMS_CONTAINER_KEY, undefined);
 const containerId = props.containerId ?? container?.id;
 
 /** The value of every field, by id: what "unsaved changes" compares. */
-function fieldValues(): typeof state.value {
+function fieldValues(): FormData {
   return Object.fromEntries(
-    toValue(allFields).map((field) => [field.id, state.value[field.id]]),
+    toValue(allFields).map((field) => [
+      field.id,
+      fieldValueOf(state.value, field.id),
+    ]),
   );
 }
 
@@ -214,7 +219,7 @@ const changedFields = computed(() =>
     (field) =>
       !isSameFieldValue(
         field,
-        state.value[field.id],
+        fieldValueOf(state.value, field.id),
         formDirty.baseline.value[field.id],
       ),
   ),
@@ -438,7 +443,10 @@ function isFieldDisabled(field: FormField): boolean {
 
 function isFieldHidden(field: FormField): boolean {
   if (hiddenFields.value?.has(field.id)) return true;
-  return createsRecord && isHiddenOnCreate(field, state.value[field.id]);
+  return (
+    createsRecord &&
+    isHiddenOnCreate(field, fieldValueOf(state.value, field.id))
+  );
 }
 
 function isFieldRequired(field: FormField): boolean {
