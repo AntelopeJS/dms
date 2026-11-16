@@ -105,7 +105,9 @@ function onUpdatePin(value: string[] | undefined) {
 async function requestEmailValidation() {
   try {
     isLoading.value = true;
-    await $authFetch("/api/auth/request-email-verification");
+    await $authFetch("/api/auth/request-email-verification", {
+      method: "POST",
+    });
 
     startCooldown();
 

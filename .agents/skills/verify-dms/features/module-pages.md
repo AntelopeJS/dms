@@ -75,6 +75,7 @@ What a module's pages are made of: table views with their forms, row actions and
 - `table-edit-record`: row menu > Edit renames a user; the table and the API show the new name.
 - `table-delete-record`: row menu > Delete asks "Delete this item?" first (the dry run a user sees), then the row is gone after a reload and from the API.
 - `realtime-row-reaches-other-tab`: a user created in one tab appears in another tab on the same table without a reload. It is the end-to-end side of `formal-realtime-tabs`.
+- `fetched-confirm-dialog-draws-no-posting-form`: error path, on a development backend: an agent writes two dialogs as mockup fixtures (`mockup_write_spec`) and a table whose toolbar buttons read them through `confirm.from` (`builder_add_block`). A dialog whose `component` is a secret input rotating to an owner-only route opens with its texts and plain field and without that component. A dialog whose field is that secret input does not open. The owner's clicks send nothing to the route. It writes a resource and a table into the first page of the run's playground copy, under names unique to the run.
 - `record-not-found`: error path: the edit page of a missing record says "This entry does not exist, or no longer does" and shows no form.
 
 ## How to get to it (user POV)

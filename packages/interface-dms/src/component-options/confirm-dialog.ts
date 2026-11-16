@@ -105,11 +105,14 @@ export interface ConfirmDialog {
    * Fields the user fills in before confirming. Their values are sent with
    * the action's request — merged into an `api` target's `body`, the input
    * winning — and a field error the server answers shows under its field.
+   * In a dialog a {@link ConfirmDialogFrom} route answers, a field drawn by
+   * any input but a built-in one that reads no URL makes the dialog fail.
    */
   fields?: FormField[];
   /**
    * Escape hatch: a frontend component drawn in the dialog's body, resolved
-   * by name from the global registry.
+   * by name from the global registry. The dashboard leaves it out of a dialog
+   * a {@link ConfirmDialogFrom} route answers.
    */
   component?: Component;
 }
