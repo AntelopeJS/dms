@@ -1,5 +1,6 @@
 import { isNotificationRow, numberIn, rowsOf } from "../rows.mjs";
 import { burstToasts, collapsedStackChecks, recordToasts } from "../toasts.mjs";
+import { journeys as emailLayoutJourneys } from "./shell/email-layout.mjs";
 
 /**
  * @typedef {import("@antelopejs/dms/e2e").Ctx} Ctx
@@ -175,4 +176,5 @@ export const journeys = [
       await ctx.verify("no toast leaves the collapsed stack while the burst expires", await collapsedStackChecks(ctx, page));
     },
   },
+  ...emailLayoutJourneys,
 ];
