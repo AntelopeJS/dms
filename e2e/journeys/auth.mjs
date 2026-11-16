@@ -1,5 +1,6 @@
 import { isUserRow, listOf, stringIn } from "../rows.mjs";
 import { accountJourneys } from "./auth/accounts.mjs";
+import { sessionLifecycleJourneys } from "./auth/session-lifecycle.mjs";
 import { storedAccountJourneys } from "./auth/stored-account.mjs";
 
 /**
@@ -205,4 +206,5 @@ export const journeys = [
   },
   ...accountJourneys,
   ...storedAccountJourneys,
+  ...sessionLifecycleJourneys,
 ];
