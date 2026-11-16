@@ -273,6 +273,9 @@ const config: VerifyConfig = {
       ],
       files: [".agents/skills/formal-option-patch-prune/**", ".agents/formal/run-properties.cts"],
       command: ["node", ".agents/skills/formal-option-patch-prune/check.mjs", "--full"],
+      violation: /^(?:finding|BROKEN|CHANGED|HOLDS) +(\w+)/gm,
+    },
+    {
       name: "formal-theme-logo-orphans",
       covers: [
         "packages/dms/src/implementations/dms-builder/engine/theme.ts",
