@@ -204,7 +204,7 @@ export class AuthController extends Controller("/api/auth") {
     );
   }
 
-  @Get("/request-email-verification")
+  @Post("/request-email-verification")
   requestEmailVerification(@AuthRawUser() user: User): Promise<void> {
     return authRoutes.requestEmailVerification(this.userModel, user);
   }
