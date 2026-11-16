@@ -143,6 +143,7 @@ export function createBaseValidationSchema(
       ".passthrough()",
     );
     return zodObjectSchema.parse(
+      // oxlint-disable-next-line typescript/no-implied-eval -- Evaluates the zod source json-schema-to-zod writes for the form's JSON schema: zod 3 has no runtime JSON Schema converter.
       new Function("z", `"use strict"; return (${zodCode})`)(z),
     );
   } catch {
