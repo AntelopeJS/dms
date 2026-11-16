@@ -4,6 +4,7 @@ import type {
   DataTypeFormatter,
 } from "#dms-core/app/composables/data-types/useDataType";
 import { isObject, isString } from "#dms-core/app/utils/type-check";
+import { textOf } from "#dms-core/app/build/utils/dataTypeValue";
 import { getAppTranslation } from "../../../../../dms-core/app/composables/translation/useTranslation";
 
 const SECRET_TAIL = 4;
@@ -44,7 +45,7 @@ function renderTags(value: Parameters<DataTypeFormatter>[0]) {
   return h(
     "span",
     { class: TAGS_CLASS },
-    value.map((tag) => h("span", { class: TAG_CLASS }, String(tag))),
+    value.map((tag) => h("span", { class: TAG_CLASS }, textOf(tag))),
   );
 }
 

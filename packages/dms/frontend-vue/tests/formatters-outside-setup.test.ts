@@ -10,7 +10,11 @@
 import { createApp, defineComponent, h, isVNode, type VNodeChild } from "vue";
 import { createI18n, useI18n } from "vue-i18n";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import type { DataTypeConfig } from "../layers/dms-core/app/types/data-type";
+import type {
+  DataTypeConfig,
+  DataTypeOptions,
+  DataTypeValue,
+} from "../layers/dms-core/app/types/data-type";
 import type { RenderableColumn } from "../layers/dms-ui/app/entries/composables/data-types/useColumnValueRenderer";
 import type { DataType } from "../layers/dms-core/app/composables/data-types/useDataType";
 import { Size } from "../layers/dms-core/app/types/size";
@@ -69,7 +73,7 @@ function stubLayerGlobals() {
   }));
 }
 
-const SAMPLE_VALUES: unknown[] = [
+const SAMPLE_VALUES: DataTypeValue[] = [
   undefined,
   null,
   "",
@@ -90,7 +94,11 @@ const SAMPLE_VALUES: unknown[] = [
   { key: "$dms.date.undefined", params: {} },
 ];
 
-const SAMPLE_OPTIONS: unknown[] = [undefined, {}, { multiple: true }];
+const SAMPLE_OPTIONS: (DataTypeOptions | undefined)[] = [
+  undefined,
+  {},
+  { multiple: true },
+];
 
 function collectFormatterFailures(
   id: string,

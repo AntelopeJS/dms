@@ -9,6 +9,7 @@ import {
   relationRowLabel,
   relationRowValue,
 } from "../../data-types/relationRows";
+import { textOf } from "#dms-core/app/build/utils/dataTypeValue";
 
 /** A value a quick filter offers. */
 export interface QuickFilterItem {
@@ -100,9 +101,9 @@ export function relationQuickFilterSource(
   column: TableViewColumn | undefined,
   getDataType: (id: string) => DataType | undefined,
 ): DataTypeSelectSource | undefined {
-  const typeId = column?.type?.id;
-  if (!typeId) return undefined;
-  return getDataType(typeId)?.selectSource?.(inputOptions(column));
+  const type = column?.type;
+  if (!type?.id) return undefined;
+  return getDataType(type.id)?.selectSource?.(type.inputComponent.options);
 }
 
 /** Rows of a relation's `select` route as quick filter values. */
@@ -115,8 +116,8 @@ export function relationQuickFilterItems(
     if (value === undefined || value === null) return [];
     return [
       {
-        value: String(value),
-        label: String(relationRowLabel(source, row) ?? value),
+        value: textOf(value),
+        label: textOf(relationRowLabel(source, row) ?? value),
       },
     ];
   });
@@ -140,7 +141,7 @@ export function quickFilterValue(
   const value = filters.find(isQuickFilterOf(quickFilter))?.value;
   return value === undefined || value === null || value === ""
     ? undefined
-    : String(value);
+    : textOf(value);
 }
 
 /**

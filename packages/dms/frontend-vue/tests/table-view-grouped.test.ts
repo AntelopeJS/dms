@@ -26,6 +26,7 @@ import {
 } from "../layers/dms-ui/app/entries/composables/table-view/utils/groupedRows";
 import type { TableViewColumn } from "../layers/dms-ui/app/composables/table-view/types";
 import { tableViewColumn } from "./fixtures/tableViewColumn";
+import { textOf } from "../layers/dms-core/app/entries/utils/dataTypeValue";
 
 const LABELS = {
   today: "Today",
@@ -284,7 +285,7 @@ describe("useGroupedRows", () => {
             rows,
             countQuery: (filter) => ({
               search: "late",
-              [`filter_${filter.accessorKey}`]: `${filter.mode}:${String(filter.value)}`,
+              [`filter_${filter.accessorKey}`]: `${filter.mode}:${textOf(filter.value)}`,
             }),
             countBatch: async (queries) => {
               asked.push(queries);

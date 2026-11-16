@@ -13,6 +13,7 @@ import { formErrorsInjectionKey } from "@nuxt/ui/composables/useFormField";
 import DmsFormErrorText from "./FormErrorText.vue";
 import DmsFormFieldNotes from "./FormFieldNotes.vue";
 import { readonlyFieldValue } from "../../composables/form/readonlyValue";
+import { fieldValueOf } from "../../composables/unsaved-changes/formValue";
 import { useDeclaredFieldProps } from "../../composables/form/fieldComponentProps";
 
 interface FormFieldControlProps {
@@ -58,7 +59,7 @@ const hasError = computed(() => {
 const { getDataType } = useDataTypes();
 const readonlyValue = computed(() =>
   readonlyFieldValue(
-    state.value[props.field.id],
+    fieldValueOf(state.value, props.field.id),
     initialValues.value?.[props.field.id],
     props.field.type ? getDataType(props.field.type) : undefined,
     props.field.component.options,

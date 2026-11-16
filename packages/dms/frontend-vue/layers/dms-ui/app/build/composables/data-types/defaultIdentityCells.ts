@@ -61,7 +61,7 @@ interface AvatarFile {
   alt?: string;
 }
 
-const isAvatarFile = (value: CellValue): value is AvatarFile =>
+const isAvatarFile = (value: CellValue): value is CellValue & AvatarFile =>
   isObject(value) &&
   value !== null &&
   isString(value.key) &&

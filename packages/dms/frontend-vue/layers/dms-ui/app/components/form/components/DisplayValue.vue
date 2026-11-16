@@ -1,11 +1,17 @@
 <script setup lang="ts">
 import { isVNode } from "vue";
 import type { DataTypeFormatter } from "#dms-core/app/composables/data-types/useDataType";
+import type {
+  DataTypeOptions,
+  DataTypeValue,
+} from "#dms-core/app/types/data-type";
+import type { JsonValue } from "#dms-core/app/types/json";
 import { isString } from "#dms-core/app/utils/type-check";
+import { isJsonValue } from "#dms-core/app/build/utils/json";
 import { NUMERIC_TYPE_IDS } from "../../../build/composables/data-types/useColumnValueRenderer";
 
 interface DisplayProps {
-  modelValue?: unknown;
+  modelValue?: DataTypeValue;
   type?: string;
   loading?: boolean;
   /** The field's label, which names the value where it is not text (an image). */
@@ -16,7 +22,15 @@ interface DisplayProps {
 
 const props = defineProps<DisplayProps>();
 
-const options = useAttrs();
+const attrs = useAttrs();
+
+/** The field's options a formatter reads: the attrs that are JSON, no listener. */
+const fieldOptions = (): DataTypeOptions =>
+  Object.fromEntries(
+    Object.entries(attrs).filter((entry): entry is [string, JsonValue] =>
+      isJsonValue(entry[1]),
+    ),
+  );
 
 const { getDataType } = useDataTypes();
 const { locale, t } = useI18n();
@@ -38,6 +52,7 @@ const formattedValue = computed(() => {
   if (isEmptyValue(props.modelValue)) return EMPTY_FALLBACK;
   const formatter = dataType.value?.formatter?.default;
   if (!formatter) return String(props.modelValue);
+  const options = fieldOptions();
   const formatterOptions = props.label
     ? { ...options, fieldLabel: props.label }
     : options;

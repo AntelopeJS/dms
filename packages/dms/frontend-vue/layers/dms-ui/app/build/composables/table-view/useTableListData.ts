@@ -1,15 +1,14 @@
+import type { DataTypeRow } from "#dms-core/app/types/data-type";
 import { computed, type ComputedRef } from "vue";
 import type { TableViewListResponse } from "../../../composables/table-view/types";
 import type { TableCountQuery, useTableRows } from "./useTableRows";
 import { buildTableDataKey } from "./utils/tableQuery";
 
 type Query = TableCountQuery["query"];
-type TableRows<T extends Record<string, unknown>> = ReturnType<
-  typeof useTableRows<T>
->;
+type TableRows<T extends DataTypeRow> = ReturnType<typeof useTableRows<T>>;
 
 /** What the list and the tab counters of a table view are read for. */
-export interface TableListDataOptions<T extends Record<string, unknown>> {
+export interface TableListDataOptions<T extends DataTypeRow> {
   componentId: string | undefined;
   pageId: string | undefined;
   rows: TableRows<T>;
@@ -44,7 +43,7 @@ export interface TableCountRequest {
   query: object;
 }
 
-export interface TableCountsDataOptions<T extends Record<string, unknown>> {
+export interface TableCountsDataOptions<T extends DataTypeRow> {
   componentId: string | undefined;
   pageId: string | undefined;
   rows: TableRows<T>;
@@ -80,7 +79,7 @@ const EMPTY_LIST_RESULT: TableViewListResponse<never> = {
  * binds to the cached entry of its key, so another URL needs another key to be
  * requested at all, and the watch covers a page kept mounted.
  */
-export function useTableListData<T extends Record<string, unknown>>(
+export function useTableListData<T extends DataTypeRow>(
   options: TableListDataOptions<T>,
 ) {
   const { rows, query, archiveQuery, isSelfManaged } = options;
@@ -134,7 +133,7 @@ export function useTableListData<T extends Record<string, unknown>>(
  * `usePeriodScope`) draws the counters' skeleton, as the browser does until
  * its own request answers, and hydration matches.
  */
-export function useTableCountsData<T extends Record<string, unknown>>(
+export function useTableCountsData<T extends DataTypeRow>(
   options: TableCountsDataOptions<T>,
 ) {
   const { rows, queries, archiveQuery } = options;

@@ -1,15 +1,13 @@
+import type { DataTypeRow, DataTypeValue } from "#dms-core/app/types/data-type";
+import { isBoolean } from "#dms-core/app/utils/type-check";
+import { isDataTypeRow } from "#dms-core/app/build/utils/dataTypeValue";
+
 /** A pair as the key-value editor shows it: a row of the repeater. */
-export interface KeyValueRow {
+export interface KeyValueRow extends DataTypeRow {
   key?: string;
-  value?: unknown;
+  value?: DataTypeValue;
   /** Whether the pair is on (`toggleable` editors only). */
   enabled?: boolean;
-}
-
-/** A pair's value in a `toggleable` editor. */
-interface ToggledValue {
-  value: unknown;
-  enabled: boolean;
 }
 
 const KEY_MISSING = "$dms.field_errors.key_missing";
@@ -23,13 +21,18 @@ const isUnfilled = (row: KeyValueRow): boolean =>
 
 /** The rows of a key-value object, in its order. */
 export function keyValueRows(
-  value: Record<string, KeyValueRow["value"]> | null | undefined,
+  value: DataTypeRow | null | undefined,
   toggleable: boolean | undefined,
 ): KeyValueRow[] {
   return Object.entries(value ?? {}).map(([key, entry]) => {
     if (!toggleable) return { key, value: entry };
-    const toggled: Partial<ToggledValue> = entry ?? {};
-    return { key, value: toggled.value, enabled: toggled.enabled ?? true };
+    const toggled = isDataTypeRow(entry) ? entry : {};
+    const { enabled } = toggled;
+    return {
+      key,
+      value: toggled.value,
+      enabled: isBoolean(enabled) ? enabled : true,
+    };
   });
 }
 
@@ -37,7 +40,7 @@ export function keyValueRows(
 export function keyValueObject(
   rows: readonly KeyValueRow[],
   toggleable: boolean | undefined,
-): Record<string, KeyValueRow["value"]> {
+): DataTypeRow {
   return Object.fromEntries(
     rows
       .filter((row) => !isUnfilled(row))

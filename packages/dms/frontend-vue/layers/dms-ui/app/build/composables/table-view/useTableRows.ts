@@ -1,4 +1,4 @@
-import { get } from "@nuxt/ui/runtime/utils/index.js";
+import type { DataTypeRow } from "#dms-core/app/types/data-type";
 import { computed } from "vue";
 import { stringifyQuery, withQuery } from "ufo";
 import { interpolateUrl } from "#dms-core/app/utils/url-interpolation";
@@ -13,7 +13,8 @@ import {
   resolveUrlVariables,
 } from "../../utils/urlVariables";
 import type { RowActionRule } from "#dms-core/app/types/row-action";
-import { compareValues, textOf } from "./utils/compareValues";
+import { compareValues, searchTextOf } from "./utils/compareValues";
+import { readFieldPath } from "#dms-core/app/build/utils/dataTypeValue";
 import { pinRows, pinRowsBySpan } from "./utils/pinnedRows";
 import {
   appendPeriodToUrl,
@@ -136,7 +137,7 @@ export function sourceRouteQuery(
  * column, the page. The pinned rows lead before the page is cut, so they
  * open the first one.
  */
-export function processSourceRows<T extends Record<string, unknown>>(
+export function processSourceRows<T extends DataTypeRow>(
   rows: T[],
   query: Query,
   capabilities: SourceCapabilities,
@@ -150,7 +151,9 @@ export function processSourceRows<T extends Record<string, unknown>>(
     const keys = columns.map((column) => column.accessorKey);
     processed = processed.filter((row) =>
       keys.some((key) =>
-        textOf(get(row, key)).toLocaleLowerCase().includes(needle),
+        searchTextOf(readFieldPath(row, key))
+          .toLocaleLowerCase()
+          .includes(needle),
       ),
     );
   }
@@ -158,7 +161,9 @@ export function processSourceRows<T extends Record<string, unknown>>(
   if (!capabilities.sort && sortKey) {
     const direction = query.sortDirection === DESCENDING ? -1 : 1;
     processed = [...processed].sort(
-      (a, b) => direction * compareValues(get(a, sortKey), get(b, sortKey)),
+      (a, b) =>
+        direction *
+        compareValues(readFieldPath(a, sortKey), readFieldPath(b, sortKey)),
     );
   }
   processed = pinRows(processed, pinnedRows);
@@ -224,9 +229,7 @@ function emptySourcePage<T>(query: Query): TableViewListResponse<T> {
   };
 }
 
-function createTableSource<T extends Record<string, unknown>>(
-  options: TableRowsOptions,
-) {
+function createTableSource<T extends DataTypeRow>(options: TableRowsOptions) {
   const { api, location, source, columns } = options;
   const periodScope = usePeriodScope(source?.periodScope);
   const isPeriodPending = computed(
@@ -323,9 +326,7 @@ function createTableSource<T extends Record<string, unknown>>(
  * URL requested, for the caller to list again when it changes. The rows
  * `pinnedRows` accepts lead each list answered.
  */
-export function useTableRows<T extends Record<string, unknown>>(
-  options: TableRowsOptions,
-) {
+export function useTableRows<T extends DataTypeRow>(options: TableRowsOptions) {
   const { api, location, source, sourceUrl, isPeriodPending, listFromSource } =
     createTableSource<T>(options);
 

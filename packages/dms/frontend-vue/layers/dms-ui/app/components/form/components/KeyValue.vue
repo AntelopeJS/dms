@@ -9,6 +9,7 @@ import {
   keyValueObject,
 } from "../../../build/composables/form/keyValueRows";
 import DmsInputRepeater from "./InputRepeater.vue";
+import type { DataTypeRow } from "#dms-core/app/types/data-type";
 
 interface KeyValueColumn {
   type?: string;
@@ -26,9 +27,7 @@ interface KeyValueProps {
 }
 
 const props = defineProps<KeyValueProps>();
-const model = defineModel<
-  Record<string, KeyValueRow["value"]> | null | undefined
->();
+const model = defineModel<DataTypeRow | null | undefined>();
 const { t } = useI18n();
 const { report } = useControlError();
 
