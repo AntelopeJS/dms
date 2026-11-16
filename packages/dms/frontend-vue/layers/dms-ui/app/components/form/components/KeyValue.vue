@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import type { ComponentOptionsData } from "#dms-core/app/types/component";
 import type { ComponentInfo } from "#dms-core/app/types/page";
 import { useControlError } from "../../../composables/form/useControlError";
 import {
@@ -12,7 +11,7 @@ import DmsInputRepeater from "./InputRepeater.vue";
 
 interface KeyValueColumn {
   type?: string;
-  component: ComponentInfo<ComponentOptionsData>;
+  component: ComponentInfo;
 }
 
 interface KeyValueProps {

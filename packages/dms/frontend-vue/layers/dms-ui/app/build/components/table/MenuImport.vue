@@ -1,6 +1,7 @@
-<script setup lang="ts">
+<script setup lang="ts" generic="T extends Data">
 import { themeOverride } from "./tableComponentTheme";
 import { tv } from "tailwind-variants";
+import type { Data } from "./TableRoot.vue";
 import { useTableConfigClipboard } from "../../composables/table/useTableConfigClipboard";
 
 export interface MenuImportEmits {
@@ -20,7 +21,7 @@ const theme = tv({
 const emits = defineEmits<MenuImportEmits>();
 const { t } = useI18n();
 
-const { importConfig } = useTableConfigClipboard();
+const { importConfig } = useTableConfigClipboard<T>();
 
 const code = ref("");
 

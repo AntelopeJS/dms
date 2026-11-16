@@ -82,7 +82,7 @@ export interface UseApexChartInput {
 export interface UseApexChartOutput {
   apexType: ComputedRef<string>;
   options: ComputedRef<RawOptionSection>;
-  series: ComputedRef<number[] | ChartSeries[]>;
+  series: ComputedRef<RawOptionSection[string]>;
   /**
    * The index, in the series as given, of the point Apex drew at
    * `dataPointIndex` (they differ when the chart lays dates out in buckets).

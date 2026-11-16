@@ -11,7 +11,7 @@ export interface RepeaterTableColumn {
   id: string;
   label?: string;
   type?: string;
-  component: ComponentInfo<ComponentOptionsData>;
+  component: ComponentInfo;
 }
 
 /** Where a relation column reads the rows its values name. */
@@ -31,7 +31,7 @@ export function renderableColumn(
     compareModes: [],
     filterComponents: {},
 
-    inputComponent: column.component,
+    inputComponent: column.component as ComponentInfo<ComponentOptionsData>,
   };
   return { id: column.id, type };
 }

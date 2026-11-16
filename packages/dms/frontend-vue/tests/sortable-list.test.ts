@@ -59,15 +59,13 @@ function drag(sortable: FakeSortable, name: DragCallback, replay: DragReplay) {
 
 const instances: FakeSortable[] = [];
 
-const { default: SortableList, sortableGroup } = await import(
+const { default: SortableList } = await import(
   "../layers/dms-ui/app/entries/components/sortable/SortableList"
 );
 
 interface Card {
   id: string;
 }
-
-const board = sortableGroup<Card>();
 
 let app: App | undefined;
 
@@ -94,7 +92,7 @@ function mountLists(columns: Card[][], changes: Change[][]) {
             list,
             "onUpdate:list": (next: Card[]) => (lists[index] = next),
             itemKey: (card: Card) => card.id,
-            group: board,
+            group: "board",
             onChange: (change: Change) => changes[index]!.push(change),
           },
           { item: ({ element }: { element: Card }) => h("p", element.id) },
@@ -201,7 +199,7 @@ describe("a sortable list", () => {
     mountLists([[{ id: "a" }]], [[]]);
     await nextTick();
     expect(instances[0]!.options).toMatchObject({
-      group: { name: board.name },
+      group: { name: "board" },
       preventOnFilter: false,
     });
   });
