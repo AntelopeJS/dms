@@ -5,8 +5,6 @@ import { expect } from "chai";
 import Redis from "ioredis";
 import { RedisBroker } from "../../../realtime";
 
-const UNHANDLED_IOREDIS_ERROR = "[ioredis] Unhandled error event";
-
 interface ConsoleCapture {
   lines: string[];
   restore: () => void;
@@ -40,10 +38,6 @@ describe("[unit] RedisBroker subscriber errors", () => {
       consoleErrors.restore();
       client.disconnect();
     }
-    expect(
-      consoleErrors.lines.filter((line) =>
-        line.includes(UNHANDLED_IOREDIS_ERROR),
-      ),
-    ).to.deep.equal([]);
+    expect(consoleErrors.lines).to.deep.equal([]);
   });
 });
