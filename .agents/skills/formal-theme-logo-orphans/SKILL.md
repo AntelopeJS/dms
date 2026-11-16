@@ -57,6 +57,8 @@ The test file asserts that the property fails on the orphan check as it was befo
 | before #999 | the string literals of the app config | any config that builds the name or imports it |
 | before #1010 | the literals of the config and its imports | any config that builds the name from text |
 
+The property also fails on the real `SetTheme` at the parent of #985 (`6e82402bb`), on its first generated config, in a scratch worktree with the helper and the main test of this folder copied in; that run is not a CI step.
+
 The versions before #1019, #1024, #1036 and #1041 differ from today in the internals of `buildsFileName` and `builtSegments`, which these exports cannot rebuild, so the check does not replay them. Each of those fixes is a spelling the generator covers, and the main property fails on a check that drops `builtFileNames` (scratch change below).
 
 ## Findings on the code
