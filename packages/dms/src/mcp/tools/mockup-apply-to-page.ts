@@ -8,7 +8,6 @@ import {
   WIRING_REASONS,
 } from "../../mockup";
 import { defineTool, jsonResult, textResult } from "../tool";
-import { draftRequestIssues } from "./builder-request-targets";
 import { mockupArgument, withMockup } from "./mockup-support";
 
 /**
@@ -22,7 +21,9 @@ export function judgedWriter(base: LivePageWriter): LivePageWriter {
     ...base,
     async setPageBlocks(ref, draft, opts) {
       const live = await base.pageStructure(ref);
-      const issues = await draftRequestIssues(
+      const { draftRequestIssues } =
+        await import("../../implementations/dms-builder/engine");
+      const issues = draftRequestIssues(
         draft.blocks,
         live.ok ? live.data.blocks : [],
       );

@@ -2,6 +2,7 @@ import { Schema } from "@antelopejs/interface-database";
 import type { Permission, PermissionTree } from "@antelopejs/interface-dms";
 import { RoleModel, TenantMemberModel } from "@antelopejs/interface-dms/db";
 import type { BlockNode } from "@antelopejs/interface-dms-builder";
+import { membersHoldingRole } from "../../../db";
 import { buildPageBlocks } from "./block-tree";
 import { isString } from "./scalar-guards";
 import { getBooleanProperty } from "./literals";
@@ -239,27 +240,20 @@ async function readRoles(
     );
   try {
     const database = schema.instance(tenant);
-    const [roles, members] = await Promise.all([
-      new RoleModel(database).getAll(),
-      new TenantMemberModel(database).getAll(),
-    ]);
-    const holders = new Map<string, number>();
-    for (const member of members) {
-      for (const roleId of member.roleIds ?? []) {
-        holders.set(roleId, (holders.get(roleId) ?? 0) + 1);
-      }
-    }
-    return roles
-      .map((role) => {
-        const held = role.permissions ?? [];
+    const members = new TenantMemberModel(database);
+    const roles = await new RoleModel(database).getAll();
+    const access = await Promise.all(
+      roles.map(async (role) => {
+        const id = String(role._id);
         return {
-          id: String(role._id),
+          id,
           name: role.name,
-          members: holders.get(String(role._id)) ?? 0,
-          permissions: held.filter(under),
+          members: await membersHoldingRole(members, id).count().run(),
+          permissions: (role.permissions ?? []).filter(under),
         };
-      })
-      .sort((left, right) => left.name.localeCompare(right.name));
+      }),
+    );
+    return access.sort((left, right) => left.name.localeCompare(right.name));
   } catch {
     return null;
   }

@@ -6,6 +6,7 @@
 import type {
   Operations as BuilderOperations,
   AddBlockInput,
+  BlockWriteOpts,
   AnalyseDatabaseInput,
   AnalysisState,
   MappedRelation,
@@ -220,7 +221,7 @@ export async function DeleteCategory(ref: CategoryRef): Promise<OpResult> {
 
 export async function AddBlock(
   input: AddBlockInput,
-  opts?: MutationOpts,
+  opts?: BlockWriteOpts,
 ): Promise<OpResult<{ path: BlockPath }>> {
   return withConnectionAccess(() => addBlock(input, opts));
 }
@@ -444,7 +445,7 @@ export async function ConfigureQuery(
 
 export async function ComposePage(
   input: ComposePageInput,
-  opts?: MutationOpts,
+  opts?: BlockWriteOpts,
 ): Promise<OpResult<ComposePageData>> {
   return withConnectionAccess(() => composePage(input, opts));
 }

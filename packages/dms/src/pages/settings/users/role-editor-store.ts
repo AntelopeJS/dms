@@ -37,13 +37,20 @@ import {
   resolvePermissionWarnings,
 } from "./permission-warnings";
 import {
-  collectPermissionIds,
   countRoleHolders,
+  invitesGrantingRole,
+  membersHoldingRole,
+  pendingInvitesGrantingRole,
+} from "../../../db";
+import {
+  collectPermissionIds,
   mapRoleEditorTree,
   orderRoleEditorTree,
   replaceRoleReference,
   type RoleEditorCapabilities,
+  type RoleHolders,
   type RoleEditorPermissionNode,
+  ROLE_MEMBER_PREVIEW_LIMIT,
   type RolesOverview,
   summarizeOwners,
   summarizeRoles,
@@ -131,32 +138,66 @@ async function loadUserNames(userIds: string[]): Promise<Map<string, string>> {
   return new Map(users.map((user) => [user._id, user.name]));
 }
 
+async function loadRoleHolders(
+  tenantId: string,
+  roleId: string,
+  now: Date,
+): Promise<RoleHolders> {
+  const members = GetModel(TenantMemberModel, tenantId);
+  const [memberCount, preview, inviteCount] = await Promise.all([
+    membersHoldingRole(members, roleId).count().run(),
+    membersHoldingRole(members, roleId)
+      .slice(0, ROLE_MEMBER_PREVIEW_LIMIT)
+      .pluck("userId")
+      .run(),
+    pendingInvitesGrantingRole(GetModel(UserInviteModel, tenantId), roleId, now)
+      .count()
+      .run(),
+  ]);
+  return {
+    memberCount,
+    previewUserIds: preview.map((member) => member.userId),
+    inviteCount,
+  };
+}
+
 /** The roles, the owners and what `actor` may change, for the roles page. */
 export async function loadRolesOverview(
   actor: RoleEditorActor,
   capabilities: RoleEditorCapabilities,
 ): Promise<RolesOverview> {
-  const [roles, members, invites, tree] = await Promise.all([
+  const now = new Date();
+  const [roles, owners, tree] = await Promise.all([
     GetModel(RoleModel, actor.tenantId).getAll(),
-    GetModel(TenantMemberModel, actor.tenantId).listAll(),
-    GetModel(UserInviteModel, actor.tenantId).getAll(),
+    GetModel(TenantMemberModel, actor.tenantId).listOwners(),
     loadRoleEditorTree(),
   ]);
+  const ownerIds = owners.map((owner) => owner.userId);
+  const holders = new Map(
+    await Promise.all(
+      roles.map(async (role): Promise<[string, RoleHolders]> => [
+        role._id,
+        await loadRoleHolders(actor.tenantId, role._id, now),
+      ]),
+    ),
+  );
+  const previewed = [
+    ...ownerIds.slice(0, ROLE_MEMBER_PREVIEW_LIMIT),
+    ...[...holders.values()].flatMap((role) => role.previewUserIds),
+  ];
   const permissionIds = collectPermissionIds(tree);
   const [userNames, grantable] = await Promise.all([
-    loadUserNames(members.map((member) => member.userId)),
+    loadUserNames(previewed),
     grantablePermissionIds(actor, permissionIds),
   ]);
   return {
     roles: summarizeRoles({
       roles,
-      members,
-      invites,
+      holders,
       userNames,
       knownPermissionIds: new Set(permissionIds),
-      now: new Date(),
     }),
-    owners: summarizeOwners(members, userNames),
+    owners: summarizeOwners(ownerIds, userNames),
     totalPermissions: permissionIds.length,
     grantable,
     capabilities,
@@ -265,11 +306,12 @@ async function assertRoleUnused(
   tenantId: string,
   roleId: string,
 ): Promise<void> {
-  const [members, invites] = await Promise.all([
-    GetModel(TenantMemberModel, tenantId).listAll(),
-    GetModel(UserInviteModel, tenantId).getAll(),
-  ]);
-  const holders = countRoleHolders(roleId, members, invites, new Date());
+  const holders = await countRoleHolders(
+    GetModel(TenantMemberModel, tenantId),
+    GetModel(UserInviteModel, tenantId),
+    roleId,
+    new Date(),
+  );
   assert(holders === 0, HTTP_CONFLICT, IN_USE_MESSAGE);
 }
 
@@ -278,10 +320,13 @@ export async function listRoleHolderIds(
   tenantId: string,
   roleId: string,
 ): Promise<string[]> {
-  const members = await GetModel(TenantMemberModel, tenantId).listAll();
-  return members
-    .filter((member) => member.roleIds?.includes(roleId))
-    .map((member) => member.userId);
+  const holders = await membersHoldingRole(
+    GetModel(TenantMemberModel, tenantId),
+    roleId,
+  )
+    .pluck("userId")
+    .run();
+  return holders.map((holder) => holder.userId);
 }
 
 /** Moves the holders of `roleId` to `replacementId`; returns the members moved. */
@@ -293,10 +338,16 @@ async function moveRoleHolders(
   const memberModel = GetModel(TenantMemberModel, tenantId);
   const inviteModel = GetModel(UserInviteModel, tenantId);
   return changeTenantMembers(tenantId, async () => {
-    const [members, invites] = await Promise.all([
-      memberModel.listAll(),
-      inviteModel.getAll(),
+    const [memberRows, inviteRows] = await Promise.all([
+      membersHoldingRole(memberModel, roleId).run(),
+      invitesGrantingRole(inviteModel, roleId).run(),
     ]);
+    const members = memberRows.flatMap(
+      (row) => TenantMemberModel.fromDatabase(row) ?? [],
+    );
+    const invites = inviteRows.flatMap(
+      (row) => UserInviteModel.fromDatabase(row) ?? [],
+    );
     const memberMoves = members.flatMap((member) => {
       const roleIds = replaceRoleReference(
         member.roleIds ?? [],
@@ -338,12 +389,15 @@ export async function loadRoleDeleteConfirm(
   roleId: string,
 ): Promise<ConfirmDialogSerialized> {
   const role = await requireRole(tenantId, roleId);
-  const [roles, members, invites] = await Promise.all([
+  const [roles, holders] = await Promise.all([
     GetModel(RoleModel, tenantId).getAll(),
-    GetModel(TenantMemberModel, tenantId).listAll(),
-    GetModel(UserInviteModel, tenantId).getAll(),
+    countRoleHolders(
+      GetModel(TenantMemberModel, tenantId),
+      GetModel(UserInviteModel, tenantId),
+      roleId,
+      new Date(),
+    ),
   ]);
-  const holders = countRoleHolders(roleId, members, invites, new Date());
   const otherRoles = roles.filter((candidate) => candidate._id !== roleId);
   return serializeConfirmDialog({
     title: `${DELETE_I18N}.delete_title`,

@@ -1,15 +1,15 @@
 import { isDeepStrictEqual } from "node:util";
-import {
-  type BlockDraft,
-  type BlockNode,
-  ListResources,
-  type ValidationIssue,
+import type {
+  BlockDraft,
+  BlockNode,
+  ConfigObject,
+  ConfigValue,
+  OpResult,
+  ValidationIssue,
 } from "@antelopejs/interface-dms-builder";
 import { HttpMethod } from "@antelopejs/interface-dms/base/types";
-import type { JsonValue } from "@antelopejs/interface-dms/json";
 import { z } from "zod";
-import { type JsonObject, JsonObjectSchema } from "../json";
-import { jsonResult, type McpToolResult } from "../tool";
+import { listResourceSummaries } from "./resource-index";
 
 /**
  * What a URL option may lead to: a request sent with the owner's session must
@@ -24,11 +24,16 @@ interface UrlRule {
   kind: UrlKind;
   /** The keys of the same options that decide the URL and what it does. */
   reads: readonly string[];
-  applies: (options: JsonObject) => boolean;
+  applies: (options: ConfigObject) => boolean;
 }
 
-const REQUEST_TARGET_TYPES = new Set<JsonValue>(["api", "exportJob"]);
-const LINK_TARGET_TYPES = new Set<JsonValue>(["page", "external"]);
+const REQUEST_TARGET_TYPES = new Set<ConfigValue>(["api", "exportJob"]);
+const LINK_TARGET_TYPES = new Set<ConfigValue>(["page", "external"]);
+
+/** Whether `options` holds `key` as its own member with a value: an `undefined` member is an absent one. */
+function holds(options: ConfigObject, key: string): boolean {
+  return Object.hasOwn(options, key) && options[key] !== undefined;
+}
 
 /**
  * The URL options a block's options can hold: a form's submit, a secret
@@ -54,7 +59,7 @@ const URL_RULES: readonly UrlRule[] = [
     kind: "request",
     reads: ["fetchUrl", "fetchUrlMethod"],
     applies: (options) =>
-      Object.hasOwn(options, "fetchUrlMethod") &&
+      holds(options, "fetchUrlMethod") &&
       options.fetchUrlMethod !== HttpMethod.get,
   },
   {
@@ -75,7 +80,7 @@ const URL_RULES: readonly UrlRule[] = [
 /** A URL option found in a block's options. */
 interface UrlTarget {
   pointer: string;
-  url: JsonValue;
+  url: ConfigValue;
   rule: UrlRule;
   /** The keys from the walked options down to the options holding the URL. */
   owner: readonly string[];
@@ -122,8 +127,30 @@ const LinkSchema = z.string().transform((url) => {
   return kept.slice(start);
 });
 
-function isOptions(value: JsonValue): value is JsonObject {
+function isOptions(value: ConfigValue): value is ConfigObject {
   return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+/** A value of options as plain data, the way the builder reads it back. */
+const PlainValueSchema: z.ZodType<ConfigValue> = z.lazy(() =>
+  z.union([
+    z.string(),
+    z.number(),
+    z.boolean(),
+    z.null(),
+    z.array(PlainValueSchema),
+    z.record(z.string(), PlainValueSchema),
+  ]),
+);
+
+const PlainOptionsSchema = z.record(z.string(), PlainValueSchema);
+
+/** Options as plain data: what the builder reads back, its absent options left out. */
+function plainOptions(config: ConfigObject | undefined): ConfigObject {
+  const parsed = PlainOptionsSchema.safeParse(
+    JSON.parse(JSON.stringify(config ?? {})),
+  );
+  return parsed.success ? parsed.data : {};
 }
 
 function pointerTo(pointer: string, key: string): string {
@@ -131,7 +158,7 @@ function pointerTo(pointer: string, key: string): string {
 }
 
 function urlTargets(
-  value: JsonValue,
+  value: ConfigValue,
   pointer: string,
   owner: readonly string[] = [],
 ): UrlTarget[] {
@@ -142,7 +169,7 @@ function urlTargets(
   }
   if (!isOptions(value)) return [];
   const own = URL_RULES.filter(
-    (rule) => Object.hasOwn(value, rule.key) && rule.applies(value),
+    (rule) => holds(value, rule.key) && rule.applies(value),
   ).map((rule) => ({
     pointer: pointerTo(pointer, rule.key),
     url: value[rule.key],
@@ -159,10 +186,12 @@ function urlTargets(
  * Whether a link leaves the page without running a script: a written-out
  * `http`, `https`, `mailto` or `tel` scheme, whatever tokens follow it, or no
  * scheme and no `{{token}}` before the first `/`, `?` or `#`, where a filled
- * token could spell one. A link that is not text, such as a route object,
- * names no scheme.
+ * token could spell one. A link written as code (`$expr`) is never safe,
+ * since the builder cannot read its scheme. Another link that is not text,
+ * such as a route object, names no scheme.
  */
-function isSafeLink(url: JsonValue): boolean {
+function isSafeLink(url: ConfigValue): boolean {
+  if (isOptions(url) && Object.hasOwn(url, "$expr")) return false;
   const parsed = LinkSchema.safeParse(url);
   if (!parsed.success) return true;
   const scheme = URL_SCHEME.exec(parsed.data)?.[1]?.toLowerCase();
@@ -172,10 +201,9 @@ function isSafeLink(url: JsonValue): boolean {
 }
 
 /** The DataAPI endpoints of the project's resources: the data API a built block may send writes to. */
-async function dataApiRoutes(): Promise<Set<string>> {
-  const resources = await ListResources();
+function dataApiRoutes(): Set<string> {
   return new Set(
-    resources.flatMap(({ route }) =>
+    listResourceSummaries().flatMap(({ route }) =>
       DATA_API_ENDPOINTS.map((endpoint) => `${route}/${endpoint}`),
     ),
   );
@@ -187,10 +215,13 @@ const REQUEST_REFUSED =
 const LINK_REFUSED =
   "names a scheme a link may not use: a link the builder writes is a dashboard path or an http, https, mailto or tel URL, with no {{token}} before its first /, ? or #.";
 
-function issuesOf(
-  targets: readonly UrlTarget[],
-  routes: ReadonlySet<string>,
-): ValidationIssue[] {
+const UNREADABLE_BLOCK =
+  "the block's URL options cannot all be read, because the block is not one the builder edits or an option is written in code, so the URLs this patch writes or turns into requests cannot be judged: edit that block in Code mode, with the owner.";
+
+function issuesOf(targets: readonly UrlTarget[]): ValidationIssue[] {
+  const routes = targets.some(({ rule }) => rule.kind === "request")
+    ? dataApiRoutes()
+    : new Set<string>();
   return targets
     .filter(({ rule, url }) =>
       rule.kind === "link"
@@ -203,61 +234,35 @@ function issuesOf(
     }));
 }
 
-function refusal(
-  targets: readonly UrlTarget[],
-  routes: ReadonlySet<string>,
-): McpToolResult | undefined {
-  const issues = issuesOf(targets, routes);
+/** The `invalid_config` refusal of `issues`, or `undefined` when there are none. */
+export function requestRefusal(
+  issues: ValidationIssue[],
+): OpResult<never> | undefined {
   return issues.length === 0
     ? undefined
-    : jsonResult(
-        { ok: false, error: { code: "invalid_config", issues } },
-        true,
-      );
+    : { ok: false, error: { code: "invalid_config", issues } };
 }
 
 /**
- * The refusal of a builder call whose block options send a request outside
- * the page's own data API, or hold a link that would run a script, or
- * `undefined` when every URL is allowed.
+ * The issues of block options an agent writes whole: each URL that sends a
+ * request outside the page's own data API, or a link that would run a script.
  *
  * A block an agent builds runs in the owner's browser with the owner's
  * session, so one posting to an owner-only route (`/api/builder/database/*`,
  * the assistant's settings) would act for the owner.
  *
- * @param input The options as the call carries them, walked whole
- * @param pointer Where `input` sits in the call's arguments
+ * @param config The options as the engine writes them
+ * @param pointer Where `config` sits in the operation's input
  */
-export async function foreignRequestRefusal(
-  input: JsonValue,
+export function requestIssues(
+  config: ConfigObject,
   pointer: string,
-): Promise<McpToolResult | undefined> {
-  const targets = urlTargets(input, pointer);
-  if (targets.length === 0) return undefined;
-  const routes = targets.some(({ rule }) => rule.kind === "request")
-    ? await dataApiRoutes()
-    : new Set<string>();
-  return refusal(targets, routes);
-}
-
-const UNREADABLE_BLOCK =
-  "the block's URL options cannot all be read, because the block is not one the builder edits or an option is written in code, so the URLs this patch writes or turns into requests cannot be judged: edit that block in Code mode, with the owner.";
-
-function unreadableBlock(): McpToolResult {
-  return jsonResult(
-    {
-      ok: false,
-      error: {
-        code: "invalid_config",
-        issues: [{ pointer: "/path", message: UNREADABLE_BLOCK }],
-      },
-    },
-    true,
-  );
+): ValidationIssue[] {
+  return issuesOf(urlTargets(config, pointer));
 }
 
 /** Whether a patch writes a key some URL rule reads, at its top level or anywhere under it. */
-function touchesUrls(patch: JsonObject): boolean {
+function touchesUrls(patch: ConfigObject): boolean {
   return (
     URL_RULES.some(({ reads }) =>
       reads.some((key) => Object.hasOwn(patch, key)),
@@ -270,7 +275,7 @@ function touchesUrls(patch: JsonObject): boolean {
  * which the patch keeps and the builder cannot judge.
  */
 function readsCodeOption(
-  patch: JsonObject,
+  patch: ConfigObject,
   locked: readonly string[],
 ): boolean {
   const kept = locked.filter((key) => !Object.hasOwn(patch, key));
@@ -282,7 +287,7 @@ function readsCodeOption(
 }
 
 /** A patched URL target: one whose options the patch writes, at the top level or under a key it replaces whole. */
-function patchedBy(patch: JsonObject): (target: UrlTarget) => boolean {
+function patchedBy(patch: ConfigObject): (target: UrlTarget) => boolean {
   return ({ owner, rule }) => {
     const [top] = owner;
     return top === undefined
@@ -291,62 +296,38 @@ function patchedBy(patch: JsonObject): (target: UrlTarget) => boolean {
   };
 }
 
-/**
- * What `builder_configure_block` may write: a refusal, or the page version the
- * patch was judged at, which the write must still find, so that two patches
- * judged against the same page cannot each pass and together turn a load
- * into a write.
- */
-export type PatchJudgement =
-  | { ok: false; refusal: McpToolResult }
-  | { ok: true; expectedVersion: string | undefined };
+/** The literal options a patch merges into, and the options written in code, when the builder can read them. */
+export interface PatchedOptions {
+  config: ConfigObject;
+  locked: readonly string[];
+}
 
 /**
- * {@link foreignRequestRefusal} for `builder_configure_block`, judged on the
- * options the engine would merge the patch into, found by the engine's own
- * resolution of `path`, since a patch merges key by key: a patch of
- * `fetchUrlMethod` alone turns the block's `fetchUrl` into a write. Only the
- * URLs the patch writes or turns into a request are judged, so a block whose
- * author pointed it elsewhere can still be edited.
+ * The issues of a patch an agent writes into a block's options, judged on the
+ * options the patch is merged into, since a patch merges key by key: a patch
+ * of `fetchUrlMethod` alone turns the block's `fetchUrl` into a write. Only
+ * the URLs the patch writes or turns into a request are judged, so a block
+ * whose author pointed it elsewhere can still be edited. A patch touching a
+ * URL of a block whose options cannot be read is refused at `/path`.
  *
- * @param path The block's path
+ * @param current The block's options, or `undefined` when they cannot be read
  * @param patch The options the call writes
  * @param replace Whether the patch replaces the options instead of merging
  */
-export async function judgePatch(
-  path: string,
-  patch: JsonObject,
-  replace: boolean | undefined,
-): Promise<PatchJudgement> {
-  if (!touchesUrls(patch)) return { ok: true, expectedVersion: undefined };
-  const { configureTargetOptions } =
-    await import("../../implementations/dms-builder/engine");
-  const target = configureTargetOptions(path);
-  if (target === undefined) return { ok: false, refusal: unreadableBlock() };
-  const current = JsonObjectSchema.safeParse(
-    JSON.parse(JSON.stringify(target.config)),
-  );
+export function patchRequestIssues(
+  current: PatchedOptions | undefined,
+  patch: ConfigObject,
+  replace: boolean,
+): ValidationIssue[] {
+  if (!touchesUrls(patch)) return [];
   if (
-    !current.success ||
-    (replace !== true && readsCodeOption(patch, target.locked))
+    current === undefined ||
+    (!replace && readsCodeOption(patch, current.locked))
   ) {
-    return { ok: false, refusal: unreadableBlock() };
+    return [{ pointer: "/path", message: UNREADABLE_BLOCK }];
   }
-  const merged = replace === true ? patch : { ...current.data, ...patch };
-  const targets = urlTargets(merged, "/patch").filter(patchedBy(patch));
-  const refused =
-    targets.length === 0 ? undefined : refusal(targets, await dataApiRoutes());
-  return refused === undefined
-    ? { ok: true, expectedVersion: target.version }
-    : { ok: false, refusal: refused };
-}
-
-/** Options as JSON: what the builder reads back, its absent options left out. */
-function jsonOptions(config: BlockDraft["config"]): JsonObject {
-  const parsed = JsonObjectSchema.safeParse(
-    JSON.parse(JSON.stringify(config ?? {})),
-  );
-  return parsed.success ? parsed.data : {};
+  const merged = replace ? patch : { ...current.config, ...patch };
+  return issuesOf(urlTargets(merged, "/patch").filter(patchedBy(patch)));
 }
 
 interface DraftJudgement {
@@ -364,8 +345,8 @@ function judgeDraftBlocks(
     const at = `${pointer}/${index}`;
     const current = live.find(({ name }) => name === block.name);
     if (block.preserve !== true) {
-      const config = jsonOptions(block.config);
-      const before = jsonOptions(current?.config);
+      const config = plainOptions(block.config);
+      const before = plainOptions(current?.config);
       const changed = Object.fromEntries(
         Object.entries(config).filter(
           ([key, value]) => !isDeepStrictEqual(value, before[key]),
@@ -390,26 +371,23 @@ function judgeDraftBlocks(
 
 /**
  * The request-target issues of a whole-page draft, as `mockup_apply_to_page`
- * writes one: each block it writes is judged as {@link judgePatch} judges a
- * patch, on the URLs whose value differs from the live block's or that its
- * changes turn into a request, so a block kept as written passes.
+ * writes one: each block it writes is judged as {@link patchRequestIssues}
+ * judges a patch, on the URLs whose value differs from the live block's or
+ * that its changes turn into a request, so a block kept as written passes.
  *
  * @param blocks The draft's blocks
  * @param live The live page's blocks the draft is written over
  */
-export async function draftRequestIssues(
+export function draftRequestIssues(
   blocks: readonly BlockDraft[],
   live: readonly BlockNode[],
-): Promise<ValidationIssue[]> {
+): ValidationIssue[] {
   const { targets, unreadable } = judgeDraftBlocks(blocks, live, "/blocks", {
     targets: [],
     unreadable: [],
   });
-  const routes = targets.some(({ rule }) => rule.kind === "request")
-    ? await dataApiRoutes()
-    : new Set<string>();
   return [
     ...unreadable.map((pointer) => ({ pointer, message: UNREADABLE_BLOCK })),
-    ...issuesOf(targets, routes),
+    ...issuesOf(targets),
   ];
 }

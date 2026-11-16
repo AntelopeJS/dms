@@ -1,9 +1,5 @@
 import type { PermissionTree } from "@antelopejs/interface-dms/permissions";
-import type {
-  Role,
-  TenantMember,
-  UserInvite,
-} from "@antelopejs/interface-dms/db";
+import type { Role } from "@antelopejs/interface-dms/db";
 import { mapPermissionTree, permissionLabel } from "./permission-tree-nodes";
 
 /** Members listed by name on a role before the rest collapse into a count. */
@@ -68,14 +64,22 @@ export interface RolesOverview {
   capabilities: RoleEditorCapabilities;
 }
 
-/** Rows the role summaries are computed from. */
+/** Who holds a role, as the database counted it. */
+export interface RoleHolders {
+  memberCount: number;
+  /** The first `ROLE_MEMBER_PREVIEW_LIMIT` holders, in stored order. */
+  previewUserIds: string[];
+  /** Pending invitations that will give the role when accepted. */
+  inviteCount: number;
+}
+
+/** What the role summaries are computed from. */
 export interface RoleSummarySource {
   roles: Role[];
-  members: TenantMember[];
-  invites: UserInvite[];
+  /** The holders of each role, by role id. */
+  holders: Map<string, RoleHolders>;
   userNames: Map<string, string>;
   knownPermissionIds: Set<string>;
-  now: Date;
 }
 
 /**
@@ -180,46 +184,18 @@ export function countKnownPermissions(
   return new Set(permissions.filter((id) => knownPermissionIds.has(id))).size;
 }
 
-/** Whether an invitation can still be accepted. */
-export function isInvitePending(invite: UserInvite, now: Date): boolean {
-  return new Date(invite.expiresAt).getTime() > now.getTime();
-}
-
 function previewMembers(
-  members: TenantMember[],
+  userIds: string[],
   userNames: Map<string, string>,
 ): RoleMemberPreview[] {
-  return members.slice(0, ROLE_MEMBER_PREVIEW_LIMIT).map((member) => ({
-    userId: member.userId,
-    name: userNames.get(member.userId) ?? "",
+  return userIds.slice(0, ROLE_MEMBER_PREVIEW_LIMIT).map((userId) => ({
+    userId,
+    name: userNames.get(userId) ?? "",
   }));
 }
 
-function membersHoldingRole(
-  roleId: string,
-  members: TenantMember[],
-): TenantMember[] {
-  return members.filter((member) => (member.roleIds ?? []).includes(roleId));
-}
-
-function pendingInvitesForRole(
-  roleId: string,
-  invites: UserInvite[],
-  now: Date,
-): UserInvite[] {
-  return invites.filter(
-    (invite) =>
-      isInvitePending(invite, now) && (invite.roles_ids ?? []).includes(roleId),
-  );
-}
-
 function summarizeRole(role: Role, source: RoleSummarySource): RoleSummary {
-  const members = membersHoldingRole(role._id, source.members);
-  const inviteCount = pendingInvitesForRole(
-    role._id,
-    source.invites,
-    source.now,
-  ).length;
+  const holders = source.holders.get(role._id);
   const permissions = role.permissions ?? [];
   return {
     _id: role._id,
@@ -230,9 +206,9 @@ function summarizeRole(role: Role, source: RoleSummarySource): RoleSummary {
       permissions,
       source.knownPermissionIds,
     ),
-    memberCount: members.length,
-    members: previewMembers(members, source.userNames),
-    inviteCount,
+    memberCount: holders?.memberCount ?? 0,
+    members: previewMembers(holders?.previewUserIds ?? [], source.userNames),
+    inviteCount: holders?.inviteCount ?? 0,
   };
 }
 
@@ -243,15 +219,14 @@ export function summarizeRoles(source: RoleSummarySource): RoleSummary[] {
     .map((role) => summarizeRole(role, source));
 }
 
-/** The tenant owners as the Owner entry of the roles list. */
+/** The tenant owners, `ownerIds` in stored order, as the Owner entry of the roles list. */
 export function summarizeOwners(
-  members: TenantMember[],
+  ownerIds: string[],
   userNames: Map<string, string>,
 ): RoleOwnersSummary {
-  const owners = members.filter((member) => member.isTenantOwner === true);
   return {
-    memberCount: owners.length,
-    members: previewMembers(owners, userNames),
+    memberCount: ownerIds.length,
+    members: previewMembers(ownerIds, userNames),
   };
 }
 
@@ -268,17 +243,4 @@ export function replaceRoleReference(
   const remaining = roleIds.filter((id) => id !== deletedId);
   if (!replacementId || remaining.includes(replacementId)) return remaining;
   return [...remaining, replacementId];
-}
-
-/** Number of members and pending invitations still holding a role. */
-export function countRoleHolders(
-  roleId: string,
-  members: TenantMember[],
-  invites: UserInvite[],
-  now: Date,
-): number {
-  return (
-    membersHoldingRole(roleId, members).length +
-    pendingInvitesForRole(roleId, invites, now).length
-  );
 }

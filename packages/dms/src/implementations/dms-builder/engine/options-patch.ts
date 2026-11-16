@@ -10,6 +10,7 @@ import { propertyKey } from "./paths";
 import { type EmitContext, serializeValue } from "./value";
 import { pruneUnusedLocals, referencedLocalNames } from "./local-bindings";
 import { pruneUnusedImports, referencedImportNames } from "./writable";
+import { assertOneTabsSource, TABS_SOURCES } from "./tabs-sources";
 
 type OptionsPatchValue =
   | EditablePageMeta[keyof EditablePageMeta]
@@ -58,32 +59,17 @@ export function pruningOrphans<T>(sourceFile: SourceFile, write: () => T): T {
   return result;
 }
 
-/** The two options a TableView takes its tabs from, of which it holds one at most. */
-const TABS_SOURCES = [
-  ["tabs", "tabsFrom"],
-  ["tabsFrom", "tabs"],
-] as const;
-
-/** Why a block's config or patch is refused: on a TableView, one that sets both its tabs sources. */
-export function blockPatchRefusal(
-  type: string | undefined,
-  patch: ConfigObject,
-): string | undefined {
-  return type === "TableView" &&
-    TABS_SOURCES.every(([key]) => patch[key] !== undefined)
-    ? "a TableView lists its tabs or reads them from a column, not both: send `tabs` or `tabsFrom`"
-    : undefined;
-}
-
 /**
  * A patch of a block of type `type`: on a TableView, a patch that lists the
  * tabs removes the column they were read from, and one that reads them from
- * a column removes the tabs it listed, since registration refuses both.
+ * a column removes the tabs it listed, since registration refuses both. A
+ * patch setting both throws an `InvalidValueError`.
  */
 export function blockPatch(
   type: string | undefined,
   patch: ConfigObject,
 ): ConfigObject {
+  assertOneTabsSource(type, patch);
   if (type !== "TableView") return patch;
   const set = TABS_SOURCES.find(
     ([key, other]) => patch[key] !== undefined && !Object.hasOwn(patch, other),

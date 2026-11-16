@@ -162,6 +162,7 @@ describe("[unit] a block the builder writes for an agent sends requests only to 
     ).to.deep.equal([
       "/blocks/0/config/fetchUrl",
       "/blocks/1/config/fields/0/type/config/rotateUrl",
+      "/blocks/1",
       "/blocks/3/config/rowActions/custom/0/target/url",
       "/blocks/3/config/rowActions/custom/1/target/url",
       "/blocks/3/config/rowActions/custom/3/target/url",
