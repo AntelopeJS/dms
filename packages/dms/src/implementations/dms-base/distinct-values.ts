@@ -8,9 +8,19 @@ import {
   MAX_COLUMN_VALUES,
 } from "@antelopejs/interface-dms/base/table-view/internal/data-functions";
 import { isString } from "@antelopejs/interface-dms/utils/internal/type-check";
+import { z } from "zod";
 import { buildFilteredQuery, resolveListScope } from "./search-route";
 
 type DistinctReceiver = globalThis.Parameters<typeof DistinctDeclaration>[0];
+
+/** The texts each distinct value holds: itself, or the texts of a `multiple` field's array. */
+const DistinctTexts = z.array(
+  z.union([
+    z.string().transform((text) => [text]),
+    z.array(z.unknown()).transform((texts) => texts.filter(isString)),
+    z.unknown().transform((): string[] => []),
+  ]),
+);
 
 /**
  * The distinct values of each column the controller lists, over every row
@@ -35,14 +45,19 @@ export async function distinctWithSearch(
     columns
       .filter((column) => listed?.has(column))
       .map(async (column) => {
-        const values = await query
-          .distinct(column)
-          .slice(0, MAX_COLUMN_VALUES + 1)
-          .run();
+        const held = DistinctTexts.parse(
+          await query
+            .distinct(column)
+            .slice(0, MAX_COLUMN_VALUES + 1)
+            .run(),
+        );
+        const values = [...new Set(held.flat())];
         return {
           column,
-          values: values.filter(isString),
-          complete: values.length <= MAX_COLUMN_VALUES,
+          values,
+          complete:
+            held.length <= MAX_COLUMN_VALUES &&
+            values.length <= MAX_COLUMN_VALUES,
         };
       }),
   );

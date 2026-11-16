@@ -38,6 +38,7 @@ class ColumnValueOrder extends Table {
   @Field("string") declare status: string;
   @Field("string") declare currency: string;
   @Field("number") declare total: number;
+  @Field(["string"]) declare labels: string[];
 }
 
 class ColumnValueOrderModel extends BasicDataModel(ColumnValueOrder, TABLE) {}
@@ -98,6 +99,18 @@ export class ColumnValueOrderController extends DataController(
   })
   @Access(AccessMode.ReadWrite)
   declare total: number;
+
+  @Listable()
+  @Column({
+    name: "Labels",
+    type: new DefaultDataTypes.SelectType({
+      multiple: true,
+      items: [],
+      itemsFrom: { column: "labels" },
+    }),
+  })
+  @Access(AccessMode.ReadWrite)
+  declare labels: string[];
 }
 
 @RegisterPage()

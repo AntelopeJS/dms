@@ -26,11 +26,13 @@ interface Order {
   status: string;
   currency: string;
   total: number;
+  labels: string[];
 }
 
 /** What a page's table shows of its rows: the values of its status badges, its currency and its tabs. */
 interface ServedTable {
   statuses: string[];
+  labels: string[];
   currency?: string;
   tabs?: string[];
 }
@@ -46,12 +48,31 @@ const TENANTS: Tenant[] = [
   {
     tenantId: NORTH,
     orders: [
-      { title: "North 1", status: "zq_paid", currency: "JPY", total: 10 },
-      { title: "North 2", status: "zq_held", currency: "JPY", total: 20 },
-      { title: "North 3", status: "zq_paid", currency: "JPY", total: 30 },
+      {
+        title: "North 1",
+        status: "zq_paid",
+        currency: "JPY",
+        total: 10,
+        labels: ["qv_red"],
+      },
+      {
+        title: "North 2",
+        status: "zq_held",
+        currency: "JPY",
+        total: 20,
+        labels: ["qv_red", "qv_blue"],
+      },
+      {
+        title: "North 3",
+        status: "zq_paid",
+        currency: "JPY",
+        total: 30,
+        labels: [],
+      },
     ],
     served: {
       statuses: ["zq_held", "zq_paid"],
+      labels: ["qv_blue", "qv_red"],
       currency: "JPY",
       tabs: ["all", "status-zq-held", "status-zq-paid"],
     },
@@ -59,11 +80,24 @@ const TENANTS: Tenant[] = [
   {
     tenantId: SOUTH,
     orders: [
-      { title: "South 1", status: "xk_open", currency: "CHF", total: 40 },
-      { title: "South 2", status: "xk_shut", currency: "CHF", total: 50 },
+      {
+        title: "South 1",
+        status: "xk_open",
+        currency: "CHF",
+        total: 40,
+        labels: ["wm_solo"],
+      },
+      {
+        title: "South 2",
+        status: "xk_shut",
+        currency: "CHF",
+        total: 50,
+        labels: ["wm_solo"],
+      },
     ],
     served: {
       statuses: ["xk_open", "xk_shut"],
+      labels: ["wm_solo"],
       currency: "CHF",
       tabs: ["all", "status-xk-open", "status-xk-shut"],
     },
@@ -72,6 +106,7 @@ const TENANTS: Tenant[] = [
 
 const PLAIN: ServedTable = {
   statuses: [],
+  labels: [],
   currency: undefined,
   tabs: undefined,
 };
@@ -113,11 +148,16 @@ function inputOf(layout: ServedLayout, column: string) {
   )?.type.inputComponent.options;
 }
 
+function valuesOf(layout: ServedLayout, column: string): string[] {
+  return (inputOf(layout, column)?.items ?? []).map((item) =>
+    String(item.value),
+  );
+}
+
 function servedTable(layout: ServedLayout): ServedTable {
   return {
-    statuses: (inputOf(layout, "status")?.items ?? []).map((item) =>
-      String(item.value),
-    ),
+    statuses: valuesOf(layout, "status"),
+    labels: valuesOf(layout, "labels").toSorted(),
     currency: inputOf(layout, "total")?.currency,
     tabs: layout.components.content.options.tabs?.map((tab) => tab.id),
   };
@@ -226,11 +266,11 @@ describe("[integration] a table view reads the values of the columns it referenc
     }
   });
 
-  it("serves each tenant the statuses, currency and tabs of its own rows alone, on every route that serves the page", async () => {
+  it("serves each tenant the statuses, labels, currency and tabs of its own rows alone, on every route that serves the page", async () => {
     for (const { tenantId, served } of TENANTS) {
       const others = TENANTS.filter((other) => other.tenantId !== tenantId)
         .flatMap((other) => other.orders)
-        .flatMap((order) => [order.status, order.currency]);
+        .flatMap((order) => [order.status, order.currency, ...order.labels]);
       for (const { table, text } of await servedOnEveryRoute(
         owners.get(tenantId)!,
         ORDERS_PAGE,
