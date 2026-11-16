@@ -1,7 +1,6 @@
 import { router as inertiaRouter } from "@inertiajs/vue3";
 import { onMounted, watch } from "vue";
 import type { UsePeriodReturn } from "#dms-core/app/composables/period/usePeriod";
-import type { JsonValue } from "#dms-core/app/types/json";
 import {
   isPeriodQueryCurrent,
   mergePeriodSearch,
@@ -117,8 +116,7 @@ function isRouteBehindBrowser(text: string, keys: PeriodQueryKeys): boolean {
 function useRememberedPeriod(target: RememberedPeriodTarget) {
   const { getPreference, setPreference } = usePreferences();
   const key = rememberedPeriodKey(target);
-  const stored = () =>
-    getPreference<JsonValue | undefined>(PERIOD_PREFERENCE_KEY);
+  const stored = () => getPreference(PERIOD_PREFERENCE_KEY);
   return {
     source: (): PeriodSource => ({
       query: storedPeriod(stored(), key) ?? {},

@@ -9,7 +9,7 @@ import type { JsonValue } from "../../types/json";
  */
 export type SseEventHandler = (
   eventName: string,
-  data: unknown,
+  data: JsonValue,
   id: string | null,
 ) => void;
 
@@ -95,7 +95,7 @@ function parseFrame(frame: string): ParsedFrame | null {
   };
 }
 
-function decodeData(data: string): JsonValue {
+function decodeData(data: string): Parameters<SseEventHandler>[1] {
   try {
     const parsed: unknown = JSON.parse(data);
     return isJsonValue(parsed) ? parsed : data;

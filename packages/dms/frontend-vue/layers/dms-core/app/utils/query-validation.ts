@@ -1,3 +1,5 @@
+import type { LocationQuery } from "#dms/frontend-module";
+
 export function validateRequiredQueryParams(
   requiredParams: string[] | undefined,
   queryParams: ValidationRouteContext["query"],
@@ -13,7 +15,7 @@ export function validateRequiredQueryParams(
 }
 
 export interface ValidationRouteContext {
-  query: Record<string, unknown>;
+  query: LocationQuery;
   params: ValidationRouteContext["query"];
 }
 

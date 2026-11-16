@@ -407,8 +407,8 @@ describe("a link to the kept tab, reloads and the user's pick", () => {
       queryParamFilters: QUERY_PARAM_FILTERS,
       isVisit,
       rememberedTab: store.get("activeTab", "all"),
-      keptLinkScope: store.get<string | undefined>("linkScope", undefined),
-      shownLink: store.get<string | undefined>("shownLink", undefined),
+      keptLinkScope: store.get("linkScope", undefined),
+      shownLink: store.get("shownLink", undefined),
     });
     const read = isLinked ? linkedArrivalPreferences(store) : store;
     const preferences = linkFollowingPreferences(read, {
@@ -423,7 +423,7 @@ describe("a link to the kept tab, reloads and the user's pick", () => {
     });
     return {
       isLinked,
-      view: read.get<string | undefined>("activeView", undefined),
+      view: read.get("activeView", undefined),
       preferences,
     };
   };
