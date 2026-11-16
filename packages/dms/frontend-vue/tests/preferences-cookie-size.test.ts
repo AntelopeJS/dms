@@ -291,9 +291,16 @@ describe("the preferences cookie", () => {
   it("reads a corrupt value as no preferences", () => {
     installCookie("not*base64{");
     const { getPreference, setPreference } = usePreferences();
-    expect(getPreference("dms-lang.workspaceSort", "default")).toBe("default");
+    expect(getPreference("dms-lang.workspaceSort")).toBeUndefined();
     setPreference("dms-lang.workspaceSort", "name");
     expect(getPreference("dms-lang.workspaceSort")).toBe("name");
+  });
+
+  it("replaces a value that is not an object when updating it", () => {
+    const { setPreference, updatePreference, getPreference } = usePreferences();
+    setPreference("module.layout", ["grid"]);
+    updatePreference("module.layout", { columns: 2 });
+    expect(getPreference("module.layout")).toEqual({ columns: 2 });
   });
 
   it("is shared by every caller", () => {

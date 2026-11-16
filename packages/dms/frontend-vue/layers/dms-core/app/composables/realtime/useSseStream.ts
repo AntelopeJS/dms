@@ -1,11 +1,15 @@
 import { HTTP_UNAUTHORIZED } from "../../utils/http-status";
 import { isObject } from "../../utils/type-check";
 import { isJsonValue } from "../../build/utils/json";
+import type { JsonValue } from "../../types/json";
 
-/** Receives decoded data and the frame's id (null if absent, empty if reset). */
+/**
+ * Receives the frame's data, parsed as JSON or kept as its text when it is not
+ * JSON, and the frame's id (null if absent, empty if reset).
+ */
 export type SseEventHandler = (
   eventName: string,
-  data: unknown,
+  data: JsonValue,
   id: string | null,
 ) => void;
 
@@ -29,10 +33,15 @@ export interface SseStreamHandle {
   close(): void;
 }
 
-interface StreamError extends Error {
-  status?: number;
-  /** Delay the server asked for with `Retry-After`, in milliseconds. */
-  retryAfterMs?: number;
+/** The server refused the stream request. */
+export class SseRequestError extends Error {
+  constructor(
+    readonly status: number,
+    /** Delay the server asked for with `Retry-After`, in milliseconds. */
+    readonly retryAfterMs: number | undefined,
+  ) {
+    super(`SSE request failed: ${status}`);
+  }
 }
 
 const MS_PER_SECOND = 1000;
@@ -50,13 +59,6 @@ export function parseRetryAfterMs(
   }
   const date = Date.parse(trimmed);
   return Number.isNaN(date) ? undefined : Math.max(0, date - now);
-}
-
-/** The delay a stream error asks the caller to wait, if it carries one. */
-export function streamRetryAfterMs(error: unknown): number | undefined {
-  if (!isObject(error) || error === null) return undefined;
-  const { retryAfterMs } = error;
-  return typeof retryAfterMs === "number" ? retryAfterMs : undefined;
 }
 
 interface ParsedFrame {
@@ -155,12 +157,10 @@ async function connect(
   });
   if (!response.ok || !response.body) {
     await response.body?.cancel();
-    const error: StreamError = new Error(
-      `SSE request failed: ${response.status}`,
+    throw new SseRequestError(
+      response.status,
+      parseRetryAfterMs(response.headers.get("Retry-After")),
     );
-    error.status = response.status;
-    error.retryAfterMs = parseRetryAfterMs(response.headers.get("Retry-After"));
-    throw error;
   }
   if (signal.aborted) {
     await response.body.cancel();
