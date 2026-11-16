@@ -8,6 +8,7 @@ import { createApp, defineComponent, h, type App } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { interpolateUrl } from "../layers/dms-core/app/utils/url-interpolation";
 import { useActionConfirm } from "../layers/dms-ui/app/build/composables/confirm/useActionConfirm";
+import type { ConfirmOptions } from "../layers/dms-ui/app/composables/confirm/types";
 import { useConfirmFrom } from "../layers/dms-ui/app/composables/confirm/useConfirmFrom";
 import { isConfirmTextMatch } from "../layers/dms-ui/app/entries/composables/confirm/confirmTextMatch";
 import type { NamedValue } from "vue-i18n";
@@ -17,7 +18,9 @@ import {
 } from "./helpers/read-only-refusal";
 
 const authFetch = vi.fn();
-const confirm = vi.fn(async () => true);
+const confirm = vi.fn<(options: ConfirmOptions) => Promise<boolean>>(
+  async () => true,
+);
 const addToast = vi.fn(() => ({ id: "failure" }));
 let app: App | undefined;
 
