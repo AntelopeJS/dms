@@ -72,6 +72,33 @@ export function cloneRecordValues(record: FormData): FormData {
   return isPlainObject(cloned) ? { ...cloned } : {};
 }
 
+/**
+ * Whether a form has nothing to draw: no entry, no section, no record to
+ * load, no heading and no action to offer.
+ */
+export function formIsEmpty(
+  props: Pick<
+    FormProps,
+    | "fields"
+    | "sections"
+    | "fetchUrl"
+    | "title"
+    | "description"
+    | "kind"
+    | "saveMode"
+    | "submitUrl"
+  >,
+): boolean {
+  return (
+    !props.fields?.length &&
+    !props.sections?.length &&
+    !props.fetchUrl &&
+    !props.title &&
+    !props.description &&
+    !formShowsActions(props, [])
+  );
+}
+
 /** Whether a form has somewhere to save and an editable field, or is an action. */
 export function formShowsActions(
   options: Pick<FormProps, "saveMode" | "submitUrl" | "kind">,

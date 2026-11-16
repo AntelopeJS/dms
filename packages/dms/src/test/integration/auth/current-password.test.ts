@@ -26,6 +26,27 @@ const TOO_MANY_ATTEMPTS = "error.too_many_current_password_attempts";
 const EMAIL_RATE_LIMITED = "error.rate_limited";
 
 const TEST_TIMEOUT_MS = 20 * 1000;
+const WELCOME_WAIT_MS = 5 * 1000;
+const WELCOME_POLL_MS = 20;
+const WELCOME_TITLE = "$dms.notifications.messages.welcome.";
+
+/**
+ * Waits until the welcome notification of `userId` is stored. Sign-up sends it
+ * without waiting, so a snapshot taken before it lands would miss it.
+ */
+async function welcomeStored(userId: string): Promise<void> {
+  const deadline = Date.now() + WELCOME_WAIT_MS;
+  while (Date.now() < deadline) {
+    const notifications = await GetModel(UserNotificationsModel).getByUserId(
+      userId,
+    );
+    if (notifications.some(({ title }) => title.startsWith(WELCOME_TITLE))) {
+      return;
+    }
+    await new Promise((resolve) => setTimeout(resolve, WELCOME_POLL_MS));
+  }
+  expect.fail(`no welcome notification within ${WELCOME_WAIT_MS} ms`);
+}
 
 function expectAnswer(
   response: AxiosResponse,
@@ -77,6 +98,7 @@ describe("[integration] auth/current password re-check", function () {
   beforeEach(async () => {
     await resetDatabase();
     user = await registerUser({ owner: true });
+    await welcomeStored(user.userId);
     client = authorizedClient(user.accessToken);
     newEmail = `moved-${Date.now()}@test.local`;
   });

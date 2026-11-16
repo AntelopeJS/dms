@@ -120,7 +120,7 @@ export function useTableViewListState<T extends Data>(
     isSelfManaged: isActiveDisplaySelfManaged,
     heldQuery: liveHold.heldQuery,
   });
-  const { data, status, error } = listData;
+  const { data, status, error, readOrder } = listData;
   const refresh: typeof listData.refresh = (...args) =>
     listData.refresh(...args);
 
@@ -173,6 +173,7 @@ export function useTableViewListState<T extends Data>(
     shownData,
     isFirstPageLoading,
     listNotFound,
+    readOrder,
   };
 }
 

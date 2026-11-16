@@ -17,8 +17,8 @@ import {
   mapOrders,
   writtenWithRowValues,
   connectDatabase,
-  fixtureRoot,
-} from "./row-values-erp";
+  fixture,
+} from "./helpers/mapped-orders";
 
 /**
  * The AI gets the shape of a connected database, never its values. Each tool that reads the
@@ -140,7 +140,7 @@ describe("[unit] the builder tools over a module mapped before references answer
     expect(slashed.isError).to.equal(true);
     const code = [...orders.files, pageFile]
       .map((file) =>
-        projectFile(fixtureRoot(), path.relative(fixtureRoot(), file)),
+        projectFile(fixture().root, path.relative(fixture().root, file)),
       )
       .join("\n");
     expect(code).to.include("State");
@@ -173,7 +173,7 @@ describe("[unit] the builder tools over a module mapped before references answer
     });
     expect(recaptioned).to.not.include('"diff"');
     fs.appendFileSync(
-      path.join(fixtureRoot(), "modules", MODULE, "package.json"),
+      path.join(fixture().root, "modules", MODULE, "package.json"),
       ",",
     );
     const unreadable = await valueFree("builder_configure_block", {

@@ -14,8 +14,8 @@ import {
   mapOrders,
   writtenWithRowValues,
   connectDatabase,
-  mappedOrders,
-} from "./row-values-erp";
+  mappingOfOrders,
+} from "./helpers/mapped-orders";
 
 /**
  * The code a mapping writes reads its badge items, tabs and currency from columns. Each builder
@@ -89,7 +89,10 @@ describe("[unit] the builder tools over a mapped module's code keep its column r
     });
     await valueFree(
       "builder_map_resources",
-      mappedOrders((column) => column !== "currency"),
+      mappingOfOrders(
+        { kind: "badge", values: 3 },
+        (column) => column !== "currency",
+      ),
     );
     const code = moduleCode();
     for (const value of ROW_VALUES) {

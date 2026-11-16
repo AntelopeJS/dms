@@ -8,6 +8,7 @@ import {
   formShowsActions,
   isFieldMarkedRequired,
 } from "../../composables/form/useForm";
+import { formIsEmpty } from "../../build/composables/form/useFormModel";
 import {
   FORM_VALIDATOR_KEY,
   type FormValidator,
@@ -73,6 +74,7 @@ const inFormContainer = inject("dmsFormContainer", false);
 const inSection = !inFormContainer && inject(DMS_SECTION_SURFACE_KEY, false);
 
 const hasSections = !!props.sections?.length;
+const isEmpty = formIsEmpty(props);
 const FormWrapper =
   inFormContainer || inSection || hasSections
     ? "div"
@@ -506,7 +508,7 @@ const { showConcurrentEditBanner, handleDiscardAndRefresh, handleKeepEditing } =
 </script>
 
 <template>
-  <component :is="FormWrapper" v-bind="wrapperProps">
+  <component :is="FormWrapper" v-if="!isEmpty" v-bind="wrapperProps">
     <!-- novalidate: the form words every error itself, under its field; no
       browser bubble from a native required or type="email" control. -->
     <UForm

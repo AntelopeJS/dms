@@ -35,6 +35,7 @@ describe("openSseStream", () => {
       vi.fn(async () => ({
         ok: false,
         status: 401,
+        headers: new Headers(),
         body: null,
       })),
     );

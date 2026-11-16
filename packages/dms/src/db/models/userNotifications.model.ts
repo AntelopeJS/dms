@@ -101,6 +101,11 @@ function isReceiptOf(existing: UserNotification, userId: string): boolean {
   return existing.isIdempotent === true && existing.userId === userId;
 }
 
+function visibleInstance(row: UserNotification): UserNotification[] {
+  const instance = UserNotificationsModel.fromDatabase(row);
+  return instance ? [instance] : [];
+}
+
 export class UserNotificationsModel extends BasicDataModel(
   UserNotification,
   userNotificationsTableName,
@@ -113,7 +118,10 @@ export class UserNotificationsModel extends BasicDataModel(
 
   /** Lists visible rows only. */
   async getAll(): Promise<UserNotification[]> {
-    return (await super.getAll()).filter((row) => !row.isDismissed);
+    const rows = await this.table
+      .filter((row) => row.key("isDismissed").ne(true))
+      .run();
+    return rows.flatMap((row) => visibleInstance(row));
   }
 
   /** Queries visible rows by index. */
@@ -121,9 +129,11 @@ export class UserNotificationsModel extends BasicDataModel(
     index: Extract<keyof UserNotification, string>,
     ...keys: IndexKey[]
   ): Promise<UserNotification[]> {
-    return (await super.getBy(index, ...keys)).filter(
-      (row) => !row.isDismissed,
-    );
+    const rows = await this.table
+      .getAll(keys.length === 1 ? keys[0] : keys, index)
+      .filter((row) => row.key("isDismissed").ne(true))
+      .run();
+    return rows.flatMap((row) => visibleInstance(row));
   }
 
   private visibleFeed(userId: string) {

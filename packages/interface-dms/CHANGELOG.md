@@ -1,5 +1,23 @@
 # Changelog
 
+## v0.14.3
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/interface-v0.14.2...interface-v0.14.3)
+
+### 🩹 Fixes
+
+- **dms:** Post e-mail renders to the dashboard's own origin ([#1060](https://github.com/AntelopeJS/dms/pull/1060))
+- **release:** Leave a workspace specifier alone when the interface version is raised ([#1111](https://github.com/AntelopeJS/dms/pull/1111))
+
+### 💅 Refactors
+
+- **dms:** Check a database connection with the probe its driver exports ([#1055](https://github.com/AntelopeJS/dms/pull/1055))
+- **dms:** Remove the checks marked Drop in the tooling review ([#1077](https://github.com/AntelopeJS/dms/pull/1077))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli
+
 ## v0.14.2
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/interface-v0.14.1...v0.14.2)

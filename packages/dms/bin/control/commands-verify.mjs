@@ -66,8 +66,14 @@ async function commandJourney(dir, feature, ids, values) {
       `FAIL ${feature}/${result.journey} (evidence ${join(state.evidence, result.folder)})`,
     );
     for (const step of result.steps) {
-      for (const check of step.checks.filter((entry) => !entry.pass))
-        print(`    ${step.name}: ${check.name} (${check.detail})`);
+      for (const check of step.checks) {
+        if (check.verdict === "fail")
+          print(`    ${step.name}: ${check.name} (${check.detail})`);
+        if (check.verdict === "fixed")
+          print(
+            `    ${step.name}: ${check.name} passes: remove it from knownFailures (${check.finding})`,
+          );
+      }
     }
     if (result.error) print(`    ${result.error.split("\n")[0]}`);
   }
