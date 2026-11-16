@@ -120,14 +120,15 @@ async function invitesSentIn(
     allRoleIds.length === 0
       ? []
       : await GetModel(RoleModel, tenantId).getBy("_id", ...allRoleIds);
-  return invites.map((invite) => {
-    const held = new Set(invite.roles_ids ?? []);
-    return {
-      tenantId,
-      invite,
-      roleNames: roles.filter((role) => held.has(role._id)).map((r) => r.name),
-    };
-  });
+  const roleById = new Map(roles.map((role) => [role._id, role]));
+  return invites.map((invite) => ({
+    tenantId,
+    invite,
+    roleNames: (invite.roles_ids ?? []).flatMap((id) => {
+      const role = roleById.get(id);
+      return role ? [role.name] : [];
+    }),
+  }));
 }
 
 /** Invitations the user sent in the tenants they belong to. */

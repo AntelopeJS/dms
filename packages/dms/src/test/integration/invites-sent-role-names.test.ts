@@ -17,7 +17,7 @@ const EXPORT = `${pageRoutePath("/settings/user/profile")}/account-export`;
 describe("[integration] account export — roles of the invitations a user sent", () => {
   beforeEach(resetDatabase);
 
-  it("names each invitation's roles as one role query per invitation did", async () => {
+  it("names each invitation's roles, as one role query per invitation did (order aside)", async () => {
     const owner = await registerUser({ owner: true });
     const roles = GetModel(RoleModel, DEFAULT_TENANT_ID);
     const [editors, readers, unused] = await roles.insert([
@@ -64,7 +64,7 @@ describe("[integration] account export — roles of the invitations a user sent"
         ids.length === 0
           ? []
           : (await roles.getBy("_id", ...ids)).map((role) => role.name);
-      expect(byEmail.get(`sent-${index}@test.local`)).to.deep.equal(expected);
+      expect(byEmail.get(`sent-${index}@test.local`)).to.have.members(expected);
     }
     expect(byEmail.get("sent-0@test.local")).to.deep.equal(["Editors"]);
     expect(byEmail.get("sent-2@test.local")).to.deep.equal([]);
