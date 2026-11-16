@@ -331,6 +331,34 @@ describe("[integration] a table view reads the values of the columns it referenc
     }
   });
 
+  it("serves the few values of a multiple column whose rows hold them in many combinations", async () => {
+    const caller = await registerUser();
+    const { client } = await memberOf(
+      caller.refreshToken,
+      caller.userId,
+      "column-values-combinations",
+      READER,
+    );
+    const labels = ["pa", "pb", "pc", "pd", "pe"];
+    const combinations = Array.from({ length: 31 }, (_unused, index) =>
+      labels.filter((_label, bit) => ((index + 1) >> bit) & 1),
+    );
+    for (const held of combinations) {
+      const created = await client.post(`${ORDERS}/new`, {
+        title: held.join("+"),
+        status: "zq_paid",
+        currency: "JPY",
+        total: 1,
+        labels: held,
+      });
+      expect(created.status, JSON.stringify(created.data)).to.equal(HTTP_OK);
+    }
+    const layout = await client.get("/dms/pagelayout", {
+      params: { slug: `/${ORDERS_PAGE}` },
+    });
+    expect(servedTable(parseBody(Layout, layout)).labels).to.deep.equal(labels);
+  });
+
   it("keeps the items a select lists itself", async () => {
     const response = await owners
       .get(NORTH)!

@@ -443,6 +443,10 @@ export function stageBlock(
   if (controllerMismatch) {
     return controllerMismatch;
   }
+  const refusal = blockPatchRefusal(input.type, input.config);
+  if (refusal) {
+    return invalidConfig<never>(refusal);
+  }
   const { ctx, imports } = createImportCollector({
     resolveRef: resourceRefResolver(),
   });

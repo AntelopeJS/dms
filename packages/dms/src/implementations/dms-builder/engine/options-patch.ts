@@ -64,7 +64,7 @@ const TABS_SOURCES = [
   ["tabsFrom", "tabs"],
 ] as const;
 
-/** Why a patch of a block of type `type` is refused: a TableView patch that sets both its tabs sources. */
+/** Why a block's config or patch is refused: on a TableView, one that sets both its tabs sources. */
 export function blockPatchRefusal(
   type: string | undefined,
   patch: ConfigObject,

@@ -23,6 +23,14 @@ const DistinctTexts = z.array(
 );
 
 /**
+ * The most distinct entries one column's read takes. An entry of a `multiple`
+ * field is a whole array, so a few values spread over many rows make many
+ * entries: the cap on values applies to the texts they hold, this one only
+ * bounds the read.
+ */
+const MAX_DISTINCT_ENTRIES = 1_000;
+
+/**
  * The distinct values of each column the controller lists, over every row
  * its list route reads for the request: its filters, the caller's archive
  * view and the request's search included. A column the list leaves out is
@@ -48,7 +56,7 @@ export async function distinctWithSearch(
         const held = DistinctTexts.parse(
           await query
             .distinct(column)
-            .slice(0, MAX_COLUMN_VALUES + 1)
+            .slice(0, MAX_DISTINCT_ENTRIES + 1)
             .run(),
         );
         const values = [...new Set(held.flat())];
@@ -56,7 +64,7 @@ export async function distinctWithSearch(
           column,
           values,
           complete:
-            held.length <= MAX_COLUMN_VALUES &&
+            held.length <= MAX_DISTINCT_ENTRIES &&
             values.length <= MAX_COLUMN_VALUES,
         };
       }),

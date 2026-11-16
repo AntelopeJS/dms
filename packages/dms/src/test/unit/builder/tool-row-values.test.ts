@@ -1,292 +1,24 @@
 import fs from "node:fs";
 import path from "node:path";
-import { ImplementInterface } from "@antelopejs/interface-core";
-import type {
-  MeasureValue,
-  RelationDescription,
-  RelationProfile,
-} from "@antelopejs/interface-database-catalog";
-import type { JsonValue } from "@antelopejs/interface-dms/json";
-import * as Builder from "@antelopejs/interface-dms-builder";
 import { expect } from "chai";
-import { z } from "zod";
-import * as implementation from "../../../implementations/dms-builder";
-import {
-  setCatalogConnectionsForTests,
-  setModuleReloadForTests,
-} from "../../../implementations/dms-builder/engine";
 import { mockupTool, run } from "../../helpers/mockup-mcp";
-import { Column, INFO, Relation } from "./analysis-catalog";
-import { createFixture, destroyFixture, type Fixture } from "./harness";
-import { projectFile, projectTree } from "./helpers/project-files";
+import { projectFile } from "./helpers/project-files";
 import { MODULE, OP_TIMEOUT } from "./mapped-database";
-import { reloadedAtOnce } from "./reload-stub";
-
-const CONNECTION = "erp";
-const ORDERS = "erp.orders";
-
-/** Every value the rows of `erp.orders` hold that a profile reads, and the labels and tab ids made of them. */
-const ROW_VALUES = [
-  "zq_paid",
-  "zq_held",
-  "zq_void",
-  "Zq paid",
-  "Zq held",
-  "Zq void",
-  "zq-paid",
-  "zq-held",
-  "zq-void",
-  "JPY",
-  "4471.5",
-  "9901.25",
-  "1987-03-14",
-  "2031-09-02",
-  "2031-07",
-  "2031-09",
-];
-
-function ok<T>(value: T): MeasureValue<T> {
-  return { status: "ok", value };
-}
-
-const DESCRIPTIONS: RelationDescription[] = [
-  Relation({
-    relation: ORDERS,
-    key: ["id"],
-    columns: [
-      Column("id", "string", { nullable: false }),
-      Column("status", "string"),
-      Column("currency", "string"),
-      Column("total", "number"),
-      Column("placed_at", "date"),
-    ],
-  }),
-];
-
-const PROFILE: RelationProfile = {
-  relation: ORDERS,
-  rows: ok({ rows: 10, exact: true }),
-  sample: null,
-  columns: [
-    {
-      name: "id",
-      traits: ["identifier-like"],
-      nulls: ok(0),
-      distinct: ok(10),
-    },
-    {
-      name: "status",
-      traits: ["enum-like"],
-      nulls: ok(0),
-      distinct: ok(3),
-      length: ok({ min: 7, avg: 7, max: 7 }),
-      categories: ok({
-        values: [
-          { value: "zq_paid", rows: 5 },
-          { value: "zq_held", rows: 3 },
-          { value: "zq_void", rows: 2 },
-        ],
-        other: 0,
-      }),
-    },
-    {
-      name: "currency",
-      traits: ["enum-like"],
-      nulls: ok(0),
-      distinct: ok(1),
-      categories: ok({ values: [{ value: "JPY", rows: 10 }], other: 0 }),
-    },
-    {
-      name: "total",
-      traits: ["measure"],
-      nulls: ok(0),
-      range: ok({ min: 4471.5, max: 9901.25 }),
-    },
-    {
-      name: "placed_at",
-      traits: ["time-axis"],
-      nulls: ok(0),
-      range: ok({
-        min: "1987-03-14T08:00:00.000Z",
-        max: "2031-09-02T08:00:00.000Z",
-      }),
-      months: ok([
-        { month: "2031-07", rows: 4 },
-        { month: "2031-09", rows: 6 },
-      ]),
-    },
-  ],
-  references: [],
-  inbound: [],
-};
-
-const ORDER_FIELDS: { [key: string]: JsonValue; column: string }[] = [
-  { column: "id" },
-  { column: "status", filterable: true, display: { kind: "badge", values: 3 } },
-  { column: "currency" },
-  { column: "total", display: { kind: "price" } },
-  { column: "placed_at" },
-];
-
-/** `erp.orders` mapped as sent back from the proposal, with the columns `columns` keeps. */
-function mappedOrders(columns = (_column: string) => true): JsonValue {
-  const fields = ORDER_FIELDS.filter((field) => columns(field.column));
-  return {
-    module: MODULE,
-    connection: CONNECTION,
-    resources: [{ relation: ORDERS, tableView: true, writable: false, fields }],
-  };
-}
-
-const MAPPED = mappedOrders();
-
-const WrittenSchema = z.object({
-  data: z.object({
-    resources: z.array(
-      z.object({
-        ref: z.string(),
-        page: z.string(),
-        files: z.array(z.string()),
-      }),
-    ),
-  }),
-});
-
-const PageSchema = z.object({
-  data: z.object({ page: z.object({ filepath: z.string() }) }),
-});
-
-const MappingSchema = z.object({
-  data: z.array(
-    z.object({ resource: z.object({ tabs: z.unknown().optional() }) }),
-  ),
-});
-
-const ITEMS_FROM_STATUS = /itemsFrom:\s*\{\s*column:\s*"status"\s*\}/;
-const CURRENCY_FROM_CURRENCY = /currencyFrom:\s*\{\s*column:\s*"currency"\s*\}/;
-const TABS_FROM_STATUS = /tabsFrom:\s*\{\s*column:\s*"status"\s*\}/;
-
-let app: Fixture;
-
-/** Every file of the mapped module, as one text. */
-function moduleCode(): string {
-  return projectTree(app.root, path.join("modules", MODULE));
-}
-
-/** Calls a tool and answers its text, failing on an error answer or on any value of a row. */
-async function valueFree(name: string, args: JsonValue): Promise<string> {
-  const { text, isError } = await run(mockupTool(name), args);
-  expect(isError, text).to.equal(false);
-  for (const value of ROW_VALUES) {
-    expect(text, `${name} answered ${value}`).to.not.include(value);
-  }
-  return text;
-}
-
-type MappedOrders = z.infer<typeof WrittenSchema>["data"]["resources"][number];
-
-/** Analyses the connection and maps `erp.orders` as sent back from the proposal. */
-async function mapOrders(): Promise<MappedOrders> {
-  await valueFree("builder_analyse_database", {
-    connection: CONNECTION,
-    module: MODULE,
-  });
-  const written = WrittenSchema.parse(
-    JSON.parse(await valueFree("builder_map_resources", MAPPED)),
-  );
-  const [orders] = written.data.resources;
-  if (orders === undefined) {
-    expect.fail("builder_map_resources mapped no resource");
-  }
-  return orders;
-}
-
-/** The badge items a mapping wrote before references, from the categories of `status`. */
-const STATUS_ITEMS = [
-  { label: "Zq paid", value: "zq_paid", textColor: "success" },
-  { label: "Zq held", value: "zq_held", textColor: "primary" },
-  { label: "Zq void", value: "zq_void", textColor: "secondary" },
-];
-
-/** The tabs a mapping wrote before references, one per badge item of `status`. */
-const STATUS_TABS = [
-  { id: "all", label: "All" },
-  ...STATUS_ITEMS.map(({ label, value, textColor }) => ({
-    id: `status-${value.replace("_", "-")}`,
-    label,
-    filter: { accessorKey: "status", value, mode: "is" },
-    textColor,
-  })),
-];
-
-/**
- * Writes the badge items, the currency and the tabs into the mapped code as a mapping wrote them
- * before references: the values of the rows of `erp.orders`.
- */
-async function writtenWithRowValues(orders: MappedOrders): Promise<void> {
-  const edits = [
-    await run(mockupTool("builder_configure_field"), {
-      path: `${orders.ref}#status`,
-      patch: {
-        dataType: { $dataType: "select", config: { items: STATUS_ITEMS } },
-      },
-    }),
-    await run(mockupTool("builder_configure_field"), {
-      path: `${orders.ref}#total`,
-      patch: { dataType: { $dataType: "price", config: { currency: "JPY" } } },
-    }),
-    await run(mockupTool("builder_configure_block"), {
-      path: `${orders.page}#table`,
-      patch: { caption: "Orders", tabs: STATUS_TABS },
-      replace: true,
-    }),
-  ];
-  for (const { isError, text } of edits) {
-    expect(isError, text).to.equal(false);
-  }
-}
-
-/** Maps the module's interface and serves `erp.orders` through a catalog connection. */
-function connectDatabase(): void {
-  before(() => {
-    ImplementInterface(Builder, implementation);
-  });
-
-  beforeEach(() => {
-    app = createFixture({ modules: [MODULE] });
-    setCatalogConnectionsForTests({
-      [CONNECTION]: {
-        async Info() {
-          return INFO;
-        },
-        async ListRelations() {
-          return DESCRIPTIONS;
-        },
-        async DescribeRelations() {
-          return DESCRIPTIONS;
-        },
-        async Profile() {
-          return PROFILE;
-        },
-        async CheckReference() {
-          return ok({
-            containment: 1,
-            checkedRows: 10,
-            sampled: false,
-            targetIsKey: true,
-          });
-        },
-      },
-    });
-    setModuleReloadForTests(reloadedAtOnce);
-  });
-
-  afterEach(() => {
-    setCatalogConnectionsForTests();
-    setModuleReloadForTests();
-    destroyFixture();
-  });
-}
+import {
+  CONNECTION,
+  ORDERS,
+  ROW_VALUES,
+  PageSchema,
+  ITEMS_FROM_STATUS,
+  CURRENCY_FROM_CURRENCY,
+  TABS_FROM_STATUS,
+  moduleCode,
+  valueFree,
+  mapOrders,
+  writtenWithRowValues,
+  connectDatabase,
+  fixtureRoot,
+} from "./row-values-erp";
 
 /**
  * The AI gets the shape of a connected database, never its values. Each tool that reads the
@@ -344,121 +76,6 @@ describe("[unit] the tools that read a connected database answer no value of a r
       module: MODULE,
     });
     expect(mapping).to.include('{"kind":"badge","values":3}');
-  });
-});
-
-/**
- * The code a mapping writes reads its badge items, tabs and currency from columns. Each builder
- * tool that reads or edits it answers the references and keeps them; an implementation that
- * writes a value of a row on an edit fails here.
- */
-describe("[unit] the builder tools over a mapped module's code keep its column references", function () {
-  this.timeout(OP_TIMEOUT);
-
-  connectDatabase();
-
-  it("reads the code it wrote back as references to columns, and keeps them on an edit", async () => {
-    const orders = await mapOrders();
-    const fields = await valueFree("builder_resource_structure", {
-      ref: orders.ref,
-    });
-    expect(fields).to.include('"itemsFrom":{"column":"status"}');
-    expect(fields).to.include('"currencyFrom":{"column":"currency"}');
-    expect(fields).to.not.include("$hidden");
-    const page = await valueFree("builder_page_structure", {
-      pageRef: orders.page,
-    });
-    expect(page).to.include('"tabsFrom":{"column":"status"}');
-    expect(page).to.not.include("$hidden");
-    const edits = [
-      await valueFree("builder_configure_field", {
-        path: `${orders.ref}#status`,
-        patch: { label: "State" },
-      }),
-      await valueFree("builder_configure_block", {
-        path: `${orders.page}#table`,
-        patch: { caption: "Placed orders" },
-      }),
-      await valueFree("builder_configure_table_view", {
-        pageRef: orders.page,
-        kanban: { groupBy: "status" },
-      }),
-    ];
-    for (const edit of edits) {
-      expect(edit).to.include('"kind":"modify"');
-    }
-    const code = moduleCode();
-    for (const value of ROW_VALUES) {
-      expect(code, `the module's code holds ${value}`).to.not.include(value);
-    }
-    expect(code).to.include("State");
-    expect(code).to.include("Placed orders");
-    expect(code).to.include("groupByField");
-    expect(code).to.match(ITEMS_FROM_STATUS);
-    expect(code).to.match(CURRENCY_FROM_CURRENCY);
-    expect(code).to.match(TABS_FROM_STATUS);
-  });
-
-  it("rewrites a module mapped before, which holds values of its rows, as references when it is mapped again", async () => {
-    await writtenWithRowValues(await mapOrders());
-    expect(moduleCode()).to.include("zq_paid");
-    await valueFree("builder_map_resources", MAPPED);
-    const code = moduleCode();
-    for (const value of ROW_VALUES) {
-      expect(code, `the module's code holds ${value}`).to.not.include(value);
-    }
-    expect(code).to.match(ITEMS_FROM_STATUS);
-    expect(code).to.match(CURRENCY_FROM_CURRENCY);
-    expect(code).to.match(TABS_FROM_STATUS);
-  });
-
-  it("writes a price plain, with no code of a row, when the relation's currency column is left out", async () => {
-    await valueFree("builder_analyse_database", {
-      connection: CONNECTION,
-      module: MODULE,
-    });
-    await valueFree(
-      "builder_map_resources",
-      mappedOrders((column) => column !== "currency"),
-    );
-    const code = moduleCode();
-    for (const value of ROW_VALUES) {
-      expect(code, `the module's code holds ${value}`).to.not.include(value);
-    }
-    expect(code).to.include("new DefaultDataTypes.PriceType()");
-    expect(code).to.not.include("currencyFrom");
-  });
-
-  it("answers no tabs once the column they read is no longer a badge", async () => {
-    const orders = await mapOrders();
-    await valueFree("builder_configure_field", {
-      path: `${orders.ref}#status`,
-      patch: { dataType: { $dataType: "string" } },
-    });
-    const mapping = MappingSchema.parse(
-      JSON.parse(
-        await valueFree("builder_mapping", {
-          connection: CONNECTION,
-          module: MODULE,
-        }),
-      ),
-    );
-    expect(mapping.data[0]?.resource.tabs).to.equal(undefined);
-  });
-
-  it("refuses a patch that both lists a TableView's tabs and reads them from a column", async () => {
-    const orders = await mapOrders();
-    const before = moduleCode();
-    const refused = await run(mockupTool("builder_configure_block"), {
-      path: `${orders.page}#table`,
-      patch: {
-        tabs: [{ id: "all", label: "All" }],
-        tabsFrom: { column: "status" },
-      },
-    });
-    expect(refused.isError, refused.text).to.equal(true);
-    expect(refused.text).to.include("not both");
-    expect(moduleCode()).to.equal(before);
   });
 });
 
@@ -522,7 +139,9 @@ describe("[unit] the builder tools over a module mapped before references answer
     });
     expect(slashed.isError).to.equal(true);
     const code = [...orders.files, pageFile]
-      .map((file) => projectFile(app.root, path.relative(app.root, file)))
+      .map((file) =>
+        projectFile(fixtureRoot(), path.relative(fixtureRoot(), file)),
+      )
       .join("\n");
     expect(code).to.include("State");
     expect(code).to.include("Placed orders");
@@ -554,7 +173,7 @@ describe("[unit] the builder tools over a module mapped before references answer
     });
     expect(recaptioned).to.not.include('"diff"');
     fs.appendFileSync(
-      path.join(app.root, "modules", MODULE, "package.json"),
+      path.join(fixtureRoot(), "modules", MODULE, "package.json"),
       ",",
     );
     const unreadable = await valueFree("builder_configure_block", {
