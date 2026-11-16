@@ -33,9 +33,12 @@ export function useTableViewArrival<T extends Data>(
     urlScope,
     queryParamFilters,
     isVisit: pageArrivalKind() === "visit",
-    rememberedTab: keptPreferences.get("activeTab", ALL_TAB_ID),
-    keptLinkScope: keptPreferences.get("linkScope", undefined),
-    shownLink: keptPreferences.get("shownLink", undefined),
+    rememberedTab: keptPreferences.get<string>("activeTab", ALL_TAB_ID),
+    keptLinkScope: keptPreferences.get<string | undefined>(
+      "linkScope",
+      undefined,
+    ),
+    shownLink: keptPreferences.get<string | undefined>("shownLink", undefined),
   });
   const tablePreferences = linkFollowingPreferences(
     isLinked ? linkedArrivalPreferences(keptPreferences) : keptPreferences,

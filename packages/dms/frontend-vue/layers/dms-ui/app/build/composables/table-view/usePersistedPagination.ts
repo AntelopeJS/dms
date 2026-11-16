@@ -36,9 +36,12 @@ export function usePersistedPagination(
   const scopeKey = computed(() =>
     hashText(JSON.stringify(options.scope() ?? null)),
   );
-  const stored = preferences.get("pagination", defaults);
+  const stored = preferences.get<PaginationState>("pagination", defaults);
 
-  const storedScope = preferences.get("paginationScope", scopeKey.value);
+  const storedScope = preferences.get<string>(
+    "paginationScope",
+    scopeKey.value,
+  );
   const pagination = ref<PaginationState>(
     storedScope === scopeKey.value ? stored : firstPage(stored),
   );

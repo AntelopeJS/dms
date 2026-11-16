@@ -115,7 +115,7 @@ export function useTableViewDefaultSorting<T extends Data>(
     reorderConfig
       ? defaultSortState
       : sortingOrDefault(
-          tablePreferences.get("sorting", defaultSortState),
+          tablePreferences.get<SortingState>("sorting", defaultSortState),
           declaredSortableIds,
           defaultSortState,
         ),
