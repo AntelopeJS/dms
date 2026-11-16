@@ -110,7 +110,10 @@ await test("a frontend: dev suite starts its run with --dev-frontend, and a prep
 });
 
 await test('a suite option e2eConfig does not take is refused (catches a typo such as frontend: "development" silently serving a build)', (t) => {
-  twoSkillCheckout(t);
+  const root = twoSkillCheckout(t);
+  assert.throws(() => declareSuite({ skill: ".agents/skills/verify-nope" }), {
+    message: `e2eConfig's skill ${join(root, ".agents/skills/verify-nope")} holds no verify.config.ts`,
+  });
   for (const options of [
     { frontend: "development" },
     { frontend: "build" },

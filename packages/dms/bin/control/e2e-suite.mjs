@@ -1,4 +1,5 @@
-import { resolve } from "node:path";
+import { existsSync } from "node:fs";
+import { join, resolve } from "node:path";
 import { checkoutOf } from "./git.mjs";
 import { isRecord, isString } from "./json.mjs";
 
@@ -30,7 +31,7 @@ function isSuiteOptions(value) {
  * that loaded the config.
  *
  * @param {unknown} options The options of `e2eConfig`
- * @throws When an option is unknown or its value is not one the suite takes
+ * @throws When an option is unknown, its value is not one the suite takes, or `skill` holds no `verify.config.ts`
  */
 export function declareSuite(options) {
   if (!isSuiteOptions(options)) {
@@ -45,6 +46,11 @@ export function declareSuite(options) {
       options.skill === undefined ? undefined : resolve(root, options.skill),
     frontend: options.frontend ?? "build",
   };
+  if (suite.skill && !existsSync(join(suite.skill, "verify.config.ts"))) {
+    throw new Error(
+      `e2eConfig's skill ${suite.skill} holds no verify.config.ts`,
+    );
+  }
   process.env[SUITE] = JSON.stringify(suite);
 }
 
