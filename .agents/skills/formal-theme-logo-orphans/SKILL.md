@@ -12,7 +12,7 @@ The promise it checks: for a generated app config that reaches a builder-named l
 The tool is fast-check, run through the module test runner, because the code under test is TypeScript that parses the config with ts-morph. A model of it would check the model, and fast-check checks the real `SetTheme` on a real layer folder.
 
 - `packages/dms/src/test/unit/builder/helpers/logo-spellings.ts` generates the spellings and renders each one as an app config, a `brand/logos.ts` file and a `brand/paths.ts` re-export. It evaluates the spelling itself, so the oracle shares no code with the engine.
-- `packages/dms/src/test/unit/builder/theme-logo-orphans.formal.test.ts` holds the property, the versions of the check before a fix, and the findings.
+- `packages/dms/src/test/unit/builder/theme-logo-orphans.formal.test.ts` holds the property and the findings.
 - `check.mjs` builds `packages/dms` and runs that one test file.
 
 ## Run it
@@ -49,17 +49,7 @@ A name is reached by static text around runtime values, so the generator keeps e
 
 ## Versions before a fix
 
-The test file asserts that the property fails on the orphan check as it was before each of three fixes, rebuilt from exports that still exist:
-
-| Version | What it reads | Counterexample found |
-| --- | --- | --- |
-| before #985 | the logo paths of the saved config | any config that names the file through a constant |
-| before #999 | the string literals of the app config | any config that builds the name or imports it |
-| before #1010 | the literals of the config and its imports | any config that builds the name from text |
-
-The property also fails on the real `SetTheme` at the parent of #985 (`6e82402bb`), on its first generated config, in a scratch worktree with the helper and the main test of this folder copied in; that run is not a CI step.
-
-The versions before #1019, #1024, #1036 and #1041 differ from today in the internals of `buildsFileName` and `builtSegments`, which these exports cannot rebuild, so the check does not replay them. Each of those fixes is a spelling the generator covers, and the main property fails on a check that drops `builtFileNames` (scratch change below).
+The property fails on the real `SetTheme` at the parent of #985 (`6e82402bb`), on its first generated config, in a scratch worktree with the helper and the main test of this folder copied in; that run is not a CI step. The test file does not replay older versions of `orphanedAssets` on every run: a test may import the engine only through its entry (`dms-builder/engine`), which exports none of them. Each of #1019 to #1041 is a spelling the generator covers, and the main property fails on a check that drops `builtFileNames` (scratch change below).
 
 ## Findings on the code
 
@@ -108,6 +98,6 @@ These ran at the sync commit. Each edit is a scratch change in the real code, wi
 | Scratch change | Result |
 | --- | --- |
 | `orphanedAssets` ignores `builtFileNames` (`builtFileNames.some((built) => buildsFileName(built, fileName) && false)`) | exit 1, `BROKEN SetThemeKeepsReachableLogos`, the property fails on its first generated config |
-| the three versions before a fix | each fails on its first generated config, asserted by the test file on every run |
+| the real `SetTheme` at the parent of #985, in a scratch worktree | the property fails on its first generated config |
 
 With the edits dropped, `check.mjs` exits 0.

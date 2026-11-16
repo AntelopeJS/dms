@@ -2,18 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { expect } from "chai";
 import fc from "fast-check";
-import { Project, type SourceFile } from "ts-morph";
 import { GetTheme, SetTheme } from "../../../implementations/dms-builder";
-import {
-  logoPaths,
-  readLogos,
-  stringLiterals,
-} from "../../../implementations/dms-builder/engine/theme-app-config";
-import { orphanedAssets } from "../../../implementations/dms-builder/engine/theme-assets";
-import {
-  type ReachedStrings,
-  reachableStrings,
-} from "../../../implementations/dms-builder/engine/theme-config-imports";
 import { destroyFixture, expectOk } from "./harness";
 import {
   appConfigFor,
@@ -35,30 +24,6 @@ import {
 const SEED = 20261116;
 const RUNS = 400;
 const SAVED_PUBLIC = "public";
-
-/** How a version of `orphanedAssets` was told which strings the app config reaches. */
-type Reach = (appConfig: SourceFile) => ReachedStrings;
-
-/**
- * The reach of `SetTheme` before each fix of the orphan cleanup, rebuilt from
- * the pieces the engine still exports: what it read, and what it left unread.
- */
-const REACH_BEFORE_FIX = {
-  "#985, which read the logo paths of the saved config alone": (appConfig) => ({
-    literals: new Set(logoPaths(readLogos(appConfig))),
-    builtFileNames: [],
-  }),
-  "#999, which read the literals of the app config alone": (appConfig) => ({
-    literals: stringLiterals(appConfig),
-    builtFileNames: [],
-  }),
-  "#1010, which read the literals of the config and its imports alone": (
-    appConfig,
-  ) => ({
-    literals: reachableStrings(appConfig).literals,
-    builtFileNames: [],
-  }),
-} satisfies Record<string, Reach>;
 
 async function uploadedLogoPath(): Promise<string> {
   createThemeFixture();
@@ -105,12 +70,6 @@ async function layerWith(
   };
 }
 
-function appConfigOf(): SourceFile {
-  return new Project({
-    compilerOptions: { noLib: true },
-  }).addSourceFileAtPath(layerPath("app/app.config.ts"));
-}
-
 /** The property `SetTheme` must hold: the file the saved config can name survives a save of another slot. */
 function keepsReachableFile(
   publicPath: string,
@@ -126,34 +85,6 @@ function keepsReachableFile(
         fc.pre(namesFile(value, fileName));
         expectOk(await SetTheme(configDraft()), "SetTheme");
         return fs.existsSync(filePath);
-      } finally {
-        destroyFixture();
-      }
-    },
-  );
-}
-
-/** The same property, asked of the orphan check of an older fix instead of the whole save. */
-function reachNeverMissesFile(
-  publicPath: string,
-  reach: Reach,
-): fc.IAsyncProperty<[Spelling, string]> {
-  const fileName = path.posix.basename(publicPath);
-  return fc.asyncProperty(
-    spellings(publicPath),
-    fc.constantFrom(...IMPORT_SPECIFIERS),
-    async (spelling, specifier) => {
-      createThemeFixture();
-      try {
-        const { filePath, value } = await layerWith(spelling, specifier);
-        fc.pre(namesFile(value, fileName));
-        expectOk(await SetTheme(configDraft()), "SetTheme");
-        const orphans = orphanedAssets(
-          layerPath(SAVED_PUBLIC),
-          { default: { light: publicPath } },
-          reach(appConfigOf()),
-        );
-        return !orphans.includes(filePath);
       } finally {
         destroyFixture();
       }
@@ -177,16 +108,6 @@ describe("formal: SetTheme keeps every logo file the app config can produce", fu
     });
     expect(outcome.failed, fc.defaultReportMessage(outcome)).to.equal(false);
   });
-
-  for (const [fix, reach] of Object.entries(REACH_BEFORE_FIX)) {
-    it(`finds a spelling the orphan check before ${fix}, loses`, async () => {
-      const outcome = await fc.check(reachNeverMissesFile(publicPath, reach), {
-        seed: SEED,
-        numRuns: RUNS,
-      });
-      expect(outcome.failed).to.equal(true);
-    });
-  }
 });
 
 /** The app config a finding spells, from the hash of the uploaded logo. */
