@@ -11,10 +11,10 @@ import { expect } from "chai";
 import { z } from "zod";
 import * as implementation from "../../../../implementations/dms-builder";
 import {
+  recordWrittenLiterals,
   setCatalogConnectionsForTests,
   setModuleReloadForTests,
 } from "../../../../implementations/dms-builder/engine";
-import { recordWrittenLiterals } from "../../../../implementations/dms-builder/engine/mapped-literals";
 import { mockupTool, run } from "../../../helpers/mockup-mcp";
 import { Column, INFO, Relation } from "../analysis-catalog";
 import { createFixture, destroyFixture, type Fixture } from "../harness";
