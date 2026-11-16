@@ -52,6 +52,7 @@ jobs:
     outputs:
       tier: ${{ steps.tier.outputs.tier }}
       os: ${{ steps.tier.outputs.os }}
+      dependents: ${{ steps.tier.outputs.dependents }}
       packages: ${{ steps.packages.outputs.packages }}
     steps:
       - uses: actions/checkout@v4
@@ -73,10 +74,12 @@ jobs:
           HEAD_REPOSITORY: ${{ github.event.pull_request.head.repo.full_name }}
           DRAFT: ${{ github.event.pull_request.draft }}
         run: |
+          dependents=false
           case "$EVENT" in
             pull_request)
               if [[ "$BASE_REF" == "$DEFAULT_BRANCH" && "$HEAD_REPOSITORY" == "$REPOSITORY" && "$HEAD_REF" =~ ^(next|develop)$ ]]; then
                 tier=none
+                dependents=true
               elif [[ "$DRAFT" == true ]]; then
                 tier=draft
               elif [[ "$BASE_REF" == "$DEFAULT_BRANCH" ]]; then
@@ -88,7 +91,10 @@ jobs:
             push)
               if [[ "$REF_NAME" == "$DEFAULT_BRANCH" ]]; then tier=none; else tier=full; fi
               ;;
-            schedule) tier=nightly ;;
+            schedule)
+              tier=nightly
+              dependents=true
+              ;;
             *) tier=full ;;
           esac
 
@@ -106,6 +112,7 @@ jobs:
             echo "tier=${tier}"
             echo "test-base=${test_base}"
             echo "os=${os}"
+            echo "dependents=${dependents}"
           } >> "$GITHUB_OUTPUT"
       - name: Select the packages whose tests run
         id: packages
@@ -199,6 +206,36 @@ jobs:
       # `ajs dms verify-source`: the client, SSR and e-mail builds, the bundle
       # check and vue-tsc, in a workspace of its own.
       - run: pnpm --dir packages/dms/frontend-vue typecheck
+
+  dependents:
+    needs: select
+    if: needs.select.outputs.dependents == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - repository: dms-saas
+            module: packages/dms-saas/frontend-vue
+          - repository: dms-automation
+            module: packages/dms-automation/frontend-vue
+          - repository: dms-marketing
+            module: packages/dms-marketing/frontend-vue
+          - repository: dms-lang
+            module: frontend-vue
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: AntelopeJS/${{ matrix.repository }}
+          ref: next
+          path: dependents/${{ matrix.repository }}
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+        with:
+          interface: "true"
+      - run: pnpm --dir packages/dms/frontend-vue typecheck -m "$GITHUB_WORKSPACE/dependents/${{ matrix.repository }}/${{ matrix.module }}"
 
   # The shipped playground image is checked on every push to next, every
   # nightly run and every manual run. Its Docker build kept every pull request
@@ -436,6 +473,7 @@ jobs:
       - formal
       - e2e
       - formal-generated
+      - dependents
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
