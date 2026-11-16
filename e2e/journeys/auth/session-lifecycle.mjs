@@ -3,17 +3,18 @@ import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { isNumber, isRecord, stringField } from "../../../packages/dms/bin/control/json.mjs";
 import { createRole, joinedMember } from "../settings-members/steps.mjs";
+import { storedRoles } from "../settings-roles/steps.mjs";
 
 /**
  * @typedef {import("@antelopejs/dms/e2e").Ctx} Ctx
  * @typedef {import("@antelopejs/dms/e2e").Tab} Tab
- * @typedef {import("playwright-core").Cookie} BrowserCookie
  * @typedef {{ name: string, value: string }} Jarred A cookie as the browser sends it
  * @typedef {{ origin: string, session: Jarred, account: Jarred, accountId: string, all: Jarred[] }} Jar The frontend cookies a sign-in leaves
  * @typedef {{ status: number, body: unknown }} Answer
  */
 
 const MEMBERS = "/settings/workspace/members";
+const ON_MEMBERS = new RegExp(`^${MEMBERS}$`);
 const SESSION_COOKIE = /^dms_session_[0-9a-f]+$/;
 const ACCOUNT_COOKIE = /^dms_account_([0-9a-f]{32})(_[0-9a-f]+)?$/;
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -195,12 +196,20 @@ export const sessionLifecycleJourneys = [
         ],
         { critical: true },
       );
+      const resealedTab = await visitWith(ctx, jar, [stamp(Date.now())], "resealed-session");
+      await ctx.verify("a browser holding only a session the journey reseals now opens the members page", [resealedTab.at(ON_MEMBERS)], { critical: true });
 
       const asSession = { name: jar.session.name, value: jar.account.value };
-      const replayed = await visitWith(ctx, jar, [asSession], "module-cookie-replay");
-      await ctx.verify("the stored-account cookie, a value the sign-in module seals, does not open as the session", [
+      const sessionUnderAccountName = { name: jar.session.name, value: sealed.seal(jar.account.name, { ...opened, updatedAt: Date.now() }) };
+      const replayed = await visitWith(ctx, jar, [sessionUnderAccountName], "module-cookie-replay");
+      await ctx.verify("a value sealed for the sign-in module's stored-account cookie does not open as the session, even when it is session-shaped", [
         ctx.holds("the stored account opens under its own name", isRecord(sealed.open(jar.account.name, jar.account.value)), jar.account.name),
         ctx.equal("the user behind the stored account as the session", await sessionUser(ctx, jar, [asSession], "the stored account as the session"), ""),
+        ctx.equal(
+          "the user behind a session sealed for the stored-account cookie",
+          await sessionUser(ctx, jar, [sessionUnderAccountName], "a session sealed for the stored-account cookie"),
+          "",
+        ),
         replayed.at(/^\/auth/),
       ]);
 
@@ -231,17 +240,21 @@ export const sessionLifecycleJourneys = [
         as: "rita",
         body: { name: roleName, description: "", permissions: [ROLES_EDIT, "*"] },
       });
+      const kept = (await storedRoles(ctx, "read the role after the refused save")).find((role) => role._id === roleId);
       const listing = await ctx.api("the member reads the modules listing", { method: "GET", path: "/dms/modules-listing", as: "rita" });
       const store = await ctx.api("the member reads the store listing", { method: "GET", path: "/dms/store/listing", as: "rita" });
       await ctx.verify("a role editor cannot grant * to their own role, nor pass the owner checks", [
         ctx.status(wildcard, 403),
+        ctx.holds("the role does not store *", kept && !kept.permissions?.includes("*"), JSON.stringify(kept?.permissions)),
         ctx.status(listing, 403),
-        ctx.holds("the store listing refuses the member", [401, 403].includes(store.status), store.status),
+        ctx.status(store, 403),
       ]);
 
-      const copied = (await tab.page.context().cookies(jar.origin)).map(({ name, value }) => ({ name, value }));
       await tab.goto("/");
       await tab.click({ role: "button", name: "Verify Admin" });
+      const copied = (await tab.page.context().cookies(jar.origin)).map(({ name, value }) => ({ name, value }));
+      const before = await callFrontend(ctx, jar.origin, copied, "reads the account with the cookies copied just before the logout", { method: "GET", path: "/api/auth/me" });
+      await ctx.verify("the cookies copied just before the logout open the session", [ctx.status(before, 200)], { critical: true });
       await tab.click({ role: "menuitem", name: "Logout" });
       await ctx.verify("the logout returns to sign-in", [tab.at(/^\/auth/)]);
       const me = await callFrontend(ctx, jar.origin, copied, "reads the account with the cookies copied before the logout", { method: "GET", path: "/api/auth/me" });
