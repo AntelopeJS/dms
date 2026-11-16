@@ -103,7 +103,12 @@ export class SelectType extends DataType {
     return { default: FormComponents.InputSelect(options) };
   }
 
-  getValidation() {
+  getValidation():
+    | z.ZodNever
+    | z.ZodEnum<[string, ...string[]]>
+    | z.ZodArray<z.ZodNever | z.ZodEnum<[string, ...string[]]>>
+    | z.ZodString
+    | z.ZodArray<z.ZodString> {
     if (this.options.itemsFrom) {
       return this.options.multiple ? z.array(z.string()) : z.string();
     }
