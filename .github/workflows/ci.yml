@@ -52,6 +52,7 @@ jobs:
     outputs:
       tier: ${{ steps.tier.outputs.tier }}
       os: ${{ steps.tier.outputs.os }}
+      dependents: ${{ steps.tier.outputs.dependents }}
       packages: ${{ steps.packages.outputs.packages }}
     steps:
       - uses: actions/checkout@v4
@@ -73,10 +74,12 @@ jobs:
           HEAD_REPOSITORY: ${{ github.event.pull_request.head.repo.full_name }}
           DRAFT: ${{ github.event.pull_request.draft }}
         run: |
+          dependents=false
           case "$EVENT" in
             pull_request)
               if [[ "$BASE_REF" == "$DEFAULT_BRANCH" && "$HEAD_REPOSITORY" == "$REPOSITORY" && "$HEAD_REF" =~ ^(next|develop)$ ]]; then
                 tier=none
+                dependents=true
               elif [[ "$DRAFT" == true ]]; then
                 tier=draft
               elif [[ "$BASE_REF" == "$DEFAULT_BRANCH" ]]; then
@@ -88,7 +91,10 @@ jobs:
             push)
               if [[ "$REF_NAME" == "$DEFAULT_BRANCH" ]]; then tier=none; else tier=full; fi
               ;;
-            schedule) tier=nightly ;;
+            schedule)
+              tier=nightly
+              dependents=true
+              ;;
             *) tier=full ;;
           esac
 
@@ -106,6 +112,7 @@ jobs:
             echo "tier=${tier}"
             echo "test-base=${test_base}"
             echo "os=${os}"
+            echo "dependents=${dependents}"
           } >> "$GITHUB_OUTPUT"
       - name: Select the packages whose tests run
         id: packages
@@ -200,6 +207,36 @@ jobs:
       # check and vue-tsc, in a workspace of its own.
       - run: pnpm --dir packages/dms/frontend-vue typecheck
 
+  dependents:
+    needs: select
+    if: needs.select.outputs.dependents == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - repository: dms-saas
+            module: packages/dms-saas/frontend-vue
+          - repository: dms-automation
+            module: packages/dms-automation/frontend-vue
+          - repository: dms-marketing
+            module: packages/dms-marketing/frontend-vue
+          - repository: dms-lang
+            module: frontend-vue
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: AntelopeJS/${{ matrix.repository }}
+          ref: next
+          path: dependents/${{ matrix.repository }}
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+        with:
+          interface: "true"
+      - run: pnpm --dir packages/dms/frontend-vue typecheck -m "$GITHUB_WORKSPACE/dependents/${{ matrix.repository }}/${{ matrix.module }}"
+
   # The shipped playground image is checked on every push to next, every
   # nightly run and every manual run. Its Docker build kept every pull request
   # waiting, so pull requests skip it.
@@ -259,6 +296,101 @@ jobs:
           node-version-file: .nvmrc
       - run: node packages/dms/bin/dms-control.mjs map
 
+  # The journeys of e2e/ as a Playwright suite: the @smoke ones on the full
+  # tier, every journey in shards on the nightly tier, nothing on a draft or
+  # the fast tier. Its global setup prepares and starts one dms-control run.
+  e2e:
+    needs: select
+    if: needs.select.outputs.tier == 'full' || needs.select.outputs.tier == 'nightly'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: ${{ fromJSON(needs.select.outputs.tier == 'nightly' && '[1, 2]' || '[1]') }}
+    env:
+      TIER: ${{ needs.select.outputs.tier }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      # The base-version journey builds origin/main in a worktree.
+      - run: |
+          git fetch --no-tags --depth=1 origin +refs/heads/main:refs/remotes/origin/main
+          echo "DMS_CONTROL_RUNS=${RUNNER_TEMP}/dms-runs" >> "$GITHUB_ENV"
+      - uses: ./.github/actions/setup
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/mongodb-binaries
+            ~/.cache/ms-playwright
+            packages/dms/playground/.antelope/cache
+          key: e2e-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml', 'packages/dms/playground/antelope.config.ts') }}
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/dms-control/frontend
+          key: dms-control-frontend-${{ github.sha }}
+          restore-keys: dms-control-frontend-
+      - name: Install Chromium and its system packages
+        run: |
+          if timeout 240 pnpm exec playwright install --with-deps --only-shell chromium; then
+            exit 0
+          fi
+          echo "::warning::Chromium's system packages did not install: installing the browser alone"
+          pnpm exec playwright install --only-shell chromium
+      - if: env.TIER == 'full'
+        run: pnpm e2e --grep @smoke
+      - if: env.TIER == 'nightly'
+        run: pnpm e2e --shard=${{ matrix.shard }}/2 --reporter=blob
+        env:
+          PLAYWRIGHT_BLOB_OUTPUT_DIR: e2e/blob-report
+      # The declarations @antelopejs/dms/e2e publishes, built by the run's prepare.
+      - if: success() || failure()
+        run: pnpm exec tsc --noEmit -p e2e
+      - if: always() && env.TIER == 'nightly'
+        uses: actions/upload-artifact@v4
+        with:
+          name: blob-report-${{ matrix.shard }}
+          path: e2e/blob-report
+          retention-days: 3
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-evidence-${{ matrix.shard }}
+          path: |
+            e2e/playwright-report
+            e2e/test-results
+            ${{ runner.temp }}/dms-runs/*/evidence
+            ${{ runner.temp }}/dms-runs/*/logs
+          retention-days: 7
+
+  # One HTML and JSON report of the nightly shards.
+  e2e-report:
+    needs: [select, e2e]
+    if: always() && needs.select.outputs.tier == 'nightly'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: blob-report-*
+          path: e2e/blob-reports
+          merge-multiple: true
+      - run: pnpm exec playwright merge-reports --reporter html,json e2e/blob-reports
+        env:
+          PLAYWRIGHT_HTML_OUTPUT_DIR: e2e/playwright-report
+          PLAYWRIGHT_HTML_OPEN: never
+          PLAYWRIGHT_JSON_OUTPUT_FILE: e2e/playwright-report/results.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: e2e/playwright-report
+          retention-days: 14
+
   formal:
     needs: select
     if: contains(fromJSON(needs.select.outputs.packages), 'agents')
@@ -269,8 +401,11 @@ jobs:
       matrix:
         check:
           - formal-default-tenant-provisioning
+          - formal-invite-creation
           - formal-onboarding-bootstrap
+          - formal-option-patch-prune
           - formal-realtime-tabs
+          - formal-route-patterns
           - formal-tenant-lifecycle
     steps:
       - uses: actions/checkout@v4
@@ -290,6 +425,35 @@ jobs:
       - run: node .agents/skills/${{ matrix.check }}/check.mjs
       - if: matrix.check == 'formal-default-tenant-provisioning'
         run: node .agents/skills/formal-default-tenant-provisioning/history.mjs
+      - if: matrix.check == 'formal-invite-creation'
+        run: node .agents/skills/formal-invite-creation/history.mjs
+
+  # The formal checks that call the real code with generated inputs: they build
+  # the module and boot the test harness, which the TLA+ checks above do not.
+  formal-generated:
+    needs: select
+    if: contains(fromJSON(needs.select.outputs.packages), 'agents')
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        check:
+          - formal-ai-answers-no-row-values
+          - formal-block-writes-judge-request-targets
+    env:
+      DMS_PREBUILT: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/mongodb-binaries
+            packages/dms/.antelope/cache
+          key: dms-test-harness-${{ runner.os }}-${{ hashFiles('packages/dms/src/test/antelope.test.ts', 'packages/dms/antelope-lock/**') }}
+      - run: pnpm --dir packages/dms build
+      - run: node .agents/skills/${{ matrix.check }}/check.mjs
 
   # The one check branch protection requires was the single job's name, so it
   # stays: green only when every job above is. A job the package selection
@@ -307,11 +471,14 @@ jobs:
       - docs-playground
       - verify-map
       - formal
+      - e2e
+      - formal-generated
+      - dependents
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
       - if: >-
-          needs.select.result != 'success' || contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') || needs.ci.result == 'skipped' || (github.event_name != 'pull_request' && needs.docs-playground.result == 'skipped')
+          needs.select.result != 'success' || contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') || needs.ci.result == 'skipped' || (github.event_name != 'pull_request' && needs.docs-playground.result == 'skipped') || ((needs.select.outputs.tier == 'full' || needs.select.outputs.tier == 'nightly') && needs.e2e.result == 'skipped')
         run: exit 1
       - if: needs.select.outputs.tier == 'draft'
         run: |

@@ -1,5 +1,68 @@
 # Changelog
 
+## v0.20.8
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/v0.20.7...v0.20.8)
+
+### 🚀 Enhancements
+
+- **e2e:** Name the verify skill of a suite and serve the development dashboard to the journeys that need it ([#1110](https://github.com/AntelopeJS/dms/pull/1110))
+
+### 🔥 Performance
+
+- **dms:** Reuse a finished database analysis while its inputs are unchanged ([#1087](https://github.com/AntelopeJS/dms/pull/1087))
+- **dms:** Read only the user ids, the visible notifications and the invite roles the query needs ([#1117](https://github.com/AntelopeJS/dms/pull/1117))
+
+### 🩹 Fixes
+
+- **dms:** Honor Retry-After when the SSE stream is refused ([#1086](https://github.com/AntelopeJS/dms/pull/1086))
+- **dms:** Prune the imports a removed or configured builder field orphans ([#1085](https://github.com/AntelopeJS/dms/pull/1085))
+- **dms:** Drop a table row read that a later list read supersedes ([#1092](https://github.com/AntelopeJS/dms/pull/1092))
+- **deps:** Depend on the interface siblings through workspace:^ ([#1097](https://github.com/AntelopeJS/dms/pull/1097))
+- **dms:** Hide only the row literals a mapping wrote from the builder structure tools ([#1089](https://github.com/AntelopeJS/dms/pull/1089))
+- **dms:** Handle connection errors of the realtime Redis subscriber ([#1101](https://github.com/AntelopeJS/dms/pull/1101))
+- **dms:** Render nothing for a Form with no fields and no fetchUrl ([#1115](https://github.com/AntelopeJS/dms/pull/1115))
+- **dms:** Log a Redis reconnect once instead of on every attempt ([#1116](https://github.com/AntelopeJS/dms/pull/1116))
+- **dms:** Keep the default view a first visit opens, so a hidden column stays hidden on reload ([#1121](https://github.com/AntelopeJS/dms/pull/1121))
+- **dms:** Map read-only a relation the database account may not write ([#1119](https://github.com/AntelopeJS/dms/pull/1119))
+- **dms:** List a sent invite's roles once each, in the order the role read returns them ([#1122](https://github.com/AntelopeJS/dms/pull/1122))
+
+### 💅 Refactors
+
+- **dms:** Remove the checks marked Drop in the tooling review ([#1077](https://github.com/AntelopeJS/dms/pull/1077))
+- **dms:** Fix the parked dms-ui anti-slop findings of the Vue layer ([#1088](https://github.com/AntelopeJS/dms/pull/1088))
+- **interface-dms-builder:** Remove the SampleDatabaseRows operation ([#1093](https://github.com/AntelopeJS/dms/pull/1093))
+- **dms:** Fix the local anti-slop findings of the dms-core layer ([#1100](https://github.com/AntelopeJS/dms/pull/1100))
+- **interface-dms-builder:** Restore the SampleDatabaseRows operation ([#1098](https://github.com/AntelopeJS/dms/pull/1098))
+- **dms:** Type the data-type contract and the form state it fills ([#1107](https://github.com/AntelopeJS/dms/pull/1107))
+- **dms:** Restore the Vue types that 0.20.7 publishes ([#1112](https://github.com/AntelopeJS/dms/pull/1112))
+
+### 📦 Build
+
+- Move to @antelopejs/tooling-configs 0.8 and the three-tier CI ([#1080](https://github.com/AntelopeJS/dms/pull/1080))
+- **dms:** Publish the stable release through the shared workflow's hook ([#1083](https://github.com/AntelopeJS/dms/pull/1083))
+
+### ✅ Tests
+
+- **playground:** Lint client loads of server code that dependency-cruiser misses ([#1084](https://github.com/AntelopeJS/dms/pull/1084))
+- **dms:** Property-test the builder's read and save of page options ([#1095](https://github.com/AntelopeJS/dms/pull/1095))
+- **dms:** Wait for the welcome notification before the current-password snapshot ([#1103](https://github.com/AntelopeJS/dms/pull/1103))
+- **e2e:** Run the verify skill's journeys as a Playwright suite in CI ([#1082](https://github.com/AntelopeJS/dms/pull/1082))
+- **dms:** Add formal targets for the MCP tools' row values and block request targets ([#1102](https://github.com/AntelopeJS/dms/pull/1102))
+- **dms:** Add formal targets for invites, theme logo orphans and builder option echo ([#1096](https://github.com/AntelopeJS/dms/pull/1096))
+
+### 🤖 CI
+
+- Typecheck the dependent modules' frontends against the built Vue layer ([#1120](https://github.com/AntelopeJS/dms/pull/1120))
+
+#### ⚠️ Breaking Changes
+
+- **interface-dms-builder:** Remove the SampleDatabaseRows operation ([#1093](https://github.com/AntelopeJS/dms/pull/1093))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli
+
 ## v0.20.7
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/v0.20.6...v0.20.7)

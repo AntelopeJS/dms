@@ -82,6 +82,8 @@ export interface FakeRealtimeServer {
   maxOpenConnections: number;
   /** Refuses the stream as a server that is down. */
   isDown: boolean;
+  /** Answers the next stream request with this status and `Retry-After` seconds. */
+  refusal?: { status: number; retryAfterSeconds: number };
   /** The topic the session greeting says the dev reload signal comes under. */
   devReloadTopic?: string;
   /** Answers each session request with this status instead, while set. */
@@ -243,6 +245,14 @@ export function installRealtimeFetch(server: FakeRealtimeServer): void {
     if (url === CONNECTION_URL) {
       server.streamAttempts += 1;
       if (server.isDown) throw new Error("connection refused");
+      if (server.refusal) {
+        const { status, retryAfterSeconds } = server.refusal;
+        server.refusal = undefined;
+        return new Response(null, {
+          status,
+          headers: { "Retry-After": String(retryAfterSeconds) },
+        });
+      }
       return openConnection(server, init!.signal!);
     }
     if (url === SESSION_URL) {

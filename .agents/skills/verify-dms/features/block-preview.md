@@ -43,3 +43,4 @@ Evidence is under `$RUN/evidence/block-preview/<journey>/`.
 ## Gotchas
 
 - The page is enabled because the playground sets `docsPreview: true`. The development-mode and `DMS_DOCS_PREVIEW` gates are not driven.
+- The Form starter does not draw: `/dms-preview` answers a 500 error page ("Cannot read properties of undefined (reading 'map')"). `preview-renders-every-starter` lists `the Form starter draws` in its `knownFailures`.

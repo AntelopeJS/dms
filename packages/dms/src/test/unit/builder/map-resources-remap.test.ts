@@ -409,6 +409,7 @@ function recordsTheRelationsDecidedAgainst(): void {
       database: {
         connection: "erp",
         excludedTables: { "sales.audit": "a log" },
+        rowLiterals: [],
       },
     });
   });

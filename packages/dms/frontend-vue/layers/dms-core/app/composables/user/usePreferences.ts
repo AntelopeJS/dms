@@ -11,6 +11,8 @@ import {
 } from "../../build/composables/user/preferencesCookie";
 import { clearLocalTableEntries } from "../../build/composables/user/tablePreferences";
 import { isString } from "../../utils/type-check";
+import { isJsonObject } from "../../build/utils/json";
+import type { JsonValue } from "../../types/json";
 
 export interface UserPreferences extends PreferencesTree {}
 
@@ -96,8 +98,10 @@ export const usePreferences = () => {
     keyPath: string,
     value: Partial<T>,
   ): void => {
-    const current = getPreference(keyPath, {});
-    const merged = { ...current, ...value };
+    const current = getPreference<JsonValue | undefined>(keyPath);
+    const merged = isJsonObject(current)
+      ? { ...current, ...value }
+      : { ...value };
     setPreference(keyPath, merged);
   };
 

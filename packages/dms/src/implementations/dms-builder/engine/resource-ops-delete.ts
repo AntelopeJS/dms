@@ -34,6 +34,7 @@ import {
   UnknownDataTypeError,
   UnknownReferenceError,
 } from "./value";
+import { pruningOrphans } from "./options-patch";
 import { findImporters, Transaction } from "./writable";
 import {
   commit,
@@ -431,12 +432,16 @@ export function configureField(
   const transaction = new Transaction(opened.project);
   if (touchesTable) {
     transaction.track(opened.databaseFile);
-    tableProp.replaceWithText(built.table);
-    applyFieldImports(opened.databaseFile, built.tableSymbols);
+    pruningOrphans(opened.databaseFile, () => {
+      tableProp.replaceWithText(built.table);
+      applyFieldImports(opened.databaseFile, built.tableSymbols);
+    });
   }
   transaction.track(opened.dataApiFile);
-  dataApiProp.replaceWithText(built.api);
-  applyFieldImports(opened.dataApiFile, built.apiSymbols);
+  pruningOrphans(opened.dataApiFile, () => {
+    dataApiProp.replaceWithText(built.api);
+    applyFieldImports(opened.dataApiFile, built.apiSymbols);
+  });
   for (const importRef of imports) {
     applyImportRef(opened.dataApiFile, importRef);
   }
@@ -534,7 +539,7 @@ export function removeField(fieldPath: string, opts?: MutationOpts): OpResult {
   const transaction = new Transaction(opened.project);
   transaction.track(opened.databaseFile);
   transaction.track(opened.dataApiFile);
-  dataApiProp?.remove();
-  tableProp?.remove();
+  pruningOrphans(opened.dataApiFile, () => dataApiProp?.remove());
+  pruningOrphans(opened.databaseFile, () => tableProp?.remove());
   return commit(transaction, undefined);
 }
