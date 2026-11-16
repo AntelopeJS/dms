@@ -22,7 +22,7 @@ import type { useComponentEvent } from "#dms-core/app/composables/components/use
 import { resolveFieldErrors } from "#dms-core/app/composables/useFieldErrors";
 import { isBlankValue } from "#dms-core/app/composables/useFormValidation";
 import { isObject, isString } from "#dms-core/app/utils/type-check";
-import { isJsonValue } from "#dms-core/app/build/utils/json";
+import { isJsonValue } from "../../utils/json";
 import type { JsonValue } from "#dms-core/app/types/json";
 import type { DataTypeValue } from "#dms-core/app/types/data-type";
 import {

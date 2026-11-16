@@ -1,7 +1,7 @@
 import type { InjectionKey, Ref } from "vue";
 import type { TableViewColumn } from "./types";
 import type { DataTypeValue } from "#dms-core/app/types/data-type";
-import { textOf } from "#dms-core/app/build/utils/dataTypeValue";
+import { textOf } from "#dms-core/app/entries/utils/dataTypeValue";
 
 /**
  * The few inputs the (unchanged) KanbanBoard needs beyond the generic

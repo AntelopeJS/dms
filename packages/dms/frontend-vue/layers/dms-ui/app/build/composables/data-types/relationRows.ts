@@ -4,7 +4,7 @@ import type {
   DataTypeSelectSource,
 } from "#dms-core/app/composables/data-types/useDataType";
 import { isString } from "#dms-core/app/utils/type-check";
-import { textOf } from "#dms-core/app/build/utils/dataTypeValue";
+import { textOf } from "#dms-core/app/entries/utils/dataTypeValue";
 import { pageRequestUrl } from "../page/pageUrlValues";
 import { relationIdsQuery } from "./relationValue";
 

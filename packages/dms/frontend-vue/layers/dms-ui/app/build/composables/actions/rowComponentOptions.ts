@@ -4,7 +4,7 @@ import {
   namesRowField,
 } from "#dms-core/app/utils/url-interpolation";
 import { isString } from "#dms-core/app/utils/type-check";
-import { isJsonObject } from "#dms-core/app/build/utils/json";
+import { isJsonObject } from "../../utils/json";
 
 type Options = NonNullable<ComponentInfo<Data>["options"]>;
 type OptionValue = Options[string];

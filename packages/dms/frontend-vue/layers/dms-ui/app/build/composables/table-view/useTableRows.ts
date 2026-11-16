@@ -14,7 +14,7 @@ import {
 } from "../../utils/urlVariables";
 import type { RowActionRule } from "#dms-core/app/types/row-action";
 import { compareValues, searchTextOf } from "./utils/compareValues";
-import { readFieldPath } from "#dms-core/app/build/utils/dataTypeValue";
+import { readFieldPath } from "#dms-core/app/entries/utils/dataTypeValue";
 import { pinRows, pinRowsBySpan } from "./utils/pinnedRows";
 import {
   appendPeriodToUrl,

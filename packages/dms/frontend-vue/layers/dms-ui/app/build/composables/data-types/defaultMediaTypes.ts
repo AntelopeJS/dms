@@ -3,7 +3,7 @@ import type {
   DataTypeFormatter,
 } from "#dms-core/app/composables/data-types/useDataType";
 import { isBoolean, isString } from "#dms-core/app/utils/type-check";
-import { isDataTypeRow } from "#dms-core/app/build/utils/dataTypeValue";
+import { isDataTypeRow } from "#dms-core/app/entries/utils/dataTypeValue";
 import type { DataTypeRow } from "#dms-core/app/types/data-type";
 import UAvatar from "@nuxt/ui/components/Avatar.vue";
 import { getAppTranslation } from "../../../../../dms-core/app/composables/translation/useTranslation";

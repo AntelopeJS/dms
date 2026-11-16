@@ -5,11 +5,7 @@ import {
   isBoolean,
   isObject,
 } from "#dms-core/app/utils/type-check";
-import {
-  isJsonObject,
-  isJsonValue,
-  type JsonObject,
-} from "#dms-core/app/build/utils/json";
+import { isJsonObject, isJsonValue, type JsonObject } from "../../utils/json";
 import type { JsonValue } from "#dms-core/app/types/json";
 import type { DataTypeValue } from "#dms-core/app/types/data-type";
 

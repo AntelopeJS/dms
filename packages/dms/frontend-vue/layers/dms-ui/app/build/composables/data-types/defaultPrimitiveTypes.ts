@@ -3,7 +3,10 @@ import type {
   DataTypeFormatter,
 } from "#dms-core/app/composables/data-types/useDataType";
 import { isNumber, isObject, isString } from "#dms-core/app/utils/type-check";
-import { isDataTypeRow, textOf } from "#dms-core/app/build/utils/dataTypeValue";
+import {
+  isDataTypeRow,
+  textOf,
+} from "#dms-core/app/entries/utils/dataTypeValue";
 import UIcon from "@nuxt/ui/runtime/vue/components/Icon.vue";
 import { childOf, readRowTone, type Row } from "./cellHelpers";
 import {

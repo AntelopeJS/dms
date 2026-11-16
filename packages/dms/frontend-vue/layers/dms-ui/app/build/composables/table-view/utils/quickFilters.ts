@@ -9,7 +9,7 @@ import {
   relationRowLabel,
   relationRowValue,
 } from "../../data-types/relationRows";
-import { textOf } from "#dms-core/app/build/utils/dataTypeValue";
+import { textOf } from "#dms-core/app/entries/utils/dataTypeValue";
 
 /** A value a quick filter offers. */
 export interface QuickFilterItem {

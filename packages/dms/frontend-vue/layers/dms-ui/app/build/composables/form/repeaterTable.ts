@@ -5,7 +5,7 @@ import type {
 } from "#dms-core/app/composables/data-types/useDataType";
 import type { RenderableColumn } from "../data-types/useColumnValueRenderer";
 import { NotFoundRelation } from "../data-types/relationRows";
-import { textOf } from "#dms-core/app/build/utils/dataTypeValue";
+import { textOf } from "#dms-core/app/entries/utils/dataTypeValue";
 
 /** A column of a read-only list: a field of its rows. */
 export interface RepeaterTableColumn {

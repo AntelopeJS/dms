@@ -1,6 +1,6 @@
 import type { TableFilter } from "../../../components/table/TableRoot.vue";
 import { isString } from "#dms-core/app/utils/type-check";
-import { textOf } from "#dms-core/app/build/utils/dataTypeValue";
+import { textOf } from "#dms-core/app/entries/utils/dataTypeValue";
 
 interface FilterColumn {
   value: string;

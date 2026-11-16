@@ -1,6 +1,6 @@
 import type { DataTypeFormatter } from "../../../dms-core/app/composables/data-types/useDataType";
 import { isObject } from "../../../dms-core/app/utils/type-check";
-import { textOf } from "../../../dms-core/app/build/utils/dataTypeValue";
+import { textOf } from "../../../dms-core/app/entries/utils/dataTypeValue";
 
 /** A row of the flat list the tree is built from: what a `select` route answers. */
 type CascaderRow = NonNullable<Parameters<DataTypeFormatter>[3]>;

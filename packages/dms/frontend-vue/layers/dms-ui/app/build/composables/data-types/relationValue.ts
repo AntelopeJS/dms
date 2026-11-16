@@ -4,7 +4,10 @@ import type {
   DataTypeValueComparer,
 } from "#dms-core/app/composables/data-types/useDataType";
 import { isNumber, isString } from "#dms-core/app/utils/type-check";
-import { isDataTypeRow, textOf } from "#dms-core/app/build/utils/dataTypeValue";
+import {
+  isDataTypeRow,
+  textOf,
+} from "#dms-core/app/entries/utils/dataTypeValue";
 
 /** The key a related row is referenced by when `keyMapping.value` maps none. */
 export const DEFAULT_RELATION_VALUE_KEY = "_id";

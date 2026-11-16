@@ -3,7 +3,7 @@ import {
   isDataTypeRow,
   readFieldPath,
   textOf,
-} from "#dms-core/app/build/utils/dataTypeValue";
+} from "#dms-core/app/entries/utils/dataTypeValue";
 import { isBoolean, isNumber, isString } from "#dms-core/app/utils/type-check";
 import { isVNode, type VNodeChild } from "vue";
 import type { BlockText } from "../../../../../dms-core/app/types/composed-text";

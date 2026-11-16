@@ -22,7 +22,7 @@ import {
   isDataTypeRow,
   readFieldPath,
   textOf,
-} from "#dms-core/app/build/utils/dataTypeValue";
+} from "#dms-core/app/entries/utils/dataTypeValue";
 
 /** Key of the group of rows without a value. */
 export const NO_GROUP_KEY = "";

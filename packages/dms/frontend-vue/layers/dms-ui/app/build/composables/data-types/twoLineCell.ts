@@ -4,7 +4,7 @@ import type {
   DataTypeFormatter,
 } from "#dms-core/app/composables/data-types/useDataType";
 import { isNumber, isString } from "#dms-core/app/utils/type-check";
-import { textOf } from "#dms-core/app/build/utils/dataTypeValue";
+import { textOf } from "#dms-core/app/entries/utils/dataTypeValue";
 import { getAppComposedText } from "../../../../../dms-core/app/composables/translation/useComposedText";
 import {
   type ComposableText,

@@ -4,7 +4,7 @@ import type { ConfirmValues } from "../../../composables/confirm/types";
 import type { ActionTargetsConfig } from "./useActionTargets";
 import type { BulkSelection } from "./bulkSelection";
 import { resolveResponseToast } from "../../utils/responseWarning";
-import { textOf } from "#dms-core/app/build/utils/dataTypeValue";
+import { textOf } from "#dms-core/app/entries/utils/dataTypeValue";
 import { resolveConfirmText } from "../confirm/confirmDialogTexts";
 import { readBulkCount } from "../table-view/utils/bulkActions";
 import { type DownloadFetch, saveDownload } from "../../utils/fileDownload";

@@ -1,5 +1,5 @@
 import { EYEBROW_CLASS } from "../../utils/eyebrow";
-import { readFieldPath } from "#dms-core/app/build/utils/dataTypeValue";
+import { readFieldPath } from "#dms-core/app/entries/utils/dataTypeValue";
 import { h, toValue, type ComputedRef, type MaybeRefOrGetter } from "vue";
 import type {
   TableViewColumn,

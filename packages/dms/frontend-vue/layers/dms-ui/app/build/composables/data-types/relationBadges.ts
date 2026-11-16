@@ -1,5 +1,8 @@
 import type { DataTypeFormatter } from "#dms-core/app/composables/data-types/useDataType";
-import { isDataTypeRow, textOf } from "#dms-core/app/build/utils/dataTypeValue";
+import {
+  isDataTypeRow,
+  textOf,
+} from "#dms-core/app/entries/utils/dataTypeValue";
 import { DEFAULT_RELATION_VALUE_KEY } from "./relationValue";
 
 /** How many labels a multi-value relation cell shows before collapsing. */

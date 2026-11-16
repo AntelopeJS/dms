@@ -1,7 +1,7 @@
 import { get } from "@nuxt/ui/runtime/utils/index.js";
 import type { Component } from "vue";
 import { isString } from "#dms-core/app/utils/type-check";
-import { readFieldPath } from "#dms-core/app/build/utils/dataTypeValue";
+import { readFieldPath } from "#dms-core/app/entries/utils/dataTypeValue";
 import type { ActionTarget } from "../../../composables/table-view/types/action-target";
 import type { ActionTargetsConfig } from "./useActionTargets";
 import type { RowTarget, SidePanelTarget } from "./actionTargetTypes";
@@ -13,7 +13,7 @@ import {
   type WrittenRecord,
 } from "../table-view/utils/recordLink";
 import { fillRowChildren, fillRowOptions } from "./rowComponentOptions";
-import { isJsonObject } from "#dms-core/app/build/utils/json";
+import { isJsonObject } from "../../utils/json";
 import { resolveComponentChildren } from "../../../utils/componentTree";
 import TargetComponentTree from "../../components/containers/TargetComponentTree.vue";
 import { resolveConfirmText } from "../confirm/confirmDialogTexts";

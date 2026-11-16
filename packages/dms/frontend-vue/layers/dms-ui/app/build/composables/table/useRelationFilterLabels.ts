@@ -1,7 +1,7 @@
 import { onMounted, shallowRef, watch } from "vue";
 import type { DataTypeSelectSource } from "#dms-core/app/composables/data-types/useDataType";
 import type { DataTypeValue } from "#dms-core/app/types/data-type";
-import { textOf } from "#dms-core/app/build/utils/dataTypeValue";
+import { textOf } from "#dms-core/app/entries/utils/dataTypeValue";
 import { unlabeledRelationIds } from "../data-types/relationValue";
 import {
   notFoundRelationIds,

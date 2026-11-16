@@ -2,7 +2,7 @@ import type { ActionTarget } from "../../../composables/table-view/types/action-
 import type { CustomRowAction } from "../../../types/row-action";
 import { namesRowField } from "#dms-core/app/utils/url-interpolation";
 import { isObject } from "#dms-core/app/utils/type-check";
-import { textOf } from "#dms-core/app/build/utils/dataTypeValue";
+import { textOf } from "#dms-core/app/entries/utils/dataTypeValue";
 import { dropRowTokens } from "../../utils/urlVariables";
 
 /** Query flag of a bulk request covering every matching row. */

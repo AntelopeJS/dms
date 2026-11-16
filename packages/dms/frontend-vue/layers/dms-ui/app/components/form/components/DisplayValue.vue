@@ -7,7 +7,7 @@ import type {
 } from "#dms-core/app/types/data-type";
 import type { JsonValue } from "#dms-core/app/types/json";
 import { isString } from "#dms-core/app/utils/type-check";
-import { isJsonValue } from "#dms-core/app/build/utils/json";
+import { isJsonValue } from "../../../build/utils/json";
 import { NUMERIC_TYPE_IDS } from "../../../build/composables/data-types/useColumnValueRenderer";
 
 interface DisplayProps {

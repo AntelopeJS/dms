@@ -1,6 +1,6 @@
 import type { DataTypeRow, DataTypeValue } from "#dms-core/app/types/data-type";
 import { isBoolean } from "#dms-core/app/utils/type-check";
-import { isDataTypeRow } from "#dms-core/app/build/utils/dataTypeValue";
+import { isDataTypeRow } from "#dms-core/app/entries/utils/dataTypeValue";
 
 /** A pair as the key-value editor shows it: a row of the repeater. */
 export interface KeyValueRow extends DataTypeRow {
