@@ -14,6 +14,7 @@ import { tableViewColumn } from "./fixtures/tableViewColumn";
 const engine = await import("#dms/frontend-module");
 vi.stubGlobal("computed", computed);
 vi.stubGlobal("useDmsAsyncData", engine.useDmsAsyncData);
+vi.stubGlobal("useDmsState", engine.useDmsState);
 
 const { useTableRows } = await import(
   "../layers/dms-ui/app/entries/composables/table-view/useTableRows"

@@ -21,7 +21,7 @@ export function useTableViewRowRealtime<T extends Data>(
     REALTIME_PRESENCE_TOPIC_PREFIX,
   } = scope.configuration;
   const { tableRows } = scope.rows;
-  const { data } = scope.listState;
+  const { data, readOrder } = scope.listState;
   const { props } = scope;
   const rowIdKey = props.rowIdKey ?? ROW_ID_DEFAULT_KEY;
 
@@ -56,19 +56,21 @@ export function useTableViewRowRealtime<T extends Data>(
     data.value = { ...data.value, results: next };
   };
 
-  let rowReadCount = 0;
-  const appliedRowReads = new Map<string, number>();
+  const findRow = (id: string) =>
+    data.value?.results.findIndex((row) => getRowId(row) === id) ?? -1;
 
   const patchRowLocal = async (id: string) => {
-    if (!data.value?.results) return;
-    const idx = data.value.results.findIndex((row) => getRowId(row) === id);
-    if (idx === -1) return;
-    rowReadCount += 1;
-    const read = rowReadCount;
+    if (findRow(id) === -1) return;
+    readOrder.rows += 1;
+    const read = readOrder.rows;
+    const listRead = readOrder.lists;
     try {
       const fresh = await tableRows.getRow(id);
-      if (!fresh || read < (appliedRowReads.get(id) ?? 0)) return;
-      appliedRowReads.set(id, read);
+      if (!fresh || readOrder.lists !== listRead) return;
+      if (read < (readOrder.applied.get(id) ?? 0)) return;
+      const idx = findRow(id);
+      if (!data.value || idx === -1) return;
+      readOrder.applied.set(id, read);
       const next = [...data.value.results];
       next[idx] = fresh;
       data.value = { ...data.value, results: next };

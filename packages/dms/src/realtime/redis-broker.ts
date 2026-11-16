@@ -92,6 +92,11 @@ export class RedisBroker implements RealtimeBroker {
   private subscriber?: RedisClient;
   private initPromise?: Promise<void>;
 
+  /** @param resolveClient Answers the shared Redis client; defaults to the redis interface's. */
+  constructor(
+    private readonly resolveClient: () => Promise<RedisClient> = GetClient,
+  ) {}
+
   private async ensureInit(): Promise<void> {
     if (!this.initPromise) {
       this.initPromise = this.initialize();
@@ -100,9 +105,20 @@ export class RedisBroker implements RealtimeBroker {
   }
 
   private async initialize(): Promise<void> {
-    const client = await GetClient();
+    const client = await this.resolveClient();
     this.publisher = client;
     this.subscriber = client.duplicate();
+    let connectionLost = false;
+    this.subscriber.on("error", (error: Error) => {
+      if (connectionLost) return;
+      connectionLost = true;
+      Logging.Warn("RedisBroker: subscriber connection lost", error);
+    });
+    this.subscriber.on("ready", () => {
+      if (!connectionLost) return;
+      connectionLost = false;
+      Logging.Info("RedisBroker: subscriber connection restored");
+    });
     this.subscriber.on("message", (_channel: string, message: string) =>
       this.dispatchMessage(message),
     );

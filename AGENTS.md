@@ -63,10 +63,6 @@ Consumers must compile with `moduleResolution` set to `bundler`, `node16` or `no
 
 The docs tsconfig in `packages/interface-dms/docs` maps `@antelopejs/interface-dms/*` onto `src`, so the docs check needs no build.
 
-## Orb
-
-`.agents/setup` belongs to the guardrail pack. The playground's MongoDB install, build and module install live in `.agents/playground`, which the `dms-backend` service runs before it starts.
-
 <!-- antelopejs-guardrails:start -->
 <!-- Managed by @antelopejs/tooling-configs. `antelopejs-sync` rewrites everything between these markers; write repository-specific guidance outside them. -->
 

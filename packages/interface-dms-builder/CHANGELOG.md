@@ -1,5 +1,40 @@
 # Changelog
 
+## v0.5.2
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/interface-dms-builder-v0.5.1...interface-dms-builder-v0.5.2)
+
+### 🔥 Performance
+
+- **dms:** Reuse a finished database analysis while its inputs are unchanged ([#1087](https://github.com/AntelopeJS/dms/pull/1087))
+
+### 🩹 Fixes
+
+- **dms:** Report a connection variable the starting environment shadows instead of writing it to .env ([#1049](https://github.com/AntelopeJS/dms/pull/1049))
+- **deps:** Cap every @antelopejs range below the next minor ([#1051](https://github.com/AntelopeJS/dms/pull/1051))
+- **dms:** Sign in to a checked database with the URL's credentials only ([#1057](https://github.com/AntelopeJS/dms/pull/1057))
+- **dms:** Map read-only a relation the database account may not write ([#1119](https://github.com/AntelopeJS/dms/pull/1119))
+
+### 💅 Refactors
+
+- **dms:** Check a database connection with the probe its driver exports ([#1055](https://github.com/AntelopeJS/dms/pull/1055))
+- **interface-dms-builder:** Remove the SampleDatabaseRows operation ([#1093](https://github.com/AntelopeJS/dms/pull/1093))
+- **interface-dms-builder:** Restore the SampleDatabaseRows operation ([#1098](https://github.com/AntelopeJS/dms/pull/1098))
+
+### 📖 Documentation
+
+- **interface-dms-builder:** Say when a second catalog provider needs exportPriority or a pin ([#1026](https://github.com/AntelopeJS/dms/pull/1026))
+- **dms:** Replace dms-ai and dms-builder with dms-assistant ([#894](https://github.com/AntelopeJS/dms/pull/894))
+- **interface-dms-builder:** Allow disabledExports on the own database's catalog ([#1043](https://github.com/AntelopeJS/dms/pull/1043))
+
+#### ⚠️ Breaking Changes
+
+- **interface-dms-builder:** Remove the SampleDatabaseRows operation ([#1093](https://github.com/AntelopeJS/dms/pull/1093))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli
+
 ## v0.5.1
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/interface-dms-builder-v0.5.0...v0.5.1)

@@ -108,6 +108,7 @@ export async function mountForm(
   props: Partial<FormProps> = {},
   close?: () => Promise<void>,
   setupApp?: (app: Vue.App) => void,
+  isMounted: () => boolean = () => host.querySelector("form") !== null,
 ) {
   const { default: Form } = await import(
     "../../layers/dms-ui/app/components/form/FormBlock.vue"
@@ -176,7 +177,7 @@ export async function mountForm(
   );
   setupApp?.(app);
   app.mount(host);
-  await vi.waitFor(() => expect(host.querySelector("form")).not.toBeNull());
+  await vi.waitFor(() => expect(isMounted()).toBe(true));
   await Vue.nextTick();
 }
 

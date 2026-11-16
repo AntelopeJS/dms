@@ -1,0 +1,15 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "incremental": false,
+    "declaration": false,
+    "sourceMap": false,
+    "skipLibCheck": true,
+    "types": ["node"],
+    "paths": {
+      "#dms-core/*": ["../../packages/dms/frontend-vue/layers/dms-core/*"]
+    }
+  },
+  "include": ["./*.cts"]
+}
