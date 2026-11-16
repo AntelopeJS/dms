@@ -23,7 +23,12 @@ import { stringLiteralValue } from "./literals";
 import { contentVersion, pageVersion } from "./page-structure";
 import { parseBlockPath } from "./paths";
 import { moduleMismatch } from "./modules";
-import { blockPatch, pruningOrphans, writePatch } from "./options-patch";
+import {
+  blockPatch,
+  blockPatchRefusal,
+  pruningOrphans,
+  writePatch,
+} from "./options-patch";
 import { invalidateResourceIndex, resourceRefResolver } from "./resource-index";
 import { type PageRecord } from "./scan";
 import { findPageRecord, invalidateSourceIndex } from "./source-index";
@@ -307,6 +312,10 @@ export function configureBlock(
   }
   if (opts?.meta && !resolved.target.childCall) {
     return unsupported("a top-level block carries no child metadata");
+  }
+  const refusal = blockPatchRefusal(resolved.target.type, patch);
+  if (refusal) {
+    return invalidConfig<never>(refusal);
   }
   const transaction = new Transaction(context.sourceFile.getProject());
   transaction.track(context.sourceFile);

@@ -58,7 +58,7 @@ export function currentColumns(record: ResourceRecord): CurrentColumns {
 }
 
 /**
- * The column whose values the tabs of the page's TableView were written from: the column its
+ * The column whose values the tabs of the page's TableView were written from: the badge column its
  * `tabsFrom` reads, or, on a page a mapping wrote before tabs were read from the rows, the badge
  * column its `tabs` list the items of. Tabs edited by hand are not the mapping's, so no column is
  * answered for them.
@@ -73,7 +73,9 @@ export function tabsColumnOf(
     : undefined;
   const tabsFrom = table?.config?.tabsFrom;
   if (isPlainObject(tabsFrom) && isString(tabsFrom.column)) {
-    return tabsFrom.column;
+    return displays.get(tabsFrom.column)?.kind === "badge"
+      ? tabsFrom.column
+      : undefined;
   }
   const stored = table?.config?.tabs;
   return [...displays].find(

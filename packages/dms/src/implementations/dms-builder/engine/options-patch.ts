@@ -64,6 +64,17 @@ const TABS_SOURCES = [
   ["tabsFrom", "tabs"],
 ] as const;
 
+/** Why a patch of a block of type `type` is refused: a TableView patch that sets both its tabs sources. */
+export function blockPatchRefusal(
+  type: string | undefined,
+  patch: ConfigObject,
+): string | undefined {
+  return type === "TableView" &&
+    TABS_SOURCES.every(([key]) => patch[key] !== undefined)
+    ? "a TableView lists its tabs or reads them from a column, not both: send `tabs` or `tabsFrom`"
+    : undefined;
+}
+
 /**
  * A patch of a block of type `type`: on a TableView, a patch that lists the
  * tabs removes the column they were read from, and one that reads them from

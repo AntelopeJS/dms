@@ -120,28 +120,25 @@ const PROFILE: RelationProfile = {
   inbound: [],
 };
 
-const MAPPED: JsonValue = {
-  module: MODULE,
-  connection: CONNECTION,
-  resources: [
-    {
-      relation: ORDERS,
-      tableView: true,
-      writable: false,
-      fields: [
-        { column: "id" },
-        {
-          column: "status",
-          filterable: true,
-          display: { kind: "badge", values: 3 },
-        },
-        { column: "currency" },
-        { column: "total", display: { kind: "price" } },
-        { column: "placed_at" },
-      ],
-    },
-  ],
-};
+const ORDER_FIELDS: { [key: string]: JsonValue; column: string }[] = [
+  { column: "id" },
+  { column: "status", filterable: true, display: { kind: "badge", values: 3 } },
+  { column: "currency" },
+  { column: "total", display: { kind: "price" } },
+  { column: "placed_at" },
+];
+
+/** `erp.orders` mapped as sent back from the proposal, with the columns `columns` keeps. */
+function mappedOrders(columns = (_column: string) => true): JsonValue {
+  const fields = ORDER_FIELDS.filter((field) => columns(field.column));
+  return {
+    module: MODULE,
+    connection: CONNECTION,
+    resources: [{ relation: ORDERS, tableView: true, writable: false, fields }],
+  };
+}
+
+const MAPPED = mappedOrders();
 
 const WrittenSchema = z.object({
   data: z.object({
@@ -157,6 +154,12 @@ const WrittenSchema = z.object({
 
 const PageSchema = z.object({
   data: z.object({ page: z.object({ filepath: z.string() }) }),
+});
+
+const MappingSchema = z.object({
+  data: z.array(
+    z.object({ resource: z.object({ tabs: z.unknown().optional() }) }),
+  ),
 });
 
 const ITEMS_FROM_STATUS = /itemsFrom:\s*\{\s*column:\s*"status"\s*\}/;
@@ -407,6 +410,55 @@ describe("[unit] the builder tools over a mapped module's code keep its column r
     expect(code).to.match(ITEMS_FROM_STATUS);
     expect(code).to.match(CURRENCY_FROM_CURRENCY);
     expect(code).to.match(TABS_FROM_STATUS);
+  });
+
+  it("writes a price plain, with no code of a row, when the relation's currency column is left out", async () => {
+    await valueFree("builder_analyse_database", {
+      connection: CONNECTION,
+      module: MODULE,
+    });
+    await valueFree(
+      "builder_map_resources",
+      mappedOrders((column) => column !== "currency"),
+    );
+    const code = moduleCode();
+    for (const value of ROW_VALUES) {
+      expect(code, `the module's code holds ${value}`).to.not.include(value);
+    }
+    expect(code).to.include("new DefaultDataTypes.PriceType()");
+    expect(code).to.not.include("currencyFrom");
+  });
+
+  it("answers no tabs once the column they read is no longer a badge", async () => {
+    const orders = await mapOrders();
+    await valueFree("builder_configure_field", {
+      path: `${orders.ref}#status`,
+      patch: { dataType: { $dataType: "string" } },
+    });
+    const mapping = MappingSchema.parse(
+      JSON.parse(
+        await valueFree("builder_mapping", {
+          connection: CONNECTION,
+          module: MODULE,
+        }),
+      ),
+    );
+    expect(mapping.data[0]?.resource.tabs).to.equal(undefined);
+  });
+
+  it("refuses a patch that both lists a TableView's tabs and reads them from a column", async () => {
+    const orders = await mapOrders();
+    const before = moduleCode();
+    const refused = await run(mockupTool("builder_configure_block"), {
+      path: `${orders.page}#table`,
+      patch: {
+        tabs: [{ id: "all", label: "All" }],
+        tabsFrom: { column: "status" },
+      },
+    });
+    expect(refused.isError, refused.text).to.equal(true);
+    expect(refused.text).to.include("not both");
+    expect(moduleCode()).to.equal(before);
   });
 });
 

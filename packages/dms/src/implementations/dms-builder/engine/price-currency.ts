@@ -103,43 +103,40 @@ export type PriceCurrency =
 export interface CurrencySchema {
   /** The code the amount column's comment states. */
   stated?: string;
-  /** The relation's one currency column, when the mapping declares it. */
-  column?: string;
+  /** The relation's columns named like a currency (`currency`, `currency_code`). */
+  columns: string[];
+  /** The columns the mapping declares. */
+  mapped: ReadonlySet<string>;
 }
 
-/**
- * The currency column of a relation among `mapped`, its declared columns: the one column named
- * like a currency (`currency`, `currency_code`), none when there are several.
- */
-export function currencyColumnOf(
-  description: RelationDescription,
-  mapped: ReadonlySet<string>,
-): string | undefined {
-  const [only, ...rest] = description.columns
+/** The columns of a relation named like a currency: the only ones a code read from rows comes from. */
+export function currencyColumnsOf(description: RelationDescription): string[] {
+  return description.columns
     .map((column) => column.name)
     .filter(isCurrencyColumn);
-  return only !== undefined && rest.length === 0 && mapped.has(only)
-    ? only
-    : undefined;
 }
 
 /**
- * How a price writes `given`, the currency its display holds: the code the amount column's
- * comment states is schema and written as such; else the relation's currency column is read
- * when the page is served, so no code a row holds is written; else a code the caller gave is
- * written; else none.
+ * How a price writes `given`, the currency its display holds. The code the amount column's
+ * comment states is schema, written as such. A relation with currency columns may have given its
+ * code from their rows, so it is never written: its one mapped currency column is read when the
+ * page is served, else the price is plain. In a relation without one, a code the caller gave is
+ * written.
  */
 export function priceCurrency(
   given: string | undefined,
-  schema: CurrencySchema,
+  { stated, columns, mapped }: CurrencySchema,
 ): PriceCurrency {
-  if (given !== undefined && given === schema.stated) {
+  if (given !== undefined && given === stated) {
     return { currency: given };
   }
-  if (schema.column !== undefined) {
-    return { currencyFrom: { column: schema.column } };
+  const [only, ...rest] = columns;
+  if (only === undefined) {
+    return given === undefined ? undefined : { currency: given };
   }
-  return given === undefined ? undefined : { currency: given };
+  return rest.length === 0 && mapped.has(only)
+    ? { currencyFrom: { column: only } }
+    : undefined;
 }
 
 /**

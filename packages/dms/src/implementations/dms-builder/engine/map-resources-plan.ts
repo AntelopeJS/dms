@@ -22,7 +22,7 @@ import { RESERVED_FIELD_NAMES } from "./reserved-names";
 import { MixedTypeDeclarations } from "./mixed-types";
 import { displayDataType, displayRefusal, suits } from "./column-display";
 import {
-  currencyColumnOf,
+  currencyColumnsOf,
   currencyOfComment,
   priceCurrency,
 } from "./price-currency";
@@ -377,10 +377,8 @@ function displayedDataType(
     display.kind === "price"
       ? priceCurrency(display.currency, {
           stated: currencyOfComment(column.comment),
-          column: currencyColumnOf(
-            plan.description,
-            new Set(plan.resource.fields.map((field) => field.column)),
-          ),
+          columns: currencyColumnsOf(plan.description),
+          mapped: new Set(plan.resource.fields.map((field) => field.column)),
         })
       : undefined;
   return displayDataType(display, column.name, currency);
