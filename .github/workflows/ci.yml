@@ -364,6 +364,7 @@ jobs:
       matrix:
         check:
           - formal-default-tenant-provisioning
+          - formal-invite-creation
           - formal-onboarding-bootstrap
           - formal-option-patch-prune
           - formal-realtime-tabs
@@ -387,6 +388,8 @@ jobs:
       - run: node .agents/skills/${{ matrix.check }}/check.mjs
       - if: matrix.check == 'formal-default-tenant-provisioning'
         run: node .agents/skills/formal-default-tenant-provisioning/history.mjs
+      - if: matrix.check == 'formal-invite-creation'
+        run: node .agents/skills/formal-invite-creation/history.mjs
 
   # The formal checks that call the real code with generated inputs: they build
   # the module and boot the test harness, which the TLA+ checks above do not.

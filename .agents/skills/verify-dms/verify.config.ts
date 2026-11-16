@@ -353,6 +353,23 @@ const config: VerifyConfig = {
       command: ["node", ".agents/skills/formal-builder-option-echo/check.mjs"],
       violation: /^(?:finding|BROKEN|CHANGED|HOLDS) +(\w+)/gm,
     },
+    {
+      name: "formal-invite-creation",
+      covers: [
+        "packages/interface-dms/src/invites.ts",
+        "packages/interface-dms/src/invite-resolution.ts",
+        "packages/interface-dms/src/internal/invite-resolution.ts",
+        "packages/interface-dms/src/internal/invite-replacement.ts",
+        "packages/interface-dms/src/internal/invite-content.ts",
+        "packages/interface-dms/src/db/internal/inviteResolutions.model.ts",
+        "packages/interface-dms/src/db/models/user_invites.model.ts",
+        "packages/interface-dms/src/db/tables/user_invites.table.ts",
+        "packages/interface-dms/src/db/tables/inviteResolutions.table.ts",
+      ],
+      files: [".agents/skills/formal-invite-creation/**"],
+      command: ["node", ".agents/skills/formal-invite-creation/check.mjs", "--full"],
+      violation: /^(?:finding|BROKEN|CHANGED|HOLDS) +(\w+)/gm,
+    },
   ],
 };
 
