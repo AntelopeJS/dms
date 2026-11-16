@@ -27,10 +27,11 @@ import {
 } from "vitest";
 import { router as inertiaRouter } from "@inertiajs/vue3";
 import type { PeriodPreset } from "../layers/dms-core/app/composables/period/types";
-import type { RememberedPeriods } from "../layers/dms-ui/app/entries/composables/period/periodQuery";
+import type { JsonValue } from "../layers/dms-core/app/types/json";
+import { storedPeriod } from "../layers/dms-ui/app/entries/composables/period/periodQuery";
 
 const route = reactive<{ query: Record<string, string> }>({ query: {} });
-const preferences = new Map<string, RememberedPeriods>();
+const preferences = new Map<string, JsonValue>();
 
 vi.stubGlobal("useDmsRoute", () => route);
 
@@ -46,8 +47,7 @@ function followInertiaPage({
 const inertiaReplace = vi.spyOn(inertiaRouter, "replace");
 vi.stubGlobal("usePreferences", () => ({
   getPreference: (key: string) => preferences.get(key),
-  setPreference: (key: string, value: RememberedPeriods) =>
-    preferences.set(key, value),
+  setPreference: (key: string, value: JsonValue) => preferences.set(key, value),
 }));
 
 const { usePeriod } = await import(
@@ -178,6 +178,15 @@ describe("the period a selector starts from", () => {
     expect(handles.page!.comparison.value).toBe("previous-period");
   });
 
+  it("is the user's last choice when another selector's is corrupt", () => {
+    preferences.set(PERIOD_PREFERENCE_KEY, {
+      [`${PAGE_ID}#page`]: { period: "last-30-days" },
+      "other#page": { period: 7 },
+    });
+    mount("page");
+    expect(handles.page!.preset.value).toBe("last-30-days");
+  });
+
   it("is the default when neither names a valid one", () => {
     route.query = { "page.period": "next-century" };
     remember({
@@ -254,7 +263,9 @@ describe("a change of period", () => {
     expect(search().get("page.period")).toBe("last-7-days");
     expect(search().get("page.compare")).toBe("previous-period");
     expect(window.history.length).toBe(entries);
-    expect(preferences.get(PERIOD_PREFERENCE_KEY)![`${PAGE_ID}#page`]).toEqual({
+    expect(
+      storedPeriod(preferences.get(PERIOD_PREFERENCE_KEY), `${PAGE_ID}#page`),
+    ).toEqual({
       period: "last-7-days",
       compare: "previous-period",
     });
@@ -384,7 +395,9 @@ describe("a link framing a window no preset matches", () => {
     });
     period.setComparison("previous-period");
     await nextTick();
-    expect(preferences.get(PERIOD_PREFERENCE_KEY)![`${PAGE_ID}#page`]).toEqual({
+    expect(
+      storedPeriod(preferences.get(PERIOD_PREFERENCE_KEY), `${PAGE_ID}#page`),
+    ).toEqual({
       period: "last-7-days",
     });
   });

@@ -374,8 +374,20 @@ function isRememberedPeriods(
 }
 
 /** The last choices `store` keeps, none when it holds something else. */
-export function storedPeriods(store: JsonValue | undefined): RememberedPeriods {
+function storedPeriods(store: JsonValue | undefined): RememberedPeriods {
   return isRememberedPeriods(store) ? store : {};
+}
+
+/** The last choice `store` keeps under `key`, whatever its other entries hold. */
+export function storedPeriod(
+  store: JsonValue | undefined,
+  key: string,
+): Record<string, string> | undefined {
+  if (!isObject(store) || store === null || !Object.hasOwn(store, key)) {
+    return undefined;
+  }
+  const entry = store[key];
+  return isStringRecord(entry) ? entry : undefined;
 }
 
 /**

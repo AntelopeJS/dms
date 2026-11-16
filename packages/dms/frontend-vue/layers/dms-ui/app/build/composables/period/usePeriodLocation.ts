@@ -14,7 +14,7 @@ import {
   type PeriodSelection,
   type PeriodSource,
   resolvePeriodSelection,
-  storedPeriods,
+  storedPeriod,
   writePeriodQuery,
 } from "./periodQuery";
 
@@ -119,7 +119,7 @@ function useRememberedPeriod(target: RememberedPeriodTarget) {
   const stored = () => getPreference(PERIOD_PREFERENCE_KEY);
   return {
     source: (): PeriodSource => ({
-      query: storedPeriods(stored())[key] ?? {},
+      query: storedPeriod(stored(), key) ?? {},
       keys: STORED_KEYS,
     }),
     remember: (selection: PeriodSelection) =>
