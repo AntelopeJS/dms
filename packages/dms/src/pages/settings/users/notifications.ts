@@ -31,7 +31,10 @@ import {
   TABLE_DISPLAY_ID,
   TableView,
 } from "@antelopejs/interface-dms/base/table-view";
-import type { NotificationSubjectInfo } from "@antelopejs/interface-dms/notifications/types";
+import type {
+  NotificationChannelId,
+  NotificationSubjectInfo,
+} from "@antelopejs/interface-dms/notifications/types";
 import {
   type UserNotificationCounts,
   UserNotificationPreferencesModel,
@@ -45,10 +48,13 @@ import {
   parseNotificationFeedQuery,
 } from "../../../db/models";
 import {
-  findSubjectByPreferenceKey,
+  type ChannelOffer,
+  findPreferenceTarget,
   getRegisteredCategories,
+  getRegisteredChannelIds,
   getRegisteredSubjects,
   isSubjectLocked,
+  registeredChannelOffers,
   publishAllNotificationsRead,
   publishNotificationsRead,
   publishNotificationsUnread,
@@ -65,14 +71,20 @@ const HTTP_NOT_FOUND = 404;
 
 /** A registered subject as the settings screen lists it. */
 export interface NotificationSubjectView extends NotificationSubjectInfo {
-  /** The user may not turn this subject off. */
+  /** The user may not turn this subject off, on any channel. */
   locked: boolean;
+  /** The registered channels the subject offers. */
+  channels: Partial<Record<NotificationChannelId, ChannelOffer>>;
 }
 
 function toSubjectView(
   subject: NotificationSubjectInfo,
 ): NotificationSubjectView {
-  return { ...subject, locked: isSubjectLocked(subject) };
+  return {
+    ...subject,
+    locked: isSubjectLocked(subject),
+    channels: registeredChannelOffers(subject),
+  };
 }
 
 function parsePageSize(value: QueryValue): number {
@@ -208,19 +220,22 @@ function readFeedFilter(context: RequestContext): NotificationFeedFilter {
   return filter;
 }
 
-/** Refuses keys that name no registered subject, and turning a locked subject off. */
+/**
+ * Refuses keys that name no registered subject, or a channel the subject does
+ * not offer or no module registered, and turning a locked subject off.
+ */
 function assertChangesAllowed(changes: Record<string, boolean>): void {
   for (const key of Object.keys(changes)) {
     assert(
-      findSubjectByPreferenceKey(key),
+      findPreferenceTarget(key),
       HTTP_BAD_REQUEST,
       "error.request_refused",
     );
   }
   for (const [key, enabled] of Object.entries(changes)) {
-    const subject = findSubjectByPreferenceKey(key);
+    const target = findPreferenceTarget(key);
     assert(
-      enabled || !subject || !isSubjectLocked(subject),
+      enabled || !target || !isSubjectLocked(target.subject),
       HTTP_FORBIDDEN,
       "error.forbidden",
     );
@@ -296,11 +311,16 @@ export class NotificationsApiController extends Controller(NOTIFICATIONS_API) {
     return preferencesModel.mergePreferences(this.user._id, changes);
   }
 
+  /**
+   * The registered categories and subjects, and the ids of the registered
+   * delivery channels (`channels`): the screen draws a channel's column
+   * only when a module registered it.
+   */
   @Get("/categories")
   async getCategories() {
     const categories = getRegisteredCategories();
     const subjects = getRegisteredSubjects().map(toSubjectView);
-    return { categories, subjects };
+    return { categories, subjects, channels: getRegisteredChannelIds() };
   }
 
   /**

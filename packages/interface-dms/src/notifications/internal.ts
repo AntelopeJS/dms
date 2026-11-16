@@ -5,6 +5,7 @@ import {
 import type {
   DeliveryOptions,
   NotificationCategoryInfo,
+  NotificationChannelInfo,
   NotificationData,
   NotificationSubjectInfo,
   ReadScope,
@@ -20,6 +21,10 @@ export namespace internal {
   >();
   export const RegisterNotificationSubject = new RegisteringProxy<
     (info: NotificationSubjectInfo) => void
+  >();
+
+  export const RegisterNotificationChannel = new RegisteringProxy<
+    (info: NotificationChannelInfo) => void
   >();
 
   export const SendToUser =

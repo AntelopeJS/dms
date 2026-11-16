@@ -28,6 +28,52 @@ export interface NotificationSubjectInfo {
   togglePermission?: TogglePermission;
   /** Translation key of a badge shown next to the subject label (`Developer mode`). */
   badgeKey?: string;
+  /**
+   * The channels this subject also reaches its recipients through, next to
+   * the in-app feed. A subject that names none is in-app only. A channel
+   * delivers only when a module registers it (`NotificationChannel`).
+   */
+  channels?: NotificationChannelOffers;
+}
+
+/** The delivery channels a subject can offer next to the in-app feed. */
+export type NotificationChannelId = "email";
+
+/**
+ * How a subject offers a channel. `true` offers it off until the user turns
+ * it on; `{ defaultOn: true }` offers it on until the user turns it off.
+ * `false` does not offer it.
+ */
+export type NotificationChannelOffer = boolean | { defaultOn?: boolean };
+
+export type NotificationChannelOffers = Partial<
+  Record<NotificationChannelId, NotificationChannelOffer>
+>;
+
+/** What a channel learns about one delivery besides its recipient and content. */
+export interface NotificationDeliveryContext {
+  /** Id of the in-app notification this delivery follows. */
+  notificationId: string;
+  /** The event key of a keyed send (`idempotencyKey`). */
+  idempotencyKey?: string;
+}
+
+/**
+ * A channel a notification also reaches its recipient through. The DMS calls
+ * `deliver` once per stored in-app notification whose recipient has the
+ * channel on for its subject.
+ */
+export interface NotificationChannelInfo {
+  id: NotificationChannelId;
+  /**
+   * Hands one notification to the channel. A rejection is logged and never
+   * fails the in-app delivery. Sends wait for it, so queue slow work.
+   */
+  deliver(
+    userId: string,
+    data: NotificationData,
+    context: NotificationDeliveryContext,
+  ): Promise<void> | void;
 }
 
 /** How a delivery is stored, whoever receives it. */
@@ -45,6 +91,12 @@ export interface DeliveryOptions {
 
 export interface SendOptions extends DeliveryOptions {
   readScope?: ReadScope;
+  /**
+   * The workspace the notification is about. Channels receive it in
+   * `NotificationData.tenantId`; `toRoles` also limits its recipients to
+   * this tenant's members.
+   */
+  tenantId?: string;
   /** Stable event key, unique across notification producers. Retries preserve delivery and dismissal state. */
   idempotencyKey?: string;
 }
@@ -68,6 +120,8 @@ export interface NotificationData {
   params?: Record<string, string | number>;
   /** Icon well colour; unset notifications use `primary` while unread, neutral once read. */
   tone?: NotificationTone;
+  /** The workspace the notification is about, from `SendOptions.tenantId`. */
+  tenantId?: string;
 }
 
 export type RequiredFields = "icon" | "title" | "description" | "subject";

@@ -10,6 +10,16 @@ function deliveryOf(options: SendOptions): DeliveryOptions {
   return { dedupe: options.dedupe };
 }
 
+/** The notification as sent: `options.tenantId`, when set, names its workspace. */
+function sentData(
+  data: NotificationData,
+  options: SendOptions,
+): NotificationData {
+  return options.tenantId === undefined
+    ? data
+    : { ...data, tenantId: options.tenantId };
+}
+
 export class SendableNotification {
   private readonly data: NotificationData;
 
@@ -25,7 +35,7 @@ export class SendableNotification {
   async toUser(userId: string, options: SendOptions = {}): Promise<void> {
     await internal.SendToUser(
       userId,
-      this.data,
+      sentData(this.data, options),
       undefined,
       options.idempotencyKey,
       deliveryOf(options),
@@ -35,7 +45,7 @@ export class SendableNotification {
   async toUsers(userIds: string[], options: SendOptions = {}): Promise<void> {
     await internal.SendToUsers(
       userIds,
-      this.data,
+      sentData(this.data, options),
       options.readScope,
       options.idempotencyKey,
       deliveryOf(options),
@@ -56,12 +66,12 @@ export class SendableNotification {
     roleIds: string[],
     options: RoleSendOptions = {},
   ): Promise<void> {
-    await internal.SendToRoles(roleIds, this.data, options);
+    await internal.SendToRoles(roleIds, sentData(this.data, options), options);
   }
 
   async broadcast(options: SendOptions = {}): Promise<void> {
     await internal.SendToAll(
-      this.data,
+      sentData(this.data, options),
       options.readScope,
       options.idempotencyKey,
       deliveryOf(options),
