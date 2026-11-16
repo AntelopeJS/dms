@@ -8,7 +8,6 @@ import {
   RemoveField,
 } from "@antelopejs/interface-dms-builder";
 import { z } from "zod";
-import { hideResourceValues } from "../hidden-values";
 import { JsonObjectSchema } from "../json";
 import { repeatConfirmation } from "../confirmation-gate";
 import { defineTool } from "../tool";
@@ -16,7 +15,7 @@ import {
   BUILDER_REF_NOTE,
   containsExprSentinel,
   exprRefusal,
-  mappedLiteralTest,
+  shownStructures,
   withEscalationNote,
   opResult,
   TARGET_MODULE,
@@ -125,11 +124,8 @@ const resourceStructure = defineTool({
   async run({ ref }) {
     const answer = await GetResourceStructure(ref);
     if (!answer.ok) return opResult(answer);
-    const isMapped = (await mappedLiteralTest())(answer.data.files.dataApi);
-    return opResult({
-      ...answer,
-      data: hideResourceValues(answer.data, isMapped),
-    });
+    const { shownResourceStructure } = await shownStructures();
+    return opResult({ ...answer, data: shownResourceStructure(answer.data) });
   },
 });
 

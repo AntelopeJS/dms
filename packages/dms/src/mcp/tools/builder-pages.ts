@@ -15,7 +15,7 @@ import {
   RemoveBlock,
 } from "@antelopejs/interface-dms-builder";
 import { z } from "zod";
-import { hiddenOptionsOf, hidePageValues } from "../hidden-values";
+import { hiddenOptionsOf } from "../hidden-values";
 import { type JsonObject, JsonObjectSchema } from "../json";
 import { repeatConfirmation } from "../confirmation-gate";
 import { defineTool, jsonResult, textResult } from "../tool";
@@ -24,7 +24,7 @@ import {
   BLOCK_PATH_FORMAT,
   containsExprSentinel,
   exprRefusal,
-  mappedLiteralTest,
+  shownStructures,
   withEscalationNote,
   opResult,
   PARENT_PATH,
@@ -55,11 +55,8 @@ const pageStructure = defineTool({
   async run({ pageRef }) {
     const answer = await GetPageStructure(pageRef);
     if (!answer.ok) return opResult(answer);
-    const isMapped = (await mappedLiteralTest())(answer.data.page.filepath);
-    return opResult({
-      ...answer,
-      data: hidePageValues(answer.data, isMapped),
-    });
+    const { shownPageStructure } = await shownStructures();
+    return opResult({ ...answer, data: shownPageStructure(answer.data) });
   },
 });
 
@@ -164,12 +161,12 @@ async function droppedHiddenOptions(
   if (hash < 0) return [];
   const structure = await GetPageStructure(path.slice(0, hash));
   if (!structure.ok) return [];
-  const isMapped = (await mappedLiteralTest())(structure.data.page.filepath);
+  const { shownPageStructure } = await shownStructures();
   const segments = path
     .slice(hash + 1)
     .split("/")
     .filter((segment) => segment.length > 0);
-  return hiddenOptionsOf(structure.data, segments, isMapped).filter(
+  return hiddenOptionsOf(shownPageStructure(structure.data), segments).filter(
     (key) => !Object.hasOwn(patch, key),
   );
 }
