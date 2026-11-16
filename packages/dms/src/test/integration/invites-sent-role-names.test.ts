@@ -5,15 +5,14 @@ import {
   UserInviteModel,
 } from "@antelopejs/interface-dms/db/models";
 import { expect } from "chai";
-import {
-  loadAccountExport,
-  roleNamesOf,
-} from "../../pages/settings/users/account-data-store";
-import { registerUser } from "../helpers/auth";
+import { pageRoutePath } from "@antelopejs/interface-dms/page";
+import { authorizedClient, registerUser } from "../helpers/auth";
 import { resetDatabase } from "../helpers/db";
 import { findUserByEmail } from "../helpers/fixtures";
 
 const HOUR_MS = 3_600_000;
+const HTTP_OK = 200;
+const EXPORT = `${pageRoutePath("/settings/user/profile")}/account-export`;
 
 describe("[integration] account export — roles of the invitations a user sent", () => {
   beforeEach(resetDatabase);
@@ -50,16 +49,22 @@ describe("[integration] account export — roles of the invitations a user sent"
       expiresAt: new Date(Date.now() + HOUR_MS),
     });
 
-    const file = await loadAccountExport(ownerRow);
+    const response = await authorizedClient(owner.accessToken).get<{
+      invitesSent: { email: string; roles: string[] }[];
+    }>(EXPORT);
+    expect(response.status, JSON.stringify(response.data)).to.equal(HTTP_OK);
+    const file = response.data;
 
     const byEmail = new Map(
       file.invitesSent.map((invite) => [invite.email, invite.roles]),
     );
     expect(byEmail.size).to.equal(sent.length);
     for (const [index, ids] of sent.entries()) {
-      expect(byEmail.get(`sent-${index}@test.local`)).to.deep.equal(
-        await roleNamesOf(DEFAULT_TENANT_ID, ids),
-      );
+      const expected =
+        ids.length === 0
+          ? []
+          : (await roles.getBy("_id", ...ids)).map((role) => role.name);
+      expect(byEmail.get(`sent-${index}@test.local`)).to.deep.equal(expected);
     }
     expect(byEmail.get("sent-0@test.local")).to.deep.equal(["Editors"]);
     expect(byEmail.get("sent-2@test.local")).to.deep.equal([]);
