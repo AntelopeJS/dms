@@ -2,7 +2,7 @@ import { Schema } from "@antelopejs/interface-database";
 import type { Permission, PermissionTree } from "@antelopejs/interface-dms";
 import { RoleModel, TenantMemberModel } from "@antelopejs/interface-dms/db";
 import type { BlockNode } from "@antelopejs/interface-dms-builder";
-import { membersHoldingRole } from "../../../db/role-holders";
+import { membersHoldingRole } from "../../../db";
 import { buildPageBlocks } from "./block-tree";
 import { isString } from "./scalar-guards";
 import { getBooleanProperty } from "./literals";

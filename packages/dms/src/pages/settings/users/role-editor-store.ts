@@ -41,7 +41,7 @@ import {
   invitesGrantingRole,
   membersHoldingRole,
   pendingInvitesGrantingRole,
-} from "../../../db/role-holders";
+} from "../../../db";
 import {
   collectPermissionIds,
   mapRoleEditorTree,

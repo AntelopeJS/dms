@@ -18,7 +18,7 @@ import {
   UserNotificationsModel,
   buildNewUserNotification,
 } from "../../db/models";
-import { userIdsHoldingAnyRole } from "../../db/role-holders";
+import { userIdsHoldingAnyRole } from "../../db";
 import type { UserNotification } from "../../db/tables";
 import { getRealtimeBroker, buildUserNotificationTopic } from "../../realtime";
 import { runInBatches } from "../../utils/run-in-batches/index";

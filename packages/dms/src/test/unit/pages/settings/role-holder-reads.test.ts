@@ -10,7 +10,7 @@ import {
   UserInviteModel,
 } from "@antelopejs/interface-dms/db";
 import { expect } from "chai";
-import { countRoleHolders } from "../../../../db/role-holders";
+import { countRoleHolders } from "../../../../db";
 import {
   collectPermissionIds,
   countKnownPermissions,
