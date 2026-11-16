@@ -1,6 +1,11 @@
 import { expect } from "chai";
 import type { JsonValue } from "@antelopejs/interface-dms/json";
-import { AddBlock, ConfigureBlock } from "../../../implementations/dms-builder";
+import type { OpResult } from "@antelopejs/interface-dms-builder";
+import {
+  AddBlock,
+  ComposePage,
+  ConfigureBlock,
+} from "../../../implementations/dms-builder";
 import { expectOk } from "./harness";
 import {
   addForm,
@@ -180,7 +185,7 @@ function engineWrittenCases(): void {
     expect(read.isError, read.text).to.equal(undefined);
   });
 
-  it("lets only one of two patches judged against the same page write", async () => {
+  it("lets only one of two patches sent at once turn a load into a write", async () => {
     await call("builder_add_block", {
       page: PAGE,
       name: "raceCard",
@@ -265,6 +270,92 @@ function configureCases(): void {
   });
 }
 
+/** The pointers of an engine refusal, failing when the operation was not refused. */
+function enginePointers(answer: OpResult<unknown>): string[] {
+  expect(answer.ok, JSON.stringify(answer)).to.equal(false);
+  if (answer.ok || answer.error.code !== "invalid_config") {
+    expect.fail(JSON.stringify(answer));
+  }
+  return answer.error.issues.map(({ pointer }) => pointer);
+}
+
+/** The engine's own entry points, called for an agent without the MCP tools in front. */
+function entryPointCases(): void {
+  it("AddBlock refuses a Form that submits to the connect check", async () => {
+    const before = readShop(PAGE_FILE);
+    expect(
+      enginePointers(
+        await AddBlock(
+          addForm("direct", {
+            submitUrl: CONNECT_CHECK,
+            submitDefaults: ATTACKER_URL,
+          }),
+          { agent: true },
+        ),
+      ),
+    ).to.deep.equal(["/config/submitUrl"]);
+    expect(readShop(PAGE_FILE)).to.equal(before);
+  });
+
+  it("AddBlock refuses a link written as code, whose scheme it cannot read", async () => {
+    expect(
+      enginePointers(
+        await AddBlock(
+          addForm("exprLink", { to: { $expr: "'javascript:alert(1)'" } }),
+          { agent: true },
+        ),
+      ),
+    ).to.deep.equal(["/config/to"]);
+  });
+
+  it("ConfigureBlock refuses a patch that turns a foreign load into a write", async () => {
+    expectOk(
+      await AddBlock({
+        page: PAGE,
+        name: "directLoad",
+        type: "KpiCard",
+        config: { title: "Direct", fetchUrl: FOREIGN_LOAD },
+      }),
+      "AddBlock directLoad",
+    );
+    const before = readShop(PAGE_FILE);
+    expect(
+      enginePointers(
+        await ConfigureBlock(
+          `${PAGE}#directLoad`,
+          { fetchUrlMethod: "POST" },
+          { agent: true },
+        ),
+      ),
+    ).to.deep.equal(["/patch/fetchUrl"]);
+    expect(readShop(PAGE_FILE)).to.equal(before);
+  });
+
+  it("ComposePage refuses a query whose route it would write into submitUrl", async () => {
+    const before = readShop(PAGE_FILE);
+    expect(
+      enginePointers(
+        await ComposePage(
+          {
+            page: PAGE,
+            blocks: [
+              queried(
+                "directForm",
+                "Form",
+                { title: "Direct", kind: "action", fields: [] },
+                "/stats/direct-count",
+                "submitUrl",
+              ),
+            ],
+          },
+          { agent: true },
+        ),
+      ),
+    ).to.deep.equal(["/blocks/0/config/submitUrl"]);
+    expect(readShop(PAGE_FILE)).to.equal(before);
+  });
+}
+
 describe("[unit] a block the builder writes for an agent is judged as the engine writes it", function () {
   this.timeout(OP_TIMEOUT);
   before(createShop);
@@ -278,5 +369,8 @@ describe("[unit] a block the builder writes for an agent is judged as the engine
   });
   describe("where the engine writes the URL", () => {
     engineWrittenCases();
+  });
+  describe("through the engine's entry points", () => {
+    entryPointCases();
   });
 });

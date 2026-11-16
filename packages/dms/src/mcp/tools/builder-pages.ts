@@ -1,7 +1,6 @@
 import {
   AddBlock,
   ConfigureBlock,
-  type ConfigureBlockOpts,
   ConfigureCategory,
   ConfigurePage,
   CreateCategory,
@@ -31,7 +30,6 @@ import {
   refusalResult,
   TARGET_MODULE,
 } from "./builder-shared";
-import { foreignRequestRefusal, judgePatch } from "./builder-request-targets";
 
 const listPages = defineTool({
   name: "builder_list_pages",
@@ -145,10 +143,7 @@ const addBlock = defineTool({
     const { isBlockName } =
       await import("../../implementations/dms-builder/engine");
     if (!isBlockName(input.name)) return nameRefusal(input.name);
-    return (
-      (await foreignRequestRefusal(input.config, "/config")) ??
-      opResult(await AddBlock(input))
-    );
+    return opResult(await AddBlock(input, { agent: true }));
   },
 });
 
@@ -212,13 +207,9 @@ const configureBlock = defineTool({
         `replace:true would drop ${dropped.join(", ")}, which builder_page_structure hides because a mapping wrote them from rows. Merge the patch without replace to keep them, or send them yourself.`,
       );
     }
-    const judged = await judgePatch(path, patch, replace);
-    if (!judged.ok) return judged.refusal;
-    const opts: ConfigureBlockOpts = { replace };
-    if (judged.expectedVersion !== undefined) {
-      opts.expectedVersion = judged.expectedVersion;
-    }
-    return opResult(await ConfigureBlock(path, patch, opts));
+    return opResult(
+      await ConfigureBlock(path, patch, { replace, agent: true }),
+    );
   },
 });
 

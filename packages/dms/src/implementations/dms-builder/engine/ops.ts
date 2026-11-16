@@ -1,6 +1,7 @@
 import type {
   AddBlockInput,
   BlockPath,
+  BlockWriteOpts,
   ConfigureBlock,
   ConfigureBlockOpts,
   DuplicateScope,
@@ -15,15 +16,26 @@ import {
   type ObjectLiteralExpression,
   type SourceFile,
 } from "ts-morph";
-import { type BlockTarget, resolveBlockTarget } from "./block-target";
+import {
+  type BlockTarget,
+  resolveBlockTarget,
+  type TargetResult,
+} from "./block-target";
 import { buildCatalog } from "./catalog";
 import { assertBlockAccess, formGuard } from "./connection-access";
+import { editableOptions } from "./config-literal";
 import { applyImportRef, blockCallText, childArgText } from "./emit";
 import { stringLiteralValue } from "./literals";
 import { contentVersion, pageVersion } from "./page-structure";
 import { parseBlockPath } from "./paths";
 import { moduleMismatch } from "./modules";
 import { pruningOrphans, writePatch } from "./options-patch";
+import {
+  type PatchedOptions,
+  patchRequestIssues,
+  requestIssues,
+  requestRefusal,
+} from "./request-targets";
 import { invalidateResourceIndex, resourceRefResolver } from "./resource-index";
 import { type PageRecord } from "./scan";
 import { findPageRecord, invalidateSourceIndex } from "./source-index";
@@ -275,6 +287,17 @@ function insertStatic(
   cls.insertProperty(position, { isStatic: true, name, initializer });
 }
 
+/** The options a patch merges into, when the builder edits the block and reads every option. */
+function patchedOptions(resolved: TargetResult): PatchedOptions | undefined {
+  if (!resolved.ok || !resolved.target.editable) return undefined;
+  const { config, lockedOptions, reason } = editableOptions(
+    resolved.target.optionsObj,
+  );
+  return reason === undefined
+    ? { config, locked: Object.keys(lockedOptions) }
+    : undefined;
+}
+
 export function configureBlock(
   targetPath: string,
   patch: Parameters<typeof ConfigureBlock>[1],
@@ -297,6 +320,19 @@ export function configureBlock(
     return notFound(parsed.pageRef);
   }
   const resolved = resolveBlockTarget(cls, parsed.segments);
+  const refused =
+    opts?.agent === true
+      ? requestRefusal(
+          patchRequestIssues(
+            patchedOptions(resolved),
+            patch,
+            opts.replace ?? false,
+          ),
+        )
+      : undefined;
+  if (refused) {
+    return refused;
+  }
   if (!resolved.ok) {
     return resolved.reason === "not_found"
       ? notFound(targetPath)
@@ -472,7 +508,7 @@ export function stageBlock(
 
 export function addBlock(
   input: AddBlockInput,
-  opts?: MutationOpts,
+  opts?: BlockWriteOpts,
 ): OpResult<{ path: BlockPath }> {
   const context = openPage(input.page);
   if (isError(context)) {
@@ -485,6 +521,13 @@ export function addBlock(
   const cls = findPageClass(context.sourceFile, context.page.id);
   if (!cls) {
     return notFound<{ path: BlockPath }>(input.page);
+  }
+  const refused =
+    opts?.agent === true
+      ? requestRefusal(requestIssues(input.config, "/config"))
+      : undefined;
+  if (refused) {
+    return refused;
   }
   const transaction = new Transaction(context.sourceFile.getProject());
   const staged = stageBlock(context.sourceFile, cls, input, transaction);
