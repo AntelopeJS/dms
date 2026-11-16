@@ -1,3 +1,4 @@
+import { HTTPResult } from "@antelopejs/interface-api";
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import { UserModel } from "@antelopejs/interface-dms/auth/db";
 import {
@@ -109,6 +110,26 @@ async function seed(tenantId: string, rows: Fixture): Promise<void> {
   await GetModel(RoleModel, tenantId).insert(rows.roles);
   await GetModel(TenantMemberModel, tenantId).insert(rows.members);
   await GetModel(UserInviteModel, tenantId).insert(rows.invites);
+  await GetModel(TenantMemberModel, tenantId)
+    .table.insert({
+      _id: `${tenantId}-member-without-roles`,
+      userId: `${tenantId}-without-roles`,
+      isTenantOwner: false,
+      joinedAt: NOW,
+      invitedBy: null,
+    })
+    .run();
+  await GetModel(UserInviteModel, tenantId)
+    .table.insert({
+      _id: `${tenantId}-invite-without-roles`,
+      expiresAt: new Date(Date.now() + DAY_MS),
+      createdAt: NOW,
+      email: `${tenantId}-without-roles@role-holder-reads.test`,
+      language: "en",
+      token: `${tenantId}-token-without-roles`,
+      asTenantOwner: false,
+    })
+    .run();
 }
 
 function isInvitePending(invite: UserInvite, now: Date): boolean {
@@ -179,6 +200,20 @@ async function storedRows(tenantId: string) {
     GetModel(UserInviteModel, tenantId).getAll(),
   ]);
   return { members, invites };
+}
+
+async function storedRoleLists(tenantId: string) {
+  const { members, invites } = await storedRows(tenantId);
+  return {
+    members: members.map((row) => ({
+      id: row._id,
+      roleIds: row.roleIds ?? [],
+    })),
+    invites: invites.map((row) => ({
+      id: row._id,
+      roleIds: row.roles_ids ?? [],
+    })),
+  };
 }
 
 async function seedAll(): Promise<void> {
@@ -281,44 +316,39 @@ describe("[unit] pages/settings/users role holder reads match the in-memory answ
   });
 
   it("refuses to delete a role only pending invitations hold, and lets an unheld one through", async () => {
-    let refused = false;
-    await prepareRoleDeletion(TENANT, ["rhr-ops-2"], undefined).catch(() => {
-      refused = true;
-    });
-    expect(refused).to.equal(true);
+    const refusal = await prepareRoleDeletion(
+      TENANT,
+      ["rhr-ops-2"],
+      undefined,
+    ).then(
+      () => undefined,
+      (error: unknown) => error,
+    );
+    expect(refusal).to.be.instanceOf(HTTPResult);
+    expect(refusal instanceof HTTPResult && refusal.getStatus()).to.equal(409);
     expect(
       await prepareRoleDeletion(TENANT, ["rhr-unheld"], undefined),
     ).to.equal(undefined);
   });
 
   it("rewrites the same members and invitations, expired ones included, as the in-memory move did", async () => {
-    const roleLists = async () => {
-      const { members, invites } = await storedRows(DELETE_TENANT);
-      return {
-        members: members.map((row) => ({ id: row._id, roleIds: row.roleIds })),
-        invites: invites.map((row) => ({
-          id: row._id,
-          roleIds: row.roles_ids,
-        })),
-      };
-    };
     const moved = (row: { id: string; roleIds: string[] }) => ({
       id: row.id,
       roleIds:
         replaceRoleReference(row.roleIds, "rhd-admin", "rhd-support") ??
         row.roleIds,
     });
-    const before = await roleLists();
+    const before = await storedRoleLists(DELETE_TENANT);
 
     await prepareRoleDeletion(DELETE_TENANT, ["rhd-admin"], {
       reassignTo: "rhd-support",
     });
 
-    expect(await roleLists()).to.deep.equal({
+    expect(await storedRoleLists(DELETE_TENANT)).to.deep.equal({
       members: before.members.map(moved),
       invites: before.invites.map(moved),
     });
-    expect((await roleLists()).invites).to.deep.include({
+    expect((await storedRoleLists(DELETE_TENANT)).invites).to.deep.include({
       id: "rhd-invite-admin-expired",
       roleIds: ["rhd-support"],
     });

@@ -1,3 +1,4 @@
+import { ValueProxy } from "@antelopejs/interface-database";
 import type {
   TenantMemberModel,
   UserInviteModel,
@@ -5,12 +6,12 @@ import type {
 
 /** The members of `model`'s instance holding `roleId`, in stored order. */
 export function membersHoldingRole(model: TenantMemberModel, roleId: string) {
-  return model.table.filter((row) => row.key("roleIds").includes(roleId));
+  return model.table.filter((row) => row.key("roleIds", []).includes(roleId));
 }
 
 /** The invitations of `model`'s instance granting `roleId`, expired or not. */
 export function invitesGrantingRole(model: UserInviteModel, roleId: string) {
-  return model.table.filter((row) => row.key("roles_ids").includes(roleId));
+  return model.table.filter((row) => row.key("roles_ids", []).includes(roleId));
 }
 
 /** The invitations granting `roleId` that can still be accepted at `now`. */
@@ -20,7 +21,7 @@ export function pendingInvitesGrantingRole(
   now: Date,
 ) {
   return model.table.filter((row) =>
-    row.key("roles_ids").includes(roleId).and(row.key("expiresAt").gt(now)),
+    row.key("roles_ids", []).includes(roleId).and(row.key("expiresAt").gt(now)),
   );
 }
 
@@ -49,9 +50,11 @@ export async function userIdsHoldingAnyRole(
   if (roleIds.length === 0) return [];
   return model.table
     .filter((row) =>
-      roleIds
-        .map((roleId) => row.key("roleIds").includes(roleId))
-        .reduce((held, next) => held.or(next)),
+      row
+        .key("roleIds", [])
+        .filter((roleId) => ValueProxy.constant(roleIds).includes(roleId))
+        .isempty()
+        .not(),
     )
     .distinct("userId")
     .run();

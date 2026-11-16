@@ -74,6 +74,15 @@ describe("Notification recipients (MongoDB adapter)", () => {
       member("b-1", "u-admin", [ADMIN]),
       member("b-2", "u-b-only", [SUPPORT]),
     ]);
+    await GetModel(TenantMemberModel, "recipients-a")
+      .table.insert({
+        _id: "a-without-roles",
+        userId: "u-without-roles",
+        isTenantOwner: false,
+        joinedAt: NOW,
+        invitedBy: null,
+      })
+      .run();
   });
 
   it("sends to a role the members of one tenant the in-memory filter picked", async () => {
@@ -97,6 +106,23 @@ describe("Notification recipients (MongoDB adapter)", () => {
     const expected = holdersInJs(members, [ADMIN, SUPPORT]);
     assert.deepEqual(expected, ["u-admin", "u-b-only", "u-both", "u-support"]);
     assert.deepEqual(await recipients(), expected);
+  });
+
+  it("sends to the holders of any of many roles", async () => {
+    const roleIds = [
+      ...Array.from(
+        { length: 150 },
+        (_, index) => `recipients-unused-${index}`,
+      ),
+      SUPPORT,
+    ];
+
+    await internal.SendToRoles(roleIds, data, {
+      tenantId: "recipients-a",
+      dedupe: false,
+    });
+
+    assert.deepEqual(await recipients(), ["u-both", "u-support"]);
   });
 
   it("sends once to every user past the first pages", async function () {
