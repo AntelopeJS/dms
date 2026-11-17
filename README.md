@@ -68,7 +68,7 @@ With AntelopeJS DMS those pieces exist, and the agent picks blocks and fills in 
 
 - The agent skills ship inside the npm packages and teach it the API of the version you run.
 - Every block option has a type, so a wrong option fails the build.
-- Through the Builder, nothing is written unless the whole project still compiles.
+- Through the builder tools, nothing is written unless the whole project still compiles.
 
 ## What you get
 
@@ -128,21 +128,13 @@ It also needs an API module, a database module and an authentication module. The
 
 </details>
 
-## Three ways to build
+## Two ways to build
 
 Mix them on the same project. The assistant is a development tool and does not run in production.
 
-### Click in the Builder
-
-In the assistant's popup, choose **Start from an existing database**, paste a connection URL and press **Connect and analyse**. Untick what you don't need, then choose **Build directly**. The Builder writes the TypeScript and saves only if the whole project still compiles.
-
-<img data-illustration src="./docs/media/builder.gif" width="100%" alt="Ctrl B opens the Builder on a dashboard. A TableView block is added, the project is typechecked, and its line appears in dashboard/page.ts.">
-
-<img src="./docs/media/builder-new-table.gif" width="100%" data-illustration alt="The Builder's Tables tab creates a suppliers table, then shows its fields grid with ticks for Shown, Search, Sort, Filter, In export and Required, and the field types.">
-
 ### Ask the assistant
 
-Press <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>K</kbd> in the dashboard and describe what you want. Chats start in Safe mode, which changes pages, tables and queries through the Builder only. Code mode can also edit any file and run commands.
+Press <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>K</kbd> in the dashboard and describe what you want. Chats start in Safe mode, which changes pages, tables and queries through the builder tools only, and writes nothing unless the whole project still compiles. Code mode can also edit any file and run commands.
 
 <img src="./docs/media/ai-from-scratch.gif" width="100%" data-illustration alt="In Safe mode, the assistant chat builds a Roasting batches table and a page with a tab per roast level, and the page then lists sample batches.">
 
@@ -284,7 +276,7 @@ No. With `NODE_ENV=production` the assistant starts no agent, and the route your
 <details>
 <summary><b>Can it change my data?</b></summary>
 
-Generated pages are read-only until you switch on **Rows can be edited** for a table. The connection can still do whatever its database account allows, so a SELECT-only account is a good start.
+Generated pages are read-only until you ask the assistant to make a table editable. The connection can still do whatever its database account allows, so a SELECT-only account is a good start.
 
 </details>
 
