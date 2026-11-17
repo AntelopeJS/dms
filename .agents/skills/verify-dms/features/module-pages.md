@@ -77,12 +77,14 @@ What a module's pages are made of: table views with their forms, row actions and
 - `realtime-row-reaches-other-tab`: a user created in one tab appears in another tab on the same table without a reload. It is the end-to-end side of `formal-realtime-tabs`.
 - `fetched-confirm-dialog-draws-no-posting-form`: error path, on a development backend: an agent writes two dialogs as mockup fixtures (`mockup_write_spec`) and a table whose toolbar buttons read them through `confirm.from` (`builder_add_block`). A dialog whose `component` is a secret input rotating to an owner-only route opens with its texts and plain field and without that component. A dialog whose field is that secret input does not open. The owner's clicks send nothing to the route. It writes a resource and a table into the first page of the run's playground copy, under names unique to the run.
 - `matrix-cell-edit-persists`: the playground's Matrix allocation page (`/matrix/matrix-allocation`, route `/api/playground/matrix/allocation/correction/*`): a click opens a number cell of the stock correction grid, the value typed with the keyboard is saved as Enter leaves the cell, shown after a reload, and read back from the route (persistence).
+- `agenda-booking-persists`: the playground's Room bookings page (`/agenda/agenda-bookings`, route `/api/playground/agenda/bookings/*`): opened with `?plan=next`, the FullAgenda reads its proposal route and opens a "New booking" dialog prefilled at the first free hour in a free room; Create saves it, the `plan` key leaves the URL, and after a reload the route answers one booking more, with its room (persistence), and no dialog opens again.
 - `record-not-found`: error path: the edit page of a missing record says "This entry does not exist, or no longer does" and shows no form.
 
 ## How to get to it (user POV)
 
 - Sidebar > Table View > Users, its New entry button, the search button and each row's Actions menu.
 - Sidebar > Matrix > Reception allocation, a cell of its stock correction grid.
+- Sidebar > Agenda > Room bookings, its "First free hour" toolbar link.
 
 ## Driving it with dms-control
 

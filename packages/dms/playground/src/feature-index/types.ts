@@ -3,6 +3,7 @@ export const FEATURE_AREAS = {
   blocks: "Blocks & charts",
   tableView: "Table view",
   matrix: "Matrix",
+  agenda: "Agenda",
   form: "Forms",
   pages: "Pages & navigation",
   frontend: "Frontend modules",
