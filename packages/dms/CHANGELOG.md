@@ -1,5 +1,18 @@
 # Changelog
 
+## v0.21.1
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/v0.21.0...v0.21.1)
+
+### 🩹 Fixes
+
+- **dms:** Load the error messages before an auth form shows a failure ([#1136](https://github.com/AntelopeJS/dms/pull/1136))
+- **interface-dms:** Load into a dms that does not implement distinctWithSearch ([#1137](https://github.com/AntelopeJS/dms/pull/1137))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli
+
 ## v0.21.0
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/v0.20.8...v0.21.0)
