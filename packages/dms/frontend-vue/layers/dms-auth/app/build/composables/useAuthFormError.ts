@@ -6,6 +6,8 @@ import {
 } from "#dms-core/app/composables/useFieldErrors";
 import { resolveApiErrorMessage } from "#dms-core/app/composables/resolveApiError";
 
+const CORE_ERROR_KEY = "error.500.description";
+
 export interface AuthFormError {
   title: string;
   description: string;
@@ -40,12 +42,23 @@ export interface AuthFieldErrorTarget {
  */
 export function useAuthFormError() {
   const errorPresenter = useApiErrorPresenter();
+  const { i18n } = getPluginI18n();
   const formError = ref<AuthFormError | null>(null);
 
-  function showFormError(
+  /**
+   * A page served to a visitor carries only the messages its render read,
+   * and the presenter's lookups do not complete that catalog: the error
+   * messages are loaded before any is resolved.
+   */
+  async function loadErrorMessages(): Promise<void> {
+    if (!i18n.te(CORE_ERROR_KEY)) await i18n.setLocale(i18n.locale.value);
+  }
+
+  async function showFormError(
     error: Parameters<typeof resolveApiErrorMessage>[0],
     titleKey: string,
-  ): void {
+  ): Promise<void> {
+    await loadErrorMessages();
     const notice = errorPresenter.resolveError(error, {
       fallbackKey: titleKey,
     });
@@ -85,9 +98,10 @@ export function useAuthFormError() {
     });
     const form = target.form?.value;
     if (fields.length === 0 || (!target.show && !form)) {
-      showFormError(error, titleKey);
+      await showFormError(error, titleKey);
       return false;
     }
+    await loadErrorMessages();
     clearFormError();
     const messages = fields.map((entry) => ({
       name: entry.field,

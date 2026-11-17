@@ -53,6 +53,7 @@ Signing in and out, the sign-in redirect of protected pages, and password recove
 
 - `login-form-persists`: happy and persistence path: the form opens the dashboard; a reload and a backend restart keep the session; `/api/auth/me` reads the same account.
 - `login-wrong-password`: error path: the form shows "The provided credentials are incorrect." and `POST /api/auth/login` answers 401.
+- `login-autofilled-wrong-password`: error path right after a full load: fields set as autofill does and sent with Enter, before anything loads the whole catalog, still show "The provided credentials are incorrect." and no server error page.
 - `protected-page-redirects`: a visitor opening Settings > Members is sent to `/auth?redirect=…` and back after signing in; the members API refuses anonymous callers.
 - `logout-ends-session`: account menu > Logout returns to sign-in, and the settings page asks to sign in again.
 - `forgot-password-resets`: the emailed 6-character code opens the new password form; the new password signs in and the old one answers 401.

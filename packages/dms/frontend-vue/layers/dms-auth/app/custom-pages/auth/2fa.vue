@@ -87,7 +87,7 @@ async function requestEmailCode() {
       color: "success",
     });
   } catch (error: unknown) {
-    showFormError(error, "page.2fa.email_error");
+    await showFormError(error, "page.2fa.email_error");
   }
 }
 
