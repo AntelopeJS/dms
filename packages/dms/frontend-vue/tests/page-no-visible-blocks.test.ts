@@ -15,11 +15,11 @@ import {
 import { renderToString } from "vue/server-renderer";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import CatchAllPage from "../layers/dms-layout/app/pages/[...slug].vue";
+import { PAGE_FILL_HEIGHT_CLASSES } from "../layers/dms-layout/app/composables/layout/usePageFillHeight";
 import {
-  PAGE_FILL_HEIGHT_CLASSES,
   providePageFillHeight,
   usePageFillHeight,
-} from "../layers/dms-layout/app/composables/layout/usePageFillHeight";
+} from "../layers/dms-ui/app/composables/layout/usePageFillHeight";
 import { useRealDataEngine } from "./fixtures/dataEngine";
 
 interface PageLayoutFixture {

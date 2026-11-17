@@ -6719,6 +6719,261 @@
           ],
           "properties": {
             "type": {
+              "const": "FullAgenda"
+            },
+            "options": {
+              "type": "object",
+              "properties": {
+                "title": {},
+                "description": {},
+                "fetchUrl": {
+                  "type": "string",
+                  "description": "Where the events are read from."
+                },
+                "fetchUrlMethod": {
+                  "type": "string",
+                  "enum": [
+                    "GET",
+                    "POST",
+                    "PUT",
+                    "DELETE",
+                    "PATCH",
+                    "HEAD",
+                    "OPTIONS"
+                  ]
+                },
+                "realtimeTopic": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  ],
+                  "description": "Topics whose events make the block read its data again."
+                },
+                "staticData": {},
+                "periodScope": {
+                  "type": "string",
+                  "description": "Id of the PeriodSelector driving this block."
+                },
+                "propose": {},
+                "saveUrl": {
+                  "type": "string",
+                  "description": "Where changes are written."
+                },
+                "saveUrlMethod": {
+                  "type": "string",
+                  "enum": [
+                    "GET",
+                    "POST",
+                    "PUT",
+                    "DELETE",
+                    "PATCH",
+                    "HEAD",
+                    "OPTIONS"
+                  ]
+                },
+                "views": {},
+                "initialView": {
+                  "type": "string"
+                },
+                "initialDate": {
+                  "type": "string"
+                },
+                "minDate": {
+                  "type": "string"
+                },
+                "maxDate": {
+                  "type": "string"
+                },
+                "weekStartsOn": {
+                  "type": "number",
+                  "enum": [
+                    0,
+                    1,
+                    6
+                  ]
+                },
+                "hiddenDays": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  }
+                },
+                "timeZone": {
+                  "type": "string"
+                },
+                "calendars": {},
+                "resources": {},
+                "slots": {},
+                "businessHours": {},
+                "dayStart": {
+                  "type": "string"
+                },
+                "dayEnd": {
+                  "type": "string"
+                },
+                "slotMinutes": {
+                  "type": "number"
+                },
+                "snapMinutes": {
+                  "type": "number"
+                },
+                "hourHeight": {
+                  "type": "number"
+                },
+                "scrollTime": {
+                  "type": "string"
+                },
+                "nowIndicator": {
+                  "type": "boolean"
+                },
+                "allDayRow": {
+                  "type": "boolean"
+                },
+                "weekNumbers": {
+                  "type": "boolean"
+                },
+                "overlap": {
+                  "type": "string",
+                  "enum": [
+                    "columns",
+                    "stack"
+                  ]
+                },
+                "maxEventsPerDay": {
+                  "type": "number"
+                },
+                "resourceAreaWidth": {
+                  "type": "number"
+                },
+                "columnMinWidth": {
+                  "type": "number"
+                },
+                "defaultDurationMinutes": {
+                  "type": "number"
+                },
+                "eventContent": {},
+                "tooltips": {
+                  "type": "boolean"
+                },
+                "editable": {
+                  "type": "boolean"
+                },
+                "dragMove": {
+                  "type": "boolean"
+                },
+                "dragResize": {
+                  "type": "boolean"
+                },
+                "copyOnAltDrag": {
+                  "type": "boolean"
+                },
+                "create": {},
+                "rangeSelect": {
+                  "type": "string",
+                  "enum": [
+                    "drag",
+                    "twoClicks"
+                  ]
+                },
+                "selectAction": {},
+                "constraints": {},
+                "saveMode": {
+                  "type": "string",
+                  "enum": [
+                    "immediate",
+                    "staged"
+                  ]
+                },
+                "review": {
+                  "type": "boolean"
+                },
+                "undoSeconds": {
+                  "type": "number"
+                },
+                "conflicts": {
+                  "type": "string",
+                  "enum": [
+                    "overwrite",
+                    "detect"
+                  ]
+                },
+                "recurringEdit": {
+                  "type": "string",
+                  "enum": [
+                    "ask",
+                    "occurrence",
+                    "series"
+                  ]
+                },
+                "recurringTexts": {},
+                "detailsTexts": {},
+                "fields": {},
+                "details": {},
+                "eventAction": {},
+                "eventActions": {},
+                "toolbarActions": {},
+                "toolbar": {},
+                "sidebar": {},
+                "legend": {},
+                "unscheduled": {},
+                "search": {
+                  "type": "boolean"
+                },
+                "facets": {},
+                "urlState": {
+                  "type": "boolean"
+                },
+                "shortcuts": {
+                  "type": "boolean"
+                },
+                "height": {
+                  "type": "string"
+                },
+                "responsive": {},
+                "emptyLabel": {},
+                "density": {
+                  "type": "string",
+                  "enum": [
+                    "compact",
+                    "comfortable"
+                  ]
+                }
+              }
+            },
+            "children": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/node"
+              }
+            },
+            "id": {
+              "type": "string",
+              "description": "The child's id under its parent."
+            },
+            "slot": {
+              "type": "string",
+              "description": "The parent's slot it renders in."
+            },
+            "colSpan": {
+              "type": "number",
+              "description": "Columns it spans in a grid."
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "type": {
               "const": "Grid"
             },
             "options": {

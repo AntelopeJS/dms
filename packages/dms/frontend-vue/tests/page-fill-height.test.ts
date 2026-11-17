@@ -15,7 +15,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import DefaultLayout from "../layers/dms-layout/app/custom-layouts/DefaultLayout.vue";
 import CatchAllPage from "../layers/dms-layout/app/pages/[...slug].vue";
 import RecursiveComponent from "../layers/dms-ui/app/components/RecursiveComponent.vue";
-import { usePageFillHeight } from "../layers/dms-layout/app/composables/layout/usePageFillHeight";
+import { usePageFillHeight } from "../layers/dms-ui/app/composables/layout/usePageFillHeight";
 import { engine } from "./helpers/api-data-runtime";
 import {
   installShellRuntime,

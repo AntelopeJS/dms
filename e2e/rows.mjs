@@ -10,6 +10,7 @@
  * @typedef {{ id: string, state?: string }} StoreModule
  * @typedef {{ icon?: string, linkTo?: string, isRead?: boolean }} NotificationRow
  * @typedef {{ id: string, values: Record<string, unknown> }} MatrixRow
+ * @typedef {{ id: string, start: string, title?: string, resourceIds?: string[] }} AgendaEventRow
  */
 
 /**
@@ -292,4 +293,12 @@ export function booleanIn(body, key) {
   if (value === undefined || value === null) return undefined;
   if (!isBoolean(value)) throw new Error(`${key} is not a boolean`);
   return value;
+}
+
+/**
+ * @param {unknown} value
+ * @returns {value is AgendaEventRow} Whether it is an event of an agenda route's answer: an `id`, its `start`, and its rooms when it names them
+ */
+export function isAgendaEventRow(value) {
+  return isRecord(value) && isString(own(value, "id")) && isString(own(value, "start")) && isAbsentOrListOf(own(value, "resourceIds"), isString);
 }

@@ -29,6 +29,11 @@ skill (shipped with `@antelopejs/core`).
   `@RegisterPage()`. Its **static fields are blocks** — `Form`, `TableView`, `Grid`, `KpiCard`,
   `ChartCard`, … — fluent builders producing a serializable description; every block type is
   registered in the block catalog (`ListBlockTypes()`). Each field and `.child()` is a permission.
+- **Time on screen is a `FullAgenda`.** Bookings, shifts, a planning or leave are a `FullAgenda`
+  (`/base/full-agenda`) over a module route answering `AgendaData` (`fetchUrl`, read with `from`,
+  `to`, `view`, `tz`) and a save route receiving `{ changes }` (`saveUrl`): its views, drag and
+  drop, details form, booking mode (`propose`) and keyboard come with it, never a calendar drawn in
+  a custom component (`docs/04.components/15.full-agenda.md`).
 - **Blocks fetch their own data** through URLs (`fetchUrl`, `submitUrl`), usually routes declared
   with `@Get` / `@Post` on the same page class, served under `/dms/pages<slug>` (name them with
   `pageRoutePath(slug, route)`); a plain `Controller` the frontend calls sits under

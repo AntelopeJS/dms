@@ -1,12 +1,13 @@
 import { randomBytes } from "node:crypto";
 import { fieldOf, itemsOf, parseJson, textOf, toolText, withBridge } from "../mcp-bridge.mjs";
-import { isMatrixRow, isUserRow, listIn, listOf, numberIn } from "../rows.mjs";
+import { isAgendaEventRow, isMatrixRow, isUserRow, listIn, listOf, numberIn } from "../rows.mjs";
 import { operation, rebuild } from "./builder.mjs";
 
 /**
  * @typedef {import("@antelopejs/dms/e2e").Ctx} Ctx
  * @typedef {import("@antelopejs/dms/e2e").Tab} Tab
  * @typedef {import("../rows.mjs").UserRow} UserRow
+ * @typedef {import("../rows.mjs").AgendaEventRow} AgendaEventRow
  */
 
 const USERS = "/table-view/table-view-users";
@@ -15,6 +16,22 @@ const MATRIX_ALLOCATION = "/matrix/matrix-allocation";
 const MATRIX_CORRECTION_API = "/api/playground/matrix/allocation/correction/rows";
 const MATRIX_CORRECTION_GRID = { role: "grid", name: "Correction de stock (avant / après)" };
 const MATRIX_CELL = { role: "gridcell", name: "NE1 · 38", within: MATRIX_CORRECTION_GRID };
+const AGENDA_BOOKINGS = "/agenda/agenda-bookings";
+const AGENDA_BOOKINGS_EVENTS = "/api/playground/agenda/bookings/events";
+const DAY_MS = 86_400_000;
+
+/**
+ * The bookings the Room bookings route answers from yesterday to four weeks ahead, the days its proposal looks in.
+ *
+ * @param {Ctx} ctx
+ * @param {string} label
+ * @returns {Promise<AgendaEventRow[]>}
+ */
+async function bookingsAhead(ctx, label) {
+  const day = (/** @type {number} */ offset) => new Date(Date.now() + offset * DAY_MS).toISOString().slice(0, 10);
+  const answer = await ctx.api(label, { method: "GET", path: `${AGENDA_BOOKINGS_EVENTS}?from=${day(-1)}&to=${day(28)}` });
+  return listIn(answer.body, "events", isAgendaEventRow);
+}
 
 /**
  * The stock count of size 38 at Namur Esplanade the correction grid's route holds.
@@ -327,6 +344,31 @@ export const journeys = [
       await tab.reload();
       await ctx.verify("the value is still there after a reload", [matrixCellShows(ctx, tab, typed)]);
       await ctx.verify("the route holds the value typed", [ctx.equal("NE1 size 38", await countedAtNamur(ctx, "read the count after"), Number(typed))]);
+    },
+  },
+  {
+    id: "agenda-booking-persists",
+    title: "booking mode opens a new booking at the first free hour, and the booking created from it survives a reload and reads back from the route",
+    entryPoint: "/agenda/agenda-bookings?plan=next > New booking > Create",
+    async run(/** @type {Ctx} */ ctx) {
+      const tab = await signedIn(ctx);
+      const before = new Set((await bookingsAhead(ctx, "read the bookings before")).map((event) => event.id));
+      await tab.goto(`${AGENDA_BOOKINGS}?plan=next`);
+      await ctx.verify("booking mode opens a new booking", [tab.visible({ role: "dialog", name: "New booking" }), tab.shows(/Proposed: the first free hour/)], { critical: true });
+      await tab.click({ role: "button", name: "Create" });
+      await ctx.verify("the booking is saved and the URL no longer asks for a proposal", [
+        tab.visible({ role: "dialog", name: "New booking" }, { hidden: true, timeoutMs: 15_000 }),
+        ctx.holds("the URL has no plan key", !tab.page.url().includes("plan="), tab.page.url()),
+      ]);
+      await tab.reload();
+      const added = (await bookingsAhead(ctx, "read the bookings after")).filter((event) => !before.has(event.id));
+      await ctx.verify("the route holds one new booking, in a room", [
+        ctx.equal("bookings added", added.length, 1),
+        ctx.holds("the new booking names its room", (added[0]?.resourceIds?.length ?? 0) > 0, JSON.stringify(added[0])),
+      ]);
+      await ctx.verify("the page still opens on the rooms after the reload, with no new booking dialog", [
+        tab.visible({ role: "dialog", name: "New booking" }, { hidden: true, timeoutMs: 5_000 }),
+      ]);
     },
   },
   {
