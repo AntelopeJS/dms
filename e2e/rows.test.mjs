@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { booleanIn, isInviteRow, isMemberRow, isNotificationRow, isRoleOverviewRow, isRoleRow, isStoreModule, isUserRow, issuePaths, listIn, listOf, numberIn, rowsOf, requiredStringIn, stringIn, stringsIn } from "./rows.mjs";
+import { booleanIn, isInviteRow, isMatrixRow, isMemberRow, isNotificationRow, isRoleOverviewRow, isRoleRow, isStoreModule, isUserRow, issuePaths, listIn, listOf, numberIn, rowsOf, requiredStringIn, stringIn, stringsIn } from "./rows.mjs";
 
 const MEMBER = { _id: "default:u1", email: "a@example.com", name: "Ada", isTenantOwner: true, roleIds: [{ _id: "r1" }] };
 const INVITE = { _id: "i1", email: "b@example.com", asTenantOwner: false, roles_ids: [{ _id: "r1" }] };
@@ -18,6 +18,7 @@ await test("each row guard accepts the shape the data API lists and the fields a
   assert.equal(isRoleOverviewRow({ _id: "r1", inviteCount: 1, memberCount: 0 }), true);
   assert.equal(isRoleOverviewRow({ _id: "r1" }), true);
   assert.equal(isStoreModule({ id: "api", state: "available" }), true);
+  assert.equal(isMatrixRow({ id: "NE1", values: { 38: 4 } }), true);
 });
 
 await test("each row guard refuses a value that is not that row", () => {
@@ -37,6 +38,9 @@ await test("each row guard refuses a value that is not that row", () => {
   assert.equal(isUserRow({ _id: "u1", name: "Ada" }), false);
   assert.equal(isRoleOverviewRow({ _id: "r1", inviteCount: "1" }), false);
   assert.equal(isStoreModule({ id: "api", state: 3 }), false);
+  assert.equal(isMatrixRow({ id: "NE1" }), false);
+  assert.equal(isMatrixRow({ id: 1, values: {} }), false);
+  assert.equal(isMatrixRow({ id: "NE1", values: [4] }), false);
 });
 
 await test("listOf returns the rows of a list answer", () => {

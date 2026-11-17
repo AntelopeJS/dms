@@ -33,7 +33,7 @@ const GRID: MatrixData = {
   rows: [
     { id: "r1", label: "Desk", values: { price: 40, note: "oak" } },
     { id: "r2", label: "Lamp", values: { price: 43, note: "abc" } },
-    { id: "r3", label: "Chair", values: { price: 12, note: "ash" } },
+    { id: "r3", label: "Shelf", values: { price: 12, note: "ash" } },
   ],
 };
 
