@@ -20,13 +20,13 @@ import {
   type ReferencingOptions,
 } from "../../internal/column-references";
 import { isNull, isObject } from "../../../utils/internal/type-check";
-import { distinctWithSearch } from "../data-functions";
 import type {
   TableViewOptionsSerialized,
   TableViewTabSerialized,
 } from "../options";
 import { authorizeAction, LIST_ACTION } from "./auth";
 import type { ColumnValues } from "./data-functions";
+import { distinctWithSearch } from "./distinct-values";
 
 /** The most values a column's tabs show, "All" aside. */
 const MAX_TAB_VALUES = 10;
@@ -119,12 +119,16 @@ function sortedValues(entry: ColumnValues): readonly string[] {
   return [...entry.values].sort((left, right) => left.localeCompare(right));
 }
 
-/** The values the rows the caller may list hold, as its list route reads them; it throws without the `list` permission. */
+/**
+ * The values the rows the caller may list hold, as its list route reads them;
+ * none when the runtime does not read them. It throws without the `list`
+ * permission.
+ */
 async function readColumns(
   source: TableViewColumnValues,
   ctx: RequestContext,
   user: User,
-): Promise<ReadColumnValues> {
+): Promise<ReadColumnValues | undefined> {
   const instance = await GetControllerInstance(source.controller, ctx);
   const permissions = await authorizeAction(
     instance,
@@ -132,13 +136,14 @@ async function readColumns(
     user,
     getRequestTenantId(ctx),
   );
-  const read = await distinctWithSearch(
+  const read = await distinctWithSearch.call(
     instance,
     ctx,
     source.columns,
     user,
     permissions,
   );
+  if (!read) return undefined;
   return new Map(
     read
       .filter((entry) => entry.complete)
