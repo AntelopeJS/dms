@@ -1,5 +1,17 @@
 # Changelog
 
+## v0.14.5
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/interface-v0.14.4...interface-v0.14.5)
+
+### 🩹 Fixes
+
+- **interface-dms:** Load into a dms that does not implement distinctWithSearch ([#1137](https://github.com/AntelopeJS/dms/pull/1137))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli
+
 ## v0.14.4
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/interface-v0.14.3...interface-v0.14.4)
