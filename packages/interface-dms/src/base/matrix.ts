@@ -13,6 +13,7 @@ import type {
   MatrixData,
   MatrixFacet,
   MatrixFillAction,
+  MatrixFollowedField,
   MatrixGrouping,
   MatrixLegendItem,
   MatrixProps,
@@ -146,6 +147,11 @@ export const MatrixSchema = z.object({
     label: "Refresh the page after a save",
     group: "behavior",
     widget: "switch",
+  }),
+  followField: ui(opaqueOption<MatrixFollowedField>().optional(), {
+    label: "Follow a form field",
+    group: "data",
+    widget: "json",
   }),
   undoSeconds: ui(z.number().int().min(0).optional(), {
     label: "Undo window (s)",

@@ -90,21 +90,30 @@ Object.defineProperty(Element.prototype, "scrollIntoView", {
   configurable: true,
 });
 
+/** The query a read of `fetchUrl` is sent with. */
+export type MatrixReadQuery = Readonly<Record<string, string>> | undefined;
+
+/** What a request of the grid carries: a save's body, a read's query. */
+interface MatrixRequest {
+  body?: MatrixSaveRequest;
+  query?: MatrixReadQuery;
+}
+
 /**
- * Stubs the runtime a Matrix block reads, its save route answering
- * `answer` for each request, and returns the requests it receives.
+ * Stubs the runtime a Matrix block reads, its save route answering `answer`
+ * for each request and its `fetchUrl` answering `read`, and returns the
+ * save requests it receives.
  */
 export async function stubMatrixRuntime(
   answer: () => ApiAnswer = () => ({}),
+  read: (query: MatrixReadQuery) => ApiAnswer = () => ({}),
 ): Promise<MatrixSaveRequest[]> {
   const saves: MatrixSaveRequest[] = [];
-  const authFetch = vi.fn(
-    async (_url: string, options?: { body?: MatrixSaveRequest }) => {
-      if (!options?.body) return {};
-      saves.push(options.body);
-      return answer();
-    },
-  );
+  const authFetch = vi.fn(async (_url: string, options?: MatrixRequest) => {
+    if (!options?.body) return read(options?.query);
+    saves.push(options.body);
+    return answer();
+  });
   vi.stubGlobal("shallowRef", shallowRef);
   await stubBlockRuntime(authFetch);
   useRealDataEngine();

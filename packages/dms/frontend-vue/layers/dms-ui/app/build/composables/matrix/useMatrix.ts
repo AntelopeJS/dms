@@ -33,6 +33,7 @@ import {
   type MatrixColumnsControls,
 } from "./useMatrixColumns";
 import { useMatrixData, type MatrixDataSource } from "./useMatrixData";
+import { useFollowedField } from "./useFollowedField";
 import { useMatrixDrawers } from "./useMatrixDrawers";
 import { useMatrixEngine } from "./useMatrixEngine";
 import { useMatrixCells } from "./useMatrixCells";
@@ -160,11 +161,13 @@ function useMatrixModel(
     value === undefined || value === "" ? "" : processText(value);
   const routeParams = () => props.routeParams;
   const query = useMatrixQueryState(options, props.componentId);
+  const followed = useFollowedField(options.followField, props.componentId);
   const source = useMatrixData({
     options,
     query: query.state,
     routeParams,
     watchKey,
+    followed: () => followed.value,
   });
   const columns = useMatrixColumns(
     () => options.columns,
@@ -179,7 +182,10 @@ function useMatrixModel(
   const engine = useMatrixEngine({
     options,
     routeParams,
-    listQuery: () => matrixFilterParams(query.state.value),
+    listQuery: () => ({
+      ...matrixFilterParams(query.state.value),
+      ...followed.value,
+    }),
     source,
     labelOf: (columnId) => {
       const column = columns.columnById.value.get(columnId);

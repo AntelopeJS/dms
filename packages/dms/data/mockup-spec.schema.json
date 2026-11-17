@@ -7638,6 +7638,10 @@
                 "review": {
                   "type": "boolean"
                 },
+                "refreshPageOnSave": {
+                  "type": "boolean"
+                },
+                "followField": {},
                 "undoSeconds": {
                   "type": "number"
                 },

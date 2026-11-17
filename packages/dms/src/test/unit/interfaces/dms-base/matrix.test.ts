@@ -37,6 +37,7 @@ const FULL_OPTIONS: MatrixProps = {
   saveMode: "staged",
   review: true,
   refreshPageOnSave: true,
+  followField: { block: "order", field: "quantity", param: "quantity" },
   undoSeconds: 10,
   conflicts: "detect",
   enterMove: "right",

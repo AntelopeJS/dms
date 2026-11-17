@@ -447,6 +447,20 @@ export interface MatrixGrouping {
   subtotals?: boolean;
 }
 
+/**
+ * A field of the form beside the grid whose value the grid reads its rows
+ * with: each change of `field` in the block `block` (a key of the same page
+ * or parent) reads `fetchUrl` again with `param=<value>`, and an edit is sent
+ * with it in its `query`. Before the form says a value, the grid reads
+ * without it; an emptied field sends it empty. A column the route computes
+ * from the field (the share of a stock an order takes) follows what is typed.
+ */
+export interface MatrixFollowedField {
+  block: string;
+  field: string;
+  param: string;
+}
+
 export interface MatrixProps extends BaseComponentProps {
   title?: BlockText;
   description?: BlockText;
@@ -481,6 +495,8 @@ export interface MatrixProps extends BaseComponentProps {
    * total filled in from the cells) shows them at once.
    */
   refreshPageOnSave?: boolean;
+  /** Reads the rows again with the value of a field of the form beside the grid. */
+  followField?: MatrixFollowedField;
   /** Seconds an Undo stays offered after a save. 0 or absent: no undo. */
   undoSeconds?: number;
   /** Defaults to `overwrite`. */

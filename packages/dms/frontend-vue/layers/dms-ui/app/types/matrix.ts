@@ -302,6 +302,17 @@ export interface MatrixGrouping {
   subtotals?: boolean;
 }
 
+/**
+ * A field of the form beside the grid: each change of `field` in the block
+ * `block` reads the rows again with `param=<value>`, and an edit is sent with
+ * it in its `query`.
+ */
+export interface MatrixFollowedField {
+  block: string;
+  field: string;
+  param: string;
+}
+
 /** The options of a `Matrix` block, as the block receives them. */
 export interface MatrixOptions {
   title?: BlockText;
@@ -320,6 +331,8 @@ export interface MatrixOptions {
   review?: boolean;
   /** Asks the page's blocks to read their data again after a save that landed cleanly. */
   refreshPageOnSave?: boolean;
+  /** Reads the rows again with the value of a field of the form beside the grid. */
+  followField?: MatrixFollowedField;
   undoSeconds?: number;
   conflicts?: MatrixConflictMode;
   enterMove?: MatrixEnterMove;

@@ -53,6 +53,8 @@ export interface MatrixDataOptions {
   routeParams: () => Record<string, string> | undefined;
   /** The state of the block's watch actions: a change reads again. */
   watchKey: () => string;
+  /** The query of the form field the grid follows (`followField`), sent with each read; a change reads again. */
+  followed: () => Readonly<Record<string, string>>;
 }
 
 function replaceRows(rows: MatrixRow[], answered: MatrixRow[]): MatrixRow[] {
@@ -211,7 +213,10 @@ function usePagedMatrixData(source: MatrixDataOptions): MatrixDataSource {
   const pagination = options.pagination ?? "none";
   const loaded = useApiData<MatrixData>(() => url.value ?? null, {
     method: options.fetchUrlMethod,
-    query: () => buildMatrixQuery(query.value, pagination),
+    query: () => ({
+      ...buildMatrixQuery(query.value, pagination),
+      ...source.followed(),
+    }),
     lazy: true,
     refreshOnPageRefresh: false,
     watch: [source.watchKey],
@@ -253,7 +258,10 @@ function useInfiniteMatrixData(source: MatrixDataOptions): MatrixDataSource {
   const url = useResolvedUrl(options.fetchUrl, source.routeParams);
   const key = computed(() => {
     if (!url.value) return null;
-    const params = new URLSearchParams(matrixFilterParams(query.value));
+    const params = new URLSearchParams({
+      ...matrixFilterParams(query.value),
+      ...source.followed(),
+    });
     params.set("limit", String(query.value.pageSize));
     return `${KEY_PREFIX}:${url.value}?${params}:${source.watchKey()}`;
   });
@@ -262,7 +270,10 @@ function useInfiniteMatrixData(source: MatrixDataOptions): MatrixDataSource {
     ({ $authFetch, cursor, signal }) =>
       $authFetch<MatrixData>(url.value ?? "", {
         method: options.fetchUrlMethod,
-        query: buildMatrixQuery(query.value, "infinite", cursor ?? 0),
+        query: {
+          ...buildMatrixQuery(query.value, "infinite", cursor ?? 0),
+          ...source.followed(),
+        },
         signal,
       }),
     {

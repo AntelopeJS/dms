@@ -10492,6 +10492,24 @@
             "widget": "switch"
           }
         },
+        "refreshPageOnSave": {
+          "type": "boolean",
+          "optional": true,
+          "ui": {
+            "label": "Refresh the page after a save",
+            "group": "behavior",
+            "widget": "switch"
+          }
+        },
+        "followField": {
+          "type": "unknown",
+          "optional": true,
+          "ui": {
+            "label": "Follow a form field",
+            "group": "data",
+            "widget": "json"
+          }
+        },
         "undoSeconds": {
           "type": "number",
           "optional": true,
@@ -10792,6 +10810,7 @@
           "typeToEdit",
           "saveMode",
           "review",
+          "refreshPageOnSave",
           "undoSeconds",
           "conflicts",
           "enterMove",
