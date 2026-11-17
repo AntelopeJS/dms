@@ -1,5 +1,42 @@
 # Changelog
 
+## v0.21.0
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/v0.20.8...v0.21.0)
+
+### 🔥 Performance
+
+- **dms:** Count, filter and page role holders in the database query ([#1118](https://github.com/AntelopeJS/dms/pull/1118))
+
+### 🩹 Fixes
+
+- **dms:** Draw no request-sending input from a fetched confirm dialog ([#1091](https://github.com/AntelopeJS/dms/pull/1091))
+- **dms:** Judge a block's request targets inside the builder engine for agent calls ([#1090](https://github.com/AntelopeJS/dms/pull/1090))
+- **dms:** Write column references instead of row values in mapped modules ([#1104](https://github.com/AntelopeJS/dms/pull/1104))
+- **dms:** Clear account cookies a previous session secret sealed ([#1130](https://github.com/AntelopeJS/dms/pull/1130))
+- **dms:** Emit the e2e types with TypeScript 6 to keep their TSDoc ([#1133](https://github.com/AntelopeJS/dms/pull/1133))
+- **dms:** Wait for the dev dashboard to serve a new backend's module set ([#1134](https://github.com/AntelopeJS/dms/pull/1134))
+
+### 💅 Refactors
+
+- **interface-dms-builder:** Remove the SampleDatabaseRows operation ([#1129](https://github.com/AntelopeJS/dms/pull/1129))
+
+### 📖 Documentation
+
+- Drop the reverted pull request pairs from the 16 November changelogs ([#1128](https://github.com/AntelopeJS/dms/pull/1128))
+
+### 📦 Build
+
+- Build and typecheck with TypeScript 7 through antelopejs-tsc ([#1132](https://github.com/AntelopeJS/dms/pull/1132))
+
+#### ⚠️ Breaking Changes
+
+- **interface-dms-builder:** Remove the SampleDatabaseRows operation ([#1129](https://github.com/AntelopeJS/dms/pull/1129))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli
+
 ## v0.20.8
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/v0.20.7...v0.20.8)
