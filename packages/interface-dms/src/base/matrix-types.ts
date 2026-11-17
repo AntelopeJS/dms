@@ -475,6 +475,12 @@ export interface MatrixProps extends BaseComponentProps {
   saveMode?: MatrixSaveMode;
   /** `staged`: lists the changes, before → after, before writing them. */
   review?: boolean;
+  /**
+   * Asks every block of the page to read its data again once a save landed
+   * without an error or a conflict: a form whose values follow the grid (a
+   * total filled in from the cells) shows them at once.
+   */
+  refreshPageOnSave?: boolean;
   /** Seconds an Undo stays offered after a save. 0 or absent: no undo. */
   undoSeconds?: number;
   /** Defaults to `overwrite`. */

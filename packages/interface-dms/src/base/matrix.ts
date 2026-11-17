@@ -142,6 +142,11 @@ export const MatrixSchema = z.object({
     group: "behavior",
     widget: "switch",
   }),
+  refreshPageOnSave: ui(z.boolean().optional(), {
+    label: "Refresh the page after a save",
+    group: "behavior",
+    widget: "switch",
+  }),
   undoSeconds: ui(z.number().int().min(0).optional(), {
     label: "Undo window (s)",
     group: "behavior",

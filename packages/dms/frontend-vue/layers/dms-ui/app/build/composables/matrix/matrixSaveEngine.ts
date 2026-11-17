@@ -96,6 +96,14 @@ export interface MatrixCommit {
   original: MatrixValue | undefined;
 }
 
+/**
+ * Whether a save's answer names no refused change and no conflict: every
+ * change of the request landed.
+ */
+export function savedCleanly(response: MatrixSaveResponse): boolean {
+  return !response.errors?.length && !response.conflicts?.length;
+}
+
 const DEFAULT_SAVED_FLASH_MS = 1800;
 const KEY_SEPARATOR = "\u0001";
 

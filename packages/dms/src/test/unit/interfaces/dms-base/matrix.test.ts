@@ -36,6 +36,7 @@ const FULL_OPTIONS: MatrixProps = {
   typeToEdit: true,
   saveMode: "staged",
   review: true,
+  refreshPageOnSave: true,
   undoSeconds: 10,
   conflicts: "detect",
   enterMove: "right",
@@ -212,5 +213,6 @@ describe("[unit] interfaces/dms-base — Matrix", () => {
       ValidateBlockOptions("Matrix", options).valid;
     expect(valid({ saveMode: "later" })).to.equal(false);
     expect(valid({ pageSize: 0 })).to.equal(false);
+    expect(valid({ refreshPageOnSave: "yes" })).to.equal(false);
   });
 });

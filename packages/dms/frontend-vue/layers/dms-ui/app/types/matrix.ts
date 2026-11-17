@@ -318,6 +318,8 @@ export interface MatrixOptions {
   typeToEdit?: boolean;
   saveMode?: MatrixSaveMode;
   review?: boolean;
+  /** Asks the page's blocks to read their data again after a save that landed cleanly. */
+  refreshPageOnSave?: boolean;
   undoSeconds?: number;
   conflicts?: MatrixConflictMode;
   enterMove?: MatrixEnterMove;

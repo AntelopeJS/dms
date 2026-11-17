@@ -7,8 +7,11 @@ import type {
 import { describeFieldErrors } from "#dms-core/app/composables/useFieldErrors";
 import { HttpMethod } from "#dms-core/app/types/http";
 import { resolveUrlVariables } from "../../utils/urlVariables";
+import { refreshPageBlocks } from "../../../utils/blockRefresh";
+import { detach } from "../detach";
 import {
   createMatrixSaveEngine,
+  savedCleanly,
   type MatrixSaveEngine,
 } from "./matrixSaveEngine";
 import type { MatrixDataSource } from "./useMatrixData";
@@ -64,7 +67,11 @@ export function useMatrixEngine(setup: MatrixEngineSetup): MatrixSaveEngine {
     mode: () => options.saveMode ?? "immediate",
     send: useSaveRequest(setup),
     isBlocked: setup.isBlocked,
-    onResponse: (response) => source.applySaveResponse(response),
+    onResponse: (response) => {
+      source.applySaveResponse(response);
+      if (options.refreshPageOnSave && savedCleanly(response))
+        detach(refreshPageBlocks());
+    },
     onWritten: (values) => source.patchValues(values),
     onConflict: (conflict) =>
       source.patchValues([
