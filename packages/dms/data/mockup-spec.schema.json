@@ -7566,6 +7566,194 @@
           ],
           "properties": {
             "type": {
+              "const": "Matrix"
+            },
+            "options": {
+              "type": "object",
+              "properties": {
+                "title": {},
+                "description": {},
+                "fetchUrl": {
+                  "type": "string",
+                  "description": "Where the rows are read from."
+                },
+                "fetchUrlMethod": {
+                  "type": "string",
+                  "enum": [
+                    "GET",
+                    "POST",
+                    "PUT",
+                    "DELETE",
+                    "PATCH",
+                    "HEAD",
+                    "OPTIONS"
+                  ]
+                },
+                "realtimeTopic": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  ],
+                  "description": "Topics whose events make the block read its data again."
+                },
+                "staticData": {},
+                "saveUrl": {
+                  "type": "string",
+                  "description": "Where edits are written."
+                },
+                "saveUrlMethod": {
+                  "type": "string",
+                  "enum": [
+                    "GET",
+                    "POST",
+                    "PUT",
+                    "DELETE",
+                    "PATCH",
+                    "HEAD",
+                    "OPTIONS"
+                  ]
+                },
+                "columns": {},
+                "rowHeader": {},
+                "editable": {
+                  "type": "boolean"
+                },
+                "typeToEdit": {
+                  "type": "boolean"
+                },
+                "saveMode": {
+                  "type": "string",
+                  "enum": [
+                    "immediate",
+                    "staged"
+                  ]
+                },
+                "review": {
+                  "type": "boolean"
+                },
+                "undoSeconds": {
+                  "type": "number"
+                },
+                "conflicts": {
+                  "type": "string",
+                  "enum": [
+                    "overwrite",
+                    "detect"
+                  ]
+                },
+                "enterMove": {
+                  "type": "string",
+                  "enum": [
+                    "down",
+                    "right",
+                    "stay"
+                  ]
+                },
+                "rowPanel": {},
+                "cellAction": {},
+                "rowActions": {},
+                "selectable": {
+                  "type": "boolean"
+                },
+                "fillActions": {},
+                "pagination": {
+                  "type": "string",
+                  "enum": [
+                    "none",
+                    "pages",
+                    "infinite"
+                  ]
+                },
+                "pageSize": {
+                  "type": "number"
+                },
+                "pageSizes": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  }
+                },
+                "search": {
+                  "type": "boolean"
+                },
+                "statusFilters": {},
+                "facets": {},
+                "sortable": {
+                  "type": "boolean"
+                },
+                "columnFilters": {},
+                "urlState": {
+                  "type": "boolean"
+                },
+                "grouping": {},
+                "totals": {},
+                "targets": {},
+                "crossHighlight": {
+                  "type": "boolean"
+                },
+                "columnsMenu": {
+                  "type": "boolean"
+                },
+                "resizableColumns": {
+                  "type": "boolean"
+                },
+                "jumpToEmpty": {
+                  "type": "boolean"
+                },
+                "keepEditedRows": {
+                  "type": "boolean"
+                },
+                "exportCsv": {
+                  "type": "boolean"
+                },
+                "legend": {},
+                "emptyLabel": {},
+                "maxHeight": {
+                  "type": "string"
+                },
+                "density": {
+                  "type": "string",
+                  "enum": [
+                    "compact",
+                    "comfortable"
+                  ]
+                }
+              }
+            },
+            "children": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/node"
+              }
+            },
+            "id": {
+              "type": "string",
+              "description": "The child's id under its parent."
+            },
+            "slot": {
+              "type": "string",
+              "description": "The parent's slot it renders in."
+            },
+            "colSpan": {
+              "type": "number",
+              "description": "Columns it spans in a grid."
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "type": {
               "const": "Meter"
             },
             "options": {
@@ -9814,10 +10002,11 @@
                 },
                 "rowClick": {
                   "type": "string",
-                  "description": "Whether a row opens with one click or two.",
+                  "description": "Whether a row opens with one click, two, or not at all.",
                   "enum": [
                     "single",
-                    "double"
+                    "double",
+                    "none"
                   ]
                 },
                 "expandable": {
