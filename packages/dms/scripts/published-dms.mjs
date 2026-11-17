@@ -38,10 +38,9 @@ async function run(command, args, options = {}) {
     const failed = z
       .object({ stdout: z.string(), stderr: z.string() })
       .safeParse(error);
-    if (failed.success) {
-      process.stderr.write(failed.data.stdout + failed.data.stderr);
-    }
-    throw error;
+    if (!failed.success) throw error;
+    process.stderr.write(failed.data.stdout + failed.data.stderr);
+    throw new Error(`${command} ${args.join(" ")} failed`);
   }
 }
 
@@ -100,20 +99,23 @@ if (versions.length === 0) {
 }
 
 const work = fs.mkdtempSync(path.join(os.tmpdir(), "published-dms-"));
-await run("pnpm", ["pack", "--pack-destination", work], { cwd: interfaceRoot });
-const packed = fs.readdirSync(work).filter((name) => name.endsWith(".tgz"));
-if (packed.length !== 1) {
-  throw new Error(
-    `expected one interface-dms tarball, found ${packed.join(", ")}`,
-  );
-}
-const tarball = path.join(work, packed[0]);
-
-const mongod = await MongoMemoryReplSet.create({
-  replSet: { count: 1 },
-  binary: { version: "8.0.8" },
-});
+/** @type {MongoMemoryReplSet | undefined} */
+let mongod;
 try {
+  await run("pnpm", ["pack", "--pack-destination", work], {
+    cwd: interfaceRoot,
+  });
+  const packed = fs.readdirSync(work).filter((name) => name.endsWith(".tgz"));
+  if (packed.length !== 1) {
+    throw new Error(
+      `expected one interface-dms tarball, found ${packed.join(", ")}`,
+    );
+  }
+  const tarball = path.join(work, packed[0]);
+  mongod = await MongoMemoryReplSet.create({
+    replSet: { count: 1 },
+    binary: { version: "8.0.8" },
+  });
   for (const version of versions) {
     const directory = path.join(work, `dms-${version}`);
     fs.mkdirSync(directory);
@@ -126,9 +128,11 @@ try {
         ...process.env,
         PUBLISHED_DMS_PATH: moduleDir,
         PUBLISHED_DMS_MONGO_URL: mongod.getUri(),
+        PUBLISHED_DMS_DATABASE: `published-dms-${version.replaceAll(".", "_")}`,
       },
     });
   }
 } finally {
-  await mongod.stop();
+  await mongod?.stop();
+  fs.rmSync(work, { recursive: true, force: true });
 }

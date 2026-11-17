@@ -19,8 +19,9 @@ type DistinctWithSearch = (
  * read per column. A column the controller does not list answers nothing.
  *
  * Its own subpath, apart from the `base/table-view` binding, so a runtime
- * that predates it still binds that one. Until a runtime implements it, it
- * answers `undefined`: no values are read.
+ * that predates it still binds that one. Before any runtime binds it, it
+ * answers `undefined`: no values are read. Once a binding runtime unloads,
+ * calls wait for the next one, as every other proxy's do.
  *
  * @internal
  */

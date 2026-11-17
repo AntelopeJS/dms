@@ -1,12 +1,14 @@
 import type { RequestContext } from "@antelopejs/interface-api";
-import { GetDataControllerMeta } from "@antelopejs/interface-data-api";
+import {
+  type DataControllerInstance,
+  GetDataControllerMeta,
+} from "@antelopejs/interface-data-api";
 import { Parameters } from "@antelopejs/interface-data-api/components";
 import type { User } from "@antelopejs/interface-dms/auth/db";
 import {
   type ColumnValues,
   MAX_COLUMN_VALUES,
 } from "@antelopejs/interface-dms/base/table-view/internal/data-functions";
-import type { DataControllerInstance } from "@antelopejs/interface-data-api";
 import { isString } from "@antelopejs/interface-dms/utils/internal/type-check";
 import { z } from "zod";
 import { buildFilteredQuery, resolveListScope } from "./search-route";

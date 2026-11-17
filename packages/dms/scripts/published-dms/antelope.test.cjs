@@ -4,7 +4,8 @@ const JWT_SECRET = "published-dms-jwt-secret";
 
 /**
  * The project `published-dms.mjs` runs: the dms module at `PUBLISHED_DMS_PATH`
- * with the providers it requires, on the MongoDB at `PUBLISHED_DMS_MONGO_URL`.
+ * with the providers it requires, on the database `PUBLISHED_DMS_DATABASE` of
+ * the MongoDB at `PUBLISHED_DMS_MONGO_URL`.
  */
 module.exports = {
   name: "published-dms",
@@ -29,7 +30,7 @@ module.exports = {
       },
       config: {
         url: process.env.PUBLISHED_DMS_MONGO_URL,
-        database: "published-dms",
+        database: process.env.PUBLISHED_DMS_DATABASE,
       },
     },
     "auth-jwt": {
