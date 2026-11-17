@@ -42,7 +42,7 @@ const sizeItems = computed(() =>
 const footerLine = computed(() =>
   matrix.text(matrix.source.data.value?.footer),
 );
-const isEditable = computed(() => matrix.canEdit.value);
+const isEditable = computed(() => matrix.hasEditableCell.value);
 const isStaged = computed(() => matrix.options.saveMode === "staged");
 </script>
 

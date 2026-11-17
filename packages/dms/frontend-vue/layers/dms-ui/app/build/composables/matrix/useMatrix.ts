@@ -72,6 +72,8 @@ export interface MatrixContext {
   entryCell: ComputedRef<MatrixCellAddress | null>;
   /** Editing is on: a `saveUrl`, and `editable` not turned off. */
   canEdit: ComputedRef<boolean>;
+  /** Some cell of the rows shown can be typed in: editing is on and not every row or cell is read only. */
+  hasEditableCell: ComputedRef<boolean>;
   totals: ComputedRef<MatrixTotalsResult>;
   /** A group's own column sums (`grouping.subtotals`). */
   sectionTotals: (section: MatrixSection) => MatrixTotalsResult;
@@ -222,6 +224,13 @@ function useMatrixModel(
     engine,
     refresh: () => source.refresh(),
   });
+  const hasEditableCell = computed(
+    () =>
+      canEdit.value &&
+      rows.rows.value.some((row) =>
+        columns.visible.value.some((column) => cells.isEditable(row, column)),
+      ),
+  );
   watch(
     () => columns.columnById.value,
     (byId) => {
@@ -247,6 +256,7 @@ function useMatrixModel(
     rows,
     engine,
     canEdit,
+    hasEditableCell,
     valueOf,
     ...goals,
     ...cells,

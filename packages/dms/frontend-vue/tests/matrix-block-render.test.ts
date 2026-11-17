@@ -190,6 +190,16 @@ it("reads absent flags as their defaults: editable with a saveUrl", async () => 
   expect(html).toContain("dms.matrix.shortcuts.edit");
 });
 
+it("shows no edit shortcuts when every row is read only, though the grid has a saveUrl (fails when the footer offers editing on a grid nothing can be typed in)", async () => {
+  const frozen: MatrixData = {
+    ...STOCK,
+    rows: STOCK.rows.map((row) => ({ ...row, readOnly: true })),
+  };
+  const html = await render({ saveUrl: "/save", staticData: frozen });
+  expect(html).toContain('role="grid"');
+  expect(html).not.toContain("dms.matrix.shortcuts.edit");
+});
+
 it("reads its route with the page, filters and sort the URL keeps under its id", async () => {
   const requests: Array<{ url: string; query?: Record<string, string> }> = [];
   vi.stubGlobal("useAuthFetch", () => ({
