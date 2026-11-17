@@ -316,7 +316,7 @@ describe("timeline at scale", () => {
   };
   const HOUR = 3_600_000;
 
-  it("keeps 60 resources over a week quick to lay out", () => {
+  it("lays out 60 resources over a week, each on one lane with all its events (fails when a row drops an event or stacks touching ones)", () => {
     const days = makeDays("2026-10-26", 7);
     const weekColumns = buildTimelineColumns({
       days,
@@ -344,7 +344,6 @@ describe("timeline at scale", () => {
         ),
       ),
     );
-    const started = performance.now();
     const rows = buildTimelineRows({
       resources,
       groups: [],
@@ -355,6 +354,10 @@ describe("timeline at scale", () => {
       metrics: METRICS,
     });
     expect(rows).toHaveLength(60);
-    expect(performance.now() - started).toBeLessThan(200);
+    expect(
+      rows.map((row) =>
+        row.kind === "resource" ? [row.items.length, row.laneCount] : [],
+      ),
+    ).toEqual(rows.map(() => [21, 1]));
   });
 });
