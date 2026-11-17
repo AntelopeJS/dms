@@ -2,6 +2,7 @@ import { h, type VNodeChild } from "vue";
 import { get } from "@nuxt/ui/runtime/utils/index.js";
 import type { DataTypeFormatter } from "#dms-core/app/composables/data-types/useDataType";
 import { isNumber, isString } from "#dms-core/app/utils/type-check";
+import { childOf } from "./cellHelpers";
 
 /**
  * A data type a column borrows for its cells only: the column keeps its own
@@ -47,8 +48,7 @@ function renderEmptyFallback(
   isNumeric: boolean,
 ): VNodeChild {
   const fallback =
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Plugin options have no fallback schema; this preserves the unchecked value rather than coercing or rejecting malformed inputs.
-    (options?.fallback as string) ??
+    childOf(options?.fallback) ??
     (surface === "detail" ? DETAIL_FALLBACK : DEFAULT_FALLBACK);
   return isNumeric
     ? h("span", { class: NUMERIC_EMPTY_CELL_CLASS }, fallback)
@@ -96,8 +96,7 @@ export function useColumnValueRenderer() {
 
     if (value === null || value === undefined) {
       if (formatter?.empty) {
-        // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- DataTypeFormatter returns unknown for plugin extensions; the existing render boundary forwards it without VNodeChild validation.
-        return formatter.empty(value, locale.value, options, row) as VNodeChild;
+        return childOf(formatter.empty(value, locale.value, options, row));
       }
       return renderEmptyFallback(options, surface, isNumeric);
     }
@@ -109,8 +108,7 @@ export function useColumnValueRenderer() {
       : value;
 
     if (!isString(formatted) && !isNumber(formatted)) {
-      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Excluding strings and numbers does not validate a VNodeChild; preserve the existing unchecked plugin result handoff.
-      return formatted as VNodeChild;
+      return childOf(formatted);
     }
     if (isNumeric) {
       const numericClass =
@@ -130,7 +128,8 @@ export function useColumnValueRenderer() {
     surface: ColumnValueSurface = "cell",
   ): VNodeChild => {
     const key = column.accessorKey ?? column.id;
-    const value = key === undefined ? undefined : get(row, String(key));
+    const value: unknown =
+      key === undefined ? undefined : get(row, String(key));
     return renderValue(column, value, row, surface);
   };
 

@@ -11,7 +11,7 @@ import {
 const HTTP_UNAUTHORIZED = 401;
 const SECRET = "a-configured-bootstrap-secret";
 
-function expectRefusal<T>(run: () => T): void {
+function expectRefusal(run: () => void): void {
   try {
     run();
   } catch (error: unknown) {

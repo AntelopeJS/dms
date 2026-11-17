@@ -1,4 +1,5 @@
 export * from "./attachments.model";
+export * from "./setupToken.model";
 export * from "./signInAttempts.model";
 export * from "./systemState.model";
 export * from "./userEmailChanges.model";

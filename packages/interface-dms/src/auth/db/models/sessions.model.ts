@@ -12,22 +12,6 @@ import {
   hashesMatch,
 } from "../internal/sessions.model";
 
-interface UpdateResult {
-  replaced?: number;
-  modifiedCount?: number;
-}
-
-function updatedRows(
-  result: Awaited<
-    ReturnType<ReturnType<SessionModel["table"]["update"]>["run"]>
-  >,
-): number {
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Database adapters return either a numeric count or a write result; preserve both accepted result representations.
-  if (typeof result === "number") return result;
-  const counts: UpdateResult | undefined = result;
-  return Number(counts?.replaced ?? counts?.modifiedCount ?? 0);
-}
-
 const SEAL_ALGORITHM = "aes-256-gcm";
 const SEAL_IV_BYTES = 12;
 const SEAL_ENCODING = "base64";
@@ -101,7 +85,7 @@ export class SessionModel extends BasicDataModel(Session, SESSIONS_TABLE_NAME) {
     refreshToken: string,
     rotatedAt = new Date(),
   ): Promise<string | null> {
-    const result: unknown = await this.table
+    const modified = await this.table
       .getAll(sessionId)
       .filter((row) =>
         row.key("refreshTokenHash").eq(hashRefreshToken(presentedToken)),
@@ -114,7 +98,7 @@ export class SessionModel extends BasicDataModel(Session, SESSIONS_TABLE_NAME) {
         lastActiveAt: rotatedAt,
       })
       .run();
-    if (updatedRows(result) > 0) return refreshToken;
+    if (modified > 0) return refreshToken;
 
     const session = await this.get(sessionId);
     if (

@@ -1,4 +1,5 @@
 import { HTTPResult } from "@antelopejs/interface-api";
+import type { JsonValue } from "@antelopejs/interface-dms/base/types";
 import type { Role } from "@antelopejs/interface-dms/db";
 import type {
   Permission,
@@ -22,6 +23,7 @@ import {
   resolveInviteeNameParts,
   uniqueInviteEmails,
 } from "../../../../validation";
+import { roleFixture } from "../../../helpers/table-fixtures";
 
 const HTTP_CONFLICT = 409;
 
@@ -41,8 +43,7 @@ function registered(
 }
 
 function role(id: string, name: string, permissions: string[]): Role {
-  // SAFETY: buildInviteRoleOptions reads only the role id, name and permissions; these rows are never persisted or accessed as full database entities.
-  return { _id: id, name, permissions } as Role;
+  return roleFixture({ _id: id, name, permissions });
 }
 
 const tree = {
@@ -61,16 +62,14 @@ const tree = {
   media: registered("media"),
 } satisfies Record<string, PermissionTree>;
 
-function issuePaths(
-  payload: Parameters<typeof memberInviteSchema.safeParse>[0],
-): string[] {
+function issuePaths(payload: JsonValue): string[] {
   const result = memberInviteSchema.safeParse(payload);
   return result.success
     ? []
     : result.error.issues.map((issue) => issue.path.join("."));
 }
 
-describe("[unit] pages/settings/users members page", () => {
+function registerInviteInputCases(): void {
   describe("memberInviteSchema", () => {
     it("accepts several addresses and lowercases them", () => {
       const result = memberInviteSchema.safeParse({
@@ -154,7 +153,9 @@ describe("[unit] pages/settings/users members page", () => {
       uniqueInviteEmails(["b@test.local", "a@test.local", "b@test.local"]),
     ).to.deep.equal(["b@test.local", "a@test.local"]);
   });
+}
 
+function registerRoleOptionCases(): void {
   describe("role options", () => {
     it("collects the permissions the roles editor lists", () => {
       expect([...collectGrantablePermissionIds(tree)].sort()).to.deep.equal([
@@ -240,7 +241,9 @@ describe("[unit] pages/settings/users members page", () => {
       });
     });
   });
+}
 
+function registerInviteOutcomeCases(): void {
   describe("invite notice", () => {
     it("says nothing when every address went through", () => {
       expect(
@@ -316,4 +319,10 @@ describe("[unit] pages/settings/users members page", () => {
       expect(confirm.impact).to.equal(undefined);
     });
   });
+}
+
+describe("[unit] pages/settings/users members page", () => {
+  registerInviteInputCases();
+  registerRoleOptionCases();
+  registerInviteOutcomeCases();
 });

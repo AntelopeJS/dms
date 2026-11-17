@@ -12,6 +12,9 @@ import { GetMetadata } from "@antelopejs/interface-core";
 import { RegisterDataController } from "@antelopejs/interface-data-api";
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import type { User } from "@antelopejs/interface-dms/auth/db";
+import type { JsonValue } from "@antelopejs/interface-dms/json";
+import { authenticateRequestPrincipal } from "@antelopejs/interface-dms/auth/internal/request-principal";
+import { withRequiredPermissions } from "@antelopejs/interface-dms/internal/permission-requirements";
 import {
   type ConfirmDialogSerialized,
   TableViewMeta,
@@ -57,6 +60,7 @@ import type {
   RolesOverview,
 } from "./role-editor";
 import {
+  assertGrantable,
   createRole,
   duplicateRole,
   listRoleHolderIds,
@@ -80,6 +84,7 @@ import {
   sanitizePreviewPermissions,
 } from "./role-preview";
 import { fireAndForget } from "@antelopejs/interface-dms/utils/fire-and-forget";
+import { z } from "zod";
 
 RegisterDataController()(roleSettingDataAPI);
 
@@ -113,7 +118,45 @@ registerTableViewActions(rolesEditor, {
 
 const rolesMeta = GetMetadata(roleSettingDataAPI, TableViewMeta);
 rolesMeta.addComponentBuilder(rolesEditor);
+
+/** A row's `permissions` as a list of ids; undefined when it is not one. */
+function parsePermissionList(
+  value: JsonValue | undefined,
+): string[] | undefined {
+  return z.array(z.string()).safeParse(value).data;
+}
+
+/**
+ * Refuses a write through the roles table routes that grants `*` or what the
+ * caller does not hold, as the editor routes do. A body whose `permissions` is
+ * not a list is left to the route's validation.
+ */
+async function assertTableGrant(
+  ctx: RequestContext,
+  permissions: string[] | undefined,
+  kept?: string[],
+): Promise<void> {
+  if (!permissions) return;
+  const { user } = await authenticateRequestPrincipal(ctx);
+  await assertGrantable(
+    await resolveActor(ctx, user),
+    await withRequiredPermissions(permissions),
+    kept,
+  );
+}
+
+/** A role row or a write to one, as the table routes hand it to a guard. */
+type RoleRow = Record<string, JsonValue | undefined>;
+
 rolesMeta.setControllerGuards({
+  new: (ctx, { body }: { body: RoleRow }) =>
+    assertTableGrant(ctx, parsePermissionList(body.permissions)),
+  edit: (ctx, { body, current }: { body: RoleRow; current: RoleRow }) =>
+    assertTableGrant(
+      ctx,
+      parsePermissionList(body.permissions),
+      parsePermissionList(current.permissions),
+    ),
   delete: (ctx, { ids, values }) =>
     prepareRoleDeletion(getRequestTenantId(ctx), ids, values),
 });
@@ -354,7 +397,7 @@ export class RolesSettingsController extends PageController("roles", {
   async preview(
     @Context() ctx: RequestContext,
     @AuthUserWithPermission(editAction) user: User,
-    @JSONBody() body: Parameters<typeof rolePreviewSchema.parse>[0],
+    @JSONBody() body: unknown,
   ): Promise<RolePreviewResult> {
     const { permissions, path } = assertValidation(body, (v) =>
       rolePreviewSchema.parse(v),
@@ -366,7 +409,7 @@ export class RolesSettingsController extends PageController("roles", {
   async create(
     @Context() ctx: RequestContext,
     @AuthUserWithPermission(addAction) user: User,
-    @JSONBody() body: Parameters<typeof roleEditorSchema.parse>[0],
+    @JSONBody() body: unknown,
   ): Promise<CreatedRole> {
     const input = assertValidation(body, (v) => roleEditorSchema.parse(v));
     return { id: await createRole(await resolveActor(ctx, user), input) };
@@ -377,7 +420,7 @@ export class RolesSettingsController extends PageController("roles", {
     @Context() ctx: RequestContext,
     @AuthUserWithPermission(editAction) user: User,
     @Parameter("id", "param") roleId: string,
-    @JSONBody() body: Parameters<typeof roleEditorSchema.parse>[0],
+    @JSONBody() body: unknown,
   ): Promise<void> {
     const input = assertValidation(body, (v) => roleEditorSchema.parse(v));
     const actor = await resolveActor(ctx, user);
@@ -404,7 +447,7 @@ export class RolesSettingsController extends PageController("roles", {
     @Context() ctx: RequestContext,
     @AuthUserWithPermission(addAction) user: User,
     @Parameter("id", "param") roleId: string,
-    @JSONBody() body: Parameters<typeof roleDuplicateSchema.parse>[0],
+    @JSONBody() body: unknown,
   ): Promise<CreatedRole> {
     const { name } = assertValidation(body, (v) =>
       roleDuplicateSchema.parse(v),

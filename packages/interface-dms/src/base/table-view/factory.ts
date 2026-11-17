@@ -3,12 +3,12 @@ import { GetMetadata } from "@antelopejs/interface-core";
 import { Logging } from "@antelopejs/interface-core/logging";
 import { DataAPIMeta } from "@antelopejs/interface-data-api/metadata";
 import { ComponentBuilder } from "../../component";
-import type { PageMetadata } from "../../page";
 import { StampUploadFieldTokens } from "../../uploads";
 import type { FormBuilder } from "../form-types";
 import { applyArchiveModeDefaultRules } from "../helpers/archive-mode-helpers";
 import { type TableViewAccess, TableViewMeta } from "./meta";
 import { TABLE_VIEW_COMPONENT_NAME } from "./internal/options";
+import { assertArchiveFieldFilter } from "./internal/archive-filter";
 import type { TableViewOptions, TableViewOptionsSerialized } from "./options";
 import { resourceForm, stampAttachmentFields } from "./internal/resource-form";
 import { TableViewRoutes } from "./routes";
@@ -30,9 +30,14 @@ import { tableViewCreated } from "./internal/factory-lifecycle-created";
 import { filterTableViewOptions } from "./internal/factory-lifecycle-filter";
 import {
   prepareTableViewSerialization,
-  serializeTableViewOptions,
+  serializeTableView,
 } from "./internal/factory-lifecycle-options";
 
+/**
+ * A table of the rows `controller` serves.
+ *
+ * @docsApi
+ */
 export function TableView<T extends ControllerClass>(
   controller: T,
   options: TableViewOptions<InstanceType<T>> = {},
@@ -57,23 +62,25 @@ export function TableView<T extends ControllerClass>(
   const { endpoints } = GetMetadata(controller, DataAPIMeta);
   warnIfTabsLackCountBatch(
     controller,
-    config.location,
+    controller.location,
     declaresCounters(options),
     endpoints,
   );
 
   warnIfSummaryLacksRoute(
     controller,
-    config.location,
+    controller.location,
     options.footer,
     endpoints,
   );
 
-  stampAttachmentFields(meta, config.location);
+  stampAttachmentFields(meta, controller.location);
 
   const isExportEnabled = Object.keys(TableViewRoutes.ExportRoutes).every(
     (key) => !!endpoints[key],
   );
+
+  assertArchiveFieldFilter(controller, meta.archiveField);
 
   if (options.archiveMode) {
     if (!meta.archiveField) {
@@ -105,7 +112,6 @@ export function TableView<T extends ControllerClass>(
   const access = tableViewAccess(options.rowActions, capabilities);
   const isWriting = access === "write";
   const forms = buildTableViewForms(controller, options, access);
-  const { view: viewForm } = forms;
 
   const prepared = prepareTableViewSerialization(options, {
     controller,
@@ -131,27 +137,27 @@ export function TableView<T extends ControllerClass>(
 
   registerTableViewActions(builder, {
     ...capabilities,
-    hasViewForm: !!viewForm,
+    hasViewForm: !!forms.view,
     isExportEnabled,
     formsArePages: isPageMode,
   });
 
   recordTableView(meta, builder, access, options);
 
+  const served = serializeTableView(prepared);
   builder
-    .options(serializeTableViewOptions(prepared.serialization))
+    .options(served.options)
     .meta({
       name: options.caption || "TableView",
       icon: "i-ph-table",
     })
-    .onCreated((parentPage: PageMetadata) => {
+    .onCreated((parentPage) => {
       tableViewCreated(
         {
           controller,
           options,
           meta,
           builder,
-          config,
           isWriting,
           forms,
           isPageMode,
@@ -160,7 +166,7 @@ export function TableView<T extends ControllerClass>(
       );
     })
     .onFilter((permissions, options, permissionId, context) => {
-      return filterTableViewOptions(prepared.declarations, [
+      return filterTableViewOptions(served.declarations, [
         permissions,
         options,
         permissionId,

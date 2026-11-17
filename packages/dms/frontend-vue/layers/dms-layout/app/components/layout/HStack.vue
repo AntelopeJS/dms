@@ -2,6 +2,8 @@
 import {
   alignmentMap,
   distributionMap,
+  type StackAlignment,
+  type StackDistribution,
 } from "../../composables/layout/stack-types";
 
 interface HStackProps {

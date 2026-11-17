@@ -20,7 +20,14 @@ async function decideExpiredRow(row: UserInvite): Promise<void> {
   if (!invite) return;
   const tenantId = getRowInstance(row);
   const decisions = GetModel(InviteResolutionsModel, tenantId);
-  if (await decisions.getForInvite(tenantId, invite._id)) return;
+  const decided = await decisions.getForInvite(tenantId, invite._id);
+  if (decided) {
+    if (decided.completed)
+      await completeInviteResolution(decided).catch((error: unknown) => {
+        Logging.Error("Retired invite row removal failed:", error);
+      });
+    return;
+  }
   try {
     await decideInvite({ tenantId, invite, reason: "expired" });
   } catch (error) {
@@ -83,7 +90,7 @@ export async function runCleanupUserInvites(): Promise<void> {
 /** Schedules replayable invitation work on every process, without fleet ownership. */
 export function scheduleCleanupUserInvites(): ScheduledTask {
   return cron.schedule(CLEANUP_USER_INVITES_SCHEDULE, () => {
-    void runCleanupUserInvites().catch((error) => {
+    void runCleanupUserInvites().catch((error: unknown) => {
       Logging.Error(`Cron '${CLEANUP_USER_INVITES_CRON_NAME}' failed:`, error);
     });
   });

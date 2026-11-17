@@ -11,12 +11,12 @@ const ITEMS = [
 let app: App | undefined;
 let host: HTMLDivElement;
 
+type ChipGroupProps = InstanceType<
+  (typeof import("../layers/dms-ui/app/entries/components/form/ChipGroup"))["default"]
+>["$props"];
+
 async function mount(
-  props: Partial<
-    InstanceType<
-      (typeof import("../layers/dms-ui/app/entries/components/form/ChipGroup"))["default"]
-    >["$props"]
-  >,
+  props: Partial<ChipGroupProps> & Pick<ChipGroupProps, "selected">,
 ) {
   const { default: ChipGroup } = await import(
     "../layers/dms-ui/app/entries/components/form/ChipGroup"

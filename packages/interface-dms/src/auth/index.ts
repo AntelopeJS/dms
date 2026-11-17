@@ -16,6 +16,7 @@ import type { ParsedUserAgent } from "./internal/user-agent";
 import { CreateJwtAuthDecorator } from "./internal/jwt-auth-decorator";
 import { bindVerifiedRequestPrincipal } from "./internal/request-authenticators";
 import { DEFAULT_TENANT_ID } from "../constants";
+import { isBoolean, isString } from "../utils/internal/type-check";
 
 export * from "./request-authenticators";
 
@@ -60,13 +61,10 @@ export async function authenticateRequestUser(
   ctx: RequestContext,
 ): Promise<User> {
   const authHeader = ctx.rawRequest?.headers?.authorization;
-  const token =
-    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- The incoming authorization header is checked before selecting a bearer token for validation.
-    typeof authHeader === "string" ? authHeader.split(" ")[1] : undefined;
+  const token = isString(authHeader) ? authHeader.split(" ")[1] : undefined;
   const decoded = await internal.AuthUserAuthenticator(token);
   const validated = await internal.AuthUserValidator(decoded);
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- The published validator accepts boolean sentinel results as well as users; sentinels cannot bind request identity.
-  if (!validated || typeof validated === "boolean") {
+  if (!validated || isBoolean(validated)) {
     throw new HTTPResult(HTTP_UNAUTHORIZED, UNAUTHORIZED_MESSAGE);
   }
   bindVerifiedRequestPrincipal(ctx, {

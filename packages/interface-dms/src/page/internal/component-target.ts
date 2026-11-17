@@ -4,6 +4,7 @@ import {
   ComponentTarget,
   type ComponentTargetInput,
 } from "../../component";
+import { isFunction } from "../../utils/internal/type-check";
 
 /**
  * A component and its resolved position under a page's static root field.
@@ -27,8 +28,7 @@ export function getDeclaredComponentChildren(
 ): BaseComponentChild[] {
   const info: Partial<Awaited<Component["componentInfo"]>> &
     Partial<Promise<unknown>> = component.componentInfo;
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Preserve duck-typed thenable exclusion.
-  if (!info || typeof info.then === "function") return [];
+  if (!info || isFunction(info.then)) return [];
   return info.children ?? [];
 }
 

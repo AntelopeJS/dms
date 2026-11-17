@@ -17,8 +17,8 @@ import {
 import * as permissionsInterface from "@antelopejs/interface-dms/permissions";
 import * as permissionsResolverInterface from "@antelopejs/interface-dms/permissions-resolver";
 import * as tenantAccessInterface from "@antelopejs/interface-dms/tenant-access";
-import type { User } from "@antelopejs/interface-dms/auth/db";
 import { stubPageAccessModels } from "../../../helpers/page-access";
+import { userFixture } from "../../../helpers/user-fixture";
 
 const MODULE_ID = "ucap-mod";
 const TENANT_ID = "ucap-tenant";
@@ -56,8 +56,7 @@ describe("[unit] implementations/dms/page — userCanAccessPage module gating", 
     const { memberModel, roleModel } = stubPageAccessModels([
       MODULE_PAGE_FULL_ID,
     ]);
-    // SAFETY: Page access reads this id and the absent owner flag, not persisted-user methods.
-    const nonOwner = { _id: "user-1" } as User;
+    const nonOwner = userFixture({ _id: "user-1" });
     expect(
       await userCanAccessPage(
         nonOwner,
@@ -71,8 +70,7 @@ describe("[unit] implementations/dms/page — userCanAccessPage module gating", 
 
   it("allows the platform owner on a module page", async () => {
     const { memberModel, roleModel } = stubPageAccessModels([]);
-    // SAFETY: Page access reads this id and owner flag, not persisted-user methods.
-    const owner = { _id: "user-2", owner: true } as User;
+    const owner = userFixture({ _id: "user-2", owner: true });
     expect(
       await userCanAccessPage(
         owner,
@@ -121,8 +119,7 @@ describe("[unit] implementations/dms/page — userCanAccessPage module gating", 
     const { memberModel, roleModel } = stubPageAccessModels([
       REGULAR_PAGE_FULL_ID,
     ]);
-    // SAFETY: Page access reads this id and the absent owner flag, not persisted-user methods.
-    const nonOwner = { _id: "user-3" } as User;
+    const nonOwner = userFixture({ _id: "user-3" });
     expect(
       await userCanAccessPage(
         nonOwner,

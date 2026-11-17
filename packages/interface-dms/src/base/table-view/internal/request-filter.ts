@@ -17,6 +17,7 @@ import type {
   TableViewRowActionOptionsSerialized,
 } from "../options";
 import { extractRuleFromConfig } from "./row-rules";
+import { isObject } from "../../../utils/internal/type-check";
 
 /** The table view actions whose permission shapes what a request is served. */
 const GRANTED_ACTIONS = [
@@ -46,15 +47,18 @@ export async function resolveTableViewGrants(
   permissions: Set<string>,
   permissionId: string,
 ): Promise<TableViewGrants> {
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- This accumulator is incomplete when created; the following loop populates every published grant key before return.
-  const grants = {} as TableViewGrants;
-  for (const action of GRANTED_ACTIONS) {
-    grants[action] = await HasPermission(
-      permissions,
-      `${permissionId}.${action}`,
-    );
-  }
-  return grants;
+  const holds = (action: (typeof GRANTED_ACTIONS)[number]) =>
+    HasPermission(permissions, `${permissionId}.${action}`);
+  return {
+    add: await holds("add"),
+    edit: await holds("edit"),
+    delete: await holds("delete"),
+    view: await holds("view"),
+    archive: await holds("archive"),
+    restore: await holds("restore"),
+    viewArchived: await holds("viewArchived"),
+    export: await holds("export"),
+  };
 }
 
 /**
@@ -165,9 +169,7 @@ export function adaptRowActions({
   }
 
   const editHasNoRules =
-    adapted.edit === true ||
-    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- The published action configuration permits boolean shorthand or a rule object; this branch selects the rule object.
-    (typeof adapted.edit === "object" && !adapted.edit.rule);
+    adapted.edit === true || (isObject(adapted.edit) && !adapted.edit.rule);
   if (editHasNoRules) {
     adapted.details = false;
   }

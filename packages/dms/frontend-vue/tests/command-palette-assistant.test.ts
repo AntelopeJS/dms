@@ -32,6 +32,7 @@ const SOURCE_GROUPS: CommandPaletteGroup[] = [
 ];
 
 const ANSWER_COMPONENT = "EchoAnswer";
+const ASSISTANTS_STATE_KEY = "dms:command-palette-assistants";
 const ASSISTANT: CommandPaletteAssistant = {
   id: "demo:assistant",
   label: "$demo.assistant",
@@ -44,7 +45,9 @@ const ASSISTANT: CommandPaletteAssistant = {
   answerComponent: ANSWER_COMPONENT,
 };
 
-let state: Map<string, Ref<unknown>>;
+type StoredAssistants = Array<Partial<CommandPaletteAssistant>>;
+
+let state: Map<string, Ref<StoredAssistants>>;
 let app: App | undefined;
 let host: HTMLDivElement;
 let releaseAnswer: () => void;
@@ -78,10 +81,13 @@ function installRuntime(): void {
   Object.entries({ computed, ref, watch }).forEach(([key, value]) =>
     vi.stubGlobal(key, value),
   );
-  vi.stubGlobal("useDmsState", <Value>(key: string, initial: () => Value) => {
-    if (!state.has(key)) state.set(key, ref(initial()));
-    return state.get(key);
-  });
+  vi.stubGlobal(
+    "useDmsState",
+    (key: string, initial: () => StoredAssistants) => {
+      if (!state.has(key)) state.set(key, ref(initial()));
+      return state.get(key);
+    },
+  );
   vi.stubGlobal("useI18n", () => ({ t: translate }));
   vi.stubGlobal("useTranslation", () => ({
     processI18n: (value: string) =>
@@ -201,13 +207,13 @@ describe("command palette assistant registry", () => {
   });
 
   it("ignores an entry whose suggestions were stripped by the SSR payload", () => {
-    type Suggestions = CommandPaletteAssistant["suggestions"];
-    // oxlint-disable-next-line anti-slop/no-chained-type-assertions, anti-slop/require-safety-comment-for-type-assertion -- SSR strips function values; deliberately model that invalid hydrated registry entry without claiming it is a valid callback.
-    const suggestions = undefined as unknown as Suggestions;
-    registerCommandPaletteAssistant({
-      ...ASSISTANT,
-      suggestions,
-    });
+    state.set(ASSISTANTS_STATE_KEY, ref([ASSISTANT]));
+    expect(useCommandPaletteAssistant().assistant.value?.id).toBe(ASSISTANT.id);
+    const { id, label, icon, answerComponent } = ASSISTANT;
+    state.set(
+      ASSISTANTS_STATE_KEY,
+      ref([{ id, label, icon, answerComponent }]),
+    );
     expect(useCommandPaletteAssistant().assistant.value).toBeUndefined();
   });
 });
@@ -220,6 +226,17 @@ describe("command palette without an assistant", () => {
     expect(event.defaultPrevented).toBe(false);
     expect(items("dms-assistant-ask")).toEqual([]);
     expect(host.querySelector('[data-slot="assistantToggle"]')).toBeNull();
+  });
+
+  it("marks the document only while it is mounted, its shortcut listening", () => {
+    const marked = (): boolean =>
+      document.documentElement.hasAttribute("data-dms-command-palette");
+    expect(marked()).toBe(false);
+    mountPalette();
+    expect(marked()).toBe(true);
+    app?.unmount();
+    app = undefined;
+    expect(marked()).toBe(false);
   });
 });
 

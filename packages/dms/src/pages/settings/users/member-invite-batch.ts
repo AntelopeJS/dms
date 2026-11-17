@@ -14,6 +14,7 @@ import {
   resolveInviteeNameParts,
   uniqueInviteEmails,
 } from "../../../validation";
+import { isString } from "@antelopejs/interface-dms/utils/internal/type-check";
 
 /** What happened to one address of an invite request. */
 export type InviteOutcome = "invited" | "added" | "already_member" | "failed";
@@ -40,12 +41,10 @@ const INVITE_FAILED_MESSAGE = "$page.settings.members.invite.failed";
 const ALREADY_MEMBER_MESSAGE = "$page.settings.members.invite.already_member";
 const INVITE_EMAILS_FIELD = "emails";
 
-function failureMessage(error: PromiseRejectedResult["reason"]): string {
-  if (!(error instanceof HTTPResult)) return INVITE_FAILED_MESSAGE;
+function failureMessage(error: HTTPResult): string {
   if (error.getStatus() >= HTTP_INTERNAL_ERROR) return INVITE_FAILED_MESSAGE;
   const body: unknown = error.getBody();
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- HTTP bodies can be structured; only nonempty strings are suitable failure messages.
-  return typeof body === "string" && body ? body : INVITE_FAILED_MESSAGE;
+  return isString(body) && body ? body : INVITE_FAILED_MESSAGE;
 }
 
 async function isAlreadyMember(
@@ -95,7 +94,14 @@ async function inviteOne(
     return { email, outcome: result.kind, emailDelivery: result.emailDelivery };
   } catch (error) {
     Logging.Warn(`[dms] invitation to "${email}" was refused:`, error);
-    return { email, outcome: "failed", message: failureMessage(error) };
+    return {
+      email,
+      outcome: "failed",
+      message:
+        error instanceof HTTPResult
+          ? failureMessage(error)
+          : INVITE_FAILED_MESSAGE,
+    };
   }
 }
 
@@ -161,11 +167,11 @@ export function inviteNotice(
  * A refusal of the invite form's `emails` field, naming the addresses it
  * refuses: the form shows it under the field and marks those addresses.
  */
-export interface InviteEmailsFailure {
+export type InviteEmailsFailure = {
   message: string;
   field: typeof INVITE_EMAILS_FIELD;
   values: string[];
-}
+};
 
 /**
  * The error a request answers with when none of its addresses went through:

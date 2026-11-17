@@ -11,17 +11,12 @@ import {
 } from "../../build/composables/user/preferencesCookie";
 import { clearLocalTableEntries } from "../../build/composables/user/tablePreferences";
 import { isString } from "../../utils/type-check";
+import { isJsonObject } from "../../build/utils/json";
+import type { JsonValue } from "../../types/json";
 
 export interface UserPreferences extends PreferencesTree {}
 
 const COOKIE_MAX_AGE_ONE_YEAR = 60 * 60 * 24 * 365;
-
-/**
- * The cookie the preferences were kept in up to `@antelopejs/dms` 0.7.9, as
- * URI-encoded JSON that grew with every table the user opened. It is not
- * read: the browser deletes it, so that it stops weighing on every request.
- */
-const LEGACY_COOKIE_NAME = "user-preferences";
 
 /**
  * The most the preferences cookie may weigh, name and value together.
@@ -30,15 +25,12 @@ const LEGACY_COOKIE_NAME = "user-preferences";
  */
 export const MAX_PREFERENCES_COOKIE_BYTES = 3 * 1024;
 
-const toPlain = <T>(value: T): T =>
+const toPlain = (value: PreferencesTree[string]): PreferencesTree[string] =>
   value === undefined ? value : JSON.parse(JSON.stringify(value));
 
-const expireLegacyCookie = (): void => {
-  if (typeof document === "undefined") return;
-  const isPresent = document.cookie
-    .split(/;\s*/)
-    .some((entry) => entry.startsWith(`${LEGACY_COOKIE_NAME}=`));
-  if (isPresent) document.cookie = `${LEGACY_COOKIE_NAME}=; path=/; max-age=0`;
+const toPlainTree = (tree: PreferencesTree): PreferencesTree => {
+  const plain = toPlain(tree);
+  return isBranch(plain) ? plain : {};
 };
 
 /**
@@ -55,7 +47,6 @@ export const usePreferences = () => {
     sameSite: "lax",
     secure: true,
   });
-  expireLegacyCookie();
 
   const tree = computed<UserPreferences>(() =>
     isString(preferenceCookie.value)
@@ -78,7 +69,6 @@ export const usePreferences = () => {
 
   const getPreference = <T = unknown>(keyPath: string, defaultValue?: T): T => {
     const value = readAt(tree.value, keyPath.split("."));
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The stored tree does not validate caller-selected T. Returning the tree value type would change the public generic contract; retain existing unchecked reads.
     return (value === undefined ? defaultValue : value) as T;
   };
 
@@ -87,7 +77,7 @@ export const usePreferences = () => {
     value: UserPreferences[string],
   ): void => {
     const keys = keyPath.split(".");
-    const next = toPlain(tree.value);
+    const next = toPlainTree(tree.value);
     writeAt(next, keys, toPlain(value));
     markWritten(next, keys);
     commit(next);
@@ -96,7 +86,7 @@ export const usePreferences = () => {
   const removePreference = (keyPath: string): void => {
     const keys = keyPath.split(".");
     const lastKey = keys.pop()!;
-    const next = toPlain(tree.value);
+    const next = toPlainTree(tree.value);
     const parent = keys.length === 0 ? next : readAt(next, keys);
     if (!isBranch(parent) || !(lastKey in parent)) return;
 
@@ -108,8 +98,10 @@ export const usePreferences = () => {
     keyPath: string,
     value: Partial<T>,
   ): void => {
-    const current = getPreference(keyPath, {});
-    const merged = { ...current, ...value };
+    const current = getPreference<JsonValue | undefined>(keyPath);
+    const merged = isJsonObject(current)
+      ? { ...current, ...value }
+      : { ...value };
     setPreference(keyPath, merged);
   };
 

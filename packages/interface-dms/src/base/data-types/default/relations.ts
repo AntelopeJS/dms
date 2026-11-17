@@ -1,14 +1,15 @@
 /** Stable relation data types. @packageDocumentation */
 import type { ControllerClass } from "@antelopejs/interface-api";
 import { GetMetadata } from "@antelopejs/interface-core";
+import type { DecoratorTarget } from "@antelopejs/interface-core/decorators";
 import { DataAPIMeta, Foreign } from "@antelopejs/interface-data-api/metadata";
 import { z } from "zod";
-import { Form, FormComponents } from "../../form-schema";
-import type { TableViewMeta } from "../../table-view/meta";
+import { FormComponents } from "../../form-schema";
 import type { FormContainerPageTexts } from "../../table-view/options";
-import { HttpMethod } from "../../types";
 import { DataType, RegisterDataType } from "../core";
 import { absolutizeJoinedSchemas } from "../internal/compare-types";
+import { buildOutsideCycle } from "../internal/relation-add-form";
+import { relationAddOptions, selectUrl } from "../internal/relation-endpoints";
 import { DefaultDataCompareTypes } from "../compare-types";
 
 /** {@link FormComponents.RelationFilterBy}, `field` typed on the related row. */
@@ -18,12 +19,20 @@ export interface RelationFilterBy<T extends ControllerClass> {
 }
 
 function relationCompareModes(multiple?: boolean) {
-  return [
-    multiple ? DefaultDataCompareTypes.Include : DefaultDataCompareTypes.Is,
-    multiple ? DefaultDataCompareTypes.Exclude : DefaultDataCompareTypes.IsNot,
-    DefaultDataCompareTypes.IsEmpty,
-    DefaultDataCompareTypes.IsNotEmpty,
-  ];
+  return multiple
+    ? [
+        DefaultDataCompareTypes.Include,
+        DefaultDataCompareTypes.Exclude,
+        DefaultDataCompareTypes.ArrayContainsString,
+        DefaultDataCompareTypes.IsEmpty,
+        DefaultDataCompareTypes.IsNotEmpty,
+      ]
+    : [
+        DefaultDataCompareTypes.Is,
+        DefaultDataCompareTypes.IsNot,
+        DefaultDataCompareTypes.IsEmpty,
+        DefaultDataCompareTypes.IsNotEmpty,
+      ];
 }
 
 function relationDefaultCompareMode(multiple?: boolean) {
@@ -32,6 +41,11 @@ function relationDefaultCompareMode(multiple?: boolean) {
     : DefaultDataCompareTypes.Is;
 }
 
+/**
+ * The `relation` data type.
+ *
+ * @docsApi
+ */
 @RegisterDataType("relation")
 export class RelationType<T extends ControllerClass> extends DataType {
   constructor(
@@ -47,7 +61,6 @@ export class RelationType<T extends ControllerClass> extends DataType {
         avatar?: keyof InstanceType<T> & string;
         disabled?: keyof InstanceType<T> & string;
       };
-      fallback?: string;
       /**
        * Use the relation purely as a native FILTER, without resolving the
        * related row into the `/list` output.
@@ -108,56 +121,22 @@ export class RelationType<T extends ControllerClass> extends DataType {
   }
 
   private relationInput(canAdd: boolean, multiple: boolean | undefined) {
-    const tableViews: typeof import("../../table-view/meta") = require("../../table-view/meta");
-    const tableViewMeta = GetMetadata(
-      this.options.dataApiController,
-      tableViews.TableViewMeta,
-    );
-    const { config } = tableViewMeta;
-    const { endpoints } = GetMetadata(
-      this.options.dataApiController,
-      DataAPIMeta,
-    );
-
-    const location = `${config.location}/${endpoints.select.endpoint || "select"}`;
+    const controller = this.options.dataApiController;
     const addOptions = canAdd
-      ? this.buildAddOptions(tableViewMeta, endpoints)
+      ? buildOutsideCycle(controller, () => relationAddOptions(controller))
       : undefined;
 
     return FormComponents.InputRelation({
       placeholder: this.options.placeholder,
       multiple,
       deselectable: this.options.deselectable,
-      searchUrl: location,
+      searchUrl: selectUrl(controller),
       keyMapping: this.options.keyMapping,
       filterBy: this.options.filterBy,
       addForm: addOptions?.addForm,
       addPermissionIds: addOptions?.addPermissionIds,
       addFormTexts: this.options.addForm,
     });
-  }
-
-  private buildAddOptions(
-    tableViewMeta: TableViewMeta,
-    endpoints: { new?: unknown },
-  ) {
-    if (!endpoints.new) return undefined;
-
-    const newFields = tableViewMeta.getFormFields("new");
-    if (newFields.length === 0) return undefined;
-
-    const submitUrl = `${tableViewMeta.config.location}/new`;
-    const addForm = Form({
-      fields: newFields,
-      submitUrl,
-      submitUrlMethod: HttpMethod.post,
-      kind: "create",
-    }).serializeSync();
-
-    return {
-      addForm,
-      addPermissionIds: tableViewMeta.actionPermissionIds("add"),
-    };
   }
 
   getValidation(): z.ZodType {
@@ -178,8 +157,7 @@ export class RelationType<T extends ControllerClass> extends DataType {
   }
 
   public decorateField(
-    // oxlint-disable-next-line anti-slop/no-unknown-parameters -- Preserve DataType's decorator target contract.
-    target: unknown,
+    target: DecoratorTarget,
     key: PropertyKey,
     descriptor?: PropertyDescriptor,
   ): void {
@@ -208,6 +186,8 @@ export class RelationType<T extends ControllerClass> extends DataType {
  * (the `parent` field of `keyMapping` must be decorated with `@Select()`);
  * the widget rebuilds the tree client-side and displays the full path
  * (e.g. `Electronics / Audio / Headphones`) in table cells.
+ *
+ * @docsApi
  */
 @RegisterDataType("cascader_relation")
 export class CascaderRelationType<T extends ControllerClass> extends DataType {
@@ -226,7 +206,6 @@ export class CascaderRelationType<T extends ControllerClass> extends DataType {
       };
       maxDepth?: number;
       leafOnly?: boolean;
-      fallback?: string;
       /**
        * Use the cascader relation purely as a native FILTER, without
        * resolving the related row into the `/list` output.
@@ -255,25 +234,14 @@ export class CascaderRelationType<T extends ControllerClass> extends DataType {
   }
 
   private cascaderInput(multiple: boolean | undefined) {
-    const tableViews: typeof import("../../table-view/meta") = require("../../table-view/meta");
-    const { config } = GetMetadata(
-      this.options.dataApiController,
-      tableViews.TableViewMeta,
-    );
-    const { endpoints } = GetMetadata(
-      this.options.dataApiController,
-      DataAPIMeta,
-    );
-
     return FormComponents.InputCascader({
       placeholder: this.options.placeholder,
       multiple,
       deselectable: this.options.deselectable,
-      searchUrl: `${config.location}/${endpoints.select.endpoint || "select"}`,
+      searchUrl: selectUrl(this.options.dataApiController),
       keyMapping: this.options.keyMapping,
       maxDepth: this.options.maxDepth,
       leafOnly: this.options.leafOnly,
-      fallback: this.options.fallback,
     });
   }
 
@@ -282,8 +250,7 @@ export class CascaderRelationType<T extends ControllerClass> extends DataType {
   }
 
   public decorateField(
-    // oxlint-disable-next-line anti-slop/no-unknown-parameters -- Preserve DataType's decorator target contract.
-    target: unknown,
+    target: DecoratorTarget,
     key: PropertyKey,
     descriptor?: PropertyDescriptor,
   ): void {

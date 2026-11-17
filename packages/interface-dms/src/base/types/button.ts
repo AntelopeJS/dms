@@ -1,7 +1,3 @@
-export enum ButtonVariant {
-  solid = "solid",
-  outline = "outline",
-  soft = "soft",
-  ghost = "ghost",
-  link = "link",
-}
+import * as button from "../../component-options/button";
+
+export import ButtonVariant = button.ButtonVariant;

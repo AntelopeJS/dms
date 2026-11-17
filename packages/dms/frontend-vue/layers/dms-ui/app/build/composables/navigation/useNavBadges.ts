@@ -80,7 +80,7 @@ export const useNavBadges = () => {
   ): void {
     if (!counted) return;
     for (const fullId of servedIds.value) {
-      if (!(fullId in counted)) setNavBadge(fullId, "");
+      if (!Object.hasOwn(counted, fullId)) setNavBadge(fullId, "");
     }
     for (const [fullId, { badge, tone }] of Object.entries(counted)) {
       setNavBadge(fullId, badge, tone);

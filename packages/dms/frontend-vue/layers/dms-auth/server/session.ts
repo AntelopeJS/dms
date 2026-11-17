@@ -1,17 +1,11 @@
 import { createHash } from "node:crypto";
 import type { DmsPublicSession, DmsServerEvent, DmsSession } from "#dms/server";
 import { isPersistent, persistAccountSession, removeAccount } from "./accounts";
-import { isNumber } from "../../dms-core/app/utils/type-check";
+import { type SessionTokens, sessionUser, tokenPair } from "./backend-answers";
+import { isNumber, isString } from "../../dms-core/app/utils/type-check";
 
 const REFRESH_TTL_MS = 15_000;
 const REFUSED = [400, 401, 403];
-
-/** A backend answer that opens a session: a token pair and the user. */
-export interface SessionTokens {
-  access_token: string;
-  refresh_token?: string;
-  user?: DmsSession["user"];
-}
 
 interface RefreshFlight {
   promise: Promise<SessionTokens>;
@@ -20,11 +14,38 @@ interface RefreshFlight {
 
 const refreshes = new Map<string, RefreshFlight>();
 
-// oxlint-disable-next-line anti-slop/no-unknown-parameters -- This rejection boundary handles arbitrary thrown values; a backend error owner type would exclude primitive errors.
-export function isRefusal(error: unknown): boolean {
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Unchecked optional property access intentionally preserves primitive boxing and getter behavior; no owner contract validates thrown values.
-  const status = (error as { status?: unknown } | undefined)?.status;
-  return isNumber(status) && REFUSED.includes(status);
+/** A thrown value that carries an HTTP status, as a refused backend call does. */
+interface StatusError {
+  status: number;
+}
+
+/** Whether `error` is an object or a function that carries a numeric HTTP `status`. */
+function hasStatus(error: unknown): error is StatusError {
+  return (
+    (typeof error === "object" || typeof error === "function") &&
+    error !== null &&
+    "status" in error &&
+    isNumber(error.status)
+  );
+}
+
+/** Whether `error` is the backend refusing the session: a 400, 401 or 403. */
+export function isRefusal(error: unknown): error is StatusError {
+  return hasStatus(error) && REFUSED.includes(error.status);
+}
+
+/** What this module reads of an access token's payload. */
+interface AccessTokenClaims {
+  tenantId: string;
+}
+
+function hasTenantId(payload: unknown): payload is AccessTokenClaims {
+  return (
+    typeof payload === "object" &&
+    payload !== null &&
+    "tenantId" in payload &&
+    isString(payload.tenantId)
+  );
 }
 
 /**
@@ -37,17 +58,19 @@ export function sessionFrom(
   result: SessionTokens,
   persistent = true,
 ): DmsSession {
-  const payload = JSON.parse(
+  const payload: unknown = JSON.parse(
     Buffer.from(
       result.access_token.split(".")[1] ?? "",
       "base64url",
     ).toString() || "{}",
   );
+  if (payload === null)
+    throw new TypeError("The access token carries no claims");
   return {
     user: result.user,
     accessToken: result.access_token,
     refreshToken: result.refresh_token,
-    activeTenantId: payload.tenantId ?? "default",
+    activeTenantId: hasTenantId(payload) ? payload.tenantId : "default",
     persistent,
   };
 }
@@ -91,9 +114,59 @@ function singleFlight(
   return entry.promise;
 }
 
+/** The backend refresh of `refreshToken`, shared by the requests that ask together. */
+function refreshTokens(
+  event: DmsServerEvent,
+  accessToken: DmsSession["accessToken"],
+  refreshToken: string,
+): Promise<SessionTokens> {
+  return singleFlight(refreshToken, async () =>
+    tokenPair.parse(
+      await event.backend("/api/auth/refresh", {
+        method: "POST",
+        token: accessToken,
+        body: { token: refreshToken },
+      }),
+    ),
+  );
+}
+
+/**
+ * Revokes the backend session `refreshToken` belongs to. A logout the backend
+ * refuses, as it does with an expired access token, is sent once more with a
+ * renewed one, so the backend session does not outlive the sign-out.
+ */
+async function revoke(
+  event: DmsServerEvent,
+  accessToken: string,
+  refreshToken: string,
+) {
+  const logout = (token: string) =>
+    event.backend("/api/auth/logout", {
+      method: "POST",
+      token,
+      body: { token: refreshToken },
+    });
+  const refused = await logout(accessToken).then(() => false, isRefusal);
+  if (refused)
+    await refreshTokens(event, accessToken, refreshToken)
+      .then((tokens) => logout(tokens.access_token))
+      .catch(() => {});
+}
+
+/**
+ * Signs the browser out of `session`: clears it and forgets its stored
+ * account, whose refresh token would otherwise open it again.
+ */
+function signOut(event: DmsServerEvent, session: DmsSession | undefined) {
+  event.session.clear();
+  if (session?.accountId) removeAccount(event, session.accountId);
+}
+
 /**
  * Renews `session` with its refresh token, writes it and returns it; the rest
- * of the request runs with it. A refused refresh signs the browser out.
+ * of the request runs with it. A refused refresh signs the browser out of that
+ * account, its stored account included.
  * The frontend server calls it when the backend refuses a signed-in page
  * visit, and `POST /api/_auth/session` when the browser asks.
  */
@@ -104,22 +177,20 @@ export async function renewSession(
   const refreshToken = session?.refreshToken;
   if (!session || !refreshToken) return undefined;
   try {
-    const tokens = await singleFlight(refreshToken, () =>
-      event.backend<SessionTokens>("/api/auth/refresh", {
-        method: "POST",
-        token: session.accessToken,
-        body: { token: refreshToken },
-      }),
+    const tokens = await refreshTokens(
+      event,
+      session.accessToken,
+      refreshToken,
     );
-    const user = await event.backend<DmsSession["user"]>("/api/auth/me", {
-      token: tokens.access_token,
-    });
+    const user = sessionUser.parse(
+      await event.backend("/api/auth/me", { token: tokens.access_token }),
+    );
     const refreshed = sessionFrom({ ...tokens, user }, isPersistent(session));
     persistAccountSession(event, refreshed, session.accountId);
     event.session.useForRequest(refreshed);
     return refreshed;
   } catch (error) {
-    if (isRefusal(error)) event.session.clear();
+    if (isRefusal(error)) signOut(event, session);
     event.session.useForRequest(undefined);
     return undefined;
   }
@@ -140,15 +211,8 @@ export async function refreshSessionRoute(event: DmsServerEvent) {
 export async function logoutRoute(event: DmsServerEvent) {
   const session = event.session.read();
   if (session?.refreshToken && session.accessToken)
-    await event
-      .backend("/api/auth/logout", {
-        method: "POST",
-        token: session.accessToken,
-        body: { token: session.refreshToken },
-      })
-      .catch(() => {});
-  event.session.clear();
-  if (session?.accountId) removeAccount(event, session.accountId);
+    await revoke(event, session.accessToken, session.refreshToken);
+  signOut(event, session);
   return {};
 }
 

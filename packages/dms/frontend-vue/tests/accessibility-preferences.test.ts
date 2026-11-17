@@ -12,14 +12,16 @@ import {
 import { createHead, renderSSRHead } from "@unhead/vue/server";
 import { createApp, createSSRApp, nextTick, ref, type Ref } from "vue";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { sectionIn } from "./fixtures/axisCallbacks";
+import { dmsAppContext } from "./fixtures/dmsAppContext";
 import {
   accessibilityHtmlClasses,
-  isReducedMotionActive,
   parseAccessibilityPreferences,
   reduceMotionFromClasses,
   resolveReducedMotion,
   type AccessibilityPreferences,
 } from "../layers/dms-ui/app/entries/utils/accessibilityPreferences";
+import { isReducedMotionActive } from "../layers/dms-ui/app/utils/reducedMotion";
 
 interface CookieOptions {
   default: () => AccessibilityPreferences;
@@ -206,8 +208,7 @@ describe("useAccessibilityPreferences", () => {
 
 describe("server render", () => {
   async function renderHead(
-    // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Cookies enter the real preference parser as raw values. Inference needs a reusable dictionary and AccessibilityPreferences would exclude malformed cookie inputs from this boundary fixture.
-    cookies: Record<string, unknown>,
+    cookies: Readonly<Record<string, AccessibilityPreferences>>,
     colorMode?: string,
   ) {
     for (const [name, value] of Object.entries(cookies))
@@ -215,10 +216,9 @@ describe("server render", () => {
     const app = createSSRApp({ render: () => null });
     const head = createHead();
     app.use(head);
-    app.runWithContext(() => {
+    await app.runWithContext(() => {
       if (colorMode) useHead({ htmlAttrs: { class: colorMode } });
-      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The setup callback reads no argument. Its DmsPluginSetup owner requires an app context; this identity-stub fixture deliberately omits unused runtime services.
-      accessibilityPlugin({} as never);
+      return accessibilityPlugin(dmsAppContext(app));
     });
     return renderSSRHead(head);
   }
@@ -259,11 +259,12 @@ describe("in the browser", () => {
     const app = createApp({ render: () => null });
     const head = createClientHead();
     app.use(head);
-    const { underlineLinks, reduceMotion } = app.runWithContext(() => {
-      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The setup callback reads no argument. Its DmsPluginSetup owner requires an app context; this identity-stub fixture deliberately omits unused runtime services.
-      accessibilityPlugin({} as never);
-      return useAccessibilityPreferences();
-    });
+    const { underlineLinks, reduceMotion } = await app.runWithContext(
+      async () => {
+        await accessibilityPlugin(dmsAppContext(app));
+        return useAccessibilityPreferences();
+      },
+    );
     await renderDOMHead(head);
     expect([...document.documentElement.classList]).toEqual(["dark"]);
 
@@ -308,9 +309,7 @@ describe("chart animations", () => {
       type: "line",
       series: [{ name: "Visits", data: [{ x: "Mon", y: 3 }] }],
     }));
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Raw chart sections do not carry Apex's nested animation fields. Inference and the owner contract leave this projection unchecked; validating here would change the existing chart-output test.
-    const chart = options.value.chart as { animations: { enabled: boolean } };
-    return chart.animations.enabled;
+    return sectionIn(sectionIn(options.value, "chart"), "animations").enabled;
   }
 
   it("animates by default and stops when motion is reduced", () => {

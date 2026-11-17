@@ -1,15 +1,41 @@
-import { isObject } from "../../../../../dms-core/app/utils/type-check";
+import {
+  isBoolean,
+  isNumber,
+  isObject,
+  isString,
+} from "../../../../../dms-core/app/utils/type-check";
 import type { UseApexChartInput } from "../../../composables/chart/useApexChart.types";
 
-// oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Raw dotted-path overrides can replace any section with arbitrary JSON or text; ApexOptions indexed access cannot describe this existing unchecked escape hatch, and inferred builders exclude user-defined keys.
 export type RawOptionSection = Record<string, unknown>;
+
+/** A value an override is written as: JSON, or the text itself when it is not JSON. */
+type RawOptionJson =
+  | string
+  | number
+  | boolean
+  | null
+  | readonly RawOptionJson[]
+  | { readonly [option: string]: RawOptionJson };
 
 const RAW_OPTION_PATH_SEPARATOR = ".";
 
-// oxlint-disable-next-line anti-slop/no-unknown-returns -- JSON.parse accepts arbitrary user JSON here; validating as ApexOptions would reject currently supported raw overrides.
-function parseRawOptionValue(value: string): unknown {
+function isRawOptionJson(value: unknown): value is RawOptionJson {
+  if (
+    value === null ||
+    isString(value) ||
+    isNumber(value) ||
+    isBoolean(value)
+  ) {
+    return true;
+  }
+  if (Array.isArray(value)) return value.every(isRawOptionJson);
+  return isObject(value) && Object.values(value).every(isRawOptionJson);
+}
+
+function parseRawOptionValue(value: string): RawOptionJson {
   try {
-    return JSON.parse(value);
+    const parsed: unknown = JSON.parse(value);
+    return isRawOptionJson(parsed) ? parsed : value;
   } catch {
     return value;
   }
@@ -23,12 +49,13 @@ function isOptionSection(value: unknown): value is RawOptionSection {
 function setOptionPath(
   options: RawOptionSection,
   path: string[],
-  value: ReturnType<typeof parseRawOptionValue>,
+  value: RawOptionJson,
 ): Parameters<typeof injectRawOptions>[0] {
   const [head, ...rest] = path;
   if (head === undefined) return options;
   if (rest.length === 0) return { ...options, [head]: value };
-  const section = isOptionSection(options[head]) ? options[head] : {};
+  const current = Object.hasOwn(options, head) ? options[head] : undefined;
+  const section = isOptionSection(current) ? current : {};
   return { ...options, [head]: setOptionPath(section, rest, value) };
 }
 

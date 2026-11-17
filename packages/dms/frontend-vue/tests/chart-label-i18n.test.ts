@@ -2,14 +2,14 @@ import { createSSRApp, defineComponent, h, ref } from "vue";
 import { renderToString } from "vue/server-renderer";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import ChartCard from "../layers/dms-ui/app/components/chart/ChartCard.vue";
-import Chart from "../layers/dms-ui/app/components/chart/Chart.vue";
+import Chart from "../layers/dms-ui/app/components/chart/ChartBlock.vue";
 import type {
   ChartSeries,
   ChartType,
 } from "../layers/dms-ui/app/composables/chart/types";
 import { chartRuntime } from "./helpers/charts-runtime";
 
-const ROUTE_SERIES: ChartSeries[] = [
+const ROUTE_SERIES = [
   {
     name: "$shop.plans.series",
     data: [
@@ -18,7 +18,7 @@ const ROUTE_SERIES: ChartSeries[] = [
       { x: "2026-10-01", y: 1 },
     ],
   },
-];
+] satisfies ChartSeries[];
 
 const PlotProbe = defineComponent({
   props: {
@@ -39,7 +39,7 @@ const Slot = defineComponent({
 });
 
 const SLOT_COMPONENTS = [
-  "DmsCard",
+  "DmsCardPanel",
   "DmsClientOnly",
   "UIcon",
   "USkeleton",

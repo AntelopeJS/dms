@@ -14,7 +14,8 @@ import {
   type Ref,
 } from "vue";
 import NotificationPopover from "../layers/dms-layout/app/entries/components/notification/NotificationPopover";
-import type { useNavBadges } from "../layers/dms-ui/app/entries/composables/navigation/useNavBadges";
+import { useNavBadges } from "../layers/dms-ui/app/entries/composables/navigation/useNavBadges";
+import { stubDmsState } from "./helpers/dms-state-stub";
 
 const HTTP_FORBIDDEN = 403;
 const UNREAD_COUNT = 4;
@@ -47,7 +48,9 @@ const UNREAD_NOTIFICATION = {
 
 let app: App;
 let host: HTMLDivElement;
-let errorHandler: ReturnType<typeof vi.fn>;
+type ErrorHandler = NonNullable<App["config"]["errorHandler"]>;
+
+let errorHandler: ReturnType<typeof vi.fn<ErrorHandler>>;
 let notifications: NotificationsStub;
 let state: Map<string, Ref<unknown>>;
 
@@ -102,10 +105,7 @@ function installRuntime(): void {
     onMounted,
     onUnmounted,
   }).forEach(([key, value]) => vi.stubGlobal(key, value));
-  vi.stubGlobal("useDmsState", <T>(key: string, init: () => T) => {
-    if (!state.has(key)) state.set(key, ref(init()));
-    return state.get(key);
-  });
+  stubDmsState(state);
   vi.stubGlobal("useI18n", () => ({ t: (key: string) => key, locale: "en" }));
   vi.stubGlobal("useDmsUserSession", () => ({ loggedIn: ref(true) }));
   vi.stubGlobal("useTranslation", () => ({
@@ -165,15 +165,11 @@ function badgeText(): string {
 
 /** The badge the bell keeps on the Notifications entry of the navigation. */
 function menuBadge() {
-  // SAFETY: useNavBadges owns dms-nav-badges and stores one badge per page key.
-  const badges = state.get("dms-nav-badges")?.value as
-    | ReturnType<typeof useNavBadges>["badges"]["value"]
-    | undefined;
-  return badges?.[NOTIFICATIONS_PAGE];
+  return useNavBadges().badges.value[NOTIFICATIONS_PAGE];
 }
 
 beforeEach(() => {
-  errorHandler = vi.fn();
+  errorHandler = vi.fn<ErrorHandler>();
   state = new Map();
   notifications = {
     unreadCount: ref(0),

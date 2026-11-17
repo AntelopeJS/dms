@@ -25,14 +25,14 @@ const engine = await import("#dms/frontend-module");
 vi.stubGlobal("useDmsFetch", engine.useDmsFetch);
 vi.stubGlobal("useDmsAsyncData", engine.useDmsAsyncData);
 const requests: string[] = [];
-const backend = {
-  "/api/tasks": [{ id: "1", title: "Write" }],
-  "/api/archive": [{ id: "9", title: "Old" }],
-} satisfies Record<string, Task[]>;
+const backend = new Map<string, Task[]>([
+  ["/api/tasks", [{ id: "1", title: "Write" }]],
+  ["/api/archive", [{ id: "9", title: "Old" }]],
+]);
 vi.stubGlobal("useAuthFetch", () => ({
-  $authFetch: async (url: keyof typeof backend) => {
+  $authFetch: async (url: string) => {
     requests.push(url);
-    return structuredClone(backend[url]);
+    return structuredClone(backend.get(url));
   },
 }));
 const { useApiData } = await import(

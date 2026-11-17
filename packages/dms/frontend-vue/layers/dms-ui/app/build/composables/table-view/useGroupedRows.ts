@@ -9,7 +9,7 @@ import type {
   Data,
   TableFilter,
   TableRowGrouping,
-} from "../../components/table/Table.vue";
+} from "../../components/table/TableRoot.vue";
 import { useColumnValueRenderer } from "../data-types/useColumnValueRenderer";
 import type { TableCountQuery } from "./useTableRows";
 import {
@@ -44,6 +44,7 @@ export function useGroupedRows(options: GroupedRowsOptions) {
   const { isActive, columns, rows } = options;
   const { t, locale } = useI18n();
   const { renderColumnValue } = useColumnValueRenderer();
+  const errorPresenter = useApiErrorPresenter();
   const grouped = computed(() => toValue(options.grouped));
   const by = computed(() => grouped.value?.by ?? "value");
   const field = computed(() => grouped.value?.groupByField ?? "");
@@ -67,11 +68,9 @@ export function useGroupedRows(options: GroupedRowsOptions) {
         }),
       );
     }
-    return column.value
-      ? renderColumnValue(column.value, {
-          [field.value]: get(row, field.value),
-        })
-      : key;
+    if (!column.value) return key;
+    const value: unknown = get(row, field.value);
+    return renderColumnValue(column.value, { [field.value]: value });
   };
 
   const counts = ref<Record<string, number>>({});
@@ -91,11 +90,12 @@ export function useGroupedRows(options: GroupedRowsOptions) {
   const refreshCounts = async () => {
     const queries = countQueries.value;
     if (import.meta.env.SSR || queries.length === 0) return;
-    // prettier-ignore
     try {
       counts.value = await options.countBatch(queries);
-    } catch {
-      // eslint-disable-line no-empty -- A failed count request leaves the group rows readable.
+    } catch (error: unknown) {
+      errorPresenter.presentError(error, {
+        fallbackKey: "dms.table.load_error_title",
+      });
     }
   };
 

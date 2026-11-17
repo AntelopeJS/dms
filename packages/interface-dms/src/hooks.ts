@@ -3,7 +3,7 @@ import {
   RunWithResponsibleModule,
 } from "@antelopejs/interface-core";
 import { Logging } from "@antelopejs/interface-core/logging";
-import type { InviteExtensionPayloads } from "./invite-extensions/types";
+import type { InviteExtensionPayloads } from "./invite-extension-payloads";
 import type {
   TenantDataExportContribution,
   TenantExportArchive,
@@ -11,8 +11,6 @@ import type {
 import { OwnedRegistry } from "./utils/internal/owned-registry";
 
 export * from "./tenant-export";
-
-export type HookCallback = (...args: any[]) => any;
 
 export enum Hook {
   /**
@@ -42,13 +40,15 @@ export enum Hook {
    * cleaned up along with the workspace, and make it idempotent so a retried
    * signup does not double it.
    *
-   * It fires once per tenant, when the tenant is created, through
-   * `ProvisionTenant` (`@antelopejs/interface-dms/tenant-provisioning`): by
-   * the DMS for the `default` tenant, on the start that creates it, once
-   * `DATABASE_INITIALIZED` has settled; by the signup flow of a SaaS module
-   * for each workspace it creates. It is where a module writes the default
-   * data a tenant starts with: written once, that data then belongs to the
-   * tenant, and nothing writes it again on a later start.
+   * It fires when a tenant is created, through `ProvisionTenant`
+   * (`@antelopejs/interface-dms/tenant-provisioning`): by the DMS for the
+   * `default` tenant, once every module has started, on the replica holding its
+   * provisioning lease; by the signup flow of a SaaS module for each workspace
+   * it creates. It is where a module writes the default data a tenant starts
+   * with: once it succeeded, that data belongs to the tenant and nothing writes
+   * it again on a later start. The `default` tenant's handlers run again after
+   * an attempt that failed or whose process died, so a handler skips what it
+   * already wrote.
    */
   TENANT_BEING_PROVISIONED = "tenant:being-provisioned",
   TENANT_DELETED = "tenant:deleted",
@@ -326,34 +326,40 @@ export interface RegisteredHook<H extends Hook> {
  */
 export type StickyHook = Hook.DATABASE_INITIALIZED;
 
-interface HookEntry {
-  callback: HookCallback;
+interface HookEntry<H extends Hook> {
+  callback: HookHandler<H>;
   moduleId?: string;
 }
 
-interface SettledHook {
-  name: Hook;
-  args: unknown[];
+interface SettledHook<H extends Hook> {
+  args: HookSignatures[H]["args"];
 }
 
-const hooksRegistry = new Map<Hook, OwnedRegistry<HookEntry>>();
-
-const settledHooks = new OwnedRegistry<SettledHook>();
-
-function getHooks(name: Hook): OwnedRegistry<HookEntry> {
-  const existing = hooksRegistry.get(name);
-  if (existing) return existing;
-  const hooks = new OwnedRegistry<HookEntry>();
-  hooksRegistry.set(name, hooks);
-  return hooks;
+class HookState<H extends Hook> {
+  readonly handlers = new OwnedRegistry<HookEntry<H>>();
+  readonly settled = new OwnedRegistry<SettledHook<H>>();
 }
 
-function logHookFailure(name: Hook, error: Error["cause"]): void {
-  Logging.Error(`Hook '${name}' execution failed:`, error);
-}
+type HookStates = { [H in Hook]: HookState<H> };
 
-function findSettledHook(name: Hook): SettledHook | undefined {
-  return settledHooks.values().find((settled) => settled.name === name);
+const hookStates: HookStates = {
+  [Hook.DATABASE_INITIALIZED]: new HookState(),
+  [Hook.TENANT_BEING_PROVISIONED]: new HookState(),
+  [Hook.TENANT_DELETED]: new HookState(),
+  [Hook.TENANT_DATA_EXPORT]: new HookState(),
+  [Hook.INVITE_BEING_CREATED]: new HookState(),
+  [Hook.INVITE_CREATED]: new HookState(),
+  [Hook.INVITE_DELETED]: new HookState(),
+  [Hook.MEMBER_BEING_ADDED]: new HookState(),
+  [Hook.MEMBER_BEING_CHANGED]: new HookState(),
+  [Hook.MEMBER_ADDED]: new HookState(),
+  [Hook.MEMBER_REMOVED]: new HookState(),
+  [Hook.USER_DELETED]: new HookState(),
+  [Hook.USER_REGISTERED]: new HookState(),
+};
+
+function getHooks<H extends Hook>(name: H): OwnedRegistry<HookEntry<H>> {
+  return hookStates[name].handlers;
 }
 
 /**
@@ -361,9 +367,10 @@ function findSettledHook(name: Hook): SettledHook | undefined {
  * registration: the registering module's `construct()` or `start()` neither
  * waits for it nor sees its failure.
  */
-function runLateHandler(
-  settled: SettledHook,
-  callback: HookCallback,
+function runLateHandler<H extends Hook>(
+  name: H,
+  settled: SettledHook<H>,
+  callback: HookHandler<H>,
   owner: string | undefined,
 ): void {
   const run = async () => callback(...settled.args);
@@ -371,9 +378,9 @@ function runLateHandler(
     owner ? RunWithResponsibleModule(owner, run) : run();
   void Promise.resolve()
     .then(runAsOwner)
-    .catch((error: Error["cause"]) => {
+    .catch((error: unknown) => {
       Logging.Error(
-        `Hook '${settled.name}' handler of module '${owner ?? "unknown"}' failed:`,
+        `Hook '${name}' handler of module '${owner ?? "unknown"}' failed:`,
         error,
       );
     });
@@ -401,8 +408,8 @@ export function RegisterHook<H extends Hook>(
     callback,
     moduleId: options?.moduleId ?? owner,
   });
-  const settled = findSettledHook(name);
-  if (settled) runLateHandler(settled, callback, owner);
+  const [settled] = hookStates[name].settled.values();
+  if (settled) runLateHandler(name, settled, callback, owner);
 }
 
 /**
@@ -450,7 +457,7 @@ export async function ExecuteHooks<H extends Hook>(
   ...args: HookSignatures[H]["args"]
 ): Promise<void> {
   for (const hook of getHooks(name).values()) {
-    await hook.callback(...args);
+    await Promise.resolve(hook.callback(...args));
   }
 }
 
@@ -467,18 +474,18 @@ export async function SettleHook<H extends StickyHook>(
   name: H,
   ...args: HookSignatures[H]["args"]
 ): Promise<void> {
-  const ran = new Set<HookEntry>();
+  const ran = new Set<HookEntry<H>>();
   let pending = getHooks(name).values();
   while (pending.length > 0) {
     for (const hook of pending) {
       ran.add(hook);
-      await hook.callback(...args);
+      await Promise.resolve(hook.callback(...args));
     }
     pending = getHooks(name)
       .values()
       .filter((hook) => !ran.has(hook));
   }
-  settledHooks.add({ name, args });
+  hookStates[name].settled.add({ args });
 }
 
 /**
@@ -486,21 +493,22 @@ export async function SettleHook<H extends StickyHook>(
  * to be settled again.
  */
 export function UnsettleHook(name: StickyHook): void {
-  const isSettled = (settled: SettledHook) => settled.name === name;
-  while (settledHooks.has(isSettled)) settledHooks.remove(isSettled);
+  const { settled } = hookStates[name];
+  const always = () => true;
+  while (settled.has(always)) settled.remove(always);
 }
 
 export async function CollectHooks<H extends Hook>(
   name: H,
   ...args: HookSignatures[H]["args"]
-): Promise<HookSignatures[H]["result"][]> {
-  const results: HookSignatures[H]["result"][] = [];
+): Promise<Awaited<HookHandlerResult<H>>[]> {
+  const results: Awaited<HookHandlerResult<H>>[] = [];
   for (const hook of getHooks(name).values()) {
     try {
-      const value: HookSignatures[H]["result"] = await hook.callback(...args);
+      const value = await Promise.resolve(hook.callback(...args));
       results.push(value);
     } catch (error) {
-      logHookFailure(name, error);
+      Logging.Error(`Hook '${name}' execution failed:`, error);
     }
   }
   return results;

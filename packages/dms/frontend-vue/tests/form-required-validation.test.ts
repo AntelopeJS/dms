@@ -2,7 +2,11 @@ import { describe, expect, it } from "vitest";
 import { z } from "zod";
 import { zodToJsonSchema } from "zod-to-json-schema";
 import { jsonSchemaToZod } from "json-schema-to-zod";
-import { isString } from "../layers/dms-core/app/utils/type-check";
+import {
+  isBoolean,
+  isObject,
+  isString,
+} from "../layers/dms-core/app/utils/type-check";
 import {
   formIssueMessage,
   isBlankValue,
@@ -14,16 +18,23 @@ import {
   unwrapUnionIssue,
   validateFormState,
 } from "../layers/dms-ui/app/entries/composables/form/formValidation";
+import { evaluateZodObject } from "./helpers/zod-source";
+
+type JsonSchema = Parameters<typeof jsonSchemaToZod>[0];
+
+const isJsonSchema = (value: unknown): value is JsonSchema =>
+  isBoolean(value) || isObject(value);
 
 function roundTrip(
   fields: Record<string, z.ZodTypeAny>,
 ): z.ZodObject<Record<string, z.ZodTypeAny>> {
   const json = zodToJsonSchema(z.object(fields));
+  if (!isJsonSchema(json)) throw new TypeError("not a JSON schema");
   const code = jsonSchemaToZod(json, { module: "none" }).replace(
     /\.strict\(\)$/,
     ".passthrough()",
   );
-  return new Function("z", `"use strict"; return (${code})`)(z);
+  return evaluateZodObject(code);
 }
 
 function optional(schema: z.ZodTypeAny): z.ZodTypeAny {

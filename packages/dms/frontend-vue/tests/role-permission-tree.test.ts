@@ -13,6 +13,7 @@ import {
 import type { RolePermissionNode } from "../layers/dms-layout/app/entries/components/pages/settings/roles/role-types";
 import type * as RolePermissionHelpers from "../layers/dms-layout/app/entries/components/pages/settings/roles/role-permissions";
 import { installAuthSettingsRuntime } from "./helpers/auth-settings-runtime";
+import { browserRuntime } from "./helpers/api-data-runtime";
 import { isObject } from "../layers/dms-core/app/utils/type-check";
 import { TREE } from "./helpers/role-permission-tree-fixture";
 
@@ -106,10 +107,11 @@ function mountTree(tree = TREE, selection = new Set<string>()) {
         },
       }),
   });
+  browserRuntime(app);
   app.component("UCheckbox", CheckboxStub);
   app.component("UButton", stub("button"));
   app.component("UIcon", stub("i"));
-  app.component("DmsMeter", stub("span"));
+  app.component("DmsMeterBar", stub("span"));
   app.mount(host);
   return { host, index, expanded, toggles };
 }
@@ -184,8 +186,10 @@ describe("nested role permission tree", () => {
       closed.click();
       await nextTick();
     }
-    expect([...new Set(shownIds(host))].sort()).toEqual(
-      [...index.allIds].sort(),
+    const byId = (a: string | null, b: string | null) =>
+      (a ?? "").localeCompare(b ?? "");
+    expect([...new Set(shownIds(host))].sort(byId)).toEqual(
+      [...index.allIds].sort(byId),
     );
   });
 
@@ -210,9 +214,11 @@ const InputStub = defineComponent({
     () =>
       h("input", {
         value: props.modelValue,
-        // SAFETY: This listener is attached to the input itself and the test dispatches input events on it.
-        onInput: (event: Event) =>
-          emit("update:modelValue", (event.target as HTMLInputElement).value),
+        onInput: (event: Event) => {
+          if (event.target instanceof HTMLInputElement) {
+            emit("update:modelValue", event.target.value);
+          }
+        },
       }),
 });
 
@@ -258,16 +264,17 @@ function mountEditor(tree = TREE, selection = new Set<string>()) {
         description: "",
       }),
   });
+  browserRuntime(app);
   app.component("UCheckbox", CheckboxStub);
   app.component("UButton", stub("button"));
   app.component("UIcon", stub("i"));
   app.component("UInput", InputStub);
   app.component("UFormField", slotStub);
   app.component("UDropdownMenu", slotStub);
-  app.component("DmsMeter", stub("span"));
+  app.component("DmsMeterBar", stub("span"));
   app.component("DmsIconWell", stub("span"));
   app.component("DmsSaveBar", stub("div"));
-  app.component("DmsBanner", BannerStub);
+  app.component("DmsNoticeBanner", BannerStub);
   app.mount(host);
   return { host };
 }

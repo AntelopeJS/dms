@@ -1,4 +1,4 @@
-import { expect } from "chai";
+import { assert, expect } from "chai";
 import type { TableViewOptionsSerialized } from "@antelopejs/interface-dms/base/table-view";
 import {
   InvitesSettingsController,
@@ -10,8 +10,9 @@ const MEMBER_LISTS_ROWS = 10;
 function serializedOptions(
   table: typeof membersTable,
 ): TableViewOptionsSerialized {
-  // SAFETY: Both callers pass table-view components; their serialized options use the table-view options contract rather than the generic component payload.
-  return table.serializeSync().options as TableViewOptionsSerialized;
+  const { options } = table.serializeSync();
+  assert.isDefined(options);
+  return options;
 }
 
 /**

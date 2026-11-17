@@ -16,11 +16,12 @@ import {
 } from "../../utils/urlVariables";
 import { apiErrorStatus } from "#dms-core/app/composables/useFieldErrors";
 import { HTTP_NOT_FOUND } from "#dms-core/app/utils/http-status";
-import { isString } from "#dms-core/app/utils/type-check";
 import { sameFormValue } from "../unsaved-changes/formValue";
+import { isStringSet } from "./stringSet";
 import {
   type FieldValueComparer,
   buildValidationSchema,
+  cloneRecordValues,
   createBaseValidationSchema,
   createFieldValueComparer,
   flattenFields,
@@ -29,6 +30,10 @@ import {
   watchFieldChanges,
   withConditionFields,
 } from "./useFormModel";
+
+function stringSetOf(value: Parameters<typeof isStringSet>[0]) {
+  return isStringSet(value) ? value : undefined;
+}
 
 function createFormState(props: FormProps) {
   const toast = useToast();
@@ -61,7 +66,7 @@ function createFormState(props: FormProps) {
   const initialValues = ref<FormData>({});
   const submitSucceeded = ref(false);
 
-  const allFields = computed(() => flattenFields(props.fields));
+  const allFields = computed(() => flattenFields(props.fields ?? []));
 
   const isStartingValue = (
     fieldId: string,
@@ -96,17 +101,14 @@ function createFormState(props: FormProps) {
 
   const inactiveFields = computed(() =>
     withConditionFields(allFields.value, state.value, {
-      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Watch actions own these sets but expose open state. Preserve the existing unchecked iterable behavior for malformed replacements rather than filtering them.
-      disabled: state.value.disabledFields as Set<string> | undefined,
-      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Watch actions expose open state; keep malformed hidden-field replacements observable to the existing Set constructor.
-      hidden: state.value.hiddenFields as Set<string> | undefined,
+      disabled: stringSetOf(state.value.disabledFields),
+      hidden: stringSetOf(state.value.hiddenFields),
     }),
   );
   const disabledFields = computed(() => inactiveFields.value.disabled);
   const hiddenFields = computed(() => inactiveFields.value.hidden);
-  const requiredFields = computed(
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Watch actions expose open state; retaining this unchecked field preserves existing size/has behavior for malformed replacements.
-    () => state.value.requiredFields as Set<string> | undefined,
+  const requiredFields = computed(() =>
+    stringSetOf(state.value.requiredFields),
   );
 
   return {
@@ -135,12 +137,11 @@ function createFormState(props: FormProps) {
 /** @internal */
 export function createFormFields(props: FormProps) {
   const context = createFormState(props);
+  const presenter = useApiErrorPresenter();
   const {
-    toast,
     $authFetch,
     getDataType,
     processI18n,
-    processApiMessage,
     route,
     initialValues,
     disabledFields,
@@ -149,7 +150,7 @@ export function createFormFields(props: FormProps) {
   } = context;
 
   const fields = computed<FormFieldOrGroup[]>(() =>
-    orderFormEntries(props.fields).map((item) => {
+    orderFormEntries(props.fields ?? []).map((item) => {
       if (isFieldGroup(item)) {
         return {
           ...item,
@@ -189,9 +190,13 @@ export function createFormFields(props: FormProps) {
     });
     initialValues.value = {
       ...initialValues.value,
-      ...JSON.parse(JSON.stringify(fetchedData)),
+      ...cloneRecordValues(fetchedData),
     };
-    return processBeforeStateMappers(fetchedData, props.fields, getDataType);
+    return processBeforeStateMappers(
+      fetchedData,
+      props.fields ?? [],
+      getDataType,
+    );
   };
 
   const fetchData = async () => {
@@ -205,14 +210,8 @@ export function createFormFields(props: FormProps) {
   };
 
   const showFetchErrorToast = (error: Parameters<typeof apiErrorStatus>[0]) => {
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Rejections are arbitrary; keep direct data access, primitive boxing and nullish throws rather than treating this unchecked error projection as validated.
-    const err = error as Error & { data?: string };
-    toast.add({
-      title: processI18n("$dms.form.fetch_error_title"),
-      description: isString(err.data)
-        ? processApiMessage(err.data)
-        : processI18n("$dms.form.fetch_error_unknown"),
-      color: Color.error,
+    presenter.presentError(error, {
+      fallbackKey: "dms.form.fetch_error_unknown",
     });
   };
 

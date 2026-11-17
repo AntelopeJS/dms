@@ -1,3 +1,4 @@
+import type { JsonValue } from "../../../../dms-core/app/types/json";
 import {
   isObject,
   isString,
@@ -35,9 +36,10 @@ type StoredHistory = Record<ModuleHistoryEntry["moduleId"], StoredVisit>;
  * malformed: a hand-edited cookie or an older shape must never break the
  * modules page or the command palette.
  */
-// oxlint-disable-next-line anti-slop/no-unknown-parameters -- Cookie normalization accepts malformed and old data. A cookie happy-path type would hide the validation boundary.
-function normalizeHistory(raw: unknown): StoredHistory {
-  if (!raw || !isObject(raw) || Array.isArray(raw)) return {};
+function normalizeHistory(
+  raw: JsonValue | StoredHistory | undefined,
+): StoredHistory {
+  if (raw === null || !isObject(raw) || Array.isArray(raw)) return {};
   const result: StoredHistory = {};
   for (const [moduleId, value] of Object.entries(raw)) {
     if (!value || !isObject(value)) continue;

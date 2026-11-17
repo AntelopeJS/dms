@@ -7,7 +7,12 @@ import {
 } from "@antelopejs/interface-api";
 import type { User } from "@antelopejs/interface-dms/auth/db";
 import { AuthUserWithPermission } from "@antelopejs/interface-dms/guards";
-import { type DemoRecord, JSON_TYPE, parseFormBody } from "../demo-record-api";
+import {
+  type DemoBody,
+  type DemoRecord,
+  JSON_TYPE,
+  parseFormBody,
+} from "../demo-record-api";
 import { PageFormWatchActions } from "./page";
 
 const HTTP_UNPROCESSABLE = 422;
@@ -38,7 +43,7 @@ export class FormWatchActionsAPIController extends Controller(
   }
 
   @Put("save")
-  async save(@JSONBody() body: DemoRecord) {
+  async save(@JSONBody() body: DemoBody) {
     if (body.displayName === REFUSED_NAME) {
       throw new HTTPResult(
         HTTP_UNPROCESSABLE,

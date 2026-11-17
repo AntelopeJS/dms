@@ -52,6 +52,14 @@ const theme = tv({
         groupLock: "text-warning",
       },
     },
+    locked: {
+      true: {
+        topLevelButton: "text-muted dms-hatch-locked",
+        link: "text-muted dms-hatch-locked",
+        topLevelLock: "text-muted",
+        lock: "text-muted",
+      },
+    },
   },
 });
 </script>
@@ -59,14 +67,15 @@ const theme = tv({
 <script setup lang="ts">
 import { DmsLink } from "#dms/frontend-module";
 import { PREVIEW_LOCK_ICON } from "#dms-ui/app/entries/utils/permissionPreview";
+import type { DmsMenuItem } from "#dms-core/app/types/menu";
 
-interface Props {
+export interface CollapsedMenuItemProps {
   item: DmsMenuItem;
   isTopLevel?: boolean;
   level?: number;
 }
 
-const props = withDefaults(defineProps<Props>(), {
+const props = withDefaults(defineProps<CollapsedMenuItemProps>(), {
   isTopLevel: false,
   level: 0,
 });
@@ -75,12 +84,17 @@ const ui = computed(() =>
   theme({
     isTopLevel: props.isTopLevel,
     isAccent: props.item.variant === "accent",
-    previewState: props.item.previewState,
+    previewState: props.item.lockReason ? undefined : props.item.previewState,
+    locked: props.item.lockReason !== undefined,
   }),
 );
 
 const statusClass = computed(() =>
   props.item.status ? MENU_STATUS_TEXT_CLASSES[props.item.status] : undefined,
+);
+
+const drawnLocked = computed(
+  () => !!props.item.previewState || props.item.lockReason !== undefined,
 );
 
 const hasChildren = computed(() => {
@@ -104,9 +118,7 @@ const chevronClass = (isOpen: boolean) => {
     <UTooltip
       v-if="isTopLevel"
       :text="
-        item.previewState && item.title
-          ? `${item.label} · ${item.title}`
-          : item.label
+        drawnLocked && item.title ? `${item.label} · ${item.title}` : item.label
       "
       :content="{ side: 'right', sideOffset: 8 }"
     >
@@ -117,7 +129,7 @@ const chevronClass = (isOpen: boolean) => {
       >
         <UIcon v-if="item.icon" :name="item.icon" :class="ui.icon()" />
         <UIcon
-          v-if="item.previewState"
+          v-if="drawnLocked"
           :name="PREVIEW_LOCK_ICON"
           :class="ui.topLevelLock()"
         />
@@ -138,11 +150,7 @@ const chevronClass = (isOpen: boolean) => {
     >
       <UIcon v-if="item.icon" :name="item.icon" :class="ui.icon()" />
       <span>{{ item.label }}</span>
-      <UIcon
-        v-if="item.previewState"
-        :name="PREVIEW_LOCK_ICON"
-        :class="ui.lock()"
-      />
+      <UIcon v-if="drawnLocked" :name="PREVIEW_LOCK_ICON" :class="ui.lock()" />
       <span v-else-if="statusClass" :class="[ui.statusDot(), statusClass]" />
     </component>
   </template>

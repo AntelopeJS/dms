@@ -4,6 +4,11 @@ import type {
   UserTimeFormat,
   UserWeekStart,
 } from "@antelopejs/interface-dms/auth/db";
+import {
+  isNull,
+  isObject,
+  isString,
+} from "@antelopejs/interface-dms/utils/internal/type-check";
 import type { RegionalPreferencesInput } from "../../../validation";
 
 /**
@@ -66,18 +71,37 @@ export function readRegionalPreferences(user: User): RegionalPreferences {
   };
 }
 
+/** The preferences as the Language & region form shows them. */
+export interface RegionFormValues {
+  language: string | null;
+  timeZone: string;
+  weekStart: string;
+  timeFormat: string;
+  dateFormat: string;
+}
+
+function toFormValue(value: string | number | null): string {
+  return value === null ? AUTOMATIC_PREFERENCE : String(value);
+}
+
 /**
  * The preferences as the Language & region form shows them: each regional
  * one as the text of its select option, "Automatic" when unset.
  */
-export function toRegionFormValues(preferences: RegionalPreferences) {
-  // oxlint-disable-next-line anti-slop/no-known-value-widening, anti-slop/no-unsafe-dictionary-type -- The form adapter accumulates computed regional keys while retaining its existing open record return contract.
-  const values: Record<string, unknown> = { language: preferences.language };
-  for (const key of REGIONAL_KEYS) {
-    const value = preferences[key];
-    values[key] = value === null ? AUTOMATIC_PREFERENCE : String(value);
-  }
-  return values;
+export function toRegionFormValues(
+  preferences: RegionalPreferences,
+): RegionFormValues {
+  return {
+    language: preferences.language,
+    timeZone: toFormValue(preferences.timeZone),
+    weekStart: toFormValue(preferences.weekStart),
+    timeFormat: toFormValue(preferences.timeFormat),
+    dateFormat: toFormValue(preferences.dateFormat),
+  };
+}
+
+function isFieldBag(body: unknown): body is Record<string, unknown> {
+  return isObject(body) && !isNull(body);
 }
 
 /**
@@ -85,19 +109,17 @@ export function toRegionFormValues(preferences: RegionalPreferences) {
  * becomes null and the first day of the week a number. Anything else is
  * left for the schema to judge.
  */
-/* oxlint-disable anti-slop/no-runtime-typeof -- This pre-schema adapter preserves malformed input for regionalPreferencesSchema to reject, while translating only automatic and week-start representations. */
-// oxlint-disable-next-line anti-slop/no-unknown-parameters -- Input remains unparsed until regionalPreferencesSchema runs in the route.
-export function fromRegionFormValues(body: unknown) {
-  if (!body || typeof body !== "object") return body;
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion, anti-slop/no-unsafe-dictionary-type -- Only container identity is established; field values intentionally remain unknown until schema validation.
-  const values = { ...(body as Record<string, unknown>) };
+// oxlint-disable-next-line anti-slop/no-unknown-parameters, anti-slop/no-unknown-returns -- The raw body stays unparsed in and out: a non-object comes back as given, an object with its automatic and week-start values mapped, for regionalPreferencesSchema to judge in the route.
+export function fromRegionFormValues(body: unknown): unknown {
+  if (!isFieldBag(body)) return body;
+  const values = { ...body };
   for (const key of REGIONAL_KEYS) {
     if (values[key] === AUTOMATIC_PREFERENCE) values[key] = null;
   }
 
-  if (typeof values.weekStart === "string") {
+  if (isString(values.weekStart)) {
     values.weekStart = Number(values.weekStart);
   }
+  // oxlint-disable-next-line anti-slop/no-known-value-widening -- The mapped copy of the raw body goes back unparsed, for regionalPreferencesSchema to judge in the route.
   return values;
 }
-/* oxlint-enable anti-slop/no-runtime-typeof */

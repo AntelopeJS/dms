@@ -10,11 +10,17 @@
   },
   "hooks": {
     "before:init": [
-      "pnpm run build",
+      "pnpm --filter @antelopejs/interface-dms --filter @antelopejs/interface-dms-builder build",
       "pnpm --dir ../.. run lint",
       "pnpm run check:exports"
     ],
-    "after:bump": "git add CHANGELOG.md"
+    "after:bump": [
+      "git add CHANGELOG.md",
+      "node scripts/raise-dms-range.mjs",
+      "pnpm --dir ../.. install --lockfile-only --no-frozen-lockfile",
+      "pnpm --dir ../.. run sync",
+      "git add ../dms/package.json ../dms/README.md ../../pnpm-lock.yaml"
+    ]
   },
   "plugins": {
     "release-it-changelogen": {
@@ -22,6 +28,7 @@
     }
   },
   "npm": {
-    "skipChecks": true
+    "skipChecks": true,
+    "allowSameVersion": true
   }
 }

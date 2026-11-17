@@ -34,14 +34,14 @@ export function useTableComponentFilters<T extends Data>(
     hiddenFiltersApply: computed(() => !!props.hiddenFiltersApply),
   };
   const filtersCleared = createEventHook();
-  const resetFilters = () => {
+  const resetFilters = async () => {
     clearTableFilters(narrowingState);
-    void filtersCleared.trigger();
+    await filtersCleared.trigger();
   };
 
-  const clearSearch = () => {
+  const clearSearch = async () => {
     clearTableSearch(narrowingState);
-    void filtersCleared.trigger();
+    await filtersCleared.trigger();
   };
   const clearFilters = () => clearTableColumnFilters(narrowingState);
   const clearableFilters = computed(() =>

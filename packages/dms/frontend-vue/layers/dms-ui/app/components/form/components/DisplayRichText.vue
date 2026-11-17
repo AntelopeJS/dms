@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import DOMPurify from "isomorphic-dompurify";
+import { h } from "vue";
+import { sanitizedNodes } from "../../../build/utils/sanitizedNodes";
 
 interface DisplayRichTextProps {
   modelValue?: string;
@@ -17,15 +19,21 @@ const isEmpty = computed(() => {
   return value.replace(/<[^>]*>/g, "").trim() === "";
 });
 
-const sanitizedHtml = computed(() =>
-  props.modelValue ? DOMPurify.sanitize(props.modelValue) : "",
+const sanitizedFragment = computed(() =>
+  DOMPurify.sanitize(props.modelValue ?? "", { RETURN_DOM_FRAGMENT: true }),
 );
+
+const renderRichText = () =>
+  h(
+    "div",
+    { class: RICH_TEXT_PROSE_CLASSES },
+    sanitizedNodes(sanitizedFragment.value),
+  );
 </script>
 
 <template>
   <span v-if="isEmpty" class="text-dimmed text-sm">
     {{ t("dms.form.empty_value") }}
   </span>
-  <!-- eslint-disable-next-line vue/no-v-html -->
-  <div v-else :class="RICH_TEXT_PROSE_CLASSES" v-html="sanitizedHtml" />
+  <component :is="renderRichText()" v-else />
 </template>

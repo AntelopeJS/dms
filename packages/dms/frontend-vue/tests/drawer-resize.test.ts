@@ -20,6 +20,7 @@ import {
   type Component,
   type InjectionKey,
   type Ref,
+  type StyleValue,
   type VNode,
 } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -28,7 +29,6 @@ import {
   DRAWER_SIZE_COOKIE,
   readDrawerSizePreferences,
 } from "../layers/dms-ui/app/entries/composables/containers/drawerSize";
-
 import { DialogRoot } from "reka-ui";
 import type { DrawerOptions } from "../layers/dms-ui/app/composables/containers/types";
 import type { formFieldInjectionKey as FormFieldKey } from "@nuxt/ui/composables/useFormField";
@@ -36,6 +36,9 @@ import type { formFieldInjectionKey as FormFieldKey } from "@nuxt/ui/composables
 type FieldInjection =
   typeof FormFieldKey extends InjectionKey<infer Value> ? Value : never;
 type DrawerProps = NonNullable<VNode["props"]>;
+type DynamicDrawerProps = InstanceType<
+  (typeof import("../layers/dms-ui/app/entries/components/containers/drawer/DynamicDrawer"))["default"]
+>["$props"];
 
 interface BodyInjections {
   explorer?: string | null;
@@ -47,9 +50,15 @@ const SIZE_VARIABLE = "--dms-drawer-size";
 
 let app: App | undefined;
 let host: HTMLDivElement;
-let cookies: Map<string, Ref<unknown>>;
+type DrawerSizeCookie = Ref<ReturnType<typeof readDrawerSizePreferences>>;
+
+let cookies: Map<string, DrawerSizeCookie>;
 
 let renderedRect = { width: 600, height: 320 };
+
+function domRect(width: number, height: number): DOMRect {
+  return new DOMRect(0, 0, width, height);
+}
 
 const rendered = reactive<{
   ui?: Record<string, string>;
@@ -57,27 +66,32 @@ const rendered = reactive<{
   dismissible?: boolean;
 }>({});
 
-function useDmsCookie<T>(
+function useDmsCookie(
   name: string,
-  options: { default?: () => T } = {},
-): Ref<T> {
-  if (!cookies.has(name)) cookies.set(name, ref(options.default?.() ?? null));
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- This cookie double stores unvalidated values including null; it mirrors the generic cookie API rather than claiming the stored value was validated as T.
-  return cookies.get(name) as Ref<T>;
+  options: { default: () => DrawerSizeCookie["value"] },
+): DrawerSizeCookie {
+  let cookie = cookies.get(name);
+  if (!cookie) {
+    cookie = ref(options.default());
+    cookies.set(name, cookie);
+  }
+  return cookie;
 }
 
 const storedSizes = () =>
   readDrawerSizePreferences(cookies.get(DRAWER_SIZE_COOKIE)?.value);
 
-const DrawerStub = defineComponent({
-  props: {
-    direction: String,
-    ui: Object,
-    content: Object,
-    handle: { type: Boolean, default: true },
-    dismissible: { type: Boolean, default: true },
-  },
-  setup(props, { slots }) {
+const DrawerStub = defineComponent(
+  (
+    props: {
+      direction?: string;
+      ui?: Record<string, string>;
+      content?: { style?: StyleValue };
+      handle: boolean;
+      dismissible: boolean;
+    },
+    { slots },
+  ) => {
     return () => {
       rendered.ui = props.ui;
       rendered.handle = props.handle;
@@ -91,7 +105,16 @@ const DrawerStub = defineComponent({
       );
     };
   },
-});
+  {
+    props: {
+      direction: String,
+      ui: Object,
+      content: Object,
+      handle: { type: Boolean, default: true },
+      dismissible: { type: Boolean, default: true },
+    },
+  },
+);
 
 async function mountDrawer(props: DrawerProps): Promise<void> {
   app?.unmount();
@@ -143,8 +166,7 @@ beforeEach(() => {
   cookies = new Map();
   renderedRect = { width: 600, height: 320 };
   vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- This geometry double intentionally returns only width and height, the fields resizing reads; it is not a complete DOMRect.
-    () => ({ ...renderedRect }) as DOMRect,
+    () => domRect(renderedRect.width, renderedRect.height),
   );
   window.innerWidth = 1600;
   window.innerHeight = 1000;
@@ -434,10 +456,13 @@ describe("a drawer opened through useDrawer, and its caller's provides", () => {
     const { formFieldInjectionKey } = await import(
       "@nuxt/ui/runtime/composables/useFormField.js"
     );
-    const opened = shallowRef<DrawerProps>();
+    const opened = shallowRef<DynamicDrawerProps>();
     vi.stubGlobal("markRaw", <T>(value: T) => value);
     vi.stubGlobal("useOverlay", () => ({
-      create: (_component: Component, { props }: { props: DrawerProps }) => {
+      create: (
+        _component: Component,
+        { props }: { props: DynamicDrawerProps },
+      ) => {
         opened.value = props;
         return {
           open: () => new Promise(() => {}),
@@ -465,9 +490,14 @@ describe("a drawer opened through useDrawer, and its caller's provides", () => {
       setup() {
         const drawer = useDrawer();
         provide(EXPLORER_KEY, "library-1");
-        provide(DMS_CONTAINER_KEY, { id: "outer", close: () => {} });
-        // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- This deliberately malformed outer form field must never reach the drawer body; it is not a computed Nuxt form-field context.
-        provide(formFieldInjectionKey, { name: "outer-field" } as never);
+        provide(DMS_CONTAINER_KEY, {
+          id: "outer",
+          close: () => Promise.resolve(),
+        });
+        provide(
+          formFieldInjectionKey,
+          computed(() => ({ name: "outer-field", ariaId: "outer-field" })),
+        );
         drawer.open(
           wrap({
             title: "Details",
@@ -500,7 +530,6 @@ describe("a drawer opened through useDrawer, and its caller's provides", () => {
     expect(await injectedByBody((options) => options)).toEqual({
       explorer: "library-1",
       containerId: "inner",
-
       formField: undefined,
     });
   });

@@ -1,16 +1,25 @@
-name: Release DMS module
+name: Release
 
 on:
+  push:
+    branches: [next]
   workflow_dispatch:
     inputs:
-      channel:
-        description: npm distribution channel
-        required: true
-        default: latest
-        type: choice
-        options: [latest, next]
       release-version:
-        description: Exact stable version; empty uses the automatic increment
+        description: Stable version to release, set by the release train
+        required: false
+        type: string
+      release-commit:
+        description: Commit SHA to release, set by the release train
+        required: false
+        type: string
+      dependency-ranges:
+        description: JSON object of stable ranges that replace preview pins, set by the release train
+        required: false
+        default: "{}"
+        type: string
+      package-directory:
+        description: Directory of the package to release, set by the release train
         required: false
         type: string
 
@@ -19,73 +28,35 @@ permissions:
   id-token: write
 
 jobs:
-  validate:
-    name: Validate module release metadata
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Validate release source and package metadata
-        env:
-          CHANNEL: ${{ inputs.channel }}
-          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
-        run: |
-          case "$CHANNEL" in
-            latest) release_branch=$DEFAULT_BRANCH ;;
-            next) release_branch=next ;;
-            *) exit 1 ;;
-          esac
-          test "$GITHUB_REF" = "refs/heads/$release_branch"
-          node <<'NODE'
-          const pkg = require('./packages/dms/package.json')
-          const iface = require('./packages/interface-dms/package.json')
-          // The interface sitting in the tree only has to SATISFY the range the
-          // module publishes: a floor that lags it widens what consumers may
-          // install, it does not create a second copy. The module implements
-          // the interface, so it caps it below the next minor
-          // (`>=<floor> <0.<minor+1>.0`): a breaking interface minor must never
-          // reach a DMS that does not implement it.
-          const compare = (a, b) => {
-            const parts = (v) => v.split('-')[0].split('.').map(Number)
-            const [x, y] = [parts(a), parts(b)]
-            return x[0] - y[0] || x[1] - y[1] || x[2] - y[2]
-          }
-          const satisfiesImplementedRange = (version, range) => {
-            const match = /^>=(0\.(\d+)\.\d+) <(0\.(\d+)\.0)$/.exec(range ?? '')
-            if (!match || Number(match[4]) !== Number(match[2]) + 1) return false
-            return compare(version, match[1]) >= 0 && compare(version, match[3]) < 0
-          }
-          if (
-            pkg.name !== '@antelopejs/dms' ||
-            pkg.private === true ||
-            pkg.license !== 'Apache-2.0' ||
-            pkg.repository.url !== 'git+https://github.com/AntelopeJS/dms.git' ||
-            pkg.publishConfig.registry !== 'https://registry.npmjs.org/' ||
-            pkg.publishConfig.access !== 'public' ||
-            pkg.publishConfig.provenance !== true ||
-            !satisfiesImplementedRange(iface.version, pkg.dependencies['@antelopejs/interface-dms']) ||
-            // The runtime provides the interface package and nothing else.
-            !pkg.antelopeJs.implements.includes('@antelopejs/interface-dms') ||
-            pkg.antelopeJs.implements.some((name) => name !== '@antelopejs/interface-dms')
-          ) process.exit(1)
-          NODE
-      # The module depends on the interface through `>=<floor> <0.<minor+1>.0`,
-      # so a module released against an unpublished interface installs broken. The
-      # interface is released by its own workflow; this one only refuses to run
-      # before it has landed.
-      - uses: actions/setup-node@v4
-        with:
-          node-version-file: .nvmrc
-      - name: Verify the interface release it will point at
-        run: |
-          version=$(node -p "require('./packages/interface-dms/package.json').version")
-          npm view "@antelopejs/interface-dms@$version" version \
-            --registry=https://registry.npmjs.org/
-  release:
-    needs: validate
-    uses: AntelopeJS/.github/.github/workflows/release-npm-public.yml@492c1f55e32fa1b7bd2c5a65a1714498930d9e20
+  release-packages-dms:
+    if: github.event_name == 'push' || inputs.package-directory == 'packages/dms'
+    uses: AntelopeJS/.github/.github/workflows/release-npm-public.yml@v2
     with:
-      channel: ${{ inputs.channel }}
       release-version: ${{ inputs.release-version }}
+      release-commit: ${{ inputs.release-commit }}
+      dependency-ranges: ${{ inputs.dependency-ranges }}
       package-directory: packages/dms
+    secrets:
+      RELEASE_GITHUB_TOKEN: ${{ secrets.RELEASE_GITHUB_TOKEN }}
+
+  release-packages-interface-dms:
+    if: github.event_name == 'push' || inputs.package-directory == 'packages/interface-dms'
+    uses: AntelopeJS/.github/.github/workflows/release-npm-public.yml@v2
+    with:
+      release-version: ${{ inputs.release-version }}
+      release-commit: ${{ inputs.release-commit }}
+      dependency-ranges: ${{ inputs.dependency-ranges }}
+      package-directory: packages/interface-dms
+    secrets:
+      RELEASE_GITHUB_TOKEN: ${{ secrets.RELEASE_GITHUB_TOKEN }}
+
+  release-packages-interface-dms-builder:
+    if: github.event_name == 'push' || inputs.package-directory == 'packages/interface-dms-builder'
+    uses: AntelopeJS/.github/.github/workflows/release-npm-public.yml@v2
+    with:
+      release-version: ${{ inputs.release-version }}
+      release-commit: ${{ inputs.release-commit }}
+      dependency-ranges: ${{ inputs.dependency-ranges }}
+      package-directory: packages/interface-dms-builder
     secrets:
       RELEASE_GITHUB_TOKEN: ${{ secrets.RELEASE_GITHUB_TOKEN }}

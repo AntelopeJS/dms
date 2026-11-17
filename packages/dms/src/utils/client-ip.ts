@@ -1,6 +1,7 @@
 import { isIP, isIPv4 } from "node:net";
 import type { ClientAddressSource } from "@antelopejs/interface-dms/client-ip";
 import type { AuthConfig } from "../config";
+import { isString } from "@antelopejs/interface-dms/utils/internal/type-check";
 
 const FORWARDED_FOR_SEPARATOR = ",";
 const IPV4_MAPPED_PREFIX = "::ffff:";
@@ -66,8 +67,7 @@ function clientIpHeaderName(authConfig: AuthConfig): string | undefined {
 function headerAddress(
   value: string | string[] | undefined,
 ): string | undefined {
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Node's header owner type includes arrays and undefined; the existing single-address policy rejects both before trimming.
-  if (typeof value !== "string") return undefined;
+  if (!isString(value)) return undefined;
   const address = normalizeAddress(value.trim());
   return isIP(address) ? address : undefined;
 }
@@ -100,7 +100,6 @@ export function resolveRequestClientIp(
 
 function isProxyCount(value: unknown): value is number {
   return (
-    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Configuration can carry a nonnumeric value despite AuthConfig's annotation; this existing check rejects coercible strings before the integer and range checks.
     typeof value === "number" &&
     Number.isSafeInteger(value) &&
     value >= NO_TRUSTED_PROXY

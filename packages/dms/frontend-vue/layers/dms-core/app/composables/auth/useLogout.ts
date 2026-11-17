@@ -13,7 +13,8 @@ const FALLBACK_AUTH_ROUTE = "/auth";
  * Any "Preview as role" state goes too.
  */
 export function useLogout() {
-  const { user, clear: clearSession } = useDmsUserSession<User>();
+  const userSession = useDmsUserSession<User>();
+  const { user } = userSession;
   const { accounts, removeAccount } = useMultiAccount();
   const { purge: purgePermissionPreviews } = usePermissionPreview();
 
@@ -21,7 +22,7 @@ export function useLogout() {
     const userId = user.value?._id;
 
     purgePermissionPreviews();
-    await clearSession();
+    await userSession.clear();
     if (userId) {
       await removeAccount(userId);
     }

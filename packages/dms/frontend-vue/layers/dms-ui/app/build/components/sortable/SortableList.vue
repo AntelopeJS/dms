@@ -10,7 +10,7 @@
  * `added` from another one, `removed` to another one.
  */
 import { useSortable } from "@vueuse/integrations/useSortable";
-import { ref, watch } from "vue";
+import { type VNode, ref, watch } from "vue";
 
 export interface SortableListChange<Item> {
   added?: { element: Item; newIndex: number };
@@ -31,17 +31,20 @@ const props = defineProps<{
   handle?: string;
   /** Items matching this selector stay in place. */
   filter?: string;
-  /** Class of the slot the dragged item will land in. */
+  /** Class of the slot the dragged item will land in: faded by default. */
   ghostClass?: string;
-  /** Class of the item while it follows the pointer. */
+  /**
+   * Class of the copy of the item that follows the pointer: a page element,
+   * not the browser's drag image, so the page's styles apply to it. By
+   * default an opaque copy lifted on an accent ring.
+   */
   dragClass?: string;
 }>();
 
 const emit = defineEmits<{ change: [change: SortableListChange<Item>] }>();
 
 defineSlots<{
-  // oxlint-disable-next-line anti-slop/no-unknown-returns -- Vue's Slot return type narrows this existing consumer-provided slot contract; preserve the unrestricted return annotation.
-  item(props: { element: Item; index: number }): unknown;
+  item(props: { element: Item; index: number }): VNode | VNode[];
 }>();
 
 /** What this list reads of SortableJS's events. */
@@ -81,8 +84,11 @@ const { option } = useSortable(root, list, {
   filter: props.filter,
 
   preventOnFilter: false,
-  ghostClass: props.ghostClass,
-  dragClass: props.dragClass,
+  forceFallback: true,
+  fallbackOnBody: true,
+  fallbackTolerance: 4,
+  ghostClass: props.ghostClass ?? "dms-sortable-ghost",
+  dragClass: props.dragClass ?? "dms-sortable-drag",
   onStart: (event: SortableEvent) => {
     const { parentNode, nextSibling } = event.item;
     origin = parentNode ? { parent: parentNode, next: nextSibling } : undefined;
@@ -100,7 +106,6 @@ const { option } = useSortable(root, list, {
     emit("change", { moved: { element, oldIndex, newIndex } });
   },
   onAdd: (event: SortableEvent) => {
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- A group can join independently typed lists; this existing cast does not validate the source item's type.
     const element = sharedDragged.get(draggedKey()) as Item | undefined;
     const { newIndex } = event;
     if (element === undefined || newIndex === undefined) return;
@@ -143,3 +148,17 @@ const sharedDragged = new Map<string, unknown>();
     </template>
   </div>
 </template>
+
+<style>
+.dms-sortable-ghost {
+  opacity: 0.35;
+}
+.dms-sortable-drag {
+  opacity: 1 !important;
+  border-radius: 6px;
+  background: var(--ui-bg);
+  box-shadow:
+    var(--shadow-lg),
+    0 0 0 1px var(--ui-primary);
+}
+</style>

@@ -13,11 +13,10 @@ interface Props {
 
 const props = withDefaults(defineProps<Props>(), { maxLines: 30 });
 
-// oxlint-disable-next-line anti-slop/no-known-value-widening -- File extensions come from the caller's string path; unsupported keys intentionally use the text fallback.
-const LANGUAGE_BY_EXTENSION: Record<string, string> = {
-  ts: "typescript",
-  vue: "html",
-};
+const LANGUAGE_BY_EXTENSION = new Map([
+  ["ts", "typescript"],
+  ["vue", "html"],
+]);
 
 const RAW_SOURCES = import.meta.glob<string>(
   [
@@ -29,16 +28,16 @@ const RAW_SOURCES = import.meta.glob<string>(
   { query: "?raw", import: "default", eager: true },
 );
 
-const SOURCES_BY_PATH: Record<string, string> = Object.fromEntries(
-  Object.entries(RAW_SOURCES).map(([file, code]) => [
+const SOURCES_BY_PATH = new Map(
+  Object.entries(RAW_SOURCES).map(([file, code]): [string, string] => [
     file.replace(/^\.\.\/\.\.\//, "").replace(/^\.\.\//, "components/"),
     code,
   ]),
 );
 
-const source = computed(() => SOURCES_BY_PATH[props.path] ?? "");
+const source = computed(() => SOURCES_BY_PATH.get(props.path) ?? "");
 const language = computed(
-  () => LANGUAGE_BY_EXTENSION[props.path.split(".").at(-1) ?? ""] ?? "text",
+  () => LANGUAGE_BY_EXTENSION.get(props.path.split(".").at(-1) ?? "") ?? "text",
 );
 </script>
 

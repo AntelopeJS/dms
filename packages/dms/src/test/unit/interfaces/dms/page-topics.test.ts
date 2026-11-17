@@ -141,13 +141,7 @@ function placeChart(context: ModuleExecutionContext, topic: string): void {
   RunWithModuleContext(context, () => chart.onPageCreated?.(meta));
 }
 
-describe("[unit] interfaces/dms/realtime — page topics", () => {
-  before(() => {
-    ImplementInterface(permissionsInterface, permissionsImpl);
-    ImplementInterface(realtimeInterface, realtimeImpl);
-    ImplementInterface(pageInterface, pageImpl);
-  });
-
+function registerTopicLifecycleCases(): void {
   it("brings every topic of a page back to a new DMS generation", async () => {
     const owner = moduleContext("page-topics-replay");
     await registerAs(owner);
@@ -189,7 +183,9 @@ describe("[unit] interfaces/dms/realtime — page topics", () => {
     destroyModule(own);
     expect(topicsOf(SharedPage)).to.deep.equal([]);
   });
+}
 
+function registerTopicRegistrationCases(): void {
   it("registers the topics a table view refetches its rows on", () => {
     const owner = moduleContext("page-topics-table-topic");
     const meta = GetMetadata(SharedPage, PageMetadata);
@@ -271,7 +267,9 @@ describe("[unit] interfaces/dms/realtime — page topics", () => {
       destroyModule(owner);
     }
   });
+}
 
+function registerPlacedTopicCases(): void {
   it("registers a fetched banner's topics on the page it is placed on", () => {
     const owner = moduleContext("page-topics-banner");
     const banner = Banner({
@@ -314,4 +312,16 @@ describe("[unit] interfaces/dms/realtime — page topics", () => {
     topics.unregister("page-topics-second-id");
     expect(topicsOf(SharedPage)).to.deep.equal([]);
   });
+}
+
+describe("[unit] interfaces/dms/realtime — page topics", () => {
+  before(() => {
+    ImplementInterface(permissionsInterface, permissionsImpl);
+    ImplementInterface(realtimeInterface, realtimeImpl);
+    ImplementInterface(pageInterface, pageImpl);
+  });
+
+  registerTopicLifecycleCases();
+  registerTopicRegistrationCases();
+  registerPlacedTopicCases();
 });

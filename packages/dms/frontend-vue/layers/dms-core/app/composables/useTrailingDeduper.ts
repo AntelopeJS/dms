@@ -1,8 +1,4 @@
-const DEDUPER_KEY_PREFIX = "$dmsTrailingDeduper:";
-
-interface DeduperHost {
-  [key: `$dmsTrailingDeduper:${string}`]: TrailingDeduper | undefined;
-}
+const dedupersByApp = new WeakMap<object, Map<string, TrailingDeduper>>();
 
 /**
  * A {@link createTrailingDeduper} scoped to the current DMS app: one instance
@@ -10,16 +6,19 @@ interface DeduperHost {
  * pass never runs in the continuation of another request's promise — where the
  * state it writes, and the DMS app context its task needs, belong to someone else.
  *
- * Stored on the app instance rather than in `useDmsState`, which only carries
+ * Kept per app instance rather than in `useDmsState`, which only carries
  * serializable payload.
  */
 export function useTrailingDeduper(name: string): TrailingDeduper {
-  // SAFETY: This module alone writes the private prefix, always with createTrailingDeduper(); absent slots are undefined.
-  const host = useDmsApp() as ReturnType<typeof useDmsApp> & DeduperHost;
-  const key = `${DEDUPER_KEY_PREFIX}${name}` as const;
-  const existing = host[key];
+  const app = useDmsApp();
+  let dedupers = dedupersByApp.get(app);
+  if (!dedupers) {
+    dedupers = new Map();
+    dedupersByApp.set(app, dedupers);
+  }
+  const existing = dedupers.get(name);
   if (existing) return existing;
   const deduper = createTrailingDeduper();
-  host[key] = deduper;
+  dedupers.set(name, deduper);
   return deduper;
 }

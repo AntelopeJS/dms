@@ -124,7 +124,7 @@ async function showSelfClosingModal(): Promise<void> {
     >
       <ShowcaseDemo label="direction · result" :code="DRAWER_CODE">
         <div class="flex flex-wrap items-center gap-3">
-          <DmsSegmented
+          <DmsSegmentedControl
             v-model="direction"
             :items="DIRECTION_ITEMS"
             aria-label="Drawer edge"

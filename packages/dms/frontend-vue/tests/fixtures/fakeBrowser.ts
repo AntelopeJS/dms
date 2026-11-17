@@ -3,27 +3,41 @@ import type {
   CrossTabEnvironment,
   TabMessageHandler,
 } from "../../layers/dms-core/app/entries/utils/crossTab";
+import { isFunction } from "../../layers/dms-core/app/utils/type-check";
 
 /**
  * One browser profile for the cross-tab tests: the Web Locks every tab shares
  * and the BroadcastChannels they talk on, delivered in a microtask.
  */
 
-type LockCallback<Result> = (lock: { name: string }) => Result;
+type LockCallback<Result> = (lock: Lock | null) => Result;
 
 interface Waiter {
   start: () => void;
 }
 
-class FakeLockManager {
+class FakeLockManager implements LockManager {
   private readonly held = new Set<string>();
   private readonly queues = new Map<string, Waiter[]>();
 
+  query(): Promise<LockManagerSnapshot> {
+    const lock = (name: string): LockInfo => ({ name, mode: "exclusive" });
+    return Promise.resolve({
+      held: [...this.held].map(lock),
+      pending: [...this.queues].flatMap(([name, queue]) =>
+        queue.map(() => lock(name)),
+      ),
+    });
+  }
+
   request<Result>(
     name: string,
-    options: { signal?: AbortSignal },
-    callback: LockCallback<Result>,
+    optionsOrCritical: LockOptions | LockCallback<Result>,
+    only?: LockCallback<Result>,
   ): Promise<Result> {
+    const critical = isFunction(optionsOrCritical) ? optionsOrCritical : only;
+    const options = isFunction(optionsOrCritical) ? {} : optionsOrCritical;
+    if (!critical) throw new TypeError("A lock request needs a callback");
     return new Promise((resolve, reject) => {
       const { signal } = options;
       if (signal?.aborted) {
@@ -35,8 +49,7 @@ class FakeLockManager {
           signal?.removeEventListener("abort", onAbort);
           this.held.add(name);
           Promise.resolve()
-            // oxlint-disable-next-line promise/no-callback-in-promise -- The fake Web Locks API must invoke its caller's callback only after the queued lock is granted.
-            .then(() => callback({ name }))
+            .then(() => critical({ name, mode: "exclusive" }))
             .then(resolve, reject)
             .finally(() => this.release(name));
         },
@@ -87,22 +100,23 @@ class FakeChannelHub {
     message: Parameters<TabMessageHandler>[0],
   ): void {
     const data = structuredClone(message);
-    // oxlint-disable-next-line unicorn/no-useless-spread -- Snapshot recipients before queuing deliveries so channel membership changes do not alter this broadcast.
-    for (const channel of [...this.channels]) {
+    for (const channel of this.channels) {
       if (channel === sender || channel.name !== sender.name) continue;
       queueMicrotask(() => channel.receive(data));
     }
   }
 }
 
-class FakeChannel {
-  onmessage: ((event: { data: unknown }) => void) | null = null;
+class FakeChannel extends EventTarget implements BroadcastChannel {
+  onmessage: BroadcastChannel["onmessage"] = null;
+  onmessageerror: BroadcastChannel["onmessageerror"] = null;
   private isClosed = false;
 
   constructor(
     readonly name: string,
     private readonly hub: FakeChannelHub,
   ) {
+    super();
     hub.join(this);
   }
 
@@ -111,10 +125,8 @@ class FakeChannel {
     this.hub.deliver(this, message);
   }
 
-  receive(
-    data: Parameters<NonNullable<FakeChannel["onmessage"]>>[0]["data"],
-  ): void {
-    if (!this.isClosed) this.onmessage?.({ data });
+  receive(data: Parameters<TabMessageHandler>[0]): void {
+    if (!this.isClosed) this.onmessage?.(new MessageEvent("message", { data }));
   }
 
   close(): void {
@@ -149,12 +161,10 @@ export function createFakeBrowser(): FakeBrowser {
       const createChannel = (name: string) => {
         const channel = new FakeChannel(name, hub);
         channels.add(channel);
-        // oxlint-disable-next-line anti-slop/no-chained-type-assertions, anti-slop/require-safety-comment-for-type-assertion -- The owner requires the full DOM EventTarget API, but this fake intentionally implements only crossTab's channel subset; its private hub prevents a direct structural cast.
-        return channel as unknown as BroadcastChannel;
+        return channel;
       };
       const environment: CrossTabEnvironment = {
-        // oxlint-disable-next-line anti-slop/no-chained-type-assertions, anti-slop/require-safety-comment-for-type-assertion -- The owner requires query and both request overloads; this queued fake implements only crossTab's three-argument request and has private state incompatible with a direct structural cast.
-        locks: locks as unknown as LockManager,
+        locks,
         createChannel,
       };
       return {

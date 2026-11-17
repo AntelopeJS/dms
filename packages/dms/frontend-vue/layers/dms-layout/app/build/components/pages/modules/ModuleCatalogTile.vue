@@ -60,7 +60,7 @@ const status = computed(() =>
   installedTileStatus(props.entry, props.storeEntry),
 );
 const readout = computed<CheckListItem[]>(() =>
-  (props.entry.readout ?? []).map((line, index) => ({
+  props.entry.readout.map((line, index) => ({
     id: String(index),
     label: processI18n(line.text),
     state: READOUT_STATES[line.tone ?? "info"],

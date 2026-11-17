@@ -17,7 +17,16 @@ import {
   type App,
 } from "vue";
 import { renderToString } from "vue/server-renderer";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+  type MockInstance,
+} from "vitest";
+import { dmsAppContext } from "./fixtures/dmsAppContext";
 import type {
   DmsAppContext,
   DmsFrontendRuntime,
@@ -64,11 +73,10 @@ const ANSWERS = {
 };
 const asked: string[] = [];
 
-// oxlint-disable-next-line anti-slop/no-chained-type-assertions, anti-slop/require-safety-comment-for-type-assertion -- The URL-dispatched test backend cannot implement the transport's caller-selected generic response type; it returns these two raw endpoint payloads, not arbitrary T.
 const backend = vi.fn(async (url: string) => {
   asked.push(url);
   return Object.entries(ANSWERS).find(([path]) => path === url)?.[1];
-}) as unknown as NonNullable<DmsFrontendRuntime["serverFetch"]>;
+});
 vi.stubGlobal("useAuthFetch", () => ({ $authFetch: engine.$fetch }));
 
 const { useTrailingDeduper } = await import(
@@ -114,20 +122,26 @@ const settle = async () => {
   await new Promise((resolve) => setTimeout(resolve, 0));
 };
 
-/** Attaches `runtime` to `app` the way the DMS app does, and runs its plugins. */
-function install(app: App, runtime: DmsFrontendRuntime): void {
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Guard preload plugins require only runWithContext; unrelated app-context services are absent in this SSR fixture.
-  const context = {
+/**
+ * Attaches `runtime` to `app` the way the DMS app does, and starts its
+ * plugins. The result settles once they have.
+ */
+function install(app: App, runtime: DmsFrontendRuntime): Promise<void[]> {
+  const context: DmsAppContext = {
+    ...dmsAppContext(app),
     runWithContext: app.runWithContext.bind(app),
-  } as DmsAppContext;
+  };
   app.config.globalProperties.$dms = context;
   runtime.appContext = context;
   runtime.route.path = "/orders";
   runtime.route.fullPath = "/orders";
   runtime.route.matched = [{}];
   engine.provideDmsFrontendRuntime(app, runtime);
-  for (const plugin of [onboardingPreload, permissionsPreload])
-    app.runWithContext(() => plugin(context));
+  return Promise.all(
+    [onboardingPreload, permissionsPreload].map((plugin) =>
+      app.runWithContext(async () => plugin(context)),
+    ),
+  );
 }
 
 /** A server render, its runtime set up as the renderer's SSR entry does. */
@@ -138,8 +152,9 @@ async function serverRender(): Promise<{ html: string; payload: DmsPayload }> {
   runtime.inAsyncDataHandler = () => handlers.getStore() === true;
   runtime.devWarnings = true;
   const app = createSSRApp(Page);
-  install(app, runtime);
+  const started = install(app, runtime);
   const html = await renderToString(app);
+  await started;
   return {
     html,
     payload: structuredClone(engine.serializeDmsPayload(runtime)),
@@ -147,7 +162,7 @@ async function serverRender(): Promise<{ html: string; payload: DmsPayload }> {
 }
 
 const mounted: App[] = [];
-let warn: ReturnType<typeof vi.spyOn>;
+let warn: MockInstance<typeof console.warn>;
 
 beforeEach(async () => {
   asked.length = 0;
@@ -197,10 +212,11 @@ describe("the reads of a server render's guards", () => {
     const host = document.createElement("div");
     host.innerHTML = html;
     const app = createSSRApp(Page);
-    install(app, runtime);
+    const started = install(app, runtime);
     app.mount(host);
     mounted.push(app);
     await settle();
+    await started;
     expect(host.textContent).toBe("can read");
     expect(asked).toEqual([]);
 
@@ -217,8 +233,9 @@ describe("the reads of a server render's guards", () => {
     const runtime = engine.createDmsFrontendRuntime(backend);
 
     const app = createApp(Page);
-    install(app, runtime);
+    const started = install(app, runtime);
     await settle();
+    await started;
     expect(asked.sort()).toEqual([ONBOARDING, PERMISSIONS].sort());
     asked.length = 0;
 

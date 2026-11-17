@@ -6,6 +6,7 @@ import {
   type OAuthProviderCredentials,
 } from "../../../config";
 import { OAUTH_PROVIDERS, type OAuthProvider } from "./providers";
+import { ownValue } from "../../../utils/own-value";
 
 const HTTP_NOT_FOUND = 404;
 const HTTP_INTERNAL_ERROR = 500;
@@ -88,7 +89,7 @@ export function describeEnabledOAuthProviders(
 export function getEnabledOAuthProvider(
   providerId: string,
 ): EnabledOAuthProvider {
-  const provider = OAUTH_PROVIDERS[providerId];
+  const provider = ownValue(OAUTH_PROVIDERS, providerId);
   const credentials = getAuthConfig().oauth?.providers?.[providerId];
 
   assert(

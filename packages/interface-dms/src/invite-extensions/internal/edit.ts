@@ -1,20 +1,27 @@
 import { isDeepStrictEqual } from "node:util";
 import { inviteExtensionFieldId } from "./field-ids";
-import { assertSliceValid, readPayload, sliceOf } from "./payload-slices";
+import type { InviteExtensionJson } from "../../invite-extension-payloads";
+import { isNull, isObject } from "../../utils/internal/type-check";
+import {
+  assertSliceValid,
+  isInviteFieldValues,
+  payloadOf,
+  readPayload,
+  sliceOf,
+} from "./payload-slices";
 import { listInviteExtensions, logInviteExtensionFailure } from "./registry";
 import type { InviteExtensionContext, InviteExtensionPayloads } from "../types";
-import type { InviteExtensionInfo } from "./types";
+import type { InviteExtensionInfo, InviteFieldValues } from "./types";
 
-function isRecord(
-  value: Parameters<typeof CollectInviteExtensionEdits>[0],
-): value is ReturnType<typeof ReadInviteExtensionFields> {
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- This guard is the raw submission boundary and preserves the existing object-but-not-array classification.
-  return !!value && typeof value === "object" && !Array.isArray(value);
+function isStoredSlice(
+  value: InviteExtensionJson | undefined,
+): value is InviteFieldValues {
+  return isObject(value) && !isNull(value) && !Array.isArray(value);
 }
 
 function isSamePayload(
-  a: InviteExtensionPayloads[string],
-  b: InviteExtensionPayloads[string],
+  a: InviteExtensionJson | undefined,
+  b: InviteExtensionJson | undefined,
 ): boolean {
   return isDeepStrictEqual(
     JSON.parse(JSON.stringify(a ?? null)),
@@ -32,17 +39,15 @@ function isSamePayload(
  */
 export function ReadInviteExtensionFields(
   payloads: InviteExtensionPayloads | null | undefined,
-  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- The published form reader returns raw stored fields so edit round trips do not transform extension input.
-): Record<string, unknown> {
-  const values: ReturnType<typeof ReadInviteExtensionFields> = {};
+): InviteFieldValues {
+  const values: InviteFieldValues = {};
   for (const info of listInviteExtensions()) {
-    const stored = payloads?.[info.key];
-    if (!isRecord(stored)) continue;
+    const stored = payloadOf(payloads, info.key);
+    if (!isStoredSlice(stored)) continue;
     for (const [fieldId, value] of Object.entries(stored)) {
       values[inviteExtensionFieldId(info.key, fieldId)] = value;
     }
   }
-  // oxlint-disable-next-line anti-slop/no-known-value-widening -- Preserve the published raw-field dictionary return contract rather than narrow the stored extension values.
   return values;
 }
 
@@ -64,7 +69,7 @@ export function CollectInviteExtensionEdits(
   // oxlint-disable-next-line anti-slop/no-unknown-parameters -- This published submission boundary accepts arbitrary bodies and validates each present slice with its extension schema.
   body: unknown,
 ): InviteExtensionPayloads {
-  const source = isRecord(body) ? body : {};
+  const source = isInviteFieldValues(body) ? body : {};
   const edits: InviteExtensionPayloads = {};
 
   for (const info of listInviteExtensions()) {
@@ -85,8 +90,9 @@ async function notifyUpdate(
   context: InviteExtensionContext,
 ): Promise<void> {
   if (!info.onUpdate) return;
-  if (!(info.key in edits)) return;
-  if (isSamePayload(previous?.[info.key], edits[info.key])) return;
+  if (!Object.hasOwn(edits, info.key)) return;
+  if (isSamePayload(payloadOf(previous, info.key), payloadOf(edits, info.key)))
+    return;
 
   const payload = readPayload(info, edits, {});
   if (!payload) return;

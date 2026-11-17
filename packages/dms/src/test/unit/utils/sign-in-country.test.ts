@@ -14,10 +14,20 @@ const PUBLIC_IP = "203.0.113.7";
 const MISSING_DATABASE = "/nonexistent/sign-in-country.mmdb";
 
 function lookupOf(records: Record<string, string>): CountryLookup {
+  const isoCodes = new Map(Object.entries(records));
   return {
-    // SAFETY: lookupCountry only reads country.iso_code; this fixture intentionally omits MaxMind's other country metadata and never exposes it to other consumers.
-    get: (ip: string): CountryResponse | null =>
-      records[ip] ? { country: { iso_code: records[ip] } as never } : null,
+    get: (ip: string): CountryResponse | null => {
+      const isoCode = isoCodes.get(ip);
+      return isoCode
+        ? {
+            country: {
+              geoname_id: 0,
+              iso_code: isoCode,
+              names: { en: isoCode },
+            },
+          }
+        : null;
+    },
   };
 }
 
@@ -60,28 +70,47 @@ describe("[unit] utils/sign-in-country", () => {
     expect(lookupCountry("not-an-ip", throwing)).to.equal(undefined);
   });
 
-  it("reads the configured proxy header first", () => {
-    getAuthConfig().signInCountry = {
-      header: "CF-IPCountry",
-      database: MISSING_DATABASE,
-    };
+  it("reads CF-IPCountry while no header is configured", () => {
+    getAuthConfig().signInCountry = undefined;
     expect(
       resolveClientOrigin(PUBLIC_IP, { "cf-ipcountry": "de" }),
     ).to.deep.equal({ ip: PUBLIC_IP, country: "DE" });
   });
 
-  it("ignores the header while no name is configured", () => {
-    getAuthConfig().signInCountry = { database: false };
+  it("reads the configured header instead of CF-IPCountry", () => {
+    getAuthConfig().signInCountry = { header: "X-Country" };
+    expect(
+      resolveClientOrigin(PUBLIC_IP, {
+        "x-country": "it",
+        "cf-ipcountry": "DE",
+      }).country,
+    ).to.equal("IT");
+  });
+
+  it("reads no header once it is turned off", () => {
+    getAuthConfig().signInCountry = { header: false };
     expect(
       resolveClientOrigin(PUBLIC_IP, { "cf-ipcountry": "DE" }).country,
     ).to.equal(undefined);
   });
 
+  it("reads no default header once a database is configured", () => {
+    getAuthConfig().signInCountry = { database: MISSING_DATABASE };
+    expect(
+      resolveClientOrigin(PUBLIC_IP, { "cf-ipcountry": "FR" }).country,
+    ).to.equal(undefined);
+  });
+
+  it("tells no country without a header or a database", () => {
+    getAuthConfig().signInCountry = undefined;
+    expect(resolveClientOrigin(PUBLIC_IP, {})).to.deep.equal({
+      ip: PUBLIC_IP,
+      country: undefined,
+    });
+  });
+
   it("tells no country when neither the header nor a database knows it", () => {
-    getAuthConfig().signInCountry = {
-      header: "CF-IPCountry",
-      database: MISSING_DATABASE,
-    };
+    getAuthConfig().signInCountry = { database: MISSING_DATABASE };
     expect(
       resolveClientOrigin(PUBLIC_IP, { "cf-ipcountry": "XX" }).country,
     ).to.equal(undefined);

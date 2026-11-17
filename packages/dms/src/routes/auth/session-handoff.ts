@@ -1,4 +1,4 @@
-import { assert, assertValidation } from "@antelopejs/interface-api-util";
+import { assert } from "@antelopejs/interface-api-util";
 import {
   generateAccessToken,
   generateRefreshToken,
@@ -22,11 +22,9 @@ const HTTP_UNAUTHORIZED = 401;
  */
 export async function redeemSessionHandoff(
   sessionModel: SessionModel,
-  body: Parameters<typeof authSchema.sessionHandoff.parse>[0],
+  body: ReturnType<typeof authSchema.sessionHandoff.parse>,
 ): Promise<AuthResponse> {
-  const { token } = assertValidation(body, (value) =>
-    authSchema.sessionHandoff.parse(value),
-  );
+  const { token } = body;
   const { user, tenantId, sessionId } =
     await validateSessionHandoffToken(token);
   const refreshTokenData = await generateRefreshToken(

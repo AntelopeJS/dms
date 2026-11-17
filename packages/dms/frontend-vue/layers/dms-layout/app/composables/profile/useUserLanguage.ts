@@ -10,8 +10,14 @@ const PROFILE_ENDPOINT = pageRoutePath("/settings/user/profile");
 export function useUserLanguage() {
   const dmsApp = useDmsApp();
   const { $authFetch } = useAuthFetch();
-  const { user, fetch: refreshUser } = useDmsUserSession();
+  const userSession = useDmsUserSession();
+  const { user } = userSession;
 
+  /**
+   * Switches the interface to `language`, then stores it on the profile and
+   * reads the session again. A failed profile write or session read stays
+   * silent: the interface has already switched.
+   */
   async function changeLanguage(language: string): Promise<void> {
     await dmsApp.$i18n.setLocale(language);
 
@@ -26,7 +32,7 @@ export function useUserLanguage() {
         },
       });
 
-      await refreshUser();
+      await userSession.fetch();
     } catch {
       // eslint-disable-line no-empty -- Profile-write and session-refresh failures remain silent.
     }

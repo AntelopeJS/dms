@@ -41,9 +41,10 @@ it("names every point that needs attention, not only the first", async () => {
       "page.settings.profile.security_attention — page.settings.security.attention.backup_codes_low and page.settings.security.attention.backup_codes_unsaved.",
     ),
   );
+  const anyAbortSignal: unknown = expect.any(AbortSignal);
   expect(authFetch).toHaveBeenCalledExactlyOnceWith(
     "/dms/pages/settings/user/security",
-    expect.objectContaining({ signal: expect.any(AbortSignal) }),
+    expect.objectContaining({ signal: anyAbortSignal }),
   );
   expect(
     host

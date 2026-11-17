@@ -86,24 +86,32 @@ const CARD_SUPPLIED_CHART_OPTIONS = [
  * places a block before anything is configured, and writes that as the bare
  * call `ChartCard()`. A page under construction has to compile — it is typechecked
  * on every edit — so a block with nothing set yet has to be a legal call.
+ *
+ * @docsApi
  */
 export function ChartCard(
   options?: ChartCardBuilderOptions,
 ): ComponentBuilder<ChartCardProps> {
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Public builders accept omitted options while pages are authored, even though ChartCardBuilderOptions requires a title.
-  const { chart, ...rest } = options ?? ({} as ChartCardBuilderOptions);
   const builder = new ComponentBuilder<ChartCardProps>(
     CHART_CARD_COMPONENT_NAME,
   )
-    .options(rest)
+    .options(options && cardProps(options))
     .meta({
-      name: rest.title || "Chart card",
-      icon: rest.icon || "i-ph-chart-line",
+      name: options?.title || "Chart card",
+      icon: options?.icon || "i-ph-chart-line",
     });
   return attachRealtimeTopicsHook(
-    chart ? builder.child(NESTED_CHART_ID, chart) : builder,
-    rest.realtimeTopic,
+    options?.chart ? builder.child(NESTED_CHART_ID, options.chart) : builder,
+    options?.realtimeTopic,
   );
+}
+
+/** The card's own options: the builder's, without the chart it wraps. */
+function cardProps({
+  chart: _chart,
+  ...props
+}: ChartCardBuilderOptions): ChartCardProps {
+  return props;
 }
 
 /** The options `ChartCard` accepts, including the chart it wraps. */

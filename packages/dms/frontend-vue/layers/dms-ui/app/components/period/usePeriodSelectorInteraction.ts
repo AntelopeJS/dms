@@ -13,6 +13,7 @@ import {
   limitCalendarRange,
   rangeToCalendar,
 } from "../../build/composables/period/periodDisplay";
+import { toCalendarDay } from "../../build/utils/calendarDay";
 import { CUSTOM_PRESET } from "./periodSelectorPresentation";
 
 export function usePeriodSelectorInteraction(
@@ -61,18 +62,16 @@ export function usePeriodSelectorInteraction(
     );
   }
   function updateStart(value: DateValue | null | undefined) {
-    if (!value) return;
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- UInputDate emits DateValue, not only CalendarDate; preserve unchecked forwarding rather than reject or convert other date variants.
-    const start = value as CalendarDate;
+    const start = toCalendarDay(value);
+    if (!start) return;
     const end = draftCalendar.value.end;
     selectCalendarRange(
       start.compare(end) > 0 ? { start, end: start } : { start, end },
     );
   }
   function updateEnd(value: DateValue | null | undefined) {
-    if (!value) return;
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- UInputDate emits DateValue, not only CalendarDate; preserve unchecked forwarding rather than reject or convert other date variants.
-    const end = value as CalendarDate;
+    const end = toCalendarDay(value);
+    if (!end) return;
     const start = draftCalendar.value.start;
     selectCalendarRange(
       end.compare(start) < 0 ? { start: end, end } : { start, end },
@@ -90,10 +89,10 @@ export function usePeriodSelectorInteraction(
   });
   function onSegmentedClick(event: MouseEvent) {
     if (period.preset.value !== CUSTOM_PRESET) return;
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- MouseEvent.target does not guarantee closest; retain optional null access and the existing throw for non-element targets instead of adding a guard.
-    const segment = (event.target as HTMLElement | null)?.closest(
-      "[role='radio']",
-    );
+    const segment =
+      event.target instanceof Element
+        ? event.target.closest("[role='radio']")
+        : null;
     if (segment?.getAttribute("aria-checked") === "true") openCustom();
   }
   return {

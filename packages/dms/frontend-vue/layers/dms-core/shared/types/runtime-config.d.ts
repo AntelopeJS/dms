@@ -4,9 +4,15 @@ interface DmsOAuthProviderDescriptor {
   icon: string;
 }
 
+interface DmsLoginPrefillConfig {
+  email: string;
+  password: string;
+}
+
 interface DmsPublicConfig {
   baseURL: string;
   homepage?: string;
+  loginPrefill?: DmsLoginPrefillConfig;
   mustValidateEmail?: boolean;
   clientBaseUrl?: string;
   /**

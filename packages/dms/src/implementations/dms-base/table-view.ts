@@ -1,13 +1,9 @@
-import {
-  type ControllerClass,
-  ControllerMeta,
-  type RequestContext,
-} from "@antelopejs/interface-api";
+import { getTableViewMetaFor } from "@antelopejs/interface-dms/base/table-view/internal/meta";
+import { ControllerMeta, type RequestContext } from "@antelopejs/interface-api";
 import { assert } from "@antelopejs/interface-api-util";
 import { GetMetadata } from "@antelopejs/interface-core";
 import {
-  type DataControllerCallback,
-  type DataControllerCallbackWithOptions,
+  type DataControllerInstance,
   GetDataControllerMeta,
 } from "@antelopejs/interface-data-api";
 import {
@@ -15,18 +11,19 @@ import {
   Query,
   Validation,
 } from "@antelopejs/interface-data-api/components";
-import type { DataAPIMeta } from "@antelopejs/interface-data-api/metadata";
+import type {
+  DataAPIMeta,
+  StoredRow,
+} from "@antelopejs/interface-data-api/metadata";
 import type { Stream, ValueProxy } from "@antelopejs/interface-database";
 import type { User } from "@antelopejs/interface-dms/auth/db";
-import {
-  DEFAULT_ROW_ID_FIELD,
-  TableViewMeta,
-} from "@antelopejs/interface-dms/base/table-view";
+import { DEFAULT_ROW_ID_FIELD } from "@antelopejs/interface-dms/base/table-view";
+import { readExportJobContext } from "@antelopejs/interface-dms/base/internal/export-jobs";
 import type { RowActionRule } from "@antelopejs/interface-dms/base/types/row-action";
 import {
   DEFAULT_EXPORT_FORMAT,
   downloadExportJob,
-  type ExportJobAccessOptions,
+  type ExportJobAccess,
   type ExportWriter,
   getExporter,
   getExportJobStatus,
@@ -41,29 +38,29 @@ import {
   applyArchiveFilter,
   buildFilteredQuery,
   countWithSearch as countWithSearchFunc,
+  type ListScope,
   listWithSearch as listWithSearchFunc,
+  resolveListScope,
 } from "./search-route";
 import {
-  type RuleRow,
   fetchRowForGuard as fetchRowForGuardHelper,
+  rowIdText,
 } from "../../db";
-
-type DataControllerThis =
-  | DataControllerCallback
-  | DataControllerCallbackWithOptions;
+import { isNumber } from "@antelopejs/interface-dms/utils/internal/type-check";
+import { z } from "zod";
 
 /** Rows read from the database per export page. */
 export const EXPORT_BATCH_SIZE = 100;
 
 const TABLE_VIEW_EXPORT_SCOPE = "table-view";
 
-interface TableViewExportContext {
-  controllerKey: string;
-}
+const TableViewExportContextSchema = z.object({ controllerKey: z.string() });
+
+type TableViewExportContext = z.infer<typeof TableViewExportContextSchema>;
 
 /** One page of rows on its way to the export writer. */
 interface ExportBatch {
-  controller: DataControllerThis;
+  controller: DataControllerInstance;
   controllerMetadata: DataAPIMeta;
   model: ReturnType<typeof Query.GetModel>;
   pendingRecordBatch: Stream<unknown>;
@@ -79,15 +76,13 @@ async function processBatch({
   writer,
   headers,
 }: ExportBatch): Promise<void> {
-  const dbResult = await pendingRecordBatch;
+  const dbResult = await pendingRecordBatch.run();
   const results = await Promise.all(
-    dbResult.map((entry) =>
-      Query.ReadProperties(
-        controller,
-        controllerMetadata,
-        model.constructor.fromDatabase(entry),
-      ),
-    ),
+    dbResult.map((entry) => {
+      const stored = model.constructor.fromDatabase(entry);
+      assert(stored, 500, "The database answered an empty row.");
+      return Query.ReadProperties(controller, controllerMetadata, stored);
+    }),
   );
 
   Validation.ClearInternal(controllerMetadata, results);
@@ -111,51 +106,61 @@ function getPluckFields(
   return pluckFields;
 }
 
-async function buildIdsExportQuery(
-  controller: DataControllerThis,
+/** The rows an export names by id, and the archive view the user may see of them. */
+interface IdsExportScope {
+  model: ReturnType<typeof Query.GetModel>;
+  ids: string[];
+  idField: string;
+  archive: { field: string; isNotEqual: boolean } | undefined;
+}
+
+async function resolveIdsExportScope(
+  controller: DataControllerInstance,
   controllerMetadata: DataAPIMeta,
   ctx: RequestContext,
   ids: string[],
   user: User | undefined,
-) {
+): Promise<IdsExportScope> {
   const model = Query.GetModel(controller, controllerMetadata);
-  const tableViewMetadata = GetMetadata(
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Callback descriptor types omit the actual receiver constructor; inference yields Function, while TableViewMeta's owner requires a newable target, a preexisting route-binding assumption.
-    controller.constructor as ConstructorParameters<typeof TableViewMeta>[0],
-    TableViewMeta,
-  );
-  const idField = tableViewMetadata?.options?.rowIdKey || DEFAULT_ROW_ID_FIELD;
-  const archiveField = tableViewMetadata?.archiveField;
-
-  let query = model.table.getAll(ids, idField);
-
-  if (archiveField) {
-    const filtersWithArchive = await applyArchiveFilter(
-      controller,
-      ctx,
-      user,
-      undefined,
-      undefined,
-    );
-    const archiveConstraint = filtersWithArchive?.[archiveField];
-    if (archiveConstraint) {
-      const archiveValue = archiveConstraint[0];
-
-      const isNotEqual = archiveConstraint[1] === "ne";
-      query = query.filter((row: ValueProxy<RuleRow>) =>
-        isNotEqual
-          ? row.key(archiveField).ne(archiveValue)
-          : row.key(archiveField).eq(archiveValue),
-      );
-    }
+  const tableViewMetadata = getTableViewMetaFor(controller);
+  const idField = tableViewMetadata.options?.rowIdKey || DEFAULT_ROW_ID_FIELD;
+  const archiveField = tableViewMetadata.archiveField;
+  if (!archiveField) {
+    return { model, ids, idField, archive: undefined };
   }
+  const filtersWithArchive = await applyArchiveFilter(
+    controller,
+    ctx,
+    user,
+    undefined,
+    undefined,
+  );
+  const archiveConstraint = filtersWithArchive?.[archiveField];
+  return {
+    model,
+    ids,
+    idField,
+    archive: archiveConstraint
+      ? { field: archiveField, isNotEqual: archiveConstraint[1] === "ne" }
+      : undefined,
+  };
+}
 
+function buildIdsExportQuery({ model, ids, idField, archive }: IdsExportScope) {
+  let query = model.table.getAll(ids, idField);
+  if (archive) {
+    query = query.filter((row: ValueProxy<StoredRow>) =>
+      archive.isNotEqual
+        ? row.key(archive.field).ne(true)
+        : row.key(archive.field).eq(true),
+    );
+  }
   return { query, queryTotal: query.count(), model, mergedBy: undefined };
 }
 
 /** What the export reads from. */
 interface ExportQueryInput {
-  controller: DataControllerThis;
+  controller: DataControllerInstance;
   controllerMetadata: DataAPIMeta;
   ctx: RequestContext;
   listParams: Parameters.ListParameters;
@@ -163,47 +168,75 @@ interface ExportQueryInput {
   user: User | undefined;
 }
 
-async function buildExportQuery({
+/** What an export reads, its filters resolved: the rows its ids name, or the rows its list request selects. */
+type ExportScope =
+  | { kind: "ids"; scope: IdsExportScope }
+  | { kind: "list"; scope: ListScope };
+
+async function resolveExportScope({
   controller,
   controllerMetadata,
   ctx,
   listParams,
   ids,
   user,
-}: ExportQueryInput) {
+}: ExportQueryInput): Promise<ExportScope> {
   if (ids && ids.length > 0) {
-    return buildIdsExportQuery(controller, controllerMetadata, ctx, ids, user);
+    return {
+      kind: "ids",
+      scope: await resolveIdsExportScope(
+        controller,
+        controllerMetadata,
+        ctx,
+        ids,
+        user,
+      ),
+    };
   }
+  return {
+    kind: "list",
+    scope: await resolveListScope(controller, ctx, listParams, user),
+  };
+}
 
-  const built = await buildFilteredQuery(controller, ctx, listParams, user);
+/** The unrun queries an export pages through: its rows, their count, and the filters and sort its pages keep. */
+function buildExportQuery(scope: ExportScope) {
+  if (scope.kind === "ids") {
+    return buildIdsExportQuery(scope.scope);
+  }
+  const built = buildFilteredQuery(scope.scope);
   return {
     query: built.query,
     queryTotal: built.queryTotal,
     model: built.model,
-    mergedBy: { filters: built.filters, sortKey: listParams.sortKey },
+    mergedBy: { filters: built.filters, sortKey: scope.scope.params.sortKey },
   };
 }
 
-function getControllerKey(controller: DataControllerThis): string {
-  const controllerClass =
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Inference yields Function from the callback descriptor receiver; ControllerMeta's constructor owner needs ControllerClass, which the existing data-controller route binding supplies without a runtime check here.
-    controller.constructor as ControllerClass;
-  return GetMetadata(controllerClass, ControllerMeta).location;
+function getControllerKey(controller: DataControllerInstance): string {
+  const owner = controller.constructor;
+  const { location } = GetMetadata(owner, ControllerMeta);
+  if (location === undefined) {
+    throw new TypeError(`${owner.name} is not a Controller class`);
+  }
+  return location;
 }
 
 function buildTableViewAccessForController(
-  controller: DataControllerThis,
-): ExportJobAccessOptions<TableViewExportContext> {
+  controller: DataControllerInstance,
+): ExportJobAccess {
   const controllerKey = getControllerKey(controller);
   return {
     scope: TABLE_VIEW_EXPORT_SCOPE,
-    isOwnedBy: (_record, context) => context?.controllerKey === controllerKey,
+    isOwnedBy: (record) =>
+      readExportJobContext(record, TableViewExportContextSchema).data
+        ?.controllerKey === controllerKey,
   };
 }
 
 /** One export run, end to end. */
 export interface ExportRun {
-  controller: DataControllerThis;
+  controller: DataControllerInstance;
   ctx: RequestContext;
   listParams: Parameters.ListParameters;
   writer: ExportWriter;
@@ -231,16 +264,18 @@ export async function generateTableViewExport({
 
   writer.writeHeaders(headers);
 
-  const { query, queryTotal, model, mergedBy } = await buildExportQuery({
-    controller,
-    controllerMetadata,
-    ctx,
-    listParams,
-    ids,
-    user,
-  });
+  const { query, queryTotal, model, mergedBy } = buildExportQuery(
+    await resolveExportScope({
+      controller,
+      controllerMetadata,
+      ctx,
+      listParams,
+      ids,
+      user,
+    }),
+  );
 
-  const totalRecordsCount = await queryTotal;
+  const totalRecordsCount = await queryTotal.run();
 
   for (let i = 0; i < totalRecordsCount; i += EXPORT_BATCH_SIZE) {
     const pendingRecordBatch = Query.ListPage(
@@ -277,7 +312,7 @@ export async function generateTableViewExport({
 
 // oxlint-disable-next-line eslint/max-params -- Export routes bind this positional implementation with controller, request, list options, format, delivery, selected ids and user.
 export async function startExport(
-  controller: DataControllerThis,
+  controller: DataControllerInstance,
   ctx: RequestContext,
   listParams: Parameters.ListParameters,
   format?: string,
@@ -331,7 +366,7 @@ export async function startExport(
 }
 
 export async function getExportStatus(
-  controller: DataControllerThis,
+  controller: DataControllerInstance,
   ctx: RequestContext,
   exportId: string,
   user?: User,
@@ -348,7 +383,7 @@ export async function getExportStatus(
 }
 
 export async function downloadExport(
-  controller: DataControllerThis,
+  controller: DataControllerInstance,
   ctx: RequestContext,
   exportId: string,
   user?: User,
@@ -370,24 +405,26 @@ interface RuleValidationResult {
 }
 
 export async function fetchRowForGuard(
-  controller: any,
+  controller: DataControllerInstance,
   id: string,
   idField: string,
-): Promise<RuleRow | undefined> {
+): Promise<StoredRow | undefined> {
   return fetchRowForGuardHelper(controller, id, idField);
 }
 
 async function readRuleRow(
-  controller: any,
+  controller: DataControllerInstance,
   controllerMetadata: DataAPIMeta,
   model: ReturnType<typeof Query.GetModel>,
-  row: RuleRow,
-): Promise<RuleRow> {
+  row: StoredRow,
+): Promise<StoredRow> {
   try {
+    const stored = model.constructor.fromDatabase(row);
+    assert(stored, 500, "The database answered an empty row.");
     const read = await Query.ReadProperties(
       controller,
       controllerMetadata,
-      model.constructor.fromDatabase(row),
+      stored,
     );
     return { ...row, ...read };
   } catch {
@@ -396,7 +433,7 @@ async function readRuleRow(
 }
 
 export async function validateRowsAgainstRule(
-  controller: any,
+  controller: DataControllerInstance,
   ids: string[],
   rule: RowActionRule | undefined,
   strictMode: boolean,
@@ -409,7 +446,7 @@ export async function validateRowsAgainstRule(
   const controllerMetadata = GetDataControllerMeta(controller);
   const model = Query.GetModel(controller, controllerMetadata);
 
-  const rows = await model.table.getAll(ids, idField);
+  const rows = await model.table.getAll(ids, idField).run();
 
   const eligibleIds: string[] = [];
   const rejectedIds: string[] = [];
@@ -421,7 +458,7 @@ export async function validateRowsAgainstRule(
       model,
       row,
     );
-    const rowId = String(rowData[idField]);
+    const rowId = rowIdText(rowData[idField]);
 
     if (evaluateRowActionRule(rule, rowData)) {
       eligibleIds.push(rowId);
@@ -442,16 +479,15 @@ export async function validateRowsAgainstRule(
 }
 
 const updatedRowCount = (updated: number, ids: string[]): number =>
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Database adapters historically report either a numeric count or an adapter result; retain the existing selected-id fallback instead of assuming the declared numeric result at runtime.
-  typeof updated === "number" ? updated : ids.length;
+  isNumber(updated) ? updated : ids.length;
 
 export async function archiveRows(
-  controller: any,
+  controller: DataControllerInstance,
   _ctx: RequestContext,
   ids: string | string[],
 ) {
   const controllerMetadata = GetDataControllerMeta(controller);
-  const tableViewMetadata = GetMetadata(controller.constructor, TableViewMeta);
+  const tableViewMetadata = getTableViewMetaFor(controller);
   const idField = tableViewMetadata.options.rowIdKey || DEFAULT_ROW_ID_FIELD;
   const archiveField = tableViewMetadata.archiveField;
   const model = Query.GetModel(controller, controllerMetadata);
@@ -467,21 +503,23 @@ export async function archiveRows(
     return { success: true, archivedCount: 0 };
   }
 
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Inference gives a boolean archive patch, but data-api's erased model makes DeepPartial<any> reject booleans; Parameters of the overloaded update exposes its callback overload instead, so retain the existing unchecked adapter call.
-  const updated = await model.table.getAll(idArray, idField).update({
-    [archiveField]: true,
-  } as any);
+  const updated = await model.table
+    .getAll(idArray, idField)
+    .update({
+      [archiveField]: true,
+    })
+    .run();
 
   return { success: true, archivedCount: updatedRowCount(updated, idArray) };
 }
 
 export async function restoreRows(
-  controller: any,
+  controller: DataControllerInstance,
   _ctx: RequestContext,
   ids: string | string[],
 ) {
   const controllerMetadata = GetDataControllerMeta(controller);
-  const tableViewMetadata = GetMetadata(controller.constructor, TableViewMeta);
+  const tableViewMetadata = getTableViewMetaFor(controller);
   const idField = tableViewMetadata.options.rowIdKey || DEFAULT_ROW_ID_FIELD;
   const archiveField = tableViewMetadata.archiveField;
   const model = Query.GetModel(controller, controllerMetadata);
@@ -497,10 +535,12 @@ export async function restoreRows(
     return { success: true, restoredCount: 0 };
   }
 
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The inferred boolean restore patch fails the erased model's DeepPartial<any>; owner-derived Parameters selects the callback overload, not the document overload, so preserving this adapter call still needs its legacy assertion.
-  const updated = await model.table.getAll(idArray, idField).update({
-    [archiveField]: false,
-  } as any);
+  const updated = await model.table
+    .getAll(idArray, idField)
+    .update({
+      [archiveField]: false,
+    })
+    .run();
 
   return { success: true, restoredCount: updatedRowCount(updated, idArray) };
 }
@@ -510,6 +550,8 @@ export const listWithSearch = listWithSearchFunc;
 export const countWithSearch = countWithSearchFunc;
 
 export { summarizeWithSearch } from "./footer-summary";
+
+export { distinctWithSearch } from "./distinct-values";
 
 export { resolveBulkRowIds } from "./bulk-selection";
 

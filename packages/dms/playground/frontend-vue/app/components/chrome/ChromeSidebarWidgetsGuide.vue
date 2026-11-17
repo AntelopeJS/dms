@@ -33,9 +33,9 @@ const widgetItems = computed(() =>
       <ShowcaseDemo
         label="useSidebarWidgets().widgets · resolveSidebarWidgetPosition"
       >
-        <DmsCard title="Sidebar widgets" :count="widgetItems.length">
+        <DmsCardPanel title="Sidebar widgets" :count="widgetItems.length">
           <DmsKeyValueList :items="widgetItems" dense />
-        </DmsCard>
+        </DmsCardPanel>
       </ShowcaseDemo>
       <ShowcaseDemo label="What to try">
         <ul class="text-muted grid list-disc gap-2 ps-5 text-[13px]">

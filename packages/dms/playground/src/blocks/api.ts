@@ -1,4 +1,10 @@
-import { Controller, Get, Parameter, Post } from "@antelopejs/interface-api";
+import {
+  Controller,
+  Get,
+  Parameter,
+  Post,
+  type QueryValue,
+} from "@antelopejs/interface-api";
 import type {
   BannerAction,
   BannerContent,
@@ -6,6 +12,8 @@ import type {
 import type { StatGroupItem } from "@antelopejs/interface-dms/base/stat-group";
 import { PublishMessage } from "@antelopejs/interface-dms/realtime";
 import { notFound, serviceUnavailable } from "./demo-errors";
+import { ownEntry } from "../own-entry";
+import { queryText } from "../query-text";
 
 const DEMO_LATENCY_MS = 900;
 const MINUTE_MS = 60 * 1000;
@@ -31,7 +39,7 @@ let outstanding = 4890;
  */
 function inBackground(job: () => Promise<void>): void {
   setTimeout(() => {
-    job().catch((error: PromiseRejectedResult["reason"]) => {
+    job().catch((error: unknown) => {
       console.warn("[playground] background demo job failed", error);
     });
   }, BACKGROUND_JOB_DELAY_MS);
@@ -44,24 +52,22 @@ async function bumpFactsAndPublish(): Promise<void> {
 }
 
 const DEFAULT_PERIOD = "this-month";
-// oxlint-disable-next-line anti-slop/no-known-value-widening -- Arbitrary period query strings require an indexed lookup with the existing fallback.
-const PERIOD_SCALES: Record<string, number> = {
+const PERIOD_SCALES = {
   "last-7-days": 0.25,
   "last-30-days": 1,
   "this-month": 1,
   "last-month": 1.1,
   "last-90-days": 3,
   "this-quarter": 3,
-};
-// oxlint-disable-next-line anti-slop/no-known-value-widening -- Arbitrary period query strings require an indexed lookup with the existing fallback.
-const PERIOD_LABELS: Record<string, string> = {
+} satisfies Record<string, number>;
+const PERIOD_LABELS = {
   "last-7-days": "Last 7 days",
   "last-30-days": "Last 30 days",
   "this-month": "This month",
   "last-month": "Last month",
   "last-90-days": "Last 90 days",
   "this-quarter": "This quarter",
-};
+} satisfies Record<string, string>;
 const MRR_CENTS = 92200;
 const MRR_RENEWAL = "2026-10-31T09:00:00Z";
 const CONVERSION_RATIO = 0.253;
@@ -189,9 +195,12 @@ function invoiceStats(scale: number, period: string): StatGroupItem[] {
 
 export class BlocksDemoApiController extends Controller("/api/blocks") {
   @Get("stats")
-  getStats(@Parameter("preset", "query") preset?: string) {
-    const scale = PERIOD_SCALES[preset ?? DEFAULT_PERIOD] ?? 1;
-    const period = PERIOD_LABELS[preset ?? DEFAULT_PERIOD] ?? "Selected period";
+  getStats(@Parameter("preset", "query") preset: QueryValue) {
+    const scale =
+      ownEntry(PERIOD_SCALES, queryText(preset) ?? DEFAULT_PERIOD) ?? 1;
+    const period =
+      ownEntry(PERIOD_LABELS, queryText(preset) ?? DEFAULT_PERIOD) ??
+      "Selected period";
     return later({ items: [mrrStat(), ...invoiceStats(scale, period)] });
   }
 
@@ -233,9 +242,12 @@ export class BlocksDemoApiController extends Controller("/api/blocks") {
   }
 
   @Get("period-facts")
-  getPeriodFacts(@Parameter("preset", "query") preset?: string) {
-    const scale = PERIOD_SCALES[preset ?? DEFAULT_PERIOD] ?? 1;
-    const period = PERIOD_LABELS[preset ?? DEFAULT_PERIOD] ?? "Selected period";
+  getPeriodFacts(@Parameter("preset", "query") preset: QueryValue) {
+    const scale =
+      ownEntry(PERIOD_SCALES, queryText(preset) ?? DEFAULT_PERIOD) ?? 1;
+    const period =
+      ownEntry(PERIOD_LABELS, queryText(preset) ?? DEFAULT_PERIOD) ??
+      "Selected period";
     return later({
       items: [
         { label: "Period", value: period },

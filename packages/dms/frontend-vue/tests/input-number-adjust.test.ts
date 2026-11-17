@@ -71,7 +71,7 @@ async function mount(
       h(field, {
         ...props,
         modelValue: value.value,
-        "onUpdate:modelValue": (next: number) => (value.value = next),
+        "onUpdate:modelValue": (next) => (value.value = next),
         onAdjust: (adjustment: InputNumberAdjustment) =>
           adjustments.push(adjustment),
       }),
@@ -219,7 +219,7 @@ describe("the number field Nuxt UI draws", () => {
             NumberFieldRoot,
             {
               modelValue: value.value,
-              "onUpdate:modelValue": (next: number) => (value.value = next),
+              "onUpdate:modelValue": (next) => (value.value = next),
               locale: "fr-FR",
               stepSnapping: false,
             },

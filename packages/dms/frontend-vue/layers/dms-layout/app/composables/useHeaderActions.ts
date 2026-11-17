@@ -9,6 +9,15 @@ import { isFunction, isString } from "#dms-core/app/utils/type-check";
 export interface HeaderAction {
   id: string;
   icon: string;
+  /**
+   * A component drawn in place of `icon`, by the name `registerComponent` gave
+   * it (resolved as a side panel's `component` is), for an icon that animates
+   * or follows a state. The component is drawn once the app is mounted. `icon`
+   * stays required: it is drawn on the server's first paint, while the name
+   * does not resolve, while an async component loads, and when it fails to
+   * load. The name is plain data, so a server still renders the action.
+   */
+  iconComponent?: string;
   /** Tooltip and accessible name: a plain literal, or an i18n key when prefixed with "$". */
   label: string;
   /** Run on click. Required unless `sidePanelId` is set, which it overrides. */
@@ -25,11 +34,11 @@ export interface HeaderAction {
 }
 
 /**
- * The action id the builder module registers. Core renders it on the existing
- * builder button rather than as one more icon, and falls back to the
- * "coming soon" popover when no module claims it.
+ * The action id of a page builder's header button. Core renders it on the
+ * builder button rather than as one more icon, and shows no builder button
+ * when no module claims it.
  */
-export const BUILDER_ACTION_ID = "dms-builder-edit";
+export const BUILDER_ACTION_ID = "dms-page-builder-edit";
 
 const HEADER_ACTIONS_STATE_KEY = "dms:header-actions";
 const DEFAULT_ORDER = 100;

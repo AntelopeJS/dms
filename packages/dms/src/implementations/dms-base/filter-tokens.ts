@@ -3,6 +3,7 @@ import {
   type FilterValue,
   FilterValuesOf,
 } from "@antelopejs/interface-data-api/metadata";
+import { isString } from "@antelopejs/interface-dms/utils/internal/type-check";
 
 type ListFilters = NonNullable<Parameters.ListParameters["filters"]>;
 
@@ -36,8 +37,14 @@ export function resolveFilterValueTokens(
   value: string,
   context: FilterTokenContext,
 ): string {
-  return value.replace(TOKEN, (_match, name: string, sign, days) =>
-    resolveToken(context, name, sign, days),
+  return value.replace(
+    TOKEN,
+    (
+      _match,
+      name: string,
+      sign: string | undefined,
+      days: string | undefined,
+    ) => resolveToken(context, name, sign, days),
   );
 }
 
@@ -54,10 +61,7 @@ export function resolveFilterTokens(
   const resolved: ListFilters = {};
   for (const [field, filter] of Object.entries(filters)) {
     const values = FilterValuesOf(filter).map(([value, mode]): FilterValue => [
-      // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Archive filters also carry boolean values despite FilterValue's string declaration; interpolation must keep those values unchanged.
-      typeof value === "string"
-        ? resolveFilterValueTokens(value, context)
-        : value,
+      isString(value) ? resolveFilterValueTokens(value, context) : value,
       mode,
     ]);
     resolved[field] = values.length === 1 ? values[0] : values;

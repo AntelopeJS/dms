@@ -1,6 +1,5 @@
-import { HTTPResult } from "@antelopejs/interface-api";
 import { GetMetadata, ImplementInterface } from "@antelopejs/interface-core";
-import { expect } from "chai";
+import { assert, expect } from "chai";
 import * as guardsImpl from "../../../../implementations/dms/guards";
 import * as pageImpl from "../../../../implementations/dms/page";
 import * as permissionsImpl from "../../../../implementations/dms/permissions";
@@ -10,10 +9,6 @@ import {
   Component,
   ComponentBuilder,
 } from "@antelopejs/interface-dms/component";
-import type {
-  RoleModel,
-  TenantMemberModel,
-} from "@antelopejs/interface-dms/db";
 import * as pageInterface from "@antelopejs/interface-dms/page";
 import {
   GetPageLayoutBySlug,
@@ -24,12 +19,13 @@ import {
   RegisterPage,
 } from "@antelopejs/interface-dms/page";
 import * as permissionsInterface from "@antelopejs/interface-dms/permissions";
-import { withPermissionAncestors } from "@antelopejs/interface-dms/internal/permission-ids";
 import * as permissionsResolverInterface from "@antelopejs/interface-dms/permissions-resolver";
 import type { TenantTokenInput } from "@antelopejs/interface-dms/auth";
-import type { User } from "@antelopejs/interface-dms/auth/db";
 import { loadRoleEditorTree } from "../../../../pages/permissions";
 import type { RoleEditorPermissionNode } from "../../../../pages/permissions";
+import { stubPageAccessModels } from "../../../helpers/page-access";
+import { httpRejectionOf } from "../../../helpers/http-rejection";
+import { userFixture } from "../../../helpers/user-fixture";
 
 const TENANT = "cc-tenant";
 const PAGE_ID = "cc-children";
@@ -85,33 +81,15 @@ interface LayoutChild {
 async function layoutChildren(permissions: string[]): Promise<LayoutChild[]> {
   const slug = GetMetadata(ChildrenPage, PageMetadata).pageInfo?.fullSlug ?? "";
   const handler = GetPageLayoutBySlug(slug);
-  expect(handler, `no layout handler registered for ${slug}`).to.not.equal(
-    undefined,
-  );
-  // SAFETY: The assertion establishes the handler; this layout reads only the supplied user ID and member/role lookup methods.
-  const layout = await (handler as NonNullable<typeof handler>)({
-    user: { _id: "cc-user" } as User,
-    memberModel: {
-      getByUser: async () => ({ roleIds: ["cc-role"] }),
-    } as unknown as TenantMemberModel,
-    roleModel: {
-      getBy: async () => [
-        { permissions: withPermissionAncestors(permissions) },
-      ],
-    } as unknown as RoleModel,
+  assert.isDefined(handler, `no layout handler registered for ${slug}`);
+  const { memberModel, roleModel } = stubPageAccessModels(permissions);
+  const layout = await handler({
+    user: userFixture({ _id: "cc-user" }),
+    memberModel,
+    roleModel,
     tenantId: TENANT,
   });
   return layout.components.card?.children ?? [];
-}
-
-async function rejectionOf(promise: Promise<unknown>): Promise<HTTPResult> {
-  try {
-    await promise;
-    throw new Error("Expected promise to reject");
-  } catch (error: PromiseRejectedResult["reason"]) {
-    expect(error).to.be.instanceOf(HTTPResult);
-    return error;
-  }
 }
 
 function flattenPermissionNodes(
@@ -123,21 +101,7 @@ function flattenPermissionNodes(
   ]);
 }
 
-describe("[unit] interfaces/dms/page — children of a page component", () => {
-  before(async () => {
-    ImplementInterface(permissionsInterface, permissionsImpl);
-    ImplementInterface(permissionsResolverInterface, permissionsResolverImpl);
-    ImplementInterface(pageInterface, pageImpl);
-
-    RegisterPage()(ChildrenPage);
-    await settle();
-  });
-
-  after(() => {
-    const { pageInfo } = GetMetadata(ChildrenPage, PageMetadata);
-    if (pageInfo) pageInterface.internal.RegisterPage.unregister(pageInfo);
-  });
-
+function registerChildRegistrationCases(): void {
   it("registers every declared child in the grantable permission tree", async () => {
     expect(
       await permissionsInterface.GetPermission(CARD_PERMISSION),
@@ -199,7 +163,7 @@ describe("[unit] interfaces/dms/page — children of a page component", () => {
         rawToken: "cc-token",
         tenantId: "",
       };
-      const error = await rejectionOf(
+      const error = await httpRejectionOf(
         guardsImpl.internal.AuthUserWithPermissionValidator(panel, token),
       );
       expect(error.getStatus()).to.equal(HTTP_FORBIDDEN);
@@ -213,7 +177,9 @@ describe("[unit] interfaces/dms/page — children of a page component", () => {
       });
     }
   });
+}
 
+function registerChildFilteringCases(): void {
   it("resolves an exact child target independently of component identity", () => {
     expect(GetPermissionId(card.targetChild("table"))).to.equal(
       TABLE_PERMISSION,
@@ -292,6 +258,25 @@ describe("[unit] interfaces/dms/page — children of a page component", () => {
     expect(GetPermissionId(leaf)).to.equal(undefined);
     expect(GetPermissionId(card)).to.equal(undefined);
   });
+}
+
+describe("[unit] interfaces/dms/page — children of a page component", () => {
+  before(async () => {
+    ImplementInterface(permissionsInterface, permissionsImpl);
+    ImplementInterface(permissionsResolverInterface, permissionsResolverImpl);
+    ImplementInterface(pageInterface, pageImpl);
+
+    RegisterPage()(ChildrenPage);
+    await settle();
+  });
+
+  after(() => {
+    const { pageInfo } = GetMetadata(ChildrenPage, PageMetadata);
+    if (pageInfo) pageInterface.internal.RegisterPage.unregister(pageInfo);
+  });
+
+  registerChildRegistrationCases();
+  registerChildFilteringCases();
 });
 
 const SHARED_PAGE_ID = "cc-shared";
@@ -354,20 +339,12 @@ async function sharedLayout(permissions: string[]) {
   const slug =
     GetMetadata(SharedInstancePage, PageMetadata).pageInfo?.fullSlug ?? "";
   const handler = GetPageLayoutBySlug(slug);
-  expect(handler, `no layout handler registered for ${slug}`).to.not.equal(
-    undefined,
-  );
-  // SAFETY: The assertion establishes the handler; this layout reads only the supplied user ID and member/role lookup methods.
-  return (handler as NonNullable<typeof handler>)({
-    user: { _id: "cc-shared-user" } as User,
-    memberModel: {
-      getByUser: async () => ({ roleIds: ["cc-role"] }),
-    } as unknown as TenantMemberModel,
-    roleModel: {
-      getBy: async () => [
-        { permissions: withPermissionAncestors(permissions) },
-      ],
-    } as unknown as RoleModel,
+  assert.isDefined(handler, `no layout handler registered for ${slug}`);
+  const { memberModel, roleModel } = stubPageAccessModels(permissions);
+  return handler({
+    user: userFixture({ _id: "cc-shared-user" }),
+    memberModel,
+    roleModel,
     tenantId: TENANT,
   });
 }

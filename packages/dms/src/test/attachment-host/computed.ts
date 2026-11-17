@@ -32,6 +32,7 @@ import {
   TableView,
   TableViewRoutes,
 } from "@antelopejs/interface-dms/base/table-view";
+import { isString } from "@antelopejs/interface-dms/utils/internal/type-check";
 
 const TABLE = "computed-tasks";
 const PROJECT_TABLE = "computed-projects";
@@ -133,7 +134,13 @@ export class ComputedTaskController extends DataController(
   @Column({ name: "Siblings", type: new DefaultDataTypes.NumberType() })
   @Computed(
     (row, db) =>
-      db.table(TABLE).getAll(row.key("projectId"), "projectId").count(),
+      db
+        .table(TABLE)
+        .getAll(
+          row.key("projectId").cast<string | number | boolean>(),
+          "projectId",
+        )
+        .count(),
     { default: 0 },
   )
   declare siblings: number;
@@ -158,8 +165,7 @@ export class ComputedTasksPage extends RootPageController("computed-tasks", {
         body.spent ??= 0;
       },
       edit: (_ctx, { body }) => {
-        // oxlint-disable-next-line anti-slop/no-runtime-typeof -- The edit guard runs before body validation; inference and the controller type cannot assume a submitted title is a string without changing malformed-input handling.
-        if (typeof body.title === "string") body.title = body.title.trim();
+        if (isString(body.title)) body.title = body.title.trim();
       },
     },
   });

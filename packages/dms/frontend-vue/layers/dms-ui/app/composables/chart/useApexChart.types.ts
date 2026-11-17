@@ -1,3 +1,4 @@
+import type ApexCharts from "apexcharts";
 import type { ComputedRef } from "vue";
 import type { RawOptionSection } from "../../build/composables/chart/apexRawOptions";
 import type {
@@ -25,10 +26,8 @@ export interface ApexClickOpts {
 }
 
 export type ApexClickHandler = (
-  // oxlint-disable-next-line anti-slop/no-unknown-parameters -- This public callback preserves opaque event input; Apex's owner type uses any and makes the required options argument optional, changing the existing contract.
-  event: unknown,
-  // oxlint-disable-next-line anti-slop/no-unknown-parameters -- This public callback preserves opaque context input; inference from Apex's callback admits any and optional options rather than the existing contract.
-  ctx: unknown,
+  event: MouseEvent,
+  ctx: ApexCharts,
   opts: ApexClickOpts,
 ) => void;
 

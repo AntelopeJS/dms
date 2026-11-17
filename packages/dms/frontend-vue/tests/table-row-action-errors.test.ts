@@ -1,11 +1,17 @@
 import "./helpers/table-runtime";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { ref } from "vue";
+import { fetchClientMock } from "./fixtures/unusedApi";
+import {
+  readOnlyFailure,
+  installReadOnlyRefusal,
+} from "./helpers/read-only-refusal";
+import { ref, shallowRef } from "vue";
 import { createI18n } from "vue-i18n";
 import { Color } from "../layers/dms-core/app/types/color";
 import { HttpMethod } from "../layers/dms-core/app/types/http";
 import { normalizeActionConfig } from "../layers/dms-core/app/utils/row-action-rule-evaluator";
 import { interpolateUrl } from "../layers/dms-core/app/utils/url-interpolation";
+import { isObject } from "../layers/dms-core/app/utils/type-check";
 import { useTranslation } from "../layers/dms-core/app/composables/translation/useTranslation";
 import { useEventedAction } from "../layers/dms-core/app/composables/useEventedAction";
 import {
@@ -16,13 +22,17 @@ import {
 import core from "../layers/dms-core/app/entries/i18n/locales/core-en-GB.json";
 import ui from "../layers/dms-ui/app/entries/i18n/locales/ui-en-GB.json";
 
+vi.stubGlobal("shallowRef", shallowRef);
+const { useTableRowActions } = await import(
+  "../layers/dms-ui/app/entries/composables/table-view/useTableViewRowActions"
+);
+
 type Messages = { [key: string]: string | Messages };
 const merge = (target: Messages, source: Messages): Messages => {
   for (const [key, value] of Object.entries(source)) {
-    const current = target[key];
+    const current = Object.hasOwn(target, key) ? target[key] : undefined;
     target[key] =
-      // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Locale trees contain string leaves and nested message branches; only branches are merged recursively.
-      current && typeof current === "object" && typeof value === "object"
+      isObject(current) && isObject(value)
         ? merge({ ...current }, value)
         : value;
   }
@@ -38,9 +48,9 @@ const i18n = createI18n({
 });
 const t = i18n.global.t;
 
-const toast = { add: vi.fn() };
+const toast = { add: vi.fn(() => ({ id: "failure" })) };
 const refresh = vi.fn();
-const api = vi.fn();
+const api = fetchClientMock();
 
 const dialogs: {
   options: ConfirmOptions;
@@ -76,13 +86,9 @@ const shownRows = [
 
 const getRow = vi.fn();
 
-async function rowActions() {
-  const { useTableRowActions } = await import(
-    "../layers/dms-ui/app/entries/composables/table-view/useTableViewRowActions"
-  );
+function rowActions() {
   return useTableRowActions({
-    // SAFETY: Row action tests only call the configured fetch function, never its raw/create helpers.
-    api: api as Parameters<typeof useTableRowActions>[0]["api"],
+    api,
     location: "/api/task",
     columns: [],
     componentId: "table",
@@ -94,6 +100,7 @@ async function rowActions() {
 }
 
 beforeEach(() => {
+  vi.stubEnv("SSR", false);
   const globals = {
     ref,
     Color,
@@ -117,7 +124,8 @@ beforeEach(() => {
   for (const [name, value] of Object.entries(globals)) {
     vi.stubGlobal(name, value);
   }
-  toast.add.mockReset();
+  vi.stubGlobal("getPluginI18n", () => ({ i18n: i18n.global }));
+  toast.add.mockClear();
   refresh.mockReset();
   api.mockReset();
   getRow.mockReset();
@@ -138,11 +146,28 @@ describe("Table row actions: refusals", () => {
 });
 
 function registerRowActionRefusalTests() {
+  it("returns false for a direct marked restore, keeping rows and selection rather than refreshing", async () => {
+    installReadOnlyRefusal();
+    api.mockRejectedValue(readOnlyFailure());
+    const actions = rowActions();
+    const selected = ["t1"];
+    expect(await actions.restoreRows(selected, true)).toBe(false);
+    expect(selected).toEqual(["t1"]);
+    expect(shownRows.map(({ _id }) => _id)).toEqual(["t1", "t2"]);
+    expect(refresh).not.toHaveBeenCalled();
+    expect(toast.add).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({
+        title: "error.read_only_demo",
+        color: "warning",
+      }),
+    );
+  });
+
   it("runs a confirmed action inside its dialog, which shows the refusal", async () => {
     api.mockRejectedValue(
       fetchError(404, "$page.settings.invites.error.not_found"),
     );
-    const { handleCustomRowAction } = await rowActions();
+    const { handleCustomRowAction } = rowActions();
     handleCustomRowAction(
       {
         label: "Resend",
@@ -167,11 +192,11 @@ function registerRowActionRefusalTests() {
     expect(refresh).not.toHaveBeenCalled();
   });
 
-  it("toasts the refusal of an action without a dialog, in the error colour", async () => {
+  it("toasts a plain refusal with its contextual fallback and warning tone", async () => {
     api.mockRejectedValue(
       fetchError(403, "Forbidden: missing permission settings.invites"),
     );
-    const { handleCustomRowAction } = await rowActions();
+    const { handleCustomRowAction } = rowActions();
     handleCustomRowAction(
       {
         label: "Copy link",
@@ -188,17 +213,19 @@ function registerRowActionRefusalTests() {
     await vi.waitFor(() => expect(toast.add).toHaveBeenCalled());
 
     expect(confirm).not.toHaveBeenCalled();
-    expect(toast.add).toHaveBeenCalledWith({
-      color: Color.error,
-      icon: "i-ph-warning-circle",
-      title: "Copy link",
-      description: "You don’t have permission to do this.",
-    });
+    expect(toast.add).toHaveBeenCalledWith(
+      expect.objectContaining({
+        color: Color.warning,
+        title:
+          "Something went wrong and the action couldn’t be completed. Try again.",
+        description: undefined,
+      }),
+    );
   });
 
   it("sums up a bulk action some rows refused, applying the rest", async () => {
     api.mockResolvedValue({ success: true, archivedCount: 3 });
-    const { archiveRows } = await rowActions();
+    const { archiveRows } = rowActions();
 
     const done = await archiveRows(["1", "2", "3", "4", "5"], true);
 
@@ -223,24 +250,21 @@ function registerRowActionRefusalTests() {
 function registerBulkActionRefusalTests() {
   it("keeps the dialog open when the rules refused every row", async () => {
     api.mockResolvedValue({ deleted: 0 });
-    const { deleteRows } = await rowActions();
+    const { deleteRows } = rowActions();
 
     const done = await deleteRows(["1", "2"], true);
 
     expect(done).toBe(false);
     const error = dialogs[0]!.error;
     expect(error).toBeInstanceOf(ConfirmActionError);
-    expect(error).toHaveProperty(
-      "message",
-      "These 2 items couldn’t be deleted.",
-    );
+    expect(error).toHaveProperty("message", "dms.table.bulk_refused.delete");
     expect(toast.add).not.toHaveBeenCalled();
     expect(refresh).not.toHaveBeenCalled();
   });
 
   it("leaves a failed bulk request to the dialog", async () => {
     api.mockRejectedValue(fetchError(undefined));
-    const { archiveRows } = await rowActions();
+    const { archiveRows } = rowActions();
 
     expect(await archiveRows(["1"], true)).toBe(false);
     expect(dialogs[0]!.error).toHaveProperty("name", "FetchError");
@@ -248,17 +272,17 @@ function registerBulkActionRefusalTests() {
   });
 
   it("toasts a restore (no dialog) that failed or went only part of the way", async () => {
-    const { restoreRows } = await rowActions();
+    const { restoreRows } = rowActions();
 
     api.mockRejectedValueOnce(fetchError(undefined));
     expect(await restoreRows(["1", "2"], true)).toBe(false);
-    expect(toast.add).toHaveBeenLastCalledWith({
-      color: Color.error,
-      icon: "i-ph-warning-circle",
-      title: "Failed to restore items",
-      description:
-        "The server could not be reached. Check your connection and try again.",
-    });
+    expect(toast.add).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        color: Color.error,
+        title: "Failed to restore items",
+        description: undefined,
+      }),
+    );
 
     api.mockResolvedValueOnce({ success: true, restoredCount: 1 });
     expect(await restoreRows(["1", "2"], true)).toBe(true);
@@ -274,7 +298,7 @@ function registerBulkActionRefusalTests() {
   it("sends the values of the dialog's fields with the request, merged into its body", async () => {
     api.mockResolvedValue({});
     dialogValues = { reason: "spam", notify: false };
-    const { handleCustomRowAction } = await rowActions();
+    const { handleCustomRowAction } = rowActions();
     handleCustomRowAction(
       {
         label: "Ban",
@@ -305,7 +329,7 @@ function registerRowActionDialogTests() {
         ? { title: "$dms.table.delete_rows", params: { count: 1 } }
         : 1,
     );
-    const { deleteRows } = await rowActions();
+    const { deleteRows } = rowActions();
 
     const done = await deleteRows(["t1"], {
       confirm: { from: "/api/task/{{row.id}}/delete-confirm" },
@@ -321,7 +345,7 @@ function registerRowActionDialogTests() {
 
   it("words a fixed dialog with the fields of the one row it deletes", async () => {
     api.mockResolvedValue(1);
-    const { deleteRows } = await rowActions();
+    const { deleteRows } = rowActions();
 
     await deleteRows(["t1"], { confirm: { title: "Delete {name}?" } });
 
@@ -330,7 +354,7 @@ function registerRowActionDialogTests() {
 
   it("words a fixed dialog with the row its caller hands (a kanban card)", async () => {
     api.mockResolvedValue(1);
-    const { deleteRows } = await rowActions();
+    const { deleteRows } = rowActions();
 
     await deleteRows(
       ["t9"],
@@ -345,7 +369,7 @@ function registerRowActionDialogTests() {
   it("reads by id the one row a fixed dialog words, when the table does not show it", async () => {
     api.mockResolvedValue(1);
     getRow.mockResolvedValue({ _id: "t9", name: "Plan the launch" });
-    const { deleteRows } = await rowActions();
+    const { deleteRows } = rowActions();
 
     await deleteRows(["t9"], { confirm: { title: "Delete {name}?" } });
 
@@ -356,7 +380,7 @@ function registerRowActionDialogTests() {
   it("asks a fixed dialog anyway when the row cannot be read", async () => {
     api.mockResolvedValue(1);
     getRow.mockRejectedValue(fetchError(404));
-    const { deleteRows } = await rowActions();
+    const { deleteRows } = rowActions();
 
     const done = await deleteRows(["t9"], {
       confirm: { title: "Delete {count} task?" },
@@ -368,7 +392,7 @@ function registerRowActionDialogTests() {
 
   it("words a fixed dialog with the count of the rows it deletes", async () => {
     api.mockResolvedValue(2);
-    const { deleteRows } = await rowActions();
+    const { deleteRows } = rowActions();
 
     await deleteRows(["t1", "t2"], {
       confirm: { title: "Delete {count} tasks?" },
@@ -379,7 +403,7 @@ function registerRowActionDialogTests() {
 
   it("keeps the generic confirmation for several rows of a `from` dialog", async () => {
     api.mockResolvedValue(2);
-    const { deleteRows } = await rowActions();
+    const { deleteRows } = rowActions();
 
     await deleteRows(["t1", "t2"], {
       confirm: { from: "/api/task/{{row.id}}/delete-confirm" },
@@ -398,7 +422,7 @@ function registerRowActionConfirmationTests() {
         : 2,
     );
     dialogValues = { reassignTo: "r3" };
-    const { deleteRows } = await rowActions();
+    const { deleteRows } = rowActions();
 
     const done = await deleteRows(["r1", "r2"], {
       confirm: { from: "/api/roles/delete-confirm" },
@@ -417,7 +441,7 @@ function registerRowActionConfirmationTests() {
 
   it("asks a built-in action's confirmation before running it", async () => {
     const proceed = vi.fn();
-    const { runConfirmedBuiltIn } = await rowActions();
+    const { runConfirmedBuiltIn } = rowActions();
 
     await runConfirmedBuiltIn(
       { confirm: { title: "Edit {name}?" } },

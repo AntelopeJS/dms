@@ -122,6 +122,18 @@ const CODE_VERIFIERS: Record<
 };
 
 /**
+ * Refuses a stored method name no verifier handles, with the TypeError that
+ * calling its missing verifier throws.
+ */
+export function assertTwoFactorMethod(
+  method: string,
+): asserts method is TwoFactorMethod {
+  if (!Object.hasOwn(CODE_VERIFIERS, method)) {
+    throw new TypeError("CODE_VERIFIERS[method] is not a function");
+  }
+}
+
+/**
  * Checks a code from one of the user's methods. A code that passes is used
  * up: an authenticator step is recorded at once, an emailed code is cleared
  * on the user, which the caller saves.

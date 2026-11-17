@@ -50,12 +50,11 @@ const props = defineProps<TaskCardProps>();
 
 const { formatDate, formatPrice } = useRegionalFormat();
 
-// oxlint-disable-next-line anti-slop/no-known-value-widening -- Priority is a dynamic row value converted to string; unknown keys intentionally reach the neutral fallback.
-const PRIORITY_COLORS: Record<string, string> = {
-  low: "neutral",
-  medium: "warning",
-  high: "error",
-};
+const PRIORITY_COLORS = new Map<string, string>([
+  ["low", "neutral"],
+  ["medium", "warning"],
+  ["high", "error"],
+]);
 
 const startAction = computed(() =>
   props.actions
@@ -64,6 +63,10 @@ const startAction = computed(() =>
 );
 
 const priority = computed(() => String(props.row.priority ?? ""));
+
+const priorityColor = computed(
+  () => PRIORITY_COLORS.get(priority.value) ?? "neutral",
+);
 const completion = computed(() =>
   Math.round(Number(props.row.completion_percentage ?? 0) * 100),
 );
@@ -94,7 +97,7 @@ const price = computed(() => {
       <p class="truncate text-sm font-semibold">{{ row.name }}</p>
       <UBadge
         v-if="priority"
-        :color="PRIORITY_COLORS[priority] ?? 'neutral'"
+        :color="priorityColor"
         variant="subtle"
         size="sm"
         class="shrink-0 capitalize"

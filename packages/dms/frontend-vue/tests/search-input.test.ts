@@ -10,6 +10,7 @@ import {
   nextTick,
   ref,
 } from "vue";
+import { freshDmsState } from "./state-stub";
 import { defineShortcuts } from "@nuxt/ui/runtime/composables/defineShortcuts.js";
 import type SearchInputComponent from "../layers/dms-ui/app/entries/components/form/SearchInput";
 
@@ -57,6 +58,8 @@ const hints = () =>
 beforeEach(() => {
   vi.stubGlobal("defineShortcuts", defineShortcuts);
   vi.stubGlobal("useDmsCookie", () => ref("other"));
+  vi.stubGlobal("useDmsState", freshDmsState);
+  vi.stubGlobal("isDmsHydrating", () => false);
   vi.stubGlobal("computed", computed);
   host = document.createElement("div");
   document.body.append(host);

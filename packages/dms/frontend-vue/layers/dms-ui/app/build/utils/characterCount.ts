@@ -8,6 +8,6 @@ export function characterCountText(
   value: Parameters<typeof isString>[0],
   maxLength?: number,
 ): string {
-  const count = isString(value) ? [...value].length : 0;
+  const count = isString(value) ? Array.from(value).length : 0;
   return maxLength === undefined ? String(count) : `${count} / ${maxLength}`;
 }

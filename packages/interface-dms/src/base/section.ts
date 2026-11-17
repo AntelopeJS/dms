@@ -60,6 +60,8 @@ const FIELD_ROW_ICON = "i-ph-text-columns";
  *   .child("name", FieldRow({ label: "Name", layout: "form" }).child("v", …))
  *   .child("form", Form({ fields, submitUrl }))
  * ```
+ *
+ * @docsApi
  */
 export function Section(
   options?: SectionProps,
@@ -85,6 +87,8 @@ export function Section(
  * FieldRow({ label: "Seats", description: "Billed monthly." })
  *   .child("meter", Meter({ value: 8, max: 10 }))
  * ```
+ *
+ * @docsApi
  */
 export function FieldRow(
   options?: FieldRowProps,

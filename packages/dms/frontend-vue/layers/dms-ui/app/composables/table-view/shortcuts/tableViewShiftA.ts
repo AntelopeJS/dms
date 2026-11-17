@@ -1,7 +1,7 @@
 import type {
   TableRowActionOptions,
   Data,
-} from "../../../build/components/table/Table.vue";
+} from "../../../build/components/table/TableRoot.vue";
 import type { RowSelectionState } from "@tanstack/vue-table";
 import { get } from "@nuxt/ui/runtime/utils/index.js";
 
@@ -30,9 +30,9 @@ export function createTableViewShiftAShortcut<T extends Data>(
       const rowIdKey = tableProps.value.rowIdKey ?? DEFAULT_ROW_ID_KEY;
       const newSelection: RowSelectionState = {};
       data.value.results.forEach((row: T) => {
-        const id = get(row, rowIdKey);
+        const id: unknown = get(row, rowIdKey);
         if (id) {
-          newSelection[id] = true;
+          newSelection[String(id)] = true;
         }
       });
       rowSelect.value = { ...rowSelect.value, ...newSelection };

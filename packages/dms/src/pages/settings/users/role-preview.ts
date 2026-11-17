@@ -1,3 +1,4 @@
+import { WILDCARD_PERMISSION, ownValue } from "../../../utils";
 import type { ComponentInfoSerialized } from "@antelopejs/interface-dms/component";
 import { withPermissionAncestors } from "@antelopejs/interface-dms/internal/permission-ids";
 import type { PermissionTree } from "@antelopejs/interface-dms/permissions";
@@ -86,12 +87,16 @@ export interface RolePreviewResult {
 
 /**
  * The permission set a preview runs with: the role's ids as saving would
- * store them, with every id they sit under. A role holding the wildcard keeps
- * it: `HasPermission` honours it for whoever holds the role, so its preview
- * hides nothing — and never shows beyond the viewer's own access.
+ * store them, with every id they sit under. The wildcard is left out: only
+ * the platform owner holds it, so a role listing it grants its holders nothing
+ * through it, and its preview shows them that.
  */
 export function sanitizePreviewPermissions(permissions: string[]): Set<string> {
-  return new Set(withPermissionAncestors(permissions).filter(Boolean));
+  return new Set(
+    withPermissionAncestors(permissions).filter(
+      (permissionId) => permissionId && permissionId !== WILDCARD_PERMISSION,
+    ),
+  );
 }
 
 /** The registered permission node of an id, or `undefined`. */
@@ -100,10 +105,10 @@ export function findPermissionNode(
   permissionId: string,
 ): PermissionTree | undefined {
   const [head, ...rest] = permissionId.split(ID_SEPARATOR);
-  let node = head === undefined ? undefined : tree[head];
+  let node = head === undefined ? undefined : ownValue(tree, head);
   for (const part of rest) {
     if (!node) return undefined;
-    node = node.children[part];
+    node = ownValue(node.children, part);
   }
   return node;
 }

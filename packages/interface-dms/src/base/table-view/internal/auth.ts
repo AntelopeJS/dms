@@ -1,13 +1,10 @@
-import type {
-  ControllerClass,
-  RequestContext,
-} from "@antelopejs/interface-api";
+import type { RequestContext } from "@antelopejs/interface-api";
 import { assert as throwHttpAssert } from "@antelopejs/interface-api-util";
-import { GetMetadata } from "@antelopejs/interface-core";
 import { Logging } from "@antelopejs/interface-core/logging";
 import type {
   DataControllerCallback,
   DataControllerCallbackWithOptions,
+  DataControllerInstance,
 } from "@antelopejs/interface-data-api";
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import { RoleModel, TenantMemberModel } from "../../../db";
@@ -19,7 +16,7 @@ import { getRequestTenantId } from "../../../request-tenant";
 import { AssertTenantAccess } from "../../../tenant-access";
 import { AuthUser } from "../../../auth";
 import type { User } from "../../../auth/db";
-import { TableViewMeta } from "../meta";
+import { getTableViewMetaFor } from "./meta";
 
 /**
  * The read actions of a table view, named once so the route that checks one,
@@ -63,17 +60,12 @@ function isGateBypassableAction(
 
 /** @internal */
 export async function authorizeAction(
-  // oxlint-disable-next-line anti-slop/no-unknown-parameters -- The published authorization helper accepts a dispatcher-bound controller receiver without a class validation step.
-  thisObj: unknown,
+  thisObj: DataControllerInstance,
   actionId: string,
   user: User,
   tenantId: string,
 ): Promise<Set<string> | undefined> {
-  const meta = GetMetadata(
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The published unknown receiver does not prove its constructor is a ControllerClass; route dispatch owns that unchecked binding.
-    (thisObj as { constructor: ControllerClass }).constructor,
-    TableViewMeta,
-  );
+  const meta = getTableViewMetaFor(thisObj);
   const permissionIds = meta.actionPermissionIds(actionId);
   if (
     !meta.bypassTenantAccessGate ||
@@ -109,31 +101,63 @@ export async function authorizeAction(
   );
 }
 
-/** @internal */
-export function withActionCheck<T extends DataControllerCallback>(
+/**
+ * `baseRoute` behind the permission check of `actionId`: the route takes the
+ * user after the arguments of `baseRoute`, and runs `baseRoute` only once the
+ * user holds the permission.
+ *
+ * @internal
+ */
+export function withActionCheck<O, R, P, B>(
   actionId: string,
-  baseRoute: T,
-): DataControllerCallback {
+  baseRoute: DataControllerCallback<O, R, [RequestContext, P, B]>,
+): DataControllerCallback<O, R, [RequestContext, P, B, User]> {
   return {
     method: baseRoute.method,
     args: [...baseRoute.args, AuthUser()],
     func: async function (
-      this: ThisParameterType<DataControllerCallback["func"]>,
-      ...allArgs: Parameters<DataControllerCallback["func"]>
+      this: DataControllerInstance,
+      ctx: RequestContext,
+      params: P,
+      body: B,
+      user: User,
     ) {
-      const user: User = allArgs.pop();
-      const ctx: RequestContext = allArgs[0];
       await authorizeAction(this, actionId, user, getRequestTenantId(ctx));
-      return baseRoute.func.apply(this, allArgs);
+      return baseRoute.func.call(this, ctx, params, body);
+    },
+  };
+}
+
+/**
+ * {@link withActionCheck} for a route taking only the request context and its
+ * parameters, such as `get`.
+ *
+ * @internal
+ */
+export function withParamsActionCheck<O, R, P>(
+  actionId: string,
+  baseRoute: DataControllerCallback<O, R, [RequestContext, P]>,
+): DataControllerCallback<O, R, [RequestContext, P, User]> {
+  return {
+    method: baseRoute.method,
+    args: [...baseRoute.args, AuthUser()],
+    func: async function (
+      this: DataControllerInstance,
+      ctx: RequestContext,
+      params: P,
+      user: User,
+    ) {
+      await authorizeAction(this, actionId, user, getRequestTenantId(ctx));
+      return baseRoute.func.call(this, ctx, params);
     },
   };
 }
 
 /** @internal */
-export function withActionCheckOptions(
+export function withActionCheckOptions<O, R, P, B>(
   actionId: string,
-  baseRoute: DataControllerCallbackWithOptions,
-): DataControllerCallbackWithOptions {
+  baseRoute: DataControllerCallbackWithOptions<O, R, [RequestContext, P, B]>,
+): DataControllerCallbackWithOptions<O, R, [RequestContext, P, B, User]> {
   return {
     endpoint: baseRoute.endpoint,
     options: baseRoute.options,

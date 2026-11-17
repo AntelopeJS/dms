@@ -1,6 +1,8 @@
 import type { AttachmentField } from "@antelopejs/interface-dms/attachments";
 import { getDataTypeId } from "@antelopejs/interface-dms/base/data-types";
 import type { TableViewMeta } from "@antelopejs/interface-dms/base/table-view/meta";
+import { readUploadConstraints } from "@antelopejs/interface-dms/page/internal/metadata-uploads";
+import { isString } from "@antelopejs/interface-dms/utils/internal/type-check";
 
 export function tableAttachmentFields(
   meta: TableViewMeta,
@@ -15,14 +17,12 @@ export function tableAttachmentFields(
         id: `${scope}#${key}`,
         key,
         kind,
-        // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Data type options erase storage's type; file/image registration supplies it, but options are not runtime-validated here.
-        storage: options?.storage as string | undefined,
+        storage: isString(options?.storage) ? options.storage : undefined,
         visibility:
           options?.visibility === "public"
             ? ("public" as const)
             : ("private" as const),
-        // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- File/image options carry this attachment contract through an erased generic; validation of arbitrary registrations would change behavior.
-        constraints: options?.constraints as AttachmentField["constraints"],
+        constraints: readUploadConstraints(options ?? {}),
       },
     ];
   });

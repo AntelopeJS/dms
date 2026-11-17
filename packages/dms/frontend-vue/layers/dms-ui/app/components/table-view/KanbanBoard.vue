@@ -1,6 +1,8 @@
 <script setup lang="ts" generic="T extends Data">
 import { get } from "@nuxt/ui/runtime/utils/index.js";
-import type { Data } from "../../build/components/table/Table.vue";
+import type { Data } from "../../build/components/table/TableRoot.vue";
+import type { ComponentInfo } from "#dms-core/app/types/page";
+import type { RowActionConfig } from "#dms-core/app/types/row-action";
 import SortableList, {
   type SortableListChange,
 } from "../../build/components/sortable/SortableList.vue";
@@ -23,24 +25,9 @@ import {
 import { readSubline } from "../../build/composables/data-types/cellHelpers";
 import { useComposedText } from "#dms-core/app/composables/translation/useComposedText";
 import { useCardFields } from "../../build/composables/table-view/useCardFields";
-import { describeTableWriteError } from "../../build/composables/table-view/utils/writeError";
+import { tableWriteErrorOptions } from "../../build/composables/table-view/utils/writeError";
 
-const DEFAULT_COLUMN_PAGE_SIZE = 10;
-const DEFAULT_COLUMN_MAX_HEIGHT = "60vh";
-const DEFAULT_ROW_ID_KEY = "_id";
-const NEUTRAL_DOT_COLOR = "var(--ui-color-neutral-400)";
-
-const SKELETON_CARD_COUNT = 3;
-
-interface BoardCellState {
-  items: T[];
-  total: number;
-  loadingMore: boolean;
-}
-
-type ListResponse = TableViewListResponse<T>;
-
-interface KanbanBoardProps {
+export interface KanbanBoardProps<T extends Data> {
   location: string;
   columns: TableViewColumn[];
   labelKey?: string;
@@ -70,7 +57,22 @@ interface KanbanBoardProps {
   deleteAction?: boolean | RowActionConfig;
 }
 
-const props = defineProps<KanbanBoardProps>();
+const DEFAULT_COLUMN_PAGE_SIZE = 10;
+const DEFAULT_COLUMN_MAX_HEIGHT = "60vh";
+const DEFAULT_ROW_ID_KEY = "_id";
+const NEUTRAL_DOT_COLOR = "var(--ui-color-neutral-400)";
+
+const SKELETON_CARD_COUNT = 3;
+
+interface BoardCellState {
+  items: T[];
+  total: number;
+  loadingMore: boolean;
+}
+
+type ListResponse = TableViewListResponse<T>;
+
+const props = defineProps<KanbanBoardProps<T>>();
 
 const emit = defineEmits<{
   "card-click": [item: T];
@@ -89,6 +91,7 @@ const { getDataType } = useDataTypes();
 const { t } = useI18n();
 const { processText } = useComposedText();
 const toast = useToast();
+const { presentError } = useApiErrorPresenter();
 
 const rowIdKey = computed(() => props.rowIdKey ?? DEFAULT_ROW_ID_KEY);
 const pageSize = computed(
@@ -295,14 +298,17 @@ const awaitNewerMoves = async (itemId: string, current: Promise<void>) => {
   }
 };
 
-const notifyMoveError = (
-  error: Parameters<typeof describeTableWriteError>[0],
-) => {
-  toast.add({
-    color: Color.error,
-    title: t("dms.table.kanban.move_error"),
-    description: describeTableWriteError(error, t, props.columns, processI18n),
-  });
+const notifyMoveError = (error: Parameters<typeof presentError>[0]) => {
+  presentError(
+    error,
+    tableWriteErrorOptions(
+      error,
+      t,
+      props.columns,
+      processI18n,
+      "dms.table.kanban.move_error",
+    ),
+  );
 };
 
 const onColumnChange = async (
@@ -344,12 +350,16 @@ const onColumnChange = async (
   }
 };
 
-const customCardProps = (item: T, groupValue: string) => ({
-  ...props.cardComponent?.options,
-  // oxlint-disable-next-line anti-slop/no-conditional-empty-object-spread -- Retain spread evaluation order and own-property copying of module card options before context and groupValue.
-  ...(props.cardContext ? buildCardProps(item, props.cardContext) : {}),
-  groupValue,
-});
+const customCardProps = (item: T, groupValue: string) => {
+  const cardProps = props.cardContext
+    ? buildCardProps(item, props.cardContext)
+    : undefined;
+  return {
+    ...props.cardComponent?.options,
+    ...cardProps,
+    groupValue,
+  };
+};
 
 const customCardComponent = computed(() => {
   const componentName = props.cardComponent?.componentName;
@@ -423,8 +433,8 @@ const FieldValue = (fieldProps: { column: TableViewColumn; item: T }) =>
             {{ col.label }}
           </span>
           <USkeleton
-            :aria-label="t('dms.a11y.loading')"
             v-if="isBoardLoading && !cells[col.value]"
+            :aria-label="t('dms.a11y.loading')"
             aria-hidden="true"
             class="ms-auto h-[16.5px] w-5 shrink-0 rounded-[5px]"
           />
@@ -483,9 +493,9 @@ const FieldValue = (fieldProps: { column: TableViewColumn; item: T }) =>
             :item-key="getRowId"
             filter=".kanban-card-locked"
             class="flex min-h-16 flex-col gap-2"
-            @update:list="(items) => setColumnItems(col, items)"
             ghost-class="dms-kanban-ghost"
             drag-class="dms-kanban-drag"
+            @update:list="(items) => setColumnItems(col, items)"
             @change="(event) => onColumnChange(col, event)"
           >
             <template #item="{ element }">
@@ -589,7 +599,11 @@ const FieldValue = (fieldProps: { column: TableViewColumn; item: T }) =>
 .dms-kanban-ghost > * {
   visibility: hidden;
 }
-/* The card being dragged tilts and lifts on an accent ring. */
+/* The card being dragged tilts and lifts on an accent ring, opaque over the
+   cards it passes. */
+.dms-kanban-drag {
+  opacity: 1 !important;
+}
 .dms-kanban-drag > * {
   transform: rotate(-2deg);
   border-color: var(--ui-primary);

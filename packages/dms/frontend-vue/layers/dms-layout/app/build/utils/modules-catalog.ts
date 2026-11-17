@@ -1,6 +1,6 @@
+import type { JsonValue } from "#dms-core/app/types/json";
 import type {
   ModuleCatalogEntry,
-  ModuleStatus,
   ModuleWithAccess,
   PageInfo,
   SiteLayout,
@@ -38,12 +38,17 @@ export const DEFAULT_MODULE_SORT_MODE: ModuleSortMode = "name";
 
 const MODULE_SORT_MODES: readonly ModuleSortMode[] = ["name", "recent"];
 
+function isModuleSortMode(
+  value: JsonValue | undefined,
+): value is ModuleSortMode {
+  return MODULE_SORT_MODES.some((mode) => mode === value);
+}
+
 /** A remembered sort mode, or the default when it is missing or unknown. */
-// oxlint-disable-next-line anti-slop/no-unknown-parameters -- This parser accepts arbitrary persisted values and falls back for invalid ones; ModuleSortMode would remove that public boundary contract.
-export function parseModuleSortMode(value: unknown): ModuleSortMode {
-  return (
-    MODULE_SORT_MODES.find((mode) => mode === value) ?? DEFAULT_MODULE_SORT_MODE
-  );
+export function parseModuleSortMode(
+  value: JsonValue | undefined,
+): ModuleSortMode {
+  return isModuleSortMode(value) ? value : DEFAULT_MODULE_SORT_MODE;
 }
 
 /** Turns a display string (possibly a `$i18n.key`) into the shown text. */
@@ -80,10 +85,6 @@ export interface ModulePageMatch {
   sectionTitle?: string;
 }
 
-export function moduleStatus(entry: ModuleCatalogEntry): ModuleStatus {
-  return entry.status ?? "live";
-}
-
 export function moduleCategory(
   entry: Pick<ModuleCatalogEntry, "catalogCategory">,
 ): string {
@@ -101,7 +102,7 @@ export function summarizeModules(
     beta: 0,
   };
   for (const entry of entries) {
-    const status = moduleStatus(entry);
+    const { status } = entry;
     if (status === "update") summary.updates += 1;
     else if (status === "attention") summary.attention += 1;
     else if (status === "beta") summary.beta += 1;
@@ -178,11 +179,13 @@ export function compareDisplayNames(
   locale?: string,
 ): (a: string, b: string) => number {
   const options: Intl.CollatorOptions = { numeric: true };
+  let collator: Intl.Collator;
   try {
-    return new Intl.Collator(locale, options).compare;
+    collator = new Intl.Collator(locale, options);
   } catch {
-    return new Intl.Collator(undefined, options).compare;
+    collator = new Intl.Collator(undefined, options);
   }
+  return (a, b) => collator.compare(a, b);
 }
 
 /**
@@ -288,7 +291,10 @@ export function recentModules(
     .slice()
     .reverse()
     .flatMap((visit) => {
-      const module = modules?.[visit.moduleId];
+      const module =
+        modules && Object.hasOwn(modules, visit.moduleId)
+          ? modules[visit.moduleId]
+          : undefined;
       if (!module?.hasAccess) return [];
       const to = resolveModuleLandingSlug(
         tree,

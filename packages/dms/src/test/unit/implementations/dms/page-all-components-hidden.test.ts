@@ -8,7 +8,6 @@ import {
 import * as permissionsImpl from "../../../../implementations/dms/permissions";
 import * as permissionsResolverImpl from "../../../../implementations/dms/permissions-resolver";
 import * as tenantAccessImpl from "../../../../implementations/dms/tenant-access";
-import type { User } from "@antelopejs/interface-dms/auth/db";
 import { ComponentBuilder } from "@antelopejs/interface-dms/component";
 import {
   PageController,
@@ -21,10 +20,10 @@ import * as permissionsInterface from "@antelopejs/interface-dms/permissions";
 import * as permissionsResolverInterface from "@antelopejs/interface-dms/permissions-resolver";
 import * as tenantAccessInterface from "@antelopejs/interface-dms/tenant-access";
 import { stubPageAccessModels } from "../../../helpers/page-access";
+import { userFixture } from "../../../helpers/user-fixture";
 
 const TENANT = "hidden-blocks-tenant";
-// SAFETY: Page access consumes this id and the absent owner flag; the test does not call persisted-user methods.
-const MEMBER = { _id: "hidden-blocks-member" } as User;
+const MEMBER = userFixture({ _id: "hidden-blocks-member" });
 const BLOCKS_PAGE_ID = "pages.hidden-blocks";
 const BARE_PAGE_ID = "pages.hidden-blocks-bare";
 

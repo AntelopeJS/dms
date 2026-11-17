@@ -71,7 +71,7 @@ export function adaptFieldValidationSchema(
 }
 
 const BOOLEAN_TYPE_ID = "boolean";
-const ACCEPTANCE_COMPONENTS = new Set(["dms-checkbox"]);
+const ACCEPTANCE_COMPONENTS = new Set(["dms-input-checkbox"]);
 
 /** Whether a field is a box to tick: required, only `true` passes. */
 export function isAcceptanceField(field: FormField): boolean {
@@ -118,6 +118,8 @@ export function serializeFormFields(
  * places a block before anything is configured, and writes that as the bare
  * call `Form()`. A page under construction has to compile — it is typechecked
  * on every edit — so a block with nothing set yet has to be a legal call.
+ *
+ * @docsApi
  */
 export const Form = (options?: FormProps): FormBuilder => {
   const fields = options ? formEntries(options) : [];
@@ -273,6 +275,11 @@ export namespace FormComponents {
     /** Unit written after the field ("days"): an i18n key with `$`, or a literal. */
     suffix?: string;
     /**
+     * ISO 4217 code ("USD") of the amount a price field holds; read where
+     * the value is written, never by the input. Unset, amounts are in EUR.
+     */
+    currency?: string;
+    /**
      * `InputNumber` only. By default (`true`) a value typed outside `min` /
      * `max` is clamped into range when the field loses focus. `false` keeps
      * it as typed and shows "too small" / "too large" under the field, which
@@ -383,7 +390,6 @@ export namespace FormComponents {
     keyMapping: CascaderRelationKeyMapping;
     maxDepth?: number;
     leafOnly?: boolean;
-    fallback?: string;
   }
 
   export interface SliderOptions {
@@ -468,7 +474,7 @@ export namespace FormComponents {
   export function InputCheckbox(
     options?: BooleanControlOptions,
   ): ComponentInfoSerialized<BooleanControlOptions> {
-    return formComponent("dms-checkbox", options);
+    return formComponent("dms-input-checkbox", options);
   }
 
   /** A boolean as a bordered card: an icon, a title and a switch. */
@@ -496,7 +502,7 @@ export namespace FormComponents {
   export function InputRepeater(
     options: RepeaterOptions,
   ): ComponentInfoSerialized<RepeaterOptions> {
-    return formComponent("dms-repeater", options);
+    return formComponent("dms-input-repeater", options);
   }
 
   /** Pairs of a name and a value (`KeyValueType`). */
@@ -590,43 +596,43 @@ export namespace FormComponents {
   export function InputSelect<T extends SelectOptions>(
     options: T,
   ): ComponentInfoSerialized<T> {
-    return formComponent("dms-select", options);
+    return formComponent("dms-input-select", options);
   }
 
   export function InputRelation<T extends RelationOptions>(
     options: T,
   ): ComponentInfoSerialized<T> {
-    return formComponent("dms-relation", options);
+    return formComponent("dms-input-relation", options);
   }
 
   export function InputCascader<T extends CascaderRelationOptions>(
     options: T,
   ): ComponentInfoSerialized<T> {
-    return formComponent("dms-cascader", options);
+    return formComponent("dms-input-cascader", options);
   }
 
   export function InputSlider(
     options?: SliderOptions,
   ): ComponentInfoSerialized<SliderOptions> {
-    return formComponent("dms-slider", options);
+    return formComponent("dms-input-slider", options);
   }
 
   export function InputSwitch(
     options?: BooleanControlOptions,
   ): ComponentInfoSerialized<BooleanControlOptions> {
-    return formComponent("dms-switch", options);
+    return formComponent("dms-input-switch", options);
   }
 
   export function InputTextarea(
     options?: TextareaOptions,
   ): ComponentInfoSerialized<TextareaOptions> {
-    return formComponent("dms-textarea", options);
+    return formComponent("dms-input-textarea", options);
   }
 
   export function Calendar(
     options?: CalendarOptions,
   ): ComponentInfoSerialized<CalendarOptions> {
-    return formComponent("dms-calendar", options);
+    return formComponent("dms-input-calendar", options);
   }
 
   export function DatePicker(
@@ -656,13 +662,13 @@ export namespace FormComponents {
   export function File(
     options?: FileOptions,
   ): ComponentInfoSerialized<FileOptions> {
-    return formComponent("dms-file", options);
+    return formComponent("dms-input-file", options);
   }
 
   export function Image(
     options?: ImageOptions,
   ): ComponentInfoSerialized<ImageOptions> {
-    return formComponent("dms-image", options);
+    return formComponent("dms-input-image", options);
   }
 }
 

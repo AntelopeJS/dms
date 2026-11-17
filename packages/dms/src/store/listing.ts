@@ -5,6 +5,7 @@ import {
   type FrontendAcknowledgement,
   getFrontendAcknowledgement,
 } from "./internal/frontend/frontend-ready";
+import type { Freshness } from "./cache";
 import { loadStoreCatalog } from "./catalog";
 import { installedInterfaceVersion, isCompatible } from "./compatibility";
 import { listCatalogDeclarations } from "./declarations";
@@ -36,6 +37,12 @@ import type {
 } from "./types";
 
 const CATALOG_I18N_PREFIX = "$modules.store.catalog";
+/**
+ * The listing shows an expired registry answer while it refreshes, so a render
+ * after the cache expires does not wait for npm. Install and update read
+ * current answers.
+ */
+const LISTING_FRESHNESS: Freshness = "stale";
 
 /** What one listing entry is computed from. */
 interface EntrySources {
@@ -142,6 +149,7 @@ async function checkFrontend(
     sources.catalogEntry.package,
     release.version,
     platform.projectPath,
+    LISTING_FRESHNESS,
   );
   if (!range) return {};
   const requirement = platform.frontend
@@ -150,6 +158,7 @@ async function checkFrontend(
         running: platform.frontend.version,
         projectPath: platform.projectPath,
         replacedFolder: runtimeModule(sources)?.localPath,
+        freshness: LISTING_FRESHNESS,
       })
     : undefined;
   return { frontendRange: range, frontendRequirement: requirement };
@@ -170,6 +179,7 @@ async function stalledOn(
     release,
     platform.implemented,
     platform.projectPath,
+    LISTING_FRESHNESS,
   );
 }
 
@@ -192,7 +202,12 @@ async function inspectRequirements(
   }
   const [frontend, missingInterfaces] = await Promise.all([
     checkFrontend(sources, release, platform),
-    findMissingInterfaces(release, platform.implemented, platform.projectPath),
+    findMissingInterfaces(
+      release,
+      platform.implemented,
+      platform.projectPath,
+      LISTING_FRESHNESS,
+    ),
   ]);
   return { ...frontend, missingInterfaces, dependents, usedByProject };
 }
@@ -264,7 +279,9 @@ export async function buildStoreListing(): Promise<StoreListing> {
     readDeclarationsSafely(catalog),
     listRuntimeModules(),
     Promise.all(
-      catalog.map((entry) => latestRelease(entry.package, projectPath)),
+      catalog.map((entry) =>
+        latestRelease(entry.package, projectPath, LISTING_FRESHNESS),
+      ),
     ),
   ]);
   const interfaceVersion = installedInterfaceVersion();

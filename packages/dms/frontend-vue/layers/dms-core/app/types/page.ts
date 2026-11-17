@@ -1,4 +1,5 @@
 import type { BlockText } from "#dms-core/app/types/composed-text";
+import type { JsonValue } from "#dms-core/app/types/json";
 import type { BlockAction } from "#dms-core/app/entries/types/block-action";
 import type { PageLiveOptions } from "#dms-core/app/types/live";
 import type { ModuleSourceKind } from "./module-store";
@@ -85,13 +86,12 @@ export interface ModuleReadoutLine {
 
 /**
  * One entry of `/dms/modules-listing`: the module's info plus what its
- * catalog hooks reported. `status` and `readout` are optional so a backend
- * predating the hooks still reads as live with no readout.
+ * catalog hooks reported.
  */
 export type ModuleCatalogEntry = ModuleWithAccess & {
   landingSlug: string;
-  status?: ModuleStatus;
-  readout?: ModuleReadoutLine[];
+  status: ModuleStatus;
+  readout: ModuleReadoutLine[];
   /**
    * Where its code comes from, read from the module store; absent for a
    * module the store does not list.
@@ -142,8 +142,8 @@ export interface LayoutBanner {
   /** Link buttons after the text; the last one leads. */
   actions?: BlockAction[];
   component?: string;
-  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Banner components accept module-defined serialized props; inference cannot describe them and the frontend has no interface-dms dependency from which to derive the backend contract.
-  props?: Record<string, unknown>;
+  /** The props `component` is drawn with, as the backend sends them. */
+  props?: { [key: string]: JsonValue };
 }
 
 export type SiteLayout = {
@@ -155,8 +155,7 @@ export type SiteLayout = {
    * `urlTransparent`, by `fullSlug`.
    */
   categories: Record<string, CategoryInfo>;
-  /** Absent when the backend predates layout banners. */
-  banners?: LayoutBanner[];
+  banners: LayoutBanner[];
 };
 
 export interface QuickActionCategoryInfo {
@@ -194,7 +193,6 @@ export interface ComponentChild<T = object> {
   id: string;
   component: ComponentInfo<T>;
   slot?: string;
-  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Component children carry module-defined sibling metadata independently of generic options T; inferring from built-in children would narrow this public extension contract.
   [key: string]: unknown;
 }
 

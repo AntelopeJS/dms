@@ -1,4 +1,4 @@
-import { expect } from "chai";
+import { assert, expect } from "chai";
 import { decode } from "jsonwebtoken";
 import type { JwtPayload } from "jsonwebtoken";
 import { applyConfig, getHtmlRenderConfig } from "../../../../config";
@@ -17,8 +17,11 @@ function decodeServiceToken(serviceTokenLifetime: number): ServiceTokenClaims {
   applyConfig({
     htmlRender: { ...getHtmlRenderConfig(), serviceTokenLifetime },
   });
-  // SAFETY: generateServiceToken signs an object with jsonwebtoken's default iat and an expiresIn-derived exp; decode's general payload type leaves those claims optional.
-  return decode(generateServiceToken(), { json: true }) as ServiceTokenClaims;
+  const claims = decode(generateServiceToken(), { json: true });
+  assert.isNotNull(claims);
+  assert.isDefined(claims.iat);
+  assert.isDefined(claims.exp);
+  return { ...claims, iat: claims.iat, exp: claims.exp };
 }
 
 describe("[unit] implementations/dms-html-render — generateServiceToken", () => {

@@ -61,8 +61,7 @@ export function openTabBus(
 ): TabBus {
   const listeners = new Set<TabMessageHandler>();
   const deliver = (message: Parameters<TabMessageHandler>[0]) => {
-    // oxlint-disable-next-line unicorn/no-useless-spread -- Delivery snapshots listeners so removals and additions during callbacks affect only subsequent messages; iterating the live Set changes that behavior.
-    for (const listener of [...listeners]) listener(message);
+    for (const listener of Array.from(listeners)) listener(message);
   };
   const channel = canShareAcrossTabs(environment)
     ? environment.createChannel!(name)
@@ -191,7 +190,9 @@ export function shareAcrossTabs(
 ): () => void {
   const bus = openTabBus(name, environment);
   const unlisten = bus.listen(onMessage);
-  const resign = electLeader(name, environment, () => open(bus.post));
+  const resign = electLeader(name, environment, () =>
+    open((message) => bus.post(message)),
+  );
   return () => {
     resign();
     unlisten();

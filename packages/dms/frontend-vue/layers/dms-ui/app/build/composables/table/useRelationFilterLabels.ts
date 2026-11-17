@@ -72,8 +72,10 @@ export function useRelationFilterLabels(sources: () => RelationFilterSource[]) {
   onMounted(() => {
     watch(
       pending,
-      (batches) => {
-        for (const { source, ids } of batches) void loadLabels(source, ids);
+      async (batches) => {
+        await Promise.all(
+          batches.map(({ source, ids }) => loadLabels(source, ids)),
+        );
       },
       { immediate: true },
     );

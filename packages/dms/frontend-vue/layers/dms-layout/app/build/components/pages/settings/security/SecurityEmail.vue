@@ -38,6 +38,7 @@ const FIELD_CODES = {
 
 const { t } = useI18n();
 const toast = useToast();
+const { presentError } = useApiErrorPresenter();
 const { $authFetch } = useAuthFetch();
 const { refresh: refreshSession } = useCurrentUser();
 const { overview, refresh } = useSecurityOverview();
@@ -180,9 +181,8 @@ async function submit(): Promise<void> {
     isCodeOpen.value = true;
   } catch (error) {
     if (await flagField(error)) return;
-    toast.add({
-      title: errorMessage(error, "page.settings.security.email.error"),
-      color: "error",
+    presentError(error, {
+      fallbackKey: "page.settings.security.email.error",
     });
   } finally {
     isSaving.value = false;
@@ -217,9 +217,8 @@ async function confirmCode(code: string): Promise<void> {
       );
       return;
     }
-    toast.add({
-      title: errorMessage(error, "page.settings.security.email.error"),
-      color: "error",
+    presentError(error, {
+      fallbackKey: "page.settings.security.email.error",
     });
     if (errorCode(error) === CODE_BURNT) {
       isCodeOpen.value = false;
@@ -239,16 +238,15 @@ async function cancelChange(): Promise<void> {
     });
     await refresh();
   } catch (error) {
-    toast.add({
-      title: errorMessage(error, "page.settings.security.email.error"),
-      color: "error",
+    presentError(error, {
+      fallbackKey: "page.settings.security.email.error",
     });
   }
 }
 </script>
 
 <template>
-  <DmsSection
+  <DmsSectionPanel
     id="email"
     class="scroll-mt-6"
     title="$page.settings.security.email_title"
@@ -294,7 +292,7 @@ async function cancelChange(): Promise<void> {
             <span>{{ t("page.settings.security.email.usage") }}</span>
           </template>
         </DmsListRow>
-        <DmsBanner
+        <DmsNoticeBanner
           v-if="pendingEmail && !isEditing"
           class="mt-3"
           size="sm"
@@ -320,7 +318,7 @@ async function cancelChange(): Promise<void> {
               @click="cancelChange"
             />
           </template>
-        </DmsBanner>
+        </DmsNoticeBanner>
       </template>
 
       <SecurityPanelField
@@ -351,9 +349,9 @@ async function cancelChange(): Promise<void> {
       >
         <template #default="{ describedby, invalid }">
           <DmsPasswordInput
-            has-lock-icon
             :id="CURRENT_FIELD_ID"
             v-model="currentPassword"
+            has-lock-icon
             autocomplete="current-password"
             :invalid="invalid"
             :aria-describedby="describedby"
@@ -368,7 +366,7 @@ async function cancelChange(): Promise<void> {
           </DmsLink>
         </template>
       </SecurityPanelField>
-      <DmsBanner
+      <DmsNoticeBanner
         class="col-span-full"
         size="sm"
         tone="primary"
@@ -390,7 +388,7 @@ async function cancelChange(): Promise<void> {
             </template>
           </i18n-t>
         </template>
-      </DmsBanner>
+      </DmsNoticeBanner>
     </SecurityEditPanel>
     <SecurityCodeModal
       v-model:open="isCodeOpen"
@@ -408,5 +406,5 @@ async function cancelChange(): Promise<void> {
       :loading="isConfirming"
       @confirm="confirmCode"
     />
-  </DmsSection>
+  </DmsSectionPanel>
 </template>

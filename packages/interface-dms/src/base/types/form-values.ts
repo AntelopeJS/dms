@@ -1,13 +1,4 @@
-/**
- * Valid default values for form fields and columns
- */
-export type DefaultValue =
-  | string
-  | number
-  | boolean
-  | Date
-  | null
-  | DefaultValue[];
+export type { DefaultValue } from "../../component-options/form-field";
 
 /**
  * Valid form field values

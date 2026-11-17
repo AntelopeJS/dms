@@ -159,6 +159,8 @@ const PERIOD_SELECTOR_COMPONENT_NAME = "dms-period-selector";
  * places a block before anything is configured, and writes that as the bare
  * call `PeriodSelector()`. A page under construction has to compile — it is typechecked
  * on every edit — so a block with nothing set yet has to be a legal call.
+ *
+ * @docsApi
  */
 export function PeriodSelector(
   options?: PeriodSelectorProps,

@@ -1,7 +1,7 @@
 import { createSSRApp, h } from "vue";
 import { renderToString } from "vue/server-renderer";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import DmsSection from "../layers/dms-ui/app/components/section/Section.vue";
+import DmsSectionPanel from "../layers/dms-ui/app/components/section/SectionPanel.vue";
 import { stubBlockRuntime } from "./helpers/block-runtime";
 
 beforeEach(async () => {
@@ -12,11 +12,11 @@ beforeEach(async () => {
 afterEach(() => vi.unstubAllGlobals());
 
 function render(
-  props: InstanceType<typeof DmsSection>["$props"],
+  props: InstanceType<typeof DmsSectionPanel>["$props"],
 ): Promise<string> {
   return renderToString(
     createSSRApp({
-      render: () => h(DmsSection, props, { default: () => "Rows" }),
+      render: () => h(DmsSectionPanel, props, { default: () => "Rows" }),
     }),
   );
 }

@@ -1,9 +1,6 @@
 import { nextTick, reactive } from "vue";
-import {
-  type I18nTranslate,
-  resolveApiMessage,
-} from "./translation/useTranslation";
-import { resolveApiErrorMessage } from "./useApiError";
+import { type I18nTranslate } from "./translation/useTranslation";
+import { resolveApiErrorMessage } from "./resolveApiError";
 import { isBoolean, isNumber, isObject, isString } from "../utils/type-check";
 
 /**
@@ -19,11 +16,10 @@ import { isBoolean, isNumber, isObject, isString } from "../utils/type-check";
 export interface ApiFieldError {
   /** Id of the field, as the form names it (the request body key). */
   field: string;
-  /**
-   * What to show under the field: an i18n key (bare `error.xxx` or `$key`)
-   * or prose, resolved with `resolveApiMessage`.
-   */
+  /** Server translation key, resolved by the API error presenter. */
   message: string;
+  /** Caller key used only when the server's message is not translated. */
+  fallbackKey?: string;
   /** The values of the field the error names (addresses of a list…). */
   values?: string[];
   /**
@@ -321,11 +317,13 @@ function lookupCode<F extends string>(
 ): ApiFieldError | undefined {
   if (!code || !codes) return undefined;
   const bare = code.startsWith("$") ? code.slice(1) : code;
-  const entry = codes[code] ?? codes[bare] ?? codes[`$${bare}`];
+  const own = (key: string) =>
+    Object.hasOwn(codes, key) ? codes[key] : undefined;
+  const entry = own(code) ?? own(bare) ?? own(`$${bare}`);
   if (!entry) return undefined;
   return isString(entry)
     ? { field: entry, message: code }
-    : { field: entry.field, message: entry.message };
+    : { field: entry.field, message: code, fallbackKey: entry.message };
 }
 
 function fromBody(body: ReturnType<typeof bodyOf>): ApiFieldError[] {
@@ -485,15 +483,15 @@ export interface HandleApiErrorOptions {
  * Bind `errors[field]` to the message element (id `errorId(field)`) and
  * `aria(field)` onto the control; call `clear(field)` when its value changes.
  */
-/* oxlint-disable anti-slop/require-safety-comment-for-type-assertion -- Object.keys erases F. The options owner and resolveFieldErrors membership check cannot prove runtime extra keys are F. Filtering would change extra-key behavior. */
 export function useFieldErrors<F extends string>(
   options: UseFieldErrorsOptions<F>,
 ) {
-  const { t } = useI18n();
-  const toast = useToast();
-  const translate = (key: string, params: Parameters<I18nTranslate>[1] = {}) =>
-    t(key, params);
-  const fieldIds = Object.keys(options.fields) as F[];
+  const errorPresenter = useApiErrorPresenter();
+  const fieldIds = Object.keys(options.fields).filter((key): key is F =>
+    Object.hasOwn(options.fields, key),
+  );
+  const knownFields = new Set<string>(fieldIds);
+  const isField = (name: string): name is F => knownFields.has(name);
   const errors: Partial<Record<F, string>> = reactive({});
 
   function controlId(field: F): string {
@@ -548,35 +546,31 @@ export function useFieldErrors<F extends string>(
   async function applyApiError(
     error: Parameters<typeof resolveApiErrorMessage>[0],
   ): Promise<boolean> {
-    const { fields } = resolveFieldErrors(error, {
+    const { fields, hasUnmatched } = resolveFieldErrors(error, {
       fields: fieldIds,
       codes: options.codes,
     });
     if (fields.length === 0) return false;
     clear();
     for (const entry of fields) {
-      errors[entry.field as F] = resolveApiMessage(
-        translate,
-        entry.message,
-        entry.params,
-      );
+      if (!isField(entry.field)) continue;
+      errors[entry.field] = errorPresenter.resolveError(entry.message, {
+        fallbackKey: entry.fallbackKey ?? "dms.field_errors.invalid",
+        params: entry.params,
+      })?.message;
     }
-    await focus(fields[0]!.field as F);
-    return true;
+    const first = fields[0]!.field;
+    if (isField(first)) await focus(first);
+    return !hasUnmatched;
   }
-  /* oxlint-enable anti-slop/require-safety-comment-for-type-assertion */
 
   /** The toast of an error that belongs to no field. */
   function toastError(
     error: Parameters<typeof resolveApiErrorMessage>[0],
     toastOptions: HandleApiErrorOptions,
   ) {
-    toast.add({
-      title: t(toastOptions.toastTitle),
-      description: toastOptions.toastDescription
-        ? t(toastOptions.toastDescription)
-        : resolveApiMessage(translate, describeApiError(error)),
-      color: "error",
+    errorPresenter.presentError(error, {
+      fallbackKey: toastOptions.toastDescription ?? toastOptions.toastTitle,
     });
   }
 

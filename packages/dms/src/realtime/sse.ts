@@ -25,11 +25,6 @@ export interface SseStream {
   close: () => Promise<void>;
 }
 
-const formatFrame = (
-  eventName: string,
-  data: Parameters<SseStream["send"]>[1],
-): string => `event: ${eventName}\ndata: ${JSON.stringify(data)}\n\n`;
-
 const applyHeaders = (ctx: RequestContext): void => {
   for (const [name, value] of Object.entries(HEADERS)) {
     ctx.response.addHeader(name, value);
@@ -68,7 +63,7 @@ export function openSseStream(ctx: RequestContext): SseStream {
   return {
     send: (eventName, data) => {
       if (isClosed) return;
-      writer.write(formatFrame(eventName, data));
+      writer.write(`event: ${eventName}\ndata: ${JSON.stringify(data)}\n\n`);
     },
     onClose: (handler) => closeHandlers.push(handler),
     close: async () => {

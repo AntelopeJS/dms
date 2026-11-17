@@ -1,7 +1,10 @@
 import { randomUUID } from "node:crypto";
 import { HTTPResult } from "@antelopejs/interface-api";
 import { Logging } from "@antelopejs/interface-core/logging";
-import { GetModel } from "@antelopejs/interface-database-decorators";
+import {
+  GetModel,
+  toDatabase,
+} from "@antelopejs/interface-database-decorators";
 import { Send } from "@antelopejs/interface-email";
 import type { AdminInviteEmailContext } from "@antelopejs/interface-dms/auth";
 import { type User, UserModel } from "@antelopejs/interface-dms/auth/db";
@@ -9,24 +12,27 @@ import { getErrorMessage } from "@antelopejs/interface-dms/base/types";
 import { GenerateHtml } from "@antelopejs/interface-dms/html-render";
 export * from "./account-emails";
 import { AdminInviteTemplate } from "./email-templates";
-import { decode, sign, verify } from "jsonwebtoken";
+import type { decode, JwtPayload } from "jsonwebtoken";
 import { getAuthConfig, getClientBaseUrl, getConfig } from "../../config";
 import {
   type AdminInviteEmailNames,
   buildAdminInviteSignupLink,
   buildAdminInviteSubject,
+  decodeUnverified,
   resolveAdminInviteLanguage,
   recordUserActivity,
 } from "../../utils";
-import { isObject } from "@antelopejs/interface-dms/utils/internal/type-check";
-import { generateSecret } from "./token-secret";
+import {
+  isObject,
+  isString,
+} from "@antelopejs/interface-dms/utils/internal/type-check";
+import { loadTokenUser, signUserToken, verifyUserToken } from "./token-secret";
 import { assertTokenSessionAlive, loadTokenSession } from "./token-session";
 import { INVITE_EXPIRY_DAYS } from "@antelopejs/interface-dms/invites";
 
 const HTTP_FORBIDDEN = 403;
 const HTTP_UNAUTHORIZED = 401;
 const OWNER_ONLY_ERROR_MESSAGE = "Owner-only";
-const INVALID_USER_ERROR = "Invalid user";
 const EMAIL_NOT_VALIDATED_ERROR = "Email not validated";
 const NO_JWT_TOKEN_ERROR = "No jwt token provided";
 const INVALID_TENANT_ASSIGNMENT_TOKEN_ERROR = "Invalid tenant assignment token";
@@ -35,12 +41,12 @@ const TWO_FACTOR_TOKEN_PURPOSE = "2fa";
 const ACCESS_TOKEN_PURPOSE = "access";
 const REFRESH_TOKEN_PURPOSE = "refresh";
 const INVALID_SESSION_TOKEN_ERROR = "Invalid session token";
+const MISSING_SESSION_ID_ERROR = "An access or refresh token needs a sessionId";
 
 interface TenantTokenInput {
   tenantId: string;
   id: string;
   rawToken: string;
-  sessionId?: string;
 }
 
 interface TokenResult {
@@ -59,30 +65,19 @@ async function validateUserToken(
   data: TenantTokenInput,
   checkEmailValidation: boolean = false,
 ): Promise<User> {
-  const userModel = GetModel(UserModel);
+  const { claims, user } = await verifiedSession(
+    data.rawToken,
+    ACCESS_TOKEN_PURPOSE,
+  );
 
-  const [user, session] = await Promise.all([
-    userModel.get(data.id),
-    loadTokenSession(data.sessionId),
-  ]);
-
-  if (!user) {
-    throw new HTTPResult(HTTP_UNAUTHORIZED, INVALID_USER_ERROR);
-  }
-
+  const session = await loadTokenSession(claims.sessionId);
   try {
-    const secret = generateSecret(user.authKey);
-    const payload = verifySessionToken(
-      data.rawToken,
-      secret,
-      ACCESS_TOKEN_PURPOSE,
-    );
-    assertTokenSessionAlive(payload.sessionId, session, user);
+    assertTokenSessionAlive(claims.sessionId, session, user);
   } catch (error: unknown) {
     throw new HTTPResult(HTTP_UNAUTHORIZED, getErrorMessage(error));
   }
 
-  await recordUserActivity(userModel, user);
+  await recordUserActivity(GetModel(UserModel), user);
 
   if (checkEmailValidation) {
     const config = getAuthConfig();
@@ -97,30 +92,68 @@ async function validateUserToken(
 interface DecodedAuthPayload {
   tenantId: string;
   id: string;
-  sessionId?: string;
+  sessionId: string;
 }
 
-function verifySessionToken(
-  token: string,
-  secret: string,
+function isSessionPayload(
+  payload: string | JwtPayload,
   purpose: string,
-): DecodedAuthPayload {
-  const payload = verify(token, secret, { algorithms: ["HS256"] });
-  if (
-    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- jsonwebtoken can return a text payload; only an object carries the claims checked below.
-    typeof payload === "string" ||
-    payload.purpose !== purpose ||
-    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- A valid signature does not establish the id claim's JSON type.
-    typeof payload.id !== "string" ||
-    !payload.id ||
-    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- A valid signature does not establish the tenant claim's JSON type.
-    typeof payload.tenantId !== "string" ||
-    !payload.tenantId
-  ) {
-    throw new Error(INVALID_SESSION_TOKEN_ERROR);
+): payload is JwtPayload & DecodedAuthPayload {
+  return (
+    !isString(payload) &&
+    payload.purpose === purpose &&
+    isString(payload.id) &&
+    !!payload.id &&
+    isString(payload.tenantId) &&
+    !!payload.tenantId &&
+    isString(payload.sessionId) &&
+    !!payload.sessionId
+  );
+}
+
+function isDecodedAuthPayload(
+  claims: ReturnType<typeof decode>,
+): claims is JwtPayload & DecodedAuthPayload {
+  return (
+    claims !== null &&
+    !isString(claims) &&
+    isString(claims.id) &&
+    isString(claims.tenantId) &&
+    isString(claims.sessionId)
+  );
+}
+
+/**
+ * The claims of a bearer token, read without verifying its signature, or
+ * `undefined` when they do not name a user and a tenant: the validator then
+ * verifies the token they came with.
+ */
+function decodedClaims(token: string): DecodedAuthPayload | undefined {
+  const claims = decodeUnverified(token);
+  return isDecodedAuthPayload(claims) ? claims : undefined;
+}
+
+/**
+ * The claims of `token` and the user it names, once its signature proves it a
+ * `purpose` token and the user still holds the key it was issued under. The
+ * user is read only after the signature checks out, and every refusal is the
+ * same 401.
+ *
+ * @throws HTTPResult(401) for any token that is not a live `purpose` token
+ */
+async function verifiedSession(
+  token: string,
+  purpose: string,
+): Promise<{ claims: DecodedAuthPayload; user: User }> {
+  const claims = verifyUserToken(token);
+  if (!claims || !isSessionPayload(claims, purpose)) {
+    throw new HTTPResult(HTTP_UNAUTHORIZED, INVALID_SESSION_TOKEN_ERROR);
   }
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Inference and JwtPayload leave sessionId unchecked; downstream session validation currently assumes DecodedAuthPayload, and checking or rejecting another claim here would change token acceptance.
-  return payload as DecodedAuthPayload;
+  const user = await loadTokenUser(claims);
+  if (!user) {
+    throw new HTTPResult(HTTP_UNAUTHORIZED, INVALID_SESSION_TOKEN_ERROR);
+  }
+  return { claims, user };
 }
 
 export namespace internal {
@@ -128,8 +161,10 @@ export namespace internal {
     if (!data) {
       throw new HTTPResult(HTTP_UNAUTHORIZED, NO_JWT_TOKEN_ERROR);
     }
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- decode's inferred JwtPayload|string|null and JWT owner types cannot establish the claims consumed by AuthUserValidator; this authenticator forwards them without checking so rejection stays in the validator.
-    const result = decode(data) as DecodedAuthPayload;
+    const result = decodedClaims(data);
+    if (!result) {
+      throw new HTTPResult(HTTP_UNAUTHORIZED, INVALID_SESSION_TOKEN_ERROR);
+    }
     return {
       ...result,
       rawToken: data,
@@ -137,19 +172,8 @@ export namespace internal {
   };
 
   export const IfAuthUserAuthenticator = (data: string | undefined) => {
-    if (!data) {
-      return undefined;
-    }
-    try {
-      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- decode and its owner return JwtPayload|string|null rather than the claims IfAuthUserValidator consumes; retaining this unchecked forwarding avoids adding new authenticator rejections.
-      const result = decode(data) as DecodedAuthPayload;
-      return {
-        ...result,
-        rawToken: data,
-      };
-    } catch {
-      return undefined;
-    }
+    const result = data ? decodedClaims(data) : undefined;
+    return data && result ? { ...result, rawToken: data } : undefined;
   };
 
   export const AuthRawUserValidator = async (data: TenantTokenInput) => {
@@ -212,20 +236,32 @@ export async function isRejectedBearerToken(
   }
 }
 
+function requireSessionId(sessionId: string | undefined): string {
+  if (!sessionId) {
+    throw new Error(MISSING_SESSION_ID_ERROR);
+  }
+  return sessionId;
+}
+
+/**
+ * Sign an access token bound to the session `sessionId`.
+ *
+ * @throws Error when `sessionId` is missing or empty
+ */
 export function generateAccessToken(
   tenantId: string,
   user: User,
   sessionId?: string,
 ): TokenResult {
   const config = getAuthConfig();
-
-  const secret = generateSecret(user.authKey);
-  const token = sign(
-    { id: user._id, tenantId, sessionId, purpose: ACCESS_TOKEN_PURPOSE },
-    secret,
+  const token = signUserToken(
+    user,
     {
-      expiresIn: Math.floor(config.accessTokenLifetime / 1000),
+      tenantId,
+      sessionId: requireSessionId(sessionId),
+      purpose: ACCESS_TOKEN_PURPOSE,
     },
+    Math.floor(config.accessTokenLifetime / 1000),
   );
 
   return {
@@ -234,20 +270,25 @@ export function generateAccessToken(
   };
 }
 
+/**
+ * Sign a refresh token bound to the session `sessionId`.
+ *
+ * @throws Error when `sessionId` is missing or empty
+ */
 export function generateRefreshToken(
   tenantId: string,
   user: User,
   sessionId?: string,
 ): TokenResult {
   const config = getAuthConfig();
-  const secret = generateSecret(user.authKey);
-
-  const token = sign(
-    { id: user._id, tenantId, sessionId, purpose: REFRESH_TOKEN_PURPOSE },
-    secret,
+  const token = signUserToken(
+    user,
     {
-      expiresIn: Math.floor(config.refreshTokenLifetime / 1000),
+      tenantId,
+      sessionId: requireSessionId(sessionId),
+      purpose: REFRESH_TOKEN_PURPOSE,
     },
+    Math.floor(config.refreshTokenLifetime / 1000),
   );
 
   return {
@@ -257,25 +298,8 @@ export function generateRefreshToken(
 }
 
 export async function validateRefreshToken(token: string) {
-  const result = decode(token);
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Decoding returns text, an open claims object or null; these existing checks gate the id used for the user query.
-  if (!result || typeof result === "string" || typeof result.id !== "string") {
-    throw new HTTPResult(HTTP_UNAUTHORIZED, INVALID_SESSION_TOKEN_ERROR);
-  }
-
-  const userModel = GetModel(UserModel);
-  const user = await userModel.get(result.id);
-
-  if (!user) {
-    throw new HTTPResult(HTTP_UNAUTHORIZED, INVALID_USER_ERROR);
-  }
-
-  try {
-    const secret = generateSecret(user.authKey);
-    return verifySessionToken(token, secret, REFRESH_TOKEN_PURPOSE);
-  } catch (error: unknown) {
-    throw new HTTPResult(HTTP_UNAUTHORIZED, getErrorMessage(error));
-  }
+  const { claims } = await verifiedSession(token, REFRESH_TOKEN_PURPOSE);
+  return claims;
 }
 
 const TWO_FACTOR_TOKEN_LIFETIME_MS = 5 * 60 * 1000;
@@ -286,26 +310,20 @@ export function generateTwoFactorToken(
   tenantId: string,
   user: User,
 ): TokenResult {
-  const secret = generateSecret(user.authKey);
-
-  const token = sign(
-    { id: user._id, tenantId, purpose: TWO_FACTOR_TOKEN_PURPOSE },
-    secret,
-    {
-      expiresIn: Math.floor(TWO_FACTOR_TOKEN_LIFETIME_MS / 1000),
-      jwtid: randomUUID(),
-    },
+  const token = signUserToken(
+    user,
+    { tenantId, purpose: TWO_FACTOR_TOKEN_PURPOSE, jti: randomUUID() },
+    Math.floor(TWO_FACTOR_TOKEN_LIFETIME_MS / 1000),
   );
 
   return { token, expiresIn: TWO_FACTOR_TOKEN_LIFETIME_MS };
 }
 
 export function generateTenantAssignmentToken(user: User): TokenResult {
-  const secret = generateSecret(user.authKey);
-  const token = sign(
-    { id: user._id, purpose: TENANT_ASSIGNMENT_PURPOSE },
-    secret,
-    { expiresIn: Math.floor(TENANT_ASSIGNMENT_TOKEN_LIFETIME_MS / 1000) },
+  const token = signUserToken(
+    user,
+    { purpose: TENANT_ASSIGNMENT_PURPOSE },
+    Math.floor(TENANT_ASSIGNMENT_TOKEN_LIFETIME_MS / 1000),
   );
   return { token, expiresIn: TENANT_ASSIGNMENT_TOKEN_LIFETIME_MS };
 }
@@ -315,46 +333,37 @@ interface PurposeTokenClaims {
   purpose: string;
 }
 
-interface TwoFactorClaims extends PurposeTokenClaims {
-  tenantId: string;
-}
-
-interface VerifiedPurposeToken<T extends PurposeTokenClaims> {
-  claims: T;
+interface VerifiedPurposeToken {
+  claims: JwtPayload & PurposeTokenClaims;
   user: User;
 }
 
-function isSignedFor(token: string, user: User): boolean {
-  try {
-    verify(token, generateSecret(user.authKey));
-    return true;
-  } catch {
-    return false;
-  }
+function isPurposeClaims(
+  claims: ReturnType<typeof decode>,
+  purpose: string,
+): claims is JwtPayload & PurposeTokenClaims {
+  return (
+    claims !== null &&
+    !isString(claims) &&
+    claims.purpose === purpose &&
+    isString(claims.id)
+  );
 }
 
-async function verifyPurposeToken<T extends PurposeTokenClaims>(
+async function verifyPurposeToken(
   token: string,
   purpose: string,
   refusal: string,
-): Promise<VerifiedPurposeToken<T>> {
-  const claims = decode(token);
-  if (
-    !claims ||
-    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- JWT decode can return a text payload without object claims.
-    typeof claims === "string" ||
-    claims.purpose !== purpose ||
-    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- The decoded id is untrusted even when its purpose matches.
-    typeof claims.id !== "string"
-  ) {
+): Promise<VerifiedPurposeToken> {
+  const claims = verifyUserToken(token);
+  if (!isPurposeClaims(claims, purpose)) {
     throw new HTTPResult(HTTP_UNAUTHORIZED, refusal);
   }
-  const user = await GetModel(UserModel).get(claims.id);
-  if (!user || !isSignedFor(token, user)) {
+  const user = await loadTokenUser(claims);
+  if (!user) {
     throw new HTTPResult(HTTP_UNAUTHORIZED, refusal);
   }
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Inference and JwtPayload cannot establish generic T's extra claims; the legacy two-factor return assumes tenantId without checking it, which this refactor must not start rejecting.
-  return { claims: claims as T, user };
+  return { claims, user };
 }
 
 export async function validateTenantAssignmentToken(token: string) {
@@ -367,12 +376,15 @@ export async function validateTenantAssignmentToken(token: string) {
 }
 
 export async function validateTwoFactorToken(token: string) {
-  const { claims, user } = await verifyPurposeToken<TwoFactorClaims>(
+  const { claims, user } = await verifyPurposeToken(
     token,
     TWO_FACTOR_TOKEN_PURPOSE,
     INVALID_TWO_FACTOR_TOKEN_ERROR,
   );
-  return { ...claims, user };
+  if (!isString(claims.tenantId) || !isString(claims.jti)) {
+    throw new HTTPResult(HTTP_UNAUTHORIZED, INVALID_TWO_FACTOR_TOKEN_ERROR);
+  }
+  return { ...claims, tenantId: claims.tenantId, user };
 }
 
 const BUILTIN_SENSITIVE_USER_KEYS: string[] = [
@@ -390,24 +402,24 @@ const BUILTIN_SENSITIVE_USER_KEYS: string[] = [
   "twoFactorEmailCodeRequestedAt",
 ];
 
+function isPropertyBag(value: unknown): value is Record<string, unknown> {
+  return isObject(value) && value !== null;
+}
+
 function deleteNestedKey(target: User, dottedKey: string) {
   const parts = dottedKey.split(".");
   let current: unknown = target;
 
   for (let i = 0; i < parts.length - 1; i++) {
-    if (isObject(current) && current !== null && parts[i] in current) {
-      // SAFETY: The object and membership checks establish a property readable as unknown, including inherited fields as before.
-      // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Inference yields object and User has no type for arbitrary nested configured paths; the traversal must preserve dynamic property access rather than validate or reject those paths.
-      current = (current as Record<string, unknown>)[parts[i]];
+    if (isPropertyBag(current) && parts[i] in current) {
+      current = current[parts[i]];
     } else {
       return;
     }
   }
 
-  if (isObject(current) && current !== null && parts.length > 0) {
-    // SAFETY: The object guard excludes primitives and null; deleting a dynamic property requires no assumption about its value.
-    // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Inference narrows only to object; User's owner type cannot describe arbitrary nested sensitive-key paths, and strict delete must still throw for nonconfigurable properties.
-    delete (current as Record<string, unknown>)[parts[parts.length - 1]];
+  if (isPropertyBag(current) && parts.length > 0) {
+    delete current[parts[parts.length - 1]];
   }
 }
 
@@ -418,8 +430,7 @@ export function sanitizeUser(user: User): Partial<User> {
     ...config.userSensitiveKeys,
   ];
 
-  // oxlint-disable-next-line typescript/no-misused-spread -- Sanitization intentionally copies only the User instance's own enumerable database fields, not prototype methods.
-  const result = { ...user };
+  const result = toDatabase(user);
 
   for (const key of sensitiveKeys) {
     if (key.includes(".")) {

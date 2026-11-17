@@ -1,4 +1,5 @@
 import type { DataTypeFormatter } from "#dms-core/app/composables/data-types/useDataType";
+import { isNumber, isString } from "#dms-core/app/utils/type-check";
 import { readRowField, type Row, toneClass } from "./cellHelpers";
 import {
   firstNameOf,
@@ -45,6 +46,11 @@ const RELATIVE_TITLE_FORMAT: Intl.DateTimeFormatOptions = {
 const NOW_DOT_CLASS =
   "inline-flex items-center gap-1.5 before:size-1.5 before:rounded-full before:bg-current";
 
+const dateOf = (value: CellValue): Date =>
+  isString(value) || isNumber(value) || value instanceof Date
+    ? new Date(value)
+    : new Date(String(value));
+
 /**
  * `relative_date`: a date as the distance to now, with an "active now"
  * window, an amber "soon", a dimmed past and an optional "· by" author.
@@ -57,8 +63,7 @@ export function renderRelativeDate(
 ) {
   const { processI18n } = getAppTranslation();
   const opts: RelativeDateOptions = options ?? {};
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The string assertion does not validate the input; Date retains its existing native coercion and exceptions for plugin values.
-  const date = new Date(value as string);
+  const date = dateOf(value);
   if (Number.isNaN(date.getTime())) return String(value);
 
   const now = serverRenderNow() ?? Date.now();

@@ -3,4 +3,4 @@
  *
  * @internal
  */
-export const FORM_COMPONENT_NAME = "dms-form";
+export const FORM_COMPONENT_NAME = "dms-form-block";

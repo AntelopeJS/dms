@@ -59,7 +59,7 @@ export function useFileMetadata(storage?: string) {
       key,
       setTimeout(() => {
         timers.delete(key);
-        void read();
+        read().catch(() => undefined);
       }, delay),
     );
   }

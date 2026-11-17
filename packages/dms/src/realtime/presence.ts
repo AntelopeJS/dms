@@ -1,3 +1,4 @@
+import { z } from "zod";
 import { runInBatches } from "../utils/run-in-batches/index";
 import {
   isEventForTenant,
@@ -75,24 +76,35 @@ const presenceEvent = (
   ts: Date.now(),
 });
 
-/* oxlint-disable anti-slop/no-runtime-typeof -- Persisted presence records are checked for routing and actor identifiers; keep the existing partial validation and rejection behavior. */
+const presenceActorSchema = z.object({
+  id: z.string(),
+  displayName: z.string().optional(),
+  avatarUrl: z.string().optional(),
+});
+
+/**
+ * The whole declared {@link PresenceEntry} model. A persisted record that does
+ * not satisfy it is skipped, never repaired: `since` has been required since
+ * the first version of the tracker, so a record without it was not written by
+ * any release of this module.
+ */
+const presenceEntrySchema = z.object({
+  topic: z.string(),
+  rowId: z.string(),
+  actor: presenceActorSchema,
+  tenantId: z.string().optional(),
+  sessionId: z.string(),
+  instanceId: z.string(),
+  since: z.number().finite(),
+}) satisfies z.ZodType<PresenceEntry>;
+
 const parsePresenceEntry = (value: string): PresenceEntry | undefined => {
   try {
-    const parsed: PresenceEntry = JSON.parse(value);
-    if (
-      typeof parsed.topic === "string" &&
-      typeof parsed.rowId === "string" &&
-      typeof parsed.sessionId === "string" &&
-      typeof parsed.instanceId === "string" &&
-      parsed.actor &&
-      typeof parsed.actor.id === "string"
-    ) {
-      return parsed;
-    }
+    const parsed = presenceEntrySchema.safeParse(JSON.parse(value));
+    if (parsed.success) return parsed.data;
   } catch {}
   return undefined;
 };
-/* oxlint-enable anti-slop/no-runtime-typeof */
 
 export class PresenceTracker {
   private readonly entries = new Map<string, PresenceEntry>();

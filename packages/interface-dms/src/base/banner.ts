@@ -17,6 +17,7 @@ import type { CustomButtonSerialized } from "./types/custom-button";
 import type { HttpMethod } from "./types/http";
 import type { BlockText } from "./types/composed-text";
 import type { Tone } from "./types/tone";
+import { isString } from "../utils/internal/type-check";
 
 /** The tones a banner washes with. */
 export const BANNER_TONES = [
@@ -132,13 +133,14 @@ const BANNER_DEFAULTS = { tone: "info", size: "md" } as const;
  *
  * Banner({ fetchUrl: "/api/mailing/{{params.id}}/provider-status" })
  * ```
+ *
+ * @docsApi
  */
 export function Banner(options?: BannerProps): ComponentBuilder<BannerProps> {
   const builder = new ComponentBuilder<BannerProps>(BANNER_COMPONENT_NAME)
     .options({ ...BANNER_DEFAULTS, ...options })
     .meta({
-      // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Metadata uses only string titles; preserve the published builder's fallback for malformed runtime input.
-      name: (typeof options?.title === "string" && options.title) || "Banner",
+      name: (isString(options?.title) && options.title) || "Banner",
       icon: options?.icon || BANNER_ICON,
     });
   return attachRealtimeTopicsHook(builder, options?.realtimeTopic);

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { isBoolean, isObject, isString } from "#dms-core/app/utils/type-check";
 import { MONO_CHIP_CLASS } from "#dms-ui/app/entries/utils/monoChip";
 import DmsModalEscHint from "#dms-ui/app/entries/components/modal/ModalEscHint";
 import { useSecurityFormat } from "../../../../composables/settings/security/useSecurityFormat";
@@ -11,16 +12,39 @@ import {
   useSessionHandoff,
 } from "../../../../composables/security/useSessionHandoff";
 
+/** A session as the list shows it; the details it can do without are optional. */
 interface SessionInfo {
   _id: string;
-  browser: string;
-  os: string;
-  ip: string;
-  deviceType: string;
-  location: string;
-  createdAt: string;
+  browser?: string | null;
+  os?: string | null;
+  ip?: string | null;
+  deviceType?: string | null;
+  location?: string | null;
+  createdAt?: string | null;
   lastActiveAt: string;
   isCurrent: boolean;
+}
+
+const SESSION_DETAIL_FIELDS = [
+  "browser",
+  "os",
+  "ip",
+  "deviceType",
+  "location",
+  "createdAt",
+] as const satisfies readonly (keyof SessionInfo)[];
+
+function isSessionInfo(value: unknown): value is SessionInfo {
+  return (
+    value !== null &&
+    isObject(value) &&
+    isString(value._id) &&
+    isString(value.lastActiveAt) &&
+    isBoolean(value.isCurrent) &&
+    SESSION_DETAIL_FIELDS.every(
+      (field) => value[field] == null || isString(value[field]),
+    )
+  );
 }
 
 /** The sessions, and when they were read: what "active 5 minutes ago" counts from. */
@@ -41,7 +65,7 @@ const SKELETON_COUNT = 3;
 const BROWSER_VERSION = /\s+[\d.]+$/;
 const DEFAULT_DEVICE_ICON = "i-ph-desktop";
 const DEVICE_ICONS: Readonly<
-  Partial<Record<SessionInfo["deviceType"], string>>
+  Partial<Record<NonNullable<SessionInfo["deviceType"]>, string>>
 > = {
   desktop: "i-ph-desktop",
   mobile: "i-ph-device-mobile",
@@ -50,15 +74,15 @@ const DEVICE_ICONS: Readonly<
 
 const { t } = useI18n();
 const toast = useToast();
+const { presentError } = useApiErrorPresenter();
 const { $authFetch } = useAuthFetch();
 const adoptSessionHandoff = useSessionHandoff();
 const { overview, refresh: refreshOverview } = useSecurityOverview();
-const { formatDate, formatRelative, errorMessage } = useSecurityFormat();
+const { formatDate, formatRelative } = useSecurityFormat();
 
 const list = useApiData<SessionsRead>(SESSIONS_URL, {
   transform: (sessions) => ({
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- useApiData exposes transform input as unknown. The endpoint supplies SessionInfo[] by convention; SessionsRead["sessions"] cannot prove that unchecked response shape without new validation.
-    sessions: sessions as SessionInfo[],
+    sessions: Array.isArray(sessions) ? sessions.filter(isSessionInfo) : [],
     readAt: Date.now(),
   }),
 });
@@ -79,7 +103,8 @@ const otherSessions = computed(() =>
 );
 
 const deviceIcon = (session: SessionInfo): string =>
-  DEVICE_ICONS[session.deviceType] ?? DEFAULT_DEVICE_ICON;
+  (session.deviceType ? DEVICE_ICONS[session.deviceType] : undefined) ??
+  DEFAULT_DEVICE_ICON;
 
 const sessionName = (session: SessionInfo): string =>
   t("page.settings.security.sessions.device_name", {
@@ -106,9 +131,8 @@ async function revoke(session: SessionInfo): Promise<void> {
     toast.add({ title: t("page.settings.sessions.revoked"), color: "success" });
     await refreshOverview();
   } catch (error) {
-    toast.add({
-      title: errorMessage(error, "page.settings.sessions.revoke_error"),
-      color: "error",
+    presentError(error, {
+      fallbackKey: "page.settings.sessions.revoke_error",
     });
   } finally {
     revokingId.value = null;
@@ -134,9 +158,8 @@ async function signOutOthers(): Promise<void> {
     });
     await Promise.all([fetchSessions(), refreshOverview()]);
   } catch (error) {
-    toast.add({
-      title: errorMessage(error, "page.settings.sessions.revoke_all_error"),
-      color: "error",
+    presentError(error, {
+      fallbackKey: "page.settings.sessions.revoke_all_error",
     });
   } finally {
     isSigningOutOthers.value = false;
@@ -164,7 +187,7 @@ const retryActions = computed(() => [
 </script>
 
 <template>
-  <DmsSection
+  <DmsSectionPanel
     id="sessions"
     class="scroll-mt-6"
     title="$page.settings.sessions.title"
@@ -194,9 +217,9 @@ const retryActions = computed(() => [
 
     <div v-if="isLoading" class="grid gap-3 px-[18px] py-4">
       <USkeleton
-        :aria-label="t('dms.a11y.loading')"
         v-for="index in SKELETON_COUNT"
         :key="index"
+        :aria-label="t('dms.a11y.loading')"
         class="h-10 w-full"
       />
     </div>
@@ -260,7 +283,7 @@ const retryActions = computed(() => [
           <span v-if="session.isCurrent" class="text-muted text-xs">
             {{
               t("page.settings.security.sessions.signed_in", {
-                date: formatDate(session.createdAt),
+                date: session.createdAt ? formatDate(session.createdAt) : "",
               })
             }}
           </span>
@@ -369,5 +392,5 @@ const retryActions = computed(() => [
         </div>
       </template>
     </UModal>
-  </DmsSection>
+  </DmsSectionPanel>
 </template>

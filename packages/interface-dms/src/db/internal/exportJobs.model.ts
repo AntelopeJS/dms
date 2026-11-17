@@ -1,5 +1,5 @@
 import { BasicDataModel } from "@antelopejs/interface-database-decorators";
-import { ExportStatus } from "../../base/types";
+import { ExportStatus } from "../../export-status";
 import { ExportJob } from "../tables/exportJobs.table";
 import { exportJobsTableName } from "./table-names";
 

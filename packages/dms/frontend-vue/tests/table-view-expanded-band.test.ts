@@ -2,10 +2,9 @@
 import { createApp, defineComponent, h, type App } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import ExpandedRowDetail from "../layers/dms-ui/app/entries/components/table-view/ExpandedRowDetail";
-import type {
-  TableViewColumn,
-  TableViewExpandableConfig,
-} from "../layers/dms-ui/app/composables/table-view/types";
+import type { TableViewExpandableConfig } from "../layers/dms-ui/app/composables/table-view/types";
+import { displayContext } from "./fixtures/displayContext";
+import { tableViewColumn } from "./fixtures/tableViewColumn";
 import type { ExpandedRowLoadState } from "../layers/dms-ui/app/entries/composables/table-view/useExpandedRowDetails";
 
 const OrderLines = defineComponent({
@@ -13,16 +12,19 @@ const OrderLines = defineComponent({
   setup: (props) => () =>
     h(
       "button",
-      { "data-lines": props.rowId, onClick: () => props.refresh?.() },
+      {
+        "data-lines": props.rowId,
+        onClick: () => {
+          props.refresh?.();
+        },
+      },
       String(props.row?.number),
     ),
 });
 
 const refresh = vi.fn();
 
-const columns = [
-  { id: "carrier", accessorKey: "carrier", header: "Carrier" },
-] satisfies TableViewColumn[];
+const columns = [tableViewColumn("carrier", { header: "Carrier" })];
 
 describe("TableView expanded row band", () => {
   let app: App | undefined;
@@ -39,7 +41,7 @@ describe("TableView expanded row band", () => {
             row: { number: "A-1", carrier: "UPS" },
             rowId: "a1",
             columns,
-            actions: {},
+            actions: displayContext().actions,
             open: () => {},
             refresh,
           },

@@ -1,4 +1,10 @@
-import { Controller, Get, Parameter, Post } from "@antelopejs/interface-api";
+import {
+  Controller,
+  Get,
+  Parameter,
+  Post,
+  type QueryValue,
+} from "@antelopejs/interface-api";
 import { AuthUser } from "@antelopejs/interface-dms/auth";
 import type { User } from "@antelopejs/interface-dms/auth/db";
 import { RegisterPermission } from "@antelopejs/interface-dms/permissions";
@@ -6,6 +12,7 @@ import {
   PAGE_HEADER_AUDIT_PERMISSION_ID,
   PAGE_HEADER_DEMO_API,
 } from "./category";
+import { queryText } from "../query-text";
 
 const DEFAULT_WORKSPACE = "web";
 const DEFAULT_LOCALE = "en";
@@ -38,12 +45,12 @@ export class PageHeaderDemoController extends Controller(PAGE_HEADER_DEMO_API) {
   @Get("export")
   export(
     @AuthUser() user: User,
-    @Parameter("workspace", "query") workspace: string | undefined,
-    @Parameter("locale", "query") locale: string | undefined,
+    @Parameter("workspace", "query") workspace: QueryValue,
+    @Parameter("locale", "query") locale: QueryValue,
   ): ExportFile {
     return {
-      workspace: workspace ?? DEFAULT_WORKSPACE,
-      locale: locale ?? DEFAULT_LOCALE,
+      workspace: queryText(workspace) ?? DEFAULT_WORKSPACE,
+      locale: queryText(locale) ?? DEFAULT_LOCALE,
       exportedBy: user.email,
       exportedAt: new Date().toISOString(),
     };
@@ -52,8 +59,11 @@ export class PageHeaderDemoController extends Controller(PAGE_HEADER_DEMO_API) {
   @Post("publish")
   publish(
     @AuthUser() _user: User,
-    @Parameter("workspace", "query") workspace: string | undefined,
+    @Parameter("workspace", "query") workspace: QueryValue,
   ): PublishResult {
-    return { workspace: workspace ?? DEFAULT_WORKSPACE, published: true };
+    return {
+      workspace: queryText(workspace) ?? DEFAULT_WORKSPACE,
+      published: true,
+    };
   }
 }

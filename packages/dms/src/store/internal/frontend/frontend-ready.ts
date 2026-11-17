@@ -1,5 +1,6 @@
-import { assertValidation } from "@antelopejs/interface-api-util";
+import { HTTPResult } from "@antelopejs/interface-api";
 import { Logging } from "@antelopejs/interface-core/logging";
+import type { JsonValue } from "@antelopejs/interface-dms/json";
 import { z } from "zod";
 import {
   assertFrontendBootstrap,
@@ -96,6 +97,7 @@ export function getFrontendAcknowledgement():
 
 const MAX_REPORTED_MODULES = 500;
 const MAX_VERSION_LENGTH = 64;
+const HTTP_BAD_REQUEST = 400;
 const MAX_NAME_LENGTH = 214;
 
 const frontendReadySchema = z.object({
@@ -115,16 +117,19 @@ const frontendReadySchema = z.object({
  * serves with their package versions. Gated like the manifest, since it comes
  * from the same tool.
  */
-export function acknowledgeFrontendReady(
-  body: Parameters<typeof frontendReadySchema.parse>[0],
+export function assertFrontendReadyAllowed(
   bootstrapHeader: string | undefined,
 ): void {
   const outcome = resolveBootstrapOutcome(bootstrapHeader);
   if (decideLayerAccess(outcome) === "refuse") {
     assertFrontendBootstrap(outcome);
   }
-  const { modules, version } = assertValidation(body, (value) =>
-    frontendReadySchema.parse(value),
-  );
-  recordFrontendReady(modules, version);
+}
+
+export function parseFrontendReady(
+  body: JsonValue | undefined,
+): ReturnType<typeof frontendReadySchema.parse> {
+  const parsed = frontendReadySchema.safeParse(body);
+  if (parsed.success) return parsed.data;
+  throw new HTTPResult(HTTP_BAD_REQUEST, String(parsed.error));
 }

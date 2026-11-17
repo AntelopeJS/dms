@@ -1,5 +1,3 @@
-import { execFile } from "node:child_process";
-import { promisify } from "node:util";
 import { Logging } from "@antelopejs/interface-core/logging";
 import { GetModuleInfo, ListModules } from "@antelopejs/interface-core/modules";
 import { GetRuntimeInfo } from "@antelopejs/interface-core/runtime";
@@ -12,6 +10,7 @@ import {
 } from "@antelopejs/interface-dms/notifications";
 import type { NotificationSubjectInfo } from "@antelopejs/interface-dms/notifications/types";
 import { satisfies, validRange } from "semver";
+import { runPackageManager } from "../utils/package-manager/index";
 
 const CHECK_INTERVAL_MS = 60 * 60 * 1000;
 const NPM_VIEW_TIMEOUT_MS = 30_000;
@@ -23,10 +22,16 @@ const MESSAGE_PREFIX = "$dms.notifications.messages.module_updates";
 const MODULE_LIST_SEPARATOR = ", ";
 const PACKAGE_SOURCE_TYPE = "package";
 
-interface PackageModuleSource {
-  type: string;
-  package: string;
-  version: string;
+type ModuleInfoSource = Awaited<ReturnType<typeof GetModuleInfo>>["source"];
+
+type PackageModuleSource = ModuleInfoSource & {
+  type: typeof PACKAGE_SOURCE_TYPE;
+};
+
+function isPackageSource(
+  source: ModuleInfoSource,
+): source is PackageModuleSource {
+  return source.type === PACKAGE_SOURCE_TYPE;
 }
 
 export interface OutdatedModule {
@@ -34,8 +39,6 @@ export interface OutdatedModule {
   current: string;
   latest: string;
 }
-
-const execFileAsync = promisify(execFile);
 
 let updatesSubject: NotificationSubjectInfo | undefined;
 let checkTimer: NodeJS.Timeout | undefined;
@@ -76,21 +79,17 @@ async function listPackageModuleSources(): Promise<PackageModuleSource[]> {
   const infos = await Promise.all(
     moduleIds.map((moduleId) => GetModuleInfo(moduleId)),
   );
-  return (
-    infos
-      .filter((info) => info.source.type === PACKAGE_SOURCE_TYPE)
-      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The core exposes erased source fields; filtering type selects package sources, but package and version are still trusted rather than schema-validated here.
-      .map((info) => info.source as PackageModuleSource)
-  );
+  return infos.map((info) => info.source).filter(isPackageSource);
 }
 
 async function fetchLatestVersion(
-  packageName: string,
+  packageName: string | undefined,
   projectPath: string,
   signal: AbortSignal,
 ): Promise<string | undefined> {
+  if (packageName === undefined) return undefined;
   try {
-    const { stdout } = await execFileAsync(
+    const { stdout } = await runPackageManager(
       "npm",
       ["view", packageName, "version"],
       { cwd: projectPath, timeout: NPM_VIEW_TIMEOUT_MS, signal },
@@ -113,7 +112,12 @@ async function findOutdatedModules(
   );
   return sources.reduce<OutdatedModule[]>((outdated, source, index) => {
     const latest = latestVersions[index];
-    if (latest && !isUpToDate(source.version, latest)) {
+    if (
+      latest &&
+      source.package !== undefined &&
+      source.version !== undefined &&
+      !isUpToDate(source.version, latest)
+    ) {
       outdated.push({
         package: source.package,
         current: source.version,
@@ -145,9 +149,10 @@ export async function notifyOutdatedModules(
   const eventId = `dms:module-updates:${JSON.stringify(
     modules.map((module) => [module.package, module.current, module.latest]),
   )}`;
-  const userIds = (await GetModel(UserModel).table.run()).map(
-    (user) => user._id,
-  );
+  const userIds = await GetModel(UserModel)
+    .table.pluck("_id")
+    .run()
+    .then((rows) => rows.map((row) => row._id));
   if (userIds.length === 0) {
     return;
   }
@@ -194,7 +199,7 @@ export async function startModuleUpdateWatcher(): Promise<void> {
       .then(() =>
         runUpdateCheck(runtime.projectPath, generation, controller.signal),
       )
-      .catch((error) =>
+      .catch((error: unknown) =>
         Logging.Debug(`[DMS] Module update check failed: ${String(error)}`),
       );
   };

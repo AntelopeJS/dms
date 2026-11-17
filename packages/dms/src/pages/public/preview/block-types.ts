@@ -1,4 +1,5 @@
 import { ListBlockTypes } from "@antelopejs/interface-dms/base/block-types";
+import type { BlockTypeDescriptor } from "@antelopejs/interface-dms/base/block-registry/types";
 
 /**
  * What the block preview needs to know of one registered block type to draw
@@ -8,7 +9,7 @@ import { ListBlockTypes } from "@antelopejs/interface-dms/base/block-types";
  */
 export interface PreviewBlockType {
   componentName: string;
-  fixedOptions?: ReturnType<typeof ListBlockTypes>[number]["fixedOptions"];
+  fixedOptions?: BlockTypeDescriptor["fixedOptions"];
   needsController?: boolean;
 }
 

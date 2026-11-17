@@ -12,13 +12,16 @@ import {
   type Component,
 } from "vue";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import Register from "../layers/dms-onboarding/app/components/onboarding/steps/register.vue";
+import Register from "../layers/dms-onboarding/app/components/onboarding/steps/StepRegister.vue";
 import Onboarding from "../layers/dms-onboarding/app/custom-pages/onboarding.vue";
 import {
   passwordSchema,
   usePasswordStrength,
 } from "../layers/dms-ui/app/composables/usePasswordStrength";
+import type { localizeSchema } from "../layers/dms-core/app/composables/useFormValidation";
 import { mountInBrowser } from "./helpers/api-data-runtime";
+
+type FormSchema = ReturnType<typeof localizeSchema>;
 
 const register = vi.fn();
 const login = vi.fn();
@@ -26,6 +29,9 @@ const complete = vi.fn();
 const redirect = vi.fn();
 const registered = vi.fn();
 const replaceLocation = vi.fn();
+const replaceRoute = vi.fn();
+const routeQuery: Record<string, string> = {};
+const SETUP_TOKEN = "setup-token-from-the-address";
 const mounted: App[] = [];
 const platform = { name: "Acme back office", language: "fr" };
 const data = {
@@ -39,16 +45,14 @@ function registerUi(app: App) {
   app.config.globalProperties.$t = (key: string) => key;
   app.component(
     "UForm",
-    defineComponent({
-      props: {
-        schema: {
-          type: Object,
-          required: true,
+    defineComponent(
+      (
+        props: {
+          schema: FormSchema;
+          state: Parameters<FormSchema["~standard"]["validate"]>[0];
         },
-        state: { type: Object, required: true },
-      },
-      emits: ["submit", "error"],
-      setup(props, { slots, emit, expose }) {
+        { slots, emit, expose },
+      ) => {
         expose({
           getErrors: () => [],
           setErrors: () => undefined,
@@ -70,7 +74,8 @@ function registerUi(app: App) {
             slots.default?.(),
           );
       },
-    }),
+      { props: ["schema", "state"], emits: ["submit", "error"] },
+    ),
   );
   app.component(
     "UFormField",
@@ -102,7 +107,7 @@ function registerUi(app: App) {
   app.component(
     "UButton",
     defineComponent({
-      props: ["label", "loading"],
+      props: { label: String, loading: Boolean },
       setup: (props) => () => h("button", { type: "button" }, props.label),
     }),
   );
@@ -118,7 +123,7 @@ function registerUi(app: App) {
     "UIcon",
     "UBadge",
     "DmsIconWell",
-    "DmsEyebrow",
+    "DmsEyebrowLabel",
     "DmsKeyValueList",
     "i18n-t",
   ]) {
@@ -126,12 +131,13 @@ function registerUi(app: App) {
   }
 }
 
-function mountStep(component: Component) {
+function mountStep(component: Component, setupToken = SETUP_TOKEN) {
   const { app, container } = mountInBrowser(
     {
       render: () =>
         h(component, {
           platform,
+          setupToken,
           onRegistered: registered,
         }),
     },
@@ -143,6 +149,7 @@ function mountStep(component: Component) {
 }
 
 async function mountReady() {
+  routeQuery.token = SETUP_TOKEN;
   const container = mountStep(Onboarding);
   button(container, "page.onboarding.platform.submit").click();
   await settle();
@@ -197,6 +204,9 @@ beforeEach(() => {
     vi.stubGlobal(name, value);
   }
   vi.stubGlobal("defineDmsPageMeta", () => undefined);
+  vi.stubGlobal("useHead", () => undefined);
+  vi.stubGlobal("useDmsRoute", () => ({ query: routeQuery }));
+  vi.stubGlobal("useDmsRouter", () => ({ replace: replaceRoute }));
   vi.stubGlobal("useSystemState", () => ({ metaTitle: ref(platform.name) }));
   vi.stubGlobal("useI18n", () => ({
     t: (key: string) => key,
@@ -216,6 +226,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  for (const key of Object.keys(routeQuery)) delete routeQuery[key];
   mounted.splice(0).forEach((app) => app.unmount());
   document.body.replaceChildren();
   vi.unstubAllGlobals();
@@ -227,7 +238,12 @@ it("registers with the platform details, signs in, then moves to the Ready step"
   await submit(container);
   expect(register).toHaveBeenCalledExactlyOnceWith("/api/onboarding/register", {
     method: "POST",
-    body: { ...data, platformName: platform.name, language: platform.language },
+    body: {
+      ...data,
+      setupToken: SETUP_TOKEN,
+      platformName: platform.name,
+      language: platform.language,
+    },
   });
   expect(complete).toHaveBeenCalledOnce();
   expect(login).toHaveBeenCalledExactlyOnceWith("/auth/login", {
@@ -302,3 +318,37 @@ it.each(["Session failed", "Layout failed"])(
     expect(replaceLocation).toHaveBeenCalledExactlyOnceWith("/auth");
   },
 );
+
+it("does not ask for the setup token when the address carried it", () => {
+  const container = mountStep(Register);
+  expect(container.textContent).not.toContain(
+    "page.onboarding.administrator.setup_token",
+  );
+});
+
+it("asks for the setup token when the address has none, and sends what is typed", async () => {
+  const container = mountStep(Register, "");
+  expect(container.textContent).toContain(
+    "page.onboarding.administrator.setup_token",
+  );
+  const field = container.querySelector('input[autocomplete="off"]');
+  if (!(field instanceof HTMLInputElement)) throw new Error("Missing field");
+  field.value = "  typed-token  ";
+  field.dispatchEvent(new Event("input", { bubbles: true }));
+  await submit(container);
+  expect(register.mock.calls[0]![1].body.setupToken).toBe("typed-token");
+});
+
+it("takes the token out of the address once the wizard has it, and passes it to the register step", async () => {
+  routeQuery.token = SETUP_TOKEN;
+  routeQuery.lang = "fr";
+  const container = mountStep(Onboarding, "");
+  await settle();
+  expect(replaceRoute).toHaveBeenCalledExactlyOnceWith({
+    query: { lang: "fr" },
+  });
+  button(container, "page.onboarding.platform.submit").click();
+  await settle();
+  await submit(container);
+  expect(register.mock.calls[0]![1].body.setupToken).toBe(SETUP_TOKEN);
+});

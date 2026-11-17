@@ -1,5 +1,5 @@
 import type { CommandPaletteGroup, CommandPaletteItem } from "@nuxt/ui";
-import { defineComponent, h, type PropType } from "vue";
+import { defineComponent, h } from "vue";
 
 function matchingItems(
   group: CommandPaletteGroup,
@@ -36,23 +36,19 @@ function renderItem(group: CommandPaletteGroup, item: CommandPaletteItem) {
   );
 }
 
+interface PaletteProps {
+  open: boolean;
+  colorMode: boolean;
+  searchTerm: string;
+  groups: CommandPaletteGroup[];
+  input: { onKeydown?: (event: KeyboardEvent) => void };
+  icon: string | undefined;
+  placeholder: string | undefined;
+}
+
 /** Renders the props and slots `DashboardSearch` hands `UDashboardSearch`. */
-export const PaletteStub = defineComponent({
-  props: {
-    open: Boolean,
-    colorMode: { type: Boolean, default: true },
-    searchTerm: { type: String, default: "" },
-    groups: {
-      // SAFETY: Vue's Array constructor declares the palette group array prop; callers supply CommandPaletteGroup entries.
-      type: Array as PropType<CommandPaletteGroup[]>,
-      default: () => [],
-    },
-    input: { type: Object, default: () => ({}) },
-    icon: { type: String, default: undefined },
-    placeholder: { type: String, default: undefined },
-  },
-  emits: ["update:open", "update:searchTerm"],
-  setup(props, { slots, emit }) {
+export const PaletteStub = defineComponent(
+  (props: PaletteProps, { slots, emit }) => {
     return () => {
       const groups = filterGroups(props.groups, props.searchTerm);
       return h(
@@ -69,12 +65,11 @@ export const PaletteStub = defineComponent({
             placeholder: props.placeholder,
             "data-icon": props.icon,
             onKeydown: props.input.onKeydown,
-            // SAFETY: This listener is attached to the input rendered immediately above, so its target is that HTMLInputElement.
-            onInput: (event: Event) =>
-              emit(
-                "update:searchTerm",
-                (event.target as HTMLInputElement).value,
-              ),
+            onInput: (event: Event) => {
+              if (event.target instanceof HTMLInputElement) {
+                emit("update:searchTerm", event.target.value);
+              }
+            },
           }),
           groups.length
             ? groups.flatMap((group) =>
@@ -86,4 +81,16 @@ export const PaletteStub = defineComponent({
       );
     };
   },
-});
+  {
+    props: {
+      open: Boolean,
+      colorMode: { type: Boolean, default: true },
+      searchTerm: { type: String, default: "" },
+      groups: { type: Array, default: () => [] },
+      input: { type: Object, default: () => ({}) },
+      icon: { type: String, default: undefined },
+      placeholder: { type: String, default: undefined },
+    },
+    emits: ["update:open", "update:searchTerm"],
+  },
+);

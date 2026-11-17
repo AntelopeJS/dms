@@ -15,8 +15,25 @@ import { browserRuntime, stubApiData } from "./helpers/api-data-runtime";
 import { installAuthSettingsRuntime } from "./helpers/auth-settings-runtime";
 import type { useAuthFetch } from "../layers/dms-core/app/composables/auth/useAuthFetch";
 
+installAuthSettingsRuntime();
+const { default: SecurityPassword } = await import(
+  "../layers/dms-layout/app/entries/components/pages/settings/security/SecurityPassword"
+);
+
 const overview = ref({ hasPassword: true, activeSessions: 1 });
-const authFetch = vi.fn();
+type AuthFetchOptions = Parameters<
+  ReturnType<typeof useAuthFetch>["$authFetch"]
+>[1];
+const authFetch = vi.fn<
+  (
+    url: string,
+    options?: AuthFetchOptions,
+  ) => Promise<{
+    passwordChangedAt: string;
+    signedOutSessions: number;
+    sessionHandoff: { endpoint: string; payload: { token: string } };
+  }>
+>();
 const addToast = vi.fn();
 const sessionFetch = vi.fn(async () => {});
 const handoffFetch = vi.fn(async () => ({}));
@@ -92,13 +109,15 @@ async function submit(): Promise<void> {
 }
 
 async function mountAndOpen(): Promise<void> {
-  const { default: SecurityPassword } = await import(
-    "../layers/dms-layout/app/entries/components/pages/settings/security/SecurityPassword"
-  );
   app = createApp(SecurityPassword);
   app.config.globalProperties.$t = (key: string) => key;
   browserRuntime(app);
-  for (const name of ["DmsSection", "DmsFieldRow", "DmsListRow", "UTooltip"]) {
+  for (const name of [
+    "DmsSectionPanel",
+    "DmsFieldRow",
+    "DmsListRow",
+    "UTooltip",
+  ]) {
     app.component(name, Passthrough);
   }
   for (const name of ["UIcon", "DmsLink", "UCheckbox"]) {
@@ -127,14 +146,10 @@ beforeEach(() => {
     te: () => false,
   }));
   vi.stubGlobal("useToast", () => ({ add: addToast }));
-  stubApiData(
-    async (
-      url: string,
-      options?: Parameters<ReturnType<typeof useAuthFetch>["$authFetch"]>[1],
-    ) =>
-      url === "/dms/pages/settings/user/security"
-        ? { ...overview.value }
-        : authFetch(url, options),
+  stubApiData(async (url: string, options?: AuthFetchOptions) =>
+    url === "/dms/pages/settings/user/security"
+      ? { ...overview.value }
+      : authFetch(url, options),
   );
   vi.stubGlobal("$fetch", handoffFetch);
   vi.stubGlobal("useDmsUserSession", () => ({

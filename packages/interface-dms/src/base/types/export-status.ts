@@ -1,8 +1,3 @@
-/**
- * Export status enum
- */
-export enum ExportStatus {
-  pending = "pending",
-  completed = "completed",
-  failed = "failed",
-}
+import * as exportStatus from "../../export-status";
+
+export import ExportStatus = exportStatus.ExportStatus;

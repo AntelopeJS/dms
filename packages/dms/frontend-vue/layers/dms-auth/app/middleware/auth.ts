@@ -10,14 +10,23 @@ function isAuthOptions(value: MiddlewareMeta): value is AuthMiddlewareOptions {
   return isObject(value) && value !== null;
 }
 
-async function loadPermissionsIfNeeded() {
-  const { loadPermissions } = usePermissions();
-
-  // prettier-ignore
+/**
+ * Loads the signed-in user's permission set before the page draws. A failed
+ * load does not stop the navigation: the page draws without the set, so
+ * every permission check answers no, and the failure is shown to the user.
+ * The engine's app context ends at the middleware's first await, so its
+ * caller captures both composables before then.
+ */
+async function loadPermissionsIfNeeded(
+  { loadPermissions }: ReturnType<typeof usePermissions>,
+  errorPresenter: ReturnType<typeof useApiErrorPresenter>,
+) {
   try {
     await loadPermissions();
-  } catch {
-    // eslint-disable-line no-empty -- Permission-load failures do not interrupt authentication.
+  } catch (error: unknown) {
+    errorPresenter.presentError(error, {
+      fallbackKey: "error.500.description",
+    });
   }
 }
 
@@ -77,12 +86,14 @@ export default defineDmsMiddleware(async (to) => {
   const options = to.meta.auth;
   if (!options) return;
 
+  const { loggedIn } = useDmsUserSession();
+  const permissions = usePermissions();
+  const errorPresenter = useApiErrorPresenter();
+
   if (await isPublicAccessRoute(to)) return;
 
-  const { loggedIn } = useDmsUserSession();
-
   if (loggedIn.value) {
-    await loadPermissionsIfNeeded();
+    await loadPermissionsIfNeeded(permissions, errorPresenter);
     return handleAuthenticatedUser(to, options);
   }
 

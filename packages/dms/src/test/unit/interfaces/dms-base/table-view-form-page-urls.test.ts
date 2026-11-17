@@ -16,7 +16,7 @@ import {
   RegisterTable,
   Table,
 } from "@antelopejs/interface-database-decorators";
-import { expect } from "chai";
+import { assert, expect } from "chai";
 import * as pageImpl from "../../../../implementations/dms/page";
 import * as permissionsImpl from "../../../../implementations/dms/permissions";
 import * as realtimeImpl from "../../../../implementations/dms/realtime";
@@ -230,21 +230,7 @@ async function formPages(
   return (await table.serialize()).options?.formPages;
 }
 
-describe("[unit] interfaces/dms-base — serialized form page URLs", () => {
-  before(async () => {
-    ImplementInterface(permissionsInterface, permissionsImpl);
-    ImplementInterface(realtimeInterface, realtimeImpl);
-    ImplementInterface(pageInterface, pageImpl);
-    await settle();
-  });
-
-  after(() => {
-    for (const page of pages) {
-      const { pageInfo } = GetMetadata(page, PageMetadata);
-      if (pageInfo) pageInterface.internal.RegisterPage.unregister(pageInfo);
-    }
-  });
-
+function registerSlugCases(): void {
   it("serializes the default slugs under the key of the table view", async () => {
     expect(await formPages(defaultTable)).to.deep.equal({
       new: "/fpu-default/table/new",
@@ -321,7 +307,9 @@ describe("[unit] interfaces/dms-base — serialized form page URLs", () => {
       undefined,
     );
   });
+}
 
+function registerPermissionAndConflictCases(): void {
   it("fails the registration of two table views claiming one form URL", async () => {
     const clashingPages = { new: { urlSlug: "clash" } };
     const first = TableView(documentAPI("clash-first"), {
@@ -342,13 +330,14 @@ describe("[unit] interfaces/dms-base — serialized form page URLs", () => {
 
     const failure = await meta.Register().then(
       () => undefined,
-      (error) => error,
+      (error: unknown) => error,
     );
 
-    expect(failure?.message ?? "").to.match(
+    assert.instanceOf(failure, Error);
+    expect(failure.message).to.match(
       /TableView "fpu-clash\.first" and TableView "fpu-clash\.second"/,
     );
-    expect(failure?.message ?? "").to.contain('at "/fpu-clash/clash"');
+    expect(failure.message).to.contain('at "/fpu-clash/clash"');
     expect(GetPageLayoutBySlug("/fpu-clash")).to.equal(undefined);
   });
 
@@ -384,10 +373,11 @@ describe("[unit] interfaces/dms-base — serialized form page URLs", () => {
 
     const failure = await meta.Register().then(
       () => undefined,
-      (error) => error,
+      (error: unknown) => error,
     );
 
-    expect(failure?.message ?? "").to.contain(
+    assert.instanceOf(failure, Error);
+    expect(failure.message).to.contain(
       'TableView permission id "fpu-default.table" names no component',
     );
     expect(GetPageLayoutBySlug("/fpu-borrowing")).to.equal(undefined);
@@ -396,4 +386,23 @@ describe("[unit] interfaces/dms-base — serialized form page URLs", () => {
   it("serializes no form page URL when the container is not a page", async () => {
     expect(await formPages(drawerTable)).to.equal(undefined);
   });
+}
+
+describe("[unit] interfaces/dms-base — serialized form page URLs", () => {
+  before(async () => {
+    ImplementInterface(permissionsInterface, permissionsImpl);
+    ImplementInterface(realtimeInterface, realtimeImpl);
+    ImplementInterface(pageInterface, pageImpl);
+    await settle();
+  });
+
+  after(() => {
+    for (const page of pages) {
+      const { pageInfo } = GetMetadata(page, PageMetadata);
+      if (pageInfo) pageInterface.internal.RegisterPage.unregister(pageInfo);
+    }
+  });
+
+  registerSlugCases();
+  registerPermissionAndConflictCases();
 });

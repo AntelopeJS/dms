@@ -1,4 +1,3 @@
-import { HTTPResult } from "@antelopejs/interface-api";
 import { GetMetadata, ImplementInterface } from "@antelopejs/interface-core";
 import { expect } from "chai";
 import { internal as pageImplInternal } from "../../../../implementations/dms/page";
@@ -15,19 +14,19 @@ import {
 import * as permissionsInterface from "@antelopejs/interface-dms/permissions";
 import * as permissionsResolverInterface from "@antelopejs/interface-dms/permissions-resolver";
 import * as tenantAccessInterface from "@antelopejs/interface-dms/tenant-access";
-import type { User } from "@antelopejs/interface-dms/auth/db";
 import {
   denyingTenantGate,
   registerTestPage,
   stubPageAccessModels,
 } from "../../../helpers/page-access";
+import { httpRejectionOf } from "../../../helpers/http-rejection";
+import { userFixture } from "../../../helpers/user-fixture";
 
 const DENIED_TENANT = "layout-gate-denied-tenant";
 const ALLOWED_TENANT = "layout-gate-allowed-tenant";
 const SUSPENDED_CODE = "layout-gate.suspended";
 const HTTP_FORBIDDEN = 403;
-// oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Authorization uses only this user's id; this fixture deliberately omits unrelated persisted user columns.
-const MEMBER = { _id: "layout-gate-member" } as User;
+const MEMBER = userFixture({ _id: "layout-gate-member" });
 
 const gateInfo = denyingTenantGate(
   "layout-gate",
@@ -35,7 +34,7 @@ const gateInfo = denyingTenantGate(
   SUSPENDED_CODE,
 );
 
-const models = stubPageAccessModels(["*"]);
+const models = stubPageAccessModels(["pages.lg-product", "pages.lg-recovery"]);
 
 async function loadLayout(slug: string, tenantId: string) {
   const handler = GetPageLayoutBySlug(slug);
@@ -46,16 +45,6 @@ async function loadLayout(slug: string, tenantId: string) {
     roleModel: models.roleModel,
     tenantId,
   });
-}
-
-async function refusalOf(promise: Promise<unknown>): Promise<HTTPResult> {
-  try {
-    await promise;
-  } catch (error: PromiseRejectedResult["reason"]) {
-    expect(error).to.be.instanceOf(HTTPResult);
-    return error;
-  }
-  throw new Error("expected the layout resolution to refuse");
 }
 
 describe("[unit] interfaces/dms/page — layout fetched by slug under a tenant gate", () => {
@@ -108,7 +97,9 @@ describe("[unit] interfaces/dms/page — layout fetched by slug under a tenant g
   });
 
   it("refuses an ordinary page while the gate denies the tenant", async () => {
-    const error = await refusalOf(loadLayout(slugs.product, DENIED_TENANT));
+    const error = await httpRejectionOf(
+      loadLayout(slugs.product, DENIED_TENANT),
+    );
     expect(error.getStatus()).to.equal(HTTP_FORBIDDEN);
     expect(error.getBody()).to.equal(SUSPENDED_CODE);
   });

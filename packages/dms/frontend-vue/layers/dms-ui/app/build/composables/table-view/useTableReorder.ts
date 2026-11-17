@@ -5,9 +5,9 @@ import type {
   TableViewListResponse,
   TableViewReorderConfig,
 } from "../../../composables/table-view/types";
-import { moveRow, reorderEdits } from "./utils/reorder";
+import { moveRow, reorderEdits, type ReorderRow } from "./utils/reorder";
 
-export interface TableReorderOptions<T> {
+export interface TableReorderOptions<T extends ReorderRow> {
   reorder: TableViewReorderConfig | undefined;
   /** The page listed; a move updates it in place. */
   data: Ref<TableViewListResponse<T> | null | undefined>;
@@ -22,8 +22,7 @@ export interface TableReorderOptions<T> {
   isOrderedDisplay: ComputedRef<boolean>;
   /** Lists the rows again, after a move failed. */
   refresh: () => Promise<void> | void;
-  // oxlint-disable-next-line anti-slop/no-unknown-parameters -- Fetch may reject with any JavaScript value. No error schema owns this callback, and restricting it would exclude existing rejection values.
-  onError: (error: unknown) => void;
+  onError: (error: Parameters<ApiErrorPresenter["presentError"]>[0]) => void;
 }
 
 /**
@@ -33,7 +32,9 @@ export interface TableReorderOptions<T> {
  * display that does not draw the rows in their order (the board, the
  * groups), or for a caller who may not edit, there is no handle at all.
  */
-export function useTableReorder<T>(options: TableReorderOptions<T>) {
+export function useTableReorder<T extends ReorderRow>(
+  options: TableReorderOptions<T>,
+) {
   const { reorder, data, rowIdKey } = options;
 
   const save = (edits: { id: string; value: number }[]) =>
@@ -56,10 +57,7 @@ export function useTableReorder<T>(options: TableReorderOptions<T>) {
     data.value = {
       ...page,
       results: moved.map((row) => {
-        const value = values.get(
-          // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- T is unconstrained, while Nuxt get declares object input even though its implementation handles other values. Its owner-derived input type preserves this unchecked dynamic lookup without adding guards.
-          String(get(row as Parameters<typeof get>[0], rowIdKey)),
-        );
+        const value = values.get(String(get(row, rowIdKey)));
         return value === undefined ? row : { ...row, [reorder.field]: value };
       }),
     };

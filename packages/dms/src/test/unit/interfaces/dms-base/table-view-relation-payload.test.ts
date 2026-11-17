@@ -18,15 +18,16 @@ import {
 import { expect } from "chai";
 import { DefaultDataTypes } from "@antelopejs/interface-dms/base/data-types/default-types";
 import type { DataTypeSerialized } from "@antelopejs/interface-dms/base/data-types/core";
-import type {
-  FormFieldSerialized,
-  FormPropsSerialized,
+import {
+  type FormFieldSerialized,
+  isFieldGroupSerialized,
 } from "@antelopejs/interface-dms/base/form";
 import { TableView } from "@antelopejs/interface-dms/base/table-view/factory";
 import { Column } from "@antelopejs/interface-dms/base/table-view/meta";
 import type { TableViewOptionsSerialized } from "@antelopejs/interface-dms/base/table-view/options";
 import { TableViewRoutes } from "@antelopejs/interface-dms/base/table-view/routes";
 import type { ComponentInfoSerialized } from "@antelopejs/interface-dms/component";
+import { formOptionsOf } from "../../../helpers/serialized-options";
 
 const SCHEMA = "relation-payload-test";
 const SITE_FIELDS = ["name", "city", "street", "zip", "country", "phone"];
@@ -158,35 +159,85 @@ class OrderAPI extends DataController(
 
 const ADD_FORM_KEY = '"addForm"';
 
-const sizeOf = (value: ComponentInfoSerialized["options"]): number =>
-  JSON.stringify(value ?? null).length;
-const addFormsIn = (value: ComponentInfoSerialized["options"]): number =>
-  JSON.stringify(value ?? null).split(ADD_FORM_KEY).length - 1;
+type SerializedColumnType = Pick<
+  DataTypeSerialized,
+  "inputComponent" | "filterComponents"
+>;
 
 interface SerializedColumn {
   id: string;
-  type?: DataTypeSerialized;
+  type?: SerializedColumnType;
+}
+
+function isObjectValue(value: unknown): value is object {
+  return typeof value === "object" && value !== null;
+}
+
+function isSerializedColumnType(value: unknown): value is SerializedColumnType {
+  return (
+    isObjectValue(value) &&
+    "inputComponent" in value &&
+    isObjectValue(value.inputComponent) &&
+    "filterComponents" in value &&
+    isObjectValue(value.filterComponents)
+  );
+}
+
+function isSerializedColumn(value: unknown): value is SerializedColumn {
+  return (
+    isObjectValue(value) &&
+    "id" in value &&
+    typeof value.id === "string" &&
+    (!("type" in value) ||
+      value.type === undefined ||
+      isSerializedColumnType(value.type))
+  );
 }
 
 type TableOptions = TableViewOptionsSerialized & {
   columns: SerializedColumn[];
 };
 
+type Weighed =
+  | TableOptions
+  | SerializedColumn[]
+  | ComponentInfoSerialized
+  | FormFieldSerialized
+  | undefined;
+
+const sizeOf = (value: Weighed): number => JSON.stringify(value ?? null).length;
+const addFormsIn = (value: Weighed): number =>
+  JSON.stringify(value ?? null).split(ADD_FORM_KEY).length - 1;
+
+function isTableOptions(
+  value: TableViewOptionsSerialized | undefined,
+): value is TableOptions {
+  return (
+    value !== undefined &&
+    "columns" in value &&
+    Array.isArray(value.columns) &&
+    value.columns.every(isSerializedColumn)
+  );
+}
+
 function tableOptions(): TableOptions {
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- TableView's owner type omits dynamically serialized columns; this fixture reads the columns produced from OrderAPI's registered metadata.
-  return TableView(OrderAPI).serializeSync().options as TableOptions;
+  const { options } = TableView(OrderAPI).serializeSync();
+  if (!isTableOptions(options)) {
+    throw new Error("The serialized table view carries no columns");
+  }
+  return options;
 }
 
 function formField(
   form: ComponentInfoSerialized | undefined,
   id: string,
 ): FormFieldSerialized | undefined {
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- formComponents erases component option types; these callers pass this table's generated form, not an arbitrary component.
-  const fields = (form?.options as FormPropsSerialized | undefined)?.fields;
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The form owner permits field groups, but these generated table forms contain the flat relation fields declared above; preserve the existing find operation without adding a new runtime filter.
-  return fields?.find((field) => field.id === id) as
-    | FormFieldSerialized
-    | undefined;
+  const fields = form && formOptionsOf(form).fields;
+  const entry = fields?.find((field) => field.id === id);
+  if (entry && isFieldGroupSerialized(entry)) {
+    throw new Error("expected a field");
+  }
+  return entry;
 }
 
 /**
@@ -212,11 +263,9 @@ describe("[unit] interfaces/dms-base/table-view-relation-payload — relation co
     const { formComponents } = tableOptions();
 
     const editable = formField(formComponents.new, "customer");
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Serialized relation pickers erase their options; the editable customer field is built from the RelationType declared above.
-    const editableOptions = editable?.component.options as
-      | { addForm?: unknown }
-      | undefined;
-    expect(editableOptions?.addForm).to.not.equal(undefined);
+    expect(editable?.component.options)
+      .to.have.property("addForm")
+      .that.is.not.equal(undefined);
     expect(addFormsIn(formComponents.view)).to.equal(0);
     const readOnly = formField(formComponents.edit, "site");
     expect(readOnly?.disabled).to.equal(true);

@@ -35,6 +35,7 @@ export {
   TENANT_EXPORT_EXTENSION,
 } from "@antelopejs/interface-dms/base/tenant-export-archive";
 
+const ABORTED_MESSAGE = "Tenant export aborted";
 const MANIFEST_ENTRY = "manifest.json";
 const MODULES_DIRECTORY = "modules";
 const JSON_INDENT = 2;
@@ -48,14 +49,6 @@ const FULL_PROGRESS = 100;
 const DEDUPE_START_SUFFIX = 2;
 
 type TenantExportContributor = RegisteredHook<Hook.TENANT_DATA_EXPORT>;
-
-function describeError(error: PromiseRejectedResult["reason"]): string {
-  return error instanceof Error ? error.message : String(error);
-}
-
-function abortReason(signal: AbortSignal): AbortSignal["reason"] {
-  return signal.reason ?? new Error("Tenant export aborted");
-}
 
 class ExportArchiveWriter {
   private readonly archive = archiver("zip");
@@ -86,7 +79,7 @@ class ExportArchiveWriter {
 
   throwIfAborted(): void {
     if (this.signal.aborted) {
-      throw abortReason(this.signal);
+      throw this.signal.reason ?? new Error(ABORTED_MESSAGE);
     }
   }
 
@@ -100,11 +93,9 @@ class ExportArchiveWriter {
     }
   }
 
-  appendJson(
-    name: string,
-    data: Parameters<TenantExportArchive["addJson"]>[1],
-  ): Promise<void> {
-    const payload = Buffer.from(JSON.stringify(data, null, JSON_INDENT));
+  /** Adds a JSON entry, `text` being the JSON already serialized. */
+  appendJsonText(name: string, text: string): Promise<void> {
+    const payload = Buffer.from(text);
     return this.append(name, () => {
       this.archive.append(payload, { name });
     });
@@ -159,10 +150,10 @@ class ExportArchiveWriter {
       const onEntry = (entry: archiver.EntryData): void => {
         if (entry.name === name) settle(resolve);
       };
-      const onError = (error: Parameters<typeof Promise.reject>[0]): void =>
+      const onError = (error: archiver.ArchiverError): void =>
         settle(() => reject(error));
       const onAbort = (): void =>
-        settle(() => reject(abortReason(this.signal)));
+        settle(() => reject(this.signal.reason ?? new Error(ABORTED_MESSAGE)));
 
       this.archive.on("entry", onEntry);
       this.archive.on("error", onError);
@@ -188,7 +179,9 @@ class ScopedTenantExportArchive implements TenantExportArchive {
     path: string,
     data: Parameters<TenantExportArchive["addJson"]>[1],
   ): Promise<void> {
-    return this.add(path, (name) => this.writer.appendJson(name, data));
+    return this.add(path, (name) =>
+      this.writer.appendJsonText(name, JSON.stringify(data, null, JSON_INDENT)),
+    );
   }
 
   addFile(path: string, localPath: string): Promise<void> {
@@ -254,9 +247,9 @@ async function writeContribution(
   contribution: TenantDataExportContribution | void,
 ): Promise<string | undefined> {
   if (!contribution) return undefined;
-  await writer.appendJson(
+  await writer.appendJsonText(
     `${MODULES_DIRECTORY}/${moduleId}.${JSON_EXTENSION}`,
-    contribution.data,
+    JSON.stringify(contribution.data, null, JSON_INDENT),
   );
   return contribution.moduleId === moduleId ? undefined : contribution.moduleId;
 }
@@ -308,7 +301,7 @@ async function runContributor(
       moduleId,
       entries: scoped.entries,
       failed: true,
-      error: describeError(error),
+      error: error instanceof Error ? error.message : String(error),
     };
   }
 }
@@ -369,9 +362,13 @@ export async function buildTenantExportArchive(
   const writer = new ExportArchiveWriter(options.localPath, options.signal);
   try {
     const reports = await runContributors(writer, options);
-    await writer.appendJson(
+    await writer.appendJsonText(
       MANIFEST_ENTRY,
-      buildManifest(options.tenantId, reports),
+      JSON.stringify(
+        buildManifest(options.tenantId, reports),
+        null,
+        JSON_INDENT,
+      ),
     );
     await writer.finalize();
     return summarize(reports);

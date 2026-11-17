@@ -1,8 +1,8 @@
-import { createSSRApp, defineComponent, h, ref, type PropType } from "vue";
+import { createSSRApp, defineComponent, h, ref } from "vue";
 import { renderToString } from "vue/server-renderer";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { chartRuntime } from "./helpers/charts-runtime";
-import Chart from "../layers/dms-ui/app/components/chart/Chart.vue";
+import Chart from "../layers/dms-ui/app/components/chart/ChartBlock.vue";
 import ChartCard from "../layers/dms-ui/app/components/chart/ChartCard.vue";
 import TopListCard from "../layers/dms-ui/app/components/top-list/TopListCard.vue";
 import TopListRow from "../layers/dms-ui/app/components/top-list/internal/TopListRow.vue";
@@ -60,8 +60,7 @@ interface ApexClickOptions {
 const SeriesProbe = defineComponent({
   props: {
     options: { type: Object, required: true },
-    // SAFETY: Chart passes its resolved ChartSeries array to this Apex host replacement.
-    series: { type: Array as PropType<ChartSeries[]>, required: true },
+    series: { type: Array<ChartSeries>, required: true },
   },
   setup: (props) => () => {
     const click: ApexClickOptions = { dataPointIndex: 0, seriesIndex: 0 };
@@ -85,13 +84,13 @@ const Link = defineComponent({
 });
 
 const SLOT_COMPONENTS = [
-  "DmsCard",
+  "DmsCardPanel",
   "DmsClientOnly",
   "UAvatar",
   "UBadge",
   "UIcon",
   "USkeleton",
-  "DmsSparkline",
+  "DmsSparklineChart",
   "DmsTrendBadge",
 ];
 
@@ -171,9 +170,12 @@ describe("module-supplied widget strings and the $ convention", () => {
     });
 
     expect(clicked).toMatchObject({ seriesName: "Sends" });
+    const sendsPayload: unknown = expect.objectContaining({
+      seriesName: "Sends",
+    });
     expect(componentEvents).toContainEqual({
       component: CHART_ID,
-      data: expect.objectContaining({ seriesName: "Sends" }),
+      data: sendsPayload,
     });
   });
 });

@@ -4,13 +4,14 @@
  * applies: its label follows the selected mode, its comparison value is
  * formatted as the value, and "no comparison" hides all of it.
  */
-import { computed, createApp, h, ref, type Component } from "vue";
+import { computed, createApp, h, ref, shallowRef, type Component } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   extraRuntime,
   provideExtraRuntime,
   registerTextBoundaries,
 } from "./helpers/chart-extra-runtime";
+import type { ApiAnswer } from "./helpers/api-data-runtime";
 import { registerPeriodScope } from "../layers/dms-core/app/composables/period/usePeriodScope";
 import type {
   PeriodComparison,
@@ -27,9 +28,8 @@ import type {
 } from "../layers/dms-ui/app/composables/chart/types";
 import { isObject } from "../layers/dms-core/app/utils/type-check";
 
-const response = ref<
-  ChartCardResponse | KpiCardResponse | TopListCardResponse | null
->(null);
+type CardResponse = ChartCardResponse | KpiCardResponse | TopListCardResponse;
+const response = shallowRef<ApiAnswer>(null);
 const mounted: Array<{ unmount(): void }> = [];
 const scopes: Array<() => void> = [];
 
@@ -56,7 +56,9 @@ const TREND = /12[.,]4\s?%/;
 function translate(key: string, params?: Record<string, string> | string) {
   const template = TRANSLATIONS.get(key) ?? key;
   if (!isObject(params)) return template;
-  return template.replace(/\{(\w+)\}/g, (_, name) => params[name] ?? "");
+  return template.replace(/\{(\w+)\}/g, (_, name: string) =>
+    Object.hasOwn(params, name) ? (params[name] ?? "") : "",
+  );
 }
 
 function periodState(
@@ -90,18 +92,20 @@ async function render(
           ),
         );
       return () => {
-        const cardProps: Partial<InstanceType<typeof KpiCard>["$props"]> = {
+        const base = {
           title: "Revenue",
           componentId: "card",
           pageId: "page",
           periodScope: SCOPE,
-          fetchUrl: state ? "/revenue" : undefined,
         };
-        if (!state) {
-          cardProps.staticValue = 48200;
-          cardProps.staticDelta = 12.4;
-          cardProps.staticPreviousValue = 42900;
-        }
+        const cardProps: Partial<InstanceType<typeof KpiCard>["$props"]> = state
+          ? { ...base, fetchUrl: "/revenue" }
+          : {
+              ...base,
+              staticValue: 48200,
+              staticDelta: 12.4,
+              staticPreviousValue: 42900,
+            };
         return h(card, { ...cardProps, ...props });
       };
     },
@@ -130,7 +134,11 @@ afterEach(() => {
 
 describe("a KPI card bound to a period selector", () => {
   beforeEach(() => {
-    response.value = { value: 48200, previousValue: 42900, delta: 12.4 };
+    response.value = {
+      value: 48200,
+      previousValue: 42900,
+      delta: 12.4,
+    } satisfies CardResponse;
   });
 
   it.each([
@@ -213,7 +221,7 @@ describe("a KPI card bound to a period selector", () => {
   });
 
   it("omits the comparison label while the route answers no change yet", async () => {
-    response.value = { value: 48200 };
+    response.value = { value: 48200 } satisfies CardResponse;
     const html = await render(KpiCard, {}, periodState("previous-year"));
     expect(html).not.toContain("vs previous year");
     expect(html).not.toMatch(TREND);
@@ -238,7 +246,7 @@ describe("a chart card bound to a period selector", () => {
       delta: 12.4,
       series: [{ name: "Revenue", data: [1, 2] }],
       comparisonSeries: [{ name: "Before", data: [1, 1] }],
-    };
+    } satisfies CardResponse;
   });
 
   it("names the comparison series after the selected comparison", async () => {
@@ -258,7 +266,9 @@ describe("a chart card bound to a period selector", () => {
 
 describe("a top list bound to a period selector", () => {
   beforeEach(() => {
-    response.value = { items: [{ id: "a", title: "A", value: 3, delta: 5 }] };
+    response.value = {
+      items: [{ id: "a", title: "A", value: 3, delta: 5 }],
+    } satisfies CardResponse;
   });
 
   it("shows its rows' changes while comparing", async () => {

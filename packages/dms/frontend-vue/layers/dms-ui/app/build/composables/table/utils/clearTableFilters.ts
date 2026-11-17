@@ -1,6 +1,6 @@
 import type { Ref } from "vue";
 import type { PaginationState } from "@tanstack/vue-table";
-import type { TableFilter } from "../../../components/table/Table.vue";
+import type { TableFilter } from "../../../components/table/TableRoot.vue";
 import { isFilterEffective } from "../../table-view/utils/tableQuery";
 
 export interface TableNarrowingState {

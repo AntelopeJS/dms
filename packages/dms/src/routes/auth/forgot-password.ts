@@ -1,4 +1,3 @@
-import { assertValidation } from "@antelopejs/interface-api-util";
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import { sendEmailForgotEmail } from "@antelopejs/interface-dms/auth";
 import type { UserModel } from "@antelopejs/interface-dms/auth/db";
@@ -11,9 +10,9 @@ const RATE_LIMIT_MS = 60 * 1000;
 
 export async function forgotPassword(
   userModel: UserModel,
-  body: Parameters<typeof authSchema.forgot.parse>[0],
+  body: ReturnType<typeof authSchema.forgot.parse>,
 ): Promise<void> {
-  const { email } = assertValidation(body, (v) => authSchema.forgot.parse(v));
+  const { email } = body;
   const user = await userModel.getByEmail(email);
 
   if (!user) {

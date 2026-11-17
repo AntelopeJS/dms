@@ -1,19 +1,20 @@
 import {
   mkdirSync,
   mkdtempSync,
+  realpathSync,
   rmSync,
   symlinkSync,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { build, type Plugin } from "vite";
+import { build, normalizePath, type Plugin } from "vite";
 import { afterEach, beforeEach, expect, it } from "vitest";
 import { backendBoundary } from "../build/backend-boundary.ts";
 
 let root: string;
 beforeEach(() => {
-  root = mkdtempSync(join(tmpdir(), "dms-boundary-"));
+  root = realpathSync.native(mkdtempSync(join(tmpdir(), "dms-boundary-")));
   mkdirSync(join(root, "backend/src"), { recursive: true });
   mkdirSync(join(root, "backend/dist"), { recursive: true });
   mkdirSync(join(root, "frontend"), { recursive: true });
@@ -44,8 +45,12 @@ it("fails on an import of the backend source and names both files", async () => 
   const failing = bundle(
     'import { api } from "../backend/src/api";\nexport default api;\n',
   );
-  await expect(failing).rejects.toThrow(join(root, "frontend/entry.ts"));
-  await expect(failing).rejects.toThrow(join(root, "backend/src/api.ts"));
+  await expect(failing).rejects.toThrow(
+    normalizePath(join(root, "frontend/entry.ts")),
+  );
+  await expect(failing).rejects.toThrow(
+    normalizePath(join(root, "backend/src/api.ts")),
+  );
 });
 
 it("accepts another file of the backend package", async () => {
@@ -86,7 +91,7 @@ it("follows a symlink the resolver returns to the backend source", async () => {
     bundle(IMPORT_TARGET, [
       resolvingTo(() => join(root, "frontend/linked.ts")),
     ]),
-  ).rejects.toThrow(join(root, "backend/src/api.ts"));
+  ).rejects.toThrow(normalizePath(join(root, "backend/src/api.ts")));
 });
 
 it("sees through a query on the resolved id", async () => {
@@ -94,7 +99,7 @@ it("sees through a query on the resolved id", async () => {
     bundle(IMPORT_TARGET, [
       resolvingTo(() => `${join(root, "backend/src/api.ts")}?raw`),
     ]),
-  ).rejects.toThrow(join(root, "backend/src/api.ts"));
+  ).rejects.toThrow(normalizePath(join(root, "backend/src/api.ts")));
 });
 
 it("lets the owning package decide, not the directory name", async () => {

@@ -98,6 +98,8 @@ const QUICK_FILTER_VALUED_TYPES = new Set([
 
 interface QuickFilterInputOptions {
   items?: unknown[];
+  /** A select's column whose values the page reads as its items. */
+  itemsFrom?: unknown;
   /** A tags column's suggested tags. */
   suggestions?: unknown[];
   searchUrl?: string;
@@ -118,6 +120,7 @@ function offersQuickFilterValues(type: DataType): boolean {
       type.inputComponent().options ?? {};
     return (
       (options.items?.length ?? 0) > 0 ||
+      options.itemsFrom !== undefined ||
       (options.suggestions?.length ?? 0) > 0 ||
       !!options.searchUrl
     );
@@ -142,7 +145,7 @@ export function warnIfQuickFiltersLackValues(
   quickFilters: TableViewQuickFilter[] | undefined,
 ): void {
   for (const { field } of quickFilters ?? []) {
-    const column = columns[field];
+    const column = Object.hasOwn(columns, field) ? columns[field] : undefined;
     if (!column || offersQuickFilterValues(column.type)) continue;
     const key = `${controllerName} ${field}`;
     if (warnedValuelessQuickFilters.has(key)) continue;
@@ -184,15 +187,14 @@ interface KanbanGroupColumnType {
   options?: { multiple?: boolean };
 }
 
-const KANBAN_GROUP_TYPE_ELIGIBILITY: Record<
+const KANBAN_GROUP_TYPE_ELIGIBILITY = new Map<
   string,
   (type: KanbanGroupColumnType) => boolean
-  // oxlint-disable-next-line anti-slop/no-known-value-widening -- Data-type registry ids are arbitrary strings, so the eligibility lookup must accept ids absent from this built-in-only table.
-> = {
-  select: (type) => !type.options?.multiple,
-  boolean: () => true,
-  status: () => true,
-};
+>([
+  ["select", (type) => !type.options?.multiple],
+  ["boolean", () => true],
+  ["status", () => true],
+]);
 
 function validateKanbanField(
   controllerName: string,
@@ -208,7 +210,7 @@ function validateKanbanField(
   const typeId = getDataTypeId(groupColumn.type);
   const isEligible =
     typeId !== undefined &&
-    KANBAN_GROUP_TYPE_ELIGIBILITY[typeId]?.(groupColumn.type);
+    KANBAN_GROUP_TYPE_ELIGIBILITY.get(typeId)?.(groupColumn.type);
   if (!isEligible) {
     throw new Error(
       `TableView kanban groupByField "${groupByField}" on ${controllerName} must be a non-multiple SelectType, a BooleanType or a StatusType column (got "${typeId}")`,
@@ -404,7 +406,7 @@ const NUMBER_TYPE_ID = "number";
  *
  * @internal
  */
-export function validateReorder<T extends Record<string, unknown>>(
+export function validateReorder<T extends object>(
   controllerName: string,
   meta: TableViewMeta,
   options: TableViewOptions<T>,
@@ -537,13 +539,38 @@ export function assertTabTargets(
 }
 
 /**
+ * Tabs are listed in `tabs` or read from a column with `tabsFrom`, never
+ * both, and the column they are read from is a filterable one.
+ *
+ * @internal
+ */
+export function assertTabsFrom(
+  controllerName: string,
+  meta: TableViewMeta,
+  options: Pick<TableViewOptions, "tabs" | "tabsFrom">,
+): void {
+  const { tabs, tabsFrom } = options;
+  if (!tabsFrom) return;
+  if (tabs !== undefined) {
+    throw new Error(
+      `TableView on ${controllerName} gives both tabs and tabsFrom: list the tabs or read them from a column, not both`,
+    );
+  }
+  if (!meta.columns[tabsFrom.column]?.filterable) {
+    throw new Error(
+      `TableView tabsFrom on ${controllerName} reads "${tabsFrom.column}", which is not a filterable column`,
+    );
+  }
+}
+
+/**
  * Every declaration check `TableView()` runs before it builds anything: the
  * options naming columns, displays, tabs and sizes name ones the table view
  * can have.
  *
  * @internal
  */
-export function validateTableViewOptions<T extends Record<string, unknown>>(
+export function validateTableViewOptions<T extends object>(
   controllerName: string,
   meta: TableViewMeta,
   options: TableViewOptions<T>,
@@ -570,4 +597,5 @@ export function validateTableViewOptions<T extends Record<string, unknown>>(
   validateQuickFilters(controllerName, meta, options.quickFilters);
   validatePageSize(controllerName, options.pageSize);
   assertTabTargets(controllerName, options.tabs);
+  assertTabsFrom(controllerName, meta, options);
 }

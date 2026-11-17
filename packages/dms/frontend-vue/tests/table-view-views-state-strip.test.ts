@@ -1,7 +1,7 @@
 /** @vitest-environment jsdom */
 import { computed, createApp, defineComponent, h, ref, type App } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import TableViews from "../layers/dms-ui/app/entries/components/table/Views";
+import TableViews from "../layers/dms-ui/app/entries/components/table/TableViews";
 import { mergeColumnOrder } from "../layers/dms-ui/app/entries/composables/table/utils/columnOrder";
 import {
   isSameTableState,
@@ -15,7 +15,13 @@ describe("table view states", () => {
   registerViewOrderAndUrlTests();
 });
 
-describe("table views strip", () => {
+const items = [
+  { id: "all", label: "All workspaces" },
+  { id: "late", label: "Past due", tone: "error", count: 3 },
+  { id: "user-1", label: "Mine", isUserView: true },
+];
+
+function useStripHarness() {
   let app: App | undefined;
 
   const mountStrip = (props: InstanceType<typeof TableViews>["$props"]) => {
@@ -82,12 +88,11 @@ describe("table views strip", () => {
     app = undefined;
     vi.unstubAllGlobals();
   });
+  return mountStrip;
+}
 
-  const items = [
-    { id: "all", label: "All workspaces" },
-    { id: "late", label: "Past due", tone: "error", count: 3 },
-    { id: "user-1", label: "Mine", isUserView: true },
-  ];
+describe("table views strip", () => {
+  const mountStrip = useStripHarness();
 
   it("draws the views as pills with their counters and opens the one clicked", () => {
     const { container, emitted } = mountStrip({
@@ -118,7 +123,7 @@ describe("table views strip", () => {
       items,
       activeId: "user-1",
       layout: "strip",
-      modified: true,
+      change: "modified",
       canSaveAs: true,
     });
     const labels = [...container.querySelectorAll("button[aria-label]")].map(
@@ -135,6 +140,62 @@ describe("table views strip", () => {
       )!
       .click();
     expect(emitted).toEqual([["delete", "user-1"]]);
+  });
+});
+
+describe("table views strip when the table diverged", () => {
+  const mountStrip = useStripHarness();
+
+  it("names no view once the table diverged from the open one, still offering Reset and Save current view", () => {
+    const { container, emitted } = mountStrip({
+      items,
+      activeId: "late",
+      layout: "strip",
+      change: "diverged",
+      canSaveAs: true,
+    });
+    const pressed = container.querySelectorAll('button[aria-pressed="true"]');
+    expect(pressed).toHaveLength(0);
+    expect(container.querySelector('[role="status"]')?.textContent).toContain(
+      "dms.table.views.custom",
+    );
+    const buttons = [...container.querySelectorAll("button")];
+    expect(
+      buttons.some((button) =>
+        button.textContent?.includes("dms.table.views.save_current"),
+      ),
+    ).toBe(true);
+    container
+      .querySelector<HTMLButtonElement>(
+        'button[aria-label="dms.table.views.reset"]',
+      )!
+      .click();
+    expect(emitted).toEqual([["reset"]]);
+  });
+
+  it("offers neither Save nor Delete on a user's view the table diverged from", () => {
+    const { container } = mountStrip({
+      items,
+      activeId: "user-1",
+      layout: "strip",
+      change: "diverged",
+    });
+    const labels = [...container.querySelectorAll("button[aria-label]")].map(
+      (button) => button.getAttribute("aria-label"),
+    );
+    expect(labels).toEqual(["dms.table.views.reset"]);
+  });
+
+  it("keeps the open view named, with its marker, while the table only narrows it", () => {
+    const { container } = mountStrip({
+      items,
+      activeId: "late",
+      layout: "strip",
+      change: "modified",
+    });
+    const pressed = container.querySelector('button[aria-pressed="true"]');
+    expect(pressed?.textContent?.trim()).toBe("Past due 3");
+    expect(container.querySelector('[role="status"]')).toBe(null);
   });
 });
 

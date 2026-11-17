@@ -36,9 +36,10 @@ export function useTableComponentPreferences<T extends Data>(
   function isSameColumnList(a: readonly unknown[], b: readonly unknown[]) {
     return a.length === b.length && a.every((item, index) => item === b[index]);
   }
-  const baselineColumnPinning: ColumnPinningState = JSON.parse(
-    JSON.stringify(columnPinningState.value),
-  );
+  const baselineColumnPinning: ColumnPinningState = {
+    left: [...(columnPinningState.value.left ?? [])],
+    right: [...(columnPinningState.value.right ?? [])],
+  };
 
   const hasCustomSort = computed(() => {
     const sorting = sortingState.value;

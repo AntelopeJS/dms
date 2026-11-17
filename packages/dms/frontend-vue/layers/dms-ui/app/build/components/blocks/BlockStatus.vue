@@ -45,6 +45,7 @@ const VARIANTS = {
 } as const;
 
 const { t } = useI18n();
+const { resolveError } = useApiErrorPresenter();
 const { processI18n } = useTranslation();
 
 const translate = (text: string | undefined) =>
@@ -52,7 +53,7 @@ const translate = (text: string | undefined) =>
 
 const notFoundState = computed(() => {
   const answered = props.notFound?.emptyState ?? {};
-  const defaults = notFoundTexts(props.notFound, t);
+  const defaults = notFoundTexts(props.notFound, t, resolveError);
   return {
     title: translate(answered.title) ?? defaults.title,
     description: translate(answered.description) ?? defaults.description,

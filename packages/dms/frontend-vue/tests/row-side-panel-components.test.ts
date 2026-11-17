@@ -93,7 +93,7 @@ describe("row tokens in a row panel's component options", () => {
     expect(shownBlock(host)).toBe(
       "/api/runs/get?id=r3&site={{query.site}}|r3|Third run",
     );
-    await useRowSidePanelContent().value?.showRow?.(rows[0]!);
+    useRowSidePanelContent().value?.showRow?.(rows[0]!);
     await settle();
     expect(shownBlock(host)).toBe(
       "/api/runs/get?id=r1&site={{query.site}}|r1|First run",

@@ -14,18 +14,17 @@ import {
 } from "vue";
 import { renderToString } from "vue/server-renderer";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import Guard from "../layers/dms-ui/app/components/guard/Guard.vue";
+import Guard from "../layers/dms-ui/app/components/guard/GuardBlock.vue";
 import {
   isEmptyValue,
   readFieldPath,
 } from "../layers/dms-ui/app/entries/composables/blocks/useGuard";
-import { engine } from "./helpers/api-data-runtime";
+import { engine, type ApiAnswer } from "./helpers/api-data-runtime";
 import { stubBlockRuntime } from "./helpers/block-runtime";
 import { registerPeriodScope } from "../layers/dms-core/app/composables/period/usePeriodScope";
 import { useApiData } from "../layers/dms-core/app/composables/auth/useApiData";
 
-// oxlint-disable-next-line anti-slop/no-unknown-returns -- The guard parses raw transport responses; the mock must admit all of the tested response shapes and null.
-const authFetch = vi.fn<(...args: unknown[]) => Promise<unknown>>();
+const authFetch = vi.fn<(...args: unknown[]) => Promise<ApiAnswer>>();
 
 const Slot = defineComponent({
   setup:
@@ -217,24 +216,24 @@ function registerGuardNotFoundTests() {
     const NOT_FOUND = {
       fetchUrl: "/api/routes/{{params.id}}",
       when: "notFound",
-    };
+    } satisfies Parameters<typeof render>[0];
 
     it("swaps its children for Not found when the route answers 404", async () => {
       authFetch.mockRejectedValue({ statusCode: 404 });
       const html = await render(NOT_FOUND);
       expect(html).not.toContain("data-children");
       expect(html).toContain("t(dms.blocks.not_found)");
-      expect(html).toContain("t(dms.blocks.not_found_hint)");
+      expect(html).toContain("dms.blocks.not_found_hint");
     });
 
     it("describes it with the 404's message, as a block does", async () => {
       authFetch.mockRejectedValue({
         statusCode: 404,
-        data: { message: "No such route" },
+        data: { message: "error.read_only_demo" },
       });
       const html = await render(NOT_FOUND);
       expect(html).toContain("t(dms.blocks.not_found)");
-      expect(html).toContain("No such route");
+      expect(html).toContain("error.read_only_demo");
       expect(html).not.toContain("t(dms.blocks.not_found_hint)");
     });
 

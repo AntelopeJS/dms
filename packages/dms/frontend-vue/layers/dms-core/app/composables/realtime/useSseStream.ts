@@ -1,10 +1,14 @@
 import { HTTP_UNAUTHORIZED } from "../../utils/http-status";
 import { isObject } from "../../utils/type-check";
+import { isJsonValue } from "../../build/utils/json";
+import type { JsonValue } from "../../types/json";
 
-/** Receives decoded data and the frame's id (null if absent, empty if reset). */
+/**
+ * Receives the frame's data, parsed as JSON or kept as its text when it is not
+ * JSON, and the frame's id (null if absent, empty if reset).
+ */
 export type SseEventHandler = (
   eventName: string,
-  // oxlint-disable-next-line anti-slop/no-unknown-parameters -- The transport forwards arbitrary JSON or raw text. Event consumers own payload parsing; an event-specific schema would narrow this public transport.
   data: unknown,
   id: string | null,
 ) => void;
@@ -18,8 +22,7 @@ export interface SseStreamOptions {
   headers?: () => Record<string, string>;
   onEvent: SseEventHandler;
   onOpen?: () => void;
-  // oxlint-disable-next-line anti-slop/no-unknown-parameters -- Fetch, stream readers, and caller callbacks can all throw arbitrary values. No single Error owner contract covers these failures.
-  onError?: (error: unknown) => void;
+  onError?: (error: Parameters<typeof isUnauthorizedStreamError>[0]) => void;
   /** Called once after cleanup; errors call onError first. Retry on only one callback. */
   onClose?: (reason: SseCloseReason) => void;
 }
@@ -30,8 +33,32 @@ export interface SseStreamHandle {
   close(): void;
 }
 
-interface StreamError extends Error {
-  status?: number;
+/** The server refused the stream request. */
+export class SseRequestError extends Error {
+  constructor(
+    readonly status: number,
+    /** Delay the server asked for with `Retry-After`, in milliseconds. */
+    readonly retryAfterMs: number | undefined,
+  ) {
+    super(`SSE request failed: ${status}`);
+  }
+}
+
+const MS_PER_SECOND = 1000;
+const RETRY_AFTER_SECONDS = /^\d+$/;
+
+/** Reads a `Retry-After` value, delta-seconds or HTTP-date, as milliseconds. */
+export function parseRetryAfterMs(
+  value: string | null,
+  now: number = Date.now(),
+): number | undefined {
+  const trimmed = value?.trim();
+  if (!trimmed) return undefined;
+  if (RETRY_AFTER_SECONDS.test(trimmed)) {
+    return Number(trimmed) * MS_PER_SECOND;
+  }
+  const date = Date.parse(trimmed);
+  return Number.isNaN(date) ? undefined : Math.max(0, date - now);
 }
 
 interface ParsedFrame {
@@ -68,9 +95,10 @@ function parseFrame(frame: string): ParsedFrame | null {
   };
 }
 
-function decodeData(data: string): Parameters<SseEventHandler>[1] {
+function decodeData(data: string): JsonValue {
   try {
-    return JSON.parse(data);
+    const parsed: unknown = JSON.parse(data);
+    return isJsonValue(parsed) ? parsed : data;
   } catch {
     return data;
   }
@@ -129,11 +157,10 @@ async function connect(
   });
   if (!response.ok || !response.body) {
     await response.body?.cancel();
-    const error: StreamError = new Error(
-      `SSE request failed: ${response.status}`,
+    throw new SseRequestError(
+      response.status,
+      parseRetryAfterMs(response.headers.get("Retry-After")),
     );
-    error.status = response.status;
-    throw error;
   }
   if (signal.aborted) {
     await response.body.cancel();
@@ -148,10 +175,15 @@ async function connect(
   await readStream(response.body.getReader(), options, signal);
 }
 
+/** A stream error that carries HTTP 401. */
+interface UnauthorizedStreamError {
+  status: typeof HTTP_UNAUTHORIZED;
+}
+
 /** Whether a stream error carries HTTP 401 and may need session recovery. */
 export function isUnauthorizedStreamError(
-  error: Parameters<NonNullable<SseStreamOptions["onError"]>>[0],
-): boolean {
+  error: unknown,
+): error is UnauthorizedStreamError {
   return (
     isObject(error) && error !== null && error.status === HTTP_UNAUTHORIZED
   );
@@ -160,17 +192,16 @@ export function isUnauthorizedStreamError(
 /** Opens one SSE request. EOF is not business completion; no retry is implicit. */
 export function openSseStream(options: SseStreamOptions): SseStreamHandle {
   const controller = new AbortController();
-  void (async () => {
-    let reason: SseCloseReason = "eof";
-    try {
-      await connect(options, controller.signal);
-      if (controller.signal.aborted) reason = "aborted";
-    } catch (error) {
-      reason = controller.signal.aborted ? "aborted" : "error";
-      if (reason === "error") options.onError?.(error);
-    } finally {
-      options.onClose?.(reason);
-    }
-  })();
+  void connect(options, controller.signal).then(
+    () => options.onClose?.(controller.signal.aborted ? "aborted" : "eof"),
+    (error: unknown) => {
+      const reason = controller.signal.aborted ? "aborted" : "error";
+      try {
+        if (reason === "error") options.onError?.(error);
+      } finally {
+        options.onClose?.(reason);
+      }
+    },
+  );
   return { close: () => controller.abort() };
 }

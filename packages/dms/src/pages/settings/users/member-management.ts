@@ -34,7 +34,7 @@ export function detectOwnerChange(
 /** Refuse to take the owner role from the tenant's last owner. */
 export async function assertNotLastTenantOwner(
   tenantId: string,
-  current: TenantMember,
+  current: Pick<TenantMember, "userId">,
 ): Promise<void> {
   const memberModel = GetModel(TenantMemberModel, tenantId);
   const remaining = await memberModel.countOwnersExcluding([current.userId]);
@@ -52,7 +52,7 @@ export async function assertNotLastTenantOwner(
  */
 export async function prepareOwnerChange(
   tenantId: string,
-  current: TenantMember,
+  current: Pick<TenantMember, "userId" | "isTenantOwner">,
   requested: boolean | undefined,
 ): Promise<void> {
   const change = detectOwnerChange(current, requested);

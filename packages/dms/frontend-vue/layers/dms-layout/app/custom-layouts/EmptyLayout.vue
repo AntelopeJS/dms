@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import Footer from "../build/components/layout/Footer.vue";
+import Footer from "../build/components/layout/LayoutFooter.vue";
 
 defineOptions({
   inheritAttrs: false,

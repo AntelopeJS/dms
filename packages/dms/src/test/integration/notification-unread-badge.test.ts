@@ -1,5 +1,9 @@
 import type { AxiosInstance } from "axios";
 import { expect } from "chai";
+import { z } from "zod";
+import { TONES } from "@antelopejs/interface-dms/base/types/tone";
+import type { UserNotificationCounts } from "../../db/models";
+import type { NotificationsApiController } from "../../pages/account";
 import { internal } from "../../implementations/dms-notifications";
 import { SendableNotification } from "@antelopejs/interface-dms/notifications/sendable";
 import type {
@@ -9,6 +13,7 @@ import type {
 import { buildUserNotificationTopic, getRealtimeBroker } from "../../realtime";
 import { authorizedClient, registerUser } from "../helpers/auth";
 import { resetDatabase } from "../helpers/db";
+import { parseBody } from "../helpers/parse-body";
 import { pageRoutePath } from "@antelopejs/interface-dms/page";
 
 const LOCATION = pageRoutePath("/settings/user/notifications");
@@ -27,15 +32,25 @@ const data: NotificationData = {
   },
 };
 
-interface FeedCounts {
-  all: number;
-  unread: number;
-  unreadTone?: NotificationTone;
-}
+type MarkedRead = Awaited<
+  ReturnType<NotificationsApiController["markAllAsRead"]>
+>;
+
+const CountsBody = z.object({
+  all: z.number(),
+  unread: z.number(),
+  unreadTone: z.enum(TONES).optional(),
+}) satisfies z.ZodType<UserNotificationCounts>;
+
+const MarkedReadBody = z.object({
+  success: z.literal(true),
+  batchId: z.string(),
+  counts: CountsBody,
+}) satisfies z.ZodType<MarkedRead>;
 
 interface FeedEvent {
   type: string;
-  payload?: { counts?: FeedCounts };
+  payload?: { counts?: UserNotificationCounts };
 }
 
 interface MenuEntry {
@@ -48,70 +63,75 @@ interface InboxRow {
   title: string;
 }
 
+let client: AxiosInstance;
+
+let userId: string;
+
+const counts = async (): Promise<UserNotificationCounts> => {
+  const response = await client.get(`${LOCATION}/counts`);
+  expect(response.status, JSON.stringify(response.data)).to.equal(HTTP_OK);
+  return parseBody(CountsBody, response);
+};
+
+const menuEntry = async (): Promise<MenuEntry | undefined> => {
+  const response = await client.get<{
+    navBadges: Record<string, { badge: string; tone?: string }>;
+  }>("/dms/page", {
+    params: { path: "/settings", shared: "false" },
+  });
+  expect(response.status, JSON.stringify(response.data)).to.equal(HTTP_OK);
+  const served = response.data.navBadges[NOTIFICATIONS_PAGE_ID];
+  return served && { badge: served.badge, badgeTone: served.tone };
+};
+
+const send = (title: string, tone?: NotificationTone) =>
+  new SendableNotification({ ...data, title, tone }).toUser(userId);
+
+const idOf = async (title: string): Promise<string> => {
+  const response = await client.get<InboxRow[]>(`${LOCATION}/list`, {
+    params: { limit: 100 },
+  });
+  const row = response.data.find((entry) => entry.title === title);
+  if (!row) throw new Error(`no notification titled ${title}`);
+  return row._id;
+};
+
+/** What the user's open tabs are told, from now on. */
+const recordEvents = () => {
+  const events: FeedEvent[] = [];
+  const unsubscribe = getRealtimeBroker().subscribe(
+    buildUserNotificationTopic(userId),
+    (event) => {
+      events.push(event);
+    },
+  );
+  return { events, unsubscribe };
+};
+
+async function seedInbox() {
+  await resetDatabase();
+  const owner = await registerUser({ owner: true });
+  client = authorizedClient(owner.accessToken);
+  userId = owner.userId;
+  internal.RegisterNotificationCategory.register(data.subject.category);
+  internal.RegisterNotificationSubject.register(data.subject);
+
+  await client.put(`${LOCATION}/mark-all-read`);
+  await send("info", "neutral");
+  await send("untoned");
+  await send("not you?", "warning");
+  await send("risk", "error");
+}
+
+function unregisterSubject() {
+  internal.RegisterNotificationSubject.unregister(data.subject);
+  internal.RegisterNotificationCategory.unregister(data.subject.category);
+}
+
 describe("[integration] notifications unread badge", () => {
-  let client: AxiosInstance;
-  let userId: string;
+  before(seedInbox);
 
-  const counts = async (): Promise<FeedCounts> => {
-    const response = await client.get<FeedCounts>(`${LOCATION}/counts`);
-    expect(response.status, JSON.stringify(response.data)).to.equal(HTTP_OK);
-    return response.data;
-  };
-
-  const menuEntry = async (): Promise<MenuEntry | undefined> => {
-    const response = await client.get<{
-      navBadges: Record<string, { badge: string; tone?: string }>;
-    }>("/dms/page", {
-      params: { path: "/settings", shared: "false" },
-    });
-    expect(response.status, JSON.stringify(response.data)).to.equal(HTTP_OK);
-    const served = response.data.navBadges[NOTIFICATIONS_PAGE_ID];
-    return served && { badge: served.badge, badgeTone: served.tone };
-  };
-
-  const send = (title: string, tone?: NotificationTone) =>
-    new SendableNotification({ ...data, title, tone }).toUser(userId);
-
-  const idOf = async (title: string): Promise<string> => {
-    const response = await client.get<InboxRow[]>(`${LOCATION}/list`, {
-      params: { limit: 100 },
-    });
-    const row = response.data.find((entry) => entry.title === title);
-    if (!row) throw new Error(`no notification titled ${title}`);
-    return row._id;
-  };
-
-  /** What the user's open tabs are told, from now on. */
-  const recordEvents = () => {
-    const events: FeedEvent[] = [];
-    const unsubscribe = getRealtimeBroker().subscribe(
-      buildUserNotificationTopic(userId),
-      (event) => {
-        events.push(event);
-      },
-    );
-    return { events, unsubscribe };
-  };
-
-  before(async () => {
-    await resetDatabase();
-    const owner = await registerUser({ owner: true });
-    client = authorizedClient(owner.accessToken);
-    userId = owner.userId;
-    internal.RegisterNotificationCategory.register(data.subject.category);
-    internal.RegisterNotificationSubject.register(data.subject);
-
-    await client.put(`${LOCATION}/mark-all-read`);
-    await send("info", "neutral");
-    await send("untoned");
-    await send("not you?", "warning");
-    await send("risk", "error");
-  });
-
-  after(() => {
-    internal.RegisterNotificationSubject.unregister(data.subject);
-    internal.RegisterNotificationCategory.unregister(data.subject.category);
-  });
+  after(unregisterSubject);
 
   it("counts the unread notifications in the tone of the most important", async () => {
     const bell = await counts();
@@ -178,12 +198,13 @@ describe("[integration] notifications unread badge", () => {
 
   it("shows no badge once everything is read", async () => {
     const { events, unsubscribe } = recordEvents();
-    const marked = await client.put(`${LOCATION}/mark-all-read`);
+    const response = await client.put(`${LOCATION}/mark-all-read`);
     unsubscribe();
-    expect(marked.data.counts).to.deep.equal(await counts());
-    expect(marked.data.counts).to.include({ unread: 0 });
+    const marked = parseBody(MarkedReadBody, response);
+    expect(marked.counts).to.deep.equal(await counts());
+    expect(marked.counts).to.include({ unread: 0 });
     expect(events.map((event) => [event.type, event.payload])).to.deep.equal([
-      ["notification:all-read", { counts: marked.data.counts }],
+      ["notification:all-read", { counts: marked.counts }],
     ]);
 
     const bell = await counts();

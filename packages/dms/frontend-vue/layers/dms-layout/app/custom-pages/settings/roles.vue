@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useTemplateRef } from "vue";
+import { isString } from "#dms-core/app/utils/type-check";
 import UButton from "@nuxt/ui/components/Button.vue";
 import RoleEditor from "../../build/components/pages/settings/roles/RoleEditor.vue";
 import RoleOwnerPanel from "../../build/components/pages/settings/roles/RoleOwnerPanel.vue";
@@ -25,6 +26,8 @@ import { useFieldErrors } from "#dms-core/app/composables/useFieldErrors";
 import { REQUIRED_MESSAGE } from "#dms-core/app/composables/useFormValidation";
 import { useUnsavedChanges } from "#dms-ui/app/composables/unsaved-changes/useUnsavedChanges";
 import { useActionConfirm } from "#dms-ui/app/entries/composables/confirm/useActionConfirm";
+
+const { presentError } = useApiErrorPresenter();
 
 interface RoleEditorHandle {
   inputOf: (field: RoleEditorField) => HTMLInputElement | undefined;
@@ -152,7 +155,7 @@ async function runMutation(
     await mutation();
     toast.add({ title: t(successKey), color: "success" });
   } catch (error) {
-    useApiError(error);
+    presentError(error, { fallbackKey: "error.500.description" });
   }
 }
 
@@ -181,7 +184,8 @@ async function save(): Promise<void> {
       color: "success",
     });
   } catch (error) {
-    if (!(await fieldErrors.applyApiError(error))) useApiError(error);
+    if (!(await fieldErrors.applyApiError(error)))
+      presentError(error, { fallbackKey: "error.500.description" });
   } finally {
     isSaving.value = false;
   }
@@ -227,8 +231,10 @@ async function requestDelete(): Promise<void> {
     {
       urlParams: { id: encodeURIComponent(role._id) },
       run: (values) =>
-        // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Confirmation fields are arbitrary backend-defined values; the assertion preserves existing unchecked forwarding rather than filtering malformed reassignment values.
-        deleteRole(role, (values.reassignTo as string | null) ?? null),
+        deleteRole(
+          role,
+          isString(values.reassignTo) ? values.reassignTo : null,
+        ),
     },
   );
 }

@@ -1,5 +1,8 @@
 import { createHash, randomUUID } from "node:crypto";
-import { BasicDataModel } from "@antelopejs/interface-database-decorators";
+import {
+  BasicDataModel,
+  type IndexKey,
+} from "@antelopejs/interface-database-decorators";
 import type {
   NotificationData,
   NotificationTone,
@@ -14,6 +17,7 @@ import {
   applyFeedFilter,
   type NotificationFeedFilter,
 } from "./notification-feed-filter";
+import { isString } from "@antelopejs/interface-dms/utils/internal/type-check";
 
 const SHARED_GROUP_UPDATE_BATCH_SIZE = 10;
 
@@ -97,6 +101,11 @@ function isReceiptOf(existing: UserNotification, userId: string): boolean {
   return existing.isIdempotent === true && existing.userId === userId;
 }
 
+function visibleInstance(row: UserNotification): UserNotification[] {
+  const instance = UserNotificationsModel.fromDatabase(row);
+  return instance ? [instance] : [];
+}
+
 export class UserNotificationsModel extends BasicDataModel(
   UserNotification,
   userNotificationsTableName,
@@ -109,17 +118,22 @@ export class UserNotificationsModel extends BasicDataModel(
 
   /** Lists visible rows only. */
   async getAll(): Promise<UserNotification[]> {
-    return (await super.getAll()).filter((row) => !row.isDismissed);
+    const rows = await this.table
+      .filter((row) => row.key("isDismissed").ne(true))
+      .run();
+    return rows.flatMap((row) => visibleInstance(row));
   }
 
   /** Queries visible rows by index. */
   async getBy(
-    index: keyof UserNotification,
-    ...keys: unknown[]
+    index: Extract<keyof UserNotification, string>,
+    ...keys: IndexKey[]
   ): Promise<UserNotification[]> {
-    return (await super.getBy(index, ...keys)).filter(
-      (row) => !row.isDismissed,
-    );
+    const rows = await this.table
+      .getAll(keys.length === 1 ? keys[0] : keys, index)
+      .filter((row) => row.key("isDismissed").ne(true))
+      .run();
+    return rows.flatMap((row) => visibleInstance(row));
   }
 
   private visibleFeed(userId: string) {
@@ -222,8 +236,7 @@ export class UserNotificationsModel extends BasicDataModel(
       }),
     );
     const messageKeys = [...new Set([...titles, ...descriptions])]
-      // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Stored notification text can be malformed; only string translation references belong in the message catalog.
-      .filter((value) => typeof value === "string" && value.startsWith("$"))
+      .filter((value) => isString(value) && value.startsWith("$"))
       .map((value) => value.slice(1))
       .sort();
     return { messageKeys, subjects: subjects.flat() };
@@ -376,16 +389,27 @@ export class UserNotificationsModel extends BasicDataModel(
    * Returns the ids of the user's rows reopened.
    */
   async undoMarkAllAsRead(userId: string, batchId: string): Promise<string[]> {
-    const rows = await this.visibleFeed(userId)
-      .filter((row) => row.key("readBatchId").eq(batchId))
-      .filter((row) => row.key("isRead").eq(true))
+    const batch = () =>
+      this.visibleFeed(userId)
+        .filter((row) => row.key("readBatchId").eq(batchId))
+        .filter((row) => row.key("isRead").eq(true));
+    const rows = await batch().run();
+    if (rows.length === 0) return [];
+
+    await batch()
+      .update({ isRead: false, readBatchId: null, updatedAt: new Date() })
       .run();
-    const reopened: string[] = [];
-    await runInBatches(rows, SHARED_GROUP_UPDATE_BATCH_SIZE, async (row) => {
-      await this.markAsUnread(row._id);
-      reopened.push(row._id);
-    });
-    return reopened;
+    const groupIds = [
+      ...new Set(
+        rows
+          .map((row) => row.groupId)
+          .filter((id): id is string => id !== null && id !== undefined),
+      ),
+    ];
+    await runInBatches(groupIds, SHARED_GROUP_UPDATE_BATCH_SIZE, (groupId) =>
+      this.setSharedGroupReadState(groupId, false),
+    );
+    return rows.map((row) => row._id);
   }
 
   /**

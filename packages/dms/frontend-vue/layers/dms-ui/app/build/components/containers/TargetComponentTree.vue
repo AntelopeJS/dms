@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useAttrs } from "vue";
+import type { ResolvedComponentInfo } from "#dms-core/app/types/page";
 import DmsRecursiveComponent from "../../../components/RecursiveComponent.vue";
 
 defineOptions({ inheritAttrs: false });

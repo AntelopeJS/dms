@@ -5,6 +5,7 @@ import DmsIconWell, { type IconWellTone } from "../icon-well/IconWell.vue";
 import DmsStatusPill from "../status-pill/StatusPill.vue";
 import DmsAutoLink from "../link/AutoLink.vue";
 import type { Tone } from "#dms-core/app/types/tone";
+import { isString } from "#dms-core/app/utils/type-check";
 import { MONO_TAG_CLASS } from "../../build/utils/monoChip";
 import { navBadgeClass } from "../../build/utils/navBadge";
 
@@ -63,8 +64,9 @@ const theme = tv({
 });
 
 const ui = theme();
-// oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Vue attrs expose unknown class values; inference and the theme's ClassValue owner cannot prove this pass-through input without validating or transforming it.
-const rootClass = computed(() => ui.root({ class: attrs.class as string }));
+const rootClass = computed(() =>
+  ui.root({ class: isString(attrs.class) ? attrs.class : undefined }),
+);
 const passthrough = computed(() => {
   const { class: _class, ...rest } = attrs;
   return rest;
@@ -103,8 +105,8 @@ const { t } = useI18n();
     </div>
 
     <USkeleton
-      :aria-label="t('dms.a11y.loading')"
       v-if="props.statePending && !props.state"
+      :aria-label="t('dms.a11y.loading')"
       aria-hidden="true"
       class="mt-auto h-[18px] w-28 self-start"
     />

@@ -4,6 +4,8 @@ import type {
   SwitchAccountResponse,
   ValidateAccountResponse,
 } from "../../types/auth";
+import { uniqueAccounts, withAccount } from "../../build/utils/storedAccounts";
+import { isNumber } from "../../utils/type-check";
 
 const STORAGE_KEY = "antelopejs-accounts";
 const SWITCH_ACCOUNT_ENDPOINT = "/auth/switch-account";
@@ -13,6 +15,12 @@ const HTTP_POST = "POST" as const;
 type AccountsRef = ReturnType<typeof useStorage<StoredAccount[]>>;
 
 const accountsStorageByApp = new WeakMap<object, AccountsRef>();
+
+function dropDuplicates(accounts: AccountsRef) {
+  if (!Array.isArray(accounts.value)) return;
+  const unique = uniqueAccounts(accounts.value);
+  if (unique.length < accounts.value.length) accounts.value = unique;
+}
 
 /**
  * The stored accounts, on a ref whose persistence outlives any component.
@@ -30,10 +38,11 @@ function useAccountsStorage(): AccountsRef {
   const existing = accountsStorageByApp.get(dmsApp);
   if (existing) return existing;
 
-  // SAFETY: A newly created effect scope is active, so run synchronously returns this callback's useStorage result.
   const storage = effectScope(true).run(() =>
     useStorage<StoredAccount[]>(STORAGE_KEY, [], undefined),
-  ) as AccountsRef;
+  );
+  if (!storage) throw new Error("The accounts storage scope is inactive");
+  dropDuplicates(storage);
   accountsStorageByApp.set(dmsApp, storage);
   return storage;
 }
@@ -51,18 +60,18 @@ interface BrowserSession {
 
 const TOKEN_REJECTION_STATUSES = new Set([400, 401, 403]);
 
-interface UpstreamError {
-  status?: number;
-  statusCode?: number;
-}
+/** A thrown value whose upstream status, `statusCode` or else `status`, is a number. */
+type UpstreamError = { statusCode: number } | { status: number };
 
-// oxlint-disable-next-line anti-slop/no-unknown-parameters -- Request failures can throw arbitrary JavaScript values. FetchError owner types cannot describe every thrown value.
-function isTokenRejection(error: unknown): boolean {
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Unchecked projection intentionally preserves property access on primitive errors. It does not establish an UpstreamError contract.
-  const { status, statusCode } = (error ?? {}) as UpstreamError;
-  const upstreamStatus = statusCode ?? status;
+/** Whether `error` is the backend refusing the account's tokens: a 400, 401 or 403. */
+function isTokenRejection(error: unknown): error is UpstreamError {
+  if (typeof error !== "object" && typeof error !== "function") return false;
+  if (error === null) return false;
+  const statusCode = "statusCode" in error ? error.statusCode : undefined;
+  const upstreamStatus =
+    statusCode ?? ("status" in error ? error.status : undefined);
   return (
-    upstreamStatus !== undefined && TOKEN_REJECTION_STATUSES.has(upstreamStatus)
+    isNumber(upstreamStatus) && TOKEN_REJECTION_STATUSES.has(upstreamStatus)
   );
 }
 
@@ -88,20 +97,13 @@ function upsertAccount(
   user: MinimalUser,
   accountId: string,
 ) {
-  const existingIndex = accounts.value.findIndex((a) => a.userId === user._id);
-  const account: StoredAccount = {
+  accounts.value = withAccount(accounts.value, {
     accountId,
     userId: user._id,
     email: user.email,
     name: user.name,
     lastUsed: new Date(),
-  };
-
-  if (existingIndex >= 0) {
-    accounts.value[existingIndex] = account;
-  } else {
-    accounts.value.push(account);
-  }
+  });
 }
 
 async function requestAccountSwitch(account: StoredAccount) {
@@ -123,8 +125,7 @@ async function requestAccountSwitch(account: StoredAccount) {
  * @internal
  */
 export async function refreshSessionSurfaces(
-  // oxlint-disable-next-line anti-slop/no-unknown-returns -- Refresh results are awaited and discarded. Deriving from the session fetch owner would reject otherwise valid callbacks with other results.
-  refreshUser: () => Promise<unknown>,
+  refreshUser: () => Promise<any>,
 ): Promise<void> {
   await refreshUser();
 
@@ -168,6 +169,7 @@ function createSwitchAccount(
     } catch (error) {
       if (isTokenRejection(error)) {
         account.isExpired = true;
+        dropDuplicates(accounts);
       }
       throw error;
     }
@@ -187,16 +189,15 @@ function createValidateAllAccounts(
         .filter((a) => a.userId !== currentUserId)
         .map((account) => validateAccount(account)),
     );
+    dropDuplicates(accounts);
   };
 }
 
 export function useMultiAccount() {
   const accounts = useAccountsStorage();
-  const {
-    user,
-    session,
-    fetch: refreshUser,
-  } = useDmsUserSession<User, BrowserSession>();
+  const userSession = useDmsUserSession<User, BrowserSession>();
+  const { user, session } = userSession;
+  const refreshUser = () => userSession.fetch();
 
   const getActiveAccount = (): StoredAccount | undefined =>
     buildActiveAccount(user.value, session.value?.accountId);

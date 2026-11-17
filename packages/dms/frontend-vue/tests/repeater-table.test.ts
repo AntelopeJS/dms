@@ -22,12 +22,23 @@ import { isObject } from "../layers/dms-core/app/utils/type-check";
 
 const RELATION_TYPE = { selectSource: relationSelectSource };
 
+type CellValue = string | number | { name: string } | null | undefined;
+
+const display = (value: CellValue): string =>
+  isObject(value) && value ? String(value.name) : String(value);
+
+/** A scalar formatter: a relation row it is wrongly handed prints as `[object Object]`. */
+const scalar = (value: CellValue): string =>
+  isObject(value) && value
+    ? Object.prototype.toString.call(value)
+    : String(value);
+
 const PRODUCT = {
   id: "product",
   label: "Product",
   type: "relation",
   component: {
-    componentName: "dms-relation",
+    componentName: "dms-input-relation",
     options: {
       searchUrl: "/products/select",
       keyMapping: { label: "name", value: "_id" },
@@ -105,18 +116,11 @@ async function mountTable(
   })) {
     vi.stubGlobal(name, value);
   }
-  const formatters = new Map<
-    string,
-    (value: string | number | { name: string } | null | undefined) => string
-  >(
+  const formatters = new Map<string, (value: CellValue) => string>(
     Object.entries({
-      relation: (
-        value: string | number | { name: string } | null | undefined,
-      ) => (isObject(value) && value ? String(value.name) : String(value)),
-      price: (value: string | number | { name: string } | null | undefined) =>
-        `€${value}`,
-      number: (value: string | number | { name: string } | null | undefined) =>
-        String(value),
+      relation: display,
+      price: (value: CellValue) => `€${scalar(value)}`,
+      number: scalar,
     }),
   );
   vi.stubGlobal("useDataTypes", () => ({
@@ -140,10 +144,11 @@ async function mountTable(
     }),
   }));
   const requested: string[] = [];
+  const reads: Promise<unknown>[] = [];
   vi.stubGlobal("useDmsAsyncData", <T>(key: string, read: () => Promise<T>) => {
     requested.push(key);
     const data = ref<unknown>();
-    void read().then((rows) => (data.value = rows));
+    reads.push(read().then((rows) => (data.value = rows)));
     return { data };
   });
   const host = document.createElement("div");
@@ -152,6 +157,7 @@ async function mountTable(
     render: () => h(RepeaterTable, { columns, rows }),
   });
   app.mount(host);
+  await Promise.all(reads);
   await new Promise((resolve) => setTimeout(resolve));
   await nextTick();
   return { host, requested, fetched };

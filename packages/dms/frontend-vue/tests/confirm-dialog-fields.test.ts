@@ -59,7 +59,7 @@ describe("confirmation dialog texts", () => {
             label: "$roles.move_to",
             type: "select",
             component: {
-              componentName: "dms-select",
+              componentName: "dms-input-select",
               options: {
                 placeholder: "$roles.move_to",
                 items: [{ value: "r2", label: "Readers" }],
@@ -157,9 +157,10 @@ function createConfirmDialogFieldsFixture() {
       () =>
         h("input", {
           value: props.modelValue ?? "",
-          // SAFETY: This handler is attached to the input rendered immediately above.
-          onInput: (event: Event) =>
-            emit("update:modelValue", (event.target as HTMLInputElement).value),
+          onInput: (event: Event) => {
+            if (event.target instanceof HTMLInputElement)
+              emit("update:modelValue", event.target.value);
+          },
         }),
   });
   const Empty = defineComponent({ setup: () => () => null });
@@ -169,15 +170,17 @@ function createConfirmDialogFieldsFixture() {
     label: "Move them to",
     type: "select",
     required: true,
-    component: { componentName: "dms-select" },
+    component: { componentName: "dms-input-select" },
   };
 
   async function flush(): Promise<void> {
     for (let tick = 0; tick < 6; tick++) await nextTick();
   }
 
+  type ConfirmModalProps = InstanceType<typeof ConfirmModal>["$props"];
+
   function mount(
-    props: Partial<InstanceType<typeof ConfirmModal>["$props"]>,
+    props: Partial<ConfirmModalProps> & Pick<ConfirmModalProps, "title">,
   ): void {
     app = createApp({
       render: () =>
@@ -215,7 +218,7 @@ function createConfirmDialogFieldsFixture() {
       processApiMessage: (message: string) => `t(${message})`,
     }));
     vi.stubGlobal("resolveDmsComponent", (name: string) =>
-      name === "dms-select" ? Input : undefined,
+      name === "dms-input-select" ? Input : undefined,
     );
     host = document.createElement("div");
     document.body.append(host);
@@ -306,7 +309,7 @@ function registerConfirmationFieldTests(
     await fixture.flush();
 
     expect(fixture.host.querySelector("em")?.textContent).toBe(
-      "t($page.settings.roles.error.invalid_reassign)",
+      "page.settings.roles.error.invalid_reassign",
     );
     expect(fixture.closed).not.toHaveBeenCalled();
   });

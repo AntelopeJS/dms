@@ -9,7 +9,7 @@ export class PageFoundationsLabels extends PageController(
   {
     displayName: "Icons, pills & labels",
     description:
-      "DmsIconWell, DmsStatusPill, DmsEyebrow, DmsSectionHeader, DmsCopyButton and DmsAutoLink in every tone, size and variant. Click a copy button to try it",
+      "DmsIconWell, DmsStatusPill, DmsEyebrowLabel, DmsSectionHeader, DmsCopyButton and DmsAutoLink in every tone, size and variant. Click a copy button to try it",
     icon: "i-ph-tag",
     category: foundationsCategory,
     order: 0,
@@ -28,7 +28,7 @@ export class PageFoundationsFeedback extends PageController(
   {
     displayName: "Feedback & status",
     description:
-      "DmsBanner, DmsEmptyState, DmsMeter, DmsCheckList, DmsPasswordRules and DmsStatusSummary, plus the internal permission veil for review. Type a password to watch the rules tick",
+      "DmsNoticeBanner, DmsEmptyState, DmsMeterBar, DmsCheckList, DmsPasswordRules and DmsStatusSummary, plus the internal permission veil for review. Type a password to watch the rules tick",
     icon: "i-ph-info",
     category: foundationsCategory,
     order: 10,
@@ -66,7 +66,7 @@ export class PageFoundationsSurfaces extends PageController(
   {
     displayName: "Cards & controls",
     description:
-      "DmsCard, DmsNavCard, DmsRecordCard, DmsSegmented, DmsSection and the settings rows (DmsFieldRow, DmsSaveStatus, DmsInstantSaveBadge, DmsSaveBar). Edit a settings field to bring up the save bar",
+      "DmsCardPanel, DmsNavCard, DmsRecordCard, DmsSegmentedControl, DmsSectionPanel and the settings rows (DmsFieldRow, DmsSaveStatus, DmsInstantSaveBadge, DmsSaveBar). Edit a settings field to bring up the save bar",
     icon: "i-ph-cards-three",
     category: foundationsCategory,
     order: 30,

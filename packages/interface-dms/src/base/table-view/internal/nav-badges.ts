@@ -4,10 +4,7 @@ import {
   type RequestContext,
 } from "@antelopejs/interface-api";
 import { Logging } from "@antelopejs/interface-core/logging";
-import {
-  type DataControllerCallback,
-  GetDataControllerMeta,
-} from "@antelopejs/interface-data-api";
+import { GetDataControllerMeta } from "@antelopejs/interface-data-api";
 import { Parameters } from "@antelopejs/interface-data-api/components";
 import type {
   ComponentBuilder,
@@ -19,6 +16,7 @@ import { getRequestTenantId } from "../../../request-tenant";
 import { authorizeAction, LIST_ACTION } from "./auth";
 import { countWithSearch } from "../data-functions";
 import type { TableViewTab, TableViewTabFilter } from "../options";
+import { isObject, isString } from "../../../utils/internal/type-check";
 
 const FILTER_QUERY_PREFIX = "filter_";
 
@@ -66,8 +64,7 @@ async function countRows(
     GetDataControllerMeta(instance),
   );
   const { total } = await countWithSearch(
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- GetControllerInstance returns an instance, while the published runtime proxy accepts DataControllerCallback as its receiver type; that mismatch is not validated here.
-    instance as DataControllerCallback,
+    instance,
     queryContext,
     { filters },
     user,
@@ -80,8 +77,7 @@ async function countRows(
 function withTabTone(
   tab: TableViewTab,
 ): (count: number) => number | NavBadgeCount {
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- The published navBadge option declares a boolean shorthand or an object with a tone; this selects the object variant.
-  const tone = typeof tab.navBadge === "object" ? tab.navBadge.tone : undefined;
+  const tone = isObject(tab.navBadge) ? tab.navBadge.tone : undefined;
   return (count) => (tone ? { count, tone } : count);
 }
 
@@ -102,8 +98,7 @@ function navBadgeSourceOf(
     };
   }
   const { to, countFrom } = tab;
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Published tab targets and count sources may be strings or controller classes; navigation badges require the class variants.
-  if (typeof to === "string" || !countFrom || typeof countFrom === "string") {
+  if (isString(to) || !countFrom || isString(countFrom)) {
     Logging.Warn(
       `[DMS] TableView on "${controller.name}": tab "${tab.id}" sets navBadge but links to a path or counts from a location; a navigation badge needs a page controller \`to\` and a data controller \`countFrom\`. It publishes nothing.`,
     );

@@ -6,6 +6,7 @@ import type {
 } from "../request-authenticators";
 import { resolveRequestPrincipal } from "./request-authenticators";
 import { internal } from "../../auth";
+import { isBoolean } from "../../utils/internal/type-check";
 
 const HTTP_UNAUTHORIZED = 401;
 const UNAUTHORIZED_MESSAGE = "Unauthorized";
@@ -24,8 +25,7 @@ export async function authenticateRequestPrincipal(
   return resolveRequestPrincipal(ctx, authenticators, async (token) => {
     const decoded = await internal.AuthUserAuthenticator(token);
     const user = await internal.AuthUserValidator(decoded);
-    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- AuthUserValidator's published result includes boolean sentinels which cannot supply a user identity.
-    if (!user || typeof user === "boolean") {
+    if (!user || isBoolean(user)) {
       throw new HTTPResult(HTTP_UNAUTHORIZED, UNAUTHORIZED_MESSAGE);
     }
     return { user, tenantId: decoded.tenantId || DEFAULT_TENANT_ID };

@@ -13,6 +13,7 @@ import { formErrorsInjectionKey } from "@nuxt/ui/composables/useFormField";
 import DmsFormErrorText from "./FormErrorText.vue";
 import DmsFormFieldNotes from "./FormFieldNotes.vue";
 import { readonlyFieldValue } from "../../composables/form/readonlyValue";
+import { useDeclaredFieldProps } from "../../composables/form/fieldComponentProps";
 
 interface FormFieldControlProps {
   field: FormField;
@@ -67,6 +68,18 @@ const readonlyValue = computed(() =>
 const readonly = computed<FormFieldReadonly>(() =>
   isObject(props.field.readonly) ? props.field.readonly : {},
 );
+
+const rendered = computed(() => (showsDisplay.value ? null : component.value));
+const { isReady, offer } = await useDeclaredFieldProps(rendered);
+const offered = computed(() =>
+  offer({
+    initialValue: initialValues.value?.[props.field.id],
+    loading: loading.value,
+    componentId: context.componentId,
+    pageId: context.pageId,
+    routeParams: context.routeParams,
+  }),
+);
 </script>
 
 <template>
@@ -94,7 +107,7 @@ const readonly = computed<FormFieldReadonly>(() =>
         v-if="showsDisplay"
         class="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1"
       >
-        <DmsDisplay
+        <DmsDisplayValue
           :model-value="readonlyValue"
           :type="field.type"
           :loading
@@ -118,17 +131,12 @@ const readonly = computed<FormFieldReadonly>(() =>
       </div>
       <Component
         :is="component"
-        v-else
+        v-else-if="isReady"
         :id="field.id"
         v-model="state[field.id]"
-        :initial-value="initialValues?.[field.id]"
-        :loading
         :disabled="isDisabled"
-        :component-id="context.componentId"
-        :page-id="context.pageId"
-        :route-params="context.routeParams"
         class="w-full"
-        v-bind="field.component.options || {}"
+        v-bind="{ ...offered, ...field.component.options }"
       />
       <template v-if="hasError" #error="{ error }">
         <DmsFormErrorText :error />

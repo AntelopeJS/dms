@@ -12,12 +12,13 @@ import {
   useBlockPreviewEmbed,
   type BlockPreviewEmbed,
 } from "../layers/dms-ui/app/entries/composables/block-preview/useBlockPreviewEmbed";
+import type { JsonValue } from "../layers/dms-core/app/types/json";
 import {
   PREVIEW_CHANNEL,
   type PreviewState,
 } from "../layers/dms-ui/app/entries/utils/blockPreview";
 
-const parentWindow = { postMessage: vi.fn() };
+const parentWindow = { postMessage: vi.fn<(message: JsonValue) => void>() };
 const setLocale = vi.fn();
 let resizeCallback: (() => void) | undefined;
 let app: App | undefined;
@@ -47,8 +48,7 @@ function mount(initialState?: PreviewState): HTMLElement {
   return host;
 }
 
-// oxlint-disable-next-line anti-slop/no-unknown-parameters -- Message payloads are raw cross-window input; the embed, not its test sender, must validate them.
-function postFromParent(data: unknown): void {
+function postFromParent(data: JsonValue): void {
   window.dispatchEvent(
     new MessageEvent("message", {
       data,
@@ -119,6 +119,34 @@ describe("embedded block preview", () => {
     });
     await nextTick();
     expect(embed.transparent.value).toBe(false);
+  });
+
+  it("takes the padding a render names and keeps it while renders omit it", async () => {
+    mount({ tree: { type: "KpiCard" } });
+    expect(embed.padding.value).toBe(undefined);
+    postFromParent({
+      channel: PREVIEW_CHANNEL,
+      type: "render",
+      tree: [],
+      padding: false,
+    });
+    await nextTick();
+    expect(embed.padding.value).toBe(false);
+    postFromParent({ channel: PREVIEW_CHANNEL, type: "render", tree: [] });
+    await nextTick();
+    expect(embed.padding.value).toBe(false);
+  });
+
+  it("ignores a render whose padding is not a boolean", async () => {
+    mount({ tree: { type: "KpiCard" } });
+    postFromParent({
+      channel: PREVIEW_CHANNEL,
+      type: "render",
+      tree: [{ type: "Banner" }],
+      padding: "no",
+    });
+    await nextTick();
+    expect(embed.revision.value).toBe(0);
   });
 
   it("switches the theme on a theme message", async () => {

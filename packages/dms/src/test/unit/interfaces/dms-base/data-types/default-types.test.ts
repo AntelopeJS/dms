@@ -1,3 +1,4 @@
+import { Controller } from "@antelopejs/interface-api";
 import { GetMetadata } from "@antelopejs/interface-core";
 import { DataAPIMeta } from "@antelopejs/interface-data-api/metadata";
 import { expect } from "chai";
@@ -120,7 +121,9 @@ describe("[unit] interfaces/dms-base/data-types/default-types", () => {
       expect(type.getValidation().safeParse(1).success).to.equal(false);
     });
   });
+});
 
+describe("[unit] interfaces/dms-base/data-types/default-types", () => {
   describe("EmailType", () => {
     it("accepts a valid email", () => {
       const type = new DefaultDataTypes.EmailType();
@@ -181,6 +184,21 @@ describe("[unit] interfaces/dms-base/data-types/default-types", () => {
         false,
       );
     });
+
+    it("rejects every value when it has no items", () => {
+      const type = new DefaultDataTypes.SelectType();
+      expect(type.getValidation().safeParse("").success).to.equal(false);
+      expect(type.getValidation().safeParse("a").success).to.equal(false);
+    });
+
+    it("accepts only an empty array when multiple=true and it has no items", () => {
+      const type = new DefaultDataTypes.SelectType({
+        items: [],
+        multiple: true,
+      });
+      expect(type.getValidation().safeParse([]).success).to.equal(true);
+      expect(type.getValidation().safeParse(["a"]).success).to.equal(false);
+    });
   });
 
   describe("PhoneType", () => {
@@ -211,7 +229,9 @@ describe("[unit] interfaces/dms-base/data-types/default-types", () => {
       );
     });
   });
+});
 
+describe("[unit] interfaces/dms-base/data-types/default-types", () => {
   describe("AddressType", () => {
     it("accepts a full valid address object", () => {
       const type = new DefaultDataTypes.AddressType();
@@ -243,6 +263,19 @@ describe("[unit] interfaces/dms-base/data-types/default-types", () => {
       expect(type.getValidation().safeParse(-1).success).to.equal(false);
       expect(type.getValidation().safeParse(0).success).to.equal(true);
     });
+
+    it("carries its currency to the description columns and cells read", () => {
+      const type = new DefaultDataTypes.PriceType({ currency: "USD" });
+      expect(type.inputComponent().options).to.deep.include({
+        currency: "USD",
+      });
+      expect(type.getValidation().safeParse(-1).success).to.equal(false);
+    });
+
+    it("states no currency by default", () => {
+      const type = new DefaultDataTypes.PriceType();
+      expect(type.inputComponent().options).to.not.have.property("currency");
+    });
   });
 
   describe("PercentageType defaults", () => {
@@ -254,14 +287,20 @@ describe("[unit] interfaces/dms-base/data-types/default-types", () => {
       expect(type.getValidation().safeParse(1.01).success).to.equal(false);
     });
   });
+});
 
+describe("[unit] interfaces/dms-base/data-types/default-types", () => {
   describe("RelationType filterOnly", () => {
-    class UnregisteredController {}
+    class UnregisteredController extends Controller("/unregistered-relation") {
+      declare name: string;
+      declare _id: string;
+      declare parentId: string;
+    }
+    const UNREGISTERED_CONTROLLER = UnregisteredController;
 
     it("keeps the relation compare modes whether or not filterOnly is set", () => {
       const filtering = new DefaultDataTypes.RelationType({
-        // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- This intentionally unregistered class lacks ControllerClass members; filterOnly must still expose compare modes without a registered relation target.
-        dataApiController: UnregisteredController as never,
+        dataApiController: UNREGISTERED_CONTROLLER,
         keyMapping: { label: "name", value: "_id" },
         filterOnly: true,
       });
@@ -273,22 +312,21 @@ describe("[unit] interfaces/dms-base/data-types/default-types", () => {
 
     it("filters a multiple relation on whether its ids include the picked one", () => {
       const crew = new DefaultDataTypes.RelationType({
-        // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- This intentionally unregistered class isolates multiple-relation compare modes without supplying a real controller.
-        dataApiController: UnregisteredController as never,
+        dataApiController: UNREGISTERED_CONTROLLER,
         keyMapping: { label: "name", value: "_id" },
         multiple: true,
       });
       expect(crew.compareModes).to.deep.equal([
         DefaultDataCompareTypes.Include,
         DefaultDataCompareTypes.Exclude,
+        DefaultDataCompareTypes.ArrayContainsString,
         DefaultDataCompareTypes.IsEmpty,
         DefaultDataCompareTypes.IsNotEmpty,
       ]);
       expect(crew.defaultCompareMode).to.equal(DefaultDataCompareTypes.Include);
 
       const tree = new DefaultDataTypes.CascaderRelationType({
-        // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- This intentionally unregistered class isolates cascader compare modes without supplying a real controller.
-        dataApiController: UnregisteredController as never,
+        dataApiController: UNREGISTERED_CONTROLLER,
         keyMapping: { label: "name", value: "_id", parent: "parentId" },
         multiple: true,
       });
@@ -299,8 +337,7 @@ describe("[unit] interfaces/dms-base/data-types/default-types", () => {
     it("skips the Foreign join when filterOnly is set (raw scalar stays in /list)", () => {
       class Target {}
       const rel = new DefaultDataTypes.RelationType({
-        // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The unregistered target is deliberate; filterOnly must skip the join that would require controller registration.
-        dataApiController: UnregisteredController as never,
+        dataApiController: UNREGISTERED_CONTROLLER,
         keyMapping: { label: "name", value: "_id" },
         filterOnly: true,
       });
@@ -316,8 +353,7 @@ describe("[unit] interfaces/dms-base/data-types/default-types", () => {
     it("engages the Foreign join when filterOnly is not set", () => {
       class Target {}
       const rel = new DefaultDataTypes.RelationType({
-        // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The unregistered target is deliberate negative input so the non-filterOnly join's registration error remains covered.
-        dataApiController: UnregisteredController as never,
+        dataApiController: UNREGISTERED_CONTROLLER,
         keyMapping: { label: "name", value: "_id" },
       });
 
@@ -326,16 +362,21 @@ describe("[unit] interfaces/dms-base/data-types/default-types", () => {
       ).to.throw();
     });
   });
+});
 
+describe("[unit] interfaces/dms-base/data-types/default-types", () => {
   describe("RelationType filterBy", () => {
-    class SiteController {}
+    class SiteController extends Controller("/relation-filter-site") {
+      declare customer: string;
+      declare region: string;
+    }
     GetMetadata(SiteController, DataAPIMeta).filters.customer = () => true;
+    const SITE_CONTROLLER = SiteController;
 
     it("accepts a filterBy field the related controller can filter on", () => {
       class Target {}
       const rel = new DefaultDataTypes.RelationType({
-        // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- This metadata-only class intentionally omits ControllerClass's routing API; the fixture tests filter metadata rather than mounting a controller.
-        dataApiController: SiteController as never,
+        dataApiController: SITE_CONTROLLER,
         filterBy: { field: "customer", from: "customer" },
         filterOnly: true,
       });
@@ -348,8 +389,7 @@ describe("[unit] interfaces/dms-base/data-types/default-types", () => {
     it("refuses a filterBy field the search route would drop", () => {
       class Target {}
       const rel = new DefaultDataTypes.RelationType({
-        // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- This metadata-only class intentionally omits ControllerClass's routing API; the fixture tests rejection of missing filter metadata.
-        dataApiController: SiteController as never,
+        dataApiController: SITE_CONTROLLER,
         filterBy: { field: "region", from: "region" },
         filterOnly: true,
       });

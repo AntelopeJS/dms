@@ -18,16 +18,15 @@ import * as permissionsInterface from "@antelopejs/interface-dms/permissions";
 import * as permissionsResolverInterface from "@antelopejs/interface-dms/permissions-resolver";
 import * as tenantAccessInterface from "@antelopejs/interface-dms/tenant-access";
 import { gateAllowsSurface } from "@antelopejs/interface-dms/internal/tenant-access";
-import type { User } from "@antelopejs/interface-dms/auth/db";
 import {
   denyingTenantGate,
   registerTestPage,
   stubPageAccessModels,
 } from "../../../helpers/page-access";
+import { userFixture } from "../../../helpers/user-fixture";
 
 const DENIED_TENANT = "gc-denied-tenant";
-// SAFETY: Gate and permission evaluation use this id and the omitted owner flag; the fixture does not stand in for persisted-user operations.
-const MEMBER = { _id: "gc-member" } as User;
+const MEMBER = userFixture({ _id: "gc-member" });
 const gateInfo = denyingTenantGate("gc-gate", DENIED_TENANT, "gc.suspended");
 
 const SURFACES = [

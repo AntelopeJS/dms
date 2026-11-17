@@ -18,13 +18,30 @@ const root = resolve(frontend, "../../..");
 const scratch = mkdtempSync(join(tmpdir(), "frontend-autoimport-tests-"));
 const pkg = join(scratch, "packages/dms/frontend-vue");
 const app = "layers/dms-core/app";
-const require = createRequire(import.meta.url);
-const { createServer } = require("vite");
-const vue = require("@vitejs/plugin-vue").default;
-const { createSSRApp } = require("vue");
-const { renderToString } = require("vue/server-renderer");
-const autoImport = require("unplugin-auto-import/vite");
 
+/**
+ * @typedef {{
+ *   (id: "vite"): typeof import("vite");
+ *   (id: "@vitejs/plugin-vue"): typeof import("@vitejs/plugin-vue");
+ *   (id: "vue"): typeof import("vue");
+ *   (id: "vue/server-renderer"): typeof import("vue/server-renderer");
+ *   (id: "unplugin-auto-import/vite"): typeof import("unplugin-auto-import/vite").default;
+ * }} TestDependencies
+ */
+
+/** @type {(from: string) => TestDependencies} */
+const requireFrom = createRequire;
+const load = requireFrom(import.meta.url);
+const { createServer } = load("vite");
+const vue = load("@vitejs/plugin-vue").default;
+const { createSSRApp } = load("vue");
+const { renderToString } = load("vue/server-renderer");
+const autoImport = load("unplugin-auto-import/vite");
+
+/**
+ * @param {string} file
+ * @param {string} text
+ */
 function write(file, text) {
   const target = join(pkg, file);
   mkdirSync(dirname(target), { recursive: true });
@@ -40,6 +57,19 @@ function run() {
   );
 }
 
+/**
+ * @param {unknown} value
+ * @returns {value is import("vue").Component}
+ */
+function isComponent(value) {
+  return value instanceof Object;
+}
+
+/**
+ * @param {string} file
+ * @param {(loaded: Record<string, unknown>) => unknown} verify
+ * @param {import("vite").PluginOption[]} plugins
+ */
 async function viteControl(file, verify, plugins) {
   const server = await createServer({
     root: pkg,
@@ -97,6 +127,7 @@ try {
   await viteControl(
     "layers/dms-ui/app/components/Entry.vue",
     async (actual) => {
+      assert.ok(isComponent(actual.default), "entry default is a component");
       const app = createSSRApp(actual.default);
       app.component("DashboardHeader", {
         template: "<header>CONTROL_OK</header>",
@@ -139,6 +170,25 @@ try {
   assert.equal(autoResult.status, 1, autoResult.stderr);
   assert.match(autoResult.stderr, /useHigher/);
   console.log("PASS reject generated auto-import owner");
+  rmSync(join(pkg, "layers"), { recursive: true, force: true });
+  mkdirSync(join(pkg, app), { recursive: true });
+  write(
+    "layers/dms-ui/app/composables/useShared.ts",
+    "export const useShared = () => 1;",
+  );
+  write(
+    "layers/dms-layout/app/composables/useShared.ts",
+    'export * from "../../../dms-ui/app/composables/useShared";',
+  );
+  assert.equal(run().status, 0, "relative star re-export resolves");
+  write(
+    "layers/dms-layout/app/composables/useShared.ts",
+    'export * from "#dms-ui/app/composables/useShared";',
+  );
+  const aliasResult = run();
+  assert.equal(aliasResult.status, 1, aliasResult.stderr);
+  assert.match(aliasResult.stderr, /FAIL auto-import scan .*#dms-ui/);
+  console.log("PASS reject unresolvable star re-export");
 } finally {
   rmSync(scratch, { recursive: true, force: true });
 }

@@ -1,6 +1,7 @@
 /** @vitest-environment jsdom */
 import { ref } from "vue";
 import { describe, expect, it, vi } from "vitest";
+import { isFunction } from "../layers/dms-core/app/utils/type-check";
 import {
   closeRowSidePanel,
   ROW_SIDE_PANEL_ID,
@@ -119,12 +120,13 @@ describe("deep link to a row the table does not list", () => {
   });
 
   it("marks a refused read as failed and finds nothing without a row route", async () => {
+    const error = Object.assign(new Error("Forbidden"), { status: 403 });
     const refused = async () => {
-      throw Object.assign(new Error("Forbidden"), { status: 403 });
+      throw error;
     };
     expect(
       await resolveDeepLinkedRow("r9", { listed: rows, idOf, getRow: refused }),
-    ).toEqual({ isMissing: false, isFailed: true });
+    ).toEqual({ isMissing: false, isFailed: true, error });
     const noRoute = async () => undefined;
     expect(
       await resolveDeepLinkedRow("r9", { listed: rows, idOf, getRow: noRoute }),
@@ -150,10 +152,10 @@ describe("showing another row from the panel", () => {
   const notFoundError = () =>
     Object.assign(new Error("Not Found"), { statusCode: 404 });
   const showRow = (rowOrId: Row | string) => {
-    // SAFETY: mountPanel opens useActionTargets' row container, which installs the async row-or-id showRow prop.
-    const show = useRowSidePanelContent().value!.componentOptions.showRow as (
-      rowOrId: Row | string,
-    ) => Promise<void>;
+    const show = useRowSidePanelContent().value?.componentOptions.showRow;
+    if (!isFunction(show)) {
+      throw new Error("The row side panel installs no showRow");
+    }
     return show(rowOrId);
   };
 

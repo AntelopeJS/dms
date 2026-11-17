@@ -1,5 +1,8 @@
 import { expect } from "chai";
-import type { AccountActivityEvent } from "../../../../pages/account";
+import type {
+  AccountActivityEvent,
+  AccountActivityType,
+} from "../../../../pages/account";
 import { toActivityFeedItems } from "../../../../pages/account";
 
 const TEXTS = "$page.settings.overview.activity";
@@ -14,23 +17,29 @@ const PROFILE_ONLY = { "settings.user.profile": "/settings/user/profile" };
 const EVENT_DATE = "2026-09-30T10:00:00.000Z";
 
 const event = (
-  type: string,
+  type: AccountActivityType,
   overrides: Partial<AccountActivityEvent> = {},
-): AccountActivityEvent =>
-  // SAFETY: This feed fixture deliberately includes unknown event types; the formatter skips them and reads only the detail fields supplied for each case.
-  ({
-    id: `${type}-1`,
-    type,
-    date: new Date(EVENT_DATE),
-    ...overrides,
-  }) as AccountActivityEvent;
+): AccountActivityEvent => ({
+  id: `${type}-1`,
+  type,
+  date: new Date(EVENT_DATE),
+  ...overrides,
+});
+
+const UNKNOWN_TYPE: string = "module_installed";
+
+// SAFETY: toActivityFeedItems tests each event's type with Object.hasOwn(LOOKS, type) before it reads LOOKS or any other member, so a type outside AccountActivityType is skipped and never looked up.
+const unknownTypeEvent = {
+  ...event("password_changed", { id: "b" }),
+  type: UNKNOWN_TYPE,
+} as AccountActivityEvent;
 
 describe("[unit] settings overview — account activity feed", () => {
   it("keeps the order of the events and skips unknown types", () => {
     const items = toActivityFeedItems(
       [
         event("password_changed", { id: "a" }),
-        event("module_installed", { id: "b" }),
+        unknownTypeEvent,
         event("account_created", { id: "c" }),
       ],
       ALL_PAGES,
@@ -98,7 +107,7 @@ describe("[unit] settings overview — account activity feed", () => {
       [
         event("two_factor_disabled", { method: "email" }),
         event("two_factor_enabled", {
-          // SAFETY: The invalid method deliberately exercises the formatter's unknown-method fallback without altering the runtime input.
+          // SAFETY: twoFactorMeta shows a method only when TWO_FACTOR_METHODS has it, so a method outside TwoFactorMethod yields no detail and is never used as a key.
           method: "sms" as AccountActivityEvent["method"],
         }),
         event("workspace_joined", { workspace: "Acme", actor: "Léa" }),

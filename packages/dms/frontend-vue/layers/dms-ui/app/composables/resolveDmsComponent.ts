@@ -5,14 +5,21 @@ function normalizeComponentName(name: string): string {
   return name.toLowerCase().replace(/[^a-z0-9]/g, "");
 }
 
+function isRegistered(
+  components: Record<string, Component>,
+  key: string,
+): boolean {
+  return Object.hasOwn(components, key) && !!components[key];
+}
+
 function findRegistryKey(
   name: string,
   components: Record<string, Component>,
 ): string | undefined {
-  if (components[name]) return name;
+  if (isRegistered(components, name)) return name;
 
   const pascal = capitalize(camelize(name));
-  if (components[pascal]) return pascal;
+  if (isRegistered(components, pascal)) return pascal;
 
   const normalized = normalizeComponentName(name);
   for (const key of Object.keys(components)) {

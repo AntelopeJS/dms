@@ -14,8 +14,8 @@ import {
   watch,
 } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import File from "../layers/dms-ui/app/components/form/components/File.vue";
-import Image from "../layers/dms-ui/app/components/form/components/Image.vue";
+import File from "../layers/dms-ui/app/components/form/components/InputFile.vue";
+import Image from "../layers/dms-ui/app/components/form/components/InputImage.vue";
 import { browserRuntime, stubApiData } from "./helpers/api-data-runtime";
 import {
   isDefinitiveMetadataFailure,

@@ -70,7 +70,11 @@ const FormBoundary = Vue.defineComponent({
   },
 });
 const Button = Vue.defineComponent({
-  props: ["label", "disabled", "type"],
+  props: {
+    label: String,
+    disabled: { type: Boolean, default: undefined },
+    type: String,
+  },
   setup:
     (props, { attrs }) =>
     () =>
@@ -104,9 +108,10 @@ export async function mountForm(
   props: Partial<FormProps> = {},
   close?: () => Promise<void>,
   setupApp?: (app: Vue.App) => void,
+  isMounted: () => boolean = () => host.querySelector("form") !== null,
 ) {
   const { default: Form } = await import(
-    "../../layers/dms-ui/app/components/form/Form.vue"
+    "../../layers/dms-ui/app/components/form/FormBlock.vue"
   );
   const options: FormProps = {
     componentId: "form",
@@ -152,7 +157,7 @@ export async function mountForm(
     useModal().open({
       title: "Edit person",
       component: Form,
-      componentOptions: options,
+      componentOptions: { ...options },
     });
     vi.stubGlobal("useOverlay", () => ({
       create: () => ({ open: openPrompt }),
@@ -172,15 +177,15 @@ export async function mountForm(
   );
   setupApp?.(app);
   app.mount(host);
-  await vi.waitFor(() => expect(host.querySelector("form")).not.toBeNull());
+  await vi.waitFor(() => expect(isMounted()).toBe(true));
   await Vue.nextTick();
 }
 
 export function registerFormComponents(app: Vue.App) {
   app.config.globalProperties.$t = t;
   for (const name of [
-    "DmsCard",
-    "DmsSection",
+    "DmsCardPanel",
+    "DmsSectionPanel",
     "UFormField",
     "UIcon",
     "DmsLocalizedField",
@@ -192,7 +197,7 @@ export function registerFormComponents(app: Vue.App) {
   app.component("UButton", Button);
   app.component("UAlert", Alert);
   app.component(
-    "DmsDisplay",
+    "DmsDisplayValue",
     Vue.defineComponent({
       props: ["modelValue"],
       setup: (props) => () => Vue.h("span", String(props.modelValue ?? "")),

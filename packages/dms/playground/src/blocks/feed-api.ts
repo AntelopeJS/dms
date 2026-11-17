@@ -5,11 +5,14 @@ import {
   Parameter,
   Post,
   Put,
+  type QueryValue,
 } from "@antelopejs/interface-api";
 import type { ActivityFeedItem } from "@antelopejs/interface-dms/base/activity-feed";
 import { PublishMessage } from "@antelopejs/interface-dms/realtime";
 import { notFound, serviceUnavailable } from "./demo-errors";
 import { ago, attentionEntries, workspaceActivity } from "./feed-data";
+import { ownEntry } from "../own-entry";
+import { queryText } from "../query-text";
 
 const DEMO_LATENCY_MS = 700;
 
@@ -24,18 +27,16 @@ const QUOTA_STEP = 5_000;
 const QUOTA_MAX = 100_000;
 const DEFAULT_PERIOD = "this-month";
 
-// oxlint-disable-next-line anti-slop/no-known-value-widening -- Arbitrary period query strings require the existing indexed lookup and fallback.
-const QUOTA_BY_PERIOD: Record<string, number> = {
+const QUOTA_BY_PERIOD = {
   "this-month": 61_400,
   "last-month": 97_800,
-};
+} satisfies Record<string, number>;
 
-// oxlint-disable-next-line anti-slop/no-known-value-widening -- Arbitrary period query strings require the existing indexed lookup and fallback.
-const ATTENTION_COUNT_BY_PERIOD: Record<string, number> = {
+const ATTENTION_COUNT_BY_PERIOD = {
   "last-24h": 9,
   "last-7-days": 31,
   "last-30-days": 112,
-};
+} satisfies Record<string, number>;
 
 let quotaUsedThisMonth = QUOTA_BY_PERIOD[DEFAULT_PERIOD];
 const addedEntries: ActivityFeedItem[] = [];
@@ -69,6 +70,11 @@ interface WorkspaceSettings {
 
 const WORKSPACE_KEYS = ["name", "slug", "language", "description"] as const;
 
+/** Whether a submitted workspace field holds text, the only value a field takes. */
+function isFieldText(value: unknown): value is string {
+  return typeof value === "string";
+}
+
 const workspace: WorkspaceSettings = {
   name: "Acme Logistics",
   slug: "acme",
@@ -91,19 +97,20 @@ export class BlocksFeedApiController extends Controller("/api/blocks-feed") {
   }
 
   @Get("attention")
-  getAttention(@Parameter("preset", "query") preset?: string) {
+  getAttention(@Parameter("preset", "query") preset: QueryValue) {
     return later({
       items: attentionEntries(),
-      count: ATTENTION_COUNT_BY_PERIOD[preset ?? ""],
+      count: ownEntry(ATTENTION_COUNT_BY_PERIOD, queryText(preset) ?? ""),
     });
   }
 
   @Get("quota")
-  getQuota(@Parameter("preset", "query") preset?: string) {
-    const isCurrentMonth = (preset ?? DEFAULT_PERIOD) === DEFAULT_PERIOD;
+  getQuota(@Parameter("preset", "query") preset: QueryValue) {
+    const isCurrentMonth =
+      (queryText(preset) ?? DEFAULT_PERIOD) === DEFAULT_PERIOD;
     const value = isCurrentMonth
       ? quotaUsedThisMonth
-      : (QUOTA_BY_PERIOD[preset ?? ""] ?? 0);
+      : (ownEntry(QUOTA_BY_PERIOD, queryText(preset) ?? "") ?? 0);
     return later({ value });
   }
 
@@ -194,8 +201,7 @@ export class BlocksFeedApiController extends Controller("/api/blocks-feed") {
   updateWorkspace(@JSONBody() update: Partial<WorkspaceSettings>) {
     for (const key of WORKSPACE_KEYS) {
       const value = update?.[key];
-      // oxlint-disable-next-line anti-slop/no-runtime-typeof -- JSONBody accepts unchecked request values; preserve the endpoint's existing policy of ignoring non-string fields.
-      if (typeof value === "string") workspace[key] = value;
+      if (isFieldText(value)) workspace[key] = value;
     }
     return { ...workspace };
   }

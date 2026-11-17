@@ -97,7 +97,7 @@ export const GROUP_FIELDS_CLASSES: Record<FormOrientation, string> = {
 };
 
 const WIDE_FIELD_COMPONENTS: ReadonlySet<string> = new Set([
-  "dms-repeater",
+  "dms-input-repeater",
   "dms-key-value",
   "dms-input-code",
   "dms-rich-text",
@@ -111,8 +111,8 @@ const WIDE_FIELD_TYPES: ReadonlySet<string> = new Set([
 ]);
 
 const MULTIPLE_FILE_COMPONENTS: ReadonlySet<string> = new Set([
-  "dms-file",
-  "dms-image",
+  "dms-input-file",
+  "dms-input-image",
 ]);
 
 const SHORT_TEXTAREA_ROWS = 3;
@@ -130,7 +130,7 @@ export function isWideField(field: FormField): boolean {
   if (WIDE_FIELD_COMPONENTS.has(name)) return true;
   const options: WideFieldOptions = field.component.options ?? {};
   if (MULTIPLE_FILE_COMPONENTS.has(name)) return options.multiple === true;
-  if (name !== "dms-textarea") return false;
+  if (name !== "dms-input-textarea") return false;
   return (options.rows ?? 0) > SHORT_TEXTAREA_ROWS;
 }
 

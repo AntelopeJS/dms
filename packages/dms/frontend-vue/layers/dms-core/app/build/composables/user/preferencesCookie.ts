@@ -134,9 +134,14 @@ export const writeAt = (
   const lastKey = keys.at(-1)!;
   let current = tree;
   for (const key of keys.slice(0, -1)) {
-    if (!isBranch(current[key])) current[key] = {};
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The branch check and assignment precede a separate property read. An accessor can return another value; preserve that unchecked second lookup instead of caching or validating it.
-    current = current[key] as PreferencesTree;
+    const next = current[key];
+    if (isBranch(next)) {
+      current = next;
+      continue;
+    }
+    const branch: PreferencesTree = {};
+    current[key] = branch;
+    current = branch;
   }
   current[lastKey] = value;
 };

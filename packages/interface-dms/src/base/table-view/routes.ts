@@ -1,6 +1,5 @@
 import {
   Context,
-  JSONBody,
   MultiParameter,
   Parameter,
   type RequestContext,
@@ -9,11 +8,13 @@ import { assert } from "@antelopejs/interface-api-util";
 import { GetMetadata } from "@antelopejs/interface-core";
 import {
   type DataControllerCallback,
-  type DataControllerCallbackWithOptions,
   DefaultRoutes,
   GetDataControllerMeta,
 } from "@antelopejs/interface-data-api";
-import { Parameters } from "@antelopejs/interface-data-api/components";
+import {
+  Parameters,
+  type Validation,
+} from "@antelopejs/interface-data-api/components";
 import { getRequestTenantId } from "../../request-tenant";
 import { AuthUser } from "../../auth";
 import type { User } from "../../auth/db";
@@ -24,6 +25,7 @@ import {
   VIEW_ACTION,
   withActionCheck,
   withActionCheckOptions,
+  withParamsActionCheck,
 } from "./internal/auth";
 import {
   archiveRows,
@@ -34,11 +36,16 @@ import {
   restoreRows,
   startExport,
   summarizeWithSearch,
+  type TableViewListPage,
 } from "./data-functions";
 import type { RowBulkOperationParams } from "./internal/data-functions";
 import { withFilePromotion } from "./internal/files";
 import { withColumnConditions } from "./internal/column-conditions";
-import { createGuardedRoute, guardedGetRoute } from "./internal/guards";
+import {
+  createGuardedConfirmRoute,
+  createGuardedWriteRoute,
+  guardedGetRoute,
+} from "./internal/guards";
 import {
   extractBulkArgIds,
   extractFromResult,
@@ -52,39 +59,47 @@ import type { TableViewFooterSummary } from "./options";
 import { createValidatedRoute } from "./internal/row-rules";
 
 const MAX_BATCH_COUNT_QUERIES = 50;
-
-/** One query value; a list repeats its key (`filter_x=a&filter_x=b`). */
-type BatchCountQueryValue = string | number | boolean | string[] | undefined;
+const MAX_BATCH_COUNT_TARGET_BYTES = 8_192;
+const HTTP_BAD_REQUEST = 400;
+const HTTP_URI_TOO_LONG = 414;
+const COUNT_QUERY_SEPARATOR = "?";
 
 interface BatchCountQuery {
   id: string;
-  query: Record<string, BatchCountQueryValue>;
+  query: URLSearchParams;
 }
 
-interface BatchCountBody {
-  queries: BatchCountQuery[];
+function decodeCountId(id: string): string {
+  try {
+    return decodeURIComponent(id);
+  } catch {
+    assert(false, HTTP_BAD_REQUEST, "Invalid count batch query.");
+  }
 }
 
-// oxlint-disable-next-line anti-slop/no-unknown-parameters -- This parser is the JSONBody boundary of the published count-batch route; it must accept arbitrary decoded request values before checking them.
-function parseBatchCountBody(body: unknown): BatchCountBody {
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- JSONBody supplies untyped input; this existing parser rejects non-object request bodies before inspecting queries.
-  assert(body && typeof body === "object", 400, "Invalid count batch body.");
-  const { queries }: Partial<BatchCountBody> = body;
-  assert(Array.isArray(queries), 400, "Invalid count batch queries.");
+function parseBatchCountQueries(
+  ctx: RequestContext,
+  values: string[],
+): BatchCountQuery[] {
   assert(
-    queries.length <= MAX_BATCH_COUNT_QUERIES,
-    400,
+    Buffer.byteLength(ctx.url.pathname + ctx.url.search, "utf8") <=
+      MAX_BATCH_COUNT_TARGET_BYTES,
+    HTTP_URI_TOO_LONG,
+    "Count batch URI too long.",
+  );
+  assert(
+    values.length <= MAX_BATCH_COUNT_QUERIES,
+    HTTP_BAD_REQUEST,
     "Too many count batch queries.",
   );
-  for (const query of queries) {
-    assert(
-      // oxlint-disable-next-line anti-slop/no-runtime-typeof -- The count-batch parser checks each request entry's id representation; a stronger schema would reject inputs currently accepted by this published route.
-      query && typeof query.id === "string" && query.query,
-      400,
-      "Invalid count batch query.",
-    );
-  }
-  return { queries };
+  return values.map((value) => {
+    const separator = value.indexOf(COUNT_QUERY_SEPARATOR);
+    assert(separator >= 0, HTTP_BAD_REQUEST, "Invalid count batch query.");
+    return {
+      id: decodeCountId(value.slice(0, separator)),
+      query: new URLSearchParams(value.slice(separator + 1)),
+    };
+  });
 }
 
 function buildBatchCountContext(
@@ -92,13 +107,7 @@ function buildBatchCountContext(
   query: BatchCountQuery["query"],
 ): RequestContext {
   const url = new URL(ctx.url);
-  url.search = "";
-  for (const [key, value] of Object.entries(query)) {
-    if (value === undefined) continue;
-    for (const item of Array.isArray(value) ? value : [value]) {
-      url.searchParams.append(key, String(item));
-    }
-  }
+  url.search = query.toString();
   return { ...ctx, url };
 }
 
@@ -108,7 +117,11 @@ type BulkOperationResult =
 
 const createBulkOperationRoute = (
   operationFunc: (...args: RowBulkOperationParams) => BulkOperationResult,
-): DataControllerCallback => ({
+): DataControllerCallback<
+  unknown,
+  Awaited<BulkOperationResult>,
+  [RequestContext, string[]]
+> => ({
   func: function (ctx: RequestContext, ids: string[]) {
     assert(ids.length > 0, 400, "Missing ids.");
     return operationFunc(this, ctx, ids);
@@ -117,7 +130,13 @@ const createBulkOperationRoute = (
   method: "put",
 });
 
-function createListRoute(actionId: string): DataControllerCallback {
+function createListRoute(
+  actionId: string,
+): DataControllerCallback<
+  Parameters.ListParameters,
+  TableViewListPage,
+  [RequestContext, Parameters.ListParameters, User]
+> {
   return {
     func: async function (
       this: globalThis.Parameters<typeof listWithSearch>[0] & {
@@ -224,11 +243,10 @@ function createBatchCountRoute(actionId: string): DataControllerCallback {
         constructor: ConstructorParameters<typeof TableViewMeta>[0];
       },
       ctx: RequestContext,
-      // oxlint-disable-next-line anti-slop/no-unknown-parameters -- JSONBody is decoded by parseBatchCountBody below; its published route boundary must still accept arbitrary request values.
-      body: unknown,
+      values: string[],
       user: User,
     ) {
-      const parsed = parseBatchCountBody(body);
+      const queries = parseBatchCountQueries(ctx, values);
       const permissions = await authorizeAction(
         this,
         actionId,
@@ -237,7 +255,7 @@ function createBatchCountRoute(actionId: string): DataControllerCallback {
       );
       const meta = GetDataControllerMeta(this);
       const entries = await Promise.all(
-        parsed.queries.map(async ({ id, query }) => {
+        queries.map(async ({ id, query }) => {
           const queryContext = buildBatchCountContext(ctx, query);
           const listParams = {
             filters: Parameters.ExtractFilters(queryContext, meta),
@@ -254,20 +272,24 @@ function createBatchCountRoute(actionId: string): DataControllerCallback {
       );
       return Object.fromEntries(entries);
     },
-    args: [Context(), JSONBody(), AuthUser()],
-    method: "post" as const,
+    args: [Context(), MultiParameter("query", "query"), AuthUser()],
+    method: "get" as const,
   };
 }
 
-function createEditRoute(
-  baseRoute: DataControllerCallback,
-): DataControllerCallback {
+function createEditRoute<O, R>(
+  baseRoute: DataControllerCallback<
+    O,
+    R,
+    [RequestContext, Parameters.EditParameters, Validation.WrittenBody]
+  >,
+) {
   return withRealtimeMutation(
     { eventType: "updated", extractIds: extractSingleParamId },
     withActionCheck(
       "edit",
       withColumnConditions(
-        createGuardedRoute(
+        createGuardedWriteRoute(
           createValidatedRoute(withFilePromotion(baseRoute), "edit"),
           "edit",
         ),
@@ -279,7 +301,7 @@ function createEditRoute(
 
 export namespace TableViewRoutes {
   export const Get = withPresenceAcquire(
-    withActionCheck(VIEW_ACTION, guardedGetRoute),
+    withParamsActionCheck(VIEW_ACTION, guardedGetRoute),
   );
   export const List = createListRoute(LIST_ACTION);
   export const Select = DefaultRoutes.WithOptions(
@@ -294,7 +316,9 @@ export namespace TableViewRoutes {
    */
   export const Count = createCountRoute(LIST_ACTION);
   /**
-   * `POST <location>/count/batch`: one count per query, in a single request.
+   * `GET <location>/count/batch`: one count per repeated `query` value,
+   * encoded as an escaped id, `?`, and its list query string. Accepts up to
+   * 50 entries and 8,192 UTF-8 bytes in the encoded path plus search.
    * Filter tabs with counters require the controller to mount
    * `countBatch: TableViewRoutes.CountBatch`; a table view declaring `tabs`
    * without it gets failing counters and a registration warning.
@@ -320,7 +344,7 @@ export namespace TableViewRoutes {
     withActionCheck(
       "add",
       withColumnConditions(
-        createGuardedRoute(withFilePromotion(DefaultRoutes.New), "new"),
+        createGuardedWriteRoute(withFilePromotion(DefaultRoutes.New), "new"),
         "new",
       ),
     ),
@@ -342,7 +366,7 @@ export namespace TableViewRoutes {
     { eventType: "deleted", extractIds: extractMultiParamId },
     withActionCheck(
       "delete",
-      createGuardedRoute(
+      createGuardedConfirmRoute(
         createValidatedRoute(
           withFilePromotion(DefaultRoutes.Delete, "delete"),
           "delete",
@@ -355,7 +379,7 @@ export namespace TableViewRoutes {
     { eventType: "updated", extractIds: extractBulkArgIds },
     withActionCheck(
       "archive",
-      createGuardedRoute(
+      createGuardedConfirmRoute(
         createValidatedRoute(createBulkOperationRoute(archiveRows), "archive"),
         "archive",
       ),
@@ -365,54 +389,59 @@ export namespace TableViewRoutes {
     { eventType: "updated", extractIds: extractBulkArgIds },
     withActionCheck(
       "restore",
-      createGuardedRoute(
+      createGuardedConfirmRoute(
         createValidatedRoute(createBulkOperationRoute(restoreRows), "restore"),
         "restore",
       ),
     ),
   );
 
-  export const ExportRoutes: Record<
-    string,
-    DataControllerCallback | DataControllerCallbackWithOptions
-    // oxlint-disable-next-line anti-slop/no-known-value-widening -- The published export is an open callback dictionary; inference or satisfies would expose narrower named route members and change its declaration.
-  > = {
-    exportStart: withActionCheckOptions(
-      "export",
-      DefaultRoutes.WithOptions(
-        {
-          // oxlint-disable-next-line eslint/max-params -- DefaultRoutes.WithOptions calls this export route with positional context, list parameters and export arguments.
-          func: function (
-            ctx: RequestContext,
-            listParams: Parameters.ListParameters,
-            format: string | undefined,
-            delivery: string | undefined,
-            ids: string[],
-            user: User,
-          ) {
-            return startExport(
-              this,
-              ctx,
-              listParams,
-              format,
-              delivery,
-              ids,
-              user,
-            );
-          },
-          args: [
-            Context(),
-            Parameters.List(),
-            Parameter("format", "query"),
-            Parameter("delivery", "query"),
-            MultiParameter("ids", "query"),
-            AuthUser(),
-          ],
-          method: "get",
+  export const ExportRoutes = {
+    exportStart: DefaultRoutes.WithOptions(
+      {
+        func: async function (
+          this: globalThis.Parameters<typeof startExport>[0],
+          ...routeArgs: [
+            RequestContext,
+            Parameters.ListParameters,
+            string | undefined,
+            string | undefined,
+            string[],
+            User,
+            User,
+          ]
+        ) {
+          const [ctx, listParams, format, delivery, ids, user, checkedUser] =
+            routeArgs;
+          await authorizeAction(
+            this,
+            "export",
+            checkedUser,
+            getRequestTenantId(ctx),
+          );
+          return startExport(
+            this,
+            ctx,
+            listParams,
+            format,
+            delivery,
+            ids,
+            user,
+          );
         },
-        { pluckMode: "export" },
-        "/export/start",
-      ),
+        args: [
+          Context(),
+          Parameters.List(),
+          Parameter("format", "query"),
+          Parameter("delivery", "query"),
+          MultiParameter("ids", "query"),
+          AuthUser(),
+          AuthUser(),
+        ],
+        method: "get",
+      },
+      { pluckMode: "export" },
+      "/export/start",
     ),
     exportStatus: withActionCheckOptions("export", {
       endpoint: "/export/status/:exportId",

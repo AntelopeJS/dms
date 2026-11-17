@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   createStartingValueTracker,
+  readFieldFlagParams,
+  readSetFieldValueParams,
   resolveFieldValueWrite,
 } from "../layers/dms-ui/app/entries/composables/form/fieldValueRule";
 
@@ -86,5 +88,100 @@ describe("createStartingValueTracker", () => {
     const isInitial = createStartingValueTracker(isStarting);
     expect(isInitial("probability", 70)).toBe(false);
     expect(isInitial("stage", "won")).toBe(true);
+  });
+});
+
+describe("readSetFieldValueParams", () => {
+  it("reads the target, a fixed value and a map as the watch carries them", () => {
+    expect(
+      readSetFieldValueParams({
+        targetField: "probability",
+        valueMap: { won: 100 },
+      }),
+    ).toEqual({ targetField: "probability", valueMap: { won: 100 } });
+    expect(
+      readSetFieldValueParams({ targetField: "lostReason", value: null }),
+    ).toEqual({ targetField: "lostReason", value: null });
+    expect(readSetFieldValueParams({ targetField: "x" })).toEqual({
+      targetField: "x",
+    });
+  });
+
+  it("feeds the rule the same answers the watch's own params gave it", () => {
+    const params = readSetFieldValueParams(PROBABILITY_BY_STAGE);
+    expect(params).toBeDefined();
+    expect(
+      resolveFieldValueWrite(params!, { fieldId: "stage", value: "won" }),
+    ).toEqual({ value: 100 });
+    expect(
+      resolveFieldValueWrite(params!, { value: "toString" }),
+    ).toBeUndefined();
+  });
+
+  it("keeps a falsy map out of the way of a fixed value", () => {
+    const params = readSetFieldValueParams({
+      targetField: "x",
+      value: 1,
+      valueMap: null,
+    });
+    expect(resolveFieldValueWrite(params!, { value: "a" })).toEqual({
+      value: 1,
+    });
+  });
+
+  it("reads nothing from params that name no string target or hold a map that is no object", () => {
+    expect(readSetFieldValueParams(undefined)).toBeUndefined();
+    expect(readSetFieldValueParams({})).toBeUndefined();
+    expect(readSetFieldValueParams({ targetField: 7 })).toBeUndefined();
+    expect(
+      readSetFieldValueParams({ targetField: "x", valueMap: true }),
+    ).toBeUndefined();
+  });
+});
+
+describe("readFieldFlagParams", () => {
+  it("reads the target and whether the flag is set", () => {
+    expect(
+      readFieldFlagParams({ targetField: "a", setHidden: true }, "setHidden"),
+    ).toEqual({ targetField: "a", flag: true });
+    expect(
+      readFieldFlagParams({ targetField: "a", setHidden: false }, "setHidden"),
+    ).toEqual({ targetField: "a", flag: false });
+  });
+
+  it("reads a missing or other flag as unset, as the watch always did", () => {
+    expect(readFieldFlagParams({ targetField: "a" }, "setHidden")).toEqual({
+      targetField: "a",
+      flag: false,
+    });
+    expect(
+      readFieldFlagParams({ targetField: "a", setDisabled: true }, "setHidden"),
+    ).toEqual({ targetField: "a", flag: false });
+  });
+
+  it("does not take an inherited member for the flag", () => {
+    expect(readFieldFlagParams({ targetField: "a" }, "toString")).toEqual({
+      targetField: "a",
+      flag: false,
+    });
+  });
+
+  it("reads a function carrying a target as a watch without a flag", () => {
+    const params = Object.assign(() => undefined, {
+      targetField: "a",
+      setHidden: true,
+    });
+    expect(readFieldFlagParams(params, "setHidden")).toEqual({
+      targetField: "a",
+      flag: false,
+    });
+  });
+
+  it("reads nothing from params that name no string target", () => {
+    expect(readFieldFlagParams(undefined, "setHidden")).toBeUndefined();
+    expect(readFieldFlagParams({ setHidden: true }, "setHidden")).toBeUndefined();
+    expect(
+      readFieldFlagParams({ targetField: 7, setHidden: true }, "setHidden"),
+    ).toBeUndefined();
   });
 });

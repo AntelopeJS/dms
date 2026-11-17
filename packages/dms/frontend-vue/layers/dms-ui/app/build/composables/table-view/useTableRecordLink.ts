@@ -7,6 +7,7 @@ import {
   readRecordId,
   writeRecordId,
 } from "./utils/recordLink";
+import { detach } from "../detach";
 import { queryOfUrl } from "./utils/urlFilters";
 import type { TableUrlScope } from "./utils/views";
 import type { LocationQuery } from "#dms/frontend-module";
@@ -49,25 +50,32 @@ export function useTableRecordLink<T>(
   options: TableRecordLinkOptions<T>,
 ): TableRecordLink {
   const { action, urlScope } = options;
+  const errorPresenter = useApiErrorPresenter();
 
   let linkedId: string | undefined;
 
   const settle = async (id: string) => {
     const found = await options.resolve(id);
     const outcome = deepLinkOutcome(found, action);
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- deepLinkOutcome returns a string rather than a row type predicate. DeepLinkedRow keeps row optional; the open outcome guarantees it operationally but neither inference nor its owner expresses that relation.
-    if (outcome === "open") return options.open(found.row as T);
+    if (outcome === "open") {
+      if (found.row) options.open(found.row);
+      return;
+    }
     if (outcome === "missingPanel") return options.showMissing(id);
     writeRecordId(urlScope);
     if (linkedId === id) linkedId = undefined;
-    options.notify(outcome);
+    if (outcome === "notifyFailed")
+      errorPresenter.presentError(found.error, {
+        fallbackKey: "dms.table.load_error_title",
+      });
+    else options.notify(outcome);
   };
 
   const follow = (query: LocationQuery) => {
     const id = readRecordId(query, urlScope);
     if (!id || id === linkedId) return;
     linkedId = id;
-    void settle(id);
+    detach(settle(id));
   };
 
   let stopFollowingVisits: (() => void) | undefined;

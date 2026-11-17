@@ -13,10 +13,10 @@ import type {
   TableViewGroupBy,
   TableViewGroupedConfig,
 } from "../../../../composables/table-view/types";
-import type { TableFilter } from "../../../components/table/Table.vue";
+import type { TableFilter } from "../../../components/table/TableRoot.vue";
 import { compareValues } from "./compareValues";
 import { sortValueKind } from "./sortableColumns";
-import { isObject } from "#dms-core/app/utils/type-check";
+import { isNumber, isObject, isString } from "#dms-core/app/utils/type-check";
 import type { DataTypeFormatter } from "#dms-core/app/composables/data-types/useDataType";
 
 /** Key of the group of rows without a value. */
@@ -29,9 +29,11 @@ const EPOCH_WEEKDAY = 4;
 const DAY_KEY_LENGTH = 10;
 
 const toDate = (value: Parameters<DataTypeFormatter>[0]): Date | undefined => {
-  if (value === null || value === undefined || value === "") return undefined;
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Row values have no date schema. Date's constructor declaration excludes coercible objects and booleans that the implementation already accepts; inference cannot preserve that coercion contract.
-  const date = new Date(value as string | number | Date);
+  if (!isString(value) && !isNumber(value) && !(value instanceof Date)) {
+    return undefined;
+  }
+  if (value === "") return undefined;
+  const date = new Date(value);
   return Number.isNaN(date.getTime()) ? undefined : date;
 };
 
@@ -208,7 +210,9 @@ export function listTableSorting(input: TableSortingInput): SortingState {
  * order `picked` gives them (see {@link withinGroupSort}). The groups keep
  * the order the list gave them; rows the sort cannot tell apart keep theirs.
  */
-export function orderGroupedRows<T>(
+export function orderGroupedRows<
+  T extends NonNullable<Parameters<typeof get>[0]>,
+>(
   rows: T[],
   grouped: TableViewGroupedConfig,
   picked: SortingState,
@@ -219,18 +223,13 @@ export function orderGroupedRows<T>(
   const by = grouped.by ?? "value";
   const groupOf = new Map<string, number>();
   const entries = rows.map((row, index) => {
-    const key = rowGroupKey(
-      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- T is unconstrained. Nuxt get's object input declaration cannot prove generic rows or preserve its primitive handling through inference; keep its unchecked lookup.
-      get(row as Parameters<typeof get>[0], grouped.groupByField),
-      by,
-      locale,
-    );
+    const key = rowGroupKey(get(row, grouped.groupByField), by, locale);
     if (!groupOf.has(key)) groupOf.set(key, groupOf.size);
     return { row, index, group: groupOf.get(key)! };
   });
   const direction = sort.desc ? -1 : 1;
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- T is unconstrained and Nuxt get's input owner is object-only. A guard or generic constraint would change accepted rows; keep the dynamic lookup.
-  const valueOf = (row: T) => get(row as Parameters<typeof get>[0], sort.id);
+  const valueOf = (row: T): Parameters<typeof compareValues>[0] =>
+    get(row, sort.id);
   return entries
     .sort(
       (a, b) =>

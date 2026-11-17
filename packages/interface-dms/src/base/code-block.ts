@@ -6,6 +6,7 @@ import { blockTextSchema } from "./internal/composed-text";
 import type { BaseComponentProps, EnumOption } from "./types";
 import type { BlockText } from "./types/composed-text";
 import type { HttpMethod } from "./types/http";
+import { isString } from "../utils/internal/type-check";
 
 /** Languages a `CodeBlock` highlights; `text` is shown as written. */
 export const CODE_BLOCK_LANGUAGES = [
@@ -76,6 +77,8 @@ const CODE_BLOCK_DEFAULTS = { language: "text", copy: true } as const;
  *   code: 'cover: MediaField({ accept: ["image/*"] })',
  * })
  * ```
+ *
+ * @docsApi
  */
 export function CodeBlock(
   options?: CodeBlockProps,
@@ -83,8 +86,7 @@ export function CodeBlock(
   return new ComponentBuilder<CodeBlockProps>(CODE_BLOCK_COMPONENT_NAME)
     .options({ ...CODE_BLOCK_DEFAULTS, ...options })
     .meta({
-      // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Metadata uses only string titles; preserve the published builder's fallback for malformed runtime input.
-      name: (typeof options?.title === "string" && options.title) || "Code",
+      name: (isString(options?.title) && options.title) || "Code",
       icon: CODE_BLOCK_ICON,
     });
 }

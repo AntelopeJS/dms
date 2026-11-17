@@ -2,7 +2,9 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { defineConfig } from "@antelopejs/interface-core/config";
+import { MongoClient } from "mongodb";
 import { MongoMemoryReplSet } from "mongodb-memory-server-core";
+import { HARNESS_MODULES } from "./helpers/harness-modules";
 
 const ANY_FREE_PORT = 0;
 
@@ -21,7 +23,29 @@ const LOCAL_API_PATH = process.env.DMS_TEST_API_PATH;
 const LOCAL_MONGODB_PATH = process.env.DMS_TEST_MONGODB_PATH;
 const LOCAL_STORAGE_PATH = process.env.DMS_TEST_STORAGE_PATH;
 
+/**
+ * Makes the test replica set acknowledge a write once it is applied, not
+ * once a majority has journaled it. With the implicit `majority` default each
+ * write waits for a journal sync, which on Windows runners can take hundreds
+ * of milliseconds and adds up to a stall past the 2000 ms test timeout.
+ */
+async function acknowledgeWritesOnApply(url: string): Promise<void> {
+  const client = await MongoClient.connect(url);
+  try {
+    await client.db("admin").command({
+      setDefaultRWConcern: 1,
+      defaultWriteConcern: { w: 1 },
+    });
+  } finally {
+    await client.close();
+  }
+}
+
 const LOCAL_INSTALL_COMMAND = process.env.DMS_PREBUILT ? [] : ["pnpm build"];
+const INSTALLED_API = {
+  type: "local" as const,
+  path: "node_modules/@antelopejs/api",
+};
 
 function providerSource(
   path: string | undefined,
@@ -67,6 +91,7 @@ export default defineConfig({
         frontend: {
           bootstrapSecret: BOOTSTRAP_SECRET,
         },
+        mcp: { enabled: true, mcpJson: false, codexConfig: false },
       },
     },
     "attachment-host": {
@@ -101,21 +126,23 @@ export default defineConfig({
       source: providerSource(
         LOCAL_MONGODB_PATH,
         "@antelopejs/mongodb",
-        "1.5.0",
+        HARNESS_MODULES.mongodb,
       ),
     },
     "auth-jwt": {
       source: {
         type: "package",
         package: "@antelopejs/auth-jwt",
-        version: "1.0.3",
+        version: HARNESS_MODULES["auth-jwt"],
       },
       config: {
         secret: JWT_SECRET,
       },
     },
     api: {
-      source: providerSource(LOCAL_API_PATH, "@antelopejs/api", ">=1.5.0 <2"),
+      source: LOCAL_API_PATH
+        ? providerSource(LOCAL_API_PATH, "@antelopejs/api", "^1.7.0")
+        : INSTALLED_API,
       config: {
         publicBaseUrl: UNUSED_PUBLIC_BASE_URL,
         servers: [{ protocol: "http", host: "127.0.0.1", port: ANY_FREE_PORT }],
@@ -125,14 +152,14 @@ export default defineConfig({
       source: providerSource(
         LOCAL_STORAGE_PATH,
         "@antelopejs/file-storage-local",
-        "0.1.13",
+        HARNESS_MODULES["file-storage-local"],
       ),
     },
     nodemailer: {
       source: {
         type: "package",
         package: "@antelopejs/nodemailer",
-        version: "0.0.6",
+        version: HARNESS_MODULES.nodemailer,
       },
       config: {
         host: UNREACHABLE_SMTP_HOST,
@@ -147,9 +174,12 @@ export default defineConfig({
         replSet: { count: 1 },
         binary: { version: MONGO_BINARY_VERSION },
       });
-      storageDir = await mkdtemp(join(tmpdir(), "dms-test-storage-"));
+      storageDir = await mkdtemp(
+        join(process.env.RUNNER_TEMP ?? tmpdir(), "dms-test-storage-"),
+      );
 
       const mongoUrl = mongod.getUri();
+      await acknowledgeWritesOnApply(mongoUrl);
       process.env.TEST_MONGO_URL = mongoUrl;
       process.env.TEST_JWT_SECRET = JWT_SECRET;
       process.env.TEST_BOOTSTRAP_SECRET = BOOTSTRAP_SECRET;

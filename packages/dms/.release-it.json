@@ -10,14 +10,13 @@
   },
   "hooks": {
     "before:init": [
-      "pnpm --dir ../interface-dms run build",
+      "pnpm --filter @antelopejs/interface-dms --filter @antelopejs/interface-dms-builder build",
       "pnpm --dir ../.. run lint"
     ],
     "after:bump": [
       "git add CHANGELOG.md",
       "node scripts/docs-catalog.mjs",
-      "git add docs-data/blocks.json",
-      "node scripts/publish.mjs"
+      "git add docs-data/blocks.json"
     ]
   },
   "plugins": {
@@ -26,7 +25,6 @@
     }
   },
   "npm": {
-    "publish": false,
     "skipChecks": true
   }
 }

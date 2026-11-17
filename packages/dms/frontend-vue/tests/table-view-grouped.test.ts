@@ -25,6 +25,7 @@ import {
   rowGroupKey,
 } from "../layers/dms-ui/app/entries/composables/table-view/utils/groupedRows";
 import type { TableViewColumn } from "../layers/dms-ui/app/composables/table-view/types";
+import { tableViewColumn } from "./fixtures/tableViewColumn";
 
 const LABELS = {
   today: "Today",
@@ -266,7 +267,7 @@ describe("useGroupedRows", () => {
 
   it("counts the groups listed, with the rows' own filters, and heads them", async () => {
     const asked: unknown[] = [];
-    const rows = ref([
+    const rows = computed(() => [
       { _id: "1", status: "open" },
       { _id: "2", status: "open" },
       { _id: "3", status: null },
@@ -279,14 +280,11 @@ describe("useGroupedRows", () => {
           grouped = useGroupedRows({
             grouped: { groupByField: "status", count: true, collapsible: true },
             isActive: computed(() => true),
-            // SAFETY: This fixture only renders the no-value header, which bypasses the column's data-type renderer.
-            columns: [
-              { id: "status", accessorKey: "status", header: "Status" },
-            ] as TableViewColumn[],
+            columns: [tableViewColumn("status", { header: "Status" })],
             rows,
             countQuery: (filter) => ({
               search: "late",
-              [`filter_${filter.accessorKey}`]: `${filter.mode}:${filter.value}`,
+              [`filter_${filter.accessorKey}`]: `${filter.mode}:${String(filter.value)}`,
             }),
             countBatch: async (queries) => {
               asked.push(queries);
@@ -313,5 +311,46 @@ describe("useGroupedRows", () => {
     expect(grouping.countOf?.("open")).toBe(12);
     const noValue = grouping.header(NO_GROUP_KEY, rows.value[2]!);
     expect(noValue).toHaveProperty("children", "dms.table.grouped.none");
+  });
+
+  it("shows a failed count request and keeps the counts it read before", async () => {
+    const toast = { add: vi.fn(() => ({ id: "failure" })), remove: vi.fn() };
+    vi.stubGlobal("useToast", () => toast);
+    const source = ref([{ _id: "1", status: "open" }]);
+    const rows = computed(() => source.value);
+    let requests = 0;
+    let grouped: ReturnType<typeof useGroupedRows> | undefined;
+    app = createApp(
+      defineComponent({
+        setup() {
+          grouped = useGroupedRows({
+            grouped: { groupByField: "status", count: true },
+            isActive: computed(() => true),
+            columns: [tableViewColumn("status", { header: "Status" })],
+            rows,
+            countQuery: () => ({}),
+            countBatch: async () => {
+              requests++;
+              if (requests > 1) throw new Error("count failed");
+              return { open: 12 };
+            },
+          });
+          return () => h("div");
+        },
+      }),
+    );
+    app.mount(document.createElement("div"));
+    await nextTick();
+    await nextTick();
+    source.value = [...source.value, { _id: "2", status: "closed" }];
+    await nextTick();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(requests).toBe(2);
+    expect(toast.add).toHaveBeenCalledTimes(1);
+    expect(toast.add).toHaveBeenCalledWith(
+      expect.objectContaining({ title: "dms.table.load_error_title" }),
+    );
+    expect(grouped?.grouping.value?.countOf?.("open")).toBe(12);
   });
 });

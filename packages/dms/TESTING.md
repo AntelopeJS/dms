@@ -29,13 +29,17 @@ Every command below runs from `packages/dms`.
 
 ```bash
 pnpm test               # build + run every test under src/test
-pnpm test:unit          # build + run only src/test/unit/**
+pnpm test:unit          # build + run src/test/unit/** but the builder specs
 pnpm test:integration   # build + run only src/test/integration/**
+pnpm test:builder       # build + run only src/test/unit/builder/**
 ```
 
-`test:unit` / `test:integration` narrow the runner's recursive discovery to a
-subdirectory by setting `DMS_TEST_DIR` (read by `antelope.test.ts`'s
-`test.folder`); both still boot the full harness. The readiness gate lives in
+`test:integration` and `test:builder` narrow the runner's recursive discovery
+to a subdirectory by setting `DMS_TEST_DIR` (read by `antelope.test.ts`'s
+`test.folder`). `test:unit` hands the runner its files with
+`scripts/test-files.mjs`, which leaves out `unit/builder/`: the builder specs
+take about as long as the rest of the unit suite, so CI runs them in two jobs,
+`test:builder:1` and `test:builder:2`, each every other spec file. Each still boots the full harness. The readiness gate lives in
 `integration/setup.test.ts` because only the HTTP tests race startup — unit
 tests are pure logic and don't touch the runtime. `[unit]` / `[integration]`
 tags in the `describe` titles are for readability.
@@ -71,7 +75,7 @@ suites declare their own), never for one the DMS provisions.
   includes immutable page/component provenance, live tenant and component access,
   upload action permissions, private and public visibility, staging promotion,
   failed-save retention, barriered concurrent saves, staged-key retries, canonical
-  metadata validation, physical cleanup, and preserved legacy references.
+  metadata validation, physical cleanup, and refused keys with no recorded upload.
 - **Frontend:** run `pnpm --dir frontend-vue test`. Component tests cover native file
   rendering and preview URL behavior.
 
@@ -118,7 +122,7 @@ removed; login, refresh, sessions and signup are covered over HTTP by
 `auth-key-rotation`.
 
 Drive state through the real endpoints (bootstrap the first owner with
-`POST /onboarding/register`, then create and consume invites over HTTP).
+`POST /onboarding/register`, sending the `setupToken` that `SetupTokenModel.ensure(...)` stored, then create and consume invites over HTTP).
 `resetDatabase` cleans the shared mongo through a raw client, which works
 regardless.
 

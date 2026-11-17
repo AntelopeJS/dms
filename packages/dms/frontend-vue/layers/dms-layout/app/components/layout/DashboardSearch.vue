@@ -1,5 +1,11 @@
 <script setup lang="ts">
-import { computed, nextTick, useTemplateRef } from "vue";
+import {
+  computed,
+  nextTick,
+  onBeforeUnmount,
+  onMounted,
+  useTemplateRef,
+} from "vue";
 import CommandPaletteAssistantAnswer from "../../build/components/layout/CommandPaletteAssistantAnswer.vue";
 import { ASSISTANT_MODE_KEY } from "../../build/composables/command-palette/assistantGroups";
 import { useCommandPaletteAssistantMode } from "../../build/composables/command-palette/useCommandPaletteAssistantMode";
@@ -54,6 +60,23 @@ function switchMode(): void {
 function close(): void {
   isOpen.value = false;
 }
+
+/**
+ * Set on `<html>` while the palette is mounted, which is while its ⌘ K /
+ * Ctrl K shortcut listens. The palette renders nothing until opened and
+ * loads after the dashboard around it, so nothing else on the page shows
+ * when the shortcut starts to work: a browser test waits for this attribute
+ * before it presses the keys.
+ */
+const MOUNTED_ATTRIBUTE = "data-dms-command-palette";
+
+onMounted(() => {
+  document.documentElement.setAttribute(MOUNTED_ATTRIBUTE, "");
+});
+
+onBeforeUnmount(() => {
+  document.documentElement.removeAttribute(MOUNTED_ATTRIBUTE);
+});
 </script>
 
 <template>

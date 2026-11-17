@@ -2,7 +2,7 @@ import { createSSRApp, defineComponent, h, ref } from "vue";
 import { renderToString } from "vue/server-renderer";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import ChartCard from "../layers/dms-ui/app/components/chart/ChartCard.vue";
-import Chart from "../layers/dms-ui/app/components/chart/Chart.vue";
+import Chart from "../layers/dms-ui/app/components/chart/ChartBlock.vue";
 import type { ChartType } from "../layers/dms-ui/app/composables/chart/types";
 import { chartRuntime } from "./helpers/charts-runtime";
 
@@ -11,26 +11,30 @@ const HEATMAP_SERIES = [
   { name: "Tue", data: [{ x: "09:00", y: 3400 }] },
 ];
 
-const PlotProbe = defineComponent({
-  props: {
-    options: { type: Object, required: true },
-  },
-  setup: (props) => () =>
-    h("output", [
-      h(
-        "span",
-        { class: "rows" },
-        HEATMAP_SERIES.map(({ name }) =>
-          props.options.yaxis.labels.formatter(name),
-        ).join("|"),
-      ),
-      h(
-        "span",
-        { class: "value" },
-        props.options.tooltip.y?.formatter(1200) ?? "",
-      ),
-    ]),
-});
+const PlotProbe = defineComponent(
+  (props: {
+    options: {
+      yaxis: { labels: { formatter: (value: string) => string } };
+      tooltip: { y?: { formatter: (value: number) => string } };
+    };
+  }) =>
+    () =>
+      h("output", [
+        h(
+          "span",
+          { class: "rows" },
+          HEATMAP_SERIES.map(({ name }) =>
+            props.options.yaxis.labels.formatter(name),
+          ).join("|"),
+        ),
+        h(
+          "span",
+          { class: "value" },
+          props.options.tooltip.y?.formatter(1200) ?? "",
+        ),
+      ]),
+  { props: { options: { type: Object, required: true } } },
+);
 const Slot = defineComponent({
   setup:
     (_, { slots }) =>
@@ -55,7 +59,7 @@ async function renderCard(type: ChartType) {
         () => h(Chart, { type, componentId: "plot", pageId: "p" }),
       ),
   });
-  for (const name of ["DmsCard", "DmsClientOnly", "UIcon", "USkeleton"]) {
+  for (const name of ["DmsCardPanel", "DmsClientOnly", "UIcon", "USkeleton"]) {
     app.component(name, Slot);
   }
   app.component("DmsApexChartHost", PlotProbe);

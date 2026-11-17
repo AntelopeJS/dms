@@ -1,13 +1,12 @@
 import type { ControllerClass } from "@antelopejs/interface-api";
-import { GetMetadata } from "@antelopejs/interface-core";
-import type { ComponentInfo } from "../../component";
+import { Action, type ComponentInfo } from "../../component";
 import {
   MarkModuleScopedPermission,
   type Permission,
   RegisterPermission,
+  UnmarkModuleScopedPermission,
 } from "../../permissions";
-// oxlint-disable-next-line import/no-cycle -- Category resolution reads PageMetadata inside functions; page registration uses the proxies declared in categories.
-import { PageMetadata } from "../metadata";
+import * as resolution from "./category-resolution";
 import { Logging } from "@antelopejs/interface-core/logging";
 import { fireAndForget } from "../../utils/fire-and-forget";
 import {
@@ -26,10 +25,10 @@ import type {
   PageExtensionInfo,
   PageInfo,
 } from "../types";
+import { categoryOwnPermissionId } from "./category-permission";
 import { opensToMembers } from "./member-access";
 import { ROOT_SLUG } from "./types";
-// oxlint-disable-next-line import/no-cycle -- Category proxies and isInsideModule are read inside functions, after module evaluation.
-import { internal, isInsideModule } from "../categories";
+import { internal, isOwnerOnly } from "../categories";
 
 /**
  * Resolve a category to CategoryInfo
@@ -41,20 +40,7 @@ import { internal, isInsideModule } from "../categories";
 export function resolveCategoryInfo(
   category: CategoryInfo | ControllerClass | undefined,
 ): CategoryInfo | undefined {
-  if (!category) {
-    return undefined;
-  }
-
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- The published category union distinguishes controller constructors from CategoryInfo objects by callability.
-  if (typeof category === "function") {
-    const meta = GetMetadata(category, PageMetadata);
-    if (!meta.pageInfo) {
-      throw new Error(`PageMetadata not initialized for controller class.`);
-    }
-    return meta.pageInfo;
-  }
-
-  return category;
+  return resolution.resolveCategoryInfo(category);
 }
 
 /**
@@ -69,20 +55,7 @@ export function resolveCategoryInfo(
 export function resolveInheritedLayout(
   category: CategoryInfo | ControllerClass | undefined,
 ): ComponentInfo | undefined {
-  let current = findCategoryInfo(category);
-  while (current) {
-    if (current.layout) return current.layout;
-    current = findCategoryInfo(current.category);
-  }
-  return undefined;
-}
-
-function findCategoryInfo(
-  category: CategoryInfo | ControllerClass | undefined,
-): CategoryInfo | undefined {
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- The category union represents a controller constructor or resolved metadata, not unparsed input.
-  if (typeof category !== "function") return category;
-  return GetMetadata(category, PageMetadata).pageInfo;
+  return resolution.resolveInheritedLayout(category);
 }
 
 /**
@@ -227,6 +200,7 @@ export function createCategoryFunction(
     bypassTenantAccessGate:
       effectiveOptions.bypassTenantAccessGate ||
       resolvedCategory?.bypassTenantAccessGate,
+    ownerOnly: effectiveOptions.ownerOnly || resolvedCategory?.ownerOnly,
   };
 
   internal.RegisterCategory.register(categoryInfo);
@@ -236,16 +210,25 @@ export function createCategoryFunction(
     icon: categoryInfo.icon,
     defaultGranted:
       categoryInfo.publicAccess || opensToMembers(categoryInfo.memberAccess),
-    // oxlint-disable-next-line typescript/no-misused-spread -- Preserves the legacy permission spread, including Action instances; Action normalization is unresolved.
-    ...categoryInfo.permission,
+    ...ownPermission(categoryInfo.permission),
   };
-  if (isInsideModule(categoryInfo)) {
-    MarkModuleScopedPermission(categoryPermission.id);
-  } else {
+  const ownPermissionId = categoryOwnPermissionId(categoryInfo);
+  if (isOwnerOnly(categoryInfo)) {
+    MarkModuleScopedPermission(ownPermissionId);
+    return categoryInfo;
+  }
+  UnmarkModuleScopedPermission(ownPermissionId);
+  if (!(categoryInfo.permission instanceof Action)) {
     RegisterPermission(categoryPermission.id, categoryPermission);
   }
 
   return categoryInfo;
+}
+
+function ownPermission(
+  permission: CategoryInfo["permission"],
+): Partial<Permission> | undefined {
+  return permission instanceof Action ? undefined : permission;
 }
 
 /** @internal */

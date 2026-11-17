@@ -1,6 +1,14 @@
-import { Controller, Get, Parameter, Post } from "@antelopejs/interface-api";
+import {
+  Controller,
+  Get,
+  Parameter,
+  Post,
+  type QueryValue,
+} from "@antelopejs/interface-api";
 import { PublishMessage } from "@antelopejs/interface-dms/realtime";
 import { notFound } from "./demo-errors";
+import { ownEntry } from "../own-entry";
+import { queryText } from "../query-text";
 
 /** Published on each test call, which the Guard demo follows. */
 export const GUARD_DEMO_TOPIC = "blocks:guard-demo";
@@ -10,11 +18,10 @@ const QUIET_PRESET = "last-hour";
 const SERIES_LENGTH = 12;
 const SERIES_STEP = 7;
 
-// oxlint-disable-next-line anti-slop/no-known-value-widening -- Arbitrary preset query strings require the existing indexed lookup and fallback.
-const CALLS_BY_PRESET: Record<string, number> = {
+const CALLS_BY_PRESET = {
   "last-24h": 48,
   "last-7-days": 312,
-};
+} satisfies Record<string, number>;
 
 const EXISTING_RECORD = "r1";
 
@@ -28,7 +35,7 @@ function later<T>(value: T): Promise<T> {
 
 function callsIn(preset: string | undefined): number {
   if (!preset || preset === QUIET_PRESET) return callsThisHour;
-  return CALLS_BY_PRESET[preset] ?? 0;
+  return ownEntry(CALLS_BY_PRESET, preset) ?? 0;
 }
 
 function callSeries(total: number): number[] {
@@ -46,8 +53,8 @@ function callSeries(total: number): number[] {
  */
 export class BlocksGuardApiController extends Controller("/api/blocks/guard") {
   @Get("calls")
-  getCalls(@Parameter("preset", "query") preset?: string) {
-    const calls = callsIn(preset);
+  getCalls(@Parameter("preset", "query") preset: QueryValue) {
+    const calls = callsIn(queryText(preset));
     const emptyState = calls
       ? undefined
       : { description: "No call reached this route in the selected period." };
@@ -55,14 +62,14 @@ export class BlocksGuardApiController extends Controller("/api/blocks/guard") {
   }
 
   @Get("calls/kpi")
-  getCallsKpi(@Parameter("preset", "query") preset?: string) {
-    const calls = callsIn(preset);
+  getCallsKpi(@Parameter("preset", "query") preset: QueryValue) {
+    const calls = callsIn(queryText(preset));
     return later({ value: calls, sparkline: callSeries(calls) });
   }
 
   @Get("calls/series")
-  getCallsSeries(@Parameter("preset", "query") preset?: string) {
-    const data = callSeries(callsIn(preset)).map((y, index) => ({
+  getCallsSeries(@Parameter("preset", "query") preset: QueryValue) {
+    const data = callSeries(callsIn(queryText(preset))).map((y, index) => ({
       x: `t${index + 1}`,
       y,
     }));

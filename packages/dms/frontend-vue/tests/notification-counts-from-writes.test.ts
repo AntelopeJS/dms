@@ -9,6 +9,7 @@
  */
 import { defineComponent, h, nextTick, ref, type App } from "vue";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
+import { dmsAppContext, emptyApp } from "./fixtures/dmsAppContext";
 import { mountInBrowser, stubApiData } from "./helpers/api-data-runtime";
 
 type Tone = "neutral" | "primary" | "warning" | "error";
@@ -17,11 +18,11 @@ interface Row {
   isRead: boolean;
   tone: Tone;
 }
-interface Counts {
+type Counts = {
   all: number;
   unread: number;
   unreadTone?: Tone;
-}
+};
 type StreamEvent = {
   type: string;
   payload?: { ids?: string[]; counts?: Counts };
@@ -85,14 +86,14 @@ const { default: notificationStream } = await import(
 
 const mounted: App[] = [];
 let bell: ReturnType<typeof useNotifications>;
+let streaming: ReturnType<typeof notificationStream>;
 
 /** A tab: the bell's state and the stream plugin, on one runtime. */
 function openTab(): HTMLElement {
   const Tab = defineComponent({
     setup() {
       bell = useNotifications();
-      // SAFETY: defineDmsPlugin is stubbed above to return the setup callback unchanged.
-      (notificationStream as () => void)();
+      streaming = notificationStream(dmsAppContext(emptyApp()));
       return () =>
         h("span", `${bell.unreadCount.value}:${bell.unreadTone.value ?? "-"}`);
     },
@@ -125,6 +126,7 @@ beforeEach(async () => {
   holdWrites = undefined;
   failWrites = false;
   const tab = openTab();
+  await streaming;
   await bell.fetchBellCounts();
   await settle();
   expect(tab.textContent).toBe("2:error");

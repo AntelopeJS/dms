@@ -1,5 +1,5 @@
 import type { PaginationState, SortingState } from "@tanstack/vue-table";
-import type { TableFilter } from "../../../components/table/Table.vue";
+import type { TableFilter } from "../../../components/table/TableRoot.vue";
 
 interface QueryConfig {
   pagination: PaginationState;
@@ -41,7 +41,7 @@ const buildFiltersQuery = (filters: TableFilter[]): Record<string, string> => {
   return filters
     .filter(isFilterEffective)
     .reduce<Record<string, string>>((acc, val) => {
-      acc[`filter_${val.accessorKey}`] = `${val.mode}:${val.value}`;
+      acc[`filter_${val.accessorKey}`] = `${val.mode}:${String(val.value)}`;
       return acc;
     }, {});
 };
@@ -56,17 +56,19 @@ const buildFiltersQuery = (filters: TableFilter[]): Record<string, string> => {
 const combineFilters = (
   hidden: Record<string, string>,
   column: Record<string, string>,
-): Record<string, string | string[]> => {
-  const combined: ReturnType<typeof combineFilters> = { ...hidden };
-  for (const [key, value] of Object.entries(column)) {
-    const hiddenValue = hidden[key];
-    combined[key] =
-      hiddenValue === undefined || hiddenValue === value
-        ? value
-        : [hiddenValue, value];
-  }
-  // oxlint-disable-next-line anti-slop/no-known-value-widening -- The return owner permits collision arrays for arbitrary filter keys; returning the owner-typed accumulator preserves that contract and inherited-key lookups.
-  return combined;
+) => {
+  const layered = Object.entries(column).map(
+    ([key, value]): [string, string | string[]] => {
+      const hiddenValue = Object.hasOwn(hidden, key) ? hidden[key] : undefined;
+      return [
+        key,
+        hiddenValue === undefined || hiddenValue === value
+          ? value
+          : [hiddenValue, value],
+      ];
+    },
+  );
+  return { ...hidden, ...Object.fromEntries(layered) };
 };
 
 export const buildTableQuery = (config: QueryConfig): TableQueryParams => {

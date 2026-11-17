@@ -118,6 +118,29 @@ describe("useUserRealtime across tabs", () => {
   registerSharedConnectionRecoveryTests();
 });
 
+describe("useUserRealtime relaying a frame from another tab", () => {
+  it("drops it when its data is not JSON", async () => {
+    const [, follower] = await openTabs(2);
+    const relay = browser.openTab().environment.createChannel!(
+      `dms-realtime:${BASE_URL}:${USER_ID}`,
+    );
+    const relayFrame = (data: RealtimeEvent) =>
+      relay.postMessage({
+        kind: "frame",
+        connectionId: "connection-1",
+        sessionId: sessionOf(follower!),
+        event: TOPIC,
+        data,
+      });
+
+    relayFrame({ ...eventFor(1), payload: undefined });
+    relayFrame(eventFor(2));
+    await settle();
+
+    expect(follower!.received).toEqual([eventFor(2)]);
+  });
+});
+
 function registerSharedConnectionDeliveryTests() {
   it("shares one connection between every tab, each with a session of its own", async () => {
     const opened = await openTabs(TAB_COUNT);
@@ -171,6 +194,26 @@ function registerSharedConnectionDeliveryTests() {
     await settle();
 
     for (const received of reloads) expect(received).toEqual([reload]);
+  });
+
+  it("hands a frame for the leader to the tab that holds the stream only", async () => {
+    const opened = await openTabs(3);
+    const navigations = opened.map((tab) => {
+      const received: unknown[] = [];
+      tab.api.subscribe("dms:navigate", (event) => received.push(event));
+      return received;
+    });
+    const navigate = {
+      topic: "dms:navigate",
+      type: "navigate",
+      payload: { path: "/orders" },
+      ts: 4,
+    };
+
+    server.lastConnection().write("leader", navigate);
+    await settle();
+
+    expect(navigations).toEqual([[navigate], [], []]);
   });
 
   it("ends the session of a tab that goes, and nothing else", async () => {

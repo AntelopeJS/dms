@@ -161,11 +161,11 @@ function switchMethod(method: TwoFactorMethod) {
       <template v-else>
         <DmsOtpInput
           ref="codeInput"
+          v-model="pin"
           :label="$t('page.auth.code.label')"
           size="xl"
           is-split
           is-centered
-          v-model="pin"
           :length="PIN_LENGTH"
           :error="codeError"
         />

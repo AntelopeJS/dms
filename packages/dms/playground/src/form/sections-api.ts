@@ -10,12 +10,28 @@ import { formSchema } from "@antelopejs/interface-dms/base/form";
 import { AuthUserWithPermission } from "@antelopejs/interface-dms/guards";
 import type { DemoRecord } from "./demo-record-api";
 import { PageFormSections } from "./sections/page";
+import { z } from "zod";
 
 const HTTP_BAD_REQUEST = 400;
 const JSON_TYPE = "application/json";
 
+/** The values the "Sections" form saves, as its form schema parses them. */
+const SettingsSchema = z.object({
+  profileName: z.string(),
+  agent: z.enum(["claude", "codex"]),
+  thinking: z.enum(["off", "low", "medium", "high"]).nullable(),
+  approvalMode: z.enum(["ask", "edits", "plan"]),
+  alwaysAsk: z.array(z.enum(["delete", "dependencies", "blocks"])).nullable(),
+  workspaceRoot: z.string(),
+  allowedHosts: z.string().nullable(),
+  skillsEnabled: z.boolean().nullable(),
+  skillsPath: z.string().nullable(),
+  retentionDays: z.number(),
+  notify: z.boolean().nullable(),
+});
+
 /** The demo's settings, kept in memory: a restart puts the defaults back. */
-const settings = {
+const settings: z.infer<typeof SettingsSchema> = {
   profileName: "Default profile",
   agent: "claude",
   thinking: "medium",
@@ -53,7 +69,7 @@ export class FormSectionsAPIController extends Controller(
         JSON_TYPE,
       );
     }
-    Object.assign(settings, parsed.data);
+    Object.assign(settings, SettingsSchema.partial().parse(parsed.data));
     return settings;
   }
 }

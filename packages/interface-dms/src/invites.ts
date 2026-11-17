@@ -1,7 +1,10 @@
 import { randomUUID } from "node:crypto";
+import { assert } from "@antelopejs/interface-api-util";
 import { Logging } from "@antelopejs/interface-core/logging";
+import { IsDuplicateKeyError } from "@antelopejs/interface-database";
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import { TenantMemberModel, type UserInvite, UserInviteModel } from "./db";
+import { InviteResolutionsModel } from "./db/internal/inviteResolutions.model";
 import { normalizeEmail, UserModel } from "./auth/db";
 import randomstring from "randomstring";
 import { fireAndForget } from "./utils/fire-and-forget";
@@ -10,7 +13,9 @@ import { ExecuteHooks, Hook, type InviteReplacementReason } from "./hooks";
 import type { InviteExtensionPayloads } from "./invite-extensions";
 import { DeliverInviteExtensions } from "./invite-extensions/internal/delivery";
 import { completeAdmittedInviteResolution } from "./internal/invite-resolution";
+import { isSameInviteContent } from "./internal/invite-content";
 import { decideInvite } from "./invite-resolution";
+import type { InviteResolution } from "./db/tables/inviteResolutions.table";
 import { changeTenantMembers, type TenantMembersWrite } from "./tenant-members";
 import { applyAdmittedTenantOwnership } from "./internal/tenant-ownership";
 import { describeMembershipPatch } from "./internal/member-changes";
@@ -23,6 +28,7 @@ export { inviteeDisplayName } from "./invitee-display-name";
 
 export const INVITE_TOKEN_LENGTH = 64;
 export const INVITE_EXPIRY_DAYS = 7;
+const HTTP_CONFLICT = 409;
 
 export interface InviteUserToTenantOptions {
   tenantId: string;
@@ -214,6 +220,11 @@ export interface CreateUserInviteTokenResult {
  * Low-level: create a `user_invites` row + token for a tenant. Replaces any
  * existing invite for the same email (within the tenant). Fires
  * INVITE_DELETED / INVITE_BEING_CREATED / INVITE_CREATED hooks.
+ *
+ * Concurrent calls that all find no invite for the email keep one, also when
+ * another call replaces the invite in between: a call that loses returns the
+ * kept invite when it carries the same content, and fails with HTTP 409 when
+ * it does not.
  */
 export async function createUserInviteToken(
   options: CreateUserInviteTokenOptions,
@@ -232,28 +243,37 @@ async function createAdmittedInviteToken(
   const existingInvite =
     options.replacesInvite ?? (await userInviteModel.getByEmail(email));
   const replacement = buildInviteSnapshot(options);
-  if (existingInvite) {
-    const resolution = await decideInvite({
-      tenantId,
-      invite: existingInvite,
-      reason: options.replacementReason ?? "replaced",
-      replacement,
-    });
-    await completeAdmittedInviteResolution(resolution);
-    if (!resolution.replacement)
-      throw new Error("Replacement snapshot missing");
-    return {
-      inviteId: resolution.replacement._id,
-      token: resolution.replacement.token,
-    };
-  }
+  if (existingInvite)
+    return replaceInvite(options, existingInvite, replacement);
   await ExecuteHooks(Hook.INVITE_BEING_CREATED, {
     tenantId,
     email,
     asTenantOwner,
     roleIds,
   });
-  await userInviteModel.insert(replacement);
+  try {
+    await userInviteModel.insert(replacement);
+  } catch (error) {
+    if (!IsDuplicateKeyError(error)) throw error;
+    const winner = await userInviteModel.getByEmail(email);
+    return yieldOrCreateAgain(
+      options,
+      winner && (await currentInviteOf(options, winner)),
+      replacement,
+    );
+  }
+  const rival = await userInviteModel.getOtherByEmail(email, replacement._id);
+  if (rival) {
+    const outcome = await userInviteModel.settleFresh(
+      replacement._id,
+      "withdrawn",
+    );
+    if (outcome !== "kept")
+      return withdrawFreshInvite(options, replacement, rival);
+    const current = await currentInviteOf(options, replacement);
+    if (current?._id !== replacement._id)
+      return yieldOrCreateAgain(options, current, replacement);
+  }
   await ExecuteHooks(Hook.INVITE_CREATED, {
     tenantId,
     inviteId: replacement._id,
@@ -263,6 +283,193 @@ async function createAdmittedInviteToken(
     roleIds,
   });
   return { inviteId: replacement._id, token: replacement.token };
+}
+
+async function replaceInvite(
+  options: CreateUserInviteTokenOptions,
+  invite: UserInvite,
+  replacement: UserInvite,
+): Promise<CreateUserInviteTokenResult> {
+  let resolution: InviteResolution;
+  try {
+    resolution = await decideInvite({
+      tenantId: options.tenantId,
+      invite,
+      reason: options.replacementReason ?? "replaced",
+      replacement,
+    });
+  } catch (error) {
+    const retry = await retryAfterRefusal(options, invite);
+    if (retry === "read the email again")
+      return createAdmittedInviteToken(options);
+    if (retry === "replace the same invite")
+      return replaceInvite(options, invite, replacement);
+    throw error;
+  }
+  await completeAdmittedInviteResolution(resolution);
+  if (!resolution.replacement) throw new Error("Replacement snapshot missing");
+  return {
+    inviteId: resolution.replacement._id,
+    token: resolution.replacement.token,
+  };
+}
+
+/** How a creation that `decideInvite` refused runs again, if it does. */
+type RetryAfterRefusal =
+  | "read the email again"
+  | "replace the same invite"
+  | undefined;
+
+/**
+ * How the creation runs again after `decideInvite` refused to replace `read`.
+ * When a completed cancellation retired the invite a new invitation read, by
+ * the time the email's invites are listed, it reads the email again. When it removed invites a completed cancellation
+ * retired but left stored, such as a fresh invite whose withdrawal failed to
+ * delete it, it replaces `read` again with the same options, so a new
+ * invitation can still read the email again if `read` is cancelled meanwhile,
+ * and any other refusal stands.
+ *
+ * @returns The retry, or undefined to keep the refusal
+ */
+async function retryAfterRefusal(
+  options: CreateUserInviteTokenOptions,
+  read: UserInvite,
+): Promise<RetryAfterRefusal> {
+  const { tenantId, email } = options;
+  const stored = await GetModel(UserInviteModel, tenantId).listByEmail(email);
+  const removed = await Promise.all(
+    stored.map((invite) => removeIfCancelled(tenantId, invite._id)),
+  );
+  if (!options.replacesInvite && (await removeIfCancelled(tenantId, read._id)))
+    return "read the email again";
+  return removed.includes(true) ? "replace the same invite" : undefined;
+}
+
+/**
+ * Deletes the invite's row when a completed cancellation retired it.
+ *
+ * @returns Whether its decision is such a cancellation
+ */
+async function removeIfCancelled(
+  tenantId: string,
+  inviteId: string,
+): Promise<boolean> {
+  const held = await GetModel(InviteResolutionsModel, tenantId).getForInvite(
+    tenantId,
+    inviteId,
+  );
+  if (held?.reason !== "cancelled" || held.replacement || !held.completed)
+    return false;
+  await completeAdmittedInviteResolution(held);
+  return true;
+}
+
+/**
+ * Withdraws a fresh invite that found a rival, through its decision: a
+ * replacement decided on it first is kept instead, and its decider completes it.
+ * Otherwise it yields to the email's current invite, or runs the creation
+ * again when the email has none left.
+ */
+async function withdrawFreshInvite(
+  options: CreateUserInviteTokenOptions,
+  fresh: UserInvite,
+  rival: UserInvite,
+): Promise<CreateUserInviteTokenResult> {
+  const { tenantId } = options;
+  const decisions = GetModel(InviteResolutionsModel, tenantId);
+  const { resolution, claimed } = await decisions.withdraw(tenantId, fresh);
+  if (resolution.replacement)
+    return yieldToWinner(resolution.replacement, fresh);
+  if (claimed) await GetModel(UserInviteModel, tenantId).delete(fresh._id);
+  return yieldOrCreateAgain(
+    options,
+    await currentInviteOf(options, rival),
+    fresh,
+  );
+}
+
+/** Yields to the email's current invite, or runs the creation again when the email has none left. */
+function yieldOrCreateAgain(
+  options: CreateUserInviteTokenOptions,
+  current: UserInvite | undefined,
+  lost: UserInvite,
+): Promise<CreateUserInviteTokenResult> | CreateUserInviteTokenResult {
+  if (!current) return createAdmittedInviteToken(options);
+  return yieldToWinner(current, lost);
+}
+
+/**
+ * The invite a withdrawn fresh invite yields to: its rival while stored, else
+ * the email's invite, or the replacement decided on it. A cancellation or an
+ * expiry decided on it is completed first, so its token is never handed out.
+ *
+ * @returns The invite, or undefined when the email has none left
+ */
+async function currentInviteOf(
+  options: CreateUserInviteTokenOptions,
+  rival: UserInvite,
+): Promise<UserInvite | undefined> {
+  const { tenantId, email } = options;
+  const invites = GetModel(UserInviteModel, tenantId);
+  const invite =
+    (await invites.get(rival._id)) ?? (await invites.getByEmail(email));
+  if (!invite) return undefined;
+  const decision = await GetModel(
+    InviteResolutionsModel,
+    tenantId,
+  ).getForInvite(tenantId, invite._id);
+  if (!decision) return followUndecided(options, invite);
+  if (decision.reason === "accepted") return invite;
+  if (decision.replacement) return decision.replacement;
+  await completeAdmittedInviteResolution(decision);
+  return currentInviteOf(options, invite);
+}
+
+/**
+ * The invite to yield to when `invite` has no decision. A replacement, or a
+ * fresh invite settled kept, is yielded to. A fresh invite that is the only
+ * invite of its email is settled kept here, so its creator keeps it even if it
+ * read a rival since retired. A fresh invite beside another invite yields to
+ * that one, and a fresh invite settled withdrawn has its withdrawal finished
+ * here, so no caller waits on its creator.
+ *
+ * @returns The invite, or undefined when the email has none left
+ */
+async function followUndecided(
+  options: CreateUserInviteTokenOptions,
+  invite: UserInvite,
+): Promise<UserInvite | undefined> {
+  const { tenantId, email } = options;
+  if (invite.creationResolutionId || invite.freshOutcome === "kept")
+    return invite;
+  const invites = GetModel(UserInviteModel, tenantId);
+  if (invite.freshOutcome !== "withdrawn") {
+    if (!(await invites.isOnlyInviteOfEmail(invite))) {
+      const other = await invites.getOtherByEmail(email, invite._id);
+      return currentInviteOf(options, other ?? invite);
+    }
+    if ((await invites.settleFresh(invite._id, "kept")) === "kept")
+      return invite;
+  }
+  const { resolution } = await GetModel(
+    InviteResolutionsModel,
+    tenantId,
+  ).withdraw(tenantId, invite);
+  if (resolution.replacement) return resolution.replacement;
+  await invites.delete(invite._id);
+  return currentInviteOf(options, invite);
+}
+
+function yieldToWinner(
+  winner: UserInvite | undefined,
+  lost: UserInvite,
+): CreateUserInviteTokenResult {
+  assert(
+    winner && isSameInviteContent(winner, lost),
+    HTTP_CONFLICT,
+    "Invitation for this email was created concurrently with other content",
+  );
+  return { inviteId: winner._id, token: winner.token };
 }
 
 function buildInviteSnapshot(
@@ -281,5 +488,6 @@ function buildInviteSnapshot(
     expiresAt: new Date(Date.now() + INVITE_EXPIRY_DAYS * MILLISECONDS_PER_DAY),
     invitedBy: options.invitedBy ?? null,
     extensions: options.extensions ?? null,
+    creationResolutionId: "",
   });
 }

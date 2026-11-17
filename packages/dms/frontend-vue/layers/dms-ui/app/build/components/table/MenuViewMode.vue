@@ -1,8 +1,13 @@
 <script setup lang="ts" generic="T extends Data">
+import { themeOverride } from "./tableComponentTheme";
 import { injectLocal } from "@vueuse/core";
 import { tv } from "tailwind-variants";
 import type { ModelRef, ShallowRef } from "vue";
-import type { KanbanGroupByOption, TableSharedData, Data } from "./Table.vue";
+import type {
+  KanbanGroupByOption,
+  TableSharedData,
+  Data,
+} from "./TableRoot.vue";
 import {
   GROUPED_DISPLAY_ID,
   KANBAN_DISPLAY_ID,
@@ -27,10 +32,7 @@ const tableSharedData = computed(() => tableSharedDataRef?.value);
 
 const { t } = useI18n();
 
-// oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Module theme configuration is unchecked; retain its existing contract derived from this component's normalized theme.
-const appConfig = useDmsAppConfig() as ReturnType<typeof useDmsAppConfig> & {
-  ui: { tableMenuViewMode: Partial<typeof theme> };
-};
+const appConfig = useDmsAppConfig();
 
 const activeDisplay = computed(
   () => tableSharedData.value?.activeDisplayState.value ?? "table",
@@ -53,24 +55,27 @@ type DisplayGroupByReader = (
   shared: TableSharedData<T>,
 ) => DisplayGroupBy | undefined;
 
-const DISPLAY_GROUP_BY = {
-  [KANBAN_DISPLAY_ID]: (shared) => ({
-    options: shared.kanbanGroupByOptions,
-    state: shared.kanbanGroupByState,
-  }),
-  [GROUPED_DISPLAY_ID]: (shared) => ({
-    options: shared.groupedGroupByOptions,
-    state: shared.groupedGroupByState,
-  }),
-} satisfies Record<string, DisplayGroupByReader>;
+const DISPLAY_GROUP_BY = new Map<string, DisplayGroupByReader>([
+  [
+    KANBAN_DISPLAY_ID,
+    (shared) => ({
+      options: shared.kanbanGroupByOptions,
+      state: shared.kanbanGroupByState,
+    }),
+  ],
+  [
+    GROUPED_DISPLAY_ID,
+    (shared) => ({
+      options: shared.groupedGroupByOptions,
+      state: shared.groupedGroupByState,
+    }),
+  ],
+]);
 
 const activeGroupBy = computed(() => {
   const shared = tableSharedData.value;
-  const display = activeDisplay.value;
-  return shared &&
-    (display === KANBAN_DISPLAY_ID || display === GROUPED_DISPLAY_ID)
-    ? DISPLAY_GROUP_BY[display](shared)
-    : undefined;
+  const read = DISPLAY_GROUP_BY.get(activeDisplay.value);
+  return shared && read ? read(shared) : undefined;
 });
 
 const groupByOptions = computed(() => activeGroupBy.value?.options ?? []);
@@ -85,7 +90,7 @@ const showGroupBy = computed(() => groupByOptions.value.length > 0);
 
 const uiTableMenuViewModeVariant = tv({
   extend: tv(theme),
-  ...appConfig.ui?.tableMenuViewMode,
+  ...themeOverride("tableMenuViewMode"),
 });
 const uiTableMenuViewMode = computed(() => uiTableMenuViewModeVariant());
 </script>

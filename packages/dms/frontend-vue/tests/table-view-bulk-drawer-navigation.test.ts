@@ -20,7 +20,7 @@ it("fills a row drawer's component options with each row it steps to", () => {
       target: {
         type: "drawer",
         component: {
-          componentName: "dms-form",
+          componentName: "dms-form-block",
           options: {
             fetchUrl: "/api/runs/get?id={{row._id}}",
             submitUrl: "/api/runs/edit?id={{row.id}}",

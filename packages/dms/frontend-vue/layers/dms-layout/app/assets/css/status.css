@@ -1,0 +1,137 @@
+/* Status tints and lines: soft fills and hairlines of the success, warning,
+   error and info palettes, so a theme that points `ui.colors.<role>`
+   elsewhere repaints them with the ink. */
+@layer dms {
+  :root {
+    --dms-success-tint: color-mix(
+      in srgb,
+      var(--ui-color-success-600) 10%,
+      transparent
+    );
+    --dms-success-line: color-mix(
+      in srgb,
+      var(--ui-color-success-600) 30%,
+      transparent
+    );
+    --dms-warning-tint: color-mix(
+      in srgb,
+      var(--ui-color-warning-500) 13%,
+      transparent
+    );
+    --dms-warning-line: color-mix(
+      in srgb,
+      var(--ui-color-warning-600) 35%,
+      transparent
+    );
+    --dms-error-tint: color-mix(
+      in srgb,
+      var(--ui-color-error-600) 8%,
+      transparent
+    );
+    --dms-error-line: color-mix(
+      in srgb,
+      var(--ui-color-error-600) 30%,
+      transparent
+    );
+    --dms-info-tint: color-mix(
+      in srgb,
+      var(--ui-color-info-600) 9%,
+      transparent
+    );
+    --dms-info-line: color-mix(
+      in srgb,
+      var(--ui-color-info-600) 30%,
+      transparent
+    );
+  }
+
+  .dark {
+    --dms-success-tint: color-mix(
+      in srgb,
+      var(--ui-color-success-400) 12%,
+      transparent
+    );
+    --dms-success-line: color-mix(
+      in srgb,
+      var(--ui-color-success-400) 40%,
+      transparent
+    );
+    --dms-warning-tint: color-mix(
+      in srgb,
+      var(--ui-color-warning-400) 12%,
+      transparent
+    );
+    --dms-warning-line: color-mix(
+      in srgb,
+      var(--ui-color-warning-400) 40%,
+      transparent
+    );
+    --dms-error-tint: color-mix(
+      in srgb,
+      var(--ui-color-error-400) 13%,
+      transparent
+    );
+    --dms-error-line: color-mix(
+      in srgb,
+      var(--ui-color-error-400) 40%,
+      transparent
+    );
+    --dms-info-tint: color-mix(
+      in srgb,
+      var(--ui-color-info-400) 10%,
+      transparent
+    );
+    --dms-info-line: color-mix(
+      in srgb,
+      var(--ui-color-info-400) 35%,
+      transparent
+    );
+  }
+
+  :root.dms-increase-contrast {
+    --dms-success-line: color-mix(
+      in srgb,
+      var(--ui-color-success-600) 55%,
+      transparent
+    );
+    --dms-warning-line: color-mix(
+      in srgb,
+      var(--ui-color-warning-600) 60%,
+      transparent
+    );
+    --dms-error-line: color-mix(
+      in srgb,
+      var(--ui-color-error-600) 55%,
+      transparent
+    );
+    --dms-info-line: color-mix(
+      in srgb,
+      var(--ui-color-info-600) 55%,
+      transparent
+    );
+  }
+
+  :root.dms-increase-contrast.dark,
+  .dms-increase-contrast .dark {
+    --dms-success-line: color-mix(
+      in srgb,
+      var(--ui-color-success-400) 60%,
+      transparent
+    );
+    --dms-warning-line: color-mix(
+      in srgb,
+      var(--ui-color-warning-400) 60%,
+      transparent
+    );
+    --dms-error-line: color-mix(
+      in srgb,
+      var(--ui-color-error-400) 60%,
+      transparent
+    );
+    --dms-info-line: color-mix(
+      in srgb,
+      var(--ui-color-info-400) 60%,
+      transparent
+    );
+  }
+}

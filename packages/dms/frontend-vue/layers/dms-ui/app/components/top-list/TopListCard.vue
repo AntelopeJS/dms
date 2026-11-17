@@ -1,5 +1,9 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, ref, watch } from "vue";
+import {
+  resolveBlockState,
+  useBlockStateAttributes,
+} from "../../build/composables/blocks/blockDataState";
 import DmsEmptyState from "../empty-state/EmptyState.vue";
 import DmsSectionHeader from "../section-header/SectionHeader.vue";
 import DmsBlockActions, {
@@ -219,6 +223,14 @@ const badgeLabel = computed<string | null>(() => {
 const comparison = usePeriodComparisonDisplay(props.periodScope);
 const showRowDelta = computed(() => props.showDelta && !comparison.isOff.value);
 
+const blockAttributes = useBlockStateAttributes("TopListCard", () =>
+  resolveBlockState({
+    loading: isLoading.value,
+    failed: Boolean(error.value),
+    hasContent: items.value.length > 0,
+  }),
+);
+
 const isFirstLoad = computed(() => isLoading.value && data.value === null);
 
 const isRefreshing = computed(() => isLoading.value && data.value !== null);
@@ -268,7 +280,11 @@ const gridStyle = computed(() => ({
 </script>
 
 <template>
-  <DmsCard :padded="false" class="flex min-w-0 flex-col overflow-hidden">
+  <DmsCardPanel
+    v-bind="blockAttributes"
+    :padded="false"
+    class="flex min-w-0 flex-col overflow-hidden"
+  >
     <DmsSectionHeader
       size="card"
       class="border-default border-b py-3.5 pr-4 pl-[18px]"
@@ -286,8 +302,8 @@ const gridStyle = computed(() => ({
             {{ badgeLabel }}
           </UBadge>
           <USkeleton
-            :aria-label="t('dms.a11y.loading')"
             v-else
+            :aria-label="t('dms.a11y.loading')"
             class="h-5 w-16 rounded-[5px]"
             aria-hidden="true"
           />
@@ -368,8 +384,8 @@ const gridStyle = computed(() => ({
           :class="props.showBar ? 'h-[60px]' : 'h-14'"
         >
           <USkeleton
-            :aria-label="t('dms.a11y.loading')"
             v-if="showRank"
+            :aria-label="t('dms.a11y.loading')"
             class="size-[26px] shrink-0 rounded-[7px]"
           />
           <div class="grid flex-1 gap-1.5">
@@ -381,12 +397,12 @@ const gridStyle = computed(() => ({
           </div>
           <USkeleton :aria-label="t('dms.a11y.loading')" class="h-3 w-14" />
           <USkeleton
-            :aria-label="t('dms.a11y.loading')"
             v-if="showRowDelta"
+            :aria-label="t('dms.a11y.loading')"
             class="h-3 w-[46px]"
           />
         </div>
       </div>
     </div>
-  </DmsCard>
+  </DmsCardPanel>
 </template>

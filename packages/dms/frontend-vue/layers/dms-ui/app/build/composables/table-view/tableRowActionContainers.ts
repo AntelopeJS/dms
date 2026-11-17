@@ -8,7 +8,7 @@ import {
   FormContainerType,
   DEFAULT_FORM_CONTAINER_TYPE,
 } from "./types";
-import DmsForm from "../../../components/form/Form.vue";
+import DmsFormBlock from "../../../components/form/FormBlock.vue";
 import { get } from "@nuxt/ui/runtime/utils/index.js";
 import {
   resolveFormContainerTexts,
@@ -101,7 +101,7 @@ const createContainerOpeners = (
       description,
       size,
       containerId,
-      component: DmsForm,
+      component: DmsFormBlock,
       componentOptions: {
         ...processedOptions,
         ...(fetchUrl && { fetchUrl }),
@@ -136,7 +136,7 @@ const createContainerOpeners = (
         title,
         description,
         containerId,
-        component: DmsForm,
+        component: DmsFormBlock,
         componentOptions: {
           ...processedOptions,
           ...(fetchUrl && { fetchUrl }),
@@ -227,24 +227,7 @@ export const createTableRowFormContainer = <T extends Data>(
   ) => {
     const { fetchUrl, submitDefaults } = containerConfig;
     const handler = containerHandlers[containerType];
-    if (
-      handler === containerHandlers[FormContainerType.modal] ||
-      handler === containerHandlers[FormContainerType.drawer]
-    ) {
-      return handler?.(resolved, { fetchUrl, submitDefaults });
-    }
-    if (handler == null) return;
-    // oxlint-disable-next-line anti-slop/no-reflect-apply -- Malformed container types can name inherited Object.prototype methods. Preserve their original unbound positional call rather than passing the normal form request.
-    return Reflect.apply(handler, undefined, [
-      resolved.title,
-      resolved.description,
-      resolved.containerId,
-      resolved.componentIdSuffix,
-      resolved.pageIdSuffix,
-      resolved.processedOptions,
-      fetchUrl,
-      submitDefaults,
-    ]);
+    return handler?.(resolved, { fetchUrl, submitDefaults });
   };
 
   const createFormContainer = (containerConfig: FormContainerConfig<T>) => {

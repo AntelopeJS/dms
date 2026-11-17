@@ -18,11 +18,11 @@ export default defineDmsPlugin(() => {
   let isFirstRefresh = true;
   watch(
     [() => route.path, () => preview.session.value?.permissions],
-    ([path]) => {
+    async ([path]) => {
       const refresh = preview.refresh(path);
       if (!isFirstRefresh) return;
       isFirstRefresh = false;
-      void refresh.finally(() => nextTick(releasePrePaintHold));
+      await refresh.finally(() => nextTick(releasePrePaintHold));
     },
     { immediate: true },
   );

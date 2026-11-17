@@ -3,7 +3,7 @@ import {
   regionalDateTimeFormat,
   regionalDayNumber,
 } from "./regional";
-import { isNumber } from "./type-check";
+import { isDate, isNull, isNumber, isString, isUndefined } from "./type-check";
 import type { I18nTranslate } from "../composables/translation/useTranslation";
 
 const DEFAULT_LOCALE = "en-US";
@@ -179,12 +179,12 @@ const defaultTimeFormatterOptions: Intl.DateTimeFormatOptions = {
 };
 
 export function formatDate(
-  // oxlint-disable-next-line anti-slop/no-unknown-parameters -- Public formatter accepts arbitrary values for Date coercion; Date constructor types exclude supported runtime inputs such as booleans.
+  // oxlint-disable-next-line anti-slop/no-unknown-parameters -- Published auto-import that DMS modules call with untyped cell values; it returns null for any value that is not a date, so narrowing it would break their typecheck.
   date: unknown,
   locale: string = DEFAULT_LOCALE,
   options?: Intl.DateTimeFormatOptions,
 ): string | null {
-  if (date === undefined || date === null) {
+  if (isUndefined(date) || isNull(date)) {
     return null;
   }
 
@@ -192,11 +192,10 @@ export function formatDate(
   const formatOptions = options || defaultDateFormatterOptions;
 
   try {
-    if (date instanceof Date) {
+    if (isDate(date)) {
       validDate = date;
     } else {
-      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- This is deliberately unchecked Date coercion inside the existing catch; narrowing to constructor parameter types would change accepted inputs.
-      validDate = new Date(date as string | number);
+      validDate = new Date(isNumber(date) ? date : String(date));
     }
 
     if (Number.isNaN(validDate.getTime())) {
@@ -271,6 +270,20 @@ export function formatNumber(
   }
 }
 
+const CURRENCY_CODE = /^[A-Za-z]{3}$/;
+
+/**
+ * The currency an amount is written in: `options.currency` when it is an
+ * ISO 4217 code, euros otherwise (a missing or malformed code never turns the
+ * amount into a bare number).
+ */
+function priceCurrency(options: Intl.NumberFormatOptions | undefined): string {
+  const code = options?.currency;
+  return isString(code) && CURRENCY_CODE.test(code)
+    ? code.toUpperCase()
+    : DEFAULT_CURRENCY;
+}
+
 /** An amount, in euros unless `options.currency` says otherwise. */
 export function formatPrice(
   value: number,
@@ -289,10 +302,10 @@ export function formatPrice(
 ): Parameters<typeof isNumber>[0] {
   return formatNumber(value, locale, {
     style: "currency",
-    currency: DEFAULT_CURRENCY,
     minimumFractionDigits: DEFAULT_PRICE_FRACTION_DIGITS,
     maximumFractionDigits: DEFAULT_PRICE_FRACTION_DIGITS,
     ...options,
+    currency: priceCurrency(options),
   });
 }
 

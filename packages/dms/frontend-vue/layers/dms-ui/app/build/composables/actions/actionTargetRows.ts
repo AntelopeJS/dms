@@ -21,9 +21,12 @@ const NO_ROW_ROUTE = async (): Promise<undefined> => undefined;
 const NOT_FOUND_TITLE_KEY = "side_panel.not_found.title";
 const NOT_FOUND_DESCRIPTION_KEY = "side_panel.not_found.description";
 
-export const resolveTargetComponent = (componentName: string): Component =>
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The resolver still falls back to a string at runtime; Component erases that existing container mismatch and does not validate it.
-  (resolveDmsComponent(componentName) || componentName) as Component;
+export function resolveTargetComponent(componentName: string): Component;
+export function resolveTargetComponent(
+  componentName: string,
+): Component | string {
+  return resolveDmsComponent(componentName) || componentName;
+}
 
 export const targetComponentOf = (
   componentName: string,
@@ -38,7 +41,7 @@ export function createTargetRows(config: ActionTargetsConfig) {
     if (!row) return undefined;
     const idKey =
       config.rowNavigation?.rowIdKey ?? config.rowIdKey ?? DEFAULT_ROW_ID_KEY;
-    const id = get(row, idKey);
+    const id: unknown = get(row, idKey);
     return id === undefined || id === null ? undefined : String(id);
   };
   const recordRecorder = (deepLink?: boolean) => {
@@ -102,7 +105,7 @@ export function createTargetRows(config: ActionTargetsConfig) {
     return (row?: Data): void => recordId(rowIdOf(row));
   };
   const rowUrlParams = (rowData?: Data) => {
-    const id = rowData
+    const id: unknown = rowData
       ? get(rowData, config.rowIdKey ?? DEFAULT_ROW_ID_KEY)
       : undefined;
     return id === undefined || id === null ? undefined : { id };

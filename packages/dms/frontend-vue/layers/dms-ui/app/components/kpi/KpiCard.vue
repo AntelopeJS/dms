@@ -1,10 +1,14 @@
 <script setup lang="ts">
 import { computed } from "vue";
+import {
+  resolveBlockState,
+  useBlockStateAttributes,
+} from "../../build/composables/blocks/blockDataState";
 import DmsStatCell from "../../build/components/stat/StatCell.vue";
-import DmsEyebrow from "../section-header/Eyebrow.vue";
+import DmsEyebrowLabel from "../section-header/EyebrowLabel.vue";
 
 import DmsTrendBadge from "../chart/internal/TrendBadge.vue";
-import DmsSparkline from "../chart/internal/Sparkline.vue";
+import DmsSparklineChart from "../chart/internal/SparklineChart.vue";
 import { useChartFetch } from "../../composables/chart/useChartFetch";
 import { readFetchNotFound } from "../../build/utils/fetchNotFound";
 import DmsBlockInlineStatus from "../../build/components/blocks/BlockInlineStatus.vue";
@@ -129,6 +133,14 @@ const previousText = computed(() => {
   return t("dms.chart.versus_value", { value: formatted });
 });
 
+const blockAttributes = useBlockStateAttributes("KpiCard", () =>
+  resolveBlockState({
+    loading: isLoading.value,
+    failed: Boolean(error.value),
+    hasContent: value.value !== undefined,
+  }),
+);
+
 const isFirstLoad = computed(() => isLoading.value && data.value === null);
 
 const hasError = computed(
@@ -149,7 +161,10 @@ const hasSparkline = computed(
   () => props.showSparkline && sparkline.value.length > 0,
 );
 
+const caption = computed(() => data.value?.caption);
+
 const footnote = computed(() => {
+  if (caption.value) return caption.value;
   const isComparing = delta.value !== null;
   const text = (isComparing && props.compareLabel) || props.description;
   if (text) return processI18n(text);
@@ -181,6 +196,7 @@ const isStat = computed(() => props.variant === "stat");
 <template>
   <DmsStatCell
     v-if="isStat"
+    v-bind="blockAttributes"
     :eyebrow="processI18n(title)"
     :icon="resolvedIcon"
     :loading="isFirstLoad"
@@ -227,7 +243,7 @@ const isStat = computed(() => props.variant === "stat");
           </span>
         </div>
         <div v-if="showSparkline" class="h-6 w-16">
-          <DmsSparkline
+          <DmsSparklineChart
             v-if="hasSparkline"
             :values="sparkline"
             :accent="resolvedSparklineAccent"
@@ -243,8 +259,9 @@ const isStat = computed(() => props.variant === "stat");
     </template>
   </DmsStatCell>
 
-  <DmsCard
+  <DmsCardPanel
     v-else
+    v-bind="blockAttributes"
     :padded="false"
     class="flex min-h-[132px] flex-col gap-1.5 px-4 py-4 sm:px-[18px]"
     :aria-busy="isFirstLoad"
@@ -255,7 +272,7 @@ const isStat = computed(() => props.variant === "stat");
         class="text-dimmed size-[15px] shrink-0"
         :aria-hidden="true"
       />
-      <DmsEyebrow
+      <DmsEyebrowLabel
         tone="muted"
         truncate
         class="max-sm:whitespace-normal"
@@ -264,8 +281,8 @@ const isStat = computed(() => props.variant === "stat");
     </div>
     <!-- The value's placeholder takes its 33px line. -->
     <USkeleton
-      :aria-label="t('dms.a11y.loading')"
       v-if="isFirstLoad"
+      :aria-label="t('dms.a11y.loading')"
       class="mt-1 h-[33px] w-32"
     />
     <DmsBlockInlineStatus
@@ -309,8 +326,8 @@ const isStat = computed(() => props.variant === "stat");
         </div>
       </div>
       <USkeleton
-        :aria-label="t('dms.a11y.loading')"
         v-if="showSparkline"
+        :aria-label="t('dms.a11y.loading')"
         class="ml-auto h-[34px] w-24"
       />
     </div>
@@ -364,12 +381,12 @@ const isStat = computed(() => props.variant === "stat");
         class="ml-auto h-[34px] w-24 shrink-0 transition-opacity"
         :class="isRefreshing && 'opacity-55'"
       >
-        <DmsSparkline
+        <DmsSparklineChart
           :values="sparkline"
           :accent="resolvedSparklineAccent"
           :aria-label="processI18n(title)"
         />
       </div>
     </div>
-  </DmsCard>
+  </DmsCardPanel>
 </template>

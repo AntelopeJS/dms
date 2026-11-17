@@ -56,8 +56,9 @@ function closeSheetOnEscape(event: KeyboardEvent): void {
 }
 
 function startHandleDrag(event: PointerEvent): void {
-  // SAFETY: The template binds this listener directly to the resize handle div, so currentTarget is that HTMLElement during dispatch.
-  (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
+  const handle = event.currentTarget;
+  if (!(handle instanceof HTMLElement)) return;
+  handle.setPointerCapture(event.pointerId);
   const renderedWidth = panelEl.value?.getBoundingClientRect().width;
   startDrag(event, renderedWidth || width.value);
 }

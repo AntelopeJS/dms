@@ -8,11 +8,11 @@ import {
   DYNAMIC_NAVIGATION_PROJECT_SLUG,
   dynamicNavigationCategory,
 } from "./category";
+import { ownEntry } from "../own-entry";
 
 /** The projects the validation function of the project page knows. */
 export const DEMO_PROJECT_IDS = ["invoicer", "resto-lucca", "sleepy-api"];
-// oxlint-disable-next-line anti-slop/no-known-value-widening -- Project identifiers are strings; missing badge lookups must continue returning undefined.
-const DEMO_BADGES: Record<string, string> = { invoicer: "3" };
+const DEMO_BADGES = { invoicer: "3" } satisfies Record<string, string>;
 const STATUS_CYCLE: MenuItemStatus[] = [
   "success",
   "warning",
@@ -44,7 +44,7 @@ function buildDemoProjects(): DynamicMenuItem[] {
     icon: "i-ph-cube",
     order: index,
     status: statusOf(index),
-    badge: DEMO_BADGES[id],
+    badge: ownEntry(DEMO_BADGES, id),
   }));
 }
 

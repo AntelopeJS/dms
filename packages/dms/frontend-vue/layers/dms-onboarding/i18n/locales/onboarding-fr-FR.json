@@ -28,6 +28,8 @@
         "first_name": "Prénom",
         "last_name": "Nom",
         "name_required": "Obligatoire",
+        "setup_token": "Jeton d'installation",
+        "setup_token_help": "Affiché dans les logs du serveur au démarrage de l'instance, ou valeur de DMS_SETUP_TOKEN.",
         "email": "E-mail professionnel",
         "submit": "Créer le compte administrateur",
         "back": "Retour aux informations de la plateforme",

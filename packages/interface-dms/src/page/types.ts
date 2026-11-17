@@ -10,7 +10,7 @@ import type {
 import type { RoleModel, TenantMemberModel } from "../db";
 import type { Permission } from "../permissions";
 import type { PermissionsResolverContext } from "../permissions-resolver";
-import type { Tone } from "../base/types/tone";
+import type { Tone } from "../tones";
 import type { MaybePromise } from "../types";
 
 export type { MaybePromise };
@@ -96,8 +96,7 @@ export type ModuleStatus = "live" | "beta" | "update" | "attention";
 
 /**
  * Tone of one readout line: `success` (healthy figure), `info` (neutral
- * fact), `warning` (worth a look) or `error` (something is failing). The
- * former `ok` is still read as `success` in 0.4, with a warning.
+ * fact), `warning` (worth a look) or `error` (something is failing).
  */
 export type ModuleReadoutTone = Extract<
   Tone,
@@ -277,6 +276,13 @@ export interface MenuOptions {
   validation?: PageValidation;
   setupId?: string;
   noComponentPermissions?: boolean;
+  /**
+   * Only platform owners reach the entry, as on a module page: no role can be
+   * granted it or its blocks, Roles does not list them, anyone else gets 403.
+   * Inherited under a category; wins over `publicAccess`, `authOnly` and
+   * `memberAccess`.
+   */
+  ownerOnly?: boolean;
   /**
    * Query parameters carried by the entry's menu link, so a single page with
    * `validation.requiredQueryParams` can serve many entries

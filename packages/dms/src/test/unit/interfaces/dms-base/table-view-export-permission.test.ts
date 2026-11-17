@@ -9,12 +9,12 @@ import {
   Table,
 } from "@antelopejs/interface-database-decorators";
 import { expect } from "chai";
+import { z } from "zod";
 import * as permissionsImpl from "../../../../implementations/dms/permissions";
 import { CORE_SCHEMA_NAME } from "@antelopejs/interface-dms/constants";
 import * as permissionsInterface from "@antelopejs/interface-dms/permissions";
 import {
   TableView,
-  type TableViewOptionsSerialized,
   TableViewRoutes,
 } from "@antelopejs/interface-dms/base/table-view";
 import { withPermissionAncestors } from "@antelopejs/interface-dms/internal/permission-ids";
@@ -32,21 +32,23 @@ class ExportAPI extends DataController(
   Controller("/api/export-permission-rows"),
 ) {}
 
-async function servedOptions(
-  permissions: string[],
-): Promise<TableViewOptionsSerialized> {
+const ServedOptions = z.object({ enableTableExport: z.boolean() });
+
+async function servedOptions(permissions: string[]) {
   const builder = TableView(ExportAPI, { realtime: false });
   const { options } = builder.serializeSync();
   const filter = builder.onFilterCallback;
   if (!filter || !options) throw new Error("table view without a filter");
-  return filter(
-    new Set(withPermissionAncestors(permissions)),
-    options,
-    COMPONENT_PERMISSION_ID,
-    {
-      tenantId: "export-tenant",
-      user: undefined,
-    },
+  return ServedOptions.parse(
+    await filter(
+      new Set(withPermissionAncestors(permissions)),
+      options,
+      COMPONENT_PERMISSION_ID,
+      {
+        tenantId: "export-tenant",
+        user: undefined,
+      },
+    ),
   );
 }
 

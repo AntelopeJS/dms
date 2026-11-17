@@ -38,7 +38,9 @@ const ButtonStub = defineComponent({
       {
         disabled: props.disabled,
         "data-to": props.to,
-        onClick: () => props.onClick?.(),
+        onClick: () => {
+          props.onClick?.();
+        },
       },
       props.label,
     ),
@@ -85,7 +87,12 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-async function mountHeaderBar(actions: unknown[] = [INVITE_HEADER_ACTION]) {
+type LayoutHeaderAction =
+  import("../layers/dms-layout/app/entries/components/layout/PageHeaderActionBar").LayoutHeaderAction;
+
+async function mountHeaderBar(
+  actions: LayoutHeaderAction[] = [INVITE_HEADER_ACTION],
+) {
   const { default: PageHeaderActionBar } = await import(
     "../layers/dms-layout/app/entries/components/layout/PageHeaderActionBar"
   );
@@ -163,7 +170,7 @@ describe("header buttons", () => {
   });
 
   it("runs a declared button's target as a toolbar button", async () => {
-    const purge = {
+    const purge: LayoutHeaderAction = {
       id: "purge",
       label: "Purge",
       target: { type: "api", url: "/api/purge", successMessage: "Done" },

@@ -1,0 +1,209 @@
+{
+  "$schema": "../mockup-spec.schema.json",
+  "version": 1,
+  "title": "Order desk",
+  "pages": [
+    {
+      "id": "orders",
+      "title": "Orders",
+      "options": { "theme": "light", "locale": "en" },
+      "fixtures": {
+        "revenue": {
+          "value": 48210,
+          "delta": 12.4,
+          "series": [
+            {
+              "name": "Revenue",
+              "data": [
+                { "x": "2026-01-05T00:00:00.000Z", "y": 5800 },
+                { "x": "2026-01-06T00:00:00.000Z", "y": 6400 },
+                { "x": "2026-01-07T00:00:00.000Z", "y": 6100 },
+                { "x": "2026-01-08T00:00:00.000Z", "y": 7200 },
+                { "x": "2026-01-09T00:00:00.000Z", "y": 6850 },
+                { "x": "2026-01-10T00:00:00.000Z", "y": 7460 },
+                { "x": "2026-01-11T00:00:00.000Z", "y": 8400 }
+              ]
+            }
+          ]
+        },
+        "orders": [
+          {
+            "_id": "o1",
+            "customer": "Acme Logistics",
+            "total": 1240,
+            "status": "paid",
+            "placedAt": "2026-01-11T09:12:00.000Z"
+          },
+          {
+            "_id": "o2",
+            "customer": "Brightline Foods",
+            "total": 380,
+            "status": "pending",
+            "placedAt": "2026-01-11T08:40:00.000Z"
+          },
+          {
+            "_id": "o3",
+            "customer": "Corvid Studio",
+            "total": 2950,
+            "status": "paid",
+            "placedAt": "2026-01-10T17:05:00.000Z"
+          },
+          {
+            "_id": "o4",
+            "customer": "Delta Marine",
+            "total": 610,
+            "status": "refunded",
+            "placedAt": "2026-01-10T11:30:00.000Z"
+          },
+          {
+            "_id": "o5",
+            "customer": "Evergreen Supply",
+            "total": 1875,
+            "status": "paid",
+            "placedAt": "2026-01-09T15:48:00.000Z"
+          }
+        ]
+      },
+      "tree": [
+        {
+          "type": "Grid",
+          "options": { "gap": "1rem", "minColumnWidth": "220px" },
+          "children": [
+            {
+              "id": "kpis",
+              "type": "GridRow",
+              "children": [
+                {
+                  "id": "revenue",
+                  "type": "KpiCard",
+                  "options": {
+                    "title": "Revenue",
+                    "icon": "i-ph-currency-eur",
+                    "staticValue": 48210,
+                    "staticDelta": 12.4,
+                    "valueFormat": "currency",
+                    "currencyCode": "EUR"
+                  }
+                },
+                {
+                  "id": "orders",
+                  "type": "KpiCard",
+                  "options": {
+                    "title": "Orders",
+                    "icon": "i-ph-shopping-cart",
+                    "staticValue": 312,
+                    "staticDelta": 4.1,
+                    "valueFormat": "number"
+                  }
+                },
+                {
+                  "id": "refunds",
+                  "type": "KpiCard",
+                  "options": {
+                    "title": "Refund rate",
+                    "icon": "i-ph-arrow-counter-clockwise",
+                    "staticValue": 1.8,
+                    "staticDelta": -0.3,
+                    "valueFormat": "percent",
+                    "invert": true
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "ChartCard",
+          "options": {
+            "title": "Revenue this week",
+            "icon": "i-ph-chart-line-up",
+            "fetchUrl": "fixture:revenue",
+            "valueFormat": "currency",
+            "currencyCode": "EUR"
+          },
+          "children": [
+            {
+              "id": "chart",
+              "type": "ChartArea",
+              "options": { "xaxisType": "datetime", "smooth": true }
+            }
+          ]
+        },
+        {
+          "type": "TableView",
+          "options": {
+            "caption": "Latest orders",
+            "fetchUrl": "fixture:orders",
+            "rowIdKey": "_id",
+            "pageSize": 20,
+            "columns": {
+              "customer": {
+                "name": "Customer",
+                "type": "string",
+                "order": 1,
+                "sortable": true
+              },
+              "total": {
+                "name": "Total",
+                "type": "number",
+                "order": 2,
+                "sortable": true
+              },
+              "status": { "name": "Status", "type": "string", "order": 3 },
+              "placedAt": {
+                "name": "Placed",
+                "type": "date",
+                "order": 4,
+                "sortable": true
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "customer",
+      "title": "Customer",
+      "options": { "theme": "dark" },
+      "tree": [
+        {
+          "type": "Section",
+          "options": {
+            "title": "Acme Logistics",
+            "description": "Account since March 2024"
+          },
+          "children": [
+            {
+              "id": "facts",
+              "type": "KeyValueList",
+              "options": {
+                "columns": 2,
+                "items": [
+                  { "label": "Account", "value": "ACME-0042", "type": "mono" },
+                  {
+                    "label": "Status",
+                    "value": "Active",
+                    "type": "status",
+                    "tone": "success"
+                  },
+                  { "label": "Orders", "value": "128" },
+                  { "label": "Lifetime value", "value": "€84,310" }
+                ]
+              }
+            },
+            {
+              "id": "journey",
+              "type": "sketch",
+              "options": {
+                "caption": "Delivery journey: no DMS block draws a horizontal timeline",
+                "height": 160,
+                "html": "<ol class=\"steps\"><li class=\"done\">Ordered</li><li class=\"done\">Packed</li><li class=\"now\">In transit</li><li>Delivered</li></ol>",
+                "css": ".steps{display:flex;gap:12px;list-style:none;margin:0;padding:24px}.steps li{flex:1;padding:12px;border-radius:var(--sketch-radius);background:var(--sketch-surface-muted);color:var(--sketch-text-muted)}.steps .done{color:var(--sketch-success)}.steps .now{background:var(--sketch-accent-fill);color:var(--sketch-text-strong)}"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

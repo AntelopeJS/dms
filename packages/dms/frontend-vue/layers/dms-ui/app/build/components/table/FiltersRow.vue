@@ -1,15 +1,16 @@
 <script setup lang="ts" generic="T extends Data">
+import { themeOverride } from "./tableComponentTheme";
 import { EYEBROW_CLASS } from "../../utils/eyebrow";
 import { injectLocal } from "@vueuse/core";
 import { tv } from "tailwind-variants";
 import type { ShallowRef } from "vue";
-import type { ComponentOptionsData } from "#dms-core/app/types/component";
+import { isJsonObject } from "../../utils/json";
 import type {
   Data,
   TableFilter,
   TableSharedData,
   TableUrlFilter,
-} from "./Table.vue";
+} from "./TableRoot.vue";
 import TableMenuFilter from "./MenuFilter.vue";
 import { formatFilterValue } from "../../composables/table/utils/formatFilterValue";
 import { filterEditorValue } from "../../composables/table/utils/filterEditorValue";
@@ -54,14 +55,11 @@ const tableSharedData =
 const { t } = useI18n();
 const { processI18n } = useTranslation();
 
-// oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Module theme configuration is unchecked; retain its existing contract derived from this component's normalized theme.
-const appConfig = useDmsAppConfig() as ReturnType<typeof useDmsAppConfig> & {
-  ui: { tableFiltersRow: Partial<typeof theme> };
-};
+const appConfig = useDmsAppConfig();
 
 const uiVariant = tv({
   extend: tv(theme),
-  ...appConfig.ui?.tableFiltersRow,
+  ...themeOverride("tableFiltersRow"),
 });
 const ui = computed(() => uiVariant());
 
@@ -100,14 +98,16 @@ const resolveFilterComponent = (filter: TableFilter) => {
     ? processI18n(opts.placeholder)
     : opts.placeholder;
   const items = Array.isArray(opts.items)
-    ? opts.items.map((item) => {
-        // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Component option items are unchecked JSON. The owner allows primitives too; preserve the existing object spread and label access rather than changing malformed-input behavior.
-        const obj = item as ComponentOptionsData;
-        return {
-          ...obj,
-          label: isString(obj.label) ? processI18n(obj.label) : obj.label,
-        };
-      })
+    ? opts.items.map((item) =>
+        isJsonObject(item)
+          ? {
+              ...item,
+              label: isString(item.label)
+                ? processI18n(item.label)
+                : item.label,
+            }
+          : item,
+      )
     : opts.items;
 
   return { ...candidate, options: { ...opts, placeholder, items } };
@@ -147,8 +147,8 @@ const clearable = computed(
 const canClear = computed(
   () => !!clearable.value?.filters || !!clearable.value?.search,
 );
-const reset = () => {
-  tableSharedData?.value?.resetFilters();
+const reset = async () => {
+  await tableSharedData?.value?.resetFilters();
 };
 
 const addFilterOpen = ref(false);
@@ -172,13 +172,11 @@ const itemLabels = (filter: TableFilter): string | undefined => {
   if (!Array.isArray(items) || filter.value === undefined) return undefined;
   const values = Array.isArray(filter.value) ? filter.value : [filter.value];
   const labels = values.map((value) => {
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- find does not validate the matched option's shape. Preserve the existing unchecked label read using the component options owner's property contract.
     const item = items.find(
-      (candidate) =>
-        // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Options can contain primitives. This legacy lookup reads an optional value without validating the option; narrowing would change its matching behavior.
-        (candidate as Pick<ComponentOptionsData, "value">)?.value === value,
-    ) as Pick<ComponentOptionsData, "label"> | undefined;
-    return item?.label !== undefined ? String(item.label) : String(value);
+      (candidate) => isJsonObject(candidate) && candidate.value === value,
+    );
+    const label = isJsonObject(item) ? item.label : undefined;
+    return label !== undefined ? String(label) : String(value);
   });
   return labels.length ? labels.join(", ") : undefined;
 };

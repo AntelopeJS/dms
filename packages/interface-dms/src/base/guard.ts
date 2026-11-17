@@ -58,7 +58,7 @@ export interface GuardOptions {
   fallback?: GuardFallback;
 }
 
-const GUARD_COMPONENT_NAME = "dms-guard";
+const GUARD_COMPONENT_NAME = "dms-guard-block";
 const GUARD_ICON = "i-ph-shield-check";
 const GUARD_DEFAULT_CONDITION = "empty";
 
@@ -132,6 +132,8 @@ export const GuardSchema = z.object({
  * // "Not found" in place of a record's blocks once the record is gone.
  * Guard({ fetchUrl: '/api/routes/{{params.id}}', when: 'notFound' })
  * ```
+ *
+ * @docsApi
  */
 export function Guard(options: GuardOptions): ComponentBuilder<GuardOptions> {
   return attachRealtimeTopicsHook(

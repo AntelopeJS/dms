@@ -23,6 +23,7 @@ interface ProvisionedTenant {
   tenantId: string;
   userId?: string;
   afterDatabaseInitialized: boolean;
+  afterStart: boolean;
 }
 
 interface Probe {
@@ -35,6 +36,7 @@ interface Probe {
 
 const generation = randomUUID();
 let databaseInitialized = false;
+let started = false;
 
 function probe(): Probe {
   const holder: typeof globalThis & { [PROBE_KEY]?: Probe } = globalThis;
@@ -86,6 +88,7 @@ export function construct(): void {
       tenantId,
       userId,
       afterDatabaseInitialized: databaseInitialized,
+      afterStart: started,
     });
     return undefined;
   });
@@ -93,4 +96,8 @@ export function construct(): void {
     if (context.controllerLocation === PROBE_LOCATION) record("listener");
   });
   extendPages();
+}
+
+export function start(): void {
+  started = true;
 }

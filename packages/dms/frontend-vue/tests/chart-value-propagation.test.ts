@@ -3,31 +3,35 @@ import { renderToString } from "vue/server-renderer";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { chartRuntime } from "./helpers/charts-runtime";
 import ChartCard from "../layers/dms-ui/app/components/chart/ChartCard.vue";
-import Chart from "../layers/dms-ui/app/components/chart/Chart.vue";
+import Chart from "../layers/dms-ui/app/components/chart/ChartBlock.vue";
 import KpiCard from "../layers/dms-ui/app/components/kpi/KpiCard.vue";
 import TopListCard from "../layers/dms-ui/app/components/top-list/TopListCard.vue";
 import type { ValuePrecision } from "../layers/dms-ui/app/composables/chart/types";
 
 const AMOUNT = 9.391;
 
-const PlotProbe = defineComponent({
-  props: {
-    options: { type: Object, required: true },
-  },
-  setup: (props) => () =>
-    h("output", [
-      h(
-        "span",
-        { class: "axis" },
-        props.options.yaxis.labels.formatter(AMOUNT),
-      ),
-      h(
-        "span",
-        { class: "tooltip" },
-        props.options.tooltip.y.formatter(AMOUNT),
-      ),
-    ]),
-});
+const PlotProbe = defineComponent(
+  (props: {
+    options: {
+      yaxis: { labels: { formatter: (value: number) => string } };
+      tooltip: { y: { formatter: (value: number) => string } };
+    };
+  }) =>
+    () =>
+      h("output", [
+        h(
+          "span",
+          { class: "axis" },
+          props.options.yaxis.labels.formatter(AMOUNT),
+        ),
+        h(
+          "span",
+          { class: "tooltip" },
+          props.options.tooltip.y.formatter(AMOUNT),
+        ),
+      ]),
+  { props: { options: { type: Object, required: true } } },
+);
 const Slot = defineComponent({
   setup:
     (_, { slots }) =>
@@ -48,12 +52,12 @@ function stubNuxt(locale: string) {
 }
 
 const SLOT_COMPONENTS = [
-  "DmsCard",
+  "DmsCardPanel",
   "DmsClientOnly",
   "UIcon",
   "USkeleton",
   "DmsTrendBadge",
-  "DmsSparkline",
+  "DmsSparklineChart",
   "UBadge",
 ];
 

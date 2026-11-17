@@ -122,14 +122,15 @@ const DEFAULT_ICON = "i-ph-list-numbers";
  * places a block before anything is configured, and writes that as the bare
  * call `TopListCard()`. A page under construction has to compile — it is typechecked
  * on every edit — so a block with nothing set yet has to be a legal call.
+ *
+ * @docsApi
  */
 export function TopListCard(
   options?: TopListCardProps,
 ): ComponentBuilder<TopListCardProps> {
   return attachRealtimeTopicsHook(
     new ComponentBuilder<TopListCardProps>(TOP_LIST_CARD_COMPONENT_NAME)
-      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Public builders allow omitted options while pages are authored; a required title need not exist yet.
-      .options({ ...options } as TopListCardProps)
+      .options(options && { ...options })
       .meta({
         name: options?.title || "Top list",
         icon: DEFAULT_ICON,

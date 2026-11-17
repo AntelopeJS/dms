@@ -4,7 +4,7 @@ import {
   GetModuleContext,
   ReloadModule,
 } from "@antelopejs/interface-core/modules";
-import { expect } from "chai";
+import { assert, expect } from "chai";
 import * as pageImpl from "../../../../implementations/dms/page";
 import * as permissionsImpl from "../../../../implementations/dms/permissions";
 import * as realtimeImpl from "../../../../implementations/dms/realtime";
@@ -17,6 +17,10 @@ import {
 } from "@antelopejs/interface-dms/page";
 import * as permissionsInterface from "@antelopejs/interface-dms/permissions";
 import * as realtimeInterface from "@antelopejs/interface-dms/realtime";
+import {
+  isObject,
+  isString,
+} from "@antelopejs/interface-dms/utils/internal/type-check";
 import { clearPageTopics, getPageTopics } from "../../../../realtime";
 import {
   liveReloadHostOwner,
@@ -44,6 +48,27 @@ interface InspectableProxy {
   registered: Map<string, RegisteredEntry>;
 }
 
+function isRegisteredEntry(value: unknown): value is RegisteredEntry {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    (!("owner" in value) ||
+      value.owner === undefined ||
+      typeof value.owner === "string")
+  );
+}
+
+function holdsRegistrations(value: unknown): value is InspectableProxy {
+  if (!isObject(value)) return false;
+  if (!("registered" in value) || !(value.registered instanceof Map)) {
+    return false;
+  }
+  const registered: Map<unknown, unknown> = value.registered;
+  return [...registered].every(
+    ([key, entry]) => isString(key) && isRegisteredEntry(entry),
+  );
+}
+
 function settle(): Promise<void> {
   return new Promise((resolve) => setImmediate(resolve));
 }
@@ -58,8 +83,11 @@ function ownerOf(
     | typeof realtimeInterface.internal.RegisterPageTopic,
   id: string,
 ): string | undefined {
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- RegisteringProxy's owner contract hides the private registration map; this test inspects only ownership because no public API exposes it.
-  return (proxy as unknown as InspectableProxy).registered.get(id)?.owner;
+  const candidate: object = proxy;
+  if (!holdsRegistrations(candidate)) {
+    throw new Error("The proxy holds no registration map");
+  }
+  return candidate.registered.get(id)?.owner;
 }
 
 function permissionOwner(id: string): string | undefined {
@@ -148,10 +176,8 @@ describe("[unit] interfaces/dms/page — page extension ownership", () => {
 
   it("keeps an extension with its module when the target page registers again", async () => {
     const pageInfo = GetMetadata(beforeTarget, PageMetadata).pageInfo;
-    pageImpl.internal.RegisterPage.unregister(
-      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The suite registers beforeTarget in before; PageMetadata keeps pageInfo optional for unregistered controllers and cannot express that fixture lifecycle.
-      pageInfo as NonNullable<typeof pageInfo>,
-    );
+    assert.exists(pageInfo);
+    pageImpl.internal.RegisterPage.unregister(pageInfo);
     expect(permissionOwner(extensionPermission(BEFORE_PAGE))).to.equal(
       undefined,
     );

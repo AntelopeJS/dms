@@ -56,10 +56,8 @@ function publish(
   topic: string,
   event: Omit<RealtimeEvent, "ts"> | RealtimeSnapshotEvent,
 ): void {
-  for (const handler of handlers.get(topic) ?? []) {
-    // SAFETY: Page refresh observes the event kind, never its timestamp; these fixtures intentionally omit ts.
-    handler(event as Parameters<RealtimeTopicHandler>[0]);
-  }
+  const delivered = "entries" in event ? event : { ...event, ts: Date.now() };
+  for (const handler of handlers.get(topic) ?? []) handler(delivered);
 }
 
 const mounted: App[] = [];
@@ -74,11 +72,14 @@ function installLive(): PageLiveController {
 }
 
 async function mountPage(): Promise<void> {
+  const loads: Array<ReturnType<typeof useApiData>> = [];
   const Page = defineComponent({
     setup() {
       usePageDataRefresh({ pageTopics, subscribe });
-      useApiData("/api/orders");
-      useApiData("/api/own-triggers", { refreshOnPageRefresh: false });
+      loads.push(useApiData("/api/orders"));
+      loads.push(
+        useApiData("/api/own-triggers", { refreshOnPageRefresh: false }),
+      );
       return () => h("div");
     },
   });
@@ -86,6 +87,7 @@ async function mountPage(): Promise<void> {
   app.mount(document.createElement("div"));
   mounted.push(app);
   await settle();
+  await Promise.all(loads);
 }
 
 beforeEach(() => {
@@ -108,10 +110,11 @@ describe("the page's data refresh", () => {
     expect(requests.sort()).toEqual(["/api/orders", "/api/own-triggers"]);
     requests.length = 0;
 
-    refreshPageBlocks();
+    const refreshed = refreshPageBlocks();
     await settle();
 
     expect(requests).toEqual(["/api/orders"]);
+    await refreshed;
   });
 
   it("resolves refreshPageBlocks() once the page's data is read again", async () => {
@@ -141,7 +144,7 @@ describe("the page's data refresh", () => {
   it("reads it again on an event of one of the page's topics", async () => {
     await mountPage();
     pageTopics.value = ["table:orders"];
-    await nextTick();
+    await settle();
     requests.length = 0;
 
     publish("table:orders", { topic: "table:orders", type: "updated" });
@@ -155,12 +158,27 @@ describe("the page's data refresh", () => {
     expect(requests).toEqual([]);
   });
 
+  it("reads it again once the page's topics come in place", async () => {
+    await mountPage();
+    requests.length = 0;
+
+    pageTopics.value = ["table:orders"];
+    await settle();
+    expect(requests).toEqual(["/api/orders"]);
+  });
+
+  it("reads it once at mount when the page's topics are already in place", async () => {
+    pageTopics.value = ["table:orders"];
+    await mountPage();
+    expect(requests.sort()).toEqual(["/api/orders", "/api/own-triggers"]);
+  });
+
   it("stops following the topics the page no longer has", async () => {
     await mountPage();
     pageTopics.value = ["table:orders"];
     await nextTick();
     pageTopics.value = ["table:invoices"];
-    await nextTick();
+    await settle();
     requests.length = 0;
 
     publish("table:orders", { topic: "table:orders", type: "updated" });
@@ -174,7 +192,7 @@ describe("the page's data refresh on a page declared with live", () => {
     const live = installLive();
     await mountPage();
     pageTopics.value = ["table:orders"];
-    await nextTick();
+    await settle();
     requests.length = 0;
 
     live.pause();
@@ -189,11 +207,28 @@ describe("the page's data refresh on a page declared with live", () => {
     expect(requests).toEqual(["/api/orders"]);
   });
 
+  it("reads a paused page again on resume once its topics came in place, counting nothing missed", async () => {
+    const live = installLive();
+    await mountPage();
+    live.pause();
+    await settle();
+    requests.length = 0;
+
+    pageTopics.value = ["table:orders"];
+    await settle();
+    expect(requests).toEqual([]);
+    expect(live.missedCount.value).toBe(0);
+
+    live.resume();
+    await settle();
+    expect(requests).toEqual(["/api/orders"]);
+  });
+
   it("reads at once on an action of the user, paused, and forgets what it missed", async () => {
     const live = installLive();
     await mountPage();
     pageTopics.value = ["table:orders"];
-    await nextTick();
+    await settle();
     requests.length = 0;
 
     live.pause();

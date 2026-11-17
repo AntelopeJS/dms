@@ -30,6 +30,7 @@ function dmsColors(): DmsUiColors {
 
 function dmsLogo(): DmsBrandingLogo {
   return {
+    alt: "Antelope DMS",
     default: {
       light: "/images/antelope-logo/light.svg",
       dark: "/images/antelope-logo/dark.svg",

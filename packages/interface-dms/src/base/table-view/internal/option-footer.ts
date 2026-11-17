@@ -25,7 +25,7 @@ export interface TableViewSummaryFormat {
  */
 export interface TableViewFooterSummary<
   // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Published default accepts module-owned rows.
-  T extends Record<string, unknown> = Record<string, unknown>,
+  T extends object = Record<string, unknown>,
 > {
   /** Shown before the figure. `$`-prefixed: an i18n key. */
   label: string;
@@ -52,7 +52,7 @@ export interface TableViewFooterSummarySerialized extends Omit<
 /** Texts and figures of the footer band. */
 export interface TableViewFooterOptions<
   // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Published default accepts module-owned rows.
-  T extends Record<string, unknown> = Record<string, unknown>,
+  T extends object = Record<string, unknown>,
 > {
   /**
    * Row count text, an i18n key with `$` receiving `{ count }` and pluralized

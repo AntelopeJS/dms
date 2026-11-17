@@ -6,19 +6,20 @@ import {
 } from "@antelopejs/interface-api";
 import { GetMetadata, ImplementInterface } from "@antelopejs/interface-core";
 import { DataController } from "@antelopejs/interface-data-api";
-import { Query } from "@antelopejs/interface-data-api/components";
 import { ModelReference } from "@antelopejs/interface-data-api/metadata";
 import {
   BasicDataModel,
   Field,
   Model,
+  RegisterSchema,
   RegisterTable,
   Table,
 } from "@antelopejs/interface-database-decorators";
+import { Schema } from "@antelopejs/interface-database";
 import { expect } from "chai";
+import { z } from "zod";
 import * as tableViewImpl from "../../../../implementations/dms-base/table-view";
 import * as tenantAccessImpl from "../../../../implementations/dms/tenant-access";
-import type { User } from "@antelopejs/interface-dms/auth/db";
 import {
   archiveRows,
   internal as tableViewInternal,
@@ -29,14 +30,16 @@ import {
 } from "@antelopejs/interface-dms/base/table-view";
 import { TableViewRoutes } from "@antelopejs/interface-dms/base/table-view/routes";
 import * as tenantAccess from "@antelopejs/interface-dms/tenant-access";
+import { isFunction } from "@antelopejs/interface-dms/utils/internal/type-check";
+import { userFixture } from "../../../helpers/user-fixture";
+import { requestContextFixture } from "../../../helpers/request-context";
 
 const SCHEMA = "bulk-operations-test";
 const TABLE = "tasks";
 const ARCHIVE_FIELD = "isArchived";
 const IDS_ARG_INDEX = 1;
 const SESSION = "bulk-operations-session";
-// oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Bulk authorization reads only the id; this fixture is deliberately not a complete persisted user.
-const USER = { _id: "bulk-operations-user" } as User;
+const USER = userFixture({ _id: "bulk-operations-user" });
 const ALL_IDS = ["a", "b", "c", "d"];
 
 const RULE_REFUSED_ID = "c";
@@ -70,156 +73,152 @@ class TaskAPI extends DataController(
   declare model: TaskModel;
 }
 
-type Row = { _id: string; priority: string; isArchived: boolean };
-
-function createTable(rows: Map<string, Row>) {
-  return {
-    getAll(ids: string[]) {
-      const found = ids
-        .map((id) => rows.get(id))
-        .filter((row): row is Row => !!row);
-      return Object.assign(Promise.resolve(found), {
-        update: async (patch: Partial<Row>) => {
-          for (const row of found) Object.assign(row, patch);
-          return found.length;
-        },
-        delete: async () => {
-          for (const row of found) rows.delete(row._id);
-          return found.length;
-        },
-      });
-    },
-  };
-}
-
-function createRows(isArchived: boolean): Map<string, Row> {
-  return new Map(
-    ALL_IDS.map((id) => [
-      id,
-      {
-        _id: id,
-        priority: id === RULE_REFUSED_ID ? "high" : "low",
-        isArchived,
-      },
-    ]),
-  );
-}
-
 function context(query: string): RequestContext {
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Parameter computation reads only url; unrelated HTTP context members are deliberately absent.
-  return {
-    url: new URL(`http://localhost/api/bulk-operations/archive?${query}`),
-  } as RequestContext;
+  return requestContextFixture(
+    new URL(`http://localhost/api/bulk-operations/archive?${query}`),
+  );
 }
 
 const controller = new TaskAPI();
 const meta = GetMetadata(TaskAPI, TableViewMeta);
 const published: string[][] = [];
-let rows: Map<string, Row>;
 
-function useRows(next: Map<string, Row>) {
-  rows = next;
-
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The in-memory fixture implements only getAll/update/delete, not the complete database-backed TaskModel contract.
-  controller.model = { table: createTable(rows) } as never;
-}
-
-function archive(ids: string[]) {
-  return TableViewRoutes.Archive.func.call(
-    controller,
-    context(""),
-    ids,
-    USER,
-    context(""),
-    SESSION,
-    USER,
+/** Replaces the stored tasks with one per id of `ALL_IDS`, all `isArchived`. */
+async function useRows(isArchived: boolean): Promise<void> {
+  await controller.model.table.delete().run();
+  await controller.model.insert(
+    ALL_IDS.map((id) => ({
+      _id: id,
+      priority: id === RULE_REFUSED_ID ? "high" : "low",
+      isArchived,
+    })),
   );
 }
 
-function restore(ids: string[]) {
-  return TableViewRoutes.Restore.func.call(
-    controller,
-    context(""),
-    ids,
-    USER,
-    context(""),
-    SESSION,
-    USER,
+async function storedIds(): Promise<string[]> {
+  return (await controller.model.getAll()).map((row) => row._id).sort();
+}
+
+const ArchiveAnswer = z
+  .object({ success: z.literal(true), archivedCount: z.number() })
+  .strict();
+const RestoreAnswer = z
+  .object({ success: z.literal(true), restoredCount: z.number() })
+  .strict();
+const DeleteAnswer = z.union([
+  z.number(),
+  z.object({ deleted: z.number() }).strict(),
+]);
+
+async function archive(ids: string[]) {
+  return ArchiveAnswer.parse(
+    await TableViewRoutes.Archive.func.call(
+      controller,
+      context(""),
+      ids,
+      Buffer.alloc(0),
+      USER,
+      context(""),
+      SESSION,
+      USER,
+    ),
   );
 }
 
-function remove(ids: string[]) {
-  return TableViewRoutes.Delete.func.call(
-    controller,
-    context(""),
-    { id: ids },
-    USER,
-    context(""),
-    SESSION,
-    USER,
+async function restore(ids: string[]) {
+  return RestoreAnswer.parse(
+    await TableViewRoutes.Restore.func.call(
+      controller,
+      context(""),
+      ids,
+      Buffer.alloc(0),
+      USER,
+      context(""),
+      SESSION,
+      USER,
+    ),
   );
 }
 
-const archivedIds = () =>
-  [...rows.values()].filter((row) => row.isArchived).map((row) => row._id);
+async function remove(ids: string[]) {
+  return DeleteAnswer.parse(
+    await TableViewRoutes.Delete.func.call(
+      controller,
+      context(""),
+      { id: ids },
+      Buffer.alloc(0),
+      USER,
+      context(""),
+      SESSION,
+      USER,
+    ),
+  );
+}
+
+async function archivedIds(): Promise<string[]> {
+  return (await controller.model.getAll())
+    .filter((row) => row.isArchived)
+    .map((row) => row._id)
+    .sort();
+}
+
+async function registerHarness() {
+  await RegisterSchema(SCHEMA);
+  const schema = Schema.get(SCHEMA);
+  if (!schema) throw new Error("Missing test schema");
+  controller.model = new TaskModel(schema.instance());
+  void ImplementInterface(tenantAccess, tenantAccessImpl);
+  tenantAccess.RegisterTenantAccessGate(gate);
+  ImplementInterface(
+    { archiveRows, restoreRows, validateRowsAgainstRule },
+    {
+      archiveRows: tableViewImpl.archiveRows,
+      restoreRows: tableViewImpl.restoreRows,
+      validateRowsAgainstRule: tableViewImpl.validateRowsAgainstRule,
+    },
+  );
+  ImplementInterface(
+    { internal: tableViewInternal },
+    {
+      internal: {
+        PublishMutation: async ({ ids }: RealtimeMutationContext) => {
+          published.push(ids);
+        },
+        AcquirePresence: async () => undefined,
+      },
+    },
+  );
+  meta.setArchiveField(ARCHIVE_FIELD);
+}
+
+function restoreHarness() {
+  meta.controllerRowActionRules = undefined;
+  tenantAccess.internal.RegisterTenantAccessGate.unregister(gate);
+  ImplementInterface(
+    { internal: tableViewInternal },
+    { internal: tableViewImpl.internal },
+  );
+}
 
 describe("[unit] TableView bulk operations", () => {
-  const originalDelete = Query.Delete;
-
-  before(() => {
-    void ImplementInterface(tenantAccess, tenantAccessImpl);
-    tenantAccess.RegisterTenantAccessGate(gate);
-    ImplementInterface(
-      { archiveRows, restoreRows, validateRowsAgainstRule },
-      {
-        archiveRows: tableViewImpl.archiveRows,
-        restoreRows: tableViewImpl.restoreRows,
-        validateRowsAgainstRule: tableViewImpl.validateRowsAgainstRule,
-      },
-    );
-    ImplementInterface(
-      { internal: tableViewInternal },
-      {
-        internal: {
-          PublishMutation: async ({ ids }: RealtimeMutationContext) => {
-            published.push(ids);
-          },
-          AcquirePresence: async () => undefined,
-        },
-      },
-    );
-    meta.setArchiveField(ARCHIVE_FIELD);
-
-    Query.Delete = (_table, id) =>
-      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- This double supplies the awaited delete count, not the database query builder's unexercised chaining API.
-      createTable(rows)
-        .getAll(Array.isArray(id) ? id : [id])
-        .delete() as never;
-  });
+  before(registerHarness);
 
   beforeEach(() => {
     published.length = 0;
     meta.controllerRowActionRules = undefined;
   });
 
-  after(() => {
-    Query.Delete = originalDelete;
-    meta.controllerRowActionRules = undefined;
-    tenantAccess.internal.RegisterTenantAccessGate.unregister(gate);
-    ImplementInterface(
-      { internal: tableViewInternal },
-      { internal: tableViewImpl.internal },
-    );
-  });
+  after(restoreHarness);
 
   it("reads every id of the repeated query key", async () => {
     class Probe extends Controller("/probe") {}
-    type ArgDecorator = (target: Probe, key: string, index: number) => void;
     for (const route of ["archive", "restore"] as const) {
       const callback =
         TableViewRoutes[route === "archive" ? "Archive" : "Restore"];
-      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Callback args permit decorator arrays, but these two route definitions put a single ids decorator at this index; changing the call would alter the fixture's route-contract test.
-      const decorate = callback.args[IDS_ARG_INDEX] as ArgDecorator;
+      const decorate = callback.args[IDS_ARG_INDEX];
+      if (!isFunction(decorate)) {
+        throw new Error(`${route} has no single ids decorator`);
+      }
       decorate(Probe.prototype, route, IDS_ARG_INDEX);
       const parameter = GetMetadata(Probe, ControllerMeta).getParameterArray(
         route,
@@ -234,19 +233,19 @@ describe("[unit] TableView bulk operations", () => {
   });
 
   it("archives and restores every selected row", async () => {
-    useRows(createRows(false));
+    await useRows(false);
     expect(await archive(["a", "b", "d"])).to.deep.equal({
       success: true,
       archivedCount: 3,
     });
-    expect(archivedIds()).to.deep.equal(["a", "b", "d"]);
+    expect(await archivedIds()).to.deep.equal(["a", "b", "d"]);
     expect(published).to.deep.equal([["a", "b", "d"]]);
 
     expect(await restore(["a", "b", "d"])).to.deep.equal({
       success: true,
       restoredCount: 3,
     });
-    expect(archivedIds()).to.deep.equal([]);
+    expect(await archivedIds()).to.deep.equal([]);
   });
 
   it("leaves out only the rows the archive and restore rules refuse", async () => {
@@ -254,35 +253,35 @@ describe("[unit] TableView bulk operations", () => {
       archive: { isEnabled: true, rule: NOT_HIGH },
       restore: { isEnabled: true, rule: NOT_HIGH },
     });
-    useRows(createRows(false));
+    await useRows(false);
     expect(await archive(ALL_IDS)).to.deep.equal({
       success: true,
       archivedCount: 3,
     });
-    expect(archivedIds()).to.deep.equal(["a", "b", "d"]);
+    expect(await archivedIds()).to.deep.equal(["a", "b", "d"]);
 
-    useRows(createRows(true));
+    await useRows(true);
     expect(await restore(ALL_IDS)).to.deep.equal({
       success: true,
       restoredCount: 3,
     });
-    expect(archivedIds()).to.deep.equal([RULE_REFUSED_ID]);
+    expect(await archivedIds()).to.deep.equal([RULE_REFUSED_ID]);
   });
 
   it("answers a zero count when the rule refuses every row", async () => {
     meta.setControllerRowActionRules({
       archive: { isEnabled: true, rule: NOT_HIGH },
     });
-    useRows(createRows(false));
+    await useRows(false);
     expect(await archive([RULE_REFUSED_ID])).to.deep.equal({
       success: true,
       archivedCount: 0,
     });
-    expect(archivedIds()).to.deep.equal([]);
+    expect(await archivedIds()).to.deep.equal([]);
   });
 
   it("counts only the rows that exist", async () => {
-    useRows(createRows(false));
+    await useRows(false);
     expect(await archive(["a", "missing"])).to.deep.equal({
       success: true,
       archivedCount: 1,
@@ -290,16 +289,16 @@ describe("[unit] TableView bulk operations", () => {
   });
 
   it("deletes every selected row the delete rule allows", async () => {
-    useRows(createRows(false));
+    await useRows(false);
     expect(await remove(["a", "b", "d"])).to.equal(3);
-    expect([...rows.keys()]).to.deep.equal([RULE_REFUSED_ID]);
+    expect(await storedIds()).to.deep.equal([RULE_REFUSED_ID]);
 
     meta.setControllerRowActionRules({
       delete: { isEnabled: true, rule: NOT_HIGH },
     });
-    useRows(createRows(false));
+    await useRows(false);
     expect(await remove(ALL_IDS)).to.equal(3);
-    expect([...rows.keys()]).to.deep.equal([RULE_REFUSED_ID]);
+    expect(await storedIds()).to.deep.equal([RULE_REFUSED_ID]);
     expect(await remove([RULE_REFUSED_ID])).to.deep.equal({ deleted: 0 });
   });
 });

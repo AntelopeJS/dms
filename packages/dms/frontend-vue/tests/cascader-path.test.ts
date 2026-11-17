@@ -22,12 +22,23 @@ import CascaderPath from "../layers/dms-ui/app/components/table-view/CascaderPat
 const SEARCH_URL = "/api/categories/select";
 const KEY_MAPPING = { label: "name", value: "_id", parent: "parent" };
 
-// oxlint-disable-next-line anti-slop/no-known-value-widening -- The fake route accepts arbitrary ids including misses; inference cannot index them, and own-key filtering would change inherited-key lookup.
-const ROWS: Record<string, { _id: string; name: string; parent?: string }> = {
-  electronics: { _id: "electronics", name: "Electronics" },
-  audio: { _id: "audio", name: "Audio", parent: "electronics" },
-  speakers: { _id: "speakers", name: "Speakers", parent: "audio" },
-};
+interface CategoryRow {
+  _id: string;
+  name: string;
+  parent?: string;
+}
+
+const ROWS = new Map<string, CategoryRow>([
+  ["electronics", { _id: "electronics", name: "Electronics" }],
+  ["audio", { _id: "audio", name: "Audio", parent: "electronics" }],
+  ["speakers", { _id: "speakers", name: "Speakers", parent: "audio" }],
+]);
+
+function rowOf(id: string): CategoryRow {
+  const row = ROWS.get(id);
+  if (!row) throw new Error(`The fixture holds no category ${id}`);
+  return row;
+}
 
 let app: App | undefined;
 
@@ -47,11 +58,16 @@ async function mountCell(
     $authFetch: vi.fn(
       async (
         url: string,
-        options: { params: { ids: Array<(typeof ROWS)[string]["_id"]> } },
+        options: { params: { ids: Array<CategoryRow["_id"]> } },
       ) => {
         reads.push({ url, params: options.params });
         const { ids } = options.params;
-        return { results: ids.flatMap((id) => (ROWS[id] ? [ROWS[id]] : [])) };
+        return {
+          results: ids.flatMap((id) => {
+            const row = ROWS.get(id);
+            return row ? [row] : [];
+          }),
+        };
       },
     ),
   }));
@@ -60,7 +76,11 @@ async function mountCell(
     async <T>(key: Parameters<typeof toValue>[0], read: () => Promise<T>) => {
       toValue(key);
       const data = ref<unknown>();
-      void read().then((result) => (data.value = result));
+      read()
+        .then((result) => (data.value = result))
+        .catch((failure: unknown) => {
+          throw failure;
+        });
       return { data };
     },
   );
@@ -106,7 +126,7 @@ describe("a cascader cell", () => {
   });
 
   it("reads only the ancestors of a row the list joined, and nothing for a root", async () => {
-    const joined = await mountCell(ROWS.speakers);
+    const joined = await mountCell(rowOf("speakers"));
     expect(joined.host.textContent?.trim()).toBe(
       "Electronics / Audio / Speakers",
     );
@@ -118,7 +138,7 @@ describe("a cascader cell", () => {
       },
     ]);
     app?.unmount();
-    const root = await mountCell(ROWS.electronics);
+    const root = await mountCell(rowOf("electronics"));
     expect(root.host.textContent?.trim()).toBe("Electronics");
     expect(root.reads).toEqual([]);
   });

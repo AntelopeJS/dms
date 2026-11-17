@@ -134,29 +134,28 @@ export function assembleLayoutComponents(
   own: Record<string, ComponentInfoSerialized>,
   entries: PageExtensionEntry[],
 ): Record<string, ComponentInfoSerialized> {
-  if (entries.length === 0) {
-    // oxlint-disable-next-line anti-slop/no-known-value-widening -- Preserve the published component dictionary return type even when no extension changes the shallow copy.
-    return { ...own };
-  }
-
   const ownKeys = Object.keys(own);
   const groups = groupExtensionEntries(entries, new Set(ownKeys));
-  const assembled: Record<string, ComponentInfoSerialized> = {};
+  const assembled = new Map<string, ComponentInfoSerialized>();
   const appendGroup = (group?: PageExtensionEntry[]): void => {
     for (const entry of group ?? []) {
       if (entry.serialized) {
-        assembled[entry.key] = entry.serialized;
+        assembled.set(entry.key, entry.serialized);
       }
     }
   };
 
   for (const key of ownKeys) {
     appendGroup(groups.before.get(key));
-    assembled[key] = assembleNestedComponent(own[key], [key], entries);
+    assembled.set(
+      key,
+      entries.length === 0
+        ? own[key]
+        : assembleNestedComponent(own[key], [key], entries),
+    );
     appendGroup(groups.after.get(key));
   }
   appendGroup(groups.end);
 
-  // oxlint-disable-next-line anti-slop/no-known-value-widening -- Preserve the published component dictionary contract populated from own components and serialized extensions.
-  return assembled;
+  return Object.fromEntries(assembled);
 }

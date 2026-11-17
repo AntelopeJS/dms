@@ -7,9 +7,11 @@
  * registered formatter must write its text through the application's
  * composer instead, in its active locale.
  */
-import { createApp, defineComponent, h } from "vue";
+import { createApp, defineComponent, h, isVNode, type VNodeChild } from "vue";
 import { createI18n, useI18n } from "vue-i18n";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
+import type { DataTypeConfig } from "../layers/dms-core/app/types/data-type";
+import type { RenderableColumn } from "../layers/dms-ui/app/entries/composables/data-types/useColumnValueRenderer";
 import type { DataType } from "../layers/dms-core/app/composables/data-types/useDataType";
 import { Size } from "../layers/dms-core/app/types/size";
 import * as formatterUtils from "../layers/dms-core/app/utils/formatter";
@@ -20,9 +22,7 @@ import coreFr from "../layers/dms-core/app/entries/i18n/locales/core-fr-FR.json"
 import uiEn from "../layers/dms-ui/app/entries/i18n/locales/ui-en-GB.json";
 import uiFr from "../layers/dms-ui/app/entries/i18n/locales/ui-fr-FR.json";
 
-type Messages = import("vue-i18n").LocaleMessage<
-  import("vue-i18n").VueMessageType
->;
+type Messages = { [key: string]: string | Messages };
 
 const mergeMessages = (...sources: Messages[]): Messages =>
   sources.reduce<Messages>((merged, source) => {
@@ -156,39 +156,106 @@ describe("data-type formatters outside a component setup", () => {
   });
 });
 
+function mountRenderer<R>(use: () => R) {
+  let renderer: R | undefined;
+  const app = createApp(
+    defineComponent({
+      setup() {
+        renderer = use();
+        return () => null;
+      },
+    }),
+  );
+  app.use(i18n);
+  app.mount(document.createElement("div"));
+  return {
+    app,
+    renderer: (): R => {
+      if (renderer === undefined) throw new Error("setup did not run");
+      return renderer;
+    },
+  };
+}
+
+const dataType = (
+  id: string,
+  options?: DataTypeConfig["inputComponent"]["options"],
+): DataTypeConfig => ({
+  id,
+  compareModes: [],
+  filterComponents: {},
+  inputComponent: options === undefined ? {} : { options },
+});
+
+describe("the price formatter", () => {
+  it("writes euros by default and the currency the field states", () => {
+    const price = dataTypes.get("price")!.formatter!.default;
+    expect(price(12, "en-GB", undefined)).toBe("€12.00");
+    expect(price(12, "en-GB", { currency: "USD" })).toBe("US$12.00");
+  });
+
+  it("writes a column's currency into a footer sum and a display cell", async () => {
+    const { useColumnValueRenderer } = await import(
+      "../layers/dms-ui/app/entries/composables/data-types/useColumnValueRenderer"
+    );
+    const { renderer, app } = mountRenderer(useColumnValueRenderer);
+    try {
+      const text = (node: VNodeChild): string => {
+        if (isVNode(node) && typeChecks.isString(node.children)) {
+          return node.children;
+        }
+        if (typeChecks.isString(node)) return node;
+        throw new Error("the cell did not render as text");
+      };
+      const typed = {
+        accessorKey: "total",
+        type: dataType("price", { currency: "USD" }),
+      } satisfies RenderableColumn;
+      const displayed = {
+        accessorKey: "total",
+        type: dataType("number"),
+        display: { type: "price", options: { currency: "USD" } },
+      } satisfies RenderableColumn;
+      expect(text(renderer().renderValue(typed, 5, undefined))).toBe("US$5.00");
+      expect(text(renderer().renderValue(displayed, 5, undefined))).toBe(
+        "US$5.00",
+      );
+    } finally {
+      app.unmount();
+    }
+  });
+});
+
 describe("a catalog-like table drawn after its setup", () => {
   const columns = {
-    image: { accessorKey: "image", type: { id: "image" } },
-    tags: { accessorKey: "tags", type: { id: "tags" } },
+    image: { accessorKey: "image", type: dataType("image") },
+    tags: { accessorKey: "tags", type: dataType("tags") },
     stock: {
       accessorKey: "stock",
-      type: { id: "number", inputComponent: { options: { suffix: " pcs" } } },
+      type: dataType("number", { suffix: " pcs" }),
     },
     state: {
       accessorKey: "state",
-      type: {
-        id: "select",
-        inputComponent: {
-          options: { items: [{ label: "$dms.date.undefined", value: "a" }] },
-        },
-      },
+      type: dataType("select", {
+        items: [{ label: "$dms.date.undefined", value: "a" }],
+      }),
     },
     family: {
       accessorKey: "family",
-      type: { id: "cascader_relation", inputComponent: { options: {} } },
+      type: dataType("cascader_relation", {}),
     },
     price: {
       accessorKey: "price",
-      type: { id: "price" },
+      type: dataType("price"),
       display: { type: "two_line", options: { subField: "unit" } },
     },
-    released: { accessorKey: "released", type: { id: "date" } },
+    released: { accessorKey: "released", type: dataType("date") },
     files: {
       accessorKey: "files",
-      type: { id: "file", inputComponent: { options: { multiple: true } } },
+      type: dataType("file", { multiple: true }),
     },
-    description: { accessorKey: "description", type: { id: "rich_text" } },
-  };
+    description: { accessorKey: "description", type: dataType("rich_text") },
+  } satisfies Record<string, RenderableColumn>;
   const row = {
     image: "https://example.com/product.png",
     tags: ["solar", "home"],
@@ -206,27 +273,17 @@ describe("a catalog-like table drawn after its setup", () => {
     const { useColumnValueRenderer } = await import(
       "../layers/dms-ui/app/entries/composables/data-types/useColumnValueRenderer"
     );
-    let renderer: ReturnType<typeof useColumnValueRenderer> | undefined;
-    const app = createApp(
-      defineComponent({
-        setup() {
-          renderer = useColumnValueRenderer();
-          return () => null;
-        },
-      }),
-    );
-    app.use(i18n);
-    app.mount(document.createElement("div"));
+    const { renderer, app } = mountRenderer(useColumnValueRenderer);
     try {
       for (const column of Object.values(columns)) {
-        expect(() => renderer!.renderColumnValue(column, row)).not.toThrow();
+        expect(() => renderer().renderColumnValue(column, row)).not.toThrow();
         expect(() =>
-          renderer!.renderColumnValue(column, row, "detail"),
+          renderer().renderColumnValue(column, row, "detail"),
         ).not.toThrow();
       }
 
       expect(() =>
-        renderer!.renderValue(columns.price, 9999, undefined),
+        renderer().renderValue(columns.price, 9999, undefined),
       ).not.toThrow();
     } finally {
       app.unmount();

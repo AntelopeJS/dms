@@ -8,6 +8,7 @@ import "./auth/recover";
 import "./auth/recover-success";
 import "./auth/backup";
 import "./auth/accounts";
+import "./auth/not-a-member";
 import "./auth/oauth-complete";
 
 import "./onboarding";

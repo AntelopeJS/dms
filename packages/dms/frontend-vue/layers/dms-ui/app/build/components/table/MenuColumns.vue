@@ -4,8 +4,9 @@ import type { Column } from "@tanstack/vue-table";
 import { tv } from "tailwind-variants";
 import type { ShallowRef } from "vue";
 
-import type { TableSharedData, Data } from "./Table.vue";
+import type { TableSharedData, Data } from "./TableRoot.vue";
 import SortableList from "../sortable/SortableList.vue";
+import { themeOverride } from "./tableComponentTheme";
 
 const theme = tv({
   slots: {
@@ -26,11 +27,6 @@ const tableSharedData =
   injectLocal<ShallowRef<TableSharedData<T>>>("tableSharedData");
 
 const { t } = useI18n();
-
-// oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Module theme configuration is unchecked; retain its existing contract derived from this component's normalized theme.
-const appConfig = useDmsAppConfig() as ReturnType<typeof useDmsAppConfig> & {
-  ui: { tableMenuColumn: Partial<typeof theme> };
-};
 
 const order = computed(
   () => tableSharedData?.value?.columnOrderState.value || [],
@@ -89,7 +85,7 @@ function resetColumns() {
 
 const uiTableMenuColumnVariant = tv({
   extend: tv(theme),
-  ...appConfig.ui?.tableMenuColumn,
+  ...themeOverride("tableMenuColumn"),
 });
 const uiTableMenuColumn = computed(() => uiTableMenuColumnVariant());
 </script>

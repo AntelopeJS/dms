@@ -1,6 +1,6 @@
 import { createApp, defineComponent, h, ref } from "vue";
 import ChartCard from "../../layers/dms-ui/app/components/chart/ChartCard.vue";
-import Chart from "../../layers/dms-ui/app/components/chart/Chart.vue";
+import Chart from "../../layers/dms-ui/app/components/chart/ChartBlock.vue";
 import ApexChartHost from "../../layers/dms-ui/app/components/chart/ApexChartHost.vue";
 import type { ValuePrecision } from "../../layers/dms-ui/app/composables/chart/types";
 
@@ -112,7 +112,7 @@ const app = createApp({
 });
 for (const name of ["DmsClientOnly", "USkeleton", "DmsTrendBadge"])
   app.component(name, Slot);
-app.component("DmsCard", Card);
+app.component("DmsCardPanel", Card);
 app.component("DmsApexChartHost", ApexChartHost);
 app.config.globalProperties.$t = (key: string) => key;
 app.mount("#app");

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useTemplateRef } from "vue";
-import * as z from "zod";
+import { z } from "zod";
 import type { FormSubmitEvent } from "@nuxt/ui";
 import StageCard from "#dms-layout/app/entries/components/layout/StageCard";
 import AuthFormAlert from "../../build/components/AuthFormAlert.vue";
@@ -16,6 +16,7 @@ import {
   useLocalizedSchema,
 } from "#dms-core/app/composables/useFormValidation";
 import { ACCOUNTS_LIST_ROUTE } from "../../utils/accountsFlow";
+import { noWorkspaceRoute } from "../../build/utils/noWorkspaceRoute";
 import { isObject } from "#dms-core/app/utils/type-check";
 
 const route = useDmsRoute();
@@ -39,20 +40,30 @@ const fields = z.object({
 });
 type Schema = z.output<typeof fields>;
 const schema = useLocalizedSchema(fields);
-const state = reactive<Partial<Schema>>({});
+const state = reactive<Partial<Schema>>({
+  ...useDmsRuntimeConfig().public.dms.loginPrefill,
+});
 useLiveFormErrors(form, state);
 
 function isTwoFactorRequired(
   response: unknown,
 ): response is TwoFactorRequiredResponse {
-  return !!response && isObject(response) && "requires_2fa" in response;
+  return (
+    !!response &&
+    isObject(response) &&
+    "requires_2fa" in response &&
+    response.requires_2fa === true
+  );
 }
 
 function isTenantAssignmentRequired(
   response: unknown,
 ): response is TenantAssignmentRequiredResponse {
   return (
-    !!response && isObject(response) && "requires_tenant_assignment" in response
+    !!response &&
+    isObject(response) &&
+    "requires_tenant_assignment" in response &&
+    response.requires_tenant_assignment === true
   );
 }
 
@@ -69,12 +80,9 @@ async function handleTwoFactorRedirect(response: TwoFactorRequiredResponse) {
 async function handleTenantAssignmentRedirect(
   response: TenantAssignmentRequiredResponse,
 ) {
-  await navigateDms({
-    path: "/auth/no-workspace",
-    query: {
-      token: response.tenant_assignment_token,
-    },
-  });
+  await navigateDms(
+    noWorkspaceRoute({ token: response.tenant_assignment_token }),
+  );
 }
 
 async function onSubmit(payload: FormSubmitEvent<Schema>) {
@@ -84,7 +92,7 @@ async function onSubmit(payload: FormSubmitEvent<Schema>) {
     isLoading.value = true;
     clearFormError();
 
-    const response = await $fetch("/auth/login", {
+    const response: unknown = await $fetch("/auth/login", {
       method: "POST",
       body: payload.data,
     });

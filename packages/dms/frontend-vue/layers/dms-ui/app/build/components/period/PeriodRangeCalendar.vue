@@ -24,6 +24,7 @@ import {
   type CalendarRange,
   isBeyondMaxDays,
 } from "../../composables/period/periodDisplay";
+import { toCalendarDay } from "../../utils/calendarDay";
 
 interface Props {
   modelValue: CalendarRange | null;
@@ -39,7 +40,8 @@ interface Props {
   maxDays?: number;
 }
 
-type WeekStart = 0 | 1 | 2 | 3 | 4 | 5 | 6;
+const WEEK_STARTS = [0, 1, 2, 3, 4, 5, 6] as const;
+const MONDAY = 1;
 
 const props = withDefaults(defineProps<Props>(), {
   compareRange: null,
@@ -93,10 +95,8 @@ const rekaValue = computed<DateRange>(() =>
 );
 
 function onUpdate(value: DateRange | null) {
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Reka's DateRange admits other DateValue variants; retain unchecked event forwarding without converting or rejecting those variants.
-  const start = value?.start as CalendarDate | undefined;
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Reka's DateRange admits other DateValue variants; retain unchecked event forwarding and read end before testing start.
-  const end = value?.end as CalendarDate | undefined;
+  const start = toCalendarDay(value?.start);
+  const end = toCalendarDay(value?.end);
   if (start && end) {
     pendingStart.value = null;
     emit("pending", null);
@@ -109,10 +109,8 @@ function onUpdate(value: DateRange | null) {
 
 function isDateDisabled(date: DateValue): boolean {
   const picked = pendingStart.value;
-  return (
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Reka supplies DateValue while the range helper accepts CalendarDate; preserve unchecked forwarding and short-circuiting instead of adding variant validation.
-    !!picked && isBeyondMaxDays(date as CalendarDate, picked, props.maxDays)
-  );
+  const day = toCalendarDay(date);
+  return !!picked && !!day && isBeyondMaxDays(day, picked, props.maxDays);
 }
 
 function onPlaceholder(value: DateValue) {
@@ -201,8 +199,9 @@ function triggerClass(date: DateValue): (string | false)[] {
   ];
 }
 
-// oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- This public prop remains Number at runtime and accepts unchecked numbers; narrowing its declaration or validating values would change the existing contract.
-const weekStart = computed(() => props.weekStartsOn as WeekStart);
+const weekStart = computed(
+  () => WEEK_STARTS.find((day) => day === props.weekStartsOn) ?? MONDAY,
+);
 </script>
 
 <template>

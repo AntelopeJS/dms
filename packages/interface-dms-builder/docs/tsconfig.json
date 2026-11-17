@@ -1,0 +1,18 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "rootDir": "..",
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "composite": false,
+    "incremental": false,
+    "noEmit": true,
+    "paths": {
+      "@antelopejs/interface-dms-builder": ["../src/index.ts"],
+      "@antelopejs/interface-dms-builder/*": ["../src/*"]
+    }
+  },
+  "include": ["../src/**/*.ts", "**/*.ts"]
+}

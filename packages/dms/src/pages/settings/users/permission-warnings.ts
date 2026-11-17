@@ -4,10 +4,9 @@ import type { RoleEditorPermissionNode } from "./role-editor";
 
 /**
  * What granting an action really allows, when that is more than its label
- * says: managing members, invitations or roles lets the holder lift
- * themselves to owner-level access. That is intended — whoever may open those
- * pages is trusted like an owner — so the roles editor warns about it instead
- * of the server refusing it.
+ * says: managing members or invitations lets the holder make anyone an owner,
+ * and managing roles lets the holder change what other members may do. The
+ * roles editor warns about it instead of the server refusing it.
  */
 interface PermissionWarning {
   action: Action;

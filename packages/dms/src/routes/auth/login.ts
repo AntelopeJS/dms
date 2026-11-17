@@ -1,7 +1,8 @@
-import { assert, assertValidation } from "@antelopejs/interface-api-util";
-import type {
-  SessionModel,
-  UserModel,
+import { assert } from "@antelopejs/interface-api-util";
+import {
+  type SessionModel,
+  User,
+  type UserModel,
 } from "@antelopejs/interface-dms/auth/db";
 import { clearFailedPasswords, recordFailedPassword } from "../../hooks";
 import type { ClientOrigin } from "../../utils";
@@ -11,6 +12,7 @@ import {
   clearLoginFailures,
   recordLoginFailure,
 } from "../../utils";
+import { upgradePasswordHash } from "./password-hash-upgrade";
 import { type LoginOutcome, resolveLoginOutcome } from "./session-response";
 import { fireAndForget } from "@antelopejs/interface-dms/utils/fire-and-forget";
 
@@ -20,18 +22,20 @@ const INVALID_CREDENTIALS_MESSAGE = "error.invalid_credentials";
 export async function login(
   userModel: UserModel,
   sessionModel: SessionModel,
-  body: Parameters<typeof authSchema.login.parse>[0],
+  body: ReturnType<typeof authSchema.login.parse>,
   userAgent: string,
   origin: ClientOrigin,
 ): Promise<LoginOutcome> {
-  const { email, password } = assertValidation(body, (v) =>
-    authSchema.login.parse(v),
-  );
+  const { email, password } = body;
   const normalizedEmail = email.toLowerCase();
   assertLoginAllowed(normalizedEmail, origin.ip);
   const user = await userModel.getByEmail(normalizedEmail);
-  const isPasswordValid = !!user && user.testHash("password", password);
-  if (!isPasswordValid) recordLoginFailure(normalizedEmail, origin.ip);
+  const isPasswordValid = await (user ?? new User()).testHashAsync(
+    "password",
+    password,
+  );
+  if (isPasswordValid) assertLoginAllowed(normalizedEmail, origin.ip);
+  else recordLoginFailure(normalizedEmail, origin.ip);
 
   assert(user, HTTP_UNAUTHORIZED, INVALID_CREDENTIALS_MESSAGE);
   fireAndForget(
@@ -42,6 +46,10 @@ export async function login(
   );
   assert(isPasswordValid, HTTP_UNAUTHORIZED, INVALID_CREDENTIALS_MESSAGE);
   clearLoginFailures(normalizedEmail);
+  fireAndForget(
+    upgradePasswordHash(userModel, user, password),
+    "password hash upgrade",
+  );
 
   return resolveLoginOutcome(sessionModel, user, userAgent, origin);
 }

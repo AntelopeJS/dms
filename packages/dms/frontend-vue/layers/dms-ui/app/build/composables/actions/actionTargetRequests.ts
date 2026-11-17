@@ -6,7 +6,7 @@ import type { BulkSelection } from "./bulkSelection";
 import { resolveResponseToast } from "../../utils/responseWarning";
 import { resolveConfirmText } from "../confirm/confirmDialogTexts";
 import { readBulkCount } from "../table-view/utils/bulkActions";
-import { saveDownload } from "../../utils/fileDownload";
+import { type DownloadFetch, saveDownload } from "../../utils/fileDownload";
 import { downloadTargetFilename, targetUrl } from "./actionTargetUrl";
 
 const JOB_ID_TOKEN = /\{\{\s*job\.id\s*\}\}/g;
@@ -37,12 +37,8 @@ export function createExportJobHandler(
           successMessage: target.labels.successMessage
             ? processI18n(target.labels.successMessage)
             : undefined,
-          errorTitle: target.labels.errorTitle
-            ? processI18n(target.labels.errorTitle)
-            : undefined,
-          retry: target.labels.retry
-            ? processI18n(target.labels.retry)
-            : undefined,
+          errorTitle: target.labels.errorTitle,
+          retry: target.labels.retry,
         }
       : undefined;
     const statusUrlTemplate = target.statusUrl;
@@ -73,7 +69,7 @@ export interface ActionRequestServices {
   handleApiError: ActionTargetsConfig["handleApiError"];
   t: ReturnType<typeof useI18n>["t"];
   copyToClipboard: UseClipboardReturn<false>["copy"];
-  fetchRaw: ReturnType<typeof useAuthFetch>["$authFetch"]["raw"];
+  fetchRaw: DownloadFetch;
 }
 
 export function createActionRequests(
@@ -121,19 +117,19 @@ export function createActionRequests(
   const handleApiTarget = async (
     target: ActionTarget & { type: "api" },
     url: string,
-    label: string,
+    _label: string,
     rowData?: Data,
     selection?: BulkSelection,
   ) => {
     try {
       await requestApiTarget(target, url, rowData, {}, selection);
     } catch (error: unknown) {
-      handleApiError(error, label ? processI18n(label, rowData) : undefined);
+      handleApiError(error);
     }
   };
   const handleDownloadTarget = async (
     target: ActionTarget & { type: "download" },
-    label: string,
+    _label: string,
     rowData?: Data,
   ) => {
     try {
@@ -145,7 +141,7 @@ export function createActionRequests(
         fetchRaw,
       );
     } catch (error: unknown) {
-      handleApiError(error, label ? processI18n(label, rowData) : undefined);
+      handleApiError(error);
     }
   };
   return { requestApiTarget, handleApiTarget, handleDownloadTarget };

@@ -1,3 +1,4 @@
+import { ownValue, queryText } from "../../../utils";
 import {
   Context,
   Controller,
@@ -6,6 +7,7 @@ import {
   JSONBody,
   Parameter,
   Put,
+  type QueryValue,
   type RequestContext,
   Route,
 } from "@antelopejs/interface-api";
@@ -51,10 +53,7 @@ import {
   publishNotificationsRead,
   publishNotificationsUnread,
 } from "../../../implementations/dms-notifications";
-import {
-  userNotificationPreferencesPatchSchema,
-  userNotificationPreferencesSchema,
-} from "../../../validation";
+import { userNotificationPreferencesPatchSchema } from "../../../validation";
 import { userCategory } from "./category";
 
 const DEFAULT_PAGE_SIZE = 20;
@@ -76,21 +75,20 @@ function toSubjectView(
   return { ...subject, locked: isSubjectLocked(subject) };
 }
 
-function parsePageSize(value?: string): number {
-  const size = Number(value) || DEFAULT_PAGE_SIZE;
+function parsePageSize(value: QueryValue): number {
+  const size = Number(queryText(value)) || DEFAULT_PAGE_SIZE;
   return Math.min(Math.max(size, 1), MAX_PAGE_SIZE);
 }
 
-function parseOffset(value?: string): number {
-  return Math.max(Number(value) || 0, 0);
+function parseOffset(value: QueryValue): number {
+  return Math.max(Number(queryText(value)) || 0, 0);
 }
 
 const INBOX_READ_FILTER_KEY = "filter_isRead";
-// oxlint-disable-next-line anti-slop/no-known-value-widening -- Request filter keys are arbitrary strings; inference and NotificationReadState do not retain the string-indexed lookup used for unrecognized filters without changing its existing property access.
-const INBOX_READ_STATES: Record<string, NotificationReadState> = {
+const INBOX_READ_STATES = {
   "is:false": "unread",
   "is:true": "read",
-};
+} satisfies Record<string, NotificationReadState>;
 
 /** The rows a read state lists, out of the feed's totals. */
 const INBOX_TOTALS: Record<
@@ -210,18 +208,6 @@ function readFeedFilter(context: RequestContext): NotificationFeedFilter {
   return filter;
 }
 
-/** Refuses turning a locked subject off. */
-function assertLockedSubjectsStayOn(changes: Record<string, boolean>): void {
-  for (const [key, enabled] of Object.entries(changes)) {
-    const subject = findSubjectByPreferenceKey(key);
-    assert(
-      enabled || !subject || !isSubjectLocked(subject),
-      HTTP_FORBIDDEN,
-      "error.forbidden",
-    );
-  }
-}
-
 /** Refuses keys that name no registered subject, and turning a locked subject off. */
 function assertChangesAllowed(changes: Record<string, boolean>): void {
   for (const key of Object.keys(changes)) {
@@ -231,7 +217,14 @@ function assertChangesAllowed(changes: Record<string, boolean>): void {
       "error.request_refused",
     );
   }
-  assertLockedSubjectsStayOn(changes);
+  for (const [key, enabled] of Object.entries(changes)) {
+    const subject = findSubjectByPreferenceKey(key);
+    assert(
+      enabled || !subject || !isSubjectLocked(subject),
+      HTTP_FORBIDDEN,
+      "error.forbidden",
+    );
+  }
 }
 
 @RegisterPage()
@@ -285,36 +278,13 @@ export class NotificationsApiController extends Controller(NOTIFICATIONS_API) {
   }
 
   /**
-   * Replaces the whole map. Kept for existing clients, which may still send
-   * keys of subjects no longer registered; the settings screen saves per
-   * subject through PATCH. A locked subject cannot be turned off here either.
-   */
-  @Put("/preferences")
-  async updatePreferences(
-    @JSONBody() body: Parameters<
-      typeof userNotificationPreferencesSchema.parse
-    >[0],
-    @Model(UserNotificationPreferencesModel)
-    preferencesModel: UserNotificationPreferencesModel,
-  ) {
-    const preferences = assertValidation(body, (v) =>
-      userNotificationPreferencesSchema.parse(v),
-    );
-    assertLockedSubjectsStayOn(preferences);
-
-    return preferencesModel.updatePreferences(this.user._id, preferences);
-  }
-
-  /**
    * Saves some subjects and leaves the others untouched: one key for a
    * subject switch, every key of a category for its master switch. Returns
    * the whole stored map.
    */
   @Route("handler", "patch", "/preferences")
   async patchPreferences(
-    @JSONBody() body: Parameters<
-      typeof userNotificationPreferencesPatchSchema.parse
-    >[0],
+    @JSONBody() body: unknown,
     @Model(UserNotificationPreferencesModel)
     preferencesModel: UserNotificationPreferencesModel,
   ) {
@@ -342,8 +312,8 @@ export class NotificationsApiController extends Controller(NOTIFICATIONS_API) {
     @Context() context: RequestContext,
     @Model(UserNotificationsModel)
     notificationsModel: UserNotificationsModel,
-    @Parameter("limit", "query") limitParam?: string,
-    @Parameter("offset", "query") offsetParam?: string,
+    @Parameter("limit", "query") limitParam: QueryValue,
+    @Parameter("offset", "query") offsetParam: QueryValue,
   ) {
     return await notificationsModel.getFeedPage(
       this.user._id,
@@ -381,13 +351,13 @@ export class NotificationsApiController extends Controller(NOTIFICATIONS_API) {
     @Context() context: RequestContext,
     @Model(UserNotificationsModel)
     notificationsModel: UserNotificationsModel,
-    @Parameter("limit", "query") limitParam?: string,
-    @Parameter("offset", "query") offsetParam?: string,
+    @Parameter("limit", "query") limitParam: QueryValue,
+    @Parameter("offset", "query") offsetParam: QueryValue,
   ) {
-    const readState =
-      INBOX_READ_STATES[
-        context.url.searchParams.get(INBOX_READ_FILTER_KEY) ?? ""
-      ];
+    const readState = ownValue(
+      INBOX_READ_STATES,
+      context.url.searchParams.get(INBOX_READ_FILTER_KEY) ?? "",
+    );
     const [results, counts] = await Promise.all([
       notificationsModel.getFeedPage(
         this.user._id,

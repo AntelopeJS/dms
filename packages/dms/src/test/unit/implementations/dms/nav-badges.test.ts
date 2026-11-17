@@ -25,7 +25,6 @@ import {
 import * as permissionsInterface from "@antelopejs/interface-dms/permissions";
 import * as permissionsResolverInterface from "@antelopejs/interface-dms/permissions-resolver";
 import * as tenantAccessInterface from "@antelopejs/interface-dms/tenant-access";
-import type { User } from "@antelopejs/interface-dms/auth/db";
 import type { Tone } from "@antelopejs/interface-dms/base/types/tone";
 import { CustomComponent } from "@antelopejs/interface-dms/base/custom";
 import { Section } from "@antelopejs/interface-dms/base/section";
@@ -33,14 +32,12 @@ import {
   registerTestPage,
   stubPageAccessModels,
 } from "../../../helpers/page-access";
+import { userFixture } from "../../../helpers/user-fixture";
+import { requestContextFixture } from "../../../helpers/request-context";
 
 const TENANT = "nb-tenant";
-// SAFETY: Badge/menu access uses this id and the absent owner flag, not persisted-user methods.
-const USER = { _id: "nb-member" } as User;
-// SAFETY: The badge-source callbacks used here ignore the request; no other RequestContext members are exercised by this fixture.
-const REQUEST = {
-  url: new URL("http://localhost/dms/page"),
-} as RequestContext;
+const USER = userFixture({ _id: "nb-member" });
+const REQUEST = requestContextFixture(new URL("http://localhost/dms/page"));
 
 const counting = (count: number): NavBadgeSource => ({
   count: async () => count,

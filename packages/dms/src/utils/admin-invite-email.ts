@@ -1,3 +1,4 @@
+import { ownValue } from "./own-value";
 import { resolveEmailLanguage } from "./email-subjects";
 
 /** The names an invitation email can mention, each one optional. */
@@ -14,8 +15,7 @@ interface AdminInviteSubjectCopy {
   workspaceOnPlatform: (workspace: string, platform: string) => string;
 }
 
-// oxlint-disable-next-line anti-slop/no-known-value-widening -- User language tags are open-ended; preserve fallback lookup for languages without built-in copy.
-const SUBJECT_COPY: Record<string, AdminInviteSubjectCopy> = {
+const SUBJECT_COPY = {
   en: {
     generic: "You're Invited to Join",
     join: (target) => `You're invited to join ${target}`,
@@ -31,7 +31,7 @@ const SUBJECT_COPY: Record<string, AdminInviteSubjectCopy> = {
     workspaceOnPlatform: (workspace, platform) =>
       `${workspace} sur ${platform}`,
   },
-};
+} satisfies Record<string, AdminInviteSubjectCopy>;
 
 /**
  * The supported language an invitation email is written in: the two-letter
@@ -60,7 +60,9 @@ export function buildAdminInviteSubject(
   names: AdminInviteEmailNames,
   language?: string,
 ): string {
-  const copy = SUBJECT_COPY[resolveAdminInviteLanguage(language)];
+  const copy =
+    ownValue(SUBJECT_COPY, resolveAdminInviteLanguage(language)) ??
+    SUBJECT_COPY.en;
   const target = joinTarget(copy, names);
   if (!target) {
     return copy.generic;

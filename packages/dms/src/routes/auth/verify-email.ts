@@ -1,4 +1,4 @@
-import { assert, assertValidation } from "@antelopejs/interface-api-util";
+import { assert } from "@antelopejs/interface-api-util";
 import type { User, UserModel } from "@antelopejs/interface-dms/auth/db";
 import { getAuthConfig } from "../../config";
 import { authSchema } from "../../validation";
@@ -6,12 +6,10 @@ import { authSchema } from "../../validation";
 export async function verifyEmail(
   userModel: UserModel,
   user: User,
-  body: Parameters<typeof authSchema.verifyEmail.parse>[0],
+  body: ReturnType<typeof authSchema.verifyEmail.parse>,
 ): Promise<void> {
   const config = getAuthConfig();
-  const { token } = assertValidation(body, (v) =>
-    authSchema.verifyEmail.parse(v),
-  );
+  const { token } = body;
 
   assert(config.mustValidateEmail, 400, "error.email_validation_disabled");
 

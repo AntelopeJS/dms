@@ -56,6 +56,16 @@ const SESSION_HEADER = "x-realtime-session";
 /** The browser connection a tab opens its session on. */
 const CONNECTION_HEADER = "x-realtime-connection";
 
+/**
+ * The tab's session named in the `x-realtime-session` header, read as
+ * `@Parameter(SESSION_HEADER, "header")` reads it: the first value of a
+ * repeated header.
+ */
+const sessionHeader = (ctx: RequestContext): string | undefined => {
+  const value = ctx.rawRequest.headers[SESSION_HEADER];
+  return Array.isArray(value) ? value[0] : value;
+};
+
 type RealtimeAck = { ok: boolean };
 
 /** A tab's session opened on its browser's connection. */
@@ -95,7 +105,6 @@ const buildActor = (user: User): PresenceActor => ({
   displayName: user.name || user.email,
 });
 
-/* oxlint-disable anti-slop/no-runtime-typeof -- This HTTP boundary checks the three presence routing strings before use. */
 const isValidPresenceBody = (
   body: unknown,
 ): body is { pageId: string; topic: string; key: string } => {
@@ -107,7 +116,6 @@ const isValidPresenceBody = (
     typeof candidate.key === "string"
   );
 };
-/* oxlint-enable anti-slop/no-runtime-typeof */
 
 export const menuTopicsFor = (
   tenantId: string | undefined,
@@ -183,12 +191,6 @@ const cleanupSession = async (sessionId: string): Promise<void> => {
   await getPresenceTracker().releaseAllForSession(sessionId);
 };
 
-const warnUnlessClosed =
-  (sessionId: string) => (error: Parameters<typeof Logging.Warn>[1]) => {
-    if (!getSessionInfo(sessionId)) return;
-    Logging.Warn("Realtime: applySessionTopics failed", error);
-  };
-
 const isSessionOf = (
   info: SessionInfo,
   requester: RealtimeRequester,
@@ -256,7 +258,7 @@ export class RealtimeController extends Controller(REALTIME_BASE) {
       const sessionIds = unregisterConnection(connectionId);
       await Promise.all(
         sessionIds.map((sessionId) =>
-          cleanupSession(sessionId).catch((error) =>
+          cleanupSession(sessionId).catch((error: unknown) =>
             Logging.Warn("Realtime: cleanupSession failed", error),
           ),
         ),
@@ -298,7 +300,10 @@ export class RealtimeController extends Controller(REALTIME_BASE) {
         await cleanupSession(sessionId);
       },
     });
-    void applySessionTopics(sessionId).catch(warnUnlessClosed(sessionId));
+    void applySessionTopics(sessionId).catch((error: unknown) => {
+      if (!getSessionInfo(sessionId)) return;
+      Logging.Warn("Realtime: applySessionTopics failed", error);
+    });
     return {
       ok: true,
       sessionId,
@@ -330,16 +335,14 @@ export class RealtimeController extends Controller(REALTIME_BASE) {
   }
 
   @Post("/subscribe/:pageId")
-
-  // oxlint-disable-next-line eslint/max-params -- Six positional parameters receive request context, page, session, tenant models, and user through decorators.
   async subscribePage(
     @Context() ctx: RequestContext,
     @Parameter("pageId", "param") pageId: string,
-    @Parameter(SESSION_HEADER, "header") sessionId: string,
     @TenantScopedModel(RoleModel) roleModel: RoleModel,
     @TenantScopedModel(TenantMemberModel) memberModel: TenantMemberModel,
     @AuthRawUser() user: User,
   ): Promise<PageSubscriptionAck> {
+    const sessionId = sessionHeader(ctx);
     if (!sessionId || !getSessionInfo(sessionId)) {
       return { ok: false, topics: [] };
     }
@@ -378,17 +381,14 @@ export class RealtimeController extends Controller(REALTIME_BASE) {
   }
 
   @Post("/acquire")
-
-  // oxlint-disable-next-line eslint/max-params -- Six positional parameters receive request context, body, session, tenant models, and user through decorators.
   async acquire(
     @Context() ctx: RequestContext,
-    // oxlint-disable-next-line anti-slop/no-unknown-parameters -- Raw JSON must reach isValidPresenceBody so malformed bodies still receive the existing negative acknowledgement.
     @JSONBody() body: unknown,
-    @Parameter(SESSION_HEADER, "header") sessionId: string,
     @TenantScopedModel(RoleModel) roleModel: RoleModel,
     @TenantScopedModel(TenantMemberModel) memberModel: TenantMemberModel,
     @AuthRawUser() user: User,
   ): Promise<RealtimeAck> {
+    const sessionId = sessionHeader(ctx);
     if (!sessionId || !isValidPresenceBody(body)) return { ok: false };
     if (!getPageTopics(body.pageId).has(body.topic)) return { ok: false };
     const tenantId = getRequestTenantId(ctx);
@@ -416,17 +416,14 @@ export class RealtimeController extends Controller(REALTIME_BASE) {
   }
 
   @Post("/release")
-
-  // oxlint-disable-next-line eslint/max-params -- Six positional parameters receive request context, body, session, tenant models, and user through decorators.
   async release(
     @Context() ctx: RequestContext,
-    // oxlint-disable-next-line anti-slop/no-unknown-parameters -- Raw JSON must reach isValidPresenceBody so malformed bodies still receive the existing negative acknowledgement.
     @JSONBody() body: unknown,
-    @Parameter(SESSION_HEADER, "header") sessionId: string,
     @TenantScopedModel(RoleModel) roleModel: RoleModel,
     @TenantScopedModel(TenantMemberModel) memberModel: TenantMemberModel,
     @AuthRawUser() user: User,
   ): Promise<RealtimeAck> {
+    const sessionId = sessionHeader(ctx);
     if (!sessionId || !isValidPresenceBody(body)) return { ok: false };
     if (!getPageTopics(body.pageId).has(body.topic)) return { ok: false };
     const canAccess = await userCanAccessPage(

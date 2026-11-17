@@ -1,4 +1,5 @@
 import type { ApexOptions } from "apexcharts";
+import { isNumber } from "../../../../../dms-core/app/utils/type-check";
 import type { ApexTypeConfig } from "../../../composables/chart/apexTypeConfigs";
 import type { ChartSeries, ChartType } from "../../../composables/chart/types";
 import type { UseApexChartInput } from "../../../composables/chart/useApexChart.types";
@@ -69,18 +70,18 @@ export function buildLegend(
   isCircular: boolean,
   theme: ApexThemeColors,
 ): NonNullable<ApexOptions["legend"]> {
+  const markers: NonNullable<NonNullable<ApexOptions["legend"]>["markers"]> = {
+    size: LEGEND_MARKER_SIZE,
+    strokeWidth: 0,
+  };
+  markers.shape = "square";
   return {
     show: input.showLegend ?? true,
     position: input.legendPosition ?? (isCircular ? "bottom" : "top"),
     horizontalAlign: "right",
     fontSize: LEGEND_FONT_SIZE,
     labels: { colors: theme.muted },
-    markers: {
-      size: LEGEND_MARKER_SIZE,
-      // oxlint-disable-next-line anti-slop/no-shape-in-symbol-names -- ApexOptions owns this literal markers.shape property; renaming it would change the chart configuration.
-      shape: "square",
-      strokeWidth: 0,
-    },
+    markers,
     itemMargin: { horizontal: LEGEND_ITEM_GAP },
   };
 }
@@ -198,8 +199,12 @@ function pointLabel(
 ) {
   const point =
     context.w.config.series[context.seriesIndex]?.data[context.dataPointIndex];
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- The shared isObject guard widens this owner union's label to unknown; typeof retains the ChartSeries point contract without asserting or validating plugin values.
-  if (typeof point !== "object" || point === null || !("label" in point)) {
+  if (
+    point === undefined ||
+    point === null ||
+    isNumber(point) ||
+    !("label" in point)
+  ) {
     return value;
   }
   return point.label || value;

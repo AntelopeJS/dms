@@ -16,7 +16,6 @@ const ACCOUNT_SUBJECTS = new Set(["security", "account", "collaboration"]);
 
 const MESSAGE_ID =
   /^\$?dms\.notifications\.messages\.([a-z0-9_]+)\.title(?:_[a-z0-9_]+)?$/;
-const TWO_FACTOR_MESSAGE = /^two_factor_(enabled|disabled)_(totp|email)$/;
 
 const ORIGIN_IP = /^\s*\(([^)]*)\)\s*$/;
 
@@ -36,6 +35,19 @@ export type AccountActivityType =
   | "collaborator_joined";
 
 export type TwoFactorMethod = "totp" | "email";
+
+const TWO_FACTOR_EVENTS = new Map<
+  string,
+  { type: AccountActivityType; method: TwoFactorMethod }
+>([
+  ["two_factor_enabled_totp", { type: "two_factor_enabled", method: "totp" }],
+  ["two_factor_enabled_email", { type: "two_factor_enabled", method: "email" }],
+  ["two_factor_disabled_totp", { type: "two_factor_disabled", method: "totp" }],
+  [
+    "two_factor_disabled_email",
+    { type: "two_factor_disabled", method: "email" },
+  ],
+]);
 
 /**
  * One event of the account. Only display fields: never a token, hash,
@@ -127,17 +139,9 @@ export function notificationToEvent(
   if (!messageId) return undefined;
   const date = new Date(notification.createdAt);
   const params = notification.params;
-  const twoFactor = TWO_FACTOR_MESSAGE.exec(messageId);
+  const twoFactor = TWO_FACTOR_EVENTS.get(messageId);
   if (twoFactor) {
-    return {
-      type:
-        twoFactor[1] === "enabled"
-          ? "two_factor_enabled"
-          : "two_factor_disabled",
-      date,
-      // SAFETY: TWO_FACTOR_MESSAGE captures only the supported two-factor method alternatives.
-      method: twoFactor[2] as TwoFactorMethod,
-    };
+    return { type: twoFactor.type, date, method: twoFactor.method };
   }
   switch (messageId) {
     case "new_login":
@@ -329,9 +333,45 @@ export function buildAccountActivity(
     }));
 }
 
+type OptionalDraftKey = Exclude<keyof Draft, "type" | "date">;
+
+const OPTIONAL_DRAFT_KEYS: Record<OptionalDraftKey, true> = {
+  browser: true,
+  os: true,
+  deviceType: true,
+  device: true,
+  ip: true,
+  location: true,
+  current: true,
+  method: true,
+  provider: true,
+  email: true,
+  workspace: true,
+  actor: true,
+  owner: true,
+};
+
+function isOptionalDraftKey(key: string): key is OptionalDraftKey {
+  return Object.hasOwn(OPTIONAL_DRAFT_KEYS, key);
+}
+
+function copyDefined<K extends OptionalDraftKey>(
+  target: Pick<Draft, K>,
+  source: Pick<Draft, K>,
+  key: K,
+): void {
+  const value = source[key];
+  if (value !== undefined) target[key] = value;
+}
+
+/**
+ * The event's type and date, then each optional field it holds a value for,
+ * in the event's own order: the fields it leaves undefined are left out.
+ */
 function stripEmpty(event: Draft): Draft {
-  // SAFETY: Draft's required type and date are never undefined, so this filter removes only optional properties and preserves every retained value.
-  return Object.fromEntries(
-    Object.entries(event).filter(([, value]) => value !== undefined),
-  ) as Draft;
+  const stripped: Draft = { type: event.type, date: event.date };
+  for (const key of Object.keys(event)) {
+    if (isOptionalDraftKey(key)) copyDefined(stripped, event, key);
+  }
+  return stripped;
 }

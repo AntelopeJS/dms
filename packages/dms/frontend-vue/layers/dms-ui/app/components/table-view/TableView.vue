@@ -14,14 +14,19 @@ import type {
 import type { RowActionRule } from "#dms-core/app/types/row-action";
 import type { TableViewLiveHoldOptions } from "#dms-core/app/types/live";
 import DmsBlockStatus from "../../build/components/blocks/BlockStatus.vue";
-import UTable from "../../build/components/table/Table.vue";
+import UTable from "../../build/components/table/TableRoot.vue";
+import type { Data } from "../../build/components/table/TableRoot.vue";
 import ExpandedRowDetail from "../../build/components/table-view/ExpandedRowDetail.vue";
 import LiveHoldBanner from "../../build/components/table-view/LiveHoldBanner.vue";
-import TableViews from "../../build/components/table/Views.vue";
+import TableViews from "../../build/components/table/TableViews.vue";
 import InlineEditCell from "../../build/components/table/InlineEditCell.vue";
 import { useTableViewSetup } from "../../build/composables/table-view/tableViewSetup";
+import {
+  resolveBlockState,
+  useBlockStateAttributes,
+} from "../../build/composables/blocks/blockDataState";
 
-interface TableViewProps<T extends Data> extends TableViewConfig<T> {
+export interface TableViewProps<T extends Data> extends TableViewConfig<T> {
   /** Expandable rows: caret column + detail band (backend `expandable`). */
   expandable?: TableViewExpandableConfig;
   /** Caption count while the archived rows show (backend `archivedCountLabel`). */
@@ -94,7 +99,7 @@ const {
   globalFilter,
   showArchived,
   activeViewId,
-  isViewModified,
+  viewChange,
   canSaveViews,
   selectView,
   resetView,
@@ -149,18 +154,27 @@ const {
   inlineEditing,
   inlineEditSlots,
 } = useTableViewSetup<T>(props);
+
+const blockAttributes = useBlockStateAttributes("TableView", () =>
+  resolveBlockState({
+    loading: isListLoading.value,
+    failed: Boolean(listLoadError.value || listNotFound.value),
+    hasContent: (shownResults.value?.length ?? 0) > 0,
+  }),
+);
 </script>
 
 <template>
   <DmsBlockStatus
     v-if="listNotFound"
+    v-bind="blockAttributes"
     state="not-found"
     :not-found="listNotFound"
   />
   <UTable
     v-else
     ref="tableRoot"
-    v-bind="tableProps"
+    v-bind="{ ...tableProps, ...blockAttributes }"
     v-model:pagination="paginationState"
     v-model:global-filter="globalFilter"
     v-model:sorting="sorting"
@@ -177,6 +191,7 @@ const {
     v-model:show-archived="showArchived"
     v-model:expanded="expandedModel"
     v-model:density="density"
+    v-model:all-matching="allMatching"
     :chrome="resolvedChrome"
     :grouping="grouping"
     :accumulation="accumulation"
@@ -218,7 +233,6 @@ const {
     :on-custom-button="handleCustomButton"
     :on-custom-row-action="handleCustomRowAction"
     :bulk-actions="bulkCustomActions"
-    v-model:all-matching="allMatching"
     :presence-by-row="presenceByRowFiltered"
     :open-row-id="openRowId"
     @add="handleRowAdd"
@@ -269,7 +283,7 @@ const {
         :items="viewItems"
         :active-id="activeViewId"
         :layout="viewsLayout"
-        :modified="isViewModified"
+        :change="viewChange"
         :can-save-as="canSaveViews"
         :divided="tabsWithCount.length === 0"
         @open="selectView"

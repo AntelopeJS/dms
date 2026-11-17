@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { ComponentInfo } from "#dms-core/app/types/page";
 import { isObject } from "../../../../dms-core/app/utils/type-check";
 import {
   type Slot,
@@ -23,7 +24,6 @@ import {
   ConfirmTextError,
   type ConfirmValues,
 } from "../../composables/confirm/types";
-import { resolveActionError } from "../../build/composables/confirm/actionError";
 import { isConfirmTextMatch } from "../../build/composables/confirm/confirmTextMatch";
 import type { ConfirmDialogField } from "#dms-core/app/types/confirm-dialog";
 import { resolveFieldErrors } from "#dms-core/app/composables/useFieldErrors";
@@ -113,6 +113,7 @@ const props = withDefaults(defineProps<ConfirmModalProps>(), {
 const emit = defineEmits<ConfirmModalEmits>();
 const slots = defineSlots<ConfirmModalSlots>();
 const { t } = useI18n();
+const { resolveError } = useApiErrorPresenter();
 
 const BodyRender: FunctionalComponent = () => props.body?.();
 
@@ -122,8 +123,6 @@ const DEFAULT_ICONS: Partial<Record<ConfirmColor, string>> = {
   warning: "i-ph-archive",
 };
 const FALLBACK_ICON = "i-ph-question";
-
-const { processApiMessage } = useTranslation();
 
 const values = ref<ConfirmValues>(
   Object.fromEntries(
@@ -169,7 +168,7 @@ const typedText = ref("");
 const isPending = ref(false);
 const isSecondaryPending = ref(false);
 
-const notice = ref<ConfirmNotice & { tone: "error" | "warning" }>();
+const notice = ref<ConfirmNotice & { tone: ApiErrorSeverity }>();
 
 const isSettled = ref(false);
 
@@ -213,10 +212,11 @@ const modalContent = computed(() =>
     ? {
         onOpenAutoFocus: (event: Event) => {
           const button =
-            // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Reka supplies the dialog target; preserve the existing unchecked querySelector call and malformed-target behavior.
-            (event.target as HTMLElement | null)?.querySelector<HTMLElement>(
-              `[data-confirm-action="${props.initialFocus}"]`,
-            );
+            event.target instanceof Element
+              ? event.target.querySelector<HTMLElement>(
+                  `[data-confirm-action="${props.initialFocus}"]`,
+                )
+              : null;
           if (!button) return;
           event.preventDefault();
           button.focus();
@@ -245,13 +245,14 @@ const isPartialOutcome = (
 ): value is ConfirmPartialOutcome =>
   isObject(value) && value !== null && "partial" in value;
 
-function errorNotice(
-  error: Parameters<typeof resolveActionError>[0],
-): ConfirmNotice {
-  if (error instanceof ConfirmActionError) {
-    return { title: error.message, description: error.description };
-  }
-  return { title: resolveActionError(error, t) };
+function resolveConfirmationFailure(
+  error: Parameters<ApiErrorPresenter["resolveError"]>[0],
+): ApiErrorNotice | null {
+  const action = error instanceof ConfirmActionError ? error : undefined;
+  return resolveError(error, {
+    fallbackKey: action?.message ?? "dms.action_error.generic",
+    params: action?.params,
+  });
 }
 
 /**
@@ -267,9 +268,12 @@ function showFieldErrors(
   });
   if (resolved.fields.length === 0) return false;
   fieldErrors.value = Object.fromEntries(
-    resolved.fields.map(({ field, message }) => [
+    resolved.fields.map(({ field, message, params, fallbackKey }) => [
       field,
-      processApiMessage(message),
+      resolveError(message, {
+        fallbackKey: fallbackKey ?? "dms.field_errors.invalid",
+        params,
+      })?.message,
     ]),
   );
   return !resolved.hasUnmatched;
@@ -293,9 +297,14 @@ async function runConfirm(
     }
   } catch (error) {
     if (error instanceof ConfirmTextError && props.confirmText) {
-      typedError.value = error.message;
+      typedError.value = resolveError(error, {
+        fallbackKey: "dms.field_errors.invalid",
+      })?.message;
     } else if (!showFieldErrors(error)) {
-      notice.value = { ...errorNotice(error), tone: "error" };
+      const resolved = resolveConfirmationFailure(error);
+      notice.value = resolved
+        ? { title: resolved.message, tone: resolved.severity }
+        : undefined;
     }
   } finally {
     isPending.value = false;
@@ -341,7 +350,10 @@ async function handleSecondary() {
   try {
     await action.run();
   } catch (error) {
-    notice.value = { ...errorNotice(error), tone: "error" };
+    const resolved = resolveConfirmationFailure(error);
+    notice.value = resolved
+      ? { title: resolved.message, tone: resolved.severity }
+      : undefined;
   } finally {
     isSecondaryPending.value = false;
   }

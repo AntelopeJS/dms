@@ -1,5 +1,29 @@
-// oxlint-disable-next-line anti-slop/no-shape-in-symbol-names -- Zod owns the imported public type name.
-import { ZodFirstPartyTypeKind, type ZodRawShape, type ZodTypeAny } from "zod";
+import {
+  type ZodArrayDef,
+  type ZodBrandedDef,
+  type ZodCatchDef,
+  type ZodDefaultDef,
+  type ZodDiscriminatedUnionDef,
+  type ZodDiscriminatedUnionOption,
+  type ZodEffectsDef,
+  type ZodEnumDef,
+  ZodFirstPartyTypeKind,
+  type ZodIntersectionDef,
+  type ZodLazyDef,
+  type ZodLiteralDef,
+  type ZodNativeEnumDef,
+  type ZodNullableDef,
+  type ZodObjectDef,
+  type ZodOptionalDef,
+  type ZodPipelineDef,
+  type ZodPromiseDef,
+  type ZodReadonlyDef,
+  type ZodRecordDef,
+  type ZodTupleDef,
+  type ZodTypeAny,
+  type ZodTypeDef,
+  type ZodUnionDef,
+} from "zod";
 import type {
   BlockOptionSchema,
   BlockOptionType,
@@ -7,16 +31,80 @@ import type {
   BlockTypeDescriptor,
 } from "../types";
 import { getUiHints, mergeUiHints } from "./ui";
+import {
+  isBoolean,
+  isNumber,
+  isObject,
+  isString,
+} from "../../../utils/internal/type-check";
 
 const MAX_DEPTH = 6;
 const MAX_WRAPPERS = 8;
 
-interface ZodDefLike {
-  typeName: ZodFirstPartyTypeKind;
-  description?: string;
-  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Zod 3 private definitions vary by kind; the walker dispatches before reading their unchecked members.
-  [key: string]: unknown;
-}
+type LiteralValue =
+  | string
+  | number
+  | boolean
+  | bigint
+  | symbol
+  | null
+  | undefined;
+
+/**
+ * The definition of each kind the walker reads fields from, with the schemas
+ * it holds typed as schemas. Every other kind is a name and nothing more.
+ */
+type ZodDef =
+  | ZodOptionalDef
+  | ZodNullableDef
+  | ZodDefaultDef
+  | ZodCatchDef
+  | ZodReadonlyDef
+  | ZodPromiseDef
+  | ZodBrandedDef<ZodTypeAny>
+  | ZodEffectsDef
+  | ZodLazyDef
+  | ZodPipelineDef<ZodTypeAny, ZodTypeAny>
+  | ZodObjectDef
+  | ZodUnionDef
+  | ZodDiscriminatedUnionDef<string, ZodDiscriminatedUnionOption<string>[]>
+  | ZodArrayDef
+  | ZodTupleDef
+  | ZodRecordDef
+  | ZodIntersectionDef
+  | ZodLiteralDef<LiteralValue>
+  | ZodEnumDef
+  | ZodNativeEnumDef
+  | (ZodTypeDef & {
+      typeName: Exclude<
+        ZodFirstPartyTypeKind,
+        | ZodFirstPartyTypeKind.ZodOptional
+        | ZodFirstPartyTypeKind.ZodNullable
+        | ZodFirstPartyTypeKind.ZodDefault
+        | ZodFirstPartyTypeKind.ZodCatch
+        | ZodFirstPartyTypeKind.ZodReadonly
+        | ZodFirstPartyTypeKind.ZodPromise
+        | ZodFirstPartyTypeKind.ZodBranded
+        | ZodFirstPartyTypeKind.ZodEffects
+        | ZodFirstPartyTypeKind.ZodLazy
+        | ZodFirstPartyTypeKind.ZodPipeline
+        | ZodFirstPartyTypeKind.ZodObject
+        | ZodFirstPartyTypeKind.ZodUnion
+        | ZodFirstPartyTypeKind.ZodDiscriminatedUnion
+        | ZodFirstPartyTypeKind.ZodArray
+        | ZodFirstPartyTypeKind.ZodTuple
+        | ZodFirstPartyTypeKind.ZodRecord
+        | ZodFirstPartyTypeKind.ZodIntersection
+        | ZodFirstPartyTypeKind.ZodLiteral
+        | ZodFirstPartyTypeKind.ZodEnum
+        | ZodFirstPartyTypeKind.ZodNativeEnum
+      >;
+    });
+
+type DefOf<Kind extends ZodFirstPartyTypeKind> = Extract<
+  ZodDef,
+  { typeName: Kind }
+>;
 
 interface UnwrapResult {
   schema: ZodTypeAny;
@@ -29,32 +117,34 @@ interface UnwrapResult {
   ui?: BlockOptionUi;
 }
 
-type InnerAccessor = (def: ZodDefLike) => ZodTypeAny;
+/**
+ * The accessor of the schema a wrapper kind wraps, `undefined` for any other
+ * kind. Nothing is read from the wrapper until the accessor is called.
+ */
+function innerAccessor(def: ZodDef): (() => ZodTypeAny) | undefined {
+  switch (def.typeName) {
+    case ZodFirstPartyTypeKind.ZodOptional:
+    case ZodFirstPartyTypeKind.ZodNullable:
+    case ZodFirstPartyTypeKind.ZodDefault:
+    case ZodFirstPartyTypeKind.ZodCatch:
+    case ZodFirstPartyTypeKind.ZodReadonly:
+      return () => def.innerType;
+    case ZodFirstPartyTypeKind.ZodPromise:
+    case ZodFirstPartyTypeKind.ZodBranded:
+      return () => def.type;
+    case ZodFirstPartyTypeKind.ZodEffects:
+      return () => def.schema;
+    case ZodFirstPartyTypeKind.ZodLazy:
+      return () => def.getter();
+    case ZodFirstPartyTypeKind.ZodPipeline:
+      return () => def.in;
+    default:
+      return undefined;
+  }
+}
 
-const WRAPPER_INNER: Partial<Record<ZodFirstPartyTypeKind, InnerAccessor>> = {
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Dispatch selects ZodOptional; the private innerType member is not validated by this descriptor API.
-  [ZodFirstPartyTypeKind.ZodOptional]: (def) => def.innerType as ZodTypeAny,
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Dispatch selects ZodNullable; the private innerType member is not validated by this descriptor API.
-  [ZodFirstPartyTypeKind.ZodNullable]: (def) => def.innerType as ZodTypeAny,
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Dispatch selects ZodDefault; the private innerType member is not validated by this descriptor API.
-  [ZodFirstPartyTypeKind.ZodDefault]: (def) => def.innerType as ZodTypeAny,
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Dispatch selects ZodCatch; the private innerType member is not validated by this descriptor API.
-  [ZodFirstPartyTypeKind.ZodCatch]: (def) => def.innerType as ZodTypeAny,
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Dispatch selects ZodReadonly; the private innerType member is not validated by this descriptor API.
-  [ZodFirstPartyTypeKind.ZodReadonly]: (def) => def.innerType as ZodTypeAny,
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Dispatch selects ZodPromise; the private type member is not validated by this descriptor API.
-  [ZodFirstPartyTypeKind.ZodPromise]: (def) => def.type as ZodTypeAny,
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Dispatch selects ZodBranded; the private type member is not validated by this descriptor API.
-  [ZodFirstPartyTypeKind.ZodBranded]: (def) => def.type as ZodTypeAny,
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Dispatch selects ZodEffects; the private schema member is not validated by this descriptor API.
-  [ZodFirstPartyTypeKind.ZodEffects]: (def) => def.schema as ZodTypeAny,
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Dispatch selects ZodLazy; the private getter is called without validating its result, as before.
-  [ZodFirstPartyTypeKind.ZodLazy]: (def) => (def.getter as () => ZodTypeAny)(),
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Dispatch selects ZodPipeline; the private input member is not validated by this descriptor API.
-  [ZodFirstPartyTypeKind.ZodPipeline]: (def) => def.in as ZodTypeAny,
-};
-
-function defOf(schema: ZodTypeAny): ZodDefLike {
+function defOf(schema: ZodTypeAny): ZodDef {
+  // oxlint-disable-next-line typescript/no-unsafe-return -- zod 3 declares _def as any on ZodTypeAny, and the walker reads the def of every schema kind, including kinds no zod class here types.
   return schema._def;
 }
 
@@ -63,7 +153,7 @@ function defOf(schema: ZodTypeAny): ZodDefLike {
  * none would describe every option as shapeless, which is worse than not
  * answering at all — so say so instead.
  */
-function assertDescribable(def: ZodDefLike): void {
+function assertDescribable(def: ZodDef): void {
   if (def.typeName === undefined) {
     throw new Error(
       "block-registry: this zod exposes no _def.typeName; the option walker supports zod 3",
@@ -86,7 +176,7 @@ function unwrap(schema: ZodTypeAny): UnwrapResult {
     hints.push(getUiHints(current));
     const def = defOf(current);
     descriptions.push(def.description);
-    const inner = WRAPPER_INNER[def.typeName];
+    const inner = innerAccessor(def);
     if (!inner) {
       peeled = false;
       break;
@@ -94,15 +184,12 @@ function unwrap(schema: ZodTypeAny): UnwrapResult {
     result.optional ||= def.typeName === ZodFirstPartyTypeKind.ZodOptional;
     result.nullable ||= def.typeName === ZodFirstPartyTypeKind.ZodNullable;
     if (def.typeName === ZodFirstPartyTypeKind.ZodDefault) {
-      result.defaultValue =
-        // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The Zod 3 default factory can return any application value; descriptors preserve that value rather than parse it.
-        (def.defaultValue as () => UnwrapResult["defaultValue"])();
+      result.defaultValue = def.defaultValue();
     }
-    current = inner(def);
+    current = inner();
   }
   hints.push(getUiHints(current));
-  result.exhausted =
-    peeled && WRAPPER_INNER[defOf(current).typeName] !== undefined;
+  result.exhausted = peeled && innerAccessor(defOf(current)) !== undefined;
   result.schema = current;
   result.ui = mergeUiHints(hints);
   result.description = descriptions.find((entry) => !!entry);
@@ -123,8 +210,7 @@ function unwrap(schema: ZodTypeAny): UnwrapResult {
  * @internal
  */
 export function cloneDefault<T>(value: T): T {
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- The generic cloning contract accepts every value; only objects need structuredClone and non-cloneable values pass through.
-  if (typeof value !== "object" || value === null) {
+  if (!isObject(value) || value === null) {
     return value;
   }
   try {
@@ -133,8 +219,6 @@ export function cloneDefault<T>(value: T): T {
     return value;
   }
 }
-
-type Handler = (def: ZodDefLike, depth: number) => BlockOptionSchema;
 
 const PRIMITIVE: Partial<Record<ZodFirstPartyTypeKind, BlockOptionType>> = {
   [ZodFirstPartyTypeKind.ZodString]: "string",
@@ -166,16 +250,22 @@ const STRUCTURED_TYPE: Partial<Record<ZodFirstPartyTypeKind, BlockOptionType>> =
     [ZodFirstPartyTypeKind.ZodIntersection]: "object",
   };
 
-function literalType(value: ZodDefLike["value"]): BlockOptionType {
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Literal descriptors classify representation without coercing the underlying Zod literal.
-  if (typeof value === "number") {
-    return "number";
+/**
+ * A literal is described by the value it fixes when the descriptor protocol can
+ * carry that value as JSON: a string, a boolean or a finite number. A literal
+ * JSON cannot hold (null, undefined, a bigint, a symbol, NaN or an infinity)
+ * is reported as `unknown` with no `enum`, the same as the schema kinds of
+ * those values.
+ */
+function describeLiteral(
+  value: DefOf<ZodFirstPartyTypeKind.ZodLiteral>["value"],
+): BlockOptionSchema {
+  if (isString(value)) return { type: "string", enum: [value] };
+  if (isBoolean(value)) return { type: "boolean", enum: [value] };
+  if (isNumber(value) && Number.isFinite(value)) {
+    return { type: "number", enum: [value] };
   }
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Literal descriptors classify representation without coercing the underlying Zod literal.
-  if (typeof value === "boolean") {
-    return "boolean";
-  }
-  return "string";
+  return { type: "unknown" };
 }
 
 /** Collapse a union of single-value enums into one enum, as a picker wants it. */
@@ -196,16 +286,22 @@ function mergeLiteralBranches(
   return { type: branches[0].type, enum: values };
 }
 
-function describeUnion(def: ZodDefLike, depth: number): BlockOptionSchema {
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Union dispatch assumes Zod 3 private options; validation here would change descriptor failure behavior.
-  const options = (def.options as ZodTypeAny[]) ?? [];
+function describeUnion(
+  def: DefOf<
+    ZodFirstPartyTypeKind.ZodUnion | ZodFirstPartyTypeKind.ZodDiscriminatedUnion
+  >,
+  depth: number,
+): BlockOptionSchema {
+  const options: readonly ZodTypeAny[] = def.options ?? [];
   const branches = options.map((option) => describeSchema(option, depth + 1));
   const merged = mergeLiteralBranches(branches);
   if (merged) {
     return merged;
   }
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Plain unions have no discriminator; discriminated unions supply this private string member without further validation.
-  const discriminator = def.discriminator as string | undefined;
+  const discriminator =
+    def.typeName === ZodFirstPartyTypeKind.ZodDiscriminatedUnion
+      ? def.discriminator
+      : undefined;
   const described: BlockOptionSchema = {
     type: "union",
     oneOf: branches,
@@ -214,63 +310,59 @@ function describeUnion(def: ZodDefLike, depth: number): BlockOptionSchema {
   return described;
 }
 
-function describeObject(def: ZodDefLike, depth: number): BlockOptionSchema {
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion, anti-slop/no-shape-in-symbol-names -- Object dispatch calls Zod 3's private shape factory; the definition and upstream type name remain unchecked.
-  const properties = (def.shape as () => ZodRawShape)();
+function describeObject(
+  def: DefOf<ZodFirstPartyTypeKind.ZodObject>,
+  depth: number,
+): BlockOptionSchema {
   return {
     type: "object",
-    properties: describeProperties(properties, depth + 1),
+    properties: describeProperties(def.shape(), depth + 1),
   };
 }
 
-const HANDLERS: Partial<Record<ZodFirstPartyTypeKind, Handler>> = {
-  [ZodFirstPartyTypeKind.ZodObject]: describeObject,
-  [ZodFirstPartyTypeKind.ZodUnion]: describeUnion,
-  [ZodFirstPartyTypeKind.ZodDiscriminatedUnion]: describeUnion,
-  [ZodFirstPartyTypeKind.ZodArray]: (def, depth) => ({
-    type: "array",
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Array dispatch assumes Zod 3's private element schema; parsing it would change descriptor behavior.
-    items: describeSchema(def.type as ZodTypeAny, depth + 1),
-  }),
-  [ZodFirstPartyTypeKind.ZodTuple]: (def, depth) => ({
-    type: "array",
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Tuple dispatch assumes Zod 3's private item schemas without validating the definition.
-    prefixItems: (def.items as ZodTypeAny[]).map((item) =>
-      describeSchema(item, depth + 1),
-    ),
-  }),
-  [ZodFirstPartyTypeKind.ZodRecord]: (def, depth) => ({
-    type: "record",
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Record dispatch assumes Zod 3's private key schema without validating the definition.
-    keys: describeSchema(def.keyType as ZodTypeAny, depth + 1),
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Record dispatch assumes Zod 3's private value schema without validating the definition.
-    values: describeSchema(def.valueType as ZodTypeAny, depth + 1),
-  }),
-  [ZodFirstPartyTypeKind.ZodIntersection]: (def, depth) => ({
-    type: "object",
-    allOf: [
-      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Intersection dispatch assumes Zod 3's private left schema without validating the definition.
-      describeSchema(def.left as ZodTypeAny, depth + 1),
-      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Intersection dispatch assumes Zod 3's private right schema without validating the definition.
-      describeSchema(def.right as ZodTypeAny, depth + 1),
-    ],
-  }),
-  [ZodFirstPartyTypeKind.ZodLiteral]: (def) => ({
-    type: literalType(def.value),
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Literal values are not proven string or number; preserve the known literal descriptor behavior rather than narrow accepted Zod schemas.
-    enum: [def.value as string | number],
-  }),
-  [ZodFirstPartyTypeKind.ZodEnum]: (def) => ({
-    type: "string",
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Enum dispatch assumes Zod 3's private string values without validating the definition.
-    enum: def.values as string[],
-  }),
-  [ZodFirstPartyTypeKind.ZodNativeEnum]: (def) => ({
-    type: "string",
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Native-enum dispatch assumes Zod 3's private enum object without validating the definition.
-    enum: Object.values(def.values as Record<string, string | number>),
-  }),
-};
+function describeKind(
+  def: ZodDef,
+  depth: number,
+): BlockOptionSchema | undefined {
+  switch (def.typeName) {
+    case ZodFirstPartyTypeKind.ZodObject:
+      return describeObject(def, depth);
+    case ZodFirstPartyTypeKind.ZodUnion:
+    case ZodFirstPartyTypeKind.ZodDiscriminatedUnion:
+      return describeUnion(def, depth);
+    case ZodFirstPartyTypeKind.ZodArray:
+      return { type: "array", items: describeSchema(def.type, depth + 1) };
+    case ZodFirstPartyTypeKind.ZodTuple: {
+      const items: ZodTypeAny[] = def.items;
+      return {
+        type: "array",
+        prefixItems: items.map((item) => describeSchema(item, depth + 1)),
+      };
+    }
+    case ZodFirstPartyTypeKind.ZodRecord:
+      return {
+        type: "record",
+        keys: describeSchema(def.keyType, depth + 1),
+        values: describeSchema(def.valueType, depth + 1),
+      };
+    case ZodFirstPartyTypeKind.ZodIntersection:
+      return {
+        type: "object",
+        allOf: [
+          describeSchema(def.left, depth + 1),
+          describeSchema(def.right, depth + 1),
+        ],
+      };
+    case ZodFirstPartyTypeKind.ZodLiteral:
+      return describeLiteral(def.value);
+    case ZodFirstPartyTypeKind.ZodEnum:
+      return { type: "string", enum: [...def.values] };
+    case ZodFirstPartyTypeKind.ZodNativeEnum:
+      return { type: "string", enum: Object.values(def.values) };
+    default:
+      return undefined;
+  }
+}
 
 /**
  * Describe one option schema as a JSON-serializable shape.
@@ -287,13 +379,11 @@ export function describeSchema(
   const truncated =
     unwrapped.exhausted === true ||
     (depth >= MAX_DEPTH && def.typeName in STRUCTURED_TYPE);
-  const handler = truncated ? undefined : HANDLERS[def.typeName];
-  const base: BlockOptionSchema = handler
-    ? handler(def, depth)
-    : {
-        type:
-          STRUCTURED_TYPE[def.typeName] ?? PRIMITIVE[def.typeName] ?? "unknown",
-      };
+  const base: BlockOptionSchema = (truncated
+    ? undefined
+    : describeKind(def, depth)) ?? {
+    type: STRUCTURED_TYPE[def.typeName] ?? PRIMITIVE[def.typeName] ?? "unknown",
+  };
   if (truncated) base.truncated = true;
   if (unwrapped.optional) base.optional = true;
   if (unwrapped.nullable) base.nullable = true;
@@ -305,8 +395,7 @@ export function describeSchema(
 }
 
 function describeProperties(
-  // oxlint-disable-next-line anti-slop/no-shape-in-symbol-names -- Zod owns the imported schema-property type name.
-  properties: ZodRawShape,
+  properties: Record<string, ZodTypeAny>,
   depth: number,
 ): BlockTypeDescriptor["config"] {
   const described: Record<string, BlockOptionSchema> = {};
@@ -333,8 +422,7 @@ export function describeOptions(
   if (def.typeName !== ZodFirstPartyTypeKind.ZodObject) {
     return {};
   }
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion, anti-slop/no-shape-in-symbol-names -- ZodObject dispatch calls its private shape factory without validating the definition; Zod owns the type name.
-  return describeProperties((def.shape as () => ZodRawShape)(), 0);
+  return describeProperties(def.shape(), 0);
 }
 
 /**
@@ -346,12 +434,9 @@ export function collectDefaults(
   described: Record<string, BlockOptionSchema>,
   // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Published defaults contain arbitrary application values, matching BlockOptionSchema.default.
 ): Record<string, unknown> {
-  const defaults: Record<string, BlockOptionSchema["default"]> = {};
-  for (const [key, option] of Object.entries(described)) {
-    if (option.default !== undefined) {
-      defaults[key] = option.default;
-    }
-  }
-  // oxlint-disable-next-line anti-slop/no-known-value-widening -- The published return remains an open record of application defaults; values retain BlockOptionSchema.default without parsing or coercion.
-  return defaults;
+  return Object.fromEntries(
+    Object.entries(described).flatMap(([key, option]) =>
+      option.default === undefined ? [] : [[key, option.default]],
+    ),
+  );
 }

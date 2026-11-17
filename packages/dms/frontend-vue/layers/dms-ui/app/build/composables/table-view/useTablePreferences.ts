@@ -28,8 +28,8 @@ export interface TablePreferences {
   set: <T>(field: TableField, value: T, defaultValue: T) => void;
   /**
    * Sets `state` to the local field's stored value once the table is
-   * mounted, unless `isValid` refuses it: the server and the hydrating
-   * client render the default, so no mismatch.
+   * mounted, unless `isValid` refuses it or `state` already holds it: the
+   * server and the hydrating client render the default, so no mismatch.
    */
   restore: <T>(
     field: LocalTableField,
@@ -38,10 +38,26 @@ export interface TablePreferences {
   ) => void;
 }
 
+type StoredValue = ReturnType<typeof readLocalTableEntry>[string];
+
+/** A table state `restore` fills, with the check its caller gave it. */
+interface RestoreTarget {
+  state: Ref<unknown>;
+  isValid?(value: StoredValue): boolean;
+}
+
 interface PendingRestore {
   field: LocalTableField;
-  apply: (value: ReturnType<typeof readLocalTableEntry>[string]) => void;
+  apply: (value: StoredValue) => void;
 }
+
+const restoreInto = (target: RestoreTarget, restored: StoredValue) => {
+  const isUnchanged =
+    JSON.stringify(restored) === JSON.stringify(target.state.value);
+  if (isUnchanged) return;
+  if (target.isValid && !target.isValid(restored)) return;
+  target.state.value = restored;
+};
 
 /** The table's entry in the cookie: `tables.<id>`, its server fields. */
 function useServerTableEntry(id: string) {
@@ -135,14 +151,8 @@ export function useTablePreferences(
         ? server.set(field, value, defaultValue)
         : setLocalField(id, field, value, defaultValue),
     restore: (field, state, isValid) => {
-      pending.push({
-        field,
-        apply: (value) => {
-          // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Storage returns arbitrary preference values, while restore accepts caller-selected T and an optional boolean validator. Neither owner proves T; adding mandatory validation would change restoration behavior.
-          const restored = value as typeof state.value;
-          if (!isValid || isValid(restored)) state.value = restored;
-        },
-      });
+      const target: RestoreTarget = { state, isValid };
+      pending.push({ field, apply: (value) => restoreInto(target, value) });
     },
   };
 }

@@ -67,7 +67,7 @@ export const VALUE_FORMATS = [
 ] as const;
 export type ValueFormat = (typeof VALUE_FORMATS)[number];
 
-/** Fixed fraction digits, or Intl defaults (including native currency digits). Omit to preserve legacy formatting. */
+/** Fixed fraction digits, or Intl defaults (including native currency digits). Omit for the format's default: whole currency amounts, at most one fraction digit for percent and compact, Intl defaults otherwise. */
 export type ValuePrecision = number | "native";
 
 export interface KeyValuePair {
@@ -325,7 +325,7 @@ function createChartBuilder<TType extends ChartType>(type: TType) {
     options?: Omit<TProps, "type"> | TProps,
   ): ComponentBuilder<TProps> => {
     const meta = CHART_META_BY_TYPE[type];
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Public chart builders permit omitted options while pages are being authored; TProps may require fields not present yet.
+    // SAFETY: merged is a TProps exactly when it holds every field TProps requires. `type` is set here to the one literal TProps carries; options, typed `Omit<TProps, "type">` or TProps, hold the rest when given. Without options, merged holds only `type`, which is enough for every member of AnyChartProps, none of which requires another field, but not for a TProps a caller extends with a further required field.
     const merged = { ...options, type } as TProps;
     const builder = new ComponentBuilder<TProps>(CHART_COMPONENT_NAME)
       .options(merged)
@@ -337,16 +337,81 @@ function createChartBuilder<TType extends ChartType>(type: TType) {
   };
 }
 
+/**
+ * A line chart block.
+ *
+ * @docsApi
+ */
 export const ChartLine = createChartBuilder(ChartType.LINE);
+/**
+ * A area chart block.
+ *
+ * @docsApi
+ */
 export const ChartArea = createChartBuilder(ChartType.AREA);
+/**
+ * A range area chart block.
+ *
+ * @docsApi
+ */
 export const ChartRangeArea = createChartBuilder(ChartType.RANGE_AREA);
+/**
+ * A bar chart block.
+ *
+ * @docsApi
+ */
 export const ChartBar = createChartBuilder(ChartType.BAR);
+/**
+ * A column chart block.
+ *
+ * @docsApi
+ */
 export const ChartColumn = createChartBuilder(ChartType.COLUMN);
+/**
+ * A scatter chart block.
+ *
+ * @docsApi
+ */
 export const ChartScatter = createChartBuilder(ChartType.SCATTER);
+/**
+ * A donut chart block.
+ *
+ * @docsApi
+ */
 export const ChartDonut = createChartBuilder(ChartType.DONUT);
+/**
+ * A pie chart block.
+ *
+ * @docsApi
+ */
 export const ChartPie = createChartBuilder(ChartType.PIE);
+/**
+ * A mixed chart block.
+ *
+ * @docsApi
+ */
 export const ChartMixed = createChartBuilder(ChartType.MIXED);
+/**
+ * A radar chart block.
+ *
+ * @docsApi
+ */
 export const ChartRadar = createChartBuilder(ChartType.RADAR);
+/**
+ * A radial bar chart block.
+ *
+ * @docsApi
+ */
 export const ChartRadialBar = createChartBuilder(ChartType.RADIAL_BAR);
+/**
+ * A heatmap chart block.
+ *
+ * @docsApi
+ */
 export const ChartHeatmap = createChartBuilder(ChartType.HEATMAP);
+/**
+ * A candlestick chart block.
+ *
+ * @docsApi
+ */
 export const ChartCandlestick = createChartBuilder(ChartType.CANDLESTICK);

@@ -1,0 +1,436 @@
+import {
+  type BlockTypeDescriptor,
+  ListBlockTypes,
+} from "@antelopejs/interface-dms/base/block-types";
+import { stampedIdIssues } from "./anchor";
+import { CONTROLLER_BLOCKS } from "./controller-blocks";
+import type { FixtureScope } from "./fixtures";
+import { rewriteObject } from "./fixtures";
+import { withFieldInputs } from "./form-fields";
+import type {
+  JsonObject,
+  MockupIssue,
+  MockupName,
+  MockupNode,
+  MockupPageState,
+  MockupSpec,
+  MockupSpecPage,
+} from "./model";
+import { specSchema, zodIssues } from "./model";
+import { confineToFixtures } from "./sample-routes";
+import { compileSketch, SKETCH_TYPE } from "./sketch";
+import {
+  componentOptionsOf,
+  validateBlockChildren,
+  validateBlockOptions,
+} from "./validate";
+
+/** The registered block types, looked up as `DmsBlockPreview` does. */
+interface Catalog {
+  byType: Map<string, BlockTypeDescriptor>;
+  byComponent: Map<string, BlockTypeDescriptor>;
+}
+
+/** Same comparison as the preview's: case, separators and `dms` prefix aside. */
+function normalizeComponentName(name: string): string {
+  return name
+    .replace(/^dms[-_]?/i, "")
+    .replace(/[^a-z0-9]/gi, "")
+    .toLowerCase();
+}
+
+function readCatalog(): Catalog {
+  const descriptors = ListBlockTypes();
+  const byComponent = new Map<string, BlockTypeDescriptor>();
+  for (const descriptor of descriptors) {
+    const key = normalizeComponentName(descriptor.componentName);
+    if (!byComponent.has(key)) byComponent.set(key, descriptor);
+  }
+  return {
+    byType: new Map(
+      descriptors.map((descriptor) => [descriptor.type, descriptor]),
+    ),
+    byComponent,
+  };
+}
+
+/** The page a node is compiled on. */
+interface PageScope extends FixtureScope {
+  catalog: Catalog;
+  paths: Record<string, string>;
+}
+
+type NodeCompiler = (pointer: string, layoutPath: string) => MockupNode;
+
+/**
+ * One kind of node: `resolve` answers how to compile `node` when it is of
+ * this kind. {@link NODE_KINDS} tries each kind in order.
+ */
+interface NodeKind {
+  resolve(node: MockupNode, scope: PageScope): NodeCompiler | undefined;
+}
+
+function descriptorOf(
+  node: MockupNode,
+  catalog: Catalog,
+): BlockTypeDescriptor | undefined {
+  if (node.type !== undefined) return catalog.byType.get(node.type);
+  if (node.componentName === undefined) return undefined;
+  return catalog.byComponent.get(normalizeComponentName(node.componentName));
+}
+
+function compileChildren(
+  node: MockupNode,
+  pointer: string,
+  layoutPath: string,
+  scope: PageScope,
+): MockupNode {
+  if (!node.children) return node;
+  const children = node.children.map((child, index) => {
+    const childPointer = `${pointer}/children/${index}`;
+    const childPath = `${layoutPath}.${child.id ?? index}`;
+    if (Object.hasOwn(scope.paths, childPath)) {
+      scope.issues.push({
+        path: child.id === undefined ? childPointer : `${childPointer}/id`,
+        message: `another child of this block already has the id "${child.id ?? index}"`,
+      });
+    }
+    return compileNode(child, childPointer, childPath, scope);
+  });
+  return { ...node, children };
+}
+
+function withOptions(
+  node: MockupNode,
+  pointer: string,
+  scope: PageScope,
+): MockupNode & { options: JsonObject } {
+  return {
+    ...node,
+    options: rewriteObject(node.options ?? {}, `${pointer}/options`, scope),
+  };
+}
+
+const sketchKind: NodeKind = {
+  resolve: (node, scope) =>
+    node.type === SKETCH_TYPE
+      ? (pointer) => compileSketch(node, pointer, scope.issues)
+      : undefined,
+};
+
+const controllerKind: NodeKind = {
+  resolve(node, scope) {
+    const descriptor = descriptorOf(node, scope.catalog);
+    if (!descriptor?.controllerArg) return undefined;
+    const block = CONTROLLER_BLOCKS.get(descriptor.type);
+    return (pointer, layoutPath) => {
+      if (block) {
+        const built = block.compile(node, pointer, scope);
+        return compileChildren(built, pointer, layoutPath, scope);
+      }
+      scope.issues.push({
+        path: pointer,
+        message: `${descriptor.type} needs a controller class, which a mockup cannot build: draw it with a sketch`,
+      });
+      return compileChildren(
+        withOptions(node, pointer, scope),
+        pointer,
+        layoutPath,
+        scope,
+      );
+    };
+  },
+};
+
+const blockKind: NodeKind = {
+  resolve(node, scope) {
+    const descriptor = descriptorOf(node, scope.catalog);
+    if (!descriptor) return undefined;
+    return (pointer, layoutPath) => {
+      const compiled = withOptions(node, pointer, scope);
+      validateBlockOptions(
+        descriptor,
+        node,
+        compiled.options,
+        `${pointer}/options`,
+        scope.issues,
+      );
+      validateBlockChildren(
+        descriptor,
+        node,
+        pointer,
+        scope.issues,
+        (child) => descriptorOf(child, scope.catalog)?.type ?? child.type,
+      );
+      const options = withFieldInputs(
+        descriptor,
+        compiled.options,
+        `${pointer}/options`,
+        scope.issues,
+      );
+      return compileChildren(
+        { ...compiled, options: componentOptionsOf(descriptor, options) },
+        pointer,
+        layoutPath,
+        scope,
+      );
+    };
+  },
+};
+
+function unknownIssue(node: MockupNode, pointer: string): MockupIssue {
+  if (node.type !== undefined) {
+    return {
+      path: `${pointer}/type`,
+      message: `no block type is registered as "${node.type}"`,
+    };
+  }
+  if (node.componentName !== undefined) {
+    return {
+      path: `${pointer}/componentName`,
+      message: `no registered block emits the component "${node.componentName}"`,
+    };
+  }
+  return { path: pointer, message: "a node needs a type or a componentName" };
+}
+
+/** Emitted as written: the preview draws its `unknown_block` notice. */
+const unknownKind: NodeKind = {
+  resolve: (node, scope) => (pointer, layoutPath) => {
+    scope.issues.push(unknownIssue(node, pointer));
+    return compileChildren(
+      withOptions(node, pointer, scope),
+      pointer,
+      layoutPath,
+      scope,
+    );
+  },
+};
+
+const NODE_KINDS: readonly NodeKind[] = [
+  sketchKind,
+  controllerKind,
+  blockKind,
+  unknownKind,
+];
+
+/**
+ * A compiled node as its tree draws it: on the fixtures alone, its options
+ * reach no live route; with Real data, as compiled.
+ */
+function drawnOn(node: MockupNode, scope: PageScope): MockupNode {
+  if (scope.routes || !node.options) return node;
+  return { ...node, options: confineToFixtures(node.options, scope) };
+}
+
+function compileNode(
+  node: MockupNode,
+  pointer: string,
+  layoutPath: string,
+  scope: PageScope,
+): MockupNode {
+  scope.paths[layoutPath] = pointer;
+  for (const kind of NODE_KINDS) {
+    const compile = kind.resolve(node, scope);
+    if (compile) return drawnOn(compile(pointer, layoutPath), scope);
+  }
+  return node;
+}
+
+const ROOT_LAYOUT_PREFIX = "block-";
+
+/**
+ * How deep a spec's JSON may nest, objects and arrays counted alike: a node
+ * nests two levels under its parent, so a tree of about forty levels fits,
+ * and the compiler's recursion stays far from the stack's limit.
+ */
+export const MAX_JSON_DEPTH = 100;
+
+const OPENERS = new Set(["{", "["]);
+const CLOSERS = new Set(["}", "]"]);
+
+/** How deep the valid JSON `text` nests: its brackets outside strings, counted in one pass. */
+function jsonDepth(text: string): number {
+  let depth = 0;
+  let deepest = 0;
+  let inString = false;
+  let escaped = false;
+  for (const char of text) {
+    if (inString) {
+      if (escaped) escaped = false;
+      else if (char === "\\") escaped = true;
+      else if (char === '"') inString = false;
+      continue;
+    }
+    if (char === '"') inString = true;
+    else if (OPENERS.has(char)) deepest = Math.max(deepest, ++depth);
+    else if (CLOSERS.has(char)) depth -= 1;
+  }
+  return deepest;
+}
+
+function compileTree(
+  page: MockupSpecPage,
+  pointer: string,
+  scope: PageScope,
+): MockupNode[] {
+  return page.tree.map((node, index) =>
+    compileNode(
+      node,
+      `${pointer}/tree/${index}`,
+      `${ROOT_LAYOUT_PREFIX}${index}`,
+      scope,
+    ),
+  );
+}
+
+/**
+ * The page's tree on its fixtures, and on its live routes when it has some.
+ * The issues are the fixture side's alone: both sides share every node.
+ */
+function compilePage(
+  name: MockupName,
+  page: MockupSpecPage,
+  pointer: string,
+  scope: Pick<PageScope, "catalog" | "issues">,
+): MockupPageState {
+  const onPage = { name, pageId: page.id, fixtures: page.fixtures ?? {} };
+  const pageScope: PageScope = { ...scope, ...onPage, paths: {} };
+  const state: MockupPageState = {
+    id: page.id,
+    title: page.title,
+    options: page.options ?? {},
+    tree: compileTree(page, pointer, pageScope),
+    paths: pageScope.paths,
+  };
+  if (page.liveRoutes) {
+    state.realTree = compileTree(page, pointer, {
+      catalog: scope.catalog,
+      ...onPage,
+      issues: [],
+      paths: {},
+      routes: page.liveRoutes,
+    });
+  }
+  if (page.livePage) state.livePage = { ref: page.livePage.ref };
+  return state;
+}
+
+export type BlockTypeKind = "unknown" | "block" | "controller";
+
+const STYLE_GROUPS: ReadonlySet<string | undefined> = new Set([
+  "appearance",
+  "layout",
+]);
+
+/**
+ * The compiler, asked about one node at a time: the converter's only source
+ * of what a mockup can express.
+ */
+export interface NodeOracle {
+  kindOf(type: string): BlockTypeKind;
+  /**
+   * Whether option `key` of block type `type` is one a block draws the same
+   * without it: its schema files it under a style group. An option the type
+   * does not declare, or files under no group, is not.
+   */
+  isStyleOption(type: string, key: string): boolean;
+  /**
+   * The issues of `node` as the first node of a page holding `fixtures`,
+   * each at a pointer relative to the node.
+   */
+  issuesOf(node: MockupNode, fixtures: JsonObject): MockupIssue[];
+}
+
+export function openOracle(name: MockupName, pageId: string): NodeOracle {
+  const catalog = readCatalog();
+  return {
+    kindOf(type) {
+      const descriptor = catalog.byType.get(type);
+      if (!descriptor) return "unknown";
+      return descriptor.controllerArg ? "controller" : "block";
+    },
+    isStyleOption(type, key) {
+      const config = catalog.byType.get(type)?.config;
+      const option =
+        config && Object.hasOwn(config, key) ? config[key] : undefined;
+      return STYLE_GROUPS.has(option?.ui?.group);
+    },
+    issuesOf(node, fixtures) {
+      const scope: PageScope = {
+        catalog,
+        issues: [],
+        name,
+        pageId,
+        fixtures,
+        paths: {},
+      };
+      compileNode(node, "", `${ROOT_LAYOUT_PREFIX}0`, scope);
+      return scope.issues;
+    },
+  };
+}
+
+/** A spec compiled for the viewer. */
+export interface CompiledSpec {
+  title?: string;
+  pages: MockupPageState[];
+  /** Each page's fixtures, keyed by page id. */
+  fixtures: Map<string, JsonObject>;
+  issues: MockupIssue[];
+}
+
+/**
+ * Compiles a parsed spec against the block types registered now. Lenient: a
+ * node whose options break its schema, or whose type is unknown, is still
+ * emitted, and its issues are listed.
+ */
+export function compileSpec(name: MockupName, spec: MockupSpec): CompiledSpec {
+  const scope: Pick<PageScope, "catalog" | "issues"> = {
+    catalog: readCatalog(),
+    issues: [],
+  };
+  const pages = spec.pages.map((page, index) =>
+    compilePage(name, page, `/pages/${index}`, scope),
+  );
+  return {
+    title: spec.title,
+    pages,
+    fixtures: new Map(spec.pages.map((page) => [page.id, page.fixtures ?? {}])),
+    issues: [...scope.issues, ...stampedIdIssues(spec)],
+  };
+}
+
+/** What reading `spec.json` gives: its spec, or why it has none. */
+export type SpecRead =
+  | { ok: true; spec: MockupSpec }
+  | { ok: false; issues: MockupIssue[] };
+
+/** Parses the text of `spec.json` at its boundary. */
+export function parseSpec(text: string): SpecRead {
+  let raw: unknown;
+  try {
+    raw = JSON.parse(text);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    return {
+      ok: false,
+      issues: [{ path: "", message: `invalid JSON: ${message}` }],
+    };
+  }
+  if (jsonDepth(text) > MAX_JSON_DEPTH) {
+    return {
+      ok: false,
+      issues: [
+        {
+          path: "",
+          message: `the spec nests deeper than ${MAX_JSON_DEPTH} levels`,
+        },
+      ],
+    };
+  }
+  const parsed = specSchema.safeParse(raw);
+  return parsed.success
+    ? { ok: true, spec: parsed.data }
+    : { ok: false, issues: zodIssues("", parsed.error) };
+}

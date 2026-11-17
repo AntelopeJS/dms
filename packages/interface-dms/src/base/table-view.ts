@@ -27,6 +27,7 @@ export {
   BULK_ALL_MATCHING_KEY,
   type BulkRowSource,
   countWithSearch,
+  distinctWithSearch,
   MAX_BULK_MATCHING_ROWS,
   resolveBulkRowIds,
   summarizeWithSearch,
@@ -36,6 +37,7 @@ export {
   listWithSearch,
   restoreRows,
   startExport,
+  type TableViewListPage,
   validateRowsAgainstRule,
 } from "./table-view/data-functions";
 export * from "./table-view/column-display";

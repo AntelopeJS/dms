@@ -1,4 +1,4 @@
-import type { Data, TableColumn } from "../../components/table/Table.vue";
+import type { Data, TableColumn } from "../../components/table/TableRoot.vue";
 import { ACTIONS_COLUMN_ID } from "./constants";
 
 import type {
@@ -77,7 +77,7 @@ const actionsCellWidth = (descriptors: RowActionDescriptor[]): number => {
 
 const shownActionsWidth = <T extends Data>(
   context: TableColumnContext<T>,
-  row: T,
+  row: T | undefined,
 ): number => {
   return actionsCellWidth(
     buildRowActionDescriptors(context, row).filter(
@@ -92,8 +92,7 @@ const labelledActionsColumnSize = <T extends Data>(
   const { config } = context;
 
   const rows = config.data.value;
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The empty-list width calculation intentionally evaluates actions against an empty row. Neither inference nor Data proves caller-selected T; constructing a real row would change this fallback.
-  if (rows.length === 0) return shownActionsWidth(context, {} as T);
+  if (rows.length === 0) return shownActionsWidth(context, undefined);
   return Math.max(...rows.map((value) => shownActionsWidth(context, value)));
 };
 

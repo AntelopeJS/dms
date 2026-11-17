@@ -6,21 +6,29 @@ import {
   isPlatformPage as isPlatformPageHelper,
   userCanAccessPage as userCanAccessPageHelper,
 } from "../../../utils";
+import type { RequestContext } from "@antelopejs/interface-api";
+import { assert } from "@antelopejs/interface-api-util";
 import type { User } from "@antelopejs/interface-dms/auth/db";
 import { TenantMemberModel, RoleModel } from "@antelopejs/interface-dms/db";
+import { getRequestTenantId } from "@antelopejs/interface-dms/request-tenant";
 import {
   GetEffectiveUserPermissions,
   HasPermission,
 } from "@antelopejs/interface-dms/permissions";
 import { CheckTenantAccess } from "@antelopejs/interface-dms/tenant-access";
 import { gateAllowsSurface } from "@antelopejs/interface-dms/internal/tenant-access";
-import { isInsideModule } from "@antelopejs/interface-dms/page";
+import { isOwnerOnly } from "@antelopejs/interface-dms/page";
 import { categoriesByFullId } from "./state";
 import type {
   RequestAccessContext,
   AccessContext,
   NavigationEntry,
 } from "./types";
+
+const HTTP_UNAUTHORIZED = 401;
+const HTTP_FORBIDDEN = 403;
+const ERROR_UNAUTHENTICATED = "Authentication required";
+const ERROR_UNAUTHORIZED = "error.unauthorized";
 
 /**
  * Whether `fullId` is a platform page: a module's, owner-only, listing the
@@ -142,6 +150,32 @@ export async function isPlatformOwner(
   return context.gated.isOwner;
 }
 
+/** What a controller holds to tell whether its caller is the platform owner. */
+export interface PlatformOwnerCheck {
+  requestContext: RequestContext;
+  roleModel: RoleModel;
+  memberModel: TenantMemberModel;
+  user: User | undefined;
+}
+
+/**
+ * Refuses a request that is not the platform owner's: 401 when it carries no
+ * session, 403 when its user is not flagged `owner` or the tenant access gate
+ * denies them.
+ */
+export async function assertPlatformOwner(
+  request: PlatformOwnerCheck,
+): Promise<void> {
+  assert(request.user, HTTP_UNAUTHORIZED, ERROR_UNAUTHENTICATED);
+  const isOwner = await isPlatformOwner(
+    request.user,
+    request.memberModel,
+    request.roleModel,
+    getRequestTenantId(request.requestContext),
+  );
+  assert(isOwner, HTTP_FORBIDDEN, ERROR_UNAUTHORIZED);
+}
+
 export async function buildAccessContext(
   user: User | undefined,
   memberModel: TenantMemberModel,
@@ -172,7 +206,7 @@ export async function buildAccessContext(
   );
   const ungated: AccessContext = {
     permissions,
-    isOwner: permissions.has(WILDCARD_PERMISSION),
+    isOwner: user.owner === true,
     isAuthenticated,
   };
 
@@ -202,7 +236,7 @@ export function buildDeniedAccessContext(
     ungated,
     client: {
       permissions: clientPermissions,
-      isOwner: clientPermissions.has(WILDCARD_PERMISSION),
+      isOwner: ungated.isOwner && clientPermissions.has(WILDCARD_PERMISSION),
       isAuthenticated,
     },
     gateDenied: true,
@@ -238,7 +272,7 @@ export async function computeEntryAccessUncached(
   if (!gateAllowsSurface(entry, context.gateDenied)) return false;
   const effective = selectEntryContext(entry, context);
   if (effective.isOwner) return true;
-  if (isInsideModule(entry)) return false;
+  if (isOwnerOnly(entry)) return false;
   if (entry.authOnly === true) return effective.isAuthenticated;
   if (effective.isAuthenticated) {
     if (context.gateDenied && entry.bypassTenantAccessGate !== true) {

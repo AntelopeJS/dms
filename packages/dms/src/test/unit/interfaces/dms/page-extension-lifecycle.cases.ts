@@ -1,5 +1,5 @@
 import { GetMetadata } from "@antelopejs/interface-core";
-import { expect } from "chai";
+import { assert, expect } from "chai";
 import * as pageImpl from "../../../../implementations/dms/page";
 import * as permissionsImpl from "../../../../implementations/dms/permissions";
 
@@ -22,7 +22,7 @@ import {
   failingComponent,
 } from "./page-extension.helpers";
 
-export function registerPageExtensionLifecycleCases(): void {
+function registerUnregistrationCases(): void {
   it("removes injected components when the extending module unregisters", async () => {
     class Target extends definePage("pe-teardown") {
       static table = CustomComponent("Table").meta({ name: "Table" });
@@ -83,17 +83,17 @@ export function registerPageExtensionLifecycleCases(): void {
     ).to.not.equal(undefined);
 
     const pageInfo = GetMetadata(Target, PageMetadata).pageInfo;
-    pageImpl.internal.RegisterPage.unregister(
-      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- This test has registered Target; PageMetadata also represents unregistered controllers and leaves pageInfo optional.
-      pageInfo as NonNullable<typeof pageInfo>,
-    );
+    assert.exists(pageInfo);
+    pageImpl.internal.RegisterPage.unregister(pageInfo);
     await settle();
 
     expect(
       permissionsImpl.GetPermission("pages.pe-page-gone.strandedBlock"),
     ).to.equal(undefined);
   });
+}
 
+function registerFailureIsolationCases(): void {
   it("drops only the component that failed to register", async () => {
     class Target extends definePage("pe-rollback") {
       static table = CustomComponent("Table").meta({ name: "Table" });
@@ -181,7 +181,9 @@ export function registerPageExtensionLifecycleCases(): void {
       permissionsImpl.GetPermission("pages.pe-deferred-failure.badBlock"),
     ).to.equal(undefined);
   });
+}
 
+function registerReloadAndCollisionCases(): void {
   it("keeps injected components across a hot reload of the target page", async () => {
     class Target extends definePage("pe-hot-reload") {
       static table = CustomComponent("Table").meta({ name: "Table" });
@@ -200,10 +202,8 @@ export function registerPageExtensionLifecycleCases(): void {
     await settle();
 
     const pageInfo = GetMetadata(Target, PageMetadata).pageInfo;
-    pageImpl.internal.RegisterPage.unregister(
-      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- This test has registered Target; PageMetadata also represents unregistered controllers and leaves pageInfo optional.
-      pageInfo as NonNullable<typeof pageInfo>,
-    );
+    assert.exists(pageInfo);
+    pageImpl.internal.RegisterPage.unregister(pageInfo);
     class ReloadedTarget extends definePage("pe-hot-reload") {
       static table = CustomComponent("Table").meta({ name: "Table" });
     }
@@ -274,7 +274,9 @@ export function registerPageExtensionLifecycleCases(): void {
     expect(captured.messages[0]).to.contain("SiblingExtension");
     expect(captured.messages[0]).to.contain("banner");
   });
+}
 
+function registerKeyAndTargetCases(): void {
   it("skips an extension whose key another extension already injected", async () => {
     class Target extends definePage("pe-collision-ext") {
       static table = CustomComponent("Table").meta({ name: "Table" });
@@ -352,6 +354,15 @@ export function registerPageExtensionLifecycleCases(): void {
     class Extension {
       static block = CustomComponent("Block").meta({ name: "Block" });
     }
-    expect(() => RegisterPageExtension("  ")(Extension)).to.throw(/full id/);
+    expect(() => {
+      RegisterPageExtension("  ")(Extension);
+    }).to.throw(/full id/);
   });
+}
+
+export function registerPageExtensionLifecycleCases(): void {
+  registerUnregistrationCases();
+  registerFailureIsolationCases();
+  registerReloadAndCollisionCases();
+  registerKeyAndTargetCases();
 }

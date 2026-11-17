@@ -6,6 +6,7 @@ import type {
   getPermissionIdRef,
 } from "../component";
 import type { Permission } from "../permissions";
+import { isString } from "../utils/internal/type-check";
 
 /** @internal */
 export const actionComponents = new WeakMap<Action, Component>();
@@ -52,8 +53,7 @@ export function resolveButtonPermissionId(
   permission: ButtonPermission,
   componentPermissionId: string | undefined,
 ): string | undefined {
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- The published permission union distinguishes a relative string id from an Action instance.
-  if (typeof permission !== "string") return permission.permissionId;
+  if (!isString(permission)) return permission.permissionId;
   if (!componentPermissionId) return undefined;
   return `${componentPermissionId}.${permission}`;
 }

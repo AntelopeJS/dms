@@ -10,11 +10,12 @@ import {
   useTemplateRef,
   watch,
   type App,
-  type PropType,
   type Ref,
   type VNode,
 } from "vue";
 import type { NavigationMenuItem } from "@nuxt/ui";
+import { stubDmsState } from "./helpers/dms-state-stub";
+import { isObject } from "../layers/dms-core/app/utils/type-check";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { MENU_STATUS_TEXT_CLASSES } from "#dms-core/app/utils/menu";
 import NavigationMenu from "../layers/dms-layout/app/components/navigation/NavigationMenu.vue";
@@ -26,23 +27,17 @@ let state: Map<string, Ref<unknown>>;
 let app: App | undefined;
 let host: HTMLDivElement;
 
-// SAFETY: useNavBadges owns this state key and initializes it to the NavBadge dictionary read by these assertions.
-const liveBadges = () =>
-  state.get("dms-nav-badges") as
-    | ReturnType<typeof useNavBadges>["badges"]
-    | undefined;
+const liveBadges = () => useNavBadges().badges.value;
 
 beforeEach(() => {
   vi.stubGlobal("defineShortcuts", () => {});
   vi.stubGlobal("useDmsCookie", () => ref("other"));
+  vi.stubGlobal("isDmsHydrating", () => false);
   state = new Map();
   Object.entries({ computed, ref, watch, onMounted, useTemplateRef }).forEach(
     ([key, value]) => vi.stubGlobal(key, value),
   );
-  vi.stubGlobal("useDmsState", <T>(key: string, initial: () => T) => {
-    if (!state.has(key)) state.set(key, ref(initial()));
-    return state.get(key);
-  });
+  stubDmsState(state);
   vi.stubGlobal("useI18n", () => ({ t: (key: string) => key }));
   vi.stubGlobal("useTranslation", () => ({
     processI18n: (value: string) => value,
@@ -117,25 +112,21 @@ describe("the counts a page visit carries", () => {
   });
 });
 
-const MenuStub = defineComponent({
-  props: {
-    items: {
-      // SAFETY: NavigationMenu supplies groups of Nuxt UI navigation items to this array prop.
-      type: Array as PropType<NavigationMenuItem[][]>,
-      required: true,
-    },
-  },
-  setup(props, { slots }) {
-    const renderItem = (item: NavigationMenuItem): VNode =>
-      h(
+const MenuStub = defineComponent(
+  (props: { items: NavigationMenuItem[][] }, { slots }) => {
+    const renderItem = (item: NavigationMenuItem): VNode => {
+      const badge = isObject(item.badge) ? item.badge : undefined;
+      const entry: unknown = item.fullId;
+      const trailingIcon: unknown = item.trailingIcon;
+      return h(
         "div",
         {
-          "data-entry": item.fullId,
-          "data-badge": item.badge?.label,
-          "data-color": item.badge?.color,
-          "data-variant": item.badge?.variant,
+          "data-entry": entry,
+          "data-badge": badge?.label,
+          "data-color": badge?.color,
+          "data-variant": badge?.variant,
           "data-prefetch": String(item.prefetch),
-          "data-trailing-icon": item.trailingIcon,
+          "data-trailing-icon": trailingIcon,
         },
         [
           slots["item-leading"]?.({
@@ -146,9 +137,11 @@ const MenuStub = defineComponent({
           ...(item.children?.map(renderItem) ?? []),
         ],
       );
+    };
     return () => h("nav", props.items.flat().map(renderItem));
   },
-});
+  { props: { items: { type: Array, required: true } } },
+);
 
 describe("NavigationMenu badges", () => {
   const ITEMS = [
@@ -172,7 +165,7 @@ describe("NavigationMenu badges", () => {
   const badgeOf = (fullId: string) =>
     host.querySelector<HTMLElement>(`[data-entry="${fullId}"]`)!.dataset;
 
-  function mount(items = ITEMS): void {
+  function mount(items: NavigationMenuItem[] = ITEMS): void {
     state.set("dms-permission-preview-session", ref(null));
     state.set("dms-permission-preview-result", ref(null));
     app = createApp(NavigationMenu, { items });
@@ -180,14 +173,14 @@ describe("NavigationMenu badges", () => {
     app.component(
       "UIcon",
       defineComponent({
-        props: ["name"],
+        props: { name: String },
         setup: (props) => () => h("i", { "data-icon": props.name }),
       }),
     );
     app.component(
       "UChip",
       defineComponent({
-        props: ["color"],
+        props: { color: String },
         setup:
           (props, { slots }) =>
           () =>
@@ -351,7 +344,7 @@ describe("SettingsNav badges", () => {
     expect(trailBadge("/settings/user/security").textContent?.trim()).toBe(
       "security",
     );
-    expect(liveBadges()?.value["settings.user.security"]).toEqual({
+    expect(liveBadges()["settings.user.security"]).toEqual({
       label: "",
     });
   });
@@ -382,7 +375,7 @@ describe("Security page badge", () => {
     const overview = scope.run(() => useSecurityOverview())!;
     await overview.refresh();
     scope.stop();
-    expect(liveBadges()?.value["settings.user.security"]).toEqual({
+    expect(liveBadges()["settings.user.security"]).toEqual({
       label: "2",
       tone: "error",
     });

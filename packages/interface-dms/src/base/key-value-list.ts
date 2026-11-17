@@ -105,6 +105,8 @@ const KEY_VALUE_LIST_DEFAULTS = { card: true, columns: 1 } as const;
  *   ],
  * })
  * ```
+ *
+ * @docsApi
  */
 export function KeyValueList(
   options?: KeyValueListProps,

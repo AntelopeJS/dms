@@ -42,4 +42,4 @@ export const CHART_META_BY_TYPE: Record<ChartType, ChartTypeMeta> = {
  *
  * @internal
  */
-export const CHART_COMPONENT_NAME = "dms-chart";
+export const CHART_COMPONENT_NAME = "dms-chart-block";

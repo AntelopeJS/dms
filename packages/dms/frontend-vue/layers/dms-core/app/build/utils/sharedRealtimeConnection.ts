@@ -2,9 +2,10 @@ import {
   isUnauthorizedStreamError,
   openSseStream,
   type SseEventHandler,
+  SseRequestError,
   type SseStreamHandle,
 } from "../../composables/realtime/useSseStream";
-import { isString } from "../../utils/type-check";
+import { isString, isUndefined } from "../../utils/type-check";
 import {
   browserCrossTabEnvironment,
   type CrossTabEnvironment,
@@ -15,6 +16,8 @@ import {
   tabLockName,
   whenReleased,
 } from "./crossTab";
+import { isRecord } from "./record";
+import { isJsonValue } from "./json";
 
 /**
  * The realtime connection one browser shares between its tabs: the elected tab
@@ -26,6 +29,7 @@ import {
 
 const HELLO_EVENT = "hello";
 const SESSION_EVENT = "session";
+const LEADER_EVENT = "leader";
 const SESSION_HEADER = "x-realtime-session";
 const CONNECTION_HEADER = "x-realtime-connection";
 const RECONNECT_INITIAL_DELAY_MS = 500;
@@ -44,7 +48,7 @@ interface FrameMessage {
   /** Unset on a frame of the connection itself, which every tab receives. */
   sessionId?: string;
   event: string;
-  data: unknown;
+  data: Parameters<SseEventHandler>[1];
 }
 
 /** A tab joining asks the leader for the connection it holds. */
@@ -76,6 +80,34 @@ type HubMessage =
   | SessionMessage
   | ReopenMessage;
 
+/** Whether `value` is a message of the hub, with the fields its `kind` has. */
+function isHubMessage(value: unknown): value is HubMessage {
+  if (!isRecord(value)) return false;
+  switch (value.kind) {
+    case "query":
+      return true;
+    case "connection":
+      return value.connectionId === null || isString(value.connectionId);
+    case "reopen":
+      return isString(value.connectionId);
+    case "session":
+      return (
+        isString(value.connectionId) &&
+        isString(value.sessionId) &&
+        isString(value.tabId)
+      );
+    case "frame":
+      return (
+        isString(value.connectionId) &&
+        isString(value.event) &&
+        (isUndefined(value.sessionId) || isString(value.sessionId)) &&
+        isJsonValue(value.data)
+      );
+    default:
+      return false;
+  }
+}
+
 export interface StreamRecovery {
   refreshSession: () => Promise<boolean>;
   redirectToAuth: () => Promise<void>;
@@ -97,6 +129,11 @@ export interface SharedRealtimeConnectionOptions extends StreamRecovery {
     eventName: string,
     data: Parameters<SseEventHandler>[1],
   ) => void;
+  /**
+   * A frame of the connection meant for one tab of the browser, the one that
+   * holds the stream: a `navigate_to_page` call moves that tab alone.
+   */
+  onLeaderFrame: (data: Parameters<SseEventHandler>[1]) => void;
   environment?: CrossTabEnvironment;
 }
 
@@ -113,7 +150,8 @@ export interface SharedRealtimeConnection {
 
 export interface Reconnector {
   isCancelled(): boolean;
-  schedule(open: () => void): void;
+  /** Waits the backoff delay, or `minDelayMs` when that is longer. */
+  schedule(open: () => void, minDelayMs?: number): void;
   resetDelay(): void;
   cancel(): void;
 }
@@ -124,12 +162,15 @@ export const createReconnector = (): Reconnector => {
   let timer: ReturnType<typeof setTimeout> | undefined;
   return {
     isCancelled: () => isCancelled,
-    schedule: (open) => {
+    schedule: (open, minDelayMs = 0) => {
       if (isCancelled || timer) return;
-      timer = setTimeout(() => {
-        timer = undefined;
-        open();
-      }, delay);
+      timer = setTimeout(
+        () => {
+          timer = undefined;
+          open();
+        },
+        Math.max(delay, minDelayMs),
+      );
       delay = Math.min(delay * RECONNECT_MULTIPLIER, RECONNECT_MAX_DELAY_MS);
     },
     resetDelay: () => {
@@ -146,20 +187,17 @@ export const createReconnector = (): Reconnector => {
 /** Retries after a failure, refreshing the browser session first on a 401. */
 export const recoverFromError = (
   error: Parameters<typeof isUnauthorizedStreamError>[0],
-  retry: () => void,
+  retry: (minDelayMs?: number) => void,
   recovery: StreamRecovery,
 ): void => {
   if (!isUnauthorizedStreamError(error)) {
-    retry();
+    retry(error instanceof SseRequestError ? error.retryAfterMs : undefined);
     return;
   }
-  void recovery.refreshSession().then((isRefreshed) => {
-    if (isRefreshed) {
-      retry();
-    } else {
-      void recovery.redirectToAuth();
-    }
-  }, retry);
+  void recovery.refreshSession().then(
+    (isRefreshed) => (isRefreshed ? retry() : recovery.redirectToAuth()),
+    () => retry(),
+  );
 };
 
 interface StreamCallbacks extends StreamRecovery {
@@ -205,7 +243,8 @@ const connectWithBackoff = (
     });
     activeHandle = handle;
   };
-  const reconnect = () => reconnector.schedule(open);
+  const reconnect = (minDelayMs?: number) =>
+    reconnector.schedule(open, minDelayMs);
   const retire = (handle: SseStreamHandle): boolean => {
     if (handle !== activeHandle || reconnector.isCancelled()) return false;
     activeHandle = undefined;
@@ -231,17 +270,10 @@ const connectWithBackoff = (
 const readConnectionId = (
   data: Parameters<SseEventHandler>[1],
 ): string | null => {
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- SSE decoding returns arbitrary values; inference cannot read this optional property. Keep the existing unchecked property read and subsequent string guard rather than asserting that decoding validated a frame.
-  const connectionId = (data as { connectionId?: unknown } | null)
-    ?.connectionId;
-  return isString(connectionId) ? connectionId : null;
+  return isRecord(data) && isString(data.connectionId)
+    ? data.connectionId
+    : null;
 };
-
-interface SessionFrame {
-  sessionId?: unknown;
-  event?: unknown;
-  data?: unknown;
-}
 
 interface LeaderContext {
   options: SharedRealtimeConnectionOptions;
@@ -304,9 +336,8 @@ const lead = ({ options, environment, bus, tabId }: LeaderContext) => {
     );
   };
 
-  const unlisten = bus.listen((raw) => {
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- TabBus transports unknown browser messages, not validated HubMessages. Neither inference nor its owner proves this union; preserve the existing unchecked dispatch, including malformed-message behavior.
-    const message = raw as HubMessage;
+  const unlisten = bus.listen((message) => {
+    if (!isHubMessage(message)) return;
     if (message.kind === "query")
       bus.post({ kind: "connection", connectionId });
     if (message.kind === "session") watchSession(message);
@@ -324,20 +355,23 @@ const lead = ({ options, environment, bus, tabId }: LeaderContext) => {
         return;
       }
       if (!connectionId) return;
+      if (eventName === LEADER_EVENT) {
+        options.onLeaderFrame(data);
+        return;
+      }
       if (eventName !== SESSION_EVENT) {
         bus.post({ kind: "frame", connectionId, event: eventName, data });
         return;
       }
-      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The SSE owner exposes unparsed data; this is only an unchecked view for the two existing string checks, not proof of a complete SessionFrame.
-      const frame = data as SessionFrame | null;
-      if (!isString(frame?.sessionId)) return;
-      if (!isString(frame.event)) return;
+      if (!isRecord(data)) return;
+      if (!isString(data.sessionId)) return;
+      if (!isString(data.event)) return;
       bus.post({
         kind: "frame",
         connectionId,
-        sessionId: frame.sessionId,
-        event: frame.event,
-        data: frame.data,
+        sessionId: data.sessionId,
+        event: data.event,
+        data: data.data,
       });
     },
     onDisconnected: () => publish(null),
@@ -371,9 +405,8 @@ export function joinSharedRealtimeConnection(
   const tabLock = holdLock(tabLockName(options.name, tabId), environment);
   let connectionId: string | undefined;
 
-  const unlisten = bus.listen((raw) => {
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- TabBus does not validate its payload. Narrowing its owner to HubMessage or adding validation here would change the current acceptance and failure behavior of malformed messages.
-    const message = raw as HubMessage;
+  const unlisten = bus.listen((message) => {
+    if (!isHubMessage(message)) return;
     if (message.kind === "connection") {
       const next = message.connectionId ?? undefined;
       if (next === connectionId) return;
@@ -392,15 +425,14 @@ export function joinSharedRealtimeConnection(
   bus.post({ kind: "query" });
 
   return {
-    announceSession: (sessionConnectionId, sessionId) => {
-      void tabLock.held.then(() =>
-        bus.post({
-          kind: "session",
-          connectionId: sessionConnectionId,
-          sessionId,
-          tabId,
-        }),
-      );
+    announceSession: async (sessionConnectionId, sessionId) => {
+      await tabLock.held;
+      bus.post({
+        kind: "session",
+        connectionId: sessionConnectionId,
+        sessionId,
+        tabId,
+      });
     },
     reopen: (reopenedConnectionId) =>
       bus.post({ kind: "reopen", connectionId: reopenedConnectionId }),

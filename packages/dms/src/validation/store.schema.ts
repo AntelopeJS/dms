@@ -22,6 +22,12 @@ const npmPackageSchema = z
   .max(NPM_PACKAGE_MAX_LENGTH)
   .regex(NPM_PACKAGE_PATTERN);
 
+/** The config an install request gives a dependency, written to its antelope.config.ts entry. */
+const storeDependencyConfigSchema = z.record(z.unknown());
+
+/** A dependency's antelope.config.ts config, as {@link storeInstallSchema} parses it. */
+export type StoreDependencyConfig = z.infer<typeof storeDependencyConfigSchema>;
+
 /**
  * An install, with the modules the owner picked for the interfaces the
  * release needs and nothing implements.
@@ -32,7 +38,7 @@ export const storeInstallSchema = storeOperationSchema.extend({
       z.object({
         interfacePackage: npmPackageSchema,
         package: npmPackageSchema,
-        config: z.record(z.unknown()).optional(),
+        config: storeDependencyConfigSchema.optional(),
       }),
     )
     .max(MAX_DEPENDENCIES)

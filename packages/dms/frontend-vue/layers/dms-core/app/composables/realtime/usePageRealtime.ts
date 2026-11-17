@@ -27,8 +27,15 @@ interface PageClaim {
  */
 const pageClaims: PageClaim[] = [];
 
+/**
+ * Moves the session to the latest claimed page, in the background. A failed
+ * page call leaves the page drawn as it is and is logged: the page is not
+ * marked applied, so the next reconcile subscribes it again.
+ */
 const applyLatestClaim = (user: UserRealtimeApi): void => {
-  void user.setPage(pageClaims.at(-1)?.pageId ?? null);
+  user.setPage(pageClaims.at(-1)?.pageId ?? null).catch((error: unknown) => {
+    console.error("[dms] page realtime subscription failed", error);
+  });
 };
 
 const raiseClaim = (claim: PageClaim): void => {
@@ -49,7 +56,7 @@ export function usePageRealtime(
   const resolvedPageId = computed(() => toValue(pageId) || undefined);
 
   if (import.meta.env.SSR) {
-    void user.setPage(resolvedPageId.value ?? null);
+    user.setPage(resolvedPageId.value ?? null).catch(() => {});
   } else {
     const claim: PageClaim = { pageId: undefined };
     watch(
@@ -68,7 +75,7 @@ export function usePageRealtime(
   }
 
   return {
-    subscribe: user.subscribe,
+    subscribe: (topic, handler) => user.subscribe(topic, handler),
     sessionId: user.sessionId,
     pageId: resolvedPageId,
     pageTopics: user.pageTopics,

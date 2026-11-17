@@ -1,5 +1,8 @@
 import type { RequestContext } from "@antelopejs/interface-api";
-import type { DataControllerCallback } from "@antelopejs/interface-data-api";
+import type {
+  DataControllerCallback,
+  DataControllerInstance,
+} from "@antelopejs/interface-data-api";
 import { internal } from "../../../attachments";
 import { GetComponentPermissionIds } from "../../../page";
 import { hasFileColumns } from "../../helpers/file-refs";
@@ -10,24 +13,31 @@ import { getTableViewMetaFor } from "./meta";
  *
  * @internal
  */
-export const withFilePromotion = (
-  baseRoute: DataControllerCallback,
+export const withFilePromotion = <O, R, P, Rest extends unknown[]>(
+  baseRoute: DataControllerCallback<O, R, [RequestContext, P, ...Rest]>,
   mode: "save" | "delete" = "save",
-): DataControllerCallback => ({
+): DataControllerCallback<O, R, [RequestContext, P, ...Rest]> => ({
   func: async function (
-    this: ThisParameterType<DataControllerCallback["func"]>,
+    this: DataControllerInstance,
     context: RequestContext,
-    // oxlint-disable-next-line anti-slop/no-unknown-parameters -- Route-specific parameters pass unchanged to the wrapped callback or attachment proxy; parsing them here would alter the published wrapper behavior.
-    params: unknown,
-    ...args: unknown[]
+    params: P,
+    ...args: Rest
   ) {
     if (!hasFileColumns(getTableViewMetaFor(this).columns)) {
       return baseRoute.func.call(this, context, params, ...args);
     }
     const { writingComponents } = getTableViewMetaFor(this);
-    return internal.SaveTableViewAttachments({
+    let answered: { value: R } | undefined;
+    await internal.SaveTableViewAttachments({
       controller: this,
-      route: baseRoute,
+      route: {
+        ...baseRoute,
+        func: async (...called: [RequestContext, P, ...Rest]) => {
+          const value = await baseRoute.func.call(this, ...called);
+          answered = { value };
+          return value;
+        },
+      },
       context,
       params,
       args,
@@ -38,6 +48,8 @@ export const withFilePromotion = (
         ),
       ],
     });
+    if (!answered) throw new Error("The table route did not answer.");
+    return answered.value;
   },
   args: baseRoute.args,
   method: baseRoute.method,

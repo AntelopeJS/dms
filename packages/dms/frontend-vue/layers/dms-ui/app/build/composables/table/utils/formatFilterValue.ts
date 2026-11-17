@@ -1,10 +1,10 @@
-import type { TableFilter } from "../../../components/table/Table.vue";
+import type { TableFilter } from "../../../components/table/TableRoot.vue";
 import { isString } from "#dms-core/app/utils/type-check";
 
 interface FilterColumn {
   value: string;
   label: string;
-  type?: DataTypeConfig;
+  type?: Pick<DataTypeConfig, "id">;
 }
 
 const DAY_MS = 24 * 60 * 60 * 1000;

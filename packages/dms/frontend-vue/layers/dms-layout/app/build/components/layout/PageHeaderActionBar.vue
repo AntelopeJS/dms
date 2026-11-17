@@ -75,13 +75,15 @@ const { quickActions } = siteLayout;
 const route = useDmsRoute();
 const router = useDmsRouter();
 const { $authFetch } = useAuthFetch();
+const { presentError } = useApiErrorPresenter();
 
 const { handleCustomButton } = useActionTargets({
   api: $authFetch,
   componentId: "page-header",
   pageId: siteLayout.findMatchingRoute(route.path)?.metadata?.fullId ?? "page",
   refreshCallback: refreshPageBlocks,
-  handleApiError: (error, title) => useApiError(error, { title }),
+  handleApiError: (error, title) =>
+    presentError(error, { fallbackKey: title ?? "error.500.description" }),
 });
 
 function pressComponentButton(componentId: string, buttonId?: string) {
@@ -122,12 +124,11 @@ function baseButton(action: LayoutHeaderAction): ButtonProps {
   };
 }
 
-type LinkTarget = Extract<ActionTarget, { type: "page" | "external" }>;
 type UrlTarget = Extract<ActionTarget, { url: string }>;
+type QuickActionTarget = Extract<ActionTarget, { type: "quickAction" }>;
 
 const hasTargetUrl = (target: ActionTarget): target is UrlTarget =>
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- ActionTarget variants without url are still probed for it at runtime, including malformed variants. A discriminant-only guard would change that behavior.
-  isString((target as Partial<UrlTarget>).url);
+  "url" in target && isString(target.url);
 
 const pageUrlValues = computed(() => ({
   routeParams: siteLayout.findMatchingRoute(route.path)?.params,
@@ -148,33 +149,44 @@ function withPageValues(action: LayoutHeaderAction): LayoutHeaderAction {
   };
 }
 
-const LINK_TARGETS: Partial<
-  Record<ActionTarget["type"], (target: LinkTarget) => ButtonProps>
-> = {
-  page: (target) => ({ to: target.url }),
-  external: (target) => {
-    const newTab = target.type === "external" && target.newTab;
-    return {
-      to: target.url,
-      target: newTab ? "_blank" : undefined,
-      trailingIcon: newTab ? "i-ph-arrow-square-out" : undefined,
-    };
-  },
-};
-
 function linkProps(action: LayoutHeaderAction): ButtonProps | undefined {
   const { target } = action;
   if (action.confirm || !target) return undefined;
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The dispatch table correlates its page/external keys with LinkTarget, which indexed access cannot infer. A discriminant rewrite would alter the existing prototype-key lookup for malformed types.
-  return LINK_TARGETS[target.type]?.(target as LinkTarget);
+  if (target.type === "page") return { to: target.url };
+  if (target.type !== "external") return undefined;
+  return {
+    to: target.url,
+    target: target.newTab ? "_blank" : undefined,
+    trailingIcon: target.newTab ? "i-ph-arrow-square-out" : undefined,
+  };
+}
+
+/**
+ * The button the action targets run. A served button with a target is a
+ * `PageHeaderButton`, which always carries a label.
+ */
+function customButtonOf(
+  action: LayoutHeaderAction,
+  target: ActionTarget,
+): CustomButton {
+  return {
+    label: action.label ?? "",
+    target,
+    confirm: action.confirm,
+    disabled: action.disabled,
+    disabledReason: action.disabledReason,
+  };
 }
 
 function resolveQuickActionButton(
   action: LayoutHeaderAction,
   base: ButtonProps,
-  key: string,
+  target: QuickActionTarget,
 ): ResolvedHeaderAction | null {
-  const quickAction = findServedQuickAction(quickActions.value?.actions, key);
+  const quickAction = findServedQuickAction(
+    quickActions.value?.actions,
+    target.id,
+  );
   if (!quickAction) return null;
   return {
     id: action.id,
@@ -185,8 +197,7 @@ function resolveQuickActionButton(
       label: base.label || processI18n(quickAction.displayName),
       onClick: () =>
         action.confirm
-          ? // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- LayoutHeaderAction permits missing label and wider color/variant values than CustomButton. The existing action executor receives the original object; synthesizing a valid CustomButton would change malformed input behavior.
-            handleCustomButton(action as CustomButton)
+          ? handleCustomButton(customButtonOf(action, target))
           : dispatchQuickActionTarget(quickAction.target),
     },
   };
@@ -213,9 +224,10 @@ function resolveAction(
       disabledReason,
     };
   }
-  if (!action.target) return null;
-  if (action.target.type === "quickAction") {
-    return resolveQuickActionButton(action, base, action.target.id);
+  const { target } = action;
+  if (!target) return null;
+  if (target.type === "quickAction") {
+    return resolveQuickActionButton(action, base, target);
   }
   return {
     id: action.id,
@@ -223,8 +235,7 @@ function resolveAction(
     button: {
       ...base,
       ...(linkProps(action) ?? {
-        // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The layout action's optional label and ButtonProps styling do not satisfy CustomButton. This unchecked existing handoff preserves the original object instead of inventing defaults or narrowing the public prop.
-        onClick: () => handleCustomButton(action as CustomButton),
+        onClick: () => handleCustomButton(customButtonOf(action, target)),
       }),
     },
     disabledReason,

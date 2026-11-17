@@ -20,6 +20,7 @@ const layout = {
       urlTransparent: true,
     },
   },
+  banners: [],
 } satisfies SiteLayout;
 
 describe("the category a URL resolves to", () => {
@@ -32,6 +33,7 @@ describe("the category a URL resolves to", () => {
     const transparentOnly = {
       pages: {},
       categories: { "projects.reports": layout.categories["projects.reports"] },
+      banners: [],
     } satisfies SiteLayout;
     expect(findNavigableCategory(transparentOnly, "/projects")).toBeUndefined();
   });

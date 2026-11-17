@@ -75,7 +75,7 @@ function page(children: Component[]): App {
         children.map((child) => h(child)),
       ),
   });
-  for (const name of ["DmsCard", "UBadge", "USkeleton", "DmsTopListRow"])
+  for (const name of ["DmsCardPanel", "UBadge", "USkeleton", "DmsTopListRow"])
     app.component(name, Slot);
   return app;
 }

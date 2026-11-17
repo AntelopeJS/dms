@@ -1,0 +1,378 @@
+<script setup lang="ts">
+import { useId } from "vue";
+import { isString } from "#dms-core/app/utils/type-check";
+import DmsFieldError from "../../field-error/FieldError.vue";
+import { fieldErrorId } from "#dms-core/app/composables/useFieldErrors";
+import { FORM_FIELD_LOADING_KEY } from "../../../composables/form/types/field-loading";
+import type { PresignResponse } from "../../../composables/form/useUploadWithProgress";
+import {
+  checkFileConstraints,
+  type FileConstraintViolation,
+  type FileFieldConstraints,
+} from "../../../utils/fileConstraints";
+import {
+  type FileMetadata,
+  useFileMetadata,
+} from "../../../build/composables/files/useFileMetadata";
+
+export type FileConstraints = FileFieldConstraints;
+
+interface UploadingFile {
+  id: string;
+  file: File;
+  progress: number;
+  error?: string;
+}
+
+interface FileProps {
+  modelValue?: string | string[] | null;
+  multiple?: boolean;
+  constraints?: FileConstraints;
+  path?: string;
+  storage?: string;
+  uploadToken?: string;
+  disabled?: boolean;
+}
+
+const props = defineProps<FileProps>();
+const emit = defineEmits<{
+  "update:modelValue": [string | string[] | null];
+}>();
+
+const { $authFetch } = useAuthFetch();
+const { t } = useI18n();
+const { presentError, resolveError } = useApiErrorPresenter();
+
+const { emitFormChange, color, highlight, ariaAttrs } = useFormField();
+
+const rejections = ref<string[]>([]);
+const rejectionId = fieldErrorId(`file-${useId()}`);
+
+const dropZoneAria = computed(() =>
+  rejections.value.length
+    ? { "aria-invalid": true, "aria-describedby": rejectionId }
+    : (ariaAttrs.value ?? {}),
+);
+
+const { uploadWithProgress } = useUploadWithProgress();
+
+const selectedFiles = ref<File | File[] | null>(null);
+const uploadingFiles = ref<UploadingFile[]>([]);
+const uploadedKeys = ref<string[]>([]);
+
+const files = useFileMetadata(props.storage);
+
+const initializeFromModelValue = (
+  val: string | string[] | null | undefined,
+) => {
+  if (!val) {
+    uploadedKeys.value = [];
+  } else if (isString(val)) {
+    uploadedKeys.value = val ? [val] : [];
+  } else {
+    uploadedKeys.value = val;
+  }
+};
+
+initializeFromModelValue(props.modelValue);
+
+const openFile = async (resourceKey: string) => {
+  await files.resolve(resourceKey, true);
+  const url = files.metadata(resourceKey)?.url;
+  if (url) window.open(url, "_blank", "noopener,noreferrer");
+};
+
+watch(
+  () => props.modelValue,
+  (val) => {
+    const newKeys = !val ? [] : isString(val) ? [val] : val;
+    if (newKeys.join(",") !== uploadedKeys.value.join(",")) {
+      uploadedKeys.value = newKeys;
+    }
+  },
+);
+
+watch(
+  () => [...uploadedKeys.value],
+  (keys) => keys.forEach((key) => void files.resolve(key)),
+  { immediate: true },
+);
+
+const emitValue = () => {
+  if (props.multiple) {
+    emit(
+      "update:modelValue",
+      uploadedKeys.value.length ? uploadedKeys.value : null,
+    );
+  } else {
+    emit("update:modelValue", uploadedKeys.value[0] ?? null);
+  }
+  emitFormChange();
+};
+
+const uploadFile = async (
+  file: File,
+  onProgress: (progress: number) => void,
+): Promise<string> => {
+  const presign = await $authFetch<PresignResponse>("/api/files/presign", {
+    method: "POST",
+    body: {
+      filename: file.name,
+      size: file.size,
+      mimetype: file.type,
+      uploadToken: props.uploadToken,
+    },
+  });
+
+  await uploadWithProgress(presign, file, onProgress);
+
+  return presign.resourceKey;
+};
+
+const processFile = async (file: File) => {
+  const uploadId = crypto.randomUUID();
+
+  uploadingFiles.value.push({
+    id: uploadId,
+    file,
+    progress: 0,
+  });
+
+  setFieldLoading?.(uploadId, true);
+
+  try {
+    const resourceKey = await uploadFile(file, (progress) => {
+      const uploadingFile = uploadingFiles.value.find((u) => u.id === uploadId);
+      if (uploadingFile) uploadingFile.progress = progress;
+    });
+
+    uploadingFiles.value = uploadingFiles.value.filter(
+      (u) => u.id !== uploadId,
+    );
+
+    if (props.multiple) {
+      uploadedKeys.value.push(resourceKey);
+    } else {
+      uploadedKeys.value = [resourceKey];
+    }
+
+    emitValue();
+  } catch (error) {
+    const uploadingFile = uploadingFiles.value.find((u) => u.id === uploadId);
+    if (uploadingFile) {
+      uploadingFile.error = resolveError(error, {
+        fallbackKey: "dms.form.image.upload_failed",
+      })?.message;
+    }
+    presentError(error, { fallbackKey: "dms.form.image.upload_failed" });
+  } finally {
+    setFieldLoading?.(uploadId, false);
+  }
+};
+
+const notifyRejected = (file: File, violation: FileConstraintViolation) => {
+  rejections.value.push(
+    violation === "size"
+      ? t("dms.form.file.rejected_size", {
+          name: file.name,
+          size: maxSizeFormatted.value ?? "",
+        })
+      : t("dms.form.file.rejected_type", { name: file.name }),
+  );
+};
+
+watch(selectedFiles, async (value) => {
+  if (!value) return;
+  rejections.value = [];
+
+  const files = Array.isArray(value) ? value : [value];
+
+  for (const file of files) {
+    const violation = checkFileConstraints(file, props.constraints);
+    if (violation) {
+      notifyRejected(file, violation);
+      continue;
+    }
+    await processFile(file);
+  }
+
+  selectedFiles.value = null;
+});
+
+const removeUploadingFile = (id: string) => {
+  uploadingFiles.value = uploadingFiles.value.filter((u) => u.id !== id);
+};
+
+const removeUploadedFile = (key: string) => {
+  uploadedKeys.value = uploadedKeys.value.filter((k) => k !== key);
+  emitValue();
+};
+
+const isUnavailable = (key: string): boolean => files.isUnavailable(key);
+
+/**
+ * What a stored file shows: its metadata, or, once it cannot be read, its
+ * last known name (the key otherwise) without a link.
+ */
+const getMetadata = (key: string): FileMetadata | undefined => {
+  if (!isUnavailable(key)) return files.metadata(key);
+  const known = files.lastRead(key);
+  return {
+    resourceKey: key,
+    filename: known?.filename ?? key,
+    size: known?.size ?? 0,
+    mimetype: known?.mimetype ?? "application/octet-stream",
+    url: "",
+  };
+};
+
+const isImage = (mimetype: string): boolean => {
+  return mimetype.startsWith("image/");
+};
+
+const BYTES_PER_UNIT = 1024;
+
+const formatFileSize = (bytes: number): string => {
+  const units = ["B", "KB", "MB", "GB"];
+  let size = bytes;
+  let unitIndex = 0;
+
+  while (size >= BYTES_PER_UNIT && unitIndex < units.length - 1) {
+    size /= BYTES_PER_UNIT;
+    unitIndex++;
+  }
+
+  return `${size.toFixed(1)} ${units[unitIndex]}`;
+};
+
+const acceptString = computed(() =>
+  props.constraints?.allowedMimetypes?.join(","),
+);
+
+const dropPromptKey = computed(() =>
+  props.multiple
+    ? "dms.form.file.drop_prompt_multiple"
+    : "dms.form.file.drop_prompt",
+);
+
+const maxSizeFormatted = computed(() => {
+  if (!props.constraints?.maxSize) return null;
+  return formatFileSize(props.constraints.maxSize);
+});
+
+const isUploading = computed(() => uploadingFiles.value.length > 0);
+
+const setFieldLoading = inject(FORM_FIELD_LOADING_KEY, null);
+</script>
+
+<template>
+  <div class="flex flex-col gap-2">
+    <UFileUpload
+      v-model="selectedFiles"
+      :multiple="multiple"
+      :accept="acceptString"
+      :disabled="disabled || isUploading"
+      :color="color"
+      :highlight="highlight"
+      :label="$t(dropPromptKey)"
+      v-bind="dropZoneAria"
+    >
+      <template v-if="maxSizeFormatted" #description>
+        {{ $t("dms.form.file.max_size", { size: maxSizeFormatted }) }}
+      </template>
+    </UFileUpload>
+    <DmsFieldError :id="rejectionId" :message="rejections.join(' ')" />
+
+    <div v-if="uploadingFiles.length" class="flex flex-col gap-1">
+      <div
+        v-for="item in uploadingFiles"
+        :key="item.id"
+        class="border-default bg-default flex flex-col gap-1.5 rounded-md border p-2 ps-2.5"
+      >
+        <div class="flex items-center gap-2">
+          <UIcon
+            v-if="item.error"
+            name="i-lucide-alert-circle"
+            class="text-error h-4 w-4"
+          />
+          <UIcon v-else name="i-lucide-loader-2" class="h-4 w-4 animate-spin" />
+          <span class="flex-1 truncate text-sm">{{ item.file.name }}</span>
+          <span v-if="!item.error" class="text-muted text-xs tabular-nums">
+            {{ item.progress }}%
+          </span>
+          <span class="text-muted text-xs">
+            {{ formatFileSize(item.file.size) }}
+          </span>
+          <UButton
+            v-if="item.error"
+            icon="i-lucide-x"
+            variant="ghost"
+            size="xs"
+            @click="removeUploadingFile(item.id)"
+          />
+        </div>
+        <span
+          v-if="!item.error"
+          class="bg-accented h-[3px] w-full overflow-hidden rounded-full"
+        >
+          <span
+            class="block h-full rounded-full bg-(--dms-accent-fill) transition-[width] duration-200"
+            :style="{ width: `${item.progress}%` }"
+          />
+        </span>
+      </div>
+    </div>
+
+    <div v-if="uploadedKeys.length" class="flex flex-col gap-1">
+      <div
+        v-for="key in uploadedKeys"
+        :key="key"
+        class="border-default bg-default flex items-center gap-2.5 rounded-md border p-2 ps-2.5"
+      >
+        <template v-if="getMetadata(key)">
+          <img
+            v-if="isImage(getMetadata(key)!.mimetype) && getMetadata(key)!.url"
+            :src="getMetadata(key)!.url"
+            :alt="getMetadata(key)!.filename"
+            class="h-8 w-8 rounded object-cover"
+          />
+          <UIcon
+            v-else-if="isUnavailable(key)"
+            name="i-lucide-alert-circle"
+            class="text-error h-4 w-4"
+          />
+          <UIcon
+            v-else
+            name="i-lucide-file-check"
+            class="text-success h-4 w-4"
+          />
+          <ULink
+            :to="getMetadata(key)!.url"
+            target="_blank"
+            class="decoration-dimmed/40 hover:decoration-muted text-muted hover:text-default flex-1 truncate text-sm font-normal underline"
+            @click.prevent="openFile(key)"
+          >
+            {{ getMetadata(key)!.filename }}
+          </ULink>
+          <span v-if="isUnavailable(key)" class="text-error text-xs">
+            {{ $t("dms.form.file.file_unavailable") }}
+          </span>
+          <span v-else class="text-muted text-xs">
+            {{ formatFileSize(getMetadata(key)!.size) }}
+          </span>
+        </template>
+        <template v-else>
+          <UIcon name="i-lucide-loader-2" class="h-4 w-4 animate-spin" />
+          <span class="flex-1 truncate text-sm">{{ key }}</span>
+        </template>
+        <UButton
+          icon="i-lucide-x"
+          variant="ghost"
+          size="xs"
+          :disabled="disabled"
+          @click="removeUploadedFile(key)"
+        />
+      </div>
+    </div>
+  </div>
+</template>

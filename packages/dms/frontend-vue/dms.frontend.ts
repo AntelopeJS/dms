@@ -8,6 +8,7 @@ import {
   type DmsFrontendSdk,
   useDmsRuntimeConfig,
 } from "#dms/frontend-module";
+import { lazyPlugin } from "./lazy-plugin";
 import authMiddleware from "./layers/dms-auth/app/middleware/auth";
 import permissionsPreloadPlugin from "./layers/dms-auth/app/plugins/permissions-preload";
 import asyncDataScopePlugin from "./layers/dms-core/app/plugins/async-data-scope";
@@ -27,6 +28,7 @@ import livePauseSourcePlugin from "./layers/dms-ui/app/plugins/live-pause-source
 import onboardingMiddleware from "./layers/dms-onboarding/app/middleware/onboarding.global";
 import onboardingPreloadPlugin from "./layers/dms-onboarding/app/plugins/onboarding-preload";
 import closingLayersPlugin from "./layers/dms-ui/app/plugins/closing-layers.client";
+import kbdPlatformPlugin from "./layers/dms-ui/app/plugins/kbd-platform";
 import registerPlugin from "./layers/dms-ui/app/plugins/register";
 import shortcutsPlugin from "./layers/dms-ui/app/plugins/shortcuts";
 import tableViewDisplaysPlugin from "./layers/dms-ui/app/plugins/table-view-displays";
@@ -101,7 +103,7 @@ const COMPONENT_ALIASES: Record<
   Parameters<DmsFrontendSdk["registerComponent"]>[0]
 > = {
   ActivityFeed: "ActivityFeedBlock",
-  Section: "SectionBlock",
+  SectionPanel: "SectionBlock",
   FieldRow: "FieldRowBlock",
 };
 
@@ -163,21 +165,49 @@ function registerDeferredPlugins(
 function registerPlugins(sdk: Parameters<DmsFrontendModule["setup"]>[0]): void {
   const clientOnly = { clientOnly: true };
   if (import.meta.env.DEV) {
-    sdk.registerPlugin(async (context) => {
-      const plugin = await import(
-        "./layers/dms-layout/app/plugins/dms-dev-reload.client"
-      );
-      await plugin.default(context);
-    }, clientOnly);
+    sdk.registerPlugin(
+      lazyPlugin(
+        () => import("./layers/dms-layout/app/plugins/dms-dev-reload.client"),
+      ),
+      clientOnly,
+    );
 
     sdk.registerPlugin(
-      async (context) => {
-        const plugin = await import(
-          "./layers/dms-core/app/plugins/dev-error-log"
-        );
-        await plugin.default(context);
-      },
+      lazyPlugin(() => import("./layers/dms-core/app/plugins/dev-error-log")),
       { ...clientOnly, enforce: "pre" },
+    );
+
+    sdk.registerPlugin(
+      lazyPlugin(
+        () => import("./layers/dms-layout/app/entries/mockups/header-action"),
+      ),
+      clientOnly,
+    );
+    sdk.registerComponent(
+      "MockupCards",
+      lazyComponent(
+        () => import("./layers/dms-ui/app/entries/mockups/MockupCards"),
+      ),
+    );
+
+    sdk.registerPlugin(
+      lazyPlugin(
+        () => import("./layers/dms-layout/app/entries/branding/header-action"),
+      ),
+      clientOnly,
+    );
+    sdk.registerComponent(
+      "BrandingEditor",
+      lazyComponent(
+        () => import("./layers/dms-layout/app/entries/branding/BrandingEditor"),
+      ),
+    );
+
+    sdk.registerPlugin(
+      lazyPlugin(
+        () => import("./layers/dms-layout/app/entries/mockup/header-action"),
+      ),
+      clientOnly,
     );
   }
 
@@ -200,6 +230,7 @@ function registerPlugins(sdk: Parameters<DmsFrontendModule["setup"]>[0]): void {
   sdk.registerPlugin(closingLayersPlugin, clientOnly);
   sdk.registerPlugin(registerPlugin);
   sdk.registerPlugin(shortcutsPlugin);
+  sdk.registerPlugin(kbdPlatformPlugin);
   sdk.registerPlugin(tableViewDisplaysPlugin);
   registerDeferredPlugins(sdk);
 }
@@ -230,8 +261,12 @@ const frontendModule: DmsFrontendModule = {
     registerMiddleware(sdk);
     registerComponents(sdk);
     registerCustomPages(sdk);
-    registerEntries(dynamicPages, "pages", sdk.registerDynamicPage);
-    registerEntries(layouts, "custom-layouts", sdk.registerLayout);
+    registerEntries(dynamicPages, "pages", (name, component, preload) =>
+      sdk.registerDynamicPage(name, component, preload),
+    );
+    registerEntries(layouts, "custom-layouts", (name, component, preload) =>
+      sdk.registerLayout(name, component, preload),
+    );
     sortedEntries(errorPages).forEach(([, loader]) => {
       sdk.registerErrorPage(lazyComponent(loader), loader);
     });

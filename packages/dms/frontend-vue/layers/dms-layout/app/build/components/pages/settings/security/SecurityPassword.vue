@@ -36,10 +36,11 @@ const CONFIRM_FIELD_ID = "security-confirm-password";
 
 const { t } = useI18n();
 const toast = useToast();
+const { presentError } = useApiErrorPresenter();
 const { $authFetch } = useAuthFetch();
 const { processApiMessage } = useTranslation();
 const { overview, refresh } = useSecurityOverview();
-const { formatDate, daysSince, errorMessage } = useSecurityFormat();
+const { formatDate, daysSince } = useSecurityFormat();
 const { passwordSchema } = usePasswordStrength(ref(""));
 const adoptSessionHandoff = useSessionHandoff();
 
@@ -170,9 +171,8 @@ async function submit(): Promise<void> {
       document.getElementById(CURRENT_FIELD_ID)?.focus();
       return;
     }
-    toast.add({
-      title: errorMessage(error, "page.settings.security.password.error"),
-      color: "error",
+    presentError(error, {
+      fallbackKey: "page.settings.security.password.error",
     });
   } finally {
     isSaving.value = false;
@@ -181,7 +181,7 @@ async function submit(): Promise<void> {
 </script>
 
 <template>
-  <DmsSection
+  <DmsSectionPanel
     id="password"
     class="scroll-mt-6"
     title="$page.settings.security.password_title"
@@ -249,9 +249,9 @@ async function submit(): Promise<void> {
       >
         <template #default="{ describedby, invalid }">
           <DmsPasswordInput
-            has-lock-icon
             :id="CURRENT_FIELD_ID"
             v-model="currentPassword"
+            has-lock-icon
             autocomplete="current-password"
             :invalid="invalid"
             :aria-describedby="describedby"
@@ -273,9 +273,9 @@ async function submit(): Promise<void> {
       >
         <template #default="{ describedby, invalid }">
           <DmsPasswordInput
-            has-lock-icon
             :id="NEW_FIELD_ID"
             v-model="newPassword"
+            has-lock-icon
             autocomplete="new-password"
             :invalid="invalid"
             :aria-describedby="describedby"
@@ -290,16 +290,16 @@ async function submit(): Promise<void> {
       >
         <template #default="{ describedby, invalid }">
           <DmsPasswordInput
-            has-lock-icon
             :id="CONFIRM_FIELD_ID"
             v-model="confirmPassword"
-            @blur="isConfirmTouched = true"
+            has-lock-icon
             autocomplete="new-password"
             :placeholder="
               t('page.settings.security.password.confirm_placeholder')
             "
             :invalid="invalid"
             :aria-describedby="describedby"
+            @blur="isConfirmTouched = true"
           />
         </template>
       </SecurityPanelField>
@@ -325,5 +325,5 @@ async function submit(): Promise<void> {
         </p>
       </template>
     </SecurityEditPanel>
-  </DmsSection>
+  </DmsSectionPanel>
 </template>

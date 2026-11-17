@@ -1,5 +1,8 @@
 import type { LocationQueryValue } from "#dms/frontend-module";
+import type { WatchAction } from "#dms-core/app/types/watch";
+import { isNull, isObject, isString } from "#dms-core/app/utils/type-check";
 import { resolveLinkVariables } from "../../utils/urlVariables";
+import { detach } from "../detach";
 
 type RouteQuery = Record<string, LocationQueryValue | LocationQueryValue[]>;
 
@@ -45,6 +48,15 @@ export function resolveFormSuccessTarget(
   return target;
 }
 
+const isFormSuccessParams = (value: unknown): value is FormSuccessParams => {
+  if (!isObject(value) || isNull(value) || !isString(value.url)) return false;
+  const { preserveQuery } = value;
+  return (
+    preserveQuery === undefined ||
+    (Array.isArray(preserveQuery) && preserveQuery.every(isString))
+  );
+};
+
 export function registerDefaultFunctions() {
   const { registerFunction } = useDefinedFunctions();
   const route = useDmsRoute();
@@ -52,15 +64,16 @@ export function registerDefaultFunctions() {
 
   registerFunction(
     TableViewFunctions.CUSTOM_PAGE_FORM_SUCCESS,
-    (event: CustomEvent) => {
-      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- CustomEvent does not declare the function registry's params extension. Its owner supplies no typed event contract; validation would change malformed-event behavior.
-      const { params } = event as CustomEvent & { params: FormSuccessParams };
+    ({ params }: WatchAction) => {
+      if (!isFormSuccessParams(params)) return;
 
-      navigateDms(
-        resolveFormSuccessTarget(params, {
-          query: route.query,
-          params: findMatchingRoute(route.path)?.params,
-        }),
+      detach(
+        navigateDms(
+          resolveFormSuccessTarget(params, {
+            query: route.query,
+            params: findMatchingRoute(route.path)?.params,
+          }),
+        ),
       );
     },
   );

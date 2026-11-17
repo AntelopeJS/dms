@@ -58,7 +58,7 @@ const Slots = defineComponent({
 });
 
 function register(app: App): void {
-  for (const name of ["DmsCard", "DmsFieldRow", "DmsLink", "DmsSaveBar"])
+  for (const name of ["DmsCardPanel", "DmsFieldRow", "DmsLink", "DmsSaveBar"])
     app.component(name, Slots);
   for (const name of ["UButton", "UIcon", "USkeleton", "DmsFieldError"])
     app.component(name, () => null);

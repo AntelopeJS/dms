@@ -46,9 +46,12 @@ Button.inheritAttrs = false;
 let app: App | undefined;
 let host: HTMLDivElement;
 
-async function mount(
-  props: Partial<InstanceType<typeof PasswordInputComponent>["$props"]> = {},
-) {
+type PasswordInputProps = Partial<
+  InstanceType<typeof PasswordInputComponent>["$props"]
+> &
+  Pick<InputStubProps, "color">;
+
+async function mount(props: PasswordInputProps = {}) {
   const { default: PasswordInput } = await import(
     "../layers/dms-ui/app/entries/components/form/PasswordInput"
   );

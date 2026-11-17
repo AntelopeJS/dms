@@ -6,8 +6,9 @@
  * the real renderer runtime, middlewares and composables, and each middleware
  * joins the request already in flight.
  */
-import { createSSRApp, defineComponent, h, nextTick } from "vue";
+import { computed, createSSRApp, defineComponent, h, nextTick } from "vue";
 import { renderToString } from "vue/server-renderer";
+import { createI18n } from "vue-i18n";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { DmsAppContext } from "#dms/frontend-module";
 
@@ -123,10 +124,17 @@ const Page = defineComponent({
 function serverRender(path: string) {
   const runtime = engine.createDmsFrontendRuntime(undefined, {}, true);
   const app = createSSRApp(Page);
-  // SAFETY: These preload plugins only need runWithContext from the application context; the Vue app owns that implementation.
-  const context = {
-    runWithContext: <T>(callback: () => T) => app.runWithContext(callback),
-  } as DmsAppContext;
+  const context: DmsAppContext = {
+    vueApp: app,
+    provide: (key, value) => app.provide(key, value),
+    runWithContext: (callback) => app.runWithContext(callback),
+    hook: () => undefined,
+    $i18n: {
+      ...createI18n({ legacy: false }).global,
+      locales: computed(() => []),
+      setLocale: async () => undefined,
+    },
+  };
   app.config.globalProperties.$dms = context;
   runtime.appContext = context;
   runtime.route.path = path;
@@ -134,9 +142,12 @@ function serverRender(path: string) {
   runtime.route.matched = [{}];
   engine.provideDmsFrontendRuntime(app, runtime);
 
-  for (const plugin of [onboardingPreload, permissionsPreload])
-    app.runWithContext(() => plugin(context));
-  return { app, html: renderToString(app) };
+  const preloads = Promise.all(
+    [onboardingPreload, permissionsPreload].map((plugin) =>
+      app.runWithContext(async () => plugin(context)),
+    ),
+  );
+  return { app, html: renderToString(app), preloads };
 }
 
 beforeEach(async () => {
@@ -162,8 +173,9 @@ beforeEach(async () => {
 
 describe("the requests a server render's middlewares wait on", () => {
   it("start together, and each middleware joins its own", async () => {
-    const { html } = serverRender("/orders");
+    const { html, preloads } = serverRender("/orders");
     const rounds = await answerRounds();
+    await preloads;
 
     expect(rounds).toEqual([[PERMISSIONS, ONBOARDING].sort()]);
     expect(asked.sort()).toEqual([PERMISSIONS, ONBOARDING].sort());
@@ -172,8 +184,9 @@ describe("the requests a server render's middlewares wait on", () => {
 
   it("ask for no permission set the middleware would not load", async () => {
     pagePublic = true;
-    const { html } = serverRender("/orders");
+    const { html, preloads } = serverRender("/orders");
     await answerRounds();
+    await preloads;
     expect(asked).toEqual([ONBOARDING]);
     expect(await html).toContain("cannot read");
 
@@ -183,6 +196,7 @@ describe("the requests a server render's middlewares wait on", () => {
     session.loggedIn.value = false;
     const signedOut = serverRender("/orders");
     await answerRounds();
+    await signedOut.preloads;
     expect(asked).toEqual([ONBOARDING]);
     await signedOut.html.catch(() => undefined);
   });

@@ -1,5 +1,3 @@
-import { EventEmitter } from "node:events";
-import type { RequestContext } from "@antelopejs/interface-api";
 import { GetMetadata, ImplementInterface } from "@antelopejs/interface-core";
 import {
   PageController,
@@ -7,8 +5,8 @@ import {
   internal as pageInterfaceInternal,
   RegisterModule,
 } from "@antelopejs/interface-dms/page";
-import type { User } from "@antelopejs/interface-dms/auth/db";
 import { expect } from "chai";
+import { z } from "zod";
 import { bindVerifiedRequestPrincipal } from "@antelopejs/interface-dms/auth/internal/request-authenticators";
 import { internal as pageImplInternal } from "../../../implementations/dms/page";
 import { PublishMessage } from "../../../implementations/dms/realtime";
@@ -23,70 +21,54 @@ import {
   getSessionInfo,
 } from "../../../realtime";
 import { ensureSessionOnPage, RealtimeController } from "../../../routes";
+import {
+  type RecordedSseStream,
+  recordedSseStream,
+} from "../../helpers/recorded-sse-stream";
+import { helloConnectionId, parseFrameData } from "../../helpers/sse-frames";
+import { userFixture } from "../../helpers/user-fixture";
 
-const USER = { _id: "tenant-topics-user", email: "u@example.com" };
+const USER = userFixture({ _id: "tenant-topics-user", email: "u@example.com" });
 const PAGE_ID = "tenant-topics-page";
 const TOPIC = "tenant-topics:orders";
 const TENANT_A = "tenant-a";
 const TENANT_B = "tenant-b";
 const EVENT_TYPE = "changed";
 
-interface FakeStream {
-  ctx: RequestContext;
-  frames: string[];
-  isEnded: () => boolean;
-}
+type FakeStream = RecordedSseStream;
 
 const createFakeStream = (tenantId: string): FakeStream => {
-  const frames: string[] = [];
-  let isEnded = false;
-  const writer = {
-    write: (frame: string) => {
-      frames.push(frame);
-      return true;
-    },
-    end: () => {
-      isEnded = true;
-    },
-  };
-  const rawRequest = Object.assign(new EventEmitter(), {
-    headers: { authorization: `Bearer tenant-topics-${tenantId}` },
-  });
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The SSE context double supplies headers, lifecycle events and a writer, not the full HTTP context.
-  const ctx = {
-    rawRequest,
-    response: { addHeader: () => {}, getWriteStream: () => writer },
-  } as unknown as RequestContext;
-
-  bindVerifiedRequestPrincipal(ctx, { userId: USER._id, tenantId });
-  return { ctx, frames, isEnded: () => isEnded };
+  const stream = recordedSseStream(`Bearer tenant-topics-${tenantId}`);
+  bindVerifiedRequestPrincipal(stream.ctx, { userId: USER._id, tenantId });
+  return stream;
 };
 
-interface SharedFrame {
-  sessionId: string;
-  event: string;
-  data?: unknown;
-}
+const SharedFrameSchema = z.object({
+  sessionId: z.string(),
+  event: z.string(),
+  data: z.object({
+    topic: z.string().optional(),
+    entries: z.array(z.object({ rowId: z.string() })).optional(),
+    sessionId: z.string().optional(),
+  }),
+});
+
+type SharedFrame = z.infer<typeof SharedFrameSchema>;
 
 /** The session frames a shared connection's stream carried. */
 const sharedFrames = (stream: FakeStream): SharedFrame[] =>
   stream.frames
     .filter((frame) => frame.startsWith("event: session\n"))
-    .map<SharedFrame>((frame) =>
-      JSON.parse(frame.split("\ndata: ")[1] ?? "{}"),
-    );
+    .map((frame) => parseFrameData(SharedFrameSchema, frame));
 
 /** Opens a browser's shared connection and returns its id. */
 const openSharedConnection = async (stream: FakeStream): Promise<string> => {
   await RealtimeController.prototype.connectionStream.call(
     undefined,
     stream.ctx,
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The realtime fixture supplies identity fields only, not a complete stored user instance.
-    USER as User,
+    USER,
   );
-  const hello = stream.frames.find((frame) => frame.startsWith("event: hello"));
-  const data = hello?.split("\ndata: ")[1] ?? "{}";
-  return JSON.parse(data).connectionId;
+  return helloConnectionId(stream.frames);
 };
 
 /** Opens a tab's session on the connection, in `tenantId`, on the page. */
@@ -99,8 +81,7 @@ const openTabOnPage = async (
     undefined,
     createFakeStream(tenantId).ctx,
     connectionId,
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The realtime fixture supplies identity fields only, not a complete stored user instance.
-    USER as User,
+    USER,
   );
   const sessionId = greeting.sessionId!;
   const isOnPage = await ensureSessionOnPage(sessionId, pageId, {
@@ -285,13 +266,9 @@ describe("[unit] realtime — platform pages see every tenant", () => {
 
     const snapshot = sharedFrames(viewer.stream).find(
       (frame) =>
-        frame.event === "snapshot" &&
-        // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Session frame payloads are unvalidated JSON; this presence test assumes the snapshot payload contract.
-        (frame.data as { topic?: string }).topic === PRESENCE_TOPIC,
+        frame.event === "snapshot" && frame.data.topic === PRESENCE_TOPIC,
     );
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The snapshot payload remains unvalidated; this assertion probes the expected presence entries shape.
-    const entries = (snapshot?.data as { entries?: Array<{ rowId: string }> })
-      ?.entries;
+    const entries = snapshot?.data.entries;
     expect(entries?.map((entry) => entry.rowId)).to.deep.equal(["row-1"]);
   });
 });

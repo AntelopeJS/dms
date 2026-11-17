@@ -2,7 +2,7 @@
 import { MONO_CHIP_CLASS } from "#dms-ui/app/entries/utils/monoChip";
 import { useShortcutRegistry } from "#dms-ui/app/entries/composables/shortcuts/useShortcutRegistry";
 import KeyboardShortcut from "../../build/components/pages/settings/shortcut/KeyboardShortcut.vue";
-import DmsSegmented from "#dms-ui/app/components/segmented/Segmented.vue";
+import DmsSegmentedControl from "#dms-ui/app/components/segmented/SegmentedControl.vue";
 import { usePageHeaderActions } from "#dms-ui/app/composables/layout/usePageHeaderActions";
 import DmsSearchInput from "#dms-ui/app/entries/components/form/SearchInput";
 import {
@@ -33,6 +33,8 @@ watch(detectedPlatform, (next) => {
 });
 const query = ref("");
 
+const KEYBOARD_PLATFORMS: readonly KeyboardPlatform[] = ["mac", "other"];
+
 const platformItems = computed(() => [
   {
     value: "mac",
@@ -47,14 +49,14 @@ const platformItems = computed(() => [
 ]);
 
 usePageHeaderActions(() =>
-  h(DmsSegmented, {
+  h(DmsSegmentedControl, {
     items: platformItems.value,
     modelValue: platform.value,
     size: "xs",
     ariaLabel: t("page.settings.shortcuts.layout_label"),
     "onUpdate:modelValue": (value: string | number | undefined) => {
-      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Segmented's event type is wider than KeyboardPlatform. This existing unchecked assignment also accepts malformed emitted values; validating them would change behavior.
-      if (value !== undefined) platform.value = value as KeyboardPlatform;
+      const picked = KEYBOARD_PLATFORMS.find((known) => known === value);
+      if (picked) platform.value = picked;
     },
   }),
 );
@@ -150,7 +152,7 @@ const detectedLabel = computed(() =>
       </span>
     </div>
 
-    <DmsSection
+    <DmsSectionPanel
       v-for="group in groups"
       :key="group.key"
       :title="group.title"
@@ -179,7 +181,7 @@ const detectedLabel = computed(() =>
       >
         <KeyboardShortcut :keys="shortcut.key.map(keyLabel)" />
       </DmsFieldRow>
-    </DmsSection>
+    </DmsSectionPanel>
 
     <p v-if="query && groups.length === 0" class="text-muted text-[13px]">
       {{ t("page.settings.shortcuts.no_results") }}

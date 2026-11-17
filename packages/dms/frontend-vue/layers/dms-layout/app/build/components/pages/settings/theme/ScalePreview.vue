@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { InterfaceScale } from "../../../../../composables/general/types";
 interface ScalePreviewProps {
   scale: InterfaceScale;
 }

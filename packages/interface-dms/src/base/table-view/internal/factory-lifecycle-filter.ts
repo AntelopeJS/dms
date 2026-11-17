@@ -10,12 +10,13 @@ import {
 } from "./request-filter";
 import { resolveTableViewTabs } from "./tabs";
 import { resolveTableViewViews } from "./views";
+import { type TableViewColumnValues, withColumnValues } from "./column-values";
 
 type FilterArguments = Parameters<
   Parameters<ComponentBuilder<TableViewOptionsSerialized>["onFilter"]>[0]
 >;
 
-interface FilterDeclarations<T extends Record<string, unknown>> {
+interface FilterDeclarations<T extends object> {
   declaredCustomButtons: TableViewOptions<T>["customButtons"];
   declaredCustomRowActions: NonNullable<
     TableViewOptions<T>["rowActions"]
@@ -23,10 +24,14 @@ interface FilterDeclarations<T extends Record<string, unknown>> {
   declaredTabs: TableViewOptions<T>["tabs"];
   declaredViews: TableViewOptions<T>["views"];
   meta: TableViewMeta;
+  /** Whether the controller mounts a `new` route: without it nobody can add. */
+  hasNewEndpoint: boolean;
+  /** The columns the options and the tabs read from the rows, when they read any. */
+  columnValues?: TableViewColumnValues;
 }
 
 /** @internal */
-export async function filterTableViewOptions<T extends Record<string, unknown>>(
+export async function filterTableViewOptions<T extends object>(
   declarations: FilterDeclarations<T>,
   request: FilterArguments,
 ): Promise<TableViewOptionsSerialized> {
@@ -36,9 +41,12 @@ export async function filterTableViewOptions<T extends Record<string, unknown>>(
     declaredTabs,
     declaredViews,
     meta,
+    hasNewEndpoint,
+    columnValues,
   } = declarations;
   const [permissions, options, permissionId, context] = request;
-  const grants = await resolveTableViewGrants(permissions, permissionId);
+  const held = await resolveTableViewGrants(permissions, permissionId);
+  const grants = { ...held, add: held.add && hasNewEndpoint };
 
   const adaptedFormComponents = {
     new: grants.add ? options.formComponents.new : undefined,
@@ -81,7 +89,7 @@ export async function filterTableViewOptions<T extends Record<string, unknown>>(
     permissionId,
   );
 
-  return {
+  const served: TableViewOptionsSerialized = {
     ...options,
     enableTableExport: options.enableTableExport && grants.export,
     formComponents: adaptedFormComponents,
@@ -91,4 +99,7 @@ export async function filterTableViewOptions<T extends Record<string, unknown>>(
     tabs: adaptedTabs,
     views: adaptedViews,
   };
+  return columnValues
+    ? withColumnValues(columnValues, served, permissions, context)
+    : served;
 }

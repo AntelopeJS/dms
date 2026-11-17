@@ -7,7 +7,7 @@ import { SessionModel, UserModel } from "@antelopejs/interface-dms/auth/db";
 import { DEFAULT_TENANT_ID } from "@antelopejs/interface-dms/constants";
 import { ExportJobModel } from "@antelopejs/interface-dms/db/internal/exportJobs.model";
 import { FileExists } from "@antelopejs/interface-file-storage";
-import { expect } from "chai";
+import { assert, expect } from "chai";
 import { SignInAttemptsModel, UserKnownDevicesModel } from "../../db/models";
 import { deleteAccount } from "../../pages/account";
 import { uploadExportToStorage } from "../../utils";
@@ -75,12 +75,15 @@ describe("[integration] account deletion", () => {
     await attempts.recordFailure(member.userId, new Date());
     await attempts.claimAlert(member.userId, "burst", new Date());
     const epoch = new Date(0);
-    expect(await devices.listFingerprints(member.userId)).to.not.be.empty;
+    expect(await devices.listFingerprints(member.userId)).to.not.have.lengthOf(
+      0,
+    );
     expect(await attempts.listBurst(member.userId, epoch, 10)).to.have.length(
       2,
     );
-    expect(await GetModel(SessionModel).getByUserId(member.userId)).to.not.be
-      .empty;
+    expect(
+      await GetModel(SessionModel).getByUserId(member.userId),
+    ).to.not.have.lengthOf(0);
 
     const response = await authorizedClient(accessToken).post(
       "/dms/pages/settings/user/profile/account-deletion",
@@ -102,9 +105,9 @@ describe("[integration] account deletion", () => {
     const user = await GetModel(UserModel).get(owner.userId);
     const refusal = await deleteAccount(user!).then(
       () => undefined,
-      (error) => error,
+      (error: unknown) => error,
     );
-    expect(refusal).to.be.instanceOf(HTTPResult);
+    assert.instanceOf(refusal, HTTPResult);
     expect(refusal.getStatus()).to.equal(HTTP_CONFLICT);
     expect(await GetModel(UserModel).get(owner.userId)).to.not.equal(undefined);
   });

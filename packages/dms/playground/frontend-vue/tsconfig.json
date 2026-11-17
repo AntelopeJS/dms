@@ -1,0 +1,7 @@
+{
+  "extends": "../.frontend-vue-types/tsconfig.json",
+  "compilerOptions": {
+    "types": ["node", "vite/client"]
+  },
+  "include": ["dms.email.ts", "dms.frontend.ts", "app/**/*.ts", "app/**/*.vue"]
+}

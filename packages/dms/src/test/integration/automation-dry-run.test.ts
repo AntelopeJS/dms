@@ -10,6 +10,7 @@ import { RegisterHtmlTemplate } from "@antelopejs/interface-dms/html-render";
 import type {
   ActionType,
   ExecutionCtx,
+  JsonObject,
 } from "@antelopejs/interface-dms-automation";
 import {
   ACTIONS,
@@ -19,7 +20,11 @@ import {
 } from "../../automation";
 import { UserNotificationsModel } from "../../db";
 import { resetDatabase } from "../helpers/db";
-import { captureEmails, renderedEmails, sentEmails } from "../helpers/emails";
+import {
+  captureEmailsInSuite,
+  renderedEmails,
+  sentEmails,
+} from "../helpers/emails";
 
 const TEMPLATE = "automation-dry-run-test";
 const EMAIL = "dry-run@automation.test";
@@ -34,7 +39,7 @@ const ctx: ExecutionCtx = {
   log: () => undefined,
 };
 
-function dryRun(id: string, input: Parameters<ActionType["execute"]>[0]) {
+function dryRun(id: string, input: JsonObject) {
   const action: ActionType | undefined = ACTIONS.find(
     (candidate) => candidate.id === id,
   );
@@ -49,8 +54,9 @@ async function addMember(userId: string, roleIds: string[]) {
 }
 
 describe("Automation actions in a test run", () => {
+  captureEmailsInSuite();
+
   before(() => {
-    captureEmails();
     RegisterHtmlTemplate(TEMPLATE);
   });
 

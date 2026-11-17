@@ -12,16 +12,17 @@ import type {
 import type {
   TableDensity,
   TableFilter,
-} from "../../components/table/Table.vue";
+} from "../../components/table/TableRoot.vue";
 import {
-  isSameTableState,
   newUserViewId,
   readTableUrlKey,
   snapshotViewState,
   type TableStateDefaults,
   type TableStateSnapshot,
   type TableUrlScope,
+  type TableViewChange,
   type UserTableView,
+  viewChange,
   viewSnapshot,
 } from "./utils/views";
 import type { TablePreferences } from "./useTablePreferences";
@@ -130,13 +131,6 @@ function createTableViewState(options: TableViewsOptions) {
   };
 
   /**
-   * Opens a view, or, for the one already open, closes it: back to the
-   * table's own default state without a view.
-   */
-  const selectView = (id: string) =>
-    openView(id === activeViewId.value ? undefined : id);
-
-  /**
    * Back on the view kept from the last visit. The table's state is kept
    * apart and restored as it was left, modified or not, but the search is
    * not kept: the view's own comes back with it.
@@ -194,7 +188,6 @@ function createTableViewState(options: TableViewsOptions) {
     activeViewId,
     activeView,
     openView,
-    selectView,
     openLinkedView,
     openDefaultListing,
     restoreKeptView,
@@ -228,6 +221,7 @@ function arriveTableViews(context: ReturnType<typeof createTableViewState>) {
   let isUrlViewUnavailable = false;
   let isUrlViewPending = false;
   let isOpenedOnArrival = false;
+  let isDefaultViewOpenedOnFirstVisit = false;
   if (urlView.isCleared) {
     openDefaultListing();
   } else if (urlView.value && findView(urlView.value)) {
@@ -238,6 +232,7 @@ function arriveTableViews(context: ReturnType<typeof createTableViewState>) {
   } else if (persistedViewId === undefined) {
     if (views?.defaultView) openView(views.defaultView);
     isOpenedOnArrival = !!views?.defaultView;
+    isDefaultViewOpenedOnFirstVisit = isOpenedOnArrival;
   } else {
     restoreKeptView(persistedViewId);
   }
@@ -259,8 +254,16 @@ function arriveTableViews(context: ReturnType<typeof createTableViewState>) {
     }
   };
 
+  const keepActiveView = () =>
+    preferences.set<string | undefined>(
+      "activeView",
+      keptViewId(activeViewId.value),
+      undefined,
+    );
+
   onMounted(() => {
     arriveOnceMounted();
+    if (isDefaultViewOpenedOnFirstVisit) keepActiveView();
     if (urlView.ignoredShortKey && import.meta.env.DEV) {
       console.warn(
         `[DMS] "?${VIEW_URL_KEY}=" is ignored on a page with several table views: name the table, "?${urlScope.tableId}.${VIEW_URL_KEY}=".`,
@@ -275,30 +278,19 @@ function arriveTableViews(context: ReturnType<typeof createTableViewState>) {
     });
   });
 
-  watch(activeViewId, (id) => {
-    preferences.set<string | undefined>(
-      "activeView",
-      keptViewId(id),
-      undefined,
-    );
-  });
+  watch(activeViewId, keepActiveView);
 
-  const isModified = computed(() => {
+  const change = computed<TableViewChange>(() => {
     const view = activeView.value;
-    if (!view) return false;
-    return !isSameTableState(
-      currentSnapshot(),
-      viewSnapshot(view, defaults),
-      defaults.columnOrder,
-    );
+    return view ? viewChange(view, currentSnapshot(), defaults) : "unchanged";
   });
 
-  return { ...context, isModified };
+  return { ...context, change };
 }
 
 /**
  * The views of a table view: the module's and the user's own, the one open,
- * whether the table moved away from it, and the ways back (Reset) or forward
+ * how the table stands to it, and the ways back (Reset) or forward
  * (Save, Save as new view). Opening a view always applies its whole state:
  * a change made to a view is not kept when another is opened.
  */
@@ -316,15 +308,24 @@ export function useTableViews(options: TableViewsOptions) {
     activeViewId,
     activeView,
     openView,
-    selectView,
     openLinkedView,
-    isModified,
+    change,
   } = arriveTableViews(createTableViewState(options));
 
   const writeUserViews = (next: UserTableView[]) => {
     storedUserViews.value = next;
     preferences.set("userViews", next, []);
   };
+
+  /**
+   * Opens a view, or, for the one already open, closes it: back to the
+   * table's own default state without a view. A view the table diverged
+   * from is opened again, as no view is drawn open.
+   */
+  const selectView = (id: string) =>
+    openView(
+      id === activeViewId.value && change.value !== "diverged" ? undefined : id,
+    );
 
   /** Back to the open view's own state. */
   const resetView = () => openView(activeViewId.value);
@@ -410,7 +411,7 @@ export function useTableViews(options: TableViewsOptions) {
     items,
     activeViewId,
     activeView,
-    isModified,
+    change,
     canSaveViews: !!views?.userViews,
     openView,
     selectView,

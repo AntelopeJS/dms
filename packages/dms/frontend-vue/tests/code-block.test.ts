@@ -1,12 +1,13 @@
 /** @vitest-environment jsdom */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { type App, type VNode, createApp, h, ref } from "vue";
+import { type App, type Component, type VNode, createApp, h, ref } from "vue";
 import { isFunction } from "../layers/dms-core/app/utils/type-check";
 import { browserRuntime } from "./helpers/api-data-runtime";
 import { stubBlockRuntime } from "./helpers/block-runtime";
 
-// oxlint-disable-next-line anti-slop/no-unknown-returns -- The transport double passes unparsed responses to the block's real boundary; a CodeBlock-only return type would misrepresent the shared network helper.
-const authFetch = vi.fn<(...args: unknown[]) => Promise<unknown>>();
+type SnippetAnswer = { code: string; language?: string } | null;
+
+const authFetch = vi.fn<(...args: unknown[]) => Promise<SnippetAnswer>>();
 
 let app: App | undefined;
 let runtime: ReturnType<typeof browserRuntime> | undefined;
@@ -27,7 +28,8 @@ const loaders = {
 };
 
 async function mount(path: keyof typeof loaders, props: MountProps) {
-  const { default: component } = await loaders[path]();
+  const { default: loaded } = await loaders[path]();
+  const component: Component = loaded;
   const read = isFunction(props) ? props : () => props;
   app = createApp({ setup: () => () => h(component, read()) });
   runtime?.scope.stop();

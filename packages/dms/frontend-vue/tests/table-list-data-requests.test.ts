@@ -5,13 +5,16 @@
  * again, one that changes reads again, and each request carries the run's
  * abort signal, so a run replaced or dropped cancels its request.
  */
+import { surfaceRejection } from "./surface-rejection";
 import { computed, createApp, defineComponent, h, nextTick, ref } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { TableViewColumn } from "../layers/dms-ui/app/composables/table-view/types";
+import { fetchClient } from "./fixtures/fetchClient";
+import { tableViewColumn } from "./fixtures/tableViewColumn";
 
 const engine = await import("#dms/frontend-module");
 vi.stubGlobal("computed", computed);
 vi.stubGlobal("useDmsAsyncData", engine.useDmsAsyncData);
+vi.stubGlobal("useDmsState", engine.useDmsState);
 
 const { useTableRows } = await import(
   "../layers/dms-ui/app/entries/composables/table-view/useTableRows"
@@ -21,8 +24,7 @@ const { useTableCountsData, useTableListData } = await import(
 );
 
 const LOCATION = "/api/orders";
-// SAFETY: The request harness only lists and counts rows; it never renders columns or constructs their form controls.
-const COLUMNS = [{ id: "total", accessorKey: "total" }] as TableViewColumn[];
+const COLUMNS = [tableViewColumn("total")];
 
 interface Call {
   url: string;
@@ -31,13 +33,14 @@ interface Call {
 }
 
 const calls: Call[] = [];
-// SAFETY: The table calls only this fetch function for lists and counts, whose fixture responses match each URL.
-const api = (async (url: string, options: Omit<Call, "url"> = {}) => {
-  calls.push({ url, ...options });
-  return url.endsWith("/count/batch")
-    ? { all: 1 }
-    : { results: [], total: 0, offset: 0, limit: 10 };
-}) as Parameters<typeof useTableRows>[0]["api"];
+const api = fetchClient(
+  async (url: string, options: Omit<Call, "url"> = {}) => {
+    calls.push({ url, ...options });
+    return url.endsWith("/count/batch")
+      ? { all: 1 }
+      : { results: [], total: 0, offset: 0, limit: 10 };
+  },
+);
 
 const unmounts: Array<() => void> = [];
 
@@ -64,17 +67,23 @@ async function mountTable() {
       const rows = useTableRows({ api, location: LOCATION, columns: COLUMNS });
       const keys = { componentId: "orders", pageId: "sales", rows };
       const archiveQuery = computed(() => (void tick.value, {}));
-      useTableListData({
-        ...keys,
-        query: computed(() => (void tick.value, { limit: limit.value })),
-        archiveQuery,
-        isSelfManaged: computed(() => false),
-      });
-      useTableCountsData({
-        ...keys,
-        queries: computed(() => (void tick.value, [{ id: "all", query: {} }])),
-        archiveQuery,
-      });
+      surfaceRejection(
+        useTableListData({
+          ...keys,
+          query: computed(() => (void tick.value, { limit: limit.value })),
+          archiveQuery,
+          isSelfManaged: computed(() => false),
+        }),
+      );
+      surfaceRejection(
+        useTableCountsData({
+          ...keys,
+          queries: computed(
+            () => (void tick.value, [{ id: "all", query: {} }]),
+          ),
+          archiveQuery,
+        }),
+      );
       return () => h("i");
     },
   });
@@ -151,20 +160,24 @@ describe("a source table's requests", () => {
         });
         const keys = { componentId: "report", pageId: "stats", rows };
         const archiveQuery = computed(() => ({}));
-        useTableListData({
-          ...keys,
-          query: computed(() => ({ limit: 10, offset: 0 })),
-          archiveQuery,
-          isSelfManaged: computed(() => false),
-        });
-        useTableCountsData({
-          ...keys,
-          queries: computed(() => [
-            { id: "all", query: {} },
-            { id: "open", query: { filter_status: "is:open" } },
-          ]),
-          archiveQuery,
-        });
+        surfaceRejection(
+          useTableListData({
+            ...keys,
+            query: computed(() => ({ limit: 10, offset: 0 })),
+            archiveQuery,
+            isSelfManaged: computed(() => false),
+          }),
+        );
+        surfaceRejection(
+          useTableCountsData({
+            ...keys,
+            queries: computed(() => [
+              { id: "all", query: {} },
+              { id: "open", query: { filter_status: "is:open" } },
+            ]),
+            archiveQuery,
+          }),
+        );
         return () => h("i");
       },
     });
@@ -178,7 +191,9 @@ describe("a source table's requests", () => {
     await settle();
 
     expect(
-      calls.map(({ url, query }) => [url, query?.filter_status]).sort(),
+      calls
+        .map(({ url, query }) => [url, query?.filter_status])
+        .sort((left, right) => String(left).localeCompare(String(right))),
     ).toEqual([
       ["/api/report", undefined],
       ["/api/report", "is:open"],
@@ -189,12 +204,13 @@ describe("a source table's requests", () => {
   function pendingApi() {
     let answer: () => void = () => undefined;
     const answered = new Promise<void>((resolve) => (answer = resolve));
-    // SAFETY: This source only lists the held fixture response via the callable fetch interface.
-    const held = (async (url: string, options: Omit<Call, "url"> = {}) => {
-      calls.push({ url, ...options });
-      await answered;
-      return { results: [{ total: 1 }], total: 1 };
-    }) as Parameters<typeof useTableRows>[0]["api"];
+    const held = fetchClient(
+      async (url: string, options: Omit<Call, "url"> = {}) => {
+        calls.push({ url, ...options });
+        await answered;
+        return { results: [{ total: 1 }], total: 1 };
+      },
+    );
     return { held, answer };
   }
 

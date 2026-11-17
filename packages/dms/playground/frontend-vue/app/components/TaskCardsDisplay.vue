@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import DmsEmpty from "#dms-ui/app/build/components/table/Empty.vue";
-import DmsPagination from "#dms-ui/app/build/components/table/Pagination.vue";
+import DmsTableEmpty from "#dms-ui/app/build/components/table/TableEmpty.vue";
+import DmsTablePagination from "#dms-ui/app/build/components/table/TablePagination.vue";
 import DmsCardGridSkeleton from "#dms-ui/app/build/components/table-view/CardGridSkeleton.vue";
 import type { TableViewDisplayContext } from "#dms-ui/app/composables/table-view/types";
 
@@ -52,6 +52,16 @@ const MAX_CARD_FIELDS = 4;
 const INITIALS_LENGTH = 2;
 const EMPTY_VALUE = "—";
 
+/** Whether a formatter rendered plain text rather than a node. */
+function isPlainText(rendered: unknown): rendered is string | number {
+  return typeof rendered === "string" || typeof rendered === "number";
+}
+
+/** Whether a step of a dotted path landed on a value with fields to read. */
+function hasFields(value: DisplayValue): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
 const { locale } = useI18n();
 const { processI18n } = useTranslation();
 const { getDataType } = useDataTypes();
@@ -60,9 +70,7 @@ const getValue = (item: DisplayRow, path: string): DisplayValue =>
   path
     .split(".")
     .reduce<DisplayValue>(
-      (acc, key) =>
-        // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Configured dotted paths traverse unvalidated row values; preserving the existing unchecked property access.
-        acc == null ? undefined : (acc as DisplayRow)[key],
+      (acc, key) => (hasFields(acc) ? acc[key] : undefined),
       item,
     );
 
@@ -114,8 +122,7 @@ const FieldValue = (fieldProps: {
         fieldProps.column.type?.inputComponent?.options,
       )
     : value;
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Formatter results are unknown in the owning DataTypeFormatter contract; retain the existing primitive rendering branch.
-  if (typeof rendered === "string" || typeof rendered === "number") {
+  if (isPlainText(rendered)) {
     return h("span", { class: "truncate" }, String(rendered));
   }
   return rendered;
@@ -137,7 +144,7 @@ const openItem = (item: DisplayRow) => {
       label-class="text-[10.5px]"
     />
 
-    <DmsEmpty
+    <DmsTableEmpty
       v-else-if="context.items.length === 0"
       :can-add-row="context.actions.canAdd"
     />
@@ -236,6 +243,6 @@ const openItem = (item: DisplayRow) => {
       </article>
     </div>
 
-    <DmsPagination />
+    <DmsTablePagination />
   </div>
 </template>

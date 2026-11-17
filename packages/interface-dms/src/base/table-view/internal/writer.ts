@@ -5,6 +5,7 @@ import type { TableViewCapabilities } from "./factory-helpers";
 import type { TableViewAccess, TableViewMeta } from "../meta";
 import type { TableViewRowActionOptions } from "../options";
 import { WritingTableViewConflictError } from "../writer";
+import { isBoolean } from "../../../utils/internal/type-check";
 
 /**
  * Where the controller derivation that lifts the restriction is documented.
@@ -30,8 +31,7 @@ interface WritingTableViewClaim {
 
 const isEnabled = (config: boolean | RowActionConfig | undefined): boolean =>
   config === undefined ||
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- RowActionConfig explicitly shares this option with a boolean shorthand; this branch distinguishes declared variants rather than parsing external data.
-  (typeof config === "boolean" ? config : config.isEnabled !== false);
+  (isBoolean(config) ? config : config.isEnabled !== false);
 
 /**
  * `write` when the TableView enables at least one action that changes rows

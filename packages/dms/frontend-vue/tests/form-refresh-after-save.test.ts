@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { computed, effectScope, ref, watch, type EffectScope } from "vue";
 import { HttpMethod } from "../layers/dms-core/app/types/http";
+import type { JsonValue } from "../layers/dms-core/app/types/json";
 import { isString } from "../layers/dms-core/app/utils/type-check";
 import { formSubmitEvent } from "./helpers/form-submit-event";
 import { useForm } from "../layers/dms-ui/app/composables/form/useForm";
@@ -34,8 +35,14 @@ const STORED = {
 
 const authFetch = vi.fn();
 let scope: EffectScope;
-// oxlint-disable-next-line anti-slop/no-unknown-returns -- Submit responses deliberately include records, unrelated objects, arrays and undefined; no parsed record owner describes this transport double before useForm handles the response.
-let answer: () => unknown;
+type EditAnswer =
+  | ({ [Field in keyof typeof STORED]?: JsonValue } & {
+      _id?: string;
+      success?: boolean;
+    })
+  | string[]
+  | undefined;
+let answer: () => EditAnswer;
 
 function setupForm(
   props: Partial<Parameters<typeof useForm>[0]> = {},
@@ -136,6 +143,18 @@ describe("DMS form after a save", () => {
     expect(form.state.value.vatNumber).toBe(STORED.vatNumber);
   });
 
+  it("keeps an answered value whose rows hold more than text", async () => {
+    const headers = [{ name: "X-Token", rows: 2 }];
+    answer = () => ({ vatNumber: "as stored", headers });
+    const form = setupForm();
+
+    await saveTyped(form);
+
+    expect(form.state.value.vatNumber).toBe("as stored");
+    expect(form.state.value.headers).toEqual(headers);
+    expect(form.initialValues.value.headers).toEqual(headers);
+  });
+
   it("reads the record again when the route answers no record", async () => {
     for (const body of [{ success: true }, undefined, ["s-1"]]) {
       authFetch.mockClear();
@@ -172,12 +191,13 @@ describe("DMS form after a save", () => {
 
   it("applies nothing for a new row, an action or a redirect", async () => {
     answer = () => ({ vatNumber: "as stored" });
-    for (const props of [
+    const cases: Parameters<typeof setupForm>[0][] = [
       { submitUrlMethod: HttpMethod.post, kind: "create" },
       { kind: "action" },
       { redirectOnSuccess: "/settings" },
       { fetchUrl: undefined },
-    ]) {
+    ];
+    for (const props of cases) {
       const form = setupForm(props);
       await saveTyped(form);
       expect(form.state.value.vatNumber, JSON.stringify(props)).not.toBe(

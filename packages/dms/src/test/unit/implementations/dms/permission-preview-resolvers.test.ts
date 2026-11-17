@@ -28,6 +28,7 @@ import {
   registerTestPage,
   stubPageAccessModels,
 } from "../../../helpers/page-access";
+import { userFixture } from "../../../helpers/user-fixture";
 
 const HOME = "pages.prr-home";
 const INVOICES = "pages.prr-invoices";
@@ -40,13 +41,10 @@ const EVERY_GRANT = [HOME, INVOICES, INVOICES_EXPORT, ROLES, BILLING];
 const FREE_TENANT = "prr-free";
 const PLAN_TENANT = "prr-plan";
 
-// SAFETY: Preview permission resolution consumes this id and owner flag, not persisted-user methods.
-const PLATFORM_OWNER = { _id: "prr-platform-owner", owner: true } as User;
-// SAFETY: The resolver identifies this tenant owner by id; the absent platform-owner flag intentionally remains undefined.
-const TENANT_OWNER = { _id: "prr-tenant-owner" } as User;
+const PLATFORM_OWNER = userFixture({ _id: "prr-platform-owner", owner: true });
+const TENANT_OWNER = userFixture({ _id: "prr-tenant-owner" });
 
-// SAFETY: Preview permission resolution consumes this id and the absent owner flag, not persisted-user methods.
-const ROLE_MANAGER = { _id: "prr-role-manager" } as User;
+const ROLE_MANAGER = userFixture({ _id: "prr-role-manager" });
 const TENANT_OWNER_IDS = new Set([PLATFORM_OWNER._id, TENANT_OWNER._id]);
 
 let planPermissions = new Set<string>();
@@ -177,59 +175,83 @@ async function recordResolverCalls(
   return calls;
 }
 
+const cleanups: Array<() => void> = [];
+
+async function registerResolverFixtures() {
+  ImplementInterface(permissionsInterface, permissionsImpl);
+  ImplementInterface(permissionsResolverInterface, permissionsResolverImpl);
+  ImplementInterface(tenantAccessInterface, tenantAccessImpl);
+  ImplementInterface(pageInterfaceInternal, pageImplInternal);
+  cleanups.push(
+    await registerTestPage(
+      PageController("prr-home", {
+        displayName: "Home",
+        category: pagesCategory,
+      }),
+    ),
+    await registerTestPage(
+      PageController(
+        "prr-invoices",
+        { displayName: "Invoices", category: pagesCategory },
+        DefaultLayout({
+          headerActions: [
+            {
+              id: "export",
+              label: "Export",
+              target: { type: "page", url: "/prr-invoices/export" },
+              permissionId: INVOICES_EXPORT,
+            },
+          ],
+        }),
+      ),
+    ),
+    await registerTestPage(
+      PageController("prr-roles", {
+        displayName: "Roles",
+        category: pagesCategory,
+      }),
+    ),
+    await registerTestPage(
+      PageController("prr-billing", {
+        displayName: "Billing",
+        category: pagesCategory,
+      }),
+    ),
+  );
+}
+
+function runPreviewCleanups() {
+  unregisterResolvers(RESOLVERS);
+  planPermissions = new Set();
+}
+
+function runFixtureCleanups() {
+  for (const cleanup of cleanups.splice(0)) cleanup();
+}
+
 describe("[unit] implementations/dms/page — role preview through permission resolvers", () => {
-  const cleanups: Array<() => void> = [];
+  before(registerResolverFixtures);
 
-  before(async () => {
-    ImplementInterface(permissionsInterface, permissionsImpl);
-    ImplementInterface(permissionsResolverInterface, permissionsResolverImpl);
-    ImplementInterface(tenantAccessInterface, tenantAccessImpl);
-    ImplementInterface(pageInterfaceInternal, pageImplInternal);
-    cleanups.push(
-      await registerTestPage(
-        PageController("prr-home", {
-          displayName: "Home",
-          category: pagesCategory,
-        }),
-      ),
-      await registerTestPage(
-        PageController(
-          "prr-invoices",
-          { displayName: "Invoices", category: pagesCategory },
-          DefaultLayout({
-            headerActions: [
-              {
-                id: "export",
-                label: "Export",
-                target: { type: "page", url: "/prr-invoices/export" },
-                permissionId: INVOICES_EXPORT,
-              },
-            ],
-          }),
-        ),
-      ),
-      await registerTestPage(
-        PageController("prr-roles", {
-          displayName: "Roles",
-          category: pagesCategory,
-        }),
-      ),
-      await registerTestPage(
-        PageController("prr-billing", {
-          displayName: "Billing",
-          category: pagesCategory,
-        }),
-      ),
-    );
-  });
+  afterEach(runPreviewCleanups);
 
-  afterEach(() => {
-    unregisterResolvers(RESOLVERS);
-    planPermissions = new Set();
-  });
+  after(runFixtureCleanups);
 
-  after(() => {
-    for (const cleanup of cleanups.splice(0)) cleanup();
+  describe("with a viewer that is not a stored user", () => {
+    it("refuses to preview as it", async () => {
+      setPlan(...EVERY_GRANT);
+      const notAUser = Object.assign({}, TENANT_OWNER);
+      let refusal = "";
+      try {
+        await preview(
+          { name: "a plain object", user: notAUser, grants: EVERY_GRANT },
+          PLAN_TENANT,
+          [HOME, INVOICES],
+        );
+      } catch (error) {
+        refusal = error instanceof Error ? error.message : "";
+      }
+      expect(refusal).to.equal("The previewing user is not a User.");
+    });
   });
 
   describe("without any resolver", () => {
@@ -250,18 +272,30 @@ describe("[unit] implementations/dms/page — role preview through permission re
 
     it("hides nothing for a role granting every page", async () => {
       const outcome = await preview(VIEWERS[0], PLAN_TENANT, EVERY_GRANT);
-      expect(outcome.hiddenEntries).to.be.empty;
+      expect(outcome.hiddenEntries).to.have.lengthOf(0);
       expect(outcome.pageHidden).to.equal(false);
-      expect(outcome.hiddenHeaderActions).to.be.empty;
+      expect(outcome.hiddenHeaderActions).to.have.lengthOf(0);
     });
 
-    it("hides nothing for a role holding the wildcard", async () => {
+    it("grants nothing through a wildcard the role lists", async () => {
       const outcome = await preview(VIEWERS[0], PLAN_TENANT, ["*"]);
-      expect(outcome.hiddenEntries).to.be.empty;
-      expect(outcome.pageHidden).to.equal(false);
-      expect(outcome.hiddenHeaderActions).to.be.empty;
+      expect(outcome.hiddenEntries).to.have.members([
+        HOME,
+        INVOICES,
+        ROLES,
+        BILLING,
+      ]);
+      expect(outcome.pageHidden).to.equal(true);
     });
   });
+});
+
+describe("[unit] implementations/dms/page — role preview through permission resolvers", () => {
+  before(registerResolverFixtures);
+
+  afterEach(runPreviewCleanups);
+
+  after(runFixtureCleanups);
 
   describe("the resolver context", () => {
     it("tells the resolvers a preview, with the role's set, for the viewer", async () => {
@@ -285,7 +319,7 @@ describe("[unit] implementations/dms/page — role preview through permission re
         preview(VIEWERS[1], PLAN_TENANT, [HOME]),
       );
       const own = calls.filter((call) => !call.context.preview);
-      expect(own).to.not.be.empty;
+      expect(own).to.not.have.lengthOf(0);
       for (const call of own) expect(call.context).to.deep.equal({});
     });
   });
@@ -316,12 +350,15 @@ describe("[unit] implementations/dms/page — role preview through permission re
           expect(outcome.hiddenHeaderActions).to.deep.equal(["export"]);
         });
 
-        it("hides nothing for a role holding the wildcard", async () => {
+        it("grants nothing through a wildcard the role lists", async () => {
           setPlan(...EVERY_GRANT);
           const outcome = await preview(viewer, PLAN_TENANT, ["*"]);
-          expect(outcome.hiddenEntries).to.be.empty;
-          expect(outcome.pageHidden).to.equal(false);
-          expect(outcome.hiddenHeaderActions).to.be.empty;
+          expect(outcome.hiddenEntries).to.include.members([
+            HOME,
+            INVOICES,
+            ROLES,
+          ]);
+          expect(outcome.pageHidden).to.equal(true);
         });
       });
     }
@@ -340,7 +377,7 @@ describe("[unit] implementations/dms/page — role preview through permission re
         const outcome = await preview(viewer, PLAN_TENANT, EVERY_GRANT);
         expect(outcome.hiddenEntries).to.deep.equal([BILLING]);
         expect(outcome.pageHidden).to.equal(false);
-        expect(outcome.hiddenHeaderActions).to.be.empty;
+        expect(outcome.hiddenHeaderActions).to.have.lengthOf(0);
       }
     });
 

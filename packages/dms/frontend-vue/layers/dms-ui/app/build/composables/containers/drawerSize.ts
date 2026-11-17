@@ -1,8 +1,9 @@
+import type { JsonValue } from "../../../../../dms-core/app/types/json";
 import {
   isObject,
   isNumber,
 } from "../../../../../dms-core/app/utils/type-check";
-import { ref, type Component, type ComponentOptions, type Ref } from "vue";
+import { ref, type Component, type Ref } from "vue";
 import type { DrawerDirection } from "../../../composables/containers/types";
 import type { ModalSize } from "../../../types/modal";
 import type { ResizeBounds, ResizeStorage } from "./useResizableSize";
@@ -73,12 +74,10 @@ function emptyPreferences(): DrawerSizePreferences {
   return { widths: {}, heights: {} };
 }
 
-// oxlint-disable-next-line anti-slop/no-unknown-parameters -- This cookie decoder accepts malformed persisted values and filters them here.
-function readSizes(value: unknown): Record<string, number> {
+function readSizes(value: JsonValue | undefined): Record<string, number> {
   if (!isObject(value) || value === null) return {};
-  const entries: [string, unknown][] = Object.entries(value);
   return Object.fromEntries(
-    entries.filter(
+    Object.entries(value).filter(
       (entry): entry is [string, number] =>
         isNumber(entry[1]) && Number.isFinite(entry[1]),
     ),
@@ -92,8 +91,7 @@ function readSizes(value: unknown): Record<string, number> {
  * @internal
  */
 export function readDrawerSizePreferences(
-  // oxlint-disable-next-line anti-slop/no-unknown-parameters -- The persisted cookie is decoded here, not trusted as DrawerSizePreferences.
-  value: unknown,
+  value: JsonValue | DrawerSizePreferences | undefined,
 ): DrawerSizePreferences {
   if (!isObject(value) || value === null) return emptyPreferences();
   const record = value;
@@ -168,10 +166,9 @@ const ASYNC_WRAPPER_NAME = "AsyncComponentWrapper";
  * @internal
  */
 export function componentSizeKey(component: Component): string | undefined {
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Component's constructor branch does not constrain these metadata fields; retain unchecked name selection and interpolation.
-  const named = component as Pick<ComponentOptions, "name" | "__name">;
-  const { name, __name } = named;
-  const componentName = [name, __name].find(
+  const { name } = component;
+  const compiledName = "__name" in component ? component.__name : undefined;
+  const componentName = [name, compiledName].find(
     (candidate) => candidate && candidate !== ASYNC_WRAPPER_NAME,
   );
   return componentName

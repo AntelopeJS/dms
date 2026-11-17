@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import DmsSegmented from "#dms-ui/app/components/segmented/Segmented.vue";
+import DmsSegmentedControl from "#dms-ui/app/components/segmented/SegmentedControl.vue";
 import type { ReduceMotionPreference } from "#dms-ui/app/entries/utils/accessibilityPreferences";
 import { useAppearanceSave } from "./useAppearanceSave";
 
@@ -27,7 +27,7 @@ function setReduceMotion(value: string | number | undefined): void {
       label="$page.settings.appearance.accessibility.reduce_motion"
       description="$page.settings.appearance.accessibility.reduce_motion_hint"
     >
-      <DmsSegmented
+      <DmsSegmentedControl
         :model-value="preferences.reduceMotion.value"
         :items="reduceMotionItems"
         :aria-label="t('page.settings.appearance.accessibility.reduce_motion')"
@@ -40,10 +40,10 @@ function setReduceMotion(value: string | number | undefined): void {
     >
       <USwitch
         :model-value="preferences.increaseContrast.value"
-        @update:model-value="pick('increaseContrast', $event)"
         :aria-label="
           t('page.settings.appearance.accessibility.increase_contrast')
         "
+        @update:model-value="pick('increaseContrast', $event)"
       />
     </DmsFieldRow>
     <DmsFieldRow
@@ -52,10 +52,10 @@ function setReduceMotion(value: string | number | undefined): void {
     >
       <USwitch
         :model-value="preferences.underlineLinks.value"
-        @update:model-value="pick('underlineLinks', $event)"
         :aria-label="
           t('page.settings.appearance.accessibility.underline_links')
         "
+        @update:model-value="pick('underlineLinks', $event)"
       />
     </DmsFieldRow>
   </div>

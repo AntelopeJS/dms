@@ -1,9 +1,14 @@
 import type { RequestContext } from "@antelopejs/interface-api";
 import { assert } from "@antelopejs/interface-api-util";
 import { GetMetadata } from "@antelopejs/interface-core";
-import { GetDataControllerMeta } from "@antelopejs/interface-data-api";
+import {
+  type DataControllerInstance,
+  GetDataControllerMeta,
+} from "@antelopejs/interface-data-api";
 import { Parameters } from "@antelopejs/interface-data-api/components";
+import { DataAPIMeta } from "@antelopejs/interface-data-api/metadata";
 import type { User } from "@antelopejs/interface-dms/auth/db";
+import { rowIdText } from "../../db";
 import {
   authorizeAction,
   LIST_ACTION,
@@ -14,31 +19,39 @@ import {
   DEFAULT_ROW_ID_FIELD,
   MAX_BULK_MATCHING_ROWS,
   TableViewMeta,
-  type resolveBulkRowIds as ResolveBulkDeclaration,
 } from "@antelopejs/interface-dms/base/table-view";
+import { getTableViewMetaFor } from "@antelopejs/interface-dms/base/table-view/internal/meta";
 import { getRequestTenantId } from "@antelopejs/interface-dms/request-tenant";
-import { buildFilteredQuery } from "./search-route";
+import { buildFilteredQuery, resolveListScope } from "./search-route";
+import {
+  isFunction,
+  isSymbol,
+} from "@antelopejs/interface-dms/utils/internal/type-check";
 
 const IDS_KEY = "ids";
 const HTTP_PAYLOAD_TOO_LARGE = 413;
-type BulkReceiver = globalThis.Parameters<typeof ResolveBulkDeclaration>[0];
 
-function isBulkRowSource(table: BulkReceiver): table is BulkRowSource {
+function isObject(value: unknown): value is object {
+  return typeof value === "object" && value !== null;
+}
+
+function isBulkRowSource(
+  table: DataControllerInstance | BulkRowSource,
+): table is BulkRowSource {
   return (
-    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- The public input accepts both opaque route receivers and BulkRowSource; the existing object check must precede property membership on arbitrary values.
     typeof table === "object" &&
     table !== null &&
     "tableView" in table &&
-    "model" in table
+    table.tableView instanceof TableViewMeta &&
+    "model" in table &&
+    typeof table.model === "object" &&
+    table.model !== null
   );
 }
 
-/** A data controller as the list query reads it: its properties by key. */
-// oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Inference from Object.create yields any and BulkRowSource.tableView.target constructs unknown; neither describes the proxy's arbitrary controller fields, which must stay unknown until their data-api owner reads them.
-type ControllerReader = Record<PropertyKey, unknown>;
-type ControllerInstance = {
-  constructor: ConstructorParameters<typeof TableViewMeta>[0];
-};
+function isControllerInstance(value: unknown): value is DataControllerInstance {
+  return isObject(value);
+}
 
 /**
  * What the list query reads a source's rows through, in place of a data
@@ -49,17 +62,24 @@ type ControllerInstance = {
  */
 function sourceReader({ model, tableView }: BulkRowSource) {
   const controller = tableView.target;
-  const { modelKey } = GetDataControllerMeta(
-    Object.create(controller.prototype),
+  assert(
+    isFunction(controller),
+    500,
+    "A table view is declared on a controller.",
   );
+  const { modelKey } = GetMetadata(controller, DataAPIMeta, true);
   assert(modelKey, 500, `${controller.name} declares no model.`);
-  const reader: ControllerReader = Object.create(controller.prototype, {
-    [modelKey]: { value: model, enumerable: true },
-  });
+  const prototype: unknown = controller.prototype;
+  assert(isObject(prototype), 500, `${controller.name} has no prototype.`);
+  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- The proxy's get trap reads a controller property by a runtime string or symbol key, and the reader's prototype is the controller's, so no closed type describes its keys.
+  const reader: Record<PropertyKey, unknown> = Object.defineProperty(
+    { __proto__: prototype },
+    modelKey,
+    { value: model, enumerable: true },
+  );
   return new Proxy(reader, {
     get(target, key) {
-      // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Proxy get keys are string or symbol; the existing symbol branch lets introspection pass without throwing the missing route-property error.
-      if (typeof key === "symbol" || key in target) return target[key];
+      if (isSymbol(key) || key in target) return target[key];
       throw new Error(
         `resolveBulkRowIds read "${key}" of ${controller.name}, which a BulkRowSource does not carry: resolve the selection from a route of ${controller.name}, with this.`,
       );
@@ -74,7 +94,7 @@ function sourceReader({ model, tableView }: BulkRowSource) {
  * who cannot see the rows does not pick them by id either.
  */
 export async function resolveBulkRowIds(
-  table: BulkReceiver,
+  table: DataControllerInstance | BulkRowSource,
   ctx: RequestContext,
   user: User,
 ): Promise<string[]> {
@@ -87,30 +107,24 @@ export async function resolveBulkRowIds(
   );
   const query = ctx.url.searchParams;
   if (query.get(BULK_ALL_MATCHING_KEY) !== "true") return query.getAll(IDS_KEY);
+  assert(isControllerInstance(thisObj), 500, "No data controller to read.");
   const filters = Parameters.ExtractFilters(
     ctx,
     GetDataControllerMeta(thisObj),
   );
-  const { query: rows } = await buildFilteredQuery(
-    thisObj,
-    ctx,
-    { filters },
-    user,
-    permissions,
+  const { query: rows } = buildFilteredQuery(
+    await resolveListScope(thisObj, ctx, { filters }, user, permissions),
   );
   const idField =
-    GetMetadata(
-      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Inference retains the interface's unknown controller input; TableViewMeta's constructor owner states the required target but cannot prove the existing unchecked route-receiver assumption.
-      (thisObj as ControllerInstance).constructor,
-      TableViewMeta,
-    ).options.rowIdKey ?? DEFAULT_ROW_ID_FIELD;
+    getTableViewMetaFor(thisObj).options.rowIdKey ?? DEFAULT_ROW_ID_FIELD;
   const matching = await rows
     .slice(0, MAX_BULK_MATCHING_ROWS + 1)
-    .pluck(idField);
+    .pluck(idField)
+    .run();
   assert(
     matching.length <= MAX_BULK_MATCHING_ROWS,
     HTTP_PAYLOAD_TOO_LARGE,
     `More than ${MAX_BULK_MATCHING_ROWS} rows match: narrow the filters.`,
   );
-  return matching.map((row) => String(row[idField]));
+  return matching.map((row) => rowIdText(row[idField]));
 }

@@ -8,9 +8,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import "./helpers/table-runtime";
 import { useRealDataEngine } from "./fixtures/dataEngine";
+import type { TableViewColumn } from "../layers/dms-ui/app/composables/table-view/types";
 import {
   type App,
-  type Component,
   Suspense,
   computed,
   createApp,
@@ -37,10 +37,15 @@ const DEALS: Deal[] = [
   { _id: "d5", stage: "won" },
 ];
 
-const STAGE_COLUMN = {
+const STAGE_COLUMN: TableViewColumn = {
+  id: "stage",
+  header: "Stage",
   accessorKey: "stage",
+  listable: true,
   type: {
     id: "select",
+    compareModes: [],
+    filterComponents: {},
     inputComponent: {
       options: {
         items: [
@@ -97,8 +102,7 @@ async function mountBoard(onRowsShown: (rows: Deal[]) => void) {
     render: () =>
       h(Suspense, null, {
         default: () =>
-          // SAFETY: KanbanBoard is a Vue component; erase its generic row type only at Vue's h overload boundary.
-          h(KanbanBoard as Component, {
+          h(KanbanBoard, {
             groupByField: "stage",
             location: "/deals",
             columns: [STAGE_COLUMN],

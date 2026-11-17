@@ -14,6 +14,7 @@ import {
 } from "vue";
 import { renderToString } from "vue/server-renderer";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { dmsAppContext, emptyApp } from "./fixtures/dmsAppContext";
 import DashboardFrame from "../layers/dms-layout/app/entries/components/layout/DashboardFrame";
 import SidePanelHost from "../layers/dms-layout/app/entries/components/layout/SidePanelHost";
 import {
@@ -57,7 +58,7 @@ function preferences(): SidePanelPreferences {
 function storePreferences(
   value: Parameters<typeof readSidePanelPreferences>[0],
 ): void {
-  useDmsCookie(SIDE_PANEL_COOKIE).value = value;
+  useDmsCookie<unknown>(SIDE_PANEL_COOKIE).value = value;
 }
 
 function panel(id: string, extra: Partial<SidePanel> = {}): SidePanel {
@@ -197,8 +198,7 @@ describe("side panel registry", () => {
     const { default: plugin } = await import(
       "../layers/dms-layout/app/plugins/side-panel-host"
     );
-    // SAFETY: This plugin's setup closes over useAppOverlay and never reads the app-context argument.
-    (plugin as () => void)();
+    await plugin(dmsAppContext(emptyApp()));
     expect(useDmsState(OVERLAYS_STATE_KEY).value).toEqual(["DmsSidePanelHost"]);
   });
 });

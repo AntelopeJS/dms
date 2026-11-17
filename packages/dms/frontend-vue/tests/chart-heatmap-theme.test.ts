@@ -2,7 +2,7 @@
 import { createSSRApp, defineComponent, h, ref } from "vue";
 import { renderToString } from "vue/server-renderer";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import Chart from "../layers/dms-ui/app/components/chart/Chart.vue";
+import Chart from "../layers/dms-ui/app/components/chart/ChartBlock.vue";
 import { chartRuntime } from "./helpers/charts-runtime";
 import { clearChartColorCache } from "../layers/dms-ui/app/composables/chart/useChartTheme";
 
@@ -37,12 +37,15 @@ interface HeatmapOptions {
   };
 }
 
-const PlotProbe = defineComponent({
-  props: {
-    options: { type: Object, required: true },
+let drawn: HeatmapOptions | undefined;
+
+const PlotProbe = defineComponent(
+  (props: { options: HeatmapOptions }) => () => {
+    drawn = props.options;
+    return h("output");
   },
-  setup: (props) => () => h("output", JSON.stringify(props.options)),
-});
+  { props: { options: { type: Object, required: true } } },
+);
 const Slot = defineComponent({
   setup:
     (_, { slots }) =>
@@ -68,10 +71,10 @@ async function heatmapOptions(
     app.component(name, Slot);
   }
   app.component("DmsApexChartHost", PlotProbe);
+  drawn = undefined;
   await chartRuntime(app);
-  const html = await renderToString(app);
-  const json = /<output[^>]*>(.*)<\/output>/.exec(html)![1]!;
-  return JSON.parse(json.replaceAll("&quot;", '"'));
+  await renderToString(app);
+  return drawn!;
 }
 
 function rangeColors(options: HeatmapOptions): string[] {

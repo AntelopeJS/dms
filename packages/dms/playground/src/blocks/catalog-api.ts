@@ -33,6 +33,8 @@ RegisterDataSource({
   path: "/api/dashboard/top/routes",
 });
 
+type SampleOptions = Readonly<Record<string, string | number | boolean>>;
+
 const VALID_OPTIONS = { title: "Top products", showRank: true };
 const INVALID_OPTIONS = { title: 42, highlightTopN: "three" };
 
@@ -53,7 +55,7 @@ function typeRow(descriptor: BlockTypeDescriptor): KeyValueListItem {
 
 function validationRow(
   label: string,
-  options: Parameters<typeof ValidateBlockOptions>[1],
+  options: SampleOptions,
 ): KeyValueListItem {
   const result = ValidateBlockOptions("TopListCard", options);
   return {

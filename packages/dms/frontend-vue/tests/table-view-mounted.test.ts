@@ -1,18 +1,20 @@
 /** @vitest-environment jsdom */
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { h, type FunctionalComponent } from "vue";
 import {
   mountTableView,
   settleTable,
   tableViewRuntime,
 } from "./helpers/table-view-runtime";
 import { engine } from "./helpers/api-data-runtime";
-import type {
-  TableViewConfig,
-  TableViewDisplayContext,
-} from "../layers/dms-ui/app/composables/table-view/types";
+import {
+  arrivalConfig,
+  PAGING_DISPLAY_NAME,
+  PagingDisplay,
+  type MountConfig,
+} from "./table-view-paging-display";
 import { refreshPageBlocks } from "../layers/dms-ui/app/utils/blockRefresh";
 import { usePreferences } from "../layers/dms-core/app/composables/user/usePreferences";
+import { readOnlyFailure } from "./helpers/read-only-refusal";
 import type { TableCountQuery } from "../layers/dms-ui/app/entries/composables/table-view/useTableRows";
 
 const apps: Array<{ unmount: () => void }> = [];
@@ -20,10 +22,7 @@ const requests: string[] = [];
 const queries: Array<TableCountQuery["query"]> = [];
 let total = 0;
 
-async function mount(
-  config: Partial<TableViewConfig> = {},
-  prepare?: () => void,
-) {
+async function mount(config: MountConfig = {}, prepare?: () => void) {
   const result = await mountTableView(config, prepare);
   apps.push(result.app);
   return result.container;
@@ -90,6 +89,9 @@ beforeEach(async () => {
       return { results: [], total, offset: 0, limit: 10 };
     },
   );
+  vi.stubGlobal("resolveDmsComponent", (name: string) =>
+    name === PAGING_DISPLAY_NAME ? PagingDisplay : undefined,
+  );
   usePreferences().removePreference("tables");
 });
 
@@ -154,9 +156,10 @@ it.each([500, 404])(
     const recovered = { results: [{ _id: "r1", name: "Recovered" }], total: 1 };
     let retry = false;
     let answer = (_value: typeof recovered) => {};
-    await tableViewRuntime((url: string) => {
+    await tableViewRuntime(async (url: string) => {
       if (!url.endsWith("/list")) return {};
-      if (!retry) throw { statusCode, data: { message: "Missing workspace" } };
+      if (!retry)
+        throw { statusCode, data: { message: "error.read_only_demo" } };
       return new Promise<typeof recovered>((resolve) => {
         answer = resolve;
       });
@@ -165,12 +168,14 @@ it.each([500, 404])(
     await settleTable();
     expect(host.querySelector("table") === null).toBe(statusCode === 404);
     expect(host.textContent).toContain(
-      statusCode === 404 ? "Missing workspace" : "dms.table.load_error_title",
+      statusCode === 404
+        ? "error.read_only_demo"
+        : "dms.table.load_error_title",
     );
     retry = true;
     const refreshed = refreshPageBlocks();
     await settleTable();
-    expect(host.textContent).not.toContain("Missing workspace");
+    expect(host.textContent).not.toContain("error.read_only_demo");
     expect(host.textContent).not.toContain("error.500");
     expect(host.textContent).not.toContain("dms.table.load_error_title");
     expect(host.querySelectorAll('tbody tr[aria-hidden="true"]')).toHaveLength(
@@ -218,6 +223,53 @@ it("a hand-ordered table neither restores nor offers nor overwrites saved sortin
   ).toBe("Name");
 });
 
+it("refreshes a refused reorder without a second operation-specific toast", async () => {
+  const add = vi.fn(() => ({ id: "failure" }));
+  await tableViewRuntime(async (url: string) => {
+    requests.push(url);
+    if (url.endsWith("/edit")) throw readOnlyFailure();
+    return {
+      results: [
+        { _id: "r1", name: "First", position: 1 },
+        { _id: "r2", name: "Second", position: 2 },
+      ],
+      total: 2,
+    };
+  });
+  vi.stubGlobal("useToast", () => ({ add }));
+  vi.stubGlobal("getAppTranslation", () => ({
+    processApiMessage: (key: string) => key,
+  }));
+  const host = await mount({
+    reorder: { field: "position" },
+    rowActions: { edit: true },
+  });
+  await settleTable();
+  requests.length = 0;
+  const handle = host.querySelector(
+    'button[aria-label="dms.table.reorder.move"]',
+  );
+  if (!handle) throw new Error("Missing reorder handle");
+  handle.dispatchEvent(
+    new KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true }),
+  );
+  await settleTable();
+  await settleTable();
+  expect(requests).toContain("/api/orders/edit");
+  expect(requests).toContain("/api/orders/list");
+  expect(
+    [...host.querySelectorAll("tr[data-row-id]")].map((row) =>
+      row.getAttribute("data-row-id"),
+    ),
+  ).toEqual(["r1", "r2"]);
+  expect(add).toHaveBeenCalledExactlyOnceWith(
+    expect.objectContaining({
+      title: "error.read_only_demo",
+      color: "warning",
+    }),
+  );
+});
+
 it("reapplies sorting capability when switching away from a display and back", async () => {
   const host = await mount({
     defaultDisplay: "cards",
@@ -242,45 +294,6 @@ it("reapplies sorting capability when switching away from a display and back", a
   await settleTable();
   expect(queries.at(-1)?.sortKey).toBe("name");
 });
-
-const PagingDisplay: FunctionalComponent<{
-  context: TableViewDisplayContext;
-}> = ({ context }) =>
-  h(
-    "button",
-    {
-      id: "remember-page",
-      onClick: () => {
-        context.pagination.setPageSize(24);
-        context.pagination.setPage(3);
-      },
-    },
-    "Remember page",
-  );
-
-const arrivalConfig: Partial<TableViewConfig> = {
-  tableId: "content",
-  isSoleTableView: true,
-  tabs: [{ id: "open", label: "Open" }],
-  displays: [
-    { id: "table" },
-    { id: "cards" },
-    { id: "test:paging", component: PagingDisplay },
-  ],
-  views: {
-    layout: "strip",
-    items: [
-      {
-        id: "kept",
-        label: "Kept view",
-        sort: [{ field: "name", desc: true }],
-        filters: [{ accessorKey: "secret", mode: "is", value: "remembered" }],
-        columns: { hidden: ["secret"] },
-        display: "test:paging",
-      },
-    ],
-  },
-};
 
 async function saveArrival(display = "table") {
   total = 100;
@@ -468,7 +481,7 @@ it("a settled not-found replaces even previously loaded rows and all table contr
   let missing = false;
   await tableViewRuntime(async (url: string) => {
     if (url.endsWith("/list") && missing) {
-      throw { statusCode: 404, data: { message: "Workspace deleted" } };
+      throw { statusCode: 404, data: { message: "error.read_only_demo" } };
     }
     return { results: [{ _id: "r1", name: "Old order" }], total: 1 };
   });
@@ -478,7 +491,7 @@ it("a settled not-found replaces even previously loaded rows and all table contr
   missing = true;
   await refreshPageBlocks();
   await settleTable();
-  expect(host.textContent).toContain("Workspace deleted");
+  expect(host.textContent).toContain("error.read_only_demo");
   expect(host.textContent).not.toContain("Old order");
   expect(host.textContent).not.toContain("dms.table.load_error_title");
   expect(host.querySelector("table, #refresh-trigger")).toBeNull();

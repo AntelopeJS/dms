@@ -31,6 +31,7 @@ import type {
   PageExtensionInfo,
 } from "./types";
 import { fireAndForget } from "../utils/fire-and-forget";
+import { isControllerClass } from "../utils/internal/controller-class";
 
 interface StaticComponentField {
   key: string;
@@ -41,14 +42,16 @@ interface StaticComponentField {
  * Static component fields of a class, in declaration order. Underscore-prefixed
  * fields are skipped, so a class can keep private static state.
  */
-// oxlint-disable-next-line anti-slop/no-object-parameters -- Decorated classes expose static component fields known only at runtime.
-function collectStaticComponents(cl: object): StaticComponentField[] {
+function collectStaticComponents(
+  cl: import("@antelopejs/interface-core/decorators").Class,
+): StaticComponentField[] {
   const fields: StaticComponentField[] = [];
   for (const key of Object.getOwnPropertyNames(cl)) {
     if (key.startsWith("_")) continue;
-
-    // oxlint-disable-next-line anti-slop/no-reflect-get -- The static field name comes from Object.getOwnPropertyNames; its value is narrowed with instanceof Component.
-    const value: unknown = Reflect.get(cl, key);
+    const descriptor = Object.getOwnPropertyDescriptor(cl, key);
+    const value: unknown = descriptor?.get
+      ? descriptor.get.call(cl)
+      : descriptor?.value;
     if (value instanceof Component) {
       fields.push({ key, component: value });
     }
@@ -57,8 +60,12 @@ function collectStaticComponents(cl: object): StaticComponentField[] {
 }
 
 export const RegisterPage = MakeClassDecorator((cl) => {
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The decorator accepts any class and trusts callers to apply it to a page controller; checking inheritance would change the published decorator's behavior.
-  const meta = GetMetadata(cl as ControllerClass, PageMetadata);
+  if (!isControllerClass(cl)) {
+    throw new TypeError(
+      "@RegisterPage decorates a class that extends PageController",
+    );
+  }
+  const meta = GetMetadata(cl satisfies ControllerClass, PageMetadata);
 
   for (const { key, component } of collectStaticComponents(cl)) {
     meta.SetComponent(key, component);
@@ -68,8 +75,7 @@ export const RegisterPage = MakeClassDecorator((cl) => {
 });
 
 function buildExtensionComponents(
-  // oxlint-disable-next-line anti-slop/no-object-parameters -- Extension components are collected from the decorated class static fields at runtime.
-  extensionClass: object,
+  extensionClass: import("@antelopejs/interface-core/decorators").Class,
 ): PageExtensionComponent[] {
   return collectStaticComponents(extensionClass).map(({ key, component }) => {
     const placement = component.placement ?? DEFAULT_PLACEMENT;
@@ -448,24 +454,21 @@ export interface FrontendModuleMetadata {
    * Absolute backend API paths (`/api/...`) the frontend server may open a
    * session from on behalf of this module, as declared by
    * {@link AddFrontendModuleOptions.authEstablishEndpoints}. Empty when the
-   * module declared none, absent when the DMS serving this metadata predates
-   * the field.
+   * module declared none.
    */
-  authEstablishEndpoints?: string[];
+  authEstablishEndpoints: string[];
   /**
    * The routes this module serves to anyone, as declared by
    * {@link AddFrontendModuleOptions.publicEndpoints}. Empty when the module
-   * declared none, absent when the DMS serving this metadata predates the
-   * field.
+   * declared none.
    */
-  publicEndpoints?: FrontendPublicEndpoint[];
+  publicEndpoints: FrontendPublicEndpoint[];
   /**
    * The backend prefixes this module declares, as
    * {@link AddFrontendModuleOptions.backendProxies}, each with its `auth`.
-   * Empty when the module declared none, absent when the DMS serving this
-   * metadata predates the field.
+   * Empty when the module declared none.
    */
-  backendProxies?: Required<FrontendBackendProxy>[];
+  backendProxies: Required<FrontendBackendProxy>[];
 }
 
 /** Returns registered frontend source metadata for server-side module discovery, excluding private options. */

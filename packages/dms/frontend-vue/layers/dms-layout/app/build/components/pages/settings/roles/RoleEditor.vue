@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { DropdownMenuItem } from "@nuxt/ui";
 import { useTemplateRef } from "vue";
-import DmsCard from "#dms-ui/app/components/card/Card.vue";
+import DmsCardPanel from "#dms-ui/app/components/card/CardPanel.vue";
 import RolePermissionTree from "./RolePermissionTree.vue";
 import RolePanelHead from "./RolePanelHead.vue";
 import {
@@ -164,7 +164,7 @@ function toggleArea(id: string): void {
 <template>
   <!-- v2 .cs-editor: the selected role's head, its name and description,
        then the permission tree with its tools and the save bar. -->
-  <DmsCard
+  <DmsCardPanel
     as="section"
     :padded="false"
     class="@container/editor min-w-0"
@@ -324,7 +324,7 @@ function toggleArea(id: string): void {
           </span>
         </template>
         <template v-else>
-          <DmsMeter
+          <DmsMeterBar
             as="span"
             size="xs"
             class="w-20 shrink-0 @max-md/editor:hidden"
@@ -344,7 +344,7 @@ function toggleArea(id: string): void {
     </div>
 
     <div v-if="ownerLevelLabels.length > 0" class="px-[18px] pt-3">
-      <DmsBanner
+      <DmsNoticeBanner
         size="sm"
         tone="warning"
         icon="i-ph-warning"
@@ -381,5 +381,5 @@ function toggleArea(id: string): void {
       @discard="emit('discard')"
       @save="emit('save')"
     />
-  </DmsCard>
+  </DmsCardPanel>
 </template>

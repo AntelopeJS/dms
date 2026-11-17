@@ -1,3 +1,5 @@
+import { isObject } from "../../utils/type-check";
+
 export const CONTENT_LANGUAGE_HEADER = "x-content-language";
 
 const RETRY_HEADER = "x-auth-retry";
@@ -28,12 +30,19 @@ function withRetryHeader(
   return merged;
 }
 
-// oxlint-disable-next-line anti-slop/no-unknown-parameters -- This catch boundary accepts arbitrary rejections; ofetch's FetchError owner would exclude supported non-fetch throws.
-function isUnauthorized(error: unknown): boolean {
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- This unchecked optional access preserves primitive boxing and nested getter behavior; a schema guard would change malformed-input behavior.
-  const response = (error as { response?: { status?: number } } | undefined)
-    ?.response;
-  return response?.status === HTTP_UNAUTHORIZED;
+/** A failed request the backend answered with a 401. */
+interface UnauthorizedError {
+  response: { status: typeof HTTP_UNAUTHORIZED };
+}
+
+function isUnauthorized(error: unknown): error is UnauthorizedError {
+  if (!isObject(error) || error === null) return false;
+  const { response } = error;
+  return (
+    isObject(response) &&
+    response !== null &&
+    response.status === HTTP_UNAUTHORIZED
+  );
 }
 
 export const useAuthFetch = () => {
@@ -108,14 +117,36 @@ export const useAuthFetch = () => {
     };
   }
 
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Preserve the existing advertised $fetch contract. Inference loses generic response correlation; an owner annotation also requires native/create members that this wrapper never attached.
-  const $authFetch = withSessionRetry((request, options) =>
+  const retryingFetch = withSessionRetry((request, options) =>
     baseFetch(request, options),
-  ) as AuthFetch;
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The raw wrapper preserves the owner's generic overloads through forwarding; inference loses their response-type correlation.
-  $authFetch.raw = withSessionRetry((request, options) =>
+  );
+  const retryingRaw = withSessionRetry((request, options) =>
     baseFetch.raw(request, options),
-  ) as AuthFetch["raw"];
+  );
 
-  return { $authFetch };
+  /**
+   * The session-retrying fetch with `defaults` under each call's options, as
+   * `$fetch.create` merges them, so a retry resends the options of its first
+   * attempt: the call and `raw` retry, `native` is the platform fetch, and
+   * `create` adds defaults to a fetch that retries too.
+   */
+  function withSession(defaults: AuthFetchArgs[1]): AuthFetch {
+    const optionsOf = (options?: AuthFetchArgs[1]) => ({
+      ...defaults,
+      ...options,
+    });
+    // SAFETY: For every type argument a caller picks, retryingFetch resolves with what baseFetch resolves for the caller's request and its options merged over defaults, responseType included, a 401 retry resending them with only the retry header added; raw, native and create are assigned by the next three statements, before authFetch is returned.
+    const authFetch = ((
+      request: AuthFetchArgs[0],
+      options?: AuthFetchArgs[1],
+    ) => retryingFetch(request, optionsOf(options))) as AuthFetch;
+    // SAFETY: For every type argument a caller picks, retryingRaw resolves with what baseFetch.raw resolves for the caller's request and its options merged over defaults, responseType included, a 401 retry resending them with only the retry header added.
+    authFetch.raw = ((request: AuthFetchArgs[0], options?: AuthFetchArgs[1]) =>
+      retryingRaw(request, optionsOf(options))) as AuthFetch["raw"];
+    authFetch.native = baseFetch.native;
+    authFetch.create = (more) => withSession(optionsOf(more));
+    return authFetch;
+  }
+
+  return { $authFetch: withSession(undefined) };
 };

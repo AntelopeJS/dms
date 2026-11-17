@@ -1,4 +1,4 @@
-import { assert, assertValidation } from "@antelopejs/interface-api-util";
+import { assert } from "@antelopejs/interface-api-util";
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import { TenantMemberModel } from "@antelopejs/interface-dms/db";
 import {
@@ -16,7 +16,7 @@ import type { AuthResponse } from "./types";
 
 const HTTP_FORBIDDEN = 403;
 
-const switchTenantSchema = z.object({
+export const switchTenantSchema = z.object({
   refreshToken: z.string().min(1),
   tenantId: z.string().min(1),
 });
@@ -33,31 +33,28 @@ async function assertMembership(
 export async function switchTenant(
   userModel: UserModel,
   sessionModel: SessionModel,
-  body: Parameters<typeof switchTenantSchema.parse>[0],
+  body: ReturnType<typeof switchTenantSchema.parse>,
 ): Promise<AuthResponse> {
-  const { refreshToken, tenantId } = assertValidation(body, (v) =>
-    switchTenantSchema.parse(v),
-  );
+  const { refreshToken, tenantId } = body;
 
   const tokenPayload = await validateRefreshToken(refreshToken);
+  assert(tokenPayload.sessionId, 401, "error.invalid_token");
 
   const user = await userModel.get(tokenPayload.id);
   assert(user, 401, "error.invalid_token");
 
   await assertMembership(user._id, tenantId);
 
-  if (tokenPayload.sessionId) {
-    const session = await sessionModel.get(tokenPayload.sessionId);
-    assert(session, 401, "error.session_expired");
-    assert(
-      isCurrentRefreshToken(session, refreshToken),
-      401,
-      "error.session_expired",
-    );
-    sessionModel
-      .update(tokenPayload.sessionId, { lastActiveAt: new Date() })
-      .catch(() => {});
-  }
+  const session = await sessionModel.get(tokenPayload.sessionId);
+  assert(session, 401, "error.session_expired");
+  assert(
+    isCurrentRefreshToken(session, refreshToken),
+    401,
+    "error.session_expired",
+  );
+  sessionModel
+    .update(tokenPayload.sessionId, { lastActiveAt: new Date() })
+    .catch(() => {});
 
   const accessTokenData = await generateAccessToken(
     tenantId,
@@ -72,12 +69,10 @@ export async function switchTenant(
   );
   const nextRefreshToken = refreshTokenData.token;
 
-  if (tokenPayload.sessionId) {
-    await sessionModel.replaceRefreshToken(
-      tokenPayload.sessionId,
-      nextRefreshToken,
-    );
-  }
+  await sessionModel.replaceRefreshToken(
+    tokenPayload.sessionId,
+    nextRefreshToken,
+  );
 
   return {
     token_type: "Bearer",

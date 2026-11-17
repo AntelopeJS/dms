@@ -100,8 +100,7 @@ describe("a tab's badge", () => {
   const Tabs = vue.defineComponent({
     props: {
       items: {
-        // SAFETY: Tab passes its normalized items array to this UTabs replacement.
-        type: Array as vue.PropType<TabsItem[]>,
+        type: Array<TabsItem>,
         default: () => [],
       },
     },
@@ -111,7 +110,9 @@ describe("a tab's badge", () => {
     },
   });
 
-  async function badgesOf(badges: unknown[]): Promise<unknown[]> {
+  async function badgesOf(
+    badges: TabProps["items"][number]["badge"][],
+  ): Promise<unknown[]> {
     vi.stubGlobal("AxeOrientation", AxeOrientation);
     vi.stubGlobal("Color", Color);
     vi.stubGlobal("Size", Size);
@@ -123,7 +124,7 @@ describe("a tab's badge", () => {
     vi.stubGlobal("useTab", () => ({ activeTab: vue.ref("0") }));
     vi.stubGlobal("useTabShortcuts", () => {});
     const { default: Tab } = await import(
-      "../layers/dms-ui/app/components/tab/Tab.vue"
+      "../layers/dms-ui/app/components/tab/TabBlock.vue"
     );
     app = vue.createApp({
       render: () =>

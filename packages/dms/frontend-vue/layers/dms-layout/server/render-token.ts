@@ -1,4 +1,4 @@
-import { isString } from "../../dms-core/app/utils/type-check";
+import { isObject, isString } from "../../dms-core/app/utils/type-check";
 import { createHmac, timingSafeEqual } from "node:crypto";
 
 const RENDER_TOKEN_LIFETIME_SECONDS = 5 * 60;
@@ -63,9 +63,11 @@ function claimsValid(
 function rememberToken(jti: string, exp: number, now: number) {
   for (const [spent, expiresAt] of usedRenderTokens)
     if (expiresAt <= now) usedRenderTokens.delete(spent);
-  while (usedRenderTokens.size >= RENDER_REPLAY_LIMIT)
-    // SAFETY: The synchronous loop requires at least 10,000 entries in this Map<string, number>, so next() has a string key.
-    usedRenderTokens.delete(usedRenderTokens.keys().next().value as string);
+  while (usedRenderTokens.size >= RENDER_REPLAY_LIMIT) {
+    const [oldest] = usedRenderTokens.keys();
+    if (oldest === undefined) break;
+    usedRenderTokens.delete(oldest);
+  }
   usedRenderTokens.set(jti, exp);
 }
 
@@ -82,9 +84,10 @@ export function validRenderToken(
   if (parts.length !== 3) return false;
   if (!signatureValid(parts, secret)) return false;
   try {
-    const payload: Parameters<typeof claimsValid>[0] = JSON.parse(
+    const payload: unknown = JSON.parse(
       Buffer.from(parts[1], "base64url").toString("utf8"),
     );
+    if (payload === null || !isObject(payload)) return false;
     const now = Math.floor(Date.now() / 1000);
     if (!claimsValid(payload, now)) return false;
     if (usedRenderTokens.has(payload.jti)) return false;

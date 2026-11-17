@@ -1,14 +1,13 @@
 name: ci
 
 on:
-  push:
-    branches:
-      - main
-  # No branch filter: the lint wave stacks pull requests on top of each other,
-  # and filtering on `main` left every intermediate step ungated -- only the
-  # secret scanner ran.
   pull_request:
-
+    types: [opened, synchronize, reopened, ready_for_review]
+  push:
+    branches: [next]
+  schedule:
+    - cron: "17 2 * * *"
+  workflow_dispatch:
 permissions:
   contents: read
 
@@ -21,28 +20,103 @@ concurrency:
 # once, then sets DMS_PREBUILT so the package scripts and the test harness use
 # that build rather than compiling it again.
 jobs:
-  checks:
-    uses: AntelopeJS/.github/.github/workflows/ci-node.yml@v1
+  ci:
+    uses: AntelopeJS/.github/.github/workflows/ci-node.yml@v2
     with:
       docs-files: |
         README.md
+        docs
         packages/dms/README.md
         packages/dms/docs
         packages/interface-dms/README.md
         packages/interface-dms/docs
+        packages/interface-dms-builder/README.md
+        packages/interface-dms-builder/docs
       docs-typescript-project: packages/interface-dms/docs/tsconfig.json
       extra-commands: |
         pnpm --dir packages/interface-dms check:exports
         pnpm --dir packages/interface-dms check:proxies
         pnpm --dir packages/dms docs:catalog:check
+        pnpm --dir packages/dms mockup:schema:check
+        pnpm --dir packages/dms check:frontend-declarations
+      renovate-sync: false
+      test-job: true
+    permissions:
+      contents: read
+
+  # ci-node.yml exposes no outputs, so this copies its tier rule for the jobs
+  # declared here and narrows them to the packages the change touches.
+  select:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      tier: ${{ steps.tier.outputs.tier }}
+      os: ${{ steps.tier.outputs.os }}
+      dependents: ${{ steps.tier.outputs.dependents }}
+      packages: ${{ steps.packages.outputs.packages }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - name: Pick the tier with the shared rule
+        id: pick
+        uses: AntelopeJS/.github/.github/actions/ci-tier@v2
+      - name: Pick the tier from the event, the target branch and the draft flag
+        id: tier
+        env:
+          EVENT: ${{ github.event_name }}
+          TIER: ${{ steps.pick.outputs.tier }}
+        run: |
+          tier="$TIER"
+          dependents=false
+          if [[ "$EVENT" == schedule || ( "$EVENT" == pull_request && "$tier" == none ) ]]; then
+            dependents=true
+          fi
+
+          test_base=""
+          if [[ "$tier" == fast ]]; then
+            test_base=$(git rev-parse --verify HEAD^1)
+          fi
+
+          os='["ubuntu-latest"]'
+          if [[ "$tier" == nightly ]]; then
+            os='["ubuntu-latest","windows-latest"]'
+          fi
+
+          {
+            echo "tier=${tier}"
+            echo "test-base=${test_base}"
+            echo "os=${os}"
+            echo "dependents=${dependents}"
+          } >> "$GITHUB_OUTPUT"
+      - name: Select the packages whose tests run
+        id: packages
+        env:
+          ANTELOPEJS_CI_TIER: ${{ steps.tier.outputs.tier }}
+          ANTELOPEJS_TEST_BASE: ${{ steps.tier.outputs.test-base }}
+        run: |
+          set -euo pipefail
+          packages=$(node checks/affected-packages.mjs)
+          echo "packages=${packages}" >> "$GITHUB_OUTPUT"
+          echo "Tier \`${ANTELOPEJS_CI_TIER}\`: ${packages}" >> "$GITHUB_STEP_SUMMARY"
 
   backend:
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
+    needs: select
+    if: contains(fromJSON(needs.select.outputs.packages), 'dms')
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: ${{ matrix.os == 'windows-latest' && 35 || 20 }}
     strategy:
       fail-fast: false
       matrix:
-        suite: [unit, integration]
+        os: ${{ fromJSON(needs.select.outputs.os) }}
+        suite: [unit, integration, "builder:1", "builder:2"]
+    defaults:
+      run:
+        shell: bash
     env:
       DMS_PREBUILT: "1"
     steps:
@@ -50,13 +124,14 @@ jobs:
       - uses: ./.github/actions/setup
 
       # The MongoDB binary the harness downloads and the provider modules it
-      # installs into its cache folder are both pinned in antelope.test.ts.
+      # installs into its cache folder are pinned in antelope.test.ts, and the
+      # modules install from the locks in antelope-lock/.
       - uses: actions/cache@v4
         with:
           path: |
             ~/.cache/mongodb-binaries
             packages/dms/.antelope/cache
-          key: dms-test-harness-${{ runner.os }}-${{ hashFiles('packages/dms/src/test/antelope.test.ts') }}
+          key: dms-test-harness-${{ runner.os }}-${{ hashFiles('packages/dms/src/test/antelope.test.ts', 'packages/dms/antelope-lock/**') }}
 
       # Also the compile gate: the separate `build` step this job replaces
       # had nothing else to check.
@@ -66,12 +141,18 @@ jobs:
       - run: pnpm --dir packages/dms test:${{ matrix.suite }}
 
   frontend-test:
-    runs-on: ubuntu-latest
+    needs: select
+    if: contains(fromJSON(needs.select.outputs.packages), 'frontend-vue')
+    runs-on: ${{ matrix.os }}
     timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
+        os: ${{ fromJSON(needs.select.outputs.os) }}
         shard: [1, 2]
+    defaults:
+      run:
+        shell: bash
     steps:
       - uses: actions/checkout@v4
       # Some tests import the interface's chart helpers at runtime.
@@ -84,8 +165,17 @@ jobs:
       - run: pnpm --dir packages/dms/frontend-vue test --shard=${{ matrix.shard }}/2
 
   frontend-verify:
-    runs-on: ubuntu-latest
+    needs: select
+    if: contains(fromJSON(needs.select.outputs.packages), 'frontend-vue')
+    runs-on: ${{ matrix.os }}
     timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ${{ fromJSON(needs.select.outputs.os) }}
+    defaults:
+      run:
+        shell: bash
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup
@@ -96,17 +186,47 @@ jobs:
       # check and vue-tsc, in a workspace of its own.
       - run: pnpm --dir packages/dms/frontend-vue typecheck
 
-  # GitOps deploys on a successful `ci` push run on main, so this gate has to
-  # run there. Its six-minute Docker build kept every pull request waiting, so
-  # pull requests skip it.
+  dependents:
+    needs: select
+    if: needs.select.outputs.dependents == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - repository: dms-saas
+            module: packages/dms-saas/frontend-vue
+          - repository: dms-automation
+            module: packages/dms-automation/frontend-vue
+          - repository: dms-marketing
+            module: packages/dms-marketing/frontend-vue
+          - repository: dms-lang
+            module: frontend-vue
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: AntelopeJS/${{ matrix.repository }}
+          ref: next
+          path: dependents/${{ matrix.repository }}
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+        with:
+          interface: "true"
+      - run: pnpm --dir packages/dms/frontend-vue typecheck -m "$GITHUB_WORKSPACE/dependents/${{ matrix.repository }}/${{ matrix.module }}"
+
+  # The shipped playground image is checked on every push to next, every
+  # nightly run and every manual run. Its Docker build kept every pull request
+  # waiting, so pull requests skip it.
   docs-playground:
-    if: github.event_name == 'push'
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
-      # This also renders every documentation example in both themes. A broken
-      # preview must fail before the successful main CI event reaches GitOps.
+      # This also renders every documentation example in both themes, so a
+      # broken preview fails here.
       - run: docker build -f Dockerfile.playground -t dms-playground:ci .
       - name: Start the shipped artifacts against a fresh database
         shell: bash
@@ -136,21 +256,217 @@ jobs:
           echo "The built playground did not become ready" >&2
           exit 1
 
+  verify-map:
+    needs: select
+    if: contains(fromJSON(needs.select.outputs.packages), 'verify-dms')
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 5
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ${{ fromJSON(needs.select.outputs.os) }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - run: node packages/dms/bin/dms-control.mjs map
+
+  # The journeys of e2e/ as a Playwright suite: the @smoke ones on the full
+  # tier, every journey in shards on the nightly tier, nothing on a draft or
+  # the fast tier. Its global setup prepares and starts one dms-control run.
+  e2e:
+    needs: select
+    if: needs.select.outputs.tier == 'full' || needs.select.outputs.tier == 'nightly'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: ${{ fromJSON(needs.select.outputs.tier == 'nightly' && '[1, 2]' || '[1]') }}
+    env:
+      TIER: ${{ needs.select.outputs.tier }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      # The base-version journey builds origin/main in a worktree.
+      - run: |
+          git fetch --no-tags --depth=1 origin +refs/heads/main:refs/remotes/origin/main
+          echo "DMS_CONTROL_RUNS=${RUNNER_TEMP}/dms-runs" >> "$GITHUB_ENV"
+      - uses: ./.github/actions/setup
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/mongodb-binaries
+            ~/.cache/ms-playwright
+            packages/dms/playground/.antelope/cache
+          key: e2e-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml', 'packages/dms/playground/antelope.config.ts') }}
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/dms-control/frontend
+          key: dms-control-frontend-${{ github.sha }}
+          restore-keys: dms-control-frontend-
+      - name: Install Chromium and its system packages
+        run: |
+          if timeout 240 pnpm exec playwright install --with-deps --only-shell chromium; then
+            exit 0
+          fi
+          echo "::warning::Chromium's system packages did not install: installing the browser alone"
+          pnpm exec playwright install --only-shell chromium
+      - if: env.TIER == 'full'
+        run: pnpm e2e --grep @smoke
+      - if: env.TIER == 'nightly'
+        run: pnpm e2e --shard=${{ matrix.shard }}/2 --reporter=blob
+        env:
+          PLAYWRIGHT_BLOB_OUTPUT_DIR: e2e/blob-report
+      # The declarations @antelopejs/dms/e2e publishes, built by the run's prepare.
+      - if: success() || failure()
+        run: pnpm exec tsc --noEmit -p e2e
+      - if: always() && env.TIER == 'nightly'
+        uses: actions/upload-artifact@v4
+        with:
+          name: blob-report-${{ matrix.shard }}
+          path: e2e/blob-report
+          retention-days: 3
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-evidence-${{ matrix.shard }}
+          path: |
+            e2e/playwright-report
+            e2e/test-results
+            ${{ runner.temp }}/dms-runs/*/evidence
+            ${{ runner.temp }}/dms-runs/*/logs
+          retention-days: 7
+
+  # One HTML and JSON report of the nightly shards.
+  e2e-report:
+    needs: [select, e2e]
+    if: always() && needs.select.outputs.tier == 'nightly'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: blob-report-*
+          path: e2e/blob-reports
+          merge-multiple: true
+      - run: pnpm exec playwright merge-reports --reporter html,json e2e/blob-reports
+        env:
+          PLAYWRIGHT_HTML_OUTPUT_DIR: e2e/playwright-report
+          PLAYWRIGHT_HTML_OPEN: never
+          PLAYWRIGHT_JSON_OUTPUT_FILE: e2e/playwright-report/results.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: e2e/playwright-report
+          retention-days: 14
+
+  formal:
+    needs: select
+    if: contains(fromJSON(needs.select.outputs.packages), 'agents')
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        check:
+          - formal-default-tenant-provisioning
+          - formal-invite-creation
+          - formal-onboarding-bootstrap
+          - formal-option-patch-prune
+          - formal-realtime-tabs
+          - formal-route-patterns
+          - formal-tenant-lifecycle
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - run: corepack enable
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/antelopejs-formal
+          key: tla2tools-1.7.4
+      - run: node .agents/skills/${{ matrix.check }}/check.mjs
+      - if: matrix.check == 'formal-default-tenant-provisioning'
+        run: node .agents/skills/formal-default-tenant-provisioning/history.mjs
+      - if: matrix.check == 'formal-invite-creation'
+        run: node .agents/skills/formal-invite-creation/history.mjs
+
+  # The formal checks that call the real code with generated inputs: they build
+  # the module and boot the test harness, which the TLA+ checks above do not.
+  formal-generated:
+    needs: select
+    if: contains(fromJSON(needs.select.outputs.packages), 'agents')
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        check:
+          - formal-ai-answers-no-row-values
+          - formal-block-writes-judge-request-targets
+    env:
+      DMS_PREBUILT: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/mongodb-binaries
+            packages/dms/.antelope/cache
+          key: dms-test-harness-${{ runner.os }}-${{ hashFiles('packages/dms/src/test/antelope.test.ts', 'packages/dms/antelope-lock/**') }}
+      - run: pnpm --dir packages/dms build
+      - run: node .agents/skills/${{ matrix.check }}/check.mjs
+
   # The one check branch protection requires was the single job's name, so it
-  # stays: green only when every job above is. docs-playground may be skipped
-  # on a pull request only.
+  # stays: green only when every job above is. A job the package selection
+  # skipped does not fail it, and docs-playground may be skipped on a pull
+  # request only. A draft pull request fails it, so merge-when-green cannot
+  # merge on the draft run.
   ubuntu:
     if: always()
-    needs: [checks, backend, frontend-test, frontend-verify, docs-playground]
+    needs:
+      - select
+      - ci
+      - backend
+      - frontend-test
+      - frontend-verify
+      - docs-playground
+      - verify-map
+      - formal
+      - e2e
+      - formal-generated
+      - dependents
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
       - if: >-
-          contains(needs.*.result, 'failure') ||
-          contains(needs.*.result, 'cancelled') ||
-          needs.checks.result == 'skipped' ||
-          needs.backend.result == 'skipped' ||
-          needs.frontend-test.result == 'skipped' ||
-          needs.frontend-verify.result == 'skipped' ||
-          (github.event_name != 'pull_request' && needs.docs-playground.result == 'skipped')
+          needs.select.result != 'success' || contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') || needs.ci.result == 'skipped' || (github.event_name != 'pull_request' && needs.docs-playground.result == 'skipped') || ((needs.select.outputs.tier == 'full' || needs.select.outputs.tier == 'nightly') && needs.e2e.result == 'skipped')
         run: exit 1
+      - if: needs.select.outputs.tier == 'draft'
+        run: |
+          echo "::error::Draft pull request: only lint and typecheck ran. Mark it ready for review to run the tests."
+          exit 1
+  renovate-sync:
+    if: >-
+      github.event_name == 'pull_request' && startsWith(github.head_ref, 'renovate/') && github.event.pull_request.head.repo.full_name == github.repository
+    permissions:
+      contents: write
+      actions: write
+    uses: AntelopeJS/.github/.github/workflows/ci-renovate-sync.yml@v2

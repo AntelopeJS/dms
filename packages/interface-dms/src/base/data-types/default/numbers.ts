@@ -1,5 +1,6 @@
 /** Stable number, string and date data types. @packageDocumentation */
 import type { RequestContext } from "@antelopejs/interface-api";
+import type { FilterValue } from "@antelopejs/interface-data-api/metadata";
 import type {
   ValueProxy,
   ValueProxyOrValue,
@@ -10,6 +11,7 @@ import { isString } from "../../../utils/internal/type-check";
 import { FormComponents } from "../../form-schema";
 import { DataType, RegisterDataType } from "../core";
 import { whenValueSet } from "../internal/compare-types";
+import { ownEntry } from "../../../internal/own-entry";
 import { DefaultDataCompareTypes } from "../compare-types";
 import {
   NumberTypeOptions,
@@ -17,6 +19,11 @@ import {
   DateTypeOptions,
 } from "./options";
 
+/**
+ * The `number` data type.
+ *
+ * @docsApi
+ */
 @RegisterDataType("number")
 export class NumberType extends DataType {
   constructor(public readonly options: NumberTypeOptions = {}) {
@@ -61,6 +68,11 @@ export class NumberType extends DataType {
   }
 }
 
+/**
+ * The `string` data type.
+ *
+ * @docsApi
+ */
 @RegisterDataType("string")
 export class StringType extends DataType {
   constructor(public readonly options: StringTypeOptions = {}) {
@@ -134,22 +146,26 @@ const INSTANT_COMPARISONS: typeof DAY_COMPARISONS = {
  * Before or after a whole day, as `is` and `is_between` read a day:
  * "greater than" starts at the next day, "less than" ends before it.
  */
-const DAY_COMPARISONS: Record<
-  string,
-  (stored: ValueProxy<unknown>, dayStart: Date) => ValueProxyOrValue<boolean>
-  // oxlint-disable-next-line anti-slop/no-known-value-widening -- Dynamic modes.
-> = {
+const DAY_COMPARISONS = {
   greater_than: (stored, dayStart) => {
     const nextDay = new Date(dayStart);
     nextDay.setUTCDate(nextDay.getUTCDate() + 1);
     return stored.ge(nextDay);
   },
   less_than: (stored, dayStart) => stored.lt(dayStart),
-};
+} satisfies Record<
+  string,
+  (stored: ValueProxy<unknown>, dayStart: Date) => ValueProxyOrValue<boolean>
+>;
 
 /** A calendar day as the date picker sends it, without a time. */
 const CALENDAR_DAY = /^\d{4}-\d{2}-\d{2}$/;
 
+/**
+ * The `date` data type.
+ *
+ * @docsApi
+ */
 @RegisterDataType("date")
 export class DateType extends DataType {
   constructor(public readonly options: DateTypeOptions = {}) {
@@ -181,19 +197,21 @@ export class DateType extends DataType {
     context: RequestContext,
     proxy: ValueProxy<unknown>,
     key: string,
-    value: string,
+    value: FilterValue[0],
     mode: string,
     // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Preserve DataType.filter's public row type.
     row: ValueProxy<Record<string, unknown>>,
   ): ValueProxyOrValue<boolean> {
+    const text = String(value);
     if (mode === "is" || mode === "is_not") {
-      return this.sameDayFilter(proxy, value, mode === "is_not");
+      return this.sameDayFilter(proxy, text, mode === "is_not");
     }
     if (mode === "is_between") {
-      return whenValueSet(proxy, this.dayRangeFilter(proxy, value));
+      return whenValueSet(proxy, this.dayRangeFilter(proxy, text));
     }
-    if (Object.hasOwn(INSTANT_COMPARISONS, mode)) {
-      return whenValueSet(proxy, this.orderFilter(proxy, value, mode));
+    const ordered = this.orderFilter(proxy, text, mode);
+    if (ordered !== undefined) {
+      return whenValueSet(proxy, ordered);
     }
     return super.filter(context, proxy, key, value, mode, row);
   }
@@ -210,12 +228,15 @@ export class DateType extends DataType {
     stored: ValueProxy<unknown>,
     value: string,
     mode: string,
-  ): ValueProxyOrValue<boolean> {
-    const instant = this.instant(value);
-    if (CALENDAR_DAY.test(value.trim())) {
-      return DAY_COMPARISONS[mode](stored, this.startOfUtcDay(instant));
+  ): ValueProxyOrValue<boolean> | undefined {
+    const calendarDay = CALENDAR_DAY.test(value.trim());
+    const comparisons = calendarDay ? DAY_COMPARISONS : INSTANT_COMPARISONS;
+    const compare = ownEntry(comparisons, mode);
+    if (!compare) {
+      return undefined;
     }
-    return INSTANT_COMPARISONS[mode](stored, instant);
+    const instant = this.instant(value);
+    return compare(stored, calendarDay ? this.startOfUtcDay(instant) : instant);
   }
 
   private startOfUtcDay(date: Date): Date {
@@ -237,10 +258,7 @@ export class DateType extends DataType {
   ): ValueProxyOrValue<boolean> {
     const parsed = parseValue(value);
     if (!(parsed instanceof Date)) {
-      throw new Error(
-        // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Diagnostic.
-        `Date filter expects a date value. Got: ${typeof parsed}`,
-      );
+      throw new Error(`Date filter expects a date value. Got: ${value}`);
     }
     const dayStart = this.startOfUtcDay(parsed);
     const dayEnd = this.nextUtcDay(parsed);

@@ -13,6 +13,7 @@ export default defineConfig({
       dts: false,
       autoImport: false,
       components: false,
+      icon: { clientBundle: { scan: true } },
     }),
   ],
   resolve: {
@@ -26,6 +27,11 @@ export default defineConfig({
       "#dms/frontend-module": resolve(
         __dirname,
         "node_modules/@antelopejs/dms-frontend/templates/vue/frontend-module.ts",
+      ),
+
+      "#dms/frontend-build": resolve(
+        __dirname,
+        "node_modules/@antelopejs/dms-frontend/templates/vue/frontend-build.ts",
       ),
 
       "#dms/server": resolve(
@@ -42,6 +48,7 @@ export default defineConfig({
     tsconfigRaw: "{}",
   },
   test: {
-    include: ["tests/**/*.test.ts"],
+    setupFiles: ["./tests/setup.ts"],
+    include: ["tests/**/*.test.ts", "tests/**/*.untyped.test.js"],
   },
 });

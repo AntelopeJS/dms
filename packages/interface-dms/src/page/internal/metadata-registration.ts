@@ -8,16 +8,19 @@ import { AuthUserWithPermission } from "../../guards";
 import {
   MarkModuleScopedPermission,
   RegisterPermission,
+  type Permission,
 } from "../../permissions";
 import { TenantScopedModel } from "../../tenant-scoped-model";
 import type { PageMetadata } from "../metadata";
 import type { PageInfo } from "../types";
 import { opensToMembers } from "./member-access";
+import { pageController } from "./page-controller";
 import {
   isPageInsideModule,
   logModuleRouteGated,
   RequestTenantIdProperty,
 } from "./metadata-helpers";
+import { prototypeOf } from "../../utils/internal/decorated-class";
 
 /** @internal */
 export function registerPagePermission(
@@ -35,8 +38,7 @@ export function registerPagePermission(
     icon: pageInfo.icon,
     defaultGranted:
       pageInfo.publicAccess || opensToMembers(pageInfo.memberAccess),
-    // oxlint-disable-next-line typescript/no-misused-spread -- An Action without a permission reaches this fallback; preserve the existing own-property spread rather than fix its registration behavior.
-    ...pageInfo.permission,
+    ...ownPermission(pageInfo.permission),
   };
   setRegistered(false);
   if (moduleScoped()) {
@@ -46,6 +48,12 @@ export function registerPagePermission(
     setRegistered(true);
   }
   return pagePermission.id;
+}
+
+function ownPermission(
+  permission: PageInfo["permission"],
+): Partial<Permission> | undefined {
+  return permission instanceof Action ? undefined : permission;
 }
 
 /** @internal */
@@ -62,6 +70,7 @@ export function applyAuthDecorators(
   pageInfo: PageInfo,
 ): void {
   if (pageInfo.publicAccess === true) return;
+  const controller = pageController(page.target);
   const authOnly = pageInfo.authOnly === true;
   const isModulePage = isPageInsideModule(pageInfo);
   page.guardOptions = {
@@ -69,13 +78,13 @@ export function applyAuthDecorators(
   };
   const authDecorator = authOnly
     ? AuthUser()
-    : isModulePage
+    : isModulePage || pageInfo.ownerOnly === true
       ? AuthOwnerOnly()
-      : AuthUserWithPermission(page.target, page.guardOptions);
-  authDecorator(page.target.prototype, "user");
+      : AuthUserWithPermission(controller, page.guardOptions);
+  authDecorator(prototypeOf(controller), "user");
   if (isModulePage && !authOnly) logModuleRouteGated(pageInfo.fullSlug);
   if (authOnly) return;
-  TenantScopedModel(RoleModel)(page.target.prototype, "roleModel");
-  TenantScopedModel(TenantMemberModel)(page.target.prototype, "memberModel");
-  RequestTenantIdProperty()(page.target.prototype, "tenantId");
+  TenantScopedModel(RoleModel)(prototypeOf(controller), "roleModel");
+  TenantScopedModel(TenantMemberModel)(prototypeOf(controller), "memberModel");
+  RequestTenantIdProperty()(prototypeOf(controller), "tenantId");
 }

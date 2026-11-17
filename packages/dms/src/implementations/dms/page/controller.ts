@@ -3,6 +3,7 @@ import {
   Parameter,
   Get,
   Context,
+  type QueryValue,
   type RequestContext,
   Post,
   JSONBody,
@@ -12,7 +13,9 @@ import {
   type FrontendManifest,
   type ManifestModuleEntry,
   buildFrontendManifest,
-  acknowledgeFrontendReady,
+  assertFrontendReadyAllowed,
+  parseFrontendReady,
+  recordFrontendReady,
 } from "../../../store/frontend";
 import { TenantScopedModel } from "@antelopejs/interface-dms/tenant-scoped-model";
 import { RoleModel, TenantMemberModel } from "@antelopejs/interface-dms/db";
@@ -20,11 +23,14 @@ import { IfAuthUser } from "@antelopejs/interface-dms/auth";
 import type { User } from "@antelopejs/interface-dms/auth/db";
 import { getRequestTenantId } from "@antelopejs/interface-dms/request-tenant";
 import { assert } from "@antelopejs/interface-api-util";
+import type { JsonValue } from "@antelopejs/interface-dms/json";
+import { withLayoutRequest } from "@antelopejs/interface-dms/page/internal/layout-request";
 import {
   type ModuleCatalogContext,
   GetPageLayoutBySlug,
 } from "@antelopejs/interface-dms/page";
 import { assertPageSessionAccepted } from "../stale-session";
+import { queryText } from "../../../utils";
 import { resolveUserPermissions, buildAccessContext } from "./access";
 import type {
   SiteLayoutPayload,
@@ -53,10 +59,10 @@ export class DMSController extends Controller("/dms") {
   declare bootstrapHeader: string | undefined;
 
   @Parameter("path", "query")
-  declare pagePath: string;
+  declare pagePath: QueryValue;
 
   @Parameter("shared", "query")
-  declare sharedPage: string | undefined;
+  declare sharedPage: QueryValue;
 
   @Parameter("authorization", "header")
   declare authorization: string | undefined;
@@ -64,24 +70,24 @@ export class DMSController extends Controller("/dms") {
   @Get("/frontend")
   async frontend(
     @Context() requestContext: RequestContext,
-    @Parameter("clientUrl", "query") clientUrl: string | undefined,
-    @Parameter("renderer", "query") renderer: string | undefined,
-    @Parameter("rendererVersion", "query") rendererVersion: string | undefined,
+    @Parameter("clientUrl", "query") clientUrl: QueryValue,
+    @Parameter("renderer", "query") renderer: QueryValue,
+    @Parameter("rendererVersion", "query") rendererVersion: QueryValue,
   ): Promise<FrontendManifest<ManifestModuleEntry>> {
     return buildFrontendManifest(
       requestContext,
-      clientUrl,
-      renderer,
-      rendererVersion,
+      queryText(clientUrl),
+      queryText(renderer),
+      queryText(rendererVersion),
       this.bootstrapHeader,
     );
   }
 
   @Post("/frontend/ready")
-  frontendReady(
-    @JSONBody() body: Parameters<typeof acknowledgeFrontendReady>[0],
-  ): void {
-    acknowledgeFrontendReady(body, this.bootstrapHeader);
+  frontendReady(@JSONBody() body: JsonValue | undefined): void {
+    assertFrontendReadyAllowed(this.bootstrapHeader);
+    const { modules, version } = parseFrontendReady(body);
+    recordFrontendReady(modules, version);
   }
 
   @Get("/permissions")
@@ -155,21 +161,24 @@ export class DMSController extends Controller("/dms") {
     @TenantScopedModel(RoleModel) roleModel: RoleModel,
     @TenantScopedModel(TenantMemberModel) memberModel: TenantMemberModel,
     @IfAuthUser() user: User | undefined,
-    @Parameter(PAGE_LAYOUT_SLUG_PARAMETER, "query") slug: string,
+    @Parameter(PAGE_LAYOUT_SLUG_PARAMETER, "query") slugParameter: QueryValue,
   ) {
+    const slug = queryText(slugParameter);
     assert(slug, 400, "error.slug_required");
 
     const normalizedSlug = slug.startsWith("/") ? slug : `/${slug}`;
     const handler = GetPageLayoutBySlug(normalizedSlug);
     assert(handler, 404, "error.page_not_found");
 
-    return handler({
-      user,
-      memberModel,
-      roleModel,
-      tenantId: getRequestTenantId(requestContext),
-      query: pageQueryOf(requestContext),
-    });
+    return withLayoutRequest(requestContext, () =>
+      handler({
+        user,
+        memberModel,
+        roleModel,
+        tenantId: getRequestTenantId(requestContext),
+        query: pageQueryOf(requestContext),
+      }),
+    );
   }
 
   @Get("/page")
@@ -179,9 +188,10 @@ export class DMSController extends Controller("/dms") {
     @TenantScopedModel(TenantMemberModel) memberModel: TenantMemberModel,
     @IfAuthUser() user: User | undefined,
   ): Promise<PageResponsePayload> {
-    assert(this.pagePath, 400, "error.path_required");
+    const pagePath = queryText(this.pagePath);
+    assert(pagePath, 400, "error.path_required");
     const payload = await buildPagePayload(
-      this.pagePath,
+      pagePath,
       user,
       memberModel,
       roleModel,

@@ -6,7 +6,7 @@ import { isString } from "../layers/dms-core/app/utils/type-check";
 import { formSubmitEvent } from "./helpers/form-submit-event";
 
 const authFetch = vi.fn();
-const addToast = vi.fn();
+const addToast = vi.fn(() => ({ id: "failure" }));
 let scope: EffectScope;
 
 const FIELDS = [
@@ -39,6 +39,7 @@ async function fillAndSubmit(form: ReturnType<typeof setupForm>) {
 }
 
 beforeEach(() => {
+  vi.stubEnv("SSR", false);
   scope = effectScope();
   authFetch.mockResolvedValue({ success: true });
   vi.stubGlobal("computed", computed);

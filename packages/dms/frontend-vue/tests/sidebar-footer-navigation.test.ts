@@ -11,9 +11,9 @@ import {
   ref,
   watch,
   type App,
-  type PropType,
 } from "vue";
 import type { NavigationMenuItem } from "@nuxt/ui";
+import { stubModuleReads } from "./helpers/installed-modules-runtime";
 import Sidebar from "../layers/dms-layout/app/entries/components/layout/DashboardSidebar";
 
 const route = reactive({ path: "/modules/automation/runs", query: {} });
@@ -22,8 +22,7 @@ let host: HTMLDivElement;
 
 const Navigation = defineComponent({
   props: {
-    // SAFETY: Sidebar supplies navigation items to this array prop, as the real menu does.
-    items: { type: Array as PropType<NavigationMenuItem[]>, required: true },
+    items: { type: Array<NavigationMenuItem>, required: true },
   },
   setup: (props) => () =>
     h(
@@ -50,7 +49,11 @@ function installRuntime() {
     onMounted,
     onBeforeUnmount,
   }).forEach(([key, value]) => vi.stubGlobal(key, value));
-  vi.stubGlobal("useI18n", () => ({ t: (key: string) => key }));
+  vi.stubGlobal("useI18n", () => ({
+    t: (key: string) => key,
+    locale: ref("en"),
+  }));
+  stubModuleReads();
   vi.stubGlobal("useDmsAppConfig", () => ({}));
   vi.stubGlobal("useTranslation", () => ({
     processI18n: (value: string) => value,
@@ -59,6 +62,7 @@ function installRuntime() {
   vi.stubGlobal("useDmsState", <T>(_key: string, initial: () => T) =>
     ref(initial()),
   );
+  vi.stubGlobal("isDmsHydrating", () => false);
   vi.stubGlobal(
     "useDmsCookie",
     <T>(_key: string, options: { default: () => T }) => ref(options.default()),

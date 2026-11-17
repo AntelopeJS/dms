@@ -1,5 +1,5 @@
 import crypto from "node:crypto";
-import { assert, assertValidation } from "@antelopejs/interface-api-util";
+import { assert } from "@antelopejs/interface-api-util";
 import {
   createSession,
   generateAccessToken,
@@ -20,7 +20,7 @@ import {
 } from "../../utils";
 import type { ClientOrigin } from "../../utils";
 import { recordSignIn } from "../../hooks";
-import { authSchema, firstIssueMessage } from "../../validation";
+import { authSchema } from "../../validation";
 import { answerTwoFactorChallenge } from "./two-factor-throttle";
 import type { AuthResponse } from "./types";
 import { fireAndForget } from "@antelopejs/interface-dms/utils/fire-and-forget";
@@ -80,15 +80,11 @@ const verifyMethods: Record<
 export async function verify2FA(
   userModel: UserModel,
   sessionModel: SessionModel,
-  body: Parameters<typeof authSchema.verify2FA.parse>[0],
+  body: ReturnType<typeof authSchema.verify2FA.parse>,
   userAgent: string,
   origin: ClientOrigin,
 ): Promise<AuthResponse> {
-  const { token, code, method } = assertValidation(
-    body,
-    (v) => authSchema.verify2FA.parse(v),
-    firstIssueMessage,
-  );
+  const { token, code, method } = body;
 
   const twoFactorPayload = await validateTwoFactorToken(token);
   const { user, tenantId } = twoFactorPayload;

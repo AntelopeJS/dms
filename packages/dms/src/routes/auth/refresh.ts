@@ -1,4 +1,4 @@
-import { assert, assertValidation } from "@antelopejs/interface-api-util";
+import { assert } from "@antelopejs/interface-api-util";
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import { TenantMemberModel } from "@antelopejs/interface-dms/db";
 import {
@@ -13,15 +13,14 @@ import {
 } from "@antelopejs/interface-dms/auth/db";
 import { decode } from "jsonwebtoken";
 import { authSchema } from "../../validation";
-import { REFRESH_TOKEN_ROTATION_THRESHOLD_MS } from "../../utils";
+import { isJwtClaims, REFRESH_TOKEN_ROTATION_THRESHOLD_MS } from "../../utils";
 import type { AuthResponse } from "./types";
 
 export const HTTP_FORBIDDEN = 403;
 
 function shouldRotateRefreshToken(token: string): boolean {
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- decode returns JwtPayload|string|null; its owner also cannot guarantee a numeric iat, whose existing truthiness and arithmetic coercion must remain unchanged.
-  const payload = decode(token) as { iat?: number } | null;
-  if (!payload?.iat) return false;
+  const payload = decode(token);
+  if (!isJwtClaims(payload) || !payload.iat) return false;
   const tokenAgeMs = Date.now() - payload.iat * 1000;
   return tokenAgeMs > REFRESH_TOKEN_ROTATION_THRESHOLD_MS;
 }
@@ -44,19 +43,18 @@ async function assertTenantAccess(
 export async function refresh(
   userModel: UserModel,
   sessionModel: SessionModel,
-  body: Parameters<typeof authSchema.refresh.parse>[0],
+  body: ReturnType<typeof authSchema.refresh.parse>,
 ): Promise<AuthResponse> {
-  const { token } = assertValidation(body, (v) => authSchema.refresh.parse(v));
+  const { token } = body;
 
   const tokenPayload = await validateRefreshToken(token);
+  assert(tokenPayload.sessionId, 401, "error.invalid_token");
 
   const user = await userModel.get(tokenPayload.id);
   assert(user, 401, "error.invalid_token");
 
-  if (tokenPayload.sessionId) {
-    const session = await sessionModel.get(tokenPayload.sessionId);
-    assert(session, 401, "error.session_expired");
-  }
+  const session = await sessionModel.get(tokenPayload.sessionId);
+  assert(session, 401, "error.session_expired");
 
   const { tenantId } = tokenPayload;
   assert(tenantId, 401, "error.invalid_token");
@@ -69,7 +67,7 @@ export async function refresh(
   );
 
   let refreshToken = token;
-  if (tokenPayload.sessionId && shouldRotateRefreshToken(token)) {
+  if (shouldRotateRefreshToken(token)) {
     const refreshTokenData = await generateRefreshToken(
       tenantId,
       user,
@@ -82,13 +80,8 @@ export async function refresh(
     );
     assert(resolvedToken, 401, "error.session_expired");
     refreshToken = resolvedToken;
-  } else if (tokenPayload.sessionId) {
-    const session = await sessionModel.get(tokenPayload.sessionId);
-    assert(
-      session && isCurrentRefreshToken(session, token),
-      401,
-      "error.session_expired",
-    );
+  } else {
+    assert(isCurrentRefreshToken(session, token), 401, "error.session_expired");
     sessionModel
       .update(tokenPayload.sessionId, { lastActiveAt: new Date() })
       .catch(() => {});

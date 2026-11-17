@@ -1,9 +1,7 @@
-import type {
-  ControllerClass,
-  RequestContext,
-} from "@antelopejs/interface-api";
+import type { ControllerClass } from "@antelopejs/interface-api";
 import { GetMetadata, ImplementInterface } from "@antelopejs/interface-core";
 import { expect } from "chai";
+import { z } from "zod";
 import {
   buildPagePayload,
   pageParamsOf,
@@ -13,7 +11,6 @@ import * as permissionsImpl from "../../../../implementations/dms/permissions";
 import * as permissionsResolverImpl from "../../../../implementations/dms/permissions-resolver";
 import * as tenantAccessImpl from "../../../../implementations/dms/tenant-access";
 import { DefaultLayout } from "@antelopejs/interface-dms/base/layouts";
-import type { PageHeaderButtonSerialized } from "@antelopejs/interface-dms/base/internal/layouts";
 import {
   GetPageLayoutBySlug,
   PageController,
@@ -25,23 +22,44 @@ import { readRequestQuery } from "@antelopejs/interface-dms/page/internal/metada
 import * as permissionsInterface from "@antelopejs/interface-dms/permissions";
 import * as permissionsResolverInterface from "@antelopejs/interface-dms/permissions-resolver";
 import * as tenantAccessInterface from "@antelopejs/interface-dms/tenant-access";
-import type { User } from "@antelopejs/interface-dms/auth/db";
 import {
   registerTestPage,
   stubPageAccessModels,
 } from "../../../helpers/page-access";
+import { userFixture } from "../../../helpers/user-fixture";
+import { requestContextFixture } from "../../../helpers/request-context";
 
 const TENANT = "layout-query-tenant";
-// oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Layout permission lookup reads only the id; this fixture deliberately omits unrelated user columns.
-const MEMBER = { _id: "layout-query-member" } as User;
-const models = stubPageAccessModels(["*"]);
+const OWNER = userFixture({ _id: "layout-query-owner", owner: true });
+const models = stubPageAccessModels([]);
+const requestAt = (url: URL) => requestContextFixture(url);
 
-interface ServedOptions {
-  headerActions: PageHeaderButtonSerialized[];
-  headerActionsQuery?: Record<string, string>;
-  headerActionsParams?: Record<string, string>;
-  recordStatus?: string;
-}
+const HeaderAction = z
+  .object({
+    id: z.string(),
+    target: z.object({ url: z.string().optional() }).passthrough().optional(),
+  })
+  .passthrough();
+
+const ServedStatus = z
+  .object({
+    headerActionsQuery: z.record(z.string()).optional(),
+    headerActionsParams: z.record(z.string()).optional(),
+    recordStatus: z.string().optional(),
+  })
+  .passthrough();
+
+const ServedOptionsSchema = ServedStatus.extend({
+  headerActions: z.array(HeaderAction),
+});
+
+type ServedOptions = z.infer<typeof ServedOptionsSchema>;
+
+const headerOptions = (layout: { options?: unknown } | undefined) =>
+  ServedOptionsSchema.parse(layout?.options);
+
+const statusOptions = (layout: { options?: unknown } | undefined) =>
+  ServedStatus.parse(layout?.options);
 
 /**
  * A header button's availability reads the query of the page URL: a language
@@ -94,14 +112,13 @@ describe("[unit] interfaces/dms/page — header availability reads the page quer
     const handler = GetPageLayoutBySlug(slug);
     if (!handler) throw new Error(`no layout handler for ${slug}`);
     const layout = await handler({
-      user: MEMBER,
+      user: OWNER,
       memberModel: models.memberModel,
       roleModel: models.roleModel,
       tenantId: TENANT,
       query,
     });
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The layout registry erases component option types; this page installs DefaultLayout and the test inspects its header options.
-    return layout.layout?.options as ServedOptions;
+    return headerOptions(layout.layout);
   }
 
   it("enables the button for the query its availability accepts", async () => {
@@ -137,25 +154,25 @@ describe("[unit] interfaces/dms/page — header availability reads the page quer
 
   it("resolves the page request's buttons with the page query it carries", async () => {
     const pageRequest = (query: string) =>
-      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- buildPagePayload reads url only for query extraction; this fixture intentionally is not a full HTTP context.
-      ({
-        url: new URL(
+      requestAt(
+        new URL(
           `http://dms.test/dms/page?path=${encodeURIComponent(slug)}&shared=false${query}`,
         ),
-      }) as RequestContext;
+      );
     const served = async (query: string) =>
-      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The page payload erases its layout's option type; this fixture installs DefaultLayout and reads its header options.
-      (
-        await buildPagePayload(
-          slug,
-          MEMBER,
-          models.memberModel,
-          models.roleModel,
-          TENANT,
-          false,
-          pageRequest(query),
-        )
-      ).layout.layout?.options as ServedOptions;
+      headerOptions(
+        (
+          await buildPagePayload(
+            slug,
+            OWNER,
+            models.memberModel,
+            models.roleModel,
+            TENANT,
+            false,
+            pageRequest(query),
+          )
+        ).layout.layout,
+      );
 
     const withQuery = await served("&workspace=web");
     expect(withQuery.headerActions[0]).to.not.have.property("disabled");
@@ -220,18 +237,14 @@ describe("[unit] interfaces/dms/page — header availability reads the route par
     const path = pattern.replace(":id", id);
     const payload = await buildPagePayload(
       path,
-      MEMBER,
+      OWNER,
       models.memberModel,
       models.roleModel,
       TENANT,
       false,
-      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- buildPagePayload reads url only for query extraction; the fixture deliberately omits unrelated request context members.
-      {
-        url: new URL(`http://dms.test/dms/page?path=${path}&shared=false`),
-      } as RequestContext,
+      requestAt(new URL(`http://dms.test/dms/page?path=${path}&shared=false`)),
     );
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Page payloads erase layout option types; this page's DefaultLayout provides the header options asserted below.
-    return payload.layout.layout?.options as ServedOptions;
+    return headerOptions(payload.layout.layout);
   }
 
   it("serves the button for an existing record, and says which one", async () => {
@@ -254,26 +267,97 @@ describe("[unit] interfaces/dms/page — header availability reads the route par
   });
 });
 
+const cleanups: Array<() => void> = [];
+type SiteRecord = {
+  address: string;
+  owner?: { id: string };
+  locked?: boolean;
+};
+const SITES = new Map<string, SiteRecord>([
+  ["s1", { address: "1 rue de l'Église, Liège", owner: { id: "u&1" } }],
+  ["locked", { address: "Gare", locked: true }],
+]);
+let pattern = "";
+let notePattern = "";
+
+async function servedLayout(id: string, slug = pattern) {
+  const path = slug.replace(":id", id);
+  const payload = await buildPagePayload(
+    path,
+    OWNER,
+    models.memberModel,
+    models.roleModel,
+    TENANT,
+    false,
+    requestAt(new URL(`http://dms.test/dms/page?path=${path}&shared=false`)),
+  );
+  return payload.layout.layout;
+}
+
+async function served(id: string) {
+  return headerOptions(await servedLayout(id));
+}
+
+const byId = (options: ServedOptions, id: string) =>
+  options.headerActions.find((action) => action.id === id);
+
+function registerRecordCases(): void {
+  it("fills the buttons acting on the record with its fields, encoded", async () => {
+    const options = await served("s1");
+    expect(options.headerActions.map((action) => action.id)).to.deep.equal([
+      "directions",
+      "edit",
+      "delete",
+      "help",
+    ]);
+    expect(byId(options, "directions")?.target?.url).to.equal(
+      `https://maps.example.com/?q=${encodeURIComponent("1 rue de l'Église, Liège")}&o=u%261&x={{record.none}}`,
+    );
+    expect(byId(options, "edit")).to.not.have.property("requiresRecord");
+    expect(options).to.not.have.property("record");
+    expect(options.headerActionsParams).to.deep.equal({ id: "s1" });
+  });
+
+  it("hands the record to every availability of the page", async () => {
+    const options = await served("locked");
+    expect(byId(options, "delete")).to.include({
+      disabled: true,
+      disabledReason: "$sites.locked",
+    });
+    expect(byId(await served("s1"), "delete")).to.not.have.property("disabled");
+  });
+
+  it("leaves the buttons acting on the record out when there is none", async () => {
+    for (const id of ["missing", "broken"]) {
+      const options = await served(id);
+      expect(options.headerActions.map((action) => action.id)).to.deep.equal([
+        "delete",
+        "help",
+      ]);
+      expect(options.headerActionsParams).to.deep.equal({ id });
+    }
+  });
+
+  it("says whether it found the record, found none, or failed to read it", async () => {
+    expect((await served("s1")).recordStatus).to.equal("found");
+    expect((await served("missing")).recordStatus).to.equal("missing");
+    expect((await served("broken")).recordStatus).to.equal("error");
+  });
+
+  it("says it on a page without header buttons too, with the URL it read", async () => {
+    const options = statusOptions(await servedLayout("gone", notePattern));
+    expect(options).to.include({ recordStatus: "missing" });
+    expect(options.headerActionsParams).to.deep.equal({ id: "gone" });
+    expect(options).to.not.have.property("headerActions");
+  });
+}
+
 /**
  * A detail page reads its record with its layout (`DefaultLayout({ record })`):
  * the header buttons acting on it take its fields as `{{record.X}}`, or are
  * left out without it, and every availability of the page reads it.
  */
 describe("[unit] interfaces/dms/page — the page's record, read with its layout", () => {
-  const cleanups: Array<() => void> = [];
-  type SiteRecord = {
-    address: string;
-    owner?: { id: string };
-    locked?: boolean;
-  };
-  // oxlint-disable-next-line anti-slop/no-known-value-widening -- The concrete SiteRecord fixture is indexed by arbitrary route ids, including missing ids; its lookup must retain the existing undefined result without adding runtime key validation.
-  const SITES: Record<string, SiteRecord> = {
-    s1: { address: "1 rue de l'Église, Liège", owner: { id: "u&1" } },
-    locked: { address: "Gare", locked: true },
-  };
-  let pattern = "";
-  let notePattern = "";
-
   before(async () => {
     ImplementInterface(permissionsInterface, permissionsImpl);
     ImplementInterface(permissionsResolverInterface, permissionsResolverImpl);
@@ -291,7 +375,7 @@ describe("[unit] interfaces/dms/page — the page's record, read with its layout
       DefaultLayout({
         record: ({ params }) => {
           if (params?.id === "broken") throw new Error("database down");
-          return SITES[params?.id ?? ""];
+          return SITES.get(params?.id ?? "");
         },
         headerActions: [
           {
@@ -330,7 +414,7 @@ describe("[unit] interfaces/dms/page — the page's record, read with its layout
         urlSlug: "lq-notes/:id",
         hidden: true,
       },
-      DefaultLayout({ record: ({ params }) => SITES[params?.id ?? ""] }),
+      DefaultLayout({ record: ({ params }) => SITES.get(params?.id ?? "") }),
     );
     cleanups.push(await registerTestPage(note));
     notePattern = GetMetadata(note, PageMetadata).pageInfo?.fullSlug ?? "";
@@ -340,77 +424,5 @@ describe("[unit] interfaces/dms/page — the page's record, read with its layout
     for (const cleanup of cleanups.splice(0)) cleanup();
   });
 
-  async function served(id: string, slug = pattern) {
-    const path = slug.replace(":id", id);
-    const payload = await buildPagePayload(
-      path,
-      MEMBER,
-      models.memberModel,
-      models.roleModel,
-      TENANT,
-      false,
-      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- buildPagePayload reads url only for query extraction; the fixture deliberately omits unrelated request context members.
-      {
-        url: new URL(`http://dms.test/dms/page?path=${path}&shared=false`),
-      } as RequestContext,
-    );
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The registry erases layout option types; this suite's DefaultLayout emits the ServedOptions tested below.
-    return payload.layout.layout?.options as ServedOptions;
-  }
-
-  const byId = (options: ServedOptions, id: string) =>
-    options.headerActions.find((action) => action.id === id);
-
-  it("fills the buttons acting on the record with its fields, encoded", async () => {
-    const options = await served("s1");
-    expect(options.headerActions.map((action) => action.id)).to.deep.equal([
-      "directions",
-      "edit",
-      "delete",
-      "help",
-    ]);
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The action target owner is a union including drawers; this fixture's directions action is the external URL declared above.
-    const directions = byId(options, "directions")?.target as
-      | Extract<PageHeaderButtonSerialized["target"], { url: string }>
-      | undefined;
-    expect(directions?.url).to.equal(
-      `https://maps.example.com/?q=${encodeURIComponent("1 rue de l'Église, Liège")}&o=u%261&x={{record.none}}`,
-    );
-    expect(byId(options, "edit")).to.not.have.property("requiresRecord");
-    expect(options).to.not.have.property("record");
-    expect(options.headerActionsParams).to.deep.equal({ id: "s1" });
-  });
-
-  it("hands the record to every availability of the page", async () => {
-    const options = await served("locked");
-    expect(byId(options, "delete")).to.include({
-      disabled: true,
-      disabledReason: "$sites.locked",
-    });
-    expect(byId(await served("s1"), "delete")).to.not.have.property("disabled");
-  });
-
-  it("leaves the buttons acting on the record out when there is none", async () => {
-    for (const id of ["missing", "broken"]) {
-      const options = await served(id);
-      expect(options.headerActions.map((action) => action.id)).to.deep.equal([
-        "delete",
-        "help",
-      ]);
-      expect(options.headerActionsParams).to.deep.equal({ id });
-    }
-  });
-
-  it("says whether it found the record, found none, or failed to read it", async () => {
-    expect((await served("s1")).recordStatus).to.equal("found");
-    expect((await served("missing")).recordStatus).to.equal("missing");
-    expect((await served("broken")).recordStatus).to.equal("error");
-  });
-
-  it("says it on a page without header buttons too, with the URL it read", async () => {
-    const options = await served("gone", notePattern);
-    expect(options).to.include({ recordStatus: "missing" });
-    expect(options.headerActionsParams).to.deep.equal({ id: "gone" });
-    expect(options).to.not.have.property("headerActions");
-  });
+  registerRecordCases();
 });

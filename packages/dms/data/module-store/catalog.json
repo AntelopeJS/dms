@@ -3,7 +3,7 @@
   "modules": [
     {
       "id": "ai",
-      "package": "@antelopejs/dms-ai",
+      "package": "@antelopejs/dms-assistant",
       "icon": "i-ph-robot",
       "category": "ai"
     },
@@ -17,18 +17,6 @@
       "id": "automation",
       "package": "@antelopejs/dms-automation",
       "icon": "i-ph-flow-arrow",
-      "category": "operations"
-    },
-    {
-      "id": "builder",
-      "package": "@antelopejs/dms-builder",
-      "icon": "i-ph-hammer",
-      "category": "developer"
-    },
-    {
-      "id": "cicd",
-      "package": "@antelopejs-private/dms-cicd",
-      "icon": "i-ph-rocket-launch",
       "category": "operations"
     },
     {

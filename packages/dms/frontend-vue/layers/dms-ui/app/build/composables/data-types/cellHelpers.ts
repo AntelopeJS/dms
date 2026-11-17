@@ -1,6 +1,12 @@
 import { get } from "@nuxt/ui/runtime/utils/index.js";
 import type { DataTypeFormatter } from "#dms-core/app/composables/data-types/useDataType";
-import { isObject, isString } from "#dms-core/app/utils/type-check";
+import {
+  isBoolean,
+  isNumber,
+  isObject,
+  isString,
+} from "#dms-core/app/utils/type-check";
+import { isVNode, type VNodeChild } from "vue";
 import type { BlockText } from "../../../../../dms-core/app/types/composed-text";
 import {
   type ComposableText,
@@ -10,6 +16,22 @@ import type { Tone } from "#dms-core/app/types/tone";
 import { DMS_TONE_TEXT, isDmsTone } from "../../utils/tone";
 
 export type Row = Parameters<DataTypeFormatter>[3];
+
+/** What Vue draws for `value` as a child: text for anything but a node, a list or an atom. */
+export function childOf(value: Parameters<DataTypeFormatter>[0]): VNodeChild {
+  if (Array.isArray(value)) return value.map(childOf);
+  if (
+    value === null ||
+    value === undefined ||
+    isString(value) ||
+    isNumber(value) ||
+    isBoolean(value) ||
+    isVNode(value)
+  ) {
+    return value;
+  }
+  return String(value);
+}
 
 export const readRowField = (
   row: Row,

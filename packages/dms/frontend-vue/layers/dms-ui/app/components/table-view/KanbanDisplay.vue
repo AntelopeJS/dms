@@ -1,7 +1,13 @@
 <script setup lang="ts" generic="T extends Data">
 import { get } from "@nuxt/ui/runtime/utils/index.js";
+import type { ComponentChild, ComponentInfo } from "#dms-core/app/types/page";
+import {
+  isBoolean,
+  isObject,
+  isString,
+} from "../../../../dms-core/app/utils/type-check";
 import KanbanBoard from "./KanbanBoard.vue";
-import type { Data } from "../../build/components/table/Table.vue";
+import type { Data } from "../../build/components/table/TableRoot.vue";
 import type {
   TableViewCardConfig,
   TableViewDisplayContext,
@@ -17,10 +23,40 @@ interface KanbanDisplayOptions {
   columnMaxHeight?: string;
 }
 
-const options = computed(
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Backend display options are not validated here; preserve their current forwarding and fallback behavior.
-  () => (props.context.options ?? {}) as KanbanDisplayOptions,
-);
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  isObject(value) && value !== null && !Array.isArray(value);
+
+const isComponentInfo = (value: unknown): value is ComponentInfo =>
+  isRecord(value) &&
+  (value.componentName === undefined || isString(value.componentName)) &&
+  (value.options === undefined || isRecord(value.options)) &&
+  (value.children === undefined ||
+    (Array.isArray(value.children) && value.children.every(isComponentChild)));
+
+const isComponentChild = (value: unknown): value is ComponentChild =>
+  isRecord(value) &&
+  isString(value.id) &&
+  isComponentInfo(value.component) &&
+  (value.slot === undefined || isString(value.slot));
+
+const isCardConfig = (value: unknown): value is TableViewCardConfig =>
+  isRecord(value) &&
+  (value.fields === undefined ||
+    (Array.isArray(value.fields) && value.fields.every(isString))) &&
+  (value.component === undefined || isComponentInfo(value.component)) &&
+  (value.minWidth === undefined || isString(value.minWidth)) &&
+  (value.skeletonHeight === undefined || isString(value.skeletonHeight));
+
+const options = computed((): KanbanDisplayOptions => {
+  const { groupByField, card, draggable, columnMaxHeight } =
+    props.context.options ?? {};
+  return {
+    groupByField: isString(groupByField) ? groupByField : undefined,
+    card: isCardConfig(card) ? card : undefined,
+    draggable: isBoolean(draggable) ? draggable : undefined,
+    columnMaxHeight: isString(columnMaxHeight) ? columnMaxHeight : undefined,
+  };
+});
 
 const bridge = inject(KANBAN_DISPLAY_BRIDGE_KEY, undefined);
 const fallbackGroupBy = ref(options.value.groupByField ?? "");

@@ -35,34 +35,45 @@ function readStorage(storage: Storage, key: string): string | null {
   }
 }
 
-function writeStorage(storage: Storage, key: string, value: string): void {
-  // prettier-ignore
+/**
+ * Stores `value` under `key`. Answers `false` when the storage refuses it
+ * (denied or full): the preview then loses its sharing across tabs or its
+ * survival across a reload, not the editor's state.
+ */
+function writeStorage(storage: Storage, key: string, value: string): boolean {
   try {
     storage.setItem(key, value);
+    return true;
   } catch {
-    // eslint-disable-line no-empty -- Failed storage writes lose preview session sharing or reload persistence, not the editor's state.
+    return false;
   }
 }
 
-function removeStorage(storage: Storage, key: string): void {
-  // prettier-ignore
+/** Removes `key`. Answers `false` when the storage refuses it. */
+function removeStorage(storage: Storage, key: string): boolean {
   try {
     storage.removeItem(key);
+    return true;
   } catch {
-    // eslint-disable-line no-empty -- Unavailable storage does not interrupt preview cleanup.
+    return false;
   }
 }
 
-function removeSessions(isRemoved: (key: string) => boolean): void {
-  // prettier-ignore
+/**
+ * Removes the stored preview sessions `isRemoved` picks. Answers `false` when
+ * the storage cannot be walked: the sessions stay, and the preview closes
+ * anyway.
+ */
+function removeSessions(isRemoved: (key: string) => boolean): boolean {
   try {
     for (let index = localStorage.length - 1; index >= 0; index--) {
       const key = localStorage.key(index);
       if (!key?.startsWith(PERMISSION_PREVIEW_STORAGE_PREFIX)) continue;
       if (isRemoved(key)) removeStorage(localStorage, key);
     }
+    return true;
   } catch {
-    // eslint-disable-line no-empty -- Unavailable storage does not interrupt preview cleanup.
+    return false;
   }
 }
 
@@ -144,6 +155,33 @@ function createPreviewSharing() {
 }
 
 /**
+ * Turn this tab into a preview when it was opened as one (or reloaded while
+ * being one), and follow the session other tabs write. Returns whether it did.
+ */
+function activatePreviewTab(
+  state: ReturnType<typeof usePreviewState>,
+  sharing: ReturnType<typeof createPreviewSharing>,
+): boolean {
+  const id =
+    sharing.takeIdFromLocation() ??
+    readStorage(sessionStorage, PERMISSION_PREVIEW_TAB_KEY);
+  if (!id) return false;
+  const session = sharing.readSession(id);
+  if (!session) {
+    removeStorage(sessionStorage, PERMISSION_PREVIEW_TAB_KEY);
+    return false;
+  }
+  writeStorage(sessionStorage, PERMISSION_PREVIEW_TAB_KEY, id);
+  state.session.value = session;
+  window.addEventListener("storage", (event) => {
+    if (event.key !== storageKey(id) || !state.session.value) return;
+    const next = parsePreviewSession(event.newValue);
+    if (next) state.session.value = next;
+  });
+  return true;
+}
+
+/**
  * "Preview as role": the roles editor opens a tab that browses the real
  * dashboard as a role would see it — its unsaved edits included. The server
  * says what the role would lose on the menu and on the current page; the tab
@@ -155,6 +193,7 @@ function createPreviewSharing() {
  */
 export function usePermissionPreview() {
   const state = usePreviewState();
+  const errorPresenter = useApiErrorPresenter();
   const isActive = computed(() => state.session.value !== null);
   const hiddenEntries = computed(
     () => new Set(state.result.value?.hiddenEntries ?? []),
@@ -207,31 +246,15 @@ export function usePermissionPreview() {
     return isPreviewEntryLocked(isActive.value, hiddenQuickActions.value, key);
   }
 
-  const { start, update, readSession, takeIdFromLocation } =
-    createPreviewSharing();
+  const sharing = createPreviewSharing();
+  const { start, update } = sharing;
 
   /**
    * Turn this tab into a preview when it was opened as one (or reloaded while
    * being one). Returns whether it did.
    */
   function activate(): boolean {
-    const id =
-      takeIdFromLocation() ??
-      readStorage(sessionStorage, PERMISSION_PREVIEW_TAB_KEY);
-    if (!id) return false;
-    const session = readSession(id);
-    if (!session) {
-      removeStorage(sessionStorage, PERMISSION_PREVIEW_TAB_KEY);
-      return false;
-    }
-    writeStorage(sessionStorage, PERMISSION_PREVIEW_TAB_KEY, id);
-    state.session.value = session;
-    window.addEventListener("storage", (event) => {
-      if (event.key !== storageKey(id) || !state.session.value) return;
-      const next = parsePreviewSession(event.newValue);
-      if (next) state.session.value = next;
-    });
-    return true;
+    return activatePreviewTab(state, sharing);
   }
 
   /** Ask the server what the role changes on the menu and on `path`. */
@@ -249,9 +272,12 @@ export function usePermissionPreview() {
       if (current !== refreshGeneration) return;
       state.result.value = result;
       state.failed.value = false;
-    } catch {
+    } catch (error) {
       if (current !== refreshGeneration) return;
       state.failed.value = true;
+      errorPresenter.presentError(error, {
+        fallbackKey: "page.settings.roles.preview.failed",
+      });
     } finally {
       if (current === refreshGeneration) state.loading.value = false;
     }
@@ -267,8 +293,8 @@ export function usePermissionPreview() {
     removeStorage(localStorage, storageKey(session.id));
     window.close();
 
-    setTimeout(() => {
-      void navigateDms(session.returnTo);
+    setTimeout(async () => {
+      await navigateDms(session.returnTo);
     }, CLOSE_FALLBACK_DELAY_MS);
   }
 

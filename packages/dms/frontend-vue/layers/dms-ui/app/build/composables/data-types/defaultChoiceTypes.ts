@@ -1,11 +1,11 @@
-import { type VNode } from "vue";
+import { type VNode, type VNodeChild } from "vue";
 import type {
   DataType,
   DataTypeFormatter,
 } from "#dms-core/app/composables/data-types/useDataType";
 import { isString } from "#dms-core/app/utils/type-check";
 import UIcon from "@nuxt/ui/runtime/vue/components/Icon.vue";
-import { isSet, toneClass } from "./cellHelpers";
+import { childOf, isSet, toneClass } from "./cellHelpers";
 import StatusPill from "../../../components/status-pill/StatusPill.vue";
 import { getAppTranslation } from "../../../../../dms-core/app/composables/translation/useTranslation";
 
@@ -36,13 +36,12 @@ interface StatusOptions {
 
 function renderStatus(value: CellValue, options: CellOptions) {
   const { processI18n } = getAppTranslation();
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- DataTypeFormatter erases options; status labels and colors remain unchecked rather than rejecting malformed plugin inputs.
-  const opts = options as StatusOptions | undefined;
+  const opts: StatusOptions = options ?? {};
   const isOnline = Boolean(value);
-  const onlineLabel = opts?.onlineLabel || "$common.status.online";
-  const offlineLabel = opts?.offlineLabel || "$common.status.offline";
-  const onlineColor = opts?.onlineColor || "primary";
-  const offlineColor = opts?.offlineColor || "neutral";
+  const onlineLabel = opts.onlineLabel || "$common.status.online";
+  const offlineLabel = opts.offlineLabel || "$common.status.offline";
+  const onlineColor = opts.onlineColor || "primary";
+  const offlineColor = opts.offlineColor || "neutral";
 
   return h(StatusPill, {
     tone: isOnline ? onlineColor : offlineColor,
@@ -91,10 +90,9 @@ function renderSelectItem(item: SelectItem) {
 }
 
 function renderSelect(value: CellValue, options?: CellOptions) {
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The formatter contract erases select options; items are consumed without a runtime schema.
-  const opts = options as SelectOptions | undefined;
+  const opts: SelectOptions = options ?? {};
   const formatOne = (val: CellValue) => {
-    const item = opts?.items?.find((opt) => opt.value === val);
+    const item = opts.items?.find((opt) => opt.value === val);
     return item ? renderSelectItem(item) : val;
   };
 
@@ -104,11 +102,10 @@ function renderSelect(value: CellValue, options?: CellOptions) {
   if (rendered.every((part) => isString(part))) {
     return rendered.join(", ");
   }
-  const children: (VNode | string)[] = [];
+  const children: VNodeChild[] = [];
   rendered.forEach((part, index) => {
     if (index > 0) children.push(", ");
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- An unmatched select value is still unknown; Vue receives the original unchecked child as before.
-    children.push(part as VNode | string);
+    children.push(childOf(part));
   });
   return h("span", { class: "inline-flex items-center gap-1" }, children);
 }

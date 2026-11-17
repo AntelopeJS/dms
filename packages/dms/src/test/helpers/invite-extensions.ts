@@ -45,7 +45,7 @@ export function extensionForm(fieldId: string) {
 
 interface Recorded {
   accepted: Array<{
-    payload: Parameters<InviteExtensionOptions<unknown>["onAccept"]>[0];
+    payload: { [k: string]: string };
     member: Parameters<InviteExtensionOptions<unknown>["onAccept"]>[1];
   }>;
   cleaned: InviteCleanupContext[];

@@ -67,7 +67,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <DmsCard :title="title" :count="entries.length">
+  <DmsCardPanel :title="title" :count="entries.length">
     <p v-if="!entries.length" class="text-sm text-muted">
       {{ hint }}
     </p>
@@ -77,5 +77,5 @@ onBeforeUnmount(() => {
         {{ entry.text }}
       </li>
     </ul>
-  </DmsCard>
+  </DmsCardPanel>
 </template>

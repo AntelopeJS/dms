@@ -4,6 +4,11 @@ import { FormComponents } from "../form-schema";
 import { DataType, RegisterDataType } from "./core";
 import { DefaultDataCompareTypes } from "./compare-types";
 
+/**
+ * The `status` data type.
+ *
+ * @docsApi
+ */
 @RegisterDataType("status")
 export class StatusType extends DataType {
   constructor(

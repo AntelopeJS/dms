@@ -1,41 +1,47 @@
 import type { RequestContext } from "@antelopejs/interface-api";
 import { InterfaceFunction } from "@antelopejs/interface-core";
-import type {
-  DataControllerCallback,
-  DataControllerCallbackWithOptions,
-} from "@antelopejs/interface-data-api";
+import type { DataControllerInstance } from "@antelopejs/interface-data-api";
 import type { Parameters } from "@antelopejs/interface-data-api/components";
 import type { User } from "../../auth/db";
 import type { RowActionRule } from "../types/row-action";
 import type { TableViewMeta } from "./meta";
 import type { TableViewFooterSummary } from "./options";
 import type {
+  ColumnValues,
   FooterSummaryValues,
   RowBulkOperationParams,
 } from "./internal/data-functions";
 
+/**
+ * The page of rows a table view's list answers: the listable fields of each
+ * row, read through a guard, and where the page sits among every row the
+ * filters and search match.
+ */
+export interface TableViewListPage {
+  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- The listable fields of each row of whichever table the list serves, as Query.ReadProperties answers them (interface-data-api's StoredRow), published with unknown values so a module's own list wrapper may answer any row it builds.
+  results: Record<string, unknown>[];
+  total: number;
+  offset: number;
+  limit: number;
+}
+
 /** @internal */
-export const listWithSearch = InterfaceFunction<
-  (
-    thisObj: DataControllerCallback | DataControllerCallbackWithOptions,
-    ctx: RequestContext,
-    listParams: Parameters.ListParameters,
-    user?: User,
-    permissions?: Set<string>,
-  ) => Promise<{
-    // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- The runtime proxy returns module-defined rows; its published result cannot name a single module's row schema.
-    results: Record<string, unknown>[];
-    total: number;
-    offset: number;
-    limit: number;
-  }>
->();
+export const listWithSearch =
+  InterfaceFunction<
+    (
+      thisObj: DataControllerInstance,
+      ctx: RequestContext,
+      listParams: Parameters.ListParameters,
+      user?: User,
+      permissions?: Set<string>,
+    ) => Promise<TableViewListPage>
+  >();
 
 /** @internal */
 export const countWithSearch =
   InterfaceFunction<
     (
-      thisObj: DataControllerCallback | DataControllerCallbackWithOptions,
+      thisObj: DataControllerInstance,
       ctx: RequestContext,
       listParams: Parameters.ListParameters,
       user?: User,
@@ -47,7 +53,7 @@ export const countWithSearch =
 export const summarizeWithSearch = InterfaceFunction<
   // oxlint-disable-next-line eslint/max-params -- The runtime implements summarizeWithSearch with this positional interface signature.
   (
-    thisObj: DataControllerCallback | DataControllerCallbackWithOptions,
+    thisObj: DataControllerInstance,
     ctx: RequestContext,
     listParams: Parameters.ListParameters,
     summaries: Record<string, TableViewFooterSummary>,
@@ -55,6 +61,24 @@ export const summarizeWithSearch = InterfaceFunction<
     permissions?: Set<string>,
   ) => Promise<FooterSummaryValues>
 >();
+
+/**
+ * The distinct values of each column over every row a list request reads,
+ * its filters and archive view included: at most `MAX_COLUMN_VALUES + 1`
+ * read per column. A column the controller does not list answers nothing.
+ *
+ * @internal
+ */
+export const distinctWithSearch =
+  InterfaceFunction<
+    (
+      thisObj: DataControllerInstance,
+      ctx: RequestContext,
+      columns: string[],
+      user?: User,
+      permissions?: Set<string>,
+    ) => Promise<ColumnValues[]>
+  >();
 
 /**
  * A table's rows as a route outside its data controller reads them (a page's
@@ -87,8 +111,7 @@ export interface BulkRowSource {
 export const resolveBulkRowIds = InterfaceFunction<
   (
     /** `this` of a data controller, or a `BulkRowSource`. */
-    // oxlint-disable-next-line anti-slop/no-unknown-parameters -- The runtime proxy accepts controller instances or BulkRowSource; replacing its published unknown input would narrow existing callers.
-    table: unknown,
+    table: DataControllerInstance | BulkRowSource,
     ctx: RequestContext,
     user: User,
   ) => Promise<string[]>
@@ -104,7 +127,7 @@ export const BULK_ALL_MATCHING_KEY = "allMatching";
 export const startExport = InterfaceFunction<
   // oxlint-disable-next-line eslint/max-params -- The runtime implements startExport with this positional interface signature.
   (
-    thisObj: DataControllerCallback | DataControllerCallbackWithOptions,
+    thisObj: DataControllerInstance,
     ctx: RequestContext,
     listParams: Parameters.ListParameters,
     format?: string,
@@ -117,7 +140,7 @@ export const startExport = InterfaceFunction<
 /** @internal */
 export const getExportStatus = InterfaceFunction<
   (
-    thisObj: DataControllerCallback | DataControllerCallbackWithOptions,
+    thisObj: DataControllerInstance,
     ctx: RequestContext,
     exportId: string,
     user?: User,
@@ -132,7 +155,7 @@ export const getExportStatus = InterfaceFunction<
 export const downloadExport =
   InterfaceFunction<
     (
-      thisObj: DataControllerCallback | DataControllerCallbackWithOptions,
+      thisObj: DataControllerInstance,
       ctx: RequestContext,
       exportId: string,
       user?: User,
@@ -164,7 +187,7 @@ interface RuleValidationResult {
 export const validateRowsAgainstRule =
   InterfaceFunction<
     (
-      controller: DataControllerCallback | DataControllerCallbackWithOptions,
+      controller: DataControllerInstance,
       ids: string[],
       rule: RowActionRule | undefined,
       strictMode: boolean,
@@ -175,7 +198,7 @@ export const validateRowsAgainstRule =
 /** @internal */
 export const fetchRowForGuard = InterfaceFunction<
   (
-    controller: DataControllerCallback | DataControllerCallbackWithOptions,
+    controller: DataControllerInstance,
     id: string,
     idField: string,
     // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Guard rows come from module-owned models through this published runtime proxy; values have no shared schema here.

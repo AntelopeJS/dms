@@ -15,10 +15,14 @@ import {
   pageToolbar,
   type PageToolbarOptions,
 } from "@antelopejs/interface-dms/base/page-toolbar";
-import type { PeriodSelectorProps } from "@antelopejs/interface-dms/base/period-selector";
+import {
+  DEFAULT_PERIOD_SCOPE,
+  PeriodSelectorSchema,
+  type PeriodSelectorProps,
+} from "@antelopejs/interface-dms/base/period-selector";
 import PageToolbarBlock from "../layers/dms-ui/app/components/blocks/PageToolbarBlock.vue";
 import PeriodSelector from "../layers/dms-ui/app/components/period/PeriodSelector.vue";
-import DmsSegmented from "../layers/dms-ui/app/components/segmented/Segmented.vue";
+import DmsSegmentedControl from "../layers/dms-ui/app/components/segmented/SegmentedControl.vue";
 import coreEnGB from "../layers/dms-core/app/entries/i18n/locales/core-en-GB.json";
 import coreFrFR from "../layers/dms-core/app/entries/i18n/locales/core-fr-FR.json";
 
@@ -28,8 +32,8 @@ let host: HTMLDivElement;
 type ShortPresets = Record<string, string>;
 
 /** The locale's short codes, keyed as `t` reads them; any other key echoes. */
-function shortPresetMessages(codes: ShortPresets): Record<string, string> {
-  return Object.fromEntries(
+function shortPresetMessages(codes: ShortPresets): Map<string, string> {
+  return new Map<string, string>(
     Object.entries(codes).map(([preset, code]) => [
       `dms.period.short_presets.${preset}`,
       code,
@@ -37,8 +41,8 @@ function shortPresetMessages(codes: ShortPresets): Record<string, string> {
   );
 }
 
-let messages: Record<string, string> = {};
-const t = (key: string) => messages[key] ?? key;
+let messages = new Map<string, string>();
+const t = (key: string) => messages.get(key) ?? key;
 
 /** The period child's options, as `pageToolbar()` serializes them. */
 function toolbarPeriod(
@@ -46,7 +50,8 @@ function toolbarPeriod(
 ): PeriodSelectorProps {
   const serialized = pageToolbar({ live: false, period }).serializeSync();
   const child = serialized.children?.find((entry) => entry.id === "period");
-  return child?.component.options;
+  if (!child) throw new Error("the toolbar serializes no period child");
+  return PeriodSelectorSchema.parse(child.component.options);
 }
 
 async function mountPeriod(period: PageToolbarOptions["period"]) {
@@ -58,12 +63,13 @@ async function mountPeriod(period: PageToolbarOptions["period"]) {
           componentId: "toolbar.period",
           pageId: "sales",
           ...options,
+          id: options.id ?? DEFAULT_PERIOD_SCOPE,
         }),
       ]),
   });
   app.config.globalProperties.$t = t;
   app.component("UIcon", () => h("i"));
-  app.component("DmsSegmented", DmsSegmented);
+  app.component("DmsSegmentedControl", DmsSegmentedControl);
   app.component("UPopover", (_, { slots }) => [
     slots.default?.(),
     slots.anchor?.(),

@@ -6,6 +6,7 @@
  */
 import { createApp, defineComponent, type App } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { dmsAppContext, emptyTranslations } from "./fixtures/dmsAppContext";
 
 const engine = await import("#dms/frontend-module");
 const { default: devErrorLogPlugin } = await import(
@@ -13,15 +14,15 @@ const { default: devErrorLogPlugin } = await import(
 );
 
 let app: App;
-let showErrorPage: ReturnType<typeof vi.fn>;
+type ErrorHandler = NonNullable<App["config"]["errorHandler"]>;
 
-const install = () =>
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Only vueApp is consumed by the error-handler plugin; the fixture deliberately omits unrelated app-context services.
-  devErrorLogPlugin({ vueApp: app } as never);
+let showErrorPage: ReturnType<typeof vi.fn<ErrorHandler>>;
+
+const install = () => devErrorLogPlugin(dmsAppContext(app));
 
 beforeEach(() => {
   app = createApp({ render: () => null });
-  showErrorPage = vi.fn();
+  showErrorPage = vi.fn<ErrorHandler>();
   app.config.errorHandler = showErrorPage;
 });
 
@@ -31,9 +32,9 @@ afterEach(() => {
 });
 
 describe("dev error log", () => {
-  it("logs the original error before the error page takes it", () => {
+  it("logs the original error before the error page takes it", async () => {
     const log = vi.spyOn(console, "error").mockImplementation(() => {});
-    install();
+    await install();
     const error = new Error("Must be called at the top of a `setup` function");
     app.config.errorHandler!(error, null, "component update");
     expect(log).toHaveBeenCalledWith(
@@ -43,9 +44,9 @@ describe("dev error log", () => {
     expect(showErrorPage).toHaveBeenCalledWith(error, null, "component update");
   });
 
-  it("leaves the handler as it is outside development", () => {
+  it("leaves the handler as it is outside development", async () => {
     vi.stubEnv("DEV", false);
-    install();
+    await install();
     expect(app.config.errorHandler).toBe(showErrorPage);
   });
 
@@ -75,8 +76,7 @@ describe("dev error log", () => {
     engine.provideDmsFrontendRuntime(page, runtime);
     await engine.installDmsPlugins(
       page,
-      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- This no-translation fixture supplies only the locale and message setter used during plugin installation.
-      { locale: { value: "en" }, setLocaleMessage() {} } as never,
+      emptyTranslations(),
       runtime,
       async () => ({}),
       ["en"],

@@ -6,14 +6,24 @@ import {
   type AutomationEventListener,
   type AutomationEventName,
   listenersFor,
+  type RecordEventName,
   type RecordMutationEvent,
 } from "./events";
 import { fieldHint, nodeText, titledProperties } from "./i18n";
+import { isFunction } from "@antelopejs/interface-dms/utils/internal/type-check";
 
 const EMPTY_CONFIG_SCHEMA: JsonSchema = { type: "object", properties: {} };
 
 const TENANT_ID_PROPERTY: JsonSchema = { type: "string" };
 const AT_PROPERTY: JsonSchema = { type: "string" };
+
+/** Drops the listener `activate` returned as the opaque handle, if registered. */
+const removeListener = (
+  event: AutomationEventName,
+): TriggerType["deactivate"] =>
+  async function deactivate(handle) {
+    if (isFunction(handle)) listenersFor(event).delete(handle);
+  };
 
 interface DmsEventTriggerSpec {
   event: AutomationEventName;
@@ -48,10 +58,7 @@ function createEventTrigger(spec: DmsEventTriggerSpec): TriggerType {
       listenersFor(spec.event).add(listener);
       return listener;
     },
-    async deactivate(handle) {
-      // SAFETY: activate returns this exact listener as the opaque handle, which the trigger lifecycle passes back to deactivate.
-      listenersFor(spec.event).delete(handle as AutomationEventListener);
-    },
+    deactivate: removeListener(spec.event),
   };
 }
 
@@ -60,7 +67,7 @@ interface RecordTriggerConfig {
 }
 
 interface RecordTriggerSpec {
-  event: AutomationEventName;
+  event: RecordEventName;
   /** Its texts under `dms.automation.triggers.<texts>` in the locales. */
   texts: string;
   icon: string;
@@ -96,19 +103,14 @@ function createRecordTrigger(
     },
     async activate(config, emit) {
       const location = config?.location?.trim();
-      const listener: AutomationEventListener = (payload) => {
-        // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Record trigger subscriptions receive RecordMutationEvent from emitAutomationEvent; the shared listener registry erases the per-event payload type.
-        if (location && (payload as RecordMutationEvent).location !== location)
-          return;
+      const listener = (payload: RecordMutationEvent) => {
+        if (location && payload.location !== location) return;
         emit(payload);
       };
       listenersFor(spec.event).add(listener);
       return listener;
     },
-    async deactivate(handle) {
-      // SAFETY: activate returns this exact listener as the opaque handle, which the trigger lifecycle passes back to deactivate.
-      listenersFor(spec.event).delete(handle as AutomationEventListener);
-    },
+    deactivate: removeListener(spec.event),
   };
 }
 

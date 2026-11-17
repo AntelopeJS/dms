@@ -1,4 +1,4 @@
-import { expect } from "chai";
+import { assert, expect } from "chai";
 import {
   assertPrimitiveValue,
   isStringDate,
@@ -33,7 +33,7 @@ const PLAIN_STRING = "hello world";
 const INVALID_DATE_STRING = "2024-13-45";
 const NOT_A_NUMBER_STRING = "abc";
 
-describe("[unit] utils/value-parser", () => {
+function registerStringPredicateCases(): void {
   describe("isStringKeyword", () => {
     it("recognises the four reserved keywords", () => {
       expect(isStringKeyword(KEYWORD_TRUE)).to.equal(true);
@@ -88,7 +88,9 @@ describe("[unit] utils/value-parser", () => {
       expect(isStringJSON("{invalid}")).to.equal(false);
     });
   });
+}
 
+function registerParsingCases(): void {
   describe("parseValue", () => {
     const cases: Array<{ label: string; input: string; expected: unknown }> = [
       { label: "true keyword", input: KEYWORD_TRUE, expected: true },
@@ -111,11 +113,8 @@ describe("[unit] utils/value-parser", () => {
 
     it("parses an ISO date string into a Date", () => {
       const parsed = parseValue(ISO_DATE_STRING);
-      expect(parsed).to.be.instanceOf(Date);
-      // SAFETY: The preceding assertion fails for a non-Date result; Chai does not express that runtime narrowing in its types.
-      expect((parsed as Date).toISOString().startsWith("2024-01-01")).to.equal(
-        true,
-      );
+      assert.instanceOf(parsed, Date);
+      expect(parsed.toISOString().startsWith("2024-01-01")).to.equal(true);
     });
 
     it("parses a JSON object string", () => {
@@ -194,4 +193,9 @@ describe("[unit] utils/value-parser", () => {
       }
     });
   });
+}
+
+describe("[unit] utils/value-parser", () => {
+  registerStringPredicateCases();
+  registerParsingCases();
 });

@@ -63,9 +63,9 @@ export const UNCOVERED_ATTRIBUTE = "data-dms-uncovered";
 function isClosing(
   mutation: MutationRecord,
 ): mutation is MutationRecord & { target: Element } {
-  // SAFETY: The only caller observes attributes with attributeFilter; DOM attribute mutations always target Elements.
-  const target = mutation.target as Element;
+  const { target } = mutation;
   return (
+    target instanceof Element &&
     target.getAttribute("data-state") === "closed" &&
     target.matches(BLOCKING_SELECTOR)
   );

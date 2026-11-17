@@ -157,6 +157,8 @@ const DEFAULT_ICON = "i-ph-pulse";
  *   visibleItems: 3,
  * })
  * ```
+ *
+ * @docsApi
  */
 export function ActivityFeed(
   options?: ActivityFeedProps,

@@ -1,8 +1,9 @@
 <script setup lang="ts">
+import { isString } from "#dms-core/app/utils/type-check";
 import StepIndicator from "../build/components/onboarding/StepIndicator.vue";
-import Platform from "../build/components/onboarding/steps/platform.vue";
-import Ready from "../build/components/onboarding/steps/ready.vue";
-import Register from "../components/onboarding/steps/register.vue";
+import Platform from "../build/components/onboarding/steps/StepPlatform.vue";
+import Ready from "../build/components/onboarding/steps/StepReady.vue";
+import Register from "../components/onboarding/steps/StepRegister.vue";
 import {
   ONBOARDING_STEPS,
   type OnboardingAdministrator,
@@ -25,6 +26,19 @@ watch(metaTitle, (title) => {
   if (!platform.value.name) platform.value.name = title;
 });
 const administrator = ref<OnboardingAdministrator | null>(null);
+
+const route = useDmsRoute();
+const router = useDmsRouter();
+const setupToken = ref("");
+
+useHead({ meta: [{ name: "referrer", content: "no-referrer" }] });
+
+onMounted(() => {
+  const { token, ...query } = route.query;
+  if (!isString(token) || !token) return;
+  setupToken.value = token;
+  void router.replace({ query });
+});
 
 const stepLabels = computed(() =>
   ONBOARDING_STEPS.map((id) => t(`page.onboarding.steps.${id}`)),
@@ -53,6 +67,7 @@ function onRegistered(owner: OnboardingAdministrator) {
     <Register
       v-else-if="step === 'administrator'"
       :platform="platform"
+      :setup-token="setupToken"
       @back="step = 'platform'"
       @registered="onRegistered"
     />

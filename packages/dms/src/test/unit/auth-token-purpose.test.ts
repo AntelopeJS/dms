@@ -4,7 +4,6 @@ import { GetModel } from "@antelopejs/interface-database-decorators";
 import { type User, UserModel } from "@antelopejs/interface-dms/auth/db";
 import { assert, expect } from "chai";
 import { sign } from "jsonwebtoken";
-import { getAuthConfig } from "../../config";
 import {
   generateAccessToken,
   generateRefreshToken,
@@ -13,6 +12,8 @@ import {
   internal,
   validateRefreshToken,
 } from "../../implementations/dms-auth";
+import { signFor } from "../helpers/forged-tokens";
+import { sessionAccessToken } from "../helpers/session-token";
 
 const TENANT_ID = "purpose-test-tenant";
 const HTTP_UNAUTHORIZED = 401;
@@ -57,21 +58,23 @@ describe("[unit] auth token purpose separation", () => {
   }
 
   it("accepts an access token only as access", async () => {
-    const { token } = generateAccessToken(TENANT_ID, user);
+    const token = await sessionAccessToken(TENANT_ID, user);
     expect((await validateAccess(token))._id).to.equal(user._id);
     await expectUnauthorized(() => validateRefreshToken(token));
   });
 
   it("accepts a refresh token only as refresh", async () => {
-    const { token } = generateRefreshToken(TENANT_ID, user);
+    const { token } = generateRefreshToken(TENANT_ID, user, randomUUID());
     expect((await validateRefreshToken(token)).id).to.equal(user._id);
     await expectUnauthorized(() => validateAccess(token));
   });
 
   it("rejects an MFA challenge as access, raw-user, owner or refresh credentials", async () => {
     const { token } = generateTwoFactorToken(TENANT_ID, user);
-    const input = internal.AuthUserAuthenticator(token);
+    const input = { id: user._id, tenantId: TENANT_ID, rawToken: token };
     await expectUnauthorized(() => validateAccess(token));
+    expect(internal.IfAuthUserAuthenticator(token)).to.equal(undefined);
+    await expectUnauthorized(() => internal.AuthUserValidator(input));
     await expectUnauthorized(() => internal.AuthRawUserValidator(input));
     await expectUnauthorized(() => internal.AuthOwnerOnlyValidator(input));
     await expectUnauthorized(() => validateRefreshToken(token));
@@ -85,13 +88,43 @@ describe("[unit] auth token purpose separation", () => {
   });
 
   it("rejects old untyped tokens instead of retaining the token-confusion bypass", async () => {
-    const secret = `1:${user.authKey}:${getAuthConfig().jwtSecret}`;
-    const token = sign({ id: user._id, tenantId: TENANT_ID }, secret);
+    const token = signFor(user, {});
     await expectUnauthorized(() => validateAccess(token));
     await expectUnauthorized(() => validateRefreshToken(token));
   });
 
   it("rejects malformed refresh tokens with 401", async () => {
     await expectUnauthorized(() => validateRefreshToken("not-a-jwt"));
+  });
+
+  it("rejects a signed refresh token whose session is missing or no string", async () => {
+    for (const sessionId of [undefined, "", 1]) {
+      const token = signFor(user, { sessionId, purpose: "refresh" });
+      await expectUnauthorized(() => validateRefreshToken(token));
+    }
+  });
+
+  it("refuses to sign an access or refresh token without a session", () => {
+    for (const generate of [generateAccessToken, generateRefreshToken]) {
+      for (const sessionId of [undefined, ""]) {
+        expect(() => generate(TENANT_ID, user, sessionId)).to.throw(
+          "needs a sessionId",
+        );
+      }
+    }
+  });
+
+  it("refuses, before any account lookup, claims that name no string user, tenant and session", async () => {
+    const forged = [
+      { id: { $ne: null }, tenantId: TENANT_ID, purpose: "access" },
+      { id: user._id, purpose: "access" },
+      { id: user._id, tenantId: TENANT_ID, sessionId: 1, purpose: "access" },
+    ].map((claims) => sign(claims, "forged-secret"));
+    for (const token of forged) {
+      await expectUnauthorized(async () =>
+        internal.AuthUserAuthenticator(token),
+      );
+      expect(internal.IfAuthUserAuthenticator(token)).to.equal(undefined);
+    }
   });
 });

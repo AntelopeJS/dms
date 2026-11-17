@@ -56,18 +56,22 @@ export function notifyMenuAccessChanged(
 
 export const MODULE_CONTEXT_GONE = "ERR_MODULE_CONTEXT_INVALIDATED";
 
+type ModuleContextGone = { code: typeof MODULE_CONTEXT_GONE };
+
 export function isModuleContextGone(
-  error: PromiseRejectedResult["reason"],
-): boolean {
+  error: unknown,
+): error is ModuleContextGone {
   return (
-    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Promise rejections can be non-Error objects; preserve the framework code check without imposing an Error constructor.
     typeof error === "object" &&
     error !== null &&
+    "code" in error &&
     error.code === MODULE_CONTEXT_GONE
   );
 }
 
-export function ignoreModuleContextGone(error: Error["cause"]): void {
+export function ignoreModuleContextGone(
+  error: unknown,
+): asserts error is ModuleContextGone {
   if (!isModuleContextGone(error)) throw error;
 }
 

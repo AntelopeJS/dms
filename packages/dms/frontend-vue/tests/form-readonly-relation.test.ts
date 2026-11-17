@@ -12,6 +12,7 @@ import {
   inject,
   nextTick,
   ref,
+  Suspense,
   type App,
 } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -20,7 +21,10 @@ import {
   sameRelationValue,
 } from "../layers/dms-ui/app/entries/composables/data-types/relationValue";
 import { readonlyFieldValue } from "../layers/dms-ui/app/entries/composables/form/readonlyValue";
-import { FORM_ENTRY_CONTEXT_KEY } from "../layers/dms-ui/app/entries/composables/form/formEntryContext";
+import {
+  FORM_ENTRY_CONTEXT_KEY,
+  type FormEntryContext,
+} from "../layers/dms-ui/app/entries/composables/form/formEntryContext";
 import type { DataType } from "../layers/dms-core/app/composables/data-types/useDataType";
 
 const relationType: DataType = {
@@ -100,21 +104,33 @@ describe("a disabled relation field", () => {
       id: "customer",
       type: "relation",
       disabled: true,
-      component: { componentName: "dms-relation", options },
+      component: { componentName: "dms-input-relation", options },
     };
     app = createApp({
       setup() {
-        return () => h(FormFieldControl, { field });
+        return () => h(Suspense, null, () => h(FormFieldControl, { field }));
       },
     });
-    // oxlint-disable anti-slop/require-safety-comment-for-type-assertion -- This fixture intentionally provides only the context fields read by the disabled control. The full FormEntryContext owner requires unrelated callbacks; inference cannot make the partial provider complete.
     app.provide(FORM_ENTRY_CONTEXT_KEY, {
       state: ref({ customer: "cust-025" }),
       initialValues: ref({ customer }),
-      loading: false,
+      loading: ref(false),
+      componentId: "form",
+      pageId: "page",
+      layoutClasses: () => ({
+        rows: "",
+        row: { layout: "form", inset: false, spacing: "row" },
+      }),
+      isFieldHidden: () => false,
       isFieldDisabled: () => true,
-    } as never);
-    // oxlint-enable anti-slop/require-safety-comment-for-type-assertion
+      isFieldRequired: () => false,
+      isReadOnly: ref(false),
+      showsChanges: true,
+      isFieldChanged: () => false,
+      baselineValue: () => "cust-025",
+      fieldSaveState: () => "idle",
+      retrySave: () => {},
+    } satisfies FormEntryContext);
     app.component(
       "UFormField",
       defineComponent({
@@ -125,7 +141,7 @@ describe("a disabled relation field", () => {
       }),
     );
     app.component(
-      "DmsDisplay",
+      "DmsDisplayValue",
       defineComponent({
         props: { modelValue: { type: null, default: undefined } },
         setup(props) {
@@ -137,6 +153,7 @@ describe("a disabled relation field", () => {
       }),
     );
     app.mount(document.createElement("div"));
+    await new Promise((resolve) => setTimeout(resolve));
     await nextTick();
     expect(shown.at(-1)).toEqual(customer);
   });

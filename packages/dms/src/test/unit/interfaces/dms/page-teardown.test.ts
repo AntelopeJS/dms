@@ -39,6 +39,7 @@ const LAYOUT_REQUEST_PROPERTIES = [
   "tenantId",
   "pageQuery",
   "pageParams",
+  "layoutRequest",
 ];
 
 interface DelayedComponentFixture {

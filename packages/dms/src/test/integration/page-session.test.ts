@@ -1,7 +1,7 @@
 import type { AxiosInstance } from "axios";
 import { expect } from "chai";
 import { sign } from "jsonwebtoken";
-import { authorizedClient } from "../helpers/auth";
+import { authorizedClient, registerUser } from "../helpers/auth";
 import { createClient } from "../helpers/http";
 
 const HTTP_OK = 200;
@@ -47,11 +47,21 @@ describe("[integration] dms page with a stale session", () => {
 
   before(async () => {
     anonymous = createClient();
+    const owner = authorizedClient(
+      (await registerUser({ owner: true })).accessToken,
+    );
     privatePath = await findPage(
-      anonymous,
-      (route) => route.hasAccess === false && !route.publicAccess,
+      owner,
+      (route) => route.hasAccess === true && !route.publicAccess,
     );
     publicPath = await findPage(anonymous, (route) => !!route.publicAccess);
+  });
+
+  it("leaves the pages it cannot open out of the anonymous site layout", async () => {
+    const response = await anonymous.get<SiteLayoutResponse>("/dms/sitelayout");
+    const slugs = Object.keys(response.data.siteLayout.pages);
+    expect(slugs).to.include(publicPath);
+    expect(slugs).not.to.include(privatePath);
   });
 
   it("keeps serving a denied private page to an anonymous visitor", async () => {

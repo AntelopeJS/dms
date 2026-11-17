@@ -2,7 +2,7 @@
 import { computed } from "vue";
 import { FlexRender } from "@tanstack/vue-table";
 import { normalizeActionConfig } from "#dms-core/app/utils/row-action-rule-evaluator";
-import TableEmpty from "./Empty.vue";
+import TableEmpty from "./TableEmpty.vue";
 import type { Data } from "./Table.types";
 import type { TableBodyContext } from "./TableBody.types";
 const props = defineProps<{ context: TableBodyContext<T> }>();
@@ -92,6 +92,11 @@ const emptyStates = computed(() => props.context.emptyStates);
         <template v-else>
           <tr
             :data-row-id="id"
+            data-reorder-item
+            :data-reorder-drop="reorderHandles.dropSide(row.index)"
+            :data-reorder-dragging="
+              reorderHandles.draggedIndex.value === row.index || undefined
+            "
             :data-selected="row.getIsSelected()"
             :data-expanded="row.getIsExpanded()"
             :data-open="isOpenRow(row.original) || undefined"
@@ -114,8 +119,8 @@ const emptyStates = computed(() => props.context.emptyStates);
             @dblclick="handleRowPointer($event, row.original)"
             @mouseenter="handleRowHover(row)"
             @mouseleave="handleRowLeave"
-            @dragover="reorderHandles.allowDrop"
-            @drop="reorderHandles.drop(row.index)"
+            @dragover="reorderHandles.dragOver(row.index, $event)"
+            @drop="reorderHandles.drop(row.index, $event)"
           >
             <td
               v-if="hasPresenceRail"
@@ -213,8 +218,8 @@ const emptyStates = computed(() => props.context.emptyStates);
           :class="uiTable.rowCell()"
         >
           <USkeleton
-            :aria-label="t('dms.a11y.loading')"
             v-if="column.columnDef.meta"
+            :aria-label="t('dms.a11y.loading')"
             :class="uiTable.skeletonCell()"
             :style="{ width: skeletonWidth(rowIndex, columnIndex) }"
           />
@@ -238,3 +243,15 @@ const emptyStates = computed(() => props.context.emptyStates);
     </tr>
   </tbody>
 </template>
+
+<style>
+tr[data-reorder-dragging] > td {
+  opacity: 0.4;
+}
+tr[data-reorder-drop="before"] > td {
+  box-shadow: inset 0 2px 0 var(--ui-primary);
+}
+tr[data-reorder-drop="after"] > td {
+  box-shadow: inset 0 -2px 0 var(--ui-primary);
+}
+</style>

@@ -1,11 +1,10 @@
-import { isObject } from "../../../../../dms-core/app/utils/type-check";
+import {
+  isObject,
+  isString,
+} from "../../../../../dms-core/app/utils/type-check";
 
 import type { PaginationState } from "@tanstack/vue-table";
-import type {
-  KanbanConfig,
-  TableViewDisplayConfig,
-  TableViewGroupedConfig,
-} from "../../../composables/table-view/types";
+import type { TableViewDisplayConfig } from "../../../composables/table-view/types";
 import {
   TABLE_DISPLAY_ID,
   KANBAN_DISPLAY_ID,
@@ -13,7 +12,8 @@ import {
 } from "../../../composables/table-view/types";
 import { isEligibleKanbanColumn } from "../../../composables/table-view/kanban";
 import { resolveTableChrome } from "./utils/chrome";
-import type { TableViewSwitcherItem } from "../../components/table/Table.vue";
+import { isGroupedConfig, isKanbanConfig } from "./utils/displayOptions";
+import type { TableViewSwitcherItem } from "../../components/table/TableRoot.vue";
 import { type Component } from "vue";
 import type { TableViewScope } from "./tableViewScope";
 
@@ -38,14 +38,14 @@ export function useTableViewDisplayOptions<T extends Data>(
   const resolvedDisplay = (id: string): TableViewDisplayConfig | undefined =>
     resolvedDisplays.find((d) => d.id === id);
   const optionsForDisplay = (id: string) => resolvedDisplay(id)?.options;
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Display options are not discriminated by id in TableViewDisplayConfig; the existing kanban contract remains unchecked here.
-  const kanbanOptions = optionsForDisplay(KANBAN_DISPLAY_ID) as
-    | KanbanConfig
-    | undefined;
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Display options are not discriminated by id in TableViewDisplayConfig; the existing grouped contract remains unchecked here.
-  const groupedOptions = optionsForDisplay(GROUPED_DISPLAY_ID) as
-    | TableViewGroupedConfig
-    | undefined;
+  const declaredKanbanOptions = optionsForDisplay(KANBAN_DISPLAY_ID);
+  const kanbanOptions = isKanbanConfig(declaredKanbanOptions)
+    ? declaredKanbanOptions
+    : undefined;
+  const declaredGroupedOptions = optionsForDisplay(GROUPED_DISPLAY_ID);
+  const groupedOptions = isGroupedConfig(declaredGroupedOptions)
+    ? declaredGroupedOptions
+    : undefined;
 
   const persistedDisplay = tablePreferences.get<string>(
     "viewMode",
@@ -127,8 +127,10 @@ export function useTableViewDisplayComponent<T extends Data>(
   ): Component | string | undefined => {
     if (!component) return undefined;
     if (isObject(component) && "componentName" in component) {
-      const name = component.componentName;
-      return name ? resolveDmsComponent(name) || name : undefined;
+      const name: unknown = component.componentName;
+      return isString(name) && name
+        ? resolveDmsComponent(name) || name
+        : undefined;
     }
     return component;
   };

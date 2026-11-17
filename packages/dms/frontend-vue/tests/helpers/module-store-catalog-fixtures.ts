@@ -3,6 +3,7 @@ import {
   storeActions,
   toModuleStoreEntry,
 } from "../../layers/dms-layout/app/entries/utils/module-store-catalog";
+import type { ModuleCatalogEntry } from "../../layers/dms-core/app/types/page";
 import type {
   MissingInterface,
   StoreListingEntry,
@@ -40,11 +41,13 @@ export function listingEntry(
     title: id[0].toUpperCase() + id.slice(1),
     description: `${id} description`,
     state: "available",
+    source: "npm",
     updateAvailable: false,
     compatible: true,
     frontend: "none",
     missingInterfaces: [],
     dependents: [],
+    usedByProject: false,
     ...overrides,
   };
 }
@@ -98,7 +101,7 @@ export const FRONTEND_REQUIREMENT = {
 };
 
 export function versionDetailsFixture() {
-  const installed = [
+  const installed: ModuleCatalogEntry[] = [
     {
       id: "media",
       title: "Media",
@@ -106,6 +109,8 @@ export function versionDetailsFixture() {
       icon: "i-ph-image",
       hasAccess: true,
       landingSlug: "/modules/media",
+      status: "live" as const,
+      readout: [],
     },
     {
       id: "api",
@@ -114,6 +119,8 @@ export function versionDetailsFixture() {
       icon: "i-ph-plug",
       hasAccess: true,
       landingSlug: "/modules/api",
+      status: "live" as const,
+      readout: [],
       version: "0.4.1",
       catalogCategory: "$api.category",
     },
@@ -138,6 +145,8 @@ export function categoryInstalledFixture() {
       icon: "i-ph-envelope-simple",
       hasAccess: true,
       landingSlug: "/modules/mailing",
+      status: "live" as const,
+      readout: [],
       catalogCategory: "$dms_mailing.catalog_category",
     },
     {
@@ -147,6 +156,8 @@ export function categoryInstalledFixture() {
       icon: "i-ph-image",
       hasAccess: true,
       landingSlug: "/modules/media",
+      status: "live" as const,
+      readout: [],
     },
   ];
 }

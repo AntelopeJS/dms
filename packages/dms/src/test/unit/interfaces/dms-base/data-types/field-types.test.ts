@@ -11,12 +11,24 @@ const ITEMS = [
 const componentOf = (type: { inputComponent(): { componentName: string } }) =>
   type.inputComponent().componentName;
 
+type RepeaterOptions = NonNullable<
+  Parameters<typeof FormComponents.InputRepeater>[0]
+>;
+
+function isRepeaterOptions(value: unknown): value is RepeaterOptions {
+  return (
+    value instanceof Object &&
+    "columns" in value &&
+    Array.isArray(value.columns)
+  );
+}
+
 describe("[unit] interfaces/dms-base — SelectType display", () => {
   it("renders a dropdown by default, cards, segments or radios when asked", () => {
     const select = (display?: DefaultDataTypes.SelectTypeOptions["display"]) =>
       new DefaultDataTypes.SelectType({ items: ITEMS, display });
 
-    expect(componentOf(select())).to.equal("dms-select");
+    expect(componentOf(select())).to.equal("dms-input-select");
     expect(componentOf(select("cards"))).to.equal("dms-choice-cards");
     expect(componentOf(select("segmented"))).to.equal("dms-segmented-select");
     expect(componentOf(select("radio"))).to.equal("dms-radio-group");
@@ -56,7 +68,7 @@ describe("[unit] interfaces/dms-base — SelectType display", () => {
       display: "cards",
     });
     const filter = select.filterComponents().default;
-    expect(filter.componentName).to.equal("dms-select");
+    expect(filter.componentName).to.equal("dms-input-select");
     expect(filter.options).to.not.have.property("display");
   });
 });
@@ -65,14 +77,14 @@ describe("[unit] interfaces/dms-base — BooleanType display", () => {
   it("renders a switch, a checkbox or a card with its texts", () => {
     const options = { label: "Owner", description: "Holds every permission" };
     expect(componentOf(new DefaultDataTypes.BooleanType())).to.equal(
-      "dms-switch",
+      "dms-input-switch",
     );
     expect(
       new DefaultDataTypes.BooleanType({
         ...options,
         display: "checkbox",
       }).inputComponent().componentName,
-    ).to.equal("dms-checkbox");
+    ).to.equal("dms-input-checkbox");
     const card = new DefaultDataTypes.BooleanType({
       ...options,
       display: "card",
@@ -108,25 +120,27 @@ describe("[unit] interfaces/dms-base — ArrayType", () => {
 
   it("validates a list of rows, each an object of its fields", () => {
     const validation = headers().getValidation();
-    expect(validation.safeParse([{ name: "Accept", value: "*/*" }]).success).to
-      .be.true;
-    expect(validation.safeParse([{ name: "", value: "x" }]).success).to.be
-      .false;
-    expect(validation.safeParse([{ value: "x" }]).success).to.be.false;
-    expect(validation.safeParse([]).success).to.be.false;
+    expect(
+      validation.safeParse([{ name: "Accept", value: "*/*" }]).success,
+    ).to.equal(true);
+    expect(validation.safeParse([{ name: "", value: "x" }]).success).to.equal(
+      false,
+    );
+    expect(validation.safeParse([{ value: "x" }]).success).to.equal(false);
+    expect(validation.safeParse([]).success).to.equal(false);
     expect(
       validation.safeParse([{ name: "a" }, { name: "b" }, { name: "c" }])
         .success,
-    ).to.be.false;
+    ).to.equal(false);
   });
 
   it("renders a repeater, a column per field", () => {
     const component = headers().inputComponent();
-    expect(component.componentName).to.equal("dms-repeater");
-    // SAFETY: ArrayType builds InputRepeater options; DataType.inputComponent erases that concrete options type.
-    const options = component.options as NonNullable<
-      Parameters<typeof FormComponents.InputRepeater>[0]
-    >;
+    expect(component.componentName).to.equal("dms-input-repeater");
+    const { options } = component;
+    if (!isRepeaterOptions(options)) {
+      throw new Error("The component carries no repeater options");
+    }
     expect(
       options.columns.map(({ id, label, type }) => [id, label, type]),
     ).to.deep.equal([
@@ -141,10 +155,11 @@ describe("[unit] interfaces/dms-base — ArrayType", () => {
 describe("[unit] interfaces/dms-base — KeyValueType", () => {
   it("validates an object of named values", () => {
     const validation = new DefaultDataTypes.KeyValueType().getValidation();
-    expect(validation.safeParse({ "Content-Type": "application/json" }).success)
-      .to.be.true;
-    expect(validation.safeParse({ "": "x" }).success).to.be.false;
-    expect(validation.safeParse([["a", "b"]]).success).to.be.false;
+    expect(
+      validation.safeParse({ "Content-Type": "application/json" }).success,
+    ).to.equal(true);
+    expect(validation.safeParse({ "": "x" }).success).to.equal(false);
+    expect(validation.safeParse([["a", "b"]]).success).to.equal(false);
   });
 
   it("holds { value, enabled } per key when toggleable", () => {
@@ -154,8 +169,8 @@ describe("[unit] interfaces/dms-base — KeyValueType", () => {
     }).getValidation();
     expect(
       validation.safeParse({ retries: { value: 3, enabled: false } }).success,
-    ).to.be.true;
-    expect(validation.safeParse({ retries: 3 }).success).to.be.false;
+    ).to.equal(true);
+    expect(validation.safeParse({ retries: 3 }).success).to.equal(false);
   });
 });
 
@@ -178,9 +193,9 @@ describe("[unit] interfaces/dms-base — CodeType", () => {
     const validation = new DefaultDataTypes.CodeType({
       language: "json",
     }).getValidation();
-    expect(validation.safeParse('{ "a": 1 }').success).to.be.true;
+    expect(validation.safeParse('{ "a": 1 }').success).to.equal(true);
     const refused = validation.safeParse("{ a: 1 }");
-    expect(refused.success).to.be.false;
+    expect(refused.success).to.equal(false);
     expect(refused.error?.issues[0]?.message).to.equal(
       "$dms.field_errors.invalid_json",
     );
@@ -190,7 +205,7 @@ describe("[unit] interfaces/dms-base — CodeType", () => {
     const validation = new DefaultDataTypes.CodeType({
       language: "sql",
     }).getValidation();
-    expect(validation.safeParse("select * from").success).to.be.true;
+    expect(validation.safeParse("select * from").success).to.equal(true);
   });
 });
 
@@ -200,10 +215,11 @@ describe("[unit] interfaces/dms-base — TagsType", () => {
       itemType: "email",
       max: 2,
     }).getValidation();
-    expect(validation.safeParse(["a@b.co"]).success).to.be.true;
-    expect(validation.safeParse(["nope"]).success).to.be.false;
-    expect(validation.safeParse(["a@b.co", "c@d.co", "e@f.co"]).success).to.be
-      .false;
+    expect(validation.safeParse(["a@b.co"]).success).to.equal(true);
+    expect(validation.safeParse(["nope"]).success).to.equal(false);
+    expect(
+      validation.safeParse(["a@b.co", "c@d.co", "e@f.co"]).success,
+    ).to.equal(false);
   });
 });
 
@@ -252,7 +268,7 @@ describe("[unit] interfaces/dms-base — a number's unit and a text's counter", 
       textarea: true,
       showCount: true,
     });
-    expect(notes.inputComponent().componentName).to.equal("dms-textarea");
+    expect(notes.inputComponent().componentName).to.equal("dms-input-textarea");
     expect(notes.inputComponent().options).to.include({ showCount: true });
   });
 

@@ -19,13 +19,13 @@ import {
 import * as permissionsInterface from "@antelopejs/interface-dms/permissions";
 import * as permissionsResolverInterface from "@antelopejs/interface-dms/permissions-resolver";
 import * as tenantAccessInterface from "@antelopejs/interface-dms/tenant-access";
-import type { User } from "@antelopejs/interface-dms/auth/db";
 import {
   denyingTenantGate,
   registerTestCategory,
   registerTestPage,
   stubPageAccessModels,
 } from "../../../helpers/page-access";
+import { userFixture } from "../../../helpers/user-fixture";
 
 const DENIED_TENANT = "gate-denied-tenant";
 const ALLOWED_TENANT = "gate-allowed-tenant";
@@ -44,8 +44,7 @@ async function pageAccess(
   tenantId: string,
 ): Promise<boolean | undefined> {
   const { memberModel, roleModel } = stubPageAccessModels(grantedPermissions);
-  // SAFETY: Gate/page access reads this id and the absent owner flag, not persisted-user methods.
-  const member = { _id: "gate-member" } as User;
+  const member = userFixture({ _id: "gate-member" });
   const payload = await buildSiteLayoutPayload(
     member,
     memberModel,
@@ -55,80 +54,82 @@ async function pageAccess(
   return payload.siteLayout.pages[fullSlug]?.hasAccess;
 }
 
+const suiteCleanups: Array<() => void> = [];
+
+async function registerGatePages() {
+  ImplementInterface(permissionsInterface, permissionsImpl);
+  ImplementInterface(permissionsResolverInterface, permissionsResolverImpl);
+  ImplementInterface(tenantAccessInterface, tenantAccessImpl);
+  ImplementInterface(pageInterfaceInternal, pageImplInternal);
+
+  suiteCleanups.push(
+    await registerTestPage(
+      PageController("gate-billing", {
+        displayName: "Billing",
+        category: pagesCategory,
+        bypassTenantAccessGate: true,
+      }),
+    ),
+  );
+
+  suiteCleanups.push(
+    await registerTestPage(
+      PageController("gate-product", {
+        displayName: "Product",
+        category: pagesCategory,
+      }),
+    ),
+  );
+
+  suiteCleanups.push(
+    await registerTestPage(
+      PageController("gate-granted", {
+        displayName: "Granted by default",
+        category: pagesCategory,
+        permission: { defaultGranted: true },
+      }),
+    ),
+  );
+
+  suiteCleanups.push(
+    await registerTestPage(
+      PageController("gate-public", {
+        displayName: "Public",
+        category: pagesCategory,
+        publicAccess: true,
+      }),
+    ),
+  );
+
+  const recovery = registerTestCategory(RECOVERY_CATEGORY_ID, {
+    displayName: "Recovery",
+    category: pagesCategory,
+    bypassTenantAccessGate: true,
+  });
+  suiteCleanups.push(recovery.cleanup);
+  suiteCleanups.push(
+    await registerTestPage(
+      PageController("gate-recovery-child", {
+        displayName: "Recovery child",
+        category: recovery.category,
+      }),
+    ),
+  );
+
+  tenantAccessInterface.RegisterTenantAccessGate(gateInfo);
+}
+
+function runSuiteCleanups() {
+  tenantAccessInterface.internal.RegisterTenantAccessGate.unregister(gateInfo);
+  for (const cleanup of suiteCleanups.splice(0)) {
+    cleanup();
+  }
+}
+
 describe("[unit] implementations/dms/page — page-level bypassTenantAccessGate", () => {
-  const suiteCleanups: Array<() => void> = [];
+  before(registerGatePages);
 
-  before(async () => {
-    ImplementInterface(permissionsInterface, permissionsImpl);
-    ImplementInterface(permissionsResolverInterface, permissionsResolverImpl);
-    ImplementInterface(tenantAccessInterface, tenantAccessImpl);
-    ImplementInterface(pageInterfaceInternal, pageImplInternal);
-
-    suiteCleanups.push(
-      await registerTestPage(
-        PageController("gate-billing", {
-          displayName: "Billing",
-          category: pagesCategory,
-          bypassTenantAccessGate: true,
-        }),
-      ),
-    );
-
-    suiteCleanups.push(
-      await registerTestPage(
-        PageController("gate-product", {
-          displayName: "Product",
-          category: pagesCategory,
-        }),
-      ),
-    );
-
-    suiteCleanups.push(
-      await registerTestPage(
-        PageController("gate-granted", {
-          displayName: "Granted by default",
-          category: pagesCategory,
-          permission: { defaultGranted: true },
-        }),
-      ),
-    );
-
-    suiteCleanups.push(
-      await registerTestPage(
-        PageController("gate-public", {
-          displayName: "Public",
-          category: pagesCategory,
-          publicAccess: true,
-        }),
-      ),
-    );
-
-    const recovery = registerTestCategory(RECOVERY_CATEGORY_ID, {
-      displayName: "Recovery",
-      category: pagesCategory,
-      bypassTenantAccessGate: true,
-    });
-    suiteCleanups.push(recovery.cleanup);
-    suiteCleanups.push(
-      await registerTestPage(
-        PageController("gate-recovery-child", {
-          displayName: "Recovery child",
-          category: recovery.category,
-        }),
-      ),
-    );
-
-    tenantAccessInterface.RegisterTenantAccessGate(gateInfo);
-  });
-
-  after(() => {
-    tenantAccessInterface.internal.RegisterTenantAccessGate.unregister(
-      gateInfo,
-    );
-    for (const cleanup of suiteCleanups.splice(0)) {
-      cleanup();
-    }
-  });
+  after(runSuiteCleanups);
 
   it("keeps a flagged page visible while the gate denies the tenant", async () => {
     expect(
@@ -155,13 +156,12 @@ describe("[unit] implementations/dms/page — page-level bypassTenantAccessGate"
       ]);
       const result = await buildPagePayload(
         "/gate-product",
-        // SAFETY: Gate/page access reads this id and the absent owner flag, not persisted-user methods.
-        { _id: "gate-member" } as User,
+        userFixture({ _id: "gate-member" }),
         memberModel,
         roleModel,
         DENIED_TENANT,
         includeShared,
-      ).catch((error) => error);
+      ).catch((error: unknown) => error);
 
       expect(result).to.deep.equal(new HTTPResult(403, SUSPENDED_CODE));
     });
@@ -171,8 +171,7 @@ describe("[unit] implementations/dms/page — page-level bypassTenantAccessGate"
         const { memberModel, roleModel } = stubPageAccessModels(permissions);
         const payload = await buildPagePayload(
           BILLING_PAGE_SLUG,
-          // SAFETY: Gate/page access reads this id and the absent owner flag, not persisted-user methods.
-          { _id: "gate-member" } as User,
+          userFixture({ _id: "gate-member" }),
           memberModel,
           roleModel,
           DENIED_TENANT,
@@ -185,6 +184,12 @@ describe("[unit] implementations/dms/page — page-level bypassTenantAccessGate"
       }
     });
   }
+});
+
+describe("[unit] implementations/dms/page — page-level bypassTenantAccessGate, inheritance and guards", () => {
+  before(registerGatePages);
+
+  after(runSuiteCleanups);
 
   it("inherits the flag from the page's category", async () => {
     expect(
@@ -220,8 +225,7 @@ describe("[unit] implementations/dms/page — page-level bypassTenantAccessGate"
 
   it("keeps the owner flag gated so owner-only surfaces stay closed", async () => {
     const { memberModel, roleModel } = stubPageAccessModels([]);
-    // SAFETY: Gate/page access reads this id and owner flag, not persisted-user methods.
-    const owner = { _id: "gate-owner", owner: true } as User;
+    const owner = userFixture({ _id: "gate-owner", owner: true });
     const payload = await buildSiteLayoutPayload(
       owner,
       memberModel,
@@ -267,8 +271,7 @@ describe("[unit] implementations/dms/page — page-level bypassTenantAccessGate"
 
   it("mirrors the flag in userCanAccessPage", async () => {
     const { memberModel, roleModel } = stubPageAccessModels([BILLING_FULL_ID]);
-    // SAFETY: Gate/page access reads this id and the absent owner flag, not persisted-user methods.
-    const member = { _id: "gate-member" } as User;
+    const member = userFixture({ _id: "gate-member" });
     expect(
       await userCanAccessPage(
         member,

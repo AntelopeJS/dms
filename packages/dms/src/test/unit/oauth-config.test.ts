@@ -1,6 +1,6 @@
 import { HTTPResult } from "@antelopejs/interface-api";
 import { assert, expect } from "chai";
-import { getAuthConfig, type OAuthConfig } from "../..";
+import { getAuthConfig, type OAuthConfig } from "../../config";
 import {
   buildOAuthAuthorizeUrl,
   getEnabledOAuthProvider,

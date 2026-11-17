@@ -48,12 +48,6 @@ type ParamFormatter<Param extends ComposedTextTypedParam> = (
   context: ComposedTextContext,
 ) => string;
 
-type ParamFormatters = {
-  [Type in ComposedTextParamType]: ParamFormatter<
-    Extract<ComposedTextTypedParam, { type: Type }>
-  >;
-};
-
 const DEFAULT_MINOR_DIGITS = 2;
 const DECIMAL_BASE = 10;
 const DEFAULT_DATE_FORMAT: ComposedTextDateFormat = "medium";
@@ -144,14 +138,40 @@ function formatRelativeParam(
   return formatRelativeDistance(param.value, locale, { now });
 }
 
-const PARAM_FORMATTERS: ParamFormatters = {
-  money: formatMoney,
-  date: dateFormatter(DATE_FORMATS),
-  datetime: dateFormatter(DATETIME_FORMATS),
-  relative: formatRelativeParam,
-  number: formatNumberParam,
-  count: (param, { locale }) => String(formatNumber(param.value, locale)),
+const PARAM_TYPES: Record<ComposedTextParamType, true> = {
+  money: true,
+  date: true,
+  datetime: true,
+  relative: true,
+  number: true,
+  count: true,
 };
+
+const formatDateParam = dateFormatter(DATE_FORMATS);
+const formatDateTimeParam = dateFormatter(DATETIME_FORMATS);
+
+function formatTypedParam(
+  param: ComposedTextTypedParam,
+  context: ComposedTextContext,
+): string {
+  if (!Object.hasOwn(PARAM_TYPES, param.type)) {
+    return String(param.value ?? "");
+  }
+  switch (param.type) {
+    case "money":
+      return formatMoney(param, context);
+    case "date":
+      return formatDateParam(param, context);
+    case "datetime":
+      return formatDateTimeParam(param, context);
+    case "relative":
+      return formatRelativeParam(param, context);
+    case "number":
+      return formatNumberParam(param, context);
+    case "count":
+      return String(formatNumber(param.value, context.locale));
+  }
+}
 
 function formatParam(
   param: ComposedTextParam,
@@ -162,12 +182,7 @@ function formatParam(
     return String(formatNumber(param, context.locale));
   }
   if (isComposedText(param)) return composeText(param, context);
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- ParamFormatters preserves the nominal discriminator correlation, which indexed union inference loses. A switch would change legacy lookup behavior for malformed and inherited type keys.
-  const formatter = PARAM_FORMATTERS[param.type] as
-    | ParamFormatter<ComposedTextTypedParam>
-    | undefined;
-
-  return formatter ? formatter(param, context) : String(param.value ?? "");
+  return formatTypedParam(param, context);
 }
 
 function numberOf(param: ComposedTextParam | undefined): number | undefined {

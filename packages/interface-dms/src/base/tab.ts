@@ -93,19 +93,20 @@ export interface TabProps extends BaseComponentProps {
   fit?: boolean;
 }
 
-const TAB_COMPONENT_NAME = "dms-tab";
+const TAB_COMPONENT_NAME = "dms-tab-block";
 
 /**
  * `options` is optional because a page is written as it is built: the editor
  * places a block before anything is configured, and writes that as the bare
  * call `Tab()`. A page under construction has to compile — it is typechecked
  * on every edit — so a block with nothing set yet has to be a legal call.
+ *
+ * @docsApi
  */
 export const Tab = (options?: TabProps): ComponentBuilder<TabProps> => {
   return attachRealtimeTopicsHook(
     new ComponentBuilder<TabProps>(TAB_COMPONENT_NAME)
-      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Public builders allow omitted options while pages are authored; required tab items need not exist yet.
-      .options({ ...options } as TabProps)
+      .options(options && { ...options })
       .meta({
         name: "Tabs",
         icon: "i-ph-tabs",

@@ -13,7 +13,7 @@ import {
   WEBHOOK_SECRET,
   WEBHOOK_SIGNATURE_HEADER,
   WEBHOOKS_API,
-} from "./webhooks";
+} from "./webhook-route";
 
 const INVITES_PAGE_URL = "/settings/workspace/invites";
 const FRONTEND_URL = "http://localhost:3001";

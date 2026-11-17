@@ -23,6 +23,7 @@ import {
   registerTestPage,
   stubPageAccessModels,
 } from "../../../helpers/page-access";
+import { userFixture } from "../../../helpers/user-fixture";
 
 const DENIED_TENANT = "perm-denied-tenant";
 const ALLOWED_TENANT = "perm-allowed-tenant";
@@ -36,8 +37,7 @@ const gateInfo = denyingTenantGate("perm-gate", DENIED_TENANT);
 async function resolveFor(
   grantedPermissions: string[],
   tenantId: string,
-  // SAFETY: Permission resolution reads this id and the absent owner flag, not persisted-user methods.
-  user: User = { _id: "perm-member" } as User,
+  user: User = userFixture({ _id: "perm-member" }),
 ): Promise<string[]> {
   const { memberModel, roleModel } = stubPageAccessModels(grantedPermissions);
   return resolveUserPermissions(user, memberModel, roleModel, tenantId);
@@ -150,8 +150,7 @@ describe("[unit] implementations/dms/page — permissions under a tenant gate", 
   });
 
   it("keeps the owner wildcard so the recovery page stays usable", async () => {
-    // SAFETY: Permission resolution reads this id and owner flag, not persisted-user methods.
-    const owner = { _id: "perm-owner", owner: true } as User;
+    const owner = userFixture({ _id: "perm-owner", owner: true });
     expect(await resolveFor([], DENIED_TENANT, owner)).to.deep.equal(["*"]);
   });
 

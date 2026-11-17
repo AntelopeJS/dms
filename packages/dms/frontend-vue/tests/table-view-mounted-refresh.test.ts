@@ -16,7 +16,9 @@ import {
 import { usePageLiveRefresh } from "../layers/dms-ui/app/composables/live/usePageLiveRefresh";
 import { usePreferences } from "../layers/dms-core/app/composables/user/usePreferences";
 import { CONTENT_LANGUAGE_HEADER } from "../layers/dms-core/app/composables/auth/useAuthFetch";
+import { useUserRealtime } from "../layers/dms-core/app/composables/realtime/useUserRealtime";
 import type { TableCountQuery } from "../layers/dms-ui/app/entries/composables/table-view/useTableRows";
+import type { Data } from "../layers/dms-ui/app/types/table/base";
 import type {
   TableViewConfig,
   TableViewDisplayContext,
@@ -41,7 +43,6 @@ beforeEach(async () => {
       url: string,
       options?: {
         query?: TableCountQuery["query"];
-        body?: { queries: Array<{ id: string }> };
       },
     ) => {
       requests.push(url);
@@ -58,7 +59,12 @@ beforeEach(async () => {
       if (url.endsWith("/delete")) return 1;
       if (url.endsWith("/summary")) return { sum: stage === "lead" ? 1 : 2 };
       if (url.endsWith("/count/batch")) {
-        const ids = options?.body?.queries.map(({ id }) => id) ?? [];
+        const entries = options?.query?.query;
+        const ids = Array.isArray(entries)
+          ? entries.map((entry: string) =>
+              decodeURIComponent(entry.slice(0, entry.indexOf("?"))),
+            )
+          : [];
         countIds.push(ids);
         return Object.fromEntries(
           ids.map((id) => [id, stage === "lead" ? 1 : 2]),
@@ -84,7 +90,7 @@ afterEach(async () => {
   vi.unstubAllGlobals();
 });
 
-const boardConfig: Partial<TableViewConfig> = {
+const boardConfig: Partial<TableViewConfig<Data>> = {
   columns: [
     {
       id: "stage",
@@ -123,7 +129,7 @@ const boardConfig: Partial<TableViewConfig> = {
   ],
 };
 
-async function mount(config: Partial<TableViewConfig>) {
+async function mount(config: Partial<TableViewConfig<Data>>) {
   const result = await mountTableView(config);
   apps.push(result.app);
   await settleTable();
@@ -189,6 +195,7 @@ it.each(["table", "kanban"])(
     await publishTableEvent("tableview:row:/api/orders", false, {
       type: "updated",
       payload: { ids: ["r1"] },
+      ts: 1,
     });
     await settleTable();
     expect(requests).toEqual(
@@ -202,6 +209,33 @@ it.each(["table", "kanban"])(
     expect(host.textContent).toContain("2");
   },
 );
+
+it("reads the list again once the session subscribes to the page", async () => {
+  await mount({ ...boardConfig, defaultDisplay: "table" });
+  requests.length = 0;
+  try {
+    await useUserRealtime().setPage("orders");
+    await settleTable();
+    expect(requests).toContain("/api/orders/list");
+  } finally {
+    await useUserRealtime().setPage(null);
+  }
+});
+
+it("reads the list again on a row update that arrives while it loads", async () => {
+  holdList = true;
+  await mount({ ...boardConfig, defaultDisplay: "table" });
+  requests.length = 0;
+  await publishTableEvent("tableview:row:/api/orders", false, {
+    type: "updated",
+    payload: { ids: ["r1"] },
+    ts: 1,
+  });
+  await settleTable();
+  expect(requests).toContain("/api/orders/list");
+  releaseList();
+  await settleTable();
+});
 
 const ActionDisplay: FunctionalComponent<{
   context: TableViewDisplayContext;
@@ -229,10 +263,15 @@ it("a display's write refreshes sibling blocks while manual refresh stays table-
   );
   sibling.mount(document.createElement("div"));
   apps.push(sibling);
+  vi.stubGlobal("resolveDmsComponent", (name: string) =>
+    name === "ActionDisplay" ? ActionDisplay : undefined,
+  );
   const host = await mount({
     ...boardConfig,
     rowActions: { delete: true },
-    displays: [{ id: "test:actions", component: ActionDisplay }],
+    displays: [
+      { id: "test:actions", component: { componentName: "ActionDisplay" } },
+    ],
     defaultDisplay: "test:actions",
   });
   requests.length = 0;

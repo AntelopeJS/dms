@@ -1,6 +1,10 @@
 import { HttpMethod } from "../layers/dms-core/app/types/http";
 import { isString } from "../layers/dms-core/app/utils/type-check";
 import { formSubmitEvent } from "./helpers/form-submit-event";
+import {
+  readOnlyFailure,
+  installReadOnlyRefusal,
+} from "./helpers/read-only-refusal";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { computed, effectScope, ref, watch, type EffectScope } from "vue";
 import {
@@ -10,7 +14,7 @@ import {
 } from "../layers/dms-ui/app/composables/form/useForm";
 
 const authFetch = vi.fn();
-const addToast = vi.fn();
+const addToast = vi.fn(() => ({ id: "failure" }));
 const showFieldErrors = vi.fn<(errors: FormServerFieldError[]) => boolean>();
 const hiddenFields = new Set<string>();
 let scope: EffectScope;
@@ -50,6 +54,7 @@ const submit = (form: ReturnType<typeof setupForm>) =>
   form.onSubmit(formSubmitEvent({ name: "", email: "taken@test.local" }));
 
 beforeEach(() => {
+  vi.stubEnv("SSR", false);
   scope = effectScope();
   hiddenFields.clear();
   showFieldErrors.mockReturnValue(true);
@@ -111,6 +116,19 @@ afterEach(() => {
 });
 
 describe("DMS form server errors", () => {
+  it("shows only the generic refusal toast even when the body names a field", async () => {
+    installReadOnlyRefusal();
+    authFetch.mockRejectedValue(readOnlyFailure());
+    await submit(setupForm());
+    expect(showFieldErrors).not.toHaveBeenCalled();
+    expect(addToast).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({
+        title: "error.read_only_demo",
+        color: "warning",
+      }),
+    );
+  });
+
   it("puts a refused value under its field, without a toast", async () => {
     authFetch.mockRejectedValue(
       zodRefusal([
@@ -126,12 +144,15 @@ describe("DMS form server errors", () => {
     await submit(setupForm());
 
     expect(showFieldErrors).toHaveBeenCalledExactlyOnceWith([
-      { name: "name", message: "t($dms.field_errors.required)" },
+      { name: "name", message: "dms.field_errors.required" },
     ]);
     expect(addToast).not.toHaveBeenCalled();
   });
 
   it("names the values a refusal lists under the field", async () => {
+    installReadOnlyRefusal().mergeLocaleMessage("en", {
+      taken: "Already used",
+    });
     authFetch.mockRejectedValue({
       statusCode: 409,
       data: {
@@ -146,7 +167,7 @@ describe("DMS form server errors", () => {
       {
         name: "email",
         message: `dms.field_errors.with_values ${JSON.stringify({
-          message: "t($taken)",
+          message: "Already used",
           values: "taken@test.local",
         })}`,
         values: ["taken@test.local"],
@@ -156,6 +177,9 @@ describe("DMS form server errors", () => {
   });
 
   it("fills the message's placeholders from the error's params", async () => {
+    installReadOnlyRefusal().mergeLocaleMessage("en", {
+      budget_max: "At most {max}",
+    });
     authFetch.mockRejectedValue({
       statusCode: 400,
       data: {
@@ -167,7 +191,7 @@ describe("DMS form server errors", () => {
     await submit(setupForm());
 
     expect(showFieldErrors).toHaveBeenCalledExactlyOnceWith([
-      { name: "name", message: 't($budget_max, {"max":5000})' },
+      { name: "name", message: "At most 5000" },
     ]);
   });
 
@@ -176,11 +200,13 @@ describe("DMS form server errors", () => {
     await submit(setupForm());
 
     expect(showFieldErrors).not.toHaveBeenCalled();
-    expect(addToast).toHaveBeenCalledExactlyOnceWith({
-      title: "$dms.form.error_title",
-      description: "t(error.unexpected)",
-      color: "error",
-    });
+    expect(addToast).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({
+        title: "dms.form.error_unknown",
+        description: undefined,
+        color: "error",
+      }),
+    );
   });
 
   it("toasts a field error no rendered field could show", async () => {

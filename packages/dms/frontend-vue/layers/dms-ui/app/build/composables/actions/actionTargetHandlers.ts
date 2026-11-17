@@ -67,8 +67,8 @@ export function createTargetHandlers(
       ...extras,
     });
   return {
-    page: (target, _label, rowData) => {
-      navigateDms(targetUrl(target.url, rowData));
+    page: async (target, _label, rowData) => {
+      await navigateDms(targetUrl(target.url, rowData));
     },
     external: (target, _label, rowData) => {
       const url = targetUrl(target.url, rowData);

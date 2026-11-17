@@ -14,6 +14,7 @@ interface Props {
 }
 
 const props = withDefaults(defineProps<Props>(), {
+  suffix: "",
   variant: "pill",
 });
 
@@ -74,7 +75,7 @@ const hasDelta = computed(
 const display = computed(() => {
   if (props.delta === null || props.delta === undefined) return EMPTY_DISPLAY;
   const percent = formatDeltaPercent(props.delta, locale.value);
-  return `${percent}${props.suffix ?? ""}`;
+  return `${percent}${props.suffix}`;
 });
 </script>
 

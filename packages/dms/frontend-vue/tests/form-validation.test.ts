@@ -1,7 +1,7 @@
 /** @vitest-environment jsdom */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { nextTick, reactive, ref } from "vue";
-import * as z from "zod";
+import { z } from "zod";
 import {
   codeEntryError,
   focusFirstFormError,
@@ -16,10 +16,11 @@ import { useCodeFieldError } from "../layers/dms-layout/app/entries/composables/
 /** Marks the keys it translates, so a test sees what went through i18n. */
 const translate = (key: string) => `t(${key})`;
 
+type LocalizedSchema = ReturnType<typeof localizeSchema>;
+
 async function issuesOf(
   schema: z.ZodTypeAny,
-  // oxlint-disable-next-line anti-slop/no-unknown-parameters -- Validation must receive unparsed inputs, including missing fields.
-  value: unknown,
+  value: Parameters<LocalizedSchema["~standard"]["validate"]>[0],
 ): Promise<Array<{ message: string; path?: PropertyKey[] }>> {
   const result = await localizeSchema(schema, translate)["~standard"].validate(
     value,

@@ -1,3 +1,4 @@
+import type { JsonValue } from "./json";
 import { RegisteringProxy } from "@antelopejs/interface-core";
 import type { User } from "./auth/db";
 import type { BlockLinkAction } from "./base/display";
@@ -161,9 +162,8 @@ export interface LayoutBannerComponentInfo extends LayoutBannerStaticBase {
    * button and ARIA role.
    */
   component: string;
-  /** Props passed to the component. Must be serializable. */
-  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- The named frontend component owns its prop schema; this published contract carries arbitrary props.
-  props?: Record<string, unknown>;
+  /** Props passed to the component, as JSON. */
+  props?: { readonly [prop: string]: JsonValue };
   text?: never;
   actions?: never;
 }

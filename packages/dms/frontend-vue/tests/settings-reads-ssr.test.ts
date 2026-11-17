@@ -149,7 +149,7 @@ describe("Security", () => {
             h(tag, [slots.badge?.(), slots.default?.(), slots.meta?.()]),
       });
     const register = (app: App) => {
-      for (const name of ["DmsSection", "DmsListRow"])
+      for (const name of ["DmsSectionPanel", "DmsListRow"])
         app.component(name, slotted("div"));
       for (const name of [
         "DmsEmptyState",

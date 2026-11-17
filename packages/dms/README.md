@@ -2,15 +2,15 @@
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/AntelopeJS/dms/main/packages/dms/frontend-vue/layers/dms-layout/public/images/antelope-logo/dark.svg">
-  <img alt="Antelope DMS" src="https://raw.githubusercontent.com/AntelopeJS/dms/main/packages/dms/frontend-vue/layers/dms-layout/public/images/antelope-logo/light.svg" height="72">
+  <img alt="Antelope DMS" src="https://raw.githubusercontent.com/AntelopeJS/dms/main/packages/dms/frontend-vue/layers/dms-layout/public/images/antelope-logo/light.svg" data-illustration height="72">
 </picture>
 
-# @antelopejs/dms
+# `@antelopejs/dms`
 
-<a href="https://www.npmjs.com/package/@antelopejs/dms"><img alt="npm" src="https://img.shields.io/npm/v/@antelopejs/dms?style=for-the-badge&labelColor=000000&color=000000"></a>
-<a href="./LICENSE"><img alt="License" src="https://img.shields.io/npm/l/@antelopejs/dms?style=for-the-badge&labelColor=000000&color=000000"></a>
-<a href="https://discord.gg/sjK28QHrA7"><img alt="Discord" src="https://img.shields.io/badge/Discord-18181B?logo=discord&style=for-the-badge&color=000000"></a>
-<a href="https://dms.antelopejs.com/docs"><img alt="Documentation" src="https://img.shields.io/badge/Docs-18181B?style=for-the-badge&color=000000"></a>
+<a href="https://www.npmjs.com/package/@antelopejs/dms"><img alt="npm" src="https://img.shields.io/npm/v/@antelopejs/dms?style=for-the-badge&labelColor=000000&color=000000" data-illustration></a>
+<a href="./LICENSE"><img alt="License" src="https://img.shields.io/npm/l/@antelopejs/dms?style=for-the-badge&labelColor=000000&color=000000" data-illustration></a>
+<a href="https://discord.gg/g4pFt6eXqu"><img alt="Discord" src="https://img.shields.io/badge/Discord-18181B?logo=discord&style=for-the-badge&color=000000" data-illustration></a>
+<a href="https://dms.antelopejs.com/docs"><img alt="Documentation" src="https://img.shields.io/badge/Docs-18181B?style=for-the-badge&color=000000" data-illustration></a>
 
 **Admin dashboards for AntelopeJS, declared in TypeScript on the backend.**
 
@@ -18,7 +18,7 @@
 
 </div>
 
-![A DMS dashboard: a period selector, KPI cards, a sales chart and ranked products](https://raw.githubusercontent.com/AntelopeJS/dms/main/packages/dms/docs/images/template-dashboard.png)
+![The Helio dashboard of the demo template: KPI cards, a revenue chart and the period selector](./docs/images/captures/helio-dashboard.webp)
 
 ## What it does
 
@@ -26,7 +26,7 @@
 - Handles sign-in, members, roles and permissions down to each block, multi-tenancy and a SaaS mode.
 - Manages data through data controllers and table views, with file uploads, notifications and realtime updates.
 - Grows with installable modules: an AI assistant, a page builder, database and API consoles, automations, SaaS billing, translations, mailing, marketing analytics and a media library.
-- Ships Claude Code skills (`dms`, `dms-best-practices`, `dms-pages`…) so coding agents build pages the way the DMS expects.
+- Ships Claude Code skills (`dms`, `dms-project`, `dms-auth`, `dms-module`) so coding agents use its API the way the DMS expects. The `antelopejs` plugin adds the page-building skills.
 
 Its public contracts live in a separate package, [`@antelopejs/interface-dms`](https://www.npmjs.com/package/@antelopejs/interface-dms): modules import them from there, never from this runtime.
 
@@ -43,23 +43,21 @@ The DMS also needs an API module, a module implementing the database interface, 
 
 ## Quick start
 
-Clone [template-dms-demo](https://github.com/AntelopeJS/template-dms-demo), which loads the DMS, its companions and a seeded demo application. It needs Node.js 22, pnpm and a MongoDB on `localhost:27017`.
+Create a project from the `template-dms-demo` template, which loads the DMS, its companion modules and Helio, a demo back office for a solar installer. It needs the Node.js and pnpm releases the template pins, and a MongoDB on `localhost:27017`.
 
 ```bash
-git clone https://github.com/AntelopeJS/template-dms-demo.git my-app
-cd my-app
-pnpm install
-pnpm --dir frontend-vue install
-cat > .env <<EOF
-DMS_API_BASE_URL=http://localhost:5010
-DMS_SESSION_SECRET=$(openssl rand -hex 32)
-EOF
-pnpm exec ajs project modules install
+npx @antelopejs/core project init dms-demo --template dms-demo
+cd dms-demo
 pnpm dev            # backend on http://localhost:5010
-pnpm frontend:dev   # dashboard on http://localhost:3001, in a second terminal
 ```
 
-Open `http://localhost:3001` and create the first administrator. A page is a class whose static fields are blocks:
+When the backend answers, start the dashboard in a second terminal, from the same folder:
+
+```bash
+pnpm frontend:dev   # dashboard on http://localhost:3001
+```
+
+Open the address that the backend logs after `No owner exists yet`, and create the first administrator. The [Tutorial](https://dms.antelopejs.com/docs/getting-started/tutorial) builds on this project. To start your own project instead, see [Quickstart](https://dms.antelopejs.com/docs/getting-started/quickstart). A page is a class whose static fields are blocks:
 
 ```ts
 import { PageController, RegisterPage, pagesCategory } from "@antelopejs/interface-dms/page";
@@ -77,14 +75,28 @@ export class SalesPage extends PageController("sales", {
 
 ## Compatibility
 
-| `@antelopejs/dms` | `@antelopejs/interface-dms` | `@antelopejs/dms-frontend` (renderer) |
-| --- | --- | --- |
-| 0.9 | 0.7 | `>=0.6.1 <0.7.0` |
-| 0.8 | 0.6 | `>=0.5.2 <0.6.0` |
+<!-- antelopejs-docs-compat:start -->
 
-**Embedded / AdonisJS 6**: tested with `@antelopejs/core` 1.15.2, `@antelopejs/dms` 0.9.2 and `@antelopejs/dms-frontend` 0.6.1 in an AdonisJS 6 application (see [Run the DMS inside AdonisJS](https://dms.antelopejs.com/docs/getting-started/adonisjs)).
+| Package                                     | Supported        | Tested with |
+| ------------------------------------------- | ---------------- | ----------- |
+| `@antelopejs/core`                          | `~1.24.0`        | `1.24.0`    |
+| `@antelopejs/interface-api`                 | `>=0.3.2 <0.4.0` | `0.3.2`     |
+| `@antelopejs/interface-api-util`            | `>=0.3.0 <0.4.0` | `0.3.0`     |
+| `@antelopejs/interface-core`                | `>=0.5.1 <0.6.0` | `0.5.1`     |
+| `@antelopejs/interface-data-api`            | `>=0.8.0 <0.9.0` | `0.8.0`     |
+| `@antelopejs/interface-database`            | `>=0.4.0 <0.5.0` | `0.4.1`     |
+| `@antelopejs/interface-database-catalog`    | `>=0.1.0 <0.2.0` | `0.1.0`     |
+| `@antelopejs/interface-database-decorators` | `>=0.5.2 <0.6.0` | `0.5.2`     |
+| `@antelopejs/interface-dms`                 | `workspace:^`    | `0.14.4`    |
+| `@antelopejs/interface-dms-automation`      | `>=0.7.0 <0.8.0` | `0.7.0`     |
+| `@antelopejs/interface-dms-builder`         | `workspace:^`    | `0.6.0`     |
+| `@antelopejs/interface-email`               | `>=0.2.1 <0.3.0` | `0.2.1`     |
+| `@antelopejs/interface-file-storage`        | `>=0.1.4 <0.2.0` | `0.1.4`     |
+| `@antelopejs/interface-redis`               | `>=0.0.9 <0.1.0` | `0.0.9`     |
 
-`@antelopejs/dms` 0.9.2 needs `@antelopejs/core` `>=1.15.2 <2` (its peer dependency). Every renderer release is listed in the frontend's [compatibility table](https://dms.antelopejs.com/docs/frontend/introduction#compatibility).
+<!-- antelopejs-docs-compat:end -->
+
+Each DMS release declares the renderer releases it runs on in `engines["@antelopejs/dms-frontend"]` of its frontend module, and the frontend's [compatibility table](https://dms.antelopejs.com/docs/frontend/introduction#compatibility) lists the renderer release line of each DMS release it covers. The DMS also runs embedded in an AdonisJS application: see [Run the DMS inside AdonisJS](https://dms.antelopejs.com/docs/getting-started/adonisjs).
 
 ## Documentation
 
@@ -98,16 +110,19 @@ export class SalesPage extends PageController("sales", {
 
 The runtime guides live in [`docs/`](./docs). The canonical contract reference belongs to [`@antelopejs/interface-dms`](../interface-dms/docs/index.md), not this runtime package.
 
-The package ships the core Claude Code skills (`dms`, `dms-auth`, `dms-best-practices`, `dms-module`, `dms-pages`, `dms-project`) in [`skills/`](https://github.com/AntelopeJS/dms/tree/main/packages/dms/skills), declared under `antelopeJs.skills`; [Install the plugin](https://dms.antelopejs.com/docs/ai-and-claude-code/install) to use them.
+The package ships the core Claude Code skills (`dms`, `dms-auth`, `dms-module`, `dms-project`) in [`skills/`](https://github.com/AntelopeJS/dms/tree/main/packages/dms/skills), declared under `antelopeJs.skills`; [Install the plugin](https://dms.antelopejs.com/docs/ai-and-claude-code/install) to use them. The plugin itself ships `antelopejs:dms-pages` and `antelopejs:dms-best-practices`.
 
 ## Contributing
 
 This package lives in the [`AntelopeJS/dms`](https://github.com/AntelopeJS/dms) pnpm workspace, next to `@antelopejs/interface-dms`. Read [CONTRIBUTING.md](https://github.com/AntelopeJS/dms/blob/main/CONTRIBUTING.md) and the [repository README](https://github.com/AntelopeJS/dms#contributing) for the development commands.
 
-## Third-party data
-
-The package ships the DB-IP IP to Country Lite database (`data/`) to tell which country a sign-in came from. It is licensed under the [Creative Commons Attribution 4.0 International License](https://creativecommons.org/licenses/by/4.0/): IP Geolocation by [DB-IP](https://db-ip.com). `pnpm country-database` downloads the current edition; packing the package for a release runs it.
-
 ## License
 
 [Apache-2.0](./LICENSE)
+
+## Requirements
+
+<!-- antelopejs-docs-node:start -->
+
+This package requires Node.js `^20.19.0 || >=22.12.0`.
+<!-- antelopejs-docs-node:end -->

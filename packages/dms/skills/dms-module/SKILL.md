@@ -31,12 +31,14 @@ manifest, including the `exports` entries for an interface subpath).
 when they provide none (`dms-lang`, `dms-saas`); consumed interfaces are plain `dependencies`
 (no manifest field). Typical dependencies: `@antelopejs/dms` plus
 `@antelopejs/interface-{core,api,api-util,auth,database,database-decorators}`. The frontend is
-attached at runtime by the `AddFrontendModule` call in `construct`; there is no manifest field for it.
+attached by the `AddFrontendModule` call in `construct` and declared as `"dmsFrontend": "dist/frontend-module.js"`
+in `package.json`: `ajs dms dev`, `build` and `start` read that declaration, not the backend, and leave
+out a module without it.
 
 **Ship a skill.** Add `skills/<module-name>/SKILL.md` (frontmatter `name`, a trigger-rich
 `description`, `icon`, `category`, `tags`) saying when and how to use the module, list `"skills"` in
 `files`, and declare `"antelopeJs": { "skills": ["./skills"] }`. The **antelopejs** plugin links it into
-Claude Code and Codex projects and dms-ai loads it — `docs/08.ai-and-claude-code/7.module-skills.md`.
+Claude Code and Codex projects and dms-assistant loads it — `docs/08.ai-and-claude-code/8.module-skills.md`.
 
 ## The lifecycle entry (`src/index.ts`)
 
@@ -81,7 +83,10 @@ export function destroy(): void { /* deactivate subscriptions */ }
 
 `RegisterModule` runs at import time (top level), so the module exists before its pages
 register — it returns the module's root `CategoryInfo`. `AddFrontendModule` is what surfaces the
-module's frontend; without it the module is backend-only.
+module's frontend; without it the module is backend-only. Keep its argument in a pure
+`export function frontendModule(config, { dev })` in `src/frontend-module.ts` (no runtime imports:
+`ajs dms build` loads that file on its own) and call `AddFrontendModule(frontendModule(config, …))`,
+as the official modules do; `dmsFrontend` names its compiled file.
 
 `renderer` names the framework (Vue 3), not a loader release. The `@antelopejs/dms-frontend`
 releases the frontend module runs on go in the frontend module's own `package.json`, as
@@ -105,7 +110,7 @@ it. Pages resolve at `/modules/<moduleId>/<urlSlug>`; entering the module lands 
 `landingPage` if set, else the first page by `order` — `/modules/<id>` itself redirects there (server
 redirect, query and hash kept), so never register a hidden page to forward it. `store` is not a
 module id to take: `/modules/store` is the DMS's module store. Access is **owner-only by design**: the
-Modules group is visible to the platform owner alone (the `*` holder), and the
+Modules group is visible to the platform owner alone (the user flagged `owner`), and the
 `modules.<moduleId>.…` permission ids are module-scoped — never grantable through Roles. On a
 SaaS deployment that means you, the maker, not your customers; a screen for end users belongs
 in a **project** page instead.

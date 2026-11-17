@@ -1,6 +1,7 @@
-import { execFileSync } from "node:child_process";
 import { resolve } from "node:path";
 import { expect } from "chai";
+import { z } from "zod";
+import { runPackageManager } from "../../utils/package-manager/index";
 
 const PACKAGE_ROOT = resolve(__dirname, "..", "..", "..");
 const PACK_TIMEOUT_MS = 60_000;
@@ -38,19 +39,17 @@ const DEVELOPMENT_ONLY = [
   /^frontend-vue\/pnpm-workspace\.yaml$/,
 ];
 
-function packedFiles(): string[] {
-  const output = execFileSync(
+const PackOutput = z.tuple([
+  z.object({ files: z.array(z.object({ path: z.string() })) }),
+]);
+
+async function packedFiles(): Promise<string[]> {
+  const { stdout } = await runPackageManager(
     "npm",
     ["pack", "--dry-run", "--json", "--ignore-scripts"],
-    {
-      cwd: PACKAGE_ROOT,
-      encoding: "utf8",
-      timeout: PACK_TIMEOUT_MS,
-
-      stdio: ["ignore", "pipe", "pipe"],
-    },
+    { cwd: PACKAGE_ROOT, timeout: PACK_TIMEOUT_MS },
   );
-  const [pack]: [{ files: { path: string }[] }] = JSON.parse(output);
+  const [pack] = PackOutput.parse(JSON.parse(stdout));
   return pack.files.map((file) => file.path);
 }
 
@@ -58,8 +57,8 @@ describe("[unit] published package contents", function () {
   this.timeout(PACK_TIMEOUT_MS);
 
   let files: string[];
-  before(() => {
-    files = packedFiles();
+  before(async () => {
+    files = await packedFiles();
   });
 
   it("ships what the loader and the renderer read", () => {

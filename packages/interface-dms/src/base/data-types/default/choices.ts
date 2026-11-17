@@ -7,10 +7,20 @@ import {
   BooleanTypeOptions,
   SelectTypeOptions,
   NumberTypeOptions,
+  PriceTypeOptions,
 } from "./options";
 import { BOOLEAN_INPUTS, SINGLE_PICK_DISPLAYS, SELECT_INPUTS } from "./inputs";
 import { NumberType } from "./numbers";
+import {
+  CURRENCY_FROM_KEY,
+  withColumnReference,
+} from "../../internal/column-references";
 
+/**
+ * The `boolean` data type.
+ *
+ * @docsApi
+ */
 @RegisterDataType("boolean")
 export class BooleanType extends DataType {
   constructor(public readonly options: BooleanTypeOptions = {}) {
@@ -51,20 +61,29 @@ export class BooleanType extends DataType {
   }
 }
 
+/**
+ * The `select` data type.
+ *
+ * @docsApi
+ */
 @RegisterDataType("select")
 export class SelectType extends DataType {
   constructor(public readonly options: SelectTypeOptions = { items: [] }) {
     super(
-      [
-        options.multiple
-          ? DefaultDataCompareTypes.Include
-          : DefaultDataCompareTypes.Is,
-        options.multiple
-          ? DefaultDataCompareTypes.Exclude
-          : DefaultDataCompareTypes.IsNot,
-        DefaultDataCompareTypes.IsEmpty,
-        DefaultDataCompareTypes.IsNotEmpty,
-      ],
+      options.multiple
+        ? [
+            DefaultDataCompareTypes.Include,
+            DefaultDataCompareTypes.Exclude,
+            DefaultDataCompareTypes.ArrayContainsString,
+            DefaultDataCompareTypes.IsEmpty,
+            DefaultDataCompareTypes.IsNotEmpty,
+          ]
+        : [
+            DefaultDataCompareTypes.Is,
+            DefaultDataCompareTypes.IsNot,
+            DefaultDataCompareTypes.IsEmpty,
+            DefaultDataCompareTypes.IsNotEmpty,
+          ],
       options.multiple
         ? DefaultDataCompareTypes.Include
         : DefaultDataCompareTypes.Is,
@@ -84,30 +103,65 @@ export class SelectType extends DataType {
     return { default: FormComponents.InputSelect(options) };
   }
 
-  getValidation() {
-    const validValues = this.options.items.map((item) => String(item.value));
-
-    if (this.options.multiple) {
-      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Items may be empty; preserve the existing Zod enum call.
-      return z.array(z.enum(validValues as [string, ...string[]]));
+  getValidation():
+    | z.ZodNever
+    | z.ZodEnum<[string, ...string[]]>
+    | z.ZodArray<z.ZodNever | z.ZodEnum<[string, ...string[]]>>
+    | z.ZodString
+    | z.ZodArray<z.ZodString> {
+    if (this.options.itemsFrom) {
+      return this.options.multiple ? z.array(z.string()) : z.string();
     }
-
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Items may be empty; preserve the existing Zod enum call.
-    return z.enum(validValues as [string, ...string[]]);
+    const [first, ...rest] = this.options.items.map((item) =>
+      String(item.value),
+    );
+    const value = first === undefined ? z.never() : z.enum([first, ...rest]);
+    return this.options.multiple ? z.array(value) : value;
   }
 }
 
+/**
+ * The `price` data type.
+ *
+ * @docsApi
+ */
 @RegisterDataType("price")
 export class PriceType extends NumberType {
-  constructor(options: NumberTypeOptions = {}) {
+  declare readonly options: PriceTypeOptions;
+
+  constructor(options: PriceTypeOptions = {}) {
     super({
       min: options.min ?? 0,
       step: options.step ?? 0.01,
       ...options,
     });
   }
+
+  protected defaultInputComponent() {
+    const { currency, currencyFrom } = this.options;
+    return FormComponents.InputNumber(
+      withColumnReference(
+        {
+          min: this.options.min,
+          max: this.options.max,
+          step: this.options.step,
+          placeholder: this.options.placeholder,
+          suffix: this.options.suffix,
+          width: this.options.width,
+          ...(currency && { currency }),
+        },
+        CURRENCY_FROM_KEY,
+        currency ? undefined : currencyFrom,
+      ),
+    );
+  }
 }
 
+/**
+ * The `percentage` data type.
+ *
+ * @docsApi
+ */
 @RegisterDataType("percentage")
 export class PercentageType extends NumberType {
   constructor(options: NumberTypeOptions = {}) {

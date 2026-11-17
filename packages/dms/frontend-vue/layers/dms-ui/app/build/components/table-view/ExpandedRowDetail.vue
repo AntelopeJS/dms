@@ -4,7 +4,7 @@ import { get } from "@nuxt/ui/runtime/utils/index.js";
 import DmsKeyValueList, {
   type KeyValueItem,
 } from "../../../components/key-value-list/KeyValueList.vue";
-import DmsEyebrow from "../../../components/section-header/Eyebrow.vue";
+import DmsEyebrowLabel from "../../../components/section-header/EyebrowLabel.vue";
 import { useColumnValueRenderer } from "../../composables/data-types/useColumnValueRenderer";
 import type {
   TableViewColumn,
@@ -12,6 +12,7 @@ import type {
   TableViewExpandedRowProps,
 } from "../../../composables/table-view/types";
 import type { ExpandedRowLoadState } from "../../composables/table-view/useExpandedRowDetails";
+import type { Data } from "../table/TableRoot.vue";
 
 /**
  * Detail band of an expanded TableView row: the configured `component`, which
@@ -19,7 +20,7 @@ import type { ExpandedRowLoadState } from "../../composables/table-view/useExpan
  * (each value drawn by its column's data type, like a cell). While a
  * `lazyLoad` row loads, or if it fails, the band says so in its place.
  */
-interface ExpandedRowDetailProps<T extends Data> {
+export interface ExpandedRowDetailProps<T extends Data> {
   /** What the band details, as a custom band receives it. */
   rowProps: TableViewExpandedRowProps<T>;
   /** The table view's `expandable` configuration. */
@@ -94,9 +95,9 @@ const FieldValue = (fieldProps: { item: KeyValueItem }) =>
     aria-busy="true"
   >
     <USkeleton
-      :aria-label="t('dms.a11y.loading')"
       v-for="line in SKELETON_LINE_COUNT"
       :key="line"
+      :aria-label="t('dms.a11y.loading')"
       class="h-4 w-full max-w-md"
     />
   </div>
@@ -127,7 +128,7 @@ const FieldValue = (fieldProps: { item: KeyValueItem }) =>
     v-else-if="fields.length > 0"
     class="grid min-w-0 content-start gap-2"
   >
-    <DmsEyebrow
+    <DmsEyebrowLabel
       v-if="props.config.fieldsLabel"
       :label="processI18n(props.config.fieldsLabel)"
     />

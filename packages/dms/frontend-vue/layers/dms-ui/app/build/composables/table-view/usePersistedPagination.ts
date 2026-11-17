@@ -1,6 +1,7 @@
 import type { PaginationState } from "@tanstack/vue-table";
 import { computed, ref, watch, type Ref } from "vue";
 import { hashText } from "#dms-core/app/entries/composables/user/tablePreferences";
+import type { TableFilter } from "../../components/table/Table.types";
 import type { TablePreferences } from "./useTablePreferences";
 
 const FIRST_PAGE_INDEX = 0;
@@ -13,8 +14,7 @@ export interface PersistedPaginationOptions {
    * What lists other rows without the user picking it: the hidden filters
    * the page URL sets. A change of value lists from the first page.
    */
-  // oxlint-disable-next-line anti-slop/no-unknown-returns -- The scope is an opaque value serialized for equality, not a query sent to an endpoint. No schema owns all scope values; narrowing would exclude existing serializable callers.
-  scope: () => unknown;
+  scope: () => TableFilter[][];
 }
 
 const firstPage = (pagination: PaginationState): PaginationState => ({

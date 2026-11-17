@@ -1,9 +1,14 @@
 <script setup lang="ts" generic="T extends Data">
+import { themeOverride } from "./tableComponentTheme";
 import { injectLocal } from "@vueuse/core";
 import { tv } from "tailwind-variants";
 import type { ShallowRef } from "vue";
-import type { Data, TableSharedData, NavItem } from "./Table.vue";
+import type { Data, TableSharedData, NavItem } from "./TableRoot.vue";
 import { useTableConfigClipboard } from "../../composables/table/useTableConfigClipboard";
+
+export interface MenuRootEmits {
+  (e: "navigate", view: string): void;
+}
 
 const theme = tv({
   slots: {
@@ -21,17 +26,10 @@ const theme = tv({
   },
 });
 
-interface Emits {
-  (e: "navigate", view: string): void;
-}
-
-const emits = defineEmits<Emits>();
+const emits = defineEmits<MenuRootEmits>();
 const { t } = useI18n();
 
-// oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Module theme configuration is unchecked; retain its existing contract derived from this component's normalized theme.
-const appConfig = useDmsAppConfig() as ReturnType<typeof useDmsAppConfig> & {
-  ui: { tableMenuRoot: Partial<typeof theme> };
-};
+const appConfig = useDmsAppConfig();
 
 const tableSharedData =
   injectLocal<ShallowRef<TableSharedData<T>>>("tableSharedData");
@@ -105,7 +103,7 @@ const navItems = computed((): NavItem[] => {
 
 const uiTableMenuRootVariant = tv({
   extend: tv(theme),
-  ...appConfig.ui?.tableMenuRoot,
+  ...themeOverride("tableMenuRoot"),
 });
 const uiTableMenuRoot = computed(() => uiTableMenuRootVariant());
 </script>

@@ -65,10 +65,18 @@ describe("bulk selection requests", () => {
   it("takes a row token out of a URL the selection bar sends, as an unresolved page token", () => {
     expect(
       targetWithSelection(
-        { type: "api", url: "/rerun?ids={{row._id}}&force=1" },
+        {
+          type: "api",
+          url: "/rerun?ids={{row._id}}&force=1",
+          successMessage: "$runs.done",
+        },
         { ids: ["a", "b"] },
       ),
-    ).toEqual({ type: "api", url: "/rerun?force=1&ids=a&ids=b" });
+    ).toEqual({
+      type: "api",
+      url: "/rerun?force=1&ids=a&ids=b",
+      successMessage: "$runs.done",
+    });
     expect(
       targetWithSelection(
         { type: "download", url: "/export?ids={{ row._id }}" },

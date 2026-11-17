@@ -4,6 +4,7 @@ import {
   UserNotificationPreferences,
   userNotificationPreferencesTableName,
 } from "../tables";
+import { isObject } from "@antelopejs/interface-dms/utils/internal/type-check";
 
 const buildDefaultPreferences =
   (): UserNotificationPreferences["preferences"] => {
@@ -118,8 +119,7 @@ export class UserNotificationPreferencesModel extends BasicDataModel(
 
     const hasValidPreferences =
       existing &&
-      // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Legacy stored preferences can be missing or malformed; preserve the existing object check and default repair path.
-      typeof existing.preferences === "object" &&
+      isObject(existing.preferences) &&
       existing.preferences !== null;
 
     if (hasValidPreferences) {
@@ -130,8 +130,8 @@ export class UserNotificationPreferencesModel extends BasicDataModel(
       const defaultPreferences = buildDefaultPreferences();
       await this.updatePreferences(userId, defaultPreferences);
 
-      // oxlint-disable-next-line typescript/no-misused-spread -- Preserve the existing repaired row's own persisted fields and replacement preferences without introducing prototype methods into its return value.
-      return { ...existing, preferences: defaultPreferences };
+      existing.preferences = defaultPreferences;
+      return existing;
     }
 
     return await this.createDefault(userId);

@@ -6,6 +6,7 @@ import {
   type TenantProvisioningHookPayload,
   UnregisterHook,
 } from "@antelopejs/interface-dms/hooks";
+import type { JsonValue } from "@antelopejs/interface-dms/base/types";
 import { expect } from "chai";
 
 type ProvisioningHandler = HookHandler<Hook.TENANT_BEING_PROVISIONED>;
@@ -22,7 +23,7 @@ function register(handler: ProvisioningHandler): void {
 }
 
 function buildPayload(
-  extras: TenantProvisioningHookPayload["extras"] = {},
+  extras: Record<string, JsonValue> = {},
 ): TenantProvisioningHookPayload {
   return { tenantId: TENANT_ID, userId: USER_ID, extras };
 }
@@ -30,8 +31,9 @@ function buildPayload(
 async function provision(payload: TenantProvisioningHookPayload) {
   try {
     await ExecuteHooks(Hook.TENANT_BEING_PROVISIONED, payload);
-  } catch (error: PromiseRejectedResult["reason"]) {
-    return error;
+  } catch (error: unknown) {
+    if (error instanceof Error) return error;
+    throw error;
   }
   return undefined;
 }
@@ -61,7 +63,7 @@ describe("[unit] interfaces/dms/hooks — TENANT_BEING_PROVISIONED", () => {
     const error = await provision(buildPayload());
 
     expect(error).to.be.instanceOf(Error);
-    expect(error.message).to.equal(HANDLER_FAILURE);
+    expect(error?.message).to.equal(HANDLER_FAILURE);
 
     expect(reached).to.deep.equal(["first"]);
   });
@@ -105,14 +107,14 @@ describe("[unit] interfaces/dms/hooks — TENANT_BEING_PROVISIONED", () => {
 
   it("carries extras a future consumer invents, with no DMS change", async () => {
     const unknownToTheDms = { whateverTheProductAsks: ["a", "b"] };
-    let seen: TenantProvisioningHookPayload["extras"] | undefined;
+    let seen: TenantProvisioningHookPayload | undefined;
     register(async (payload) => {
-      seen = payload.extras;
+      seen = payload;
       return undefined;
     });
 
     await provision(buildPayload(unknownToTheDms));
 
-    expect(seen).to.deep.equal(unknownToTheDms);
+    expect(seen?.extras).to.deep.equal(unknownToTheDms);
   });
 });

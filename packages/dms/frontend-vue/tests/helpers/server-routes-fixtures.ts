@@ -1,12 +1,25 @@
 import { createHmac, randomUUID } from "node:crypto";
-import type { IncomingMessage, Server } from "node:http";
+import { IncomingMessage, ServerResponse, type Server } from "node:http";
+import { Socket } from "node:net";
 
-import { readSealedCookie } from "@antelopejs/dms-frontend/templates/vue/server/auth/session.mjs";
-import { isObject } from "../../layers/dms-core/app/utils/type-check";
+import {
+  readSealedCookie,
+  writeSealedCookie,
+} from "@antelopejs/dms-frontend/templates/vue/server/auth/session.mjs";
+import type { JsonValue } from "../../layers/dms-core/app/types/json";
+import {
+  isNull,
+  isNumber,
+  isObject,
+  isString,
+} from "../../layers/dms-core/app/utils/type-check";
 
 const RELAY_SECRET = "relay-secret-for-tests-only";
 const RENDER_SECRET = "render-secret-for-tests-only";
 const ESTABLISH_ENDPOINT = "/api/saas/register/finalize";
+const REVOKED_EMAIL = "revoked@example.test";
+const EXPIRED_EMAIL = "expired@example.test";
+const GONE_EMAIL = "gone@example.test";
 const UUID =
   /[0-9a-f]{8}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{12}/g;
 
@@ -33,14 +46,36 @@ const USER = {
   language: "fr",
 };
 
-/** What the backend answers each path with. */
-function backendAnswer(
-  path: string,
-  body: { password?: string; email?: string; token?: string },
-) {
-  if (path === "/api/auth/login" && body.password === "wrong")
+interface BackendReply {
+  status: number;
+  body: unknown;
+}
+
+interface BackendBody {
+  password?: string;
+  email?: string;
+  token?: string;
+}
+
+/** Answers a test puts in place of the backend's own, by path. */
+const answerOverrides = new Map<string, BackendReply>();
+
+function signedIn(serial: string, refreshToken: string): BackendReply {
+  return {
+    status: 200,
+    body: {
+      access_token: accessToken("t1", serial),
+      refresh_token: refreshToken,
+      user: USER,
+    },
+  };
+}
+
+/** What the backend answers a login that signs in a known account. */
+function knownLoginAnswer(body: BackendBody): BackendReply | undefined {
+  if (body.password === "wrong")
     return { status: 401, body: { message: "error.auth.invalid_credentials" } };
-  if (path === "/api/auth/login" && body.email === "2fa@example.test")
+  if (body.email === "2fa@example.test")
     return {
       status: 200,
       body: {
@@ -49,6 +84,27 @@ function backendAnswer(
         methods: ["totp"],
       },
     };
+  if (body.email === REVOKED_EMAIL) return signedIn("login", "revoked");
+  if (body.email === EXPIRED_EMAIL) return signedIn("expired", "refresh-1");
+  if (body.email === GONE_EMAIL) return signedIn("expired", "revoked-gone");
+  return undefined;
+}
+
+/** What the backend answers each path with. */
+function backendAnswer(
+  path: string,
+  body: BackendBody,
+  authorization?: string,
+): BackendReply {
+  const override = answerOverrides.get(path);
+  if (override) return override;
+  const login = path === "/api/auth/login" ? knownLoginAnswer(body) : undefined;
+  if (login) return login;
+  if (
+    path === "/api/auth/logout" &&
+    authorization === `Bearer ${accessToken("t1", "expired")}`
+  )
+    return { status: 401, body: { message: "Invalid session token" } };
   if (
     [
       "/api/auth/login",
@@ -66,7 +122,7 @@ function backendAnswer(
         user: USER,
       },
     };
-  if (path === "/api/auth/refresh" && body.token === "revoked")
+  if (path === "/api/auth/refresh" && body.token?.startsWith("revoked"))
     return { status: 401, body: { message: "error.auth.invalid_token" } };
   if (path === "/api/auth/refresh" || path === "/api/auth/switch-tenant")
     return {
@@ -90,15 +146,24 @@ function backendAnswer(
 
 const calls: BackendCall[] = [];
 
-function readBody(
-  request: IncomingMessage,
-): Promise<Parameters<typeof backendAnswer>[1]> {
+function isBackendBody(value: unknown): value is BackendBody {
+  return (
+    isObject(value) &&
+    !isNull(value) &&
+    [value.password, value.email, value.token].every(
+      (field) => field === undefined || isString(field),
+    )
+  );
+}
+
+function readBody(request: IncomingMessage): Promise<BackendBody> {
   return new Promise((settle) => {
     const chunks: Buffer[] = [];
     request.on("data", (chunk: Buffer) => chunks.push(chunk));
     request.on("end", () => {
       const text = Buffer.concat(chunks).toString("utf8");
-      settle(text ? JSON.parse(text) : {});
+      const body: unknown = text ? JSON.parse(text) : {};
+      settle(isBackendBody(body) ? body : {});
     });
   });
 }
@@ -106,7 +171,7 @@ function readBody(
 async function listen(server: Server): Promise<string> {
   await new Promise<void>((settle) => server.listen(0, "127.0.0.1", settle));
   const address = server.address();
-  if (!address || !isObject(address)) throw new Error("no address");
+  if (!address || isString(address)) throw new Error("no address");
   return `http://127.0.0.1:${address.port}`;
 }
 
@@ -125,13 +190,27 @@ interface Answer {
   calls: BackendCall[];
 }
 
-function normalized<T>(value: T): T {
-  return JSON.parse(
-    JSON.stringify(value ?? null)
+function isAnswer(value: unknown): value is Answer {
+  return (
+    isObject(value) &&
+    !isNull(value) &&
+    isNumber(value.status) &&
+    (isNull(value.location) || isString(value.location)) &&
+    Array.isArray(value.cookies) &&
+    Array.isArray(value.calls) &&
+    "body" in value
+  );
+}
+
+function normalized(value: Answer): Answer {
+  const normal: unknown = JSON.parse(
+    JSON.stringify(value)
       .replaceAll(UUID, "<account>")
       .replaceAll(/"updatedAt":\d+/g, '"updatedAt":"<stamp>"')
       .replaceAll(/"expiresAt":\d+/g, '"expiresAt":"<time>"'),
   );
+  if (!isAnswer(normal)) throw new Error("the normalised answer is no answer");
+  return normal;
 }
 
 /** A Set-Cookie header, its sealed value decoded. */
@@ -141,9 +220,9 @@ function decodedCookie(header: string) {
   const scopedName = pair.slice(0, separator);
   const name = scopedName.replace(/_[0-9a-f]{12}$/, "");
   const raw = pair.slice(separator + 1);
-  const value = raw
-    ? readSealedCookie({ headers: { cookie: pair } }, name)
-    : "";
+  const request = new IncomingMessage(new Socket());
+  request.headers.cookie = pair;
+  const value = raw ? readSealedCookie(request, name) : "";
   return { name: scopedName, attributes: attributes.join("; "), value };
 }
 
@@ -153,6 +232,8 @@ async function ask(
   init: {
     method?: string;
     body?: unknown;
+    /** A body already written as JSON text, sent as it is in place of `body`. */
+    rawBody?: string;
     cookie?: string;
     origin?: boolean;
     headers?: Record<string, string>;
@@ -162,11 +243,14 @@ async function ask(
   const headers = new Headers(init.headers);
   if (init.cookie) headers.set("cookie", init.cookie);
   if (init.origin !== false) headers.set("origin", base);
-  if (init.body !== undefined) headers.set("content-type", "application/json");
+  const body =
+    init.rawBody ??
+    (init.body === undefined ? undefined : JSON.stringify(init.body));
+  if (body !== undefined) headers.set("content-type", "application/json");
   const response = await fetch(`${base}${path}`, {
     method: init.method ?? "POST",
     headers,
-    body: init.body === undefined ? undefined : JSON.stringify(init.body),
+    body,
     redirect: "manual",
   });
   const text = await response.text();
@@ -204,6 +288,16 @@ async function cookiesOf(
     .join("; ");
 }
 
+/** The Cookie header pair a browser would send for a sealed cookie of `value`. */
+function sealedCookie(name: string, value: JsonValue | undefined): string {
+  const response = new ServerResponse(new IncomingMessage(new Socket()));
+  writeSealedCookie(response, name, value, undefined);
+  const header = response.getHeader("set-cookie");
+  const cookie = Array.isArray(header) ? header[0] : header;
+  if (!isString(cookie)) throw new Error("no cookie was written");
+  return cookie.split(";", 1)[0];
+}
+
 function renderToken(): string {
   const header = Buffer.from('{"alg":"HS256","typ":"JWT"}').toString(
     "base64url",
@@ -229,7 +323,11 @@ export {
   RELAY_SECRET,
   RENDER_SECRET,
   ESTABLISH_ENDPOINT,
+  REVOKED_EMAIL,
+  EXPIRED_EMAIL,
+  GONE_EMAIL,
   USER,
+  answerOverrides,
   backendAnswer,
   calls,
   readBody,
@@ -238,4 +336,5 @@ export {
   ask,
   cookiesOf,
   renderToken,
+  sealedCookie,
 };

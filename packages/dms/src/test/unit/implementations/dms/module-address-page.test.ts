@@ -1,3 +1,4 @@
+import { HTTPResult } from "@antelopejs/interface-api";
 import { ImplementInterface } from "@antelopejs/interface-core";
 import { expect } from "chai";
 import {
@@ -7,7 +8,6 @@ import {
 import * as permissionsImpl from "../../../../implementations/dms/permissions";
 import * as permissionsResolverImpl from "../../../../implementations/dms/permissions-resolver";
 import * as tenantAccessImpl from "../../../../implementations/dms/tenant-access";
-import type { User } from "@antelopejs/interface-dms/auth/db";
 import {
   PageController,
   internal as pageInterfaceInternal,
@@ -20,10 +20,10 @@ import {
   registerTestPage,
   stubPageAccessModels,
 } from "../../../helpers/page-access";
+import { userFixture } from "../../../helpers/user-fixture";
 
 const TENANT = "module-address-tenant";
-// SAFETY: Module-page access consumes this id and owner flag; no persisted-user operations are exercised.
-const OWNER = { _id: "module-address-owner", owner: true } as User;
+const OWNER = userFixture({ _id: "module-address-owner", owner: true });
 const LANDING_MODULE = "module-address-landing";
 const ORDERED_MODULE = "module-address-ordered";
 
@@ -47,8 +47,8 @@ async function servedSlug(path: string): Promise<string | undefined> {
 async function failureStatus(path: string): Promise<number | undefined> {
   try {
     await servedSlug(path);
-  } catch (error: PromiseRejectedResult["reason"]) {
-    return error.status;
+  } catch (error: unknown) {
+    return error instanceof HTTPResult ? error.getStatus() : undefined;
   }
   return undefined;
 }

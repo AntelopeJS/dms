@@ -1,27 +1,30 @@
 const { execFileSync } = require("node:child_process");
-const { existsSync, readFileSync, statSync } = require("node:fs");
 const { createRequire } = require("node:module");
-const { dirname, extname, join, relative, resolve, sep } = require("node:path");
+const {
+  existsSync,
+  globSync,
+  lstatSync,
+  readFileSync,
+  realpathSync,
+  statSync,
+} = require("node:fs");
+const nodePath = require("node:path");
+const { sep } = nodePath;
 const ts = require("typescript");
 
-const playground = resolve(__dirname, "..");
-const repository = resolve(playground, "../../..");
-const frontendRequire = createRequire(
-  join(playground, "../frontend-vue/package.json"),
-);
-const { parse } = frontendRequire("vue/compiler-sfc");
-const { globSync } = createRequire(
-  frontendRequire.resolve("vite/package.json"),
-)("tinyglobby");
-const { ANTELOPE_IGNORE_PATTERNS } = createRequire(
-  join(repository, "package.json"),
-)("@antelopejs/tooling-configs/oxc/lint");
-const { ignorePatterns } = require(
-  join(repository, "oxlint.config.ts"),
-).default;
+const playground = nodePath.resolve(__dirname, "..");
+const repository = nodePath.resolve(playground, "../../..");
+const { parse } = require("../../frontend-vue/node_modules/vue/compiler-sfc");
+const {
+  ANTELOPE_IGNORE_PATTERNS,
+} = require("@antelopejs/tooling-configs/oxc/lint");
+const {
+  default: { ignorePatterns },
+  PENDING_FRONTEND_VUE,
+} = require("../../../../oxlint.config.ts");
 
-/** The directory oxlint leaves to the Vue layer's own ESLint config. */
-const ESLINT_OWNED = "packages/dms/frontend-vue/**";
+/** The areas of the Vue layer oxlint does not lint yet, which hold no `?raw` import. */
+const pending = new Set(PENDING_FRONTEND_VUE);
 const scriptExtensions = new Set([
   ".js",
   ".jsx",
@@ -33,15 +36,25 @@ const scriptExtensions = new Set([
   ".cts",
 ]);
 const lintedExtensions = new Set([...scriptExtensions, ".vue"]);
+/** @type {string[]} */
 const failures = [];
+/** @type {Set<string>} */
 const rawFiles = new Set();
 
-/** Repository-relative POSIX path of an absolute path. */
+/**
+ * Repository-relative POSIX path of an absolute path.
+ * @param {string} path
+ * @returns {string}
+ */
 function repositoryPath(path) {
-  return relative(repository, path).split(sep).join("/");
+  return nodePath.relative(repository, path).split(sep).join("/");
 }
 
-/** Text of a property name the parser can read without evaluating code. */
+/**
+ * Text of a property name the parser can read without evaluating code.
+ * @param {ts.ObjectLiteralElementLike} property
+ * @returns {string | undefined}
+ */
 function propertyName(property) {
   const name = property.name;
   if (name && ts.isComputedPropertyName(name))
@@ -53,37 +66,76 @@ function propertyName(property) {
     : undefined;
 }
 
-/** The file Vite loads for a path written without its extension or as a directory. */
+/**
+ * Whether an ignore pattern names a `.claude/skills` link into `.agents/skills`,
+ * or everything below one. The lint reads the link's files at their target, so
+ * ignoring the link hides nothing.
+ * @param {string} pattern
+ * @returns {boolean}
+ */
+function isSkillLink(pattern) {
+  const entry = pattern.replace(/\/\*\*$/u, "");
+  if (!/^\.claude\/skills\/[^/]+$/u.test(entry)) return false;
+  const path = nodePath.join(repository, entry);
+  return (
+    existsSync(path) &&
+    lstatSync(path).isSymbolicLink() &&
+    realpathSync(path).startsWith(
+      nodePath.join(realpathSync(repository), ".agents/skills") + sep,
+    )
+  );
+}
+
+/**
+ * The file Vite loads for a path written without its extension or as a directory.
+ * @param {string} path
+ * @returns {string | undefined}
+ */
 function resolveSource(path) {
   if (existsSync(path) && statSync(path).isFile()) return path;
   const candidates = [...lintedExtensions].flatMap((extension) => [
     `${path}${extension}`,
-    join(path, `index${extension}`),
+    nodePath.join(path, `index${extension}`),
   ]);
   return candidates.find((candidate) => existsSync(candidate));
 }
 
-/** Whether a Vite query string requests the raw source. */
+/**
+ * Whether a Vite query string requests the raw source.
+ * @param {string} query
+ * @returns {boolean}
+ */
 function isRawQuery(query) {
   return new URLSearchParams(query.replace(/^\?/u, "")).has("raw");
 }
 
-/** Where Node resolves a bare specifier from a file, if anywhere. */
+/**
+ * Where Node resolves a bare specifier from a file, if anywhere.
+ * @param {string} path
+ * @param {string} file
+ * @returns {string | undefined}
+ */
 function packageFile(path, file) {
   try {
-    return createRequire(join(repository, file)).resolve(path);
+    return createRequire(nodePath.join(repository, file)).resolve(path);
   } catch {
     return undefined;
   }
 }
 
-/** Records the target of an import specifier that carries `?raw`. */
+/**
+ * Records the target of an import specifier that carries `?raw`.
+ * @param {string} specifier
+ * @param {string} file
+ */
 function addSpecifier(specifier, file) {
   const query = specifier.indexOf("?");
   if (query === -1 || !isRawQuery(specifier.slice(query))) return;
   const path = specifier.slice(0, query);
   if (path.startsWith("./") || path.startsWith("../")) {
-    const target = resolveSource(resolve(repository, dirname(file), path));
+    const target = resolveSource(
+      nodePath.resolve(repository, nodePath.dirname(file), path),
+    );
     if (target) rawFiles.add(repositoryPath(target));
     else failures.push(`${file}: "${specifier}" resolves to no file`);
     return;
@@ -92,7 +144,12 @@ function addSpecifier(specifier, file) {
     failures.push(`${file}: import "${specifier}" by relative path`);
 }
 
-/** Whether `import.meta.glob` options request raw sources. */
+/**
+ * Whether `import.meta.glob` options request raw sources.
+ * @param {ts.Expression | undefined} options
+ * @param {string} file
+ * @returns {boolean}
+ */
 function isRawGlob(options, file) {
   if (options === undefined) return false;
   if (!ts.isObjectLiteralExpression(options)) {
@@ -122,7 +179,11 @@ function isRawGlob(options, file) {
   });
 }
 
-/** Records every file an `import.meta.glob` call loads as raw source. */
+/**
+ * Records every file an `import.meta.glob` call loads as raw source.
+ * @param {ts.CallExpression} call
+ * @param {string} file
+ */
 function addGlob(call, file) {
   const [patterns, options] = call.arguments;
   if (!isRawGlob(options, file)) return;
@@ -140,16 +201,26 @@ function addGlob(call, file) {
     failures.push(`${file}: write ?raw glob patterns as relative literals`);
     return;
   }
-  const cwd = resolve(repository, dirname(file));
-  for (const match of globSync(sources, {
-    cwd,
-    absolute: true,
-    ignore: ["**/node_modules/**"],
-  }))
-    rawFiles.add(repositoryPath(match));
+  const cwd = nodePath.resolve(repository, nodePath.dirname(file));
+  const excluded = sources.filter((pattern) => pattern.startsWith("!"));
+  for (const match of globSync(
+    sources.filter((pattern) => !pattern.startsWith("!")),
+    {
+      cwd,
+      exclude: [
+        ...excluded.map((pattern) => pattern.slice(1)),
+        "**/node_modules/**",
+      ],
+    },
+  ))
+    rawFiles.add(repositoryPath(nodePath.resolve(cwd, match)));
 }
 
-/** Whether a node is the `import.meta.glob` member. */
+/**
+ * Whether a node is the `import.meta.glob` member.
+ * @param {ts.Node} node
+ * @returns {boolean}
+ */
 function isGlobMember(node) {
   if (!ts.isPropertyAccessExpression(node) || node.name.text !== "glob")
     return false;
@@ -160,7 +231,11 @@ function isGlobMember(node) {
   );
 }
 
-/** Records the `?raw` imports below one syntax node. */
+/**
+ * Records the `?raw` imports below one syntax node.
+ * @param {ts.Node} node
+ * @param {string} file
+ */
 function visit(node, file) {
   if (
     (ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) &&
@@ -183,7 +258,12 @@ function visit(node, file) {
   ts.forEachChild(node, (child) => visit(child, file));
 }
 
-/** Records the `?raw` imports of one script body. */
+/**
+ * Records the `?raw` imports of one script body.
+ * @param {string} source
+ * @param {string} file
+ * @param {ts.ScriptKind} kind
+ */
 function scan(source, file, kind) {
   visit(
     ts.createSourceFile(file, source, ts.ScriptTarget.Latest, true, kind),
@@ -199,10 +279,11 @@ const files = execFileSync(
   .split("\0")
   .filter(
     (file) =>
-      lintedExtensions.has(extname(file)) && existsSync(join(repository, file)),
+      lintedExtensions.has(nodePath.extname(file)) &&
+      existsSync(nodePath.join(repository, file)),
   );
 for (const file of files) {
-  const source = readFileSync(join(repository, file), "utf8");
+  const source = readFileSync(nodePath.join(repository, file), "utf8");
   if (!source.includes("raw")) continue;
   if (!file.endsWith(".vue")) {
     scan(
@@ -220,12 +301,17 @@ for (const file of files) {
 const defaults = new Set(ANTELOPE_IGNORE_PATTERNS);
 const listed = new Set(
   ignorePatterns.filter(
-    (pattern) => !defaults.has(pattern) && pattern !== ESLINT_OWNED,
+    (pattern) =>
+      !defaults.has(pattern) && !pending.has(pattern) && !isSkillLink(pattern),
   ),
 );
+/**
+ * @param {string} left
+ * @param {string} right
+ */
 const byPath = (left, right) => left.localeCompare(right);
 const linted = [...rawFiles].filter((file) =>
-  lintedExtensions.has(extname(file)),
+  lintedExtensions.has(nodePath.extname(file)),
 );
 for (const file of linted.sort(byPath))
   if (!listed.has(file))

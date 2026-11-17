@@ -4,6 +4,7 @@ import { isObject, isString } from "../layers/dms-core/app/utils/type-check";
 import {
   type App,
   type Component,
+  type InjectionKey,
   computed,
   createApp,
   defineComponent,
@@ -20,7 +21,10 @@ import {
 } from "@nuxt/ui/composables/useFormField";
 
 const fieldError = ref<string | undefined>();
-const formEvents: Array<{ type: string; name: string }> = [];
+type FormBus =
+  typeof formBusInjectionKey extends InjectionKey<infer Bus> ? Bus : never;
+
+const formEvents: Array<NonNullable<Parameters<FormBus["emit"]>[0]>> = [];
 
 let app: App | undefined;
 let host: HTMLDivElement;
@@ -51,7 +55,7 @@ const passThrough = (tag: string) =>
 
 async function mountInField(
   control: Component,
-  props: NonNullable<Parameters<typeof h>[1]> = {},
+  props: Record<string, string> = {},
 ): Promise<void> {
   const Field = defineComponent({
     setup() {
@@ -63,10 +67,15 @@ async function mountInField(
           ariaId: "field-aria",
         })),
       );
-      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- This partial event bus intentionally supplies only emit; the mounted controls never subscribe, reset, or read listeners, so it is not a complete Nuxt event bus.
       provide(formBusInjectionKey, {
-        emit: (event: { type: string; name: string }) => formEvents.push(event),
-      } as never);
+        on: () => () => {},
+        once: () => () => {},
+        off: () => {},
+        reset: () => {},
+        emit: (event) => {
+          if (event) formEvents.push(event);
+        },
+      } satisfies FormBus);
       return () => h(control, { id: "field", ...props });
     },
   });

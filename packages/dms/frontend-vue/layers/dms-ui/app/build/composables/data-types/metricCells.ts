@@ -21,7 +21,7 @@ import {
 import { getAppTranslation } from "../../../../../dms-core/app/composables/translation/useTranslation";
 
 const Sparkline = defineAsyncComponent(
-  () => import("../../../components/chart/internal/Sparkline.vue"),
+  () => import("../../../components/chart/internal/SparklineChart.vue"),
 );
 
 const CELL_TEXT_CLASS = "text-[12.5px]";
@@ -125,8 +125,7 @@ export function progressShares(done: number, failed: number, total: number) {
  * end, and "done / total"; green once every item is done.
  */
 function renderProgress(options: Parameters<DataTypeFormatter>[2], row: Row) {
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- DataTypeFormatter erases options; field names are consumed without validation in the existing progress formatter.
-  const opts = (options ?? {}) as ProgressOptions;
+  const opts: Partial<ProgressOptions> = options ?? {};
   const done = numberOf(readRowField(row, opts.doneField));
   const total = numberOf(readRowField(row, opts.totalField));
   const failed = numberOf(readRowField(row, opts.errorField));
@@ -166,8 +165,7 @@ interface SparklineOptions {
 
 /** `sparkline`: a small line chart of a list of numbers. */
 function renderSparkline(options: Parameters<DataTypeFormatter>[2], row: Row) {
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The plugin options contract has no sparkline schema; preserve its unchecked field and tone reads.
-  const opts = (options ?? {}) as SparklineOptions;
+  const opts: Partial<SparklineOptions> = options ?? {};
   const series = readRowField(row, opts.field);
   const values = Array.isArray(series)
     ? series.map(Number).filter(Number.isFinite)
@@ -272,6 +270,10 @@ function renderDuration(
  * Cell data types a column picks through its `display` option to draw a
  * metric: a status, a progress, a series, a duration, a size, an id.
  */
+interface MonoOptions {
+  copy?: boolean;
+}
+
 export const registerMetricCellTypes = (
   registerDataType: (dataType: DataType) => void,
 ) => {
@@ -312,13 +314,14 @@ export const registerMetricCellTypes = (
   registerDataType({
     id: "mono",
     formatter: {
-      default: (value, _locale, options) =>
-        h(MonoCell, {
+      default: (value, _locale, options) => {
+        const opts: MonoOptions = options ?? {};
+        return h(MonoCell, {
           value: String(value),
-          // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The open plugin options contract does not validate copy; preserve the existing truthiness conversion.
-          copy: !!(options as { copy?: boolean } | undefined)?.copy,
+          copy: !!opts.copy,
           class: CELL_TEXT_CLASS,
-        }),
+        });
+      },
     },
   });
 };

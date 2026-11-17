@@ -6,7 +6,7 @@
  * another page is left alone.
  */
 import { createApp, defineComponent, h, nextTick, ref, type App } from "vue";
-import { afterEach, beforeEach, expect, it } from "vitest";
+import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import {
   ROW_ID_ATTRIBUTE,
   useRowScrollAnchor,
@@ -19,7 +19,6 @@ let app: App | undefined;
 let scroller: HTMLDivElement;
 let scrollTop = 0;
 const ids = ref<string[]>([]);
-const boundingRect = Element.prototype.getBoundingClientRect;
 
 function layOut(): void {
   Object.defineProperty(scroller, "scrollTop", {
@@ -38,11 +37,15 @@ function layOut(): void {
     get: () => VIEW_HEIGHT,
   });
   scroller.getBoundingClientRect = () => new DOMRect();
-  const rowTop = (row: Element) =>
-    [...scroller.querySelectorAll("tr")].indexOf(row) * ROW_HEIGHT - scrollTop;
-  Element.prototype.getBoundingClientRect = function (this: Element) {
-    return new DOMRect(0, rowTop(this));
+  const rowTop = (row: Element) => {
+    const rows: Element[] = [...scroller.querySelectorAll("tr")];
+    return rows.indexOf(row) * ROW_HEIGHT - scrollTop;
   };
+  vi.spyOn(Element.prototype, "getBoundingClientRect").mockImplementation(
+    function (this: Element) {
+      return new DOMRect(0, rowTop(this));
+    },
+  );
 }
 
 function mount(): void {
@@ -81,7 +84,7 @@ beforeEach(() => {
 afterEach(() => {
   app?.unmount();
   scroller.remove();
-  Element.prototype.getBoundingClientRect = boundingRect;
+  vi.restoreAllMocks();
 });
 
 it("keeps the rows in view where they were when rows land above them", async () => {

@@ -10,7 +10,7 @@ import {
   watch,
 } from "vue";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import File from "../layers/dms-ui/app/components/form/components/File.vue";
+import File from "../layers/dms-ui/app/components/form/components/InputFile.vue";
 
 const dropZone = defineComponent({
   inheritAttrs: false,

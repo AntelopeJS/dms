@@ -1,4 +1,7 @@
-import { DefaultLayout, SettingsLayout } from "../base/layouts";
+import {
+  DefaultLayout,
+  SettingsLayout,
+} from "../component-options/page-layout";
 import { internal } from "./categories";
 import { RootCategory } from "./internal/categories";
 import { Category, RootPageController } from "./controllers";

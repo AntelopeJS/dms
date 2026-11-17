@@ -1,9 +1,15 @@
-import { Get, Parameter, PartialController } from "@antelopejs/interface-api";
+import {
+  Get,
+  Parameter,
+  PartialController,
+  type QueryValue,
+} from "@antelopejs/interface-api";
 import type { User } from "@antelopejs/interface-dms/auth/db";
 import { serializeConfirmDialog } from "@antelopejs/interface-dms/base/confirm-dialog";
 import { AuthUserWithPermission } from "@antelopejs/interface-dms/guards";
 import { DemoRecordController } from "../demo-record-api";
 import { FORM_CUSTOM_INPUT_API, PageFormCustomInput } from "./page";
+import { queryText } from "../../query-text";
 
 const DEFAULT_RETENTION_DAYS = 28;
 
@@ -23,11 +29,11 @@ export class FormCustomInputAPIController extends PartialController(
   declare user: User;
 
   @Get("lower-retention")
-  lowerRetention(@Parameter("days", "query") days?: string) {
+  lowerRetention(@Parameter("days", "query") days: QueryValue) {
     return serializeConfirmDialog({
       title: "Delete history older than {days} days?",
       description: "Older entries are deleted at the next save. Type delete.",
-      params: { days },
+      params: { days: queryText(days) },
       color: "error",
       icon: "i-ph-trash",
       confirmLabel: "Delete and save",

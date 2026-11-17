@@ -1,5 +1,9 @@
 import { GetMetadata } from "@antelopejs/interface-core";
-import { MakeMethodAndPropertyDecorator } from "@antelopejs/interface-core/decorators";
+import {
+  type Class,
+  type DecoratorTarget,
+  MakeMethodAndPropertyDecorator,
+} from "@antelopejs/interface-core/decorators";
 import {
   Access,
   AccessMode,
@@ -15,10 +19,12 @@ import {
 } from "@antelopejs/interface-database-decorators";
 import type { Component, ComponentBuilder } from "../../component";
 import { isString } from "../../utils/internal/type-check";
+import { decoratedClass } from "../../utils/internal/decorated-class";
 import type { ColumnDisplay } from "./column-display";
 import { buildTableConfig, decorateColumn } from "./internal/meta-helpers";
-// oxlint-disable-next-line import/no-cycle -- The barrel evaluates built-in data-type decorators; serializeType needs the registry they populate.
-import { type DataType, serializeType } from "../data-types";
+import { filterArchiveField } from "./internal/archive-filter";
+import { DataType, serializeType } from "../data-types";
+import { installTableViewMeta } from "../data-types/internal/table-view-meta-slot";
 import {
   type FieldCondition,
   type FieldGroup,
@@ -139,7 +145,10 @@ export type TableViewAccess = "read" | "write";
 
 /** A data type of the same class whose options can change on their own. */
 function copyDataType(type: DataType): DataType {
-  const copy: DataType = Object.create(Object.getPrototypeOf(type));
+  const copy: unknown = Object.create(Reflect.getPrototypeOf(type));
+  if (!(copy instanceof DataType)) {
+    throw new TypeError("A copied data type must stay a DataType");
+  }
   return Object.assign(copy, type, {
     options: type.options && { ...type.options },
   });
@@ -158,8 +167,11 @@ const WRITE_ACTION_IDS = new Set([
 export class TableViewMeta {
   public static key = Symbol();
 
-  // oxlint-disable-next-line anti-slop/no-unknown-returns -- This published constructor contract accepts arbitrary controller constructors; their instance result cannot be narrowed compatibly here.
-  constructor(public readonly target: new (...args: unknown[]) => unknown) {}
+  static {
+    installTableViewMeta(TableViewMeta);
+  }
+
+  constructor(public readonly target: DecoratorTarget) {}
 
   public options: TableViewOptions<any> = {};
   public readonly columns: Record<string, ColumnOptions> = {};
@@ -398,7 +410,9 @@ export class TableViewMeta {
         }
         processedGroups.add(options.group);
 
-        const groupConfig = this.groups[options.group];
+        const groupConfig = Object.hasOwn(this.groups, options.group)
+          ? this.groups[options.group]
+          : undefined;
         const groupFields = sortedEntries
           .filter(([, opts]) => opts.group === options.group)
           .map(([k, opts]) =>
@@ -446,11 +460,11 @@ export class TableViewMeta {
     this.groups[id] = config;
   }
 
-  private readonly footerSummaries: TableViewFooterSummary<any>[] = [];
+  private readonly footerSummaries: TableViewFooterSummary[] = [];
 
   /** Records footer summaries; the ids the `summary` route knows them by. */
-  public registerFooterSummaries<T extends Record<string, unknown>>(
-    summaries: TableViewFooterSummary<T>[],
+  public registerFooterSummaries(
+    summaries: TableViewFooterSummary[],
   ): string[] {
     return summaries.map((summary) => {
       this.footerSummaries.push(summary);
@@ -459,7 +473,7 @@ export class TableViewMeta {
   }
 
   /** A footer summary by the id `registerFooterSummaries` gave it. */
-  public footerSummary(id: string): TableViewFooterSummary<any> | undefined {
+  public footerSummary(id: string): TableViewFooterSummary | undefined {
     return FOOTER_SUMMARY_ID.test(id)
       ? this.footerSummaries[Number(id)]
       : undefined;
@@ -476,28 +490,30 @@ export class TableViewMeta {
 
 export const Column = MakeMethodAndPropertyDecorator(
   (target, key, descriptor, options: ColumnOptions) => {
-    const meta = GetMetadata(target.constructor, TableViewMeta);
+    const meta = GetMetadata(decoratedClass(target), TableViewMeta);
     decorateColumn(target, key, descriptor, options, meta);
   },
 );
 
 export function ColumnGroup(id: string, config: ColumnGroupConfig) {
-  // oxlint-disable-next-line anti-slop/no-unknown-returns -- The published decorator accepts constructors with arbitrary instance results; constraining the constructor would change its declaration.
-  return (target: new (...args: unknown[]) => unknown) => {
+  return (target: Class) => {
     GetMetadata(target, TableViewMeta).setGroup(id, config);
   };
 }
 
 export const ArchiveField = MakeMethodAndPropertyDecorator((target, key) => {
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The published decorator accepts PropertyKey while archive fields are declared as strings; this adapter does not reject non-string keys.
-  GetMetadata(target.constructor, TableViewMeta).setArchiveField(key as string);
+  if (!isString(key)) {
+    throw new TypeError(
+      `An ArchiveField must be a member named by a string, not ${String(key)}`,
+    );
+  }
+  const fieldName = key;
+  const owner = decoratedClass(target);
+  GetMetadata(owner, TableViewMeta).setArchiveField(fieldName);
 
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The published decorator accepts PropertyKey but Filter expects a string; key-kind validation would change existing behavior.
-  Filter()(target, key as string);
+  Filter(filterArchiveField)(target, fieldName);
   Listable()(target, key);
-  const field = GetMetadata(target.constructor, DataAPIMeta)
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The published field map uses string keys, while the decorator supplies PropertyKey without verifying its kind.
-    .fields[key as string];
+  const field = GetMetadata(owner, DataAPIMeta).fields[fieldName];
   if (!field?.mode) Access(AccessMode.ReadOnly)(target, key);
 });
 

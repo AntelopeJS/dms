@@ -15,12 +15,14 @@ import {
 } from "vue";
 import { renderToString } from "vue/server-renderer";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { DmsFrontendRuntime } from "#dms/frontend-module";
-import type { TableViewColumn } from "../layers/dms-ui/app/composables/table-view/types";
+import type { DmsFrontendRuntime, DmsPayload } from "#dms/frontend-module";
+import { fetchClient } from "./fixtures/fetchClient";
+import { tableViewColumn } from "./fixtures/tableViewColumn";
 
 const engine = await import("#dms/frontend-module");
 vi.stubGlobal("computed", computed);
 vi.stubGlobal("useDmsAsyncData", engine.useDmsAsyncData);
+vi.stubGlobal("useDmsState", engine.useDmsState);
 vi.stubGlobal("useI18n", () => ({ locale: { value: "en" } }));
 vi.stubGlobal("useTranslation", () => ({
   processI18n: (text: string) => text,
@@ -28,8 +30,7 @@ vi.stubGlobal("useTranslation", () => ({
 vi.stubGlobal("useDataTypes", () => ({ getDataType: () => undefined }));
 
 const LOCATION = "/api/orders";
-// SAFETY: This SSR data-fetch fixture uses only column ids and accessor keys; it does not render column inputs.
-const COLUMNS = [{ id: "total", accessorKey: "total" }] as TableViewColumn[];
+const COLUMNS = [tableViewColumn("total")];
 const DELAY_MS = 20;
 
 interface Request {
@@ -50,11 +51,11 @@ async function answer<T>(url: string, value: T): Promise<T> {
   return value;
 }
 
-// SAFETY: The table requests only the list and count responses supplied here; this fixture does not implement fetch's generic helper methods.
-const api = (async (url: string) =>
+const api = fetchClient(async (url: string) =>
   url.endsWith("/count/batch")
     ? answer(url, { all: 2, open: 1 })
-    : answer(url, { results: [{ _id: "a", total: 3 }], total: 1 })) as never;
+    : answer(url, { results: [{ _id: "a", total: 3 }], total: 1 }),
+);
 vi.stubGlobal("useAuthFetch", () => ({
   $authFetch: (url: string) => answer(url, { sum: 42 }),
 }));
@@ -107,7 +108,8 @@ const Table = defineComponent({
       h("p", [
         `rows:${list.data.value?.total ?? "-"}`,
         ` counts:${counts.data.value ? counts.data.value.all : "-"}`,
-        ` sum:${footer.value?.summaries[0]?.value ?? "-"}`,
+        " sum:",
+        footer.value?.summaries?.[0]?.value ?? "-",
       ]);
   },
 });
@@ -125,7 +127,7 @@ afterEach(() => {
   mounted.splice(0).forEach((app) => app.unmount());
 });
 
-async function serverRender(): Promise<{ html: string; payload: unknown }> {
+async function serverRender(): Promise<{ html: string; payload: DmsPayload }> {
   runtime = engine.createDmsFrontendRuntime(undefined, {}, true);
   const app = createSSRApp(Table);
   engine.provideDmsFrontendRuntime(app, runtime);

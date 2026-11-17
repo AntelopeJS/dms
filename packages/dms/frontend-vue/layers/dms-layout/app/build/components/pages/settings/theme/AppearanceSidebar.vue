@@ -12,8 +12,8 @@ const { preferences, pick } = useAppearanceSave();
   >
     <USwitch
       :model-value="preferences.sidebarStartCollapsed.value"
-      @update:model-value="pick('sidebarStartCollapsed', $event)"
       :aria-label="t('page.settings.appearance.sidebar_start_collapsed')"
+      @update:model-value="pick('sidebarStartCollapsed', $event)"
     />
   </DmsFieldRow>
 </template>

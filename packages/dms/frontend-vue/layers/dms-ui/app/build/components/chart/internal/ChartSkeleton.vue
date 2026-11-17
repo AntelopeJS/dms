@@ -49,9 +49,9 @@ const { t } = useI18n();
     aria-busy="true"
   >
     <USkeleton
-      :aria-label="t('dms.a11y.loading')"
       v-for="(barHeight, index) in GHOST_BAR_HEIGHTS"
       :key="index"
+      :aria-label="t('dms.a11y.loading')"
       class="flex-1 rounded-t-[4px] rounded-b-none"
       :style="{ height: `${barHeight}${PERCENT_UNIT}` }"
     />

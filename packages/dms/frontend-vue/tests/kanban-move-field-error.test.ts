@@ -9,8 +9,12 @@ import "./helpers/table-runtime";
 import { useRealDataEngine } from "./fixtures/dataEngine";
 import Sortable from "sortablejs";
 import {
+  readOnlyFailure,
+  installReadOnlyRefusal,
+} from "./helpers/read-only-refusal";
+import type { TableViewColumn } from "../layers/dms-ui/app/composables/table-view/types";
+import {
   type App,
-  type Component,
   Suspense,
   computed,
   createApp,
@@ -26,11 +30,15 @@ const flushPromises = () => new Promise((resolve) => setTimeout(resolve));
 
 const DEAL = { _id: "d1", stage: "lead", lostReason: null };
 
-const STAGE_COLUMN = {
+const STAGE_COLUMN: TableViewColumn = {
+  id: "stage",
   accessorKey: "stage",
   header: "Stage",
+  listable: true,
   type: {
     id: "select",
+    compareModes: [],
+    filterComponents: {},
     inputComponent: {
       options: {
         items: [
@@ -41,10 +49,17 @@ const STAGE_COLUMN = {
     },
   },
 };
-const LOST_REASON_COLUMN = {
+const LOST_REASON_COLUMN: TableViewColumn = {
+  id: "lostReason",
   accessorKey: "lostReason",
   header: "Loss reason",
-  type: { id: "select" },
+  listable: true,
+  type: {
+    id: "select",
+    compareModes: [],
+    filterComponents: {},
+    inputComponent: {},
+  },
 };
 
 const refusal = Object.assign(
@@ -55,10 +70,11 @@ const refusal = Object.assign(
     data: { code: "missing_mandatory_fields", fields: ["lostReason"] },
   },
 );
+let isReadOnly = false;
 
 const authFetch = vi.fn(
   async (url: string, options: { query?: Record<string, string> } = {}) => {
-    if (url.endsWith("/edit")) throw refusal;
+    if (url.endsWith("/edit")) throw isReadOnly ? readOnlyFailure() : refusal;
     if (url.endsWith("/get")) return { ...DEAL };
     const stage = options.query?.filter_stage?.replace("is:", "");
     const results = stage === DEAL.stage ? [{ ...DEAL }] : [];
@@ -66,7 +82,7 @@ const authFetch = vi.fn(
   },
 );
 
-const addToast = vi.fn();
+const addToast = vi.fn(() => ({ id: "failure" }));
 
 const translate = (
   key: string,
@@ -82,6 +98,8 @@ let app: App | undefined;
 let host: HTMLDivElement;
 
 beforeEach(() => {
+  vi.stubEnv("SSR", false);
+  isReadOnly = false;
   addToast.mockClear();
   for (const [name, value] of Object.entries({
     computed,
@@ -117,9 +135,8 @@ async function mountBoard() {
   app = createApp({
     render: () =>
       h(Suspense, null, {
-        // SAFETY: The imported SFC is a Vue component; mounting it does not require preserving its generic row signature.
         default: () =>
-          h(KanbanBoard as Component, {
+          h(KanbanBoard, {
             groupByField: "stage",
             location: "/deals",
             columns: [STAGE_COLUMN, LOST_REASON_COLUMN],
@@ -135,33 +152,68 @@ async function mountBoard() {
   await nextTick();
 }
 
-describe("a card dropped on a column the server refuses", () => {
-  it("names the missing field by its column's label", async () => {
-    await mountBoard();
-    const lists = [...host.querySelectorAll("div")]
-      .map((element) => Sortable.get(element))
-      .filter((list) => list !== undefined);
-    expect(lists).toHaveLength(2);
-    const [source, target] = lists;
-    const item = source!.el.children[0]!;
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Sortable's full event requires browser drag fields; this synthetic callback fixture supplies only the fields consumed by the board.
-    source!.option("onStart")!({ item, oldIndex: 0 } as never);
-    target!.el.append(item);
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- This callback fixture intentionally omits Sortable browser drag fields unused by the board.
-    target!.option("onAdd")!({ item, newIndex: 0 } as never);
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- This callback fixture intentionally omits Sortable browser drag fields unused by the board.
-    source!.option("onRemove")!({ item, oldIndex: 0 } as never);
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The board's end callback consumes no event fields; constructing a browser drag event would add irrelevant fixture state.
-    source!.option("onEnd")!({} as never);
-    await flushPromises();
-    await flushPromises();
+/** The event Sortable hands its handlers for the card it drags. */
+class CardDragEvent extends Event implements Sortable.SortableEvent {
+  readonly clone: HTMLElement;
+  readonly from: HTMLElement;
+  readonly items: HTMLElement[];
+  readonly target: HTMLElement;
+  readonly to: HTMLElement;
+  readonly oldDraggableIndex = undefined;
+  readonly newDraggableIndex = undefined;
+  readonly pullMode = undefined;
+  readonly oldIndicies = [];
+  readonly newIndicies = [];
+  readonly swapItem = null;
 
-    expect(addToast).toHaveBeenCalledWith(
-      expect.objectContaining({
-        color: "error",
-        title: "dms.table.kanban.move_error",
-        description: "Loss reason est obligatoire.",
-      }),
-    );
-  });
+  constructor(
+    readonly item: HTMLElement,
+    readonly oldIndex: number | undefined,
+    readonly newIndex: number | undefined,
+  ) {
+    super("sortable");
+    this.clone = item;
+    this.from = item;
+    this.items = [item];
+    this.target = item;
+    this.to = item;
+  }
+}
+
+describe("a card dropped on a column the server refuses", () => {
+  it.each([false, true])(
+    "keeps the refusal visible and rolls back when read-only=%s",
+    async (marked) => {
+      isReadOnly = marked;
+      if (marked) installReadOnlyRefusal();
+      await mountBoard();
+      const lists = [...host.querySelectorAll("div")]
+        .map((element) => Sortable.get(element))
+        .filter((list) => list !== undefined);
+      expect(lists).toHaveLength(2);
+      const [source, target] = lists;
+      const item = source!.el.children[0];
+      if (!(item instanceof HTMLElement))
+        throw new Error("the board has no card");
+      source!.option("onStart")!(new CardDragEvent(item, 0, undefined));
+      target!.el.append(item);
+      target!.option("onAdd")!(new CardDragEvent(item, undefined, 0));
+      source!.option("onRemove")!(new CardDragEvent(item, 0, undefined));
+      source!.option("onEnd")!(new CardDragEvent(item, undefined, undefined));
+      await flushPromises();
+      await flushPromises();
+
+      const expected = marked
+        ? { title: "error.read_only_demo", color: "warning" }
+        : {
+            color: "warning",
+            title: "dms.action_error.fields",
+          };
+      expect(addToast).toHaveBeenCalledExactlyOnceWith(
+        expect.objectContaining(expected),
+      );
+      expect(source!.el.children).toHaveLength(1);
+      expect(target!.el.children).toHaveLength(0);
+    },
+  );
 });

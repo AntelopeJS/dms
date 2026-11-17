@@ -1,8 +1,9 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { Logging } from "@antelopejs/interface-core/logging";
+import { z } from "zod";
 import { getStoreConfig } from "../config";
-import type { StoreCatalog, StoreCatalogEntry } from "./types";
+import type { StoreCatalogEntry } from "./types";
 
 const BUNDLED_CATALOG_PATH = path.join(
   __dirname,
@@ -18,42 +19,49 @@ interface CachedCatalog {
   modules: StoreCatalogEntry[];
 }
 
+const CatalogEntrySchema = z
+  .object({
+    id: z.string(),
+    package: z.string(),
+    icon: z.string(),
+    category: z.string(),
+  })
+  .passthrough();
+
+const CatalogDocumentSchema = z.object({
+  version: z.unknown(),
+  modules: z.array(z.unknown()).nullish(),
+});
+
+type CatalogDocument = z.infer<typeof CatalogDocumentSchema>;
+
 let cachedRemote: CachedCatalog | undefined;
 let bundled: StoreCatalogEntry[] | undefined;
-
-/* oxlint-disable anti-slop/no-runtime-typeof -- Catalog entries are filtered by the existing required string checks, not by a stricter replacement schema. */
-function isCatalogEntry(value: unknown): value is StoreCatalogEntry {
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- This partial view enables the existing field checks; optional catalog properties remain unchecked for compatibility.
-  const entry = value as Partial<StoreCatalogEntry> | null;
-  return (
-    typeof entry?.id === "string" &&
-    typeof entry.package === "string" &&
-    typeof entry.icon === "string" &&
-    typeof entry.category === "string"
-  );
-}
-/* oxlint-enable anti-slop/no-runtime-typeof */
 
 /**
  * The entries of a catalog document. A document of another version, or an
  * entry missing a field, is dropped rather than half-read: the store must
  * never install a package the catalog did not name in full.
  */
-// oxlint-disable-next-line anti-slop/no-unknown-parameters -- This parser accepts raw local or fetched JSON and applies the existing version and entry checks.
-export function readCatalogDocument(document: unknown): StoreCatalogEntry[] {
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The version and entries are checked below; validating the full catalog would change malformed-document behavior.
-  const catalog = document as Partial<StoreCatalog> | null;
+export function readCatalogDocument(
+  catalog: CatalogDocument | null,
+): StoreCatalogEntry[] {
   if (catalog?.version !== SUPPORTED_CATALOG_VERSION) {
     throw new Error(
       `Unsupported module catalog version: ${String(catalog?.version)}`,
     );
   }
-  return (catalog.modules ?? []).filter(isCatalogEntry);
+  return (catalog.modules ?? []).flatMap((entry) => {
+    const parsed = CatalogEntrySchema.safeParse(entry);
+    return parsed.success ? [parsed.data] : [];
+  });
 }
 
 function bundledCatalog(): StoreCatalogEntry[] {
   bundled ??= readCatalogDocument(
-    JSON.parse(readFileSync(BUNDLED_CATALOG_PATH, "utf-8")),
+    CatalogDocumentSchema.parse(
+      JSON.parse(readFileSync(BUNDLED_CATALOG_PATH, "utf-8")),
+    ),
   );
   return bundled;
 }
@@ -65,7 +73,9 @@ async function fetchRemoteCatalog(url: string): Promise<StoreCatalogEntry[]> {
   if (!response.ok) {
     throw new Error(`HTTP ${response.status}`);
   }
-  return readCatalogDocument(await response.json());
+  return readCatalogDocument(
+    CatalogDocumentSchema.parse(await response.json()),
+  );
 }
 
 /**

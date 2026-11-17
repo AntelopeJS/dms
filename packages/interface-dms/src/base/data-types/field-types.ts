@@ -128,6 +128,8 @@ function itemField(input: ArrayItemFieldInput): ArrayItemField {
  * A list of rows, each an object of the fields `of` declares, edited as a
  * repeater: a row per item, a column per field, rows added, removed and,
  * when `sortable`, reordered. The value is the list of objects.
+ *
+ * @docsApi
  */
 @RegisterDataType("array")
 export class ArrayType extends DataType {
@@ -178,6 +180,8 @@ export class ArrayType extends DataType {
  * Pairs of a name and a value (headers, labels, environment variables),
  * edited as a repeater of two columns. The value is an object, a key per
  * pair: its value, or `{ value, enabled }` when `toggleable`.
+ *
+ * @docsApi
  */
 @RegisterDataType("key_value")
 export class KeyValueType extends DataType {
@@ -217,6 +221,8 @@ export class KeyValueType extends DataType {
  * travels as is: the input shows it masked but its last characters, "Show"
  * reveals it and the copy button copies it, in the browser; "Rotate…"
  * (with `rotateUrl`) asks the module for a new one.
+ *
+ * @docsApi
  */
 @RegisterDataType("secret")
 export class SecretType extends DataType {
@@ -253,6 +259,8 @@ function isJson(text: string): boolean {
  * as text and edited in a code editor: line numbers, highlighting and an
  * autocomplete of the language's keywords and the module's `completions`.
  * JSON is refused when it does not parse.
+ *
+ * @docsApi
  */
 @RegisterDataType("code")
 export class CodeType extends DataType {
@@ -276,6 +284,8 @@ export class CodeType extends DataType {
  * With `itemType: "email"`, an item that is no address is refused. A filter
  * keeps the rows holding a tag (`array_contains_string`, the text typed
  * matched inside each tag, case aside), or with none or some.
+ *
+ * @docsApi
  */
 @RegisterDataType("tags")
 export class TagsType extends DataType {

@@ -1,3 +1,5 @@
+import type { Class } from "@antelopejs/interface-core/decorators";
+
 const primitiveTypes = [
   "string",
   "number",
@@ -8,10 +10,35 @@ const primitiveTypes = [
 ] as const;
 type Primitive = (typeof primitiveTypes)[number];
 
+interface PrimitiveValueByTag {
+  string: string;
+  number: number;
+  boolean: boolean;
+  undefined: undefined;
+  bigint: bigint;
+  symbol: symbol;
+}
+type PrimitiveValue = PrimitiveValueByTag[Primitive];
+
+type TypeofTag<T> = T extends string
+  ? "string"
+  : T extends number
+    ? "number"
+    : T extends boolean
+      ? "boolean"
+      : T extends undefined
+        ? "undefined"
+        : T extends bigint
+          ? "bigint"
+          : T extends symbol
+            ? "symbol"
+            : T extends Function
+              ? "function"
+              : "object";
+
 const createTypeGuard =
-  <T>(type: string) =>
+  <T>(type: TypeofTag<T>) =>
   (v: unknown): v is T =>
-    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- These published primitive predicates implement JavaScript tag checks, including the legacy object/null behavior, rather than schema validation.
     typeof v === type;
 
 /** @internal */
@@ -28,15 +55,25 @@ export const isObject = createTypeGuard<object>("object");
 export const isFunction =
   // oxlint-disable-next-line anti-slop/no-unknown-returns -- The published function predicate promises no result shape for arbitrary callable values.
   createTypeGuard<(...args: unknown[]) => unknown>("function");
+/**
+ * Whether a value is a class: a function with an object `prototype`, which
+ * arrow functions, methods and bound functions lack. A generator function has
+ * one too, a language limit this check shares with every `prototype` test.
+ *
+ * @internal
+ */
+export const isClass = (value: unknown): value is Class =>
+  typeof value === "function" &&
+  typeof value.prototype === "object" &&
+  value.prototype !== null;
 /** @internal */
 export const isBigint = createTypeGuard<bigint>("bigint");
 /** @internal */
 export const isSymbol = createTypeGuard<symbol>("symbol");
 
 /** @internal */
-export const isPrimitive = (value: unknown): value is Primitive => {
+export const isPrimitive = (value: unknown): value is PrimitiveValue => {
   const types: readonly string[] = primitiveTypes;
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- This published predicate classifies JavaScript tags and retains its existing Primitive contract.
   return types.includes(typeof value);
 };
 
@@ -54,7 +91,7 @@ export const isJSON = (value: unknown): boolean => {
     return false;
   }
   try {
-    const parsed = JSON.parse(value);
+    const parsed: unknown = JSON.parse(value);
     return isObject(parsed) && !isNull(parsed);
   } catch {
     return false;

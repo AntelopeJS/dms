@@ -22,9 +22,13 @@ import {
   extensionForm,
   recordingExtension,
 } from "../../../helpers/invite-extensions";
+import { httpRejectionOf } from "../../../helpers/http-rejection";
+import { captureErrors } from "../../../helpers/logging";
 import { admin, register } from "./invite-extension.helpers";
 
-export function registerInviteExtensionPayloadCases(): void {
+const HTTP_BAD_REQUEST = 400;
+
+function registerPayloadEditCases(): void {
   describe("payload edited on a pending invitation", () => {
     it("tells an extension its payload changed, parsed, with the previous one", async () => {
       const updates: unknown[][] = [];
@@ -99,7 +103,9 @@ export function registerInviteExtensionPayloadCases(): void {
       expect(seen).to.deep.equal(["CC-43"]);
     });
   });
+}
 
+function registerPayloadSubmitCases(): void {
   describe("payload collected at submit", () => {
     it("splits each extension's slice out of the submitted body", async () => {
       register(recordingExtension("billing", "costCenter").options);
@@ -131,6 +137,40 @@ export function registerInviteExtensionPayloadCases(): void {
       ).to.equal(undefined);
     });
 
+    it("reports a refused slice on the prefixed field id the browser submitted", async () => {
+      register(recordingExtension("billing", "costCenter").options);
+
+      const error = await httpRejectionOf(
+        submitInvite({ billing__costCenter: "" }, admin),
+      );
+      expect(error.getStatus()).to.equal(HTTP_BAD_REQUEST);
+      const body = z
+        .object({
+          issues: z.array(z.object({ path: z.array(z.string()) })),
+        })
+        .parse(JSON.parse(error.getBody()));
+      expect(body.issues.map(({ path }) => path)).to.deep.equal([
+        ["billing__costCenter"],
+      ]);
+    });
+
+    it("reports the error text of a schema that fails without a list of issues", async () => {
+      register({
+        key: "flaky",
+        component: extensionForm("note"),
+        schema: z.unknown().transform((): never => {
+          throw Object.assign(new Error("flaky schema"), { issues: [null] });
+        }),
+        onAccept: () => undefined,
+      });
+
+      const error = await httpRejectionOf(
+        submitInvite({ flaky__note: "x" }, admin),
+      );
+      expect(error.getStatus()).to.equal(HTTP_BAD_REQUEST);
+      expect(error.getBody()).to.contain("flaky schema");
+    });
+
     it("drops keys of an extension that is no longer registered", async () => {
       const dispose = register(recordingExtension("gone", "value").options);
       dispose();
@@ -142,7 +182,9 @@ export function registerInviteExtensionPayloadCases(): void {
       expect(stored?.extensions).to.deep.equal({});
     });
   });
+}
 
+function registerDirectAddCases(): void {
   describe("delivery on direct add", () => {
     it("hands each extension its own payload and the new member", async () => {
       const billing = recordingExtension("billing", "costCenter");
@@ -204,6 +246,86 @@ export function registerInviteExtensionPayloadCases(): void {
       });
 
       expect(billing.recorded.accepted).to.have.length(1);
+    });
+  });
+}
+
+function registerPrototypeKeyCases(): void {
+  describe("an extension keyed like an Object.prototype member", () => {
+    const seen: unknown[] = [];
+
+    function registerConstructorExtension(): void {
+      register({
+        key: "constructor",
+        component: extensionForm("note"),
+        schema: z.unknown(),
+        onAccept: (payload) => {
+          seen.push(payload);
+        },
+        onCleanup: (payload) => {
+          seen.push(payload);
+        },
+        onUpdate: (payload) => {
+          seen.push(payload);
+        },
+      });
+    }
+
+    beforeEach(() => {
+      seen.length = 0;
+    });
+
+    it("is handed nothing on delivery when the invitation carries no payload under its key", async () => {
+      registerConstructorExtension();
+
+      await directAdd({ billing: { costCenter: "CC-42" } });
+
+      expect(seen).to.deep.equal([]);
+    });
+
+    it("is cleaned up with no payload when the invitation carries none under its key", async () => {
+      registerConstructorExtension();
+
+      await ExecuteHooks(Hook.INVITE_DELETED, {
+        tenantId: TENANT,
+        inviteId: "invite-1",
+        email: "someone@acme.dev",
+        reason: "cancelled",
+        extensions: { billing: { costCenter: "CC-42" } },
+      });
+
+      expect(seen).to.deep.equal([undefined]);
+    });
+
+    it("is not told of an edit that carried nothing under its key", async () => {
+      registerConstructorExtension();
+      register(recordingExtension("billing", "costCenter").options);
+      const errors = captureErrors();
+
+      try {
+        const id = await pendingInvite(null);
+        await editPendingInvite(id, { billing__costCenter: "CC-43" }, admin);
+      } finally {
+        errors.restore();
+      }
+
+      expect(seen).to.deep.equal([]);
+      expect(errors.messages).to.deep.equal([]);
+    });
+  });
+}
+
+function registerPayloadTypingAndCleanupCases(): void {
+  describe("payload typing", () => {
+    it("stores a payload built from read-only arrays", async () => {
+      const access: readonly string[] = ["prj-1", "prj-2"];
+
+      const id = await pendingInvite({ scope: { access } });
+
+      const stored = await GetModel(UserInviteModel, TENANT).get(id);
+      expect(stored?.extensions).to.deep.equal({
+        scope: { access: ["prj-1", "prj-2"] },
+      });
     });
   });
 
@@ -283,4 +405,12 @@ export function registerInviteExtensionPayloadCases(): void {
       ]);
     });
   });
+}
+
+export function registerInviteExtensionPayloadCases(): void {
+  registerPayloadEditCases();
+  registerPayloadSubmitCases();
+  registerDirectAddCases();
+  registerPrototypeKeyCases();
+  registerPayloadTypingAndCleanupCases();
 }

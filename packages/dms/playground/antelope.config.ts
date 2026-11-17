@@ -2,6 +2,10 @@ import { defineConfig } from "@antelopejs/interface-core/config";
 
 const preferredApiPort = process.env.PORT ?? "5010";
 const dmsClientUrl = process.env.DMS_CLIENT_BASE_URL;
+const dmsModuleRoot = process.env.DMS_MODULE_ROOT ?? "..";
+const dmsInstallCommand = process.env.DMS_PREBUILT
+  ? []
+  : ["pnpm build", "pnpm --dir playground build"];
 
 export default defineConfig({
   name: "test",
@@ -14,9 +18,9 @@ export default defineConfig({
     dms: {
       source: {
         type: "local",
-        path: "..",
+        path: dmsModuleRoot,
         watchDir: ["src"],
-        installCommand: ["pnpm build", "pnpm --dir playground build"],
+        installCommand: dmsInstallCommand,
       },
       config: {
         homepage: "/examples/overview",
@@ -26,13 +30,13 @@ export default defineConfig({
         },
         auth: {
           jwtSecret: process.env.DMS_JWT_SECRET ?? "dev",
-          signInCountry: { database: false },
         },
         htmlRender: {
           serviceSecret: process.env.DMS_HTML_RENDER_SECRET ?? "dev",
         },
         apiBaseUrl: "${@api.API_PUBLIC_BASE_URL}",
         clientBaseUrl: dmsClientUrl,
+        mcp: { backendUrl: "${@api.API_LOCAL_BASE_URL}" },
         frontend: {
           bootstrapSecret: process.env.DMS_BOOTSTRAP_SECRET,
         },
@@ -51,7 +55,7 @@ export default defineConfig({
       source: {
         type: "package",
         package: "@antelopejs/mongodb",
-        version: "^1.4.3",
+        version: "~1.8.4",
       },
       config: {
         url: process.env.MONGO_URL ?? "mongodb://localhost:27017",
@@ -74,14 +78,14 @@ export default defineConfig({
       source: {
         type: "package",
         package: "@antelopejs/api",
-        version: "^1.5.0",
+        version: "~1.7.0",
       },
       config: {
         servers: [{ protocol: "http", port: preferredApiPort }],
         publicBaseUrl: dmsClientUrl,
         cors: {
           allowedOrigins: [
-            "http://localhost:3001",
+            dmsClientUrl ?? "http://localhost:3001",
             /^https:\/\/[a-z0-9-]+\.onamp\.dev$/,
           ],
         },
@@ -115,8 +119,18 @@ export default defineConfig({
     docs: {
       logging: { channelFilter: { "*": "warn" } },
       modules: {
+        dms: {
+          config: {
+            mcp: { enabled: true, backendUrl: "${@api.API_LOCAL_BASE_URL}" },
+            builder: { enabled: true },
+          },
+        },
         nodemailer: {
-          config: { ethereal: false, host: "127.0.0.1", port: 9 },
+          config: {
+            ethereal: false,
+            host: "127.0.0.1",
+            port: Number(process.env.DMS_SMTP_PORT ?? "9"),
+          },
         },
       },
     },

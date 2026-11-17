@@ -38,7 +38,6 @@ const optional: NotificationSubjectInfo = {
 };
 const LOCKED_KEY = `${category.id}:${locked.id}`;
 const OPTIONAL_KEY = `${category.id}:${optional.id}`;
-const UNREGISTERED_KEY = "gone-module:subject";
 
 interface StoredNotification {
   title: string;
@@ -64,18 +63,11 @@ describe("[integration] locked notification subjects", () => {
     internal.RegisterNotificationCategory.unregister(category);
   });
 
-  it("refuses the legacy PUT turning a locked subject off", async () => {
-    const response = await client.put(PREFERENCES, { [LOCKED_KEY]: false });
-    expect(response.status).to.equal(HTTP_FORBIDDEN);
-  });
-
-  it("keeps the legacy PUT for the other subjects, stale keys included", async () => {
-    const response = await client.put(PREFERENCES, {
-      [LOCKED_KEY]: true,
-      [OPTIONAL_KEY]: false,
-      [UNREGISTERED_KEY]: false,
-    });
-    expect(response.status, JSON.stringify(response.data)).to.equal(HTTP_OK);
+  it("refuses a PATCH turning a locked subject off, and saves one turning an optional subject off (fails when a locked subject can be turned off)", async () => {
+    const refused = await client.patch(PREFERENCES, { [LOCKED_KEY]: false });
+    const saved = await client.patch(PREFERENCES, { [OPTIONAL_KEY]: false });
+    expect(refused.status).to.equal(HTTP_FORBIDDEN);
+    expect(saved.status, JSON.stringify(saved.data)).to.equal(HTTP_OK);
   });
 
   it("delivers a locked subject whatever the stored preference says", async () => {

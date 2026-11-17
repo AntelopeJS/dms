@@ -48,26 +48,7 @@ async function requests(query = ""): Promise<RequestPage> {
   return response.data;
 }
 
-describe("[unit] public preview fixtures", () => {
-  const routeIds: number[] = [];
-
-  before(async () => {
-    expect(
-      getRegisteredRoutes().filter((route) => route.location.startsWith(BASE)),
-    ).to.deep.equal([]);
-    expect((await client.get(`${BASE}/workspace`)).status).to.equal(404);
-    registerPreviewFixtures();
-    routeIds.push(
-      ...getRegisteredRoutes()
-        .filter((route) => route.location.startsWith(BASE))
-        .map((route) => Number(route.id)),
-    );
-  });
-
-  after(() => {
-    routeIds.forEach(UnregisterRoute);
-  });
-
+function registerRequestFixtureCases(): void {
   it("exposes exactly seven GET routes, without authorizing writes", async () => {
     const routes = getRegisteredRoutes().filter((route) =>
       route.location.startsWith(BASE),
@@ -162,7 +143,9 @@ describe("[unit] public preview fixtures", () => {
       "req-007",
     ]);
   });
+}
 
+function registerWorkspaceAndChartFixtureCases(): void {
   it("returns the workspace record directly and preserves it across reads", async () => {
     const expected = {
       name: "Acme Inc.",
@@ -222,4 +205,28 @@ describe("[unit] public preview fixtures", () => {
     expect(alerts.status).to.equal(200);
     expect(alerts.data).to.deep.equal([]);
   });
+}
+
+describe("[unit] public preview fixtures", () => {
+  const routeIds: number[] = [];
+
+  before(async () => {
+    expect(
+      getRegisteredRoutes().filter((route) => route.location.startsWith(BASE)),
+    ).to.deep.equal([]);
+    expect((await client.get(`${BASE}/workspace`)).status).to.equal(404);
+    registerPreviewFixtures();
+    routeIds.push(
+      ...getRegisteredRoutes()
+        .filter((route) => route.location.startsWith(BASE))
+        .map((route) => Number(route.id)),
+    );
+  });
+
+  after(() => {
+    routeIds.forEach(UnregisterRoute);
+  });
+
+  registerRequestFixtureCases();
+  registerWorkspaceAndChartFixtureCases();
 });

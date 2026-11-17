@@ -34,9 +34,14 @@ const tiers = [
 const modules = tiers.flatMap((names, rank) =>
   names.map((name) => ({ name, rank })),
 );
+/**
+ * @param {string} name
+ * @returns {string}
+ */
 const modulePath = (name) =>
   `${source}${name.endsWith(".ts") ? name.replaceAll(".", "\\.") + "$" : name + "/"}`;
 
+/** @type {import("../.dependency-cruiser.cjs").Area} */
 module.exports = {
   forbidden: [
     {
@@ -76,6 +81,12 @@ module.exports = {
       severity: "error",
       from: { path: `^${source}` },
       to: { path: "^packages/dms/(?:playground/)?frontend-vue/" },
+    },
+    {
+      name: "playground-frontend-no-server",
+      severity: "error",
+      from: { path: "^packages/dms/playground/frontend-vue/" },
+      to: { path: `^${source}` },
     },
     ...modules.flatMap(({ name, rank }) => {
       const rejected = modules.filter(

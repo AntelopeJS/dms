@@ -1,6 +1,11 @@
 import { randomUUID } from "node:crypto";
 import type { DmsServerEvent, DmsSession } from "#dms/server";
-import { isString } from "../../dms-core/app/utils/type-check";
+import { sessionUser } from "./backend-answers";
+import {
+  isBoolean,
+  isObject,
+  isString,
+} from "../../dms-core/app/utils/type-check";
 
 /**
  * The accounts this browser is signed in to: an index of their descriptors,
@@ -13,6 +18,7 @@ import { isString } from "../../dms-core/app/utils/type-check";
 const ACCOUNT_INDEX_COOKIE = "dms_account_index";
 const ACCOUNT_COOKIE_PREFIX = "dms_account_";
 const MAX_AGE_SECONDS = 60 * 60 * 24 * 30;
+const SENT_ACCOUNT_COOKIE = /^dms_account_([0-9a-f]{32})_[^=]*=/;
 const UUID =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -30,13 +36,6 @@ export interface StoredAccount extends AccountDescriptor {
 }
 
 type AccountIndex = Record<string, AccountDescriptor>;
-
-interface SessionUser {
-  _id?: string;
-  id?: string;
-  email?: string;
-  name?: string;
-}
 
 /**
  * Whether a session, or a stored account, outlives the browser: only one a
@@ -56,8 +55,7 @@ function accountCookieName(accountId: string): string {
 }
 
 function descriptor(session: DmsSession, accountId: string): AccountDescriptor {
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The session owner does not prove these optional legacy user fields are strings. This preserves the existing unchecked descriptor projection; parsing or coercing them would change stored account payloads.
-  const user = (session.user ?? {}) as SessionUser;
+  const user = sessionUser.parse(session.user ?? {});
   return {
     accountId,
     userId: user._id ?? user.id,
@@ -68,15 +66,71 @@ function descriptor(session: DmsSession, accountId: string): AccountDescriptor {
   };
 }
 
-export function readAccounts(event: DmsServerEvent): AccountIndex {
-  return event.cookies.readSealed<AccountIndex>(ACCOUNT_INDEX_COOKIE) ?? {};
+function isOptionalText(value: unknown): value is string | undefined {
+  return value === undefined || isString(value);
 }
 
+function isAccountDescriptor(value: unknown): value is AccountDescriptor {
+  return (
+    isObject(value) &&
+    value !== null &&
+    isString(value.accountId) &&
+    isOptionalText(value.userId) &&
+    isOptionalText(value.email) &&
+    isOptionalText(value.name) &&
+    isOptionalText(value.activeTenantId) &&
+    isBoolean(value.persistent)
+  );
+}
+
+function isStoredAccount(value: unknown): value is StoredAccount {
+  return (
+    isAccountDescriptor(value) &&
+    isObject(value) &&
+    isOptionalText(value.refreshToken)
+  );
+}
+
+function isAccountIndex(value: unknown): value is AccountIndex {
+  return (
+    isObject(value) &&
+    value !== null &&
+    !Array.isArray(value) &&
+    Object.values(value).every(isAccountDescriptor)
+  );
+}
+
+export function readAccounts(event: DmsServerEvent): AccountIndex {
+  return event.cookies.readSealed(ACCOUNT_INDEX_COOKIE, isAccountIndex) ?? {};
+}
+
+/**
+ * The logical names of the account cookies the browser sent, whichever secret
+ * sealed them.
+ */
+function sentAccountCookies(event: DmsServerEvent): string[] {
+  return (event.request.headers.get("cookie") ?? "")
+    .split(";")
+    .flatMap((pair) => SENT_ACCOUNT_COOKIE.exec(pair.trim())?.[1] ?? [])
+    .map((key) => `${ACCOUNT_COOKIE_PREFIX}${key}`);
+}
+
+/**
+ * Writes the index, and clears every account cookie the browser sent that it
+ * does not list. A cookie a previous session secret sealed no longer opens,
+ * and `ajs dms dev` draws a new secret on each start: without the clearing,
+ * each sign-in after a restart added one to the request headers until the
+ * server refused them all with a 431.
+ */
 function writeAccountIndex(event: DmsServerEvent, accounts: AccountIndex) {
   const persistent = Object.values(accounts).some(isPersistent);
   event.cookies.writeSealed(ACCOUNT_INDEX_COOKIE, accounts, {
     maxAge: lifetime(persistent),
   });
+  const listed = new Set(Object.keys(accounts).map(accountCookieName));
+  for (const name of sentAccountCookies(event)) {
+    if (!listed.has(name)) event.cookies.clear(name);
+  }
 }
 
 export function readAccount(
@@ -84,7 +138,10 @@ export function readAccount(
   accountId: Parameters<typeof isString>[0],
 ): StoredAccount | undefined {
   if (!isString(accountId) || !UUID.test(accountId)) return undefined;
-  return event.cookies.readSealed<StoredAccount>(accountCookieName(accountId));
+  return event.cookies.readSealed(
+    accountCookieName(accountId),
+    isStoredAccount,
+  );
 }
 
 export function storeAccount(

@@ -1,6 +1,6 @@
 import { expect } from "chai";
 import { sign } from "jsonwebtoken";
-import { getAuthConfig } from "../..";
+import { getAuthConfig } from "../../config";
 import { signUploadToken, verifyUploadToken } from "../../utils";
 
 describe("[unit] upload-token", () => {

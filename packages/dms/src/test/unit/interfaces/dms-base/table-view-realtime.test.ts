@@ -1,16 +1,12 @@
 import { Controller, type RequestContext } from "@antelopejs/interface-api";
-import {
-  type AsyncProxy,
-  GetMetadata,
-  ImplementInterface,
-} from "@antelopejs/interface-core";
+import type { User } from "@antelopejs/interface-dms/auth/db";
+import { GetMetadata, ImplementInterface } from "@antelopejs/interface-core";
 import { internal as runtime } from "@antelopejs/interface-core/internal";
 import { DataAPIMeta } from "@antelopejs/interface-data-api/metadata";
 import { expect } from "chai";
 import { bindVerifiedRequestPrincipal } from "@antelopejs/interface-dms/auth/internal/request-authenticators";
 import { CORE_SCHEMA_NAME } from "@antelopejs/interface-dms/constants";
 import { internal as dmsTableView } from "../../../../implementations/dms-base/table-view";
-import type { User } from "@antelopejs/interface-dms/auth/db";
 import * as tableViewInterface from "@antelopejs/interface-dms/base/table-view";
 import {
   type RealtimeMutationContext,
@@ -22,18 +18,19 @@ import {
   withPresenceAcquire,
   withRealtimeMutation,
 } from "@antelopejs/interface-dms/base/table-view/internal/realtime";
+import { userFixture } from "../../../helpers/user-fixture";
+import { requestContextFixture } from "../../../helpers/request-context";
 
 const LOCATION = "/api/table-view-realtime";
 const SESSION = "table-view-realtime-session";
 const PRESENCE_ACQUIRE = "1";
 const TENANT = "table-view-realtime-tenant";
 
-// oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Principal binding reads rawRequest.headers only; this fixture deliberately omits the rest of the HTTP context.
-const REQUEST_CONTEXT = {
-  rawRequest: { headers: { authorization: "Bearer table-view-realtime" } },
-} as RequestContext;
-// oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Realtime actor resolution needs id and name only, not a complete persisted user.
-const USER = { _id: "table-view-realtime-user", name: "Realtime" } as User;
+const REQUEST_CONTEXT = requestContextFixture(
+  undefined,
+  "Bearer table-view-realtime",
+);
+const USER = userFixture({ _id: "table-view-realtime-user", name: "Realtime" });
 bindVerifiedRequestPrincipal(REQUEST_CONTEXT, {
   userId: USER._id,
   tenantId: TENANT,
@@ -48,8 +45,19 @@ interface TableViewRealtime {
   internal: typeof dmsTableView;
 }
 
-interface ProxiedFunction {
-  proxy: AsyncProxy;
+interface DetachableFunction {
+  proxy: { detach(): void };
+}
+
+function isDetachableFunction(value: unknown): value is DetachableFunction {
+  return (
+    typeof value === "function" &&
+    "proxy" in value &&
+    typeof value.proxy === "object" &&
+    value.proxy !== null &&
+    "detach" in value.proxy &&
+    typeof value.proxy.detach === "function"
+  );
 }
 
 class RowsAPI extends Controller(LOCATION) {}
@@ -59,19 +67,32 @@ const deliveries: string[] = [];
 
 const editRoute = withRealtimeMutation(
   { eventType: "updated", extractIds: extractSingleParamId },
-  { method: "post", args: [], func: async () => ({ ok: true }) },
+  {
+    method: "post",
+    args: [],
+    func: async (
+      _ctx: RequestContext,
+      _params: { id: string },
+      _body: Buffer,
+      _user: User,
+    ) => ({ ok: true }),
+  },
 );
 const getRoute = withPresenceAcquire({
   method: "get",
   args: [],
-  func: async () => ({ ok: true }),
+  func: async (_ctx: RequestContext, _params: { id: string }, _user: User) => ({
+    ok: true,
+  }),
 });
 
 function edit(id: string): ReturnType<typeof editRoute.func> {
   return editRoute.func.call(
     controller,
-    undefined,
+    REQUEST_CONTEXT,
     { id },
+    Buffer.from("{}"),
+    USER,
     REQUEST_CONTEXT,
     SESSION,
     USER,
@@ -81,8 +102,9 @@ function edit(id: string): ReturnType<typeof editRoute.func> {
 function open(id: string): ReturnType<typeof getRoute.func> {
   return getRoute.func.call(
     controller,
-    undefined,
+    REQUEST_CONTEXT,
     { id },
+    USER,
     REQUEST_CONTEXT,
     SESSION,
     PRESENCE_ACQUIRE,
@@ -123,8 +145,10 @@ function attach(implementation: TableViewRealtime): void {
 
 function detachGeneration(): void {
   for (const fn of [tableView.PublishMutation, tableView.AcquirePresence]) {
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- InterfaceFunction's public callable type omits the core proxy handle; this test deliberately detaches that private handle to simulate reload.
-    (fn as unknown as ProxiedFunction).proxy.detach();
+    if (!isDetachableFunction(fn)) {
+      throw new Error("The interface function carries no detachable proxy");
+    }
+    fn.proxy.detach();
   }
 }
 

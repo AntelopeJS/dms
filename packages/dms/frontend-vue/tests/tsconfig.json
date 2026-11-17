@@ -1,0 +1,6 @@
+{
+  "extends": [
+    "../../playground/.frontend-vue-types/tsconfig.json",
+    "./tsconfig-options.json"
+  ]
+}

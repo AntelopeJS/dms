@@ -1,12 +1,12 @@
-// oxlint-disable-next-line antelopejs/no-comments -- @ts-check enables TypeScript checking of this JavaScript config.
-// @ts-check
+import rendererGlobals from "@antelopejs/dms-frontend/eslint-globals";
 import { TEST_FILE_GLOBS } from "@antelopejs/tooling-configs/oxc/guardrails";
 import eslint from "@eslint/js";
 import typescript from "@typescript-eslint/eslint-plugin";
 import typescriptParser from "@typescript-eslint/parser";
 import vue from "eslint-plugin-vue";
 import globals from "globals";
-import testQuality from "./eslint-test-quality.mjs";
+import dmsGlobals from "./eslint-globals.generated.mjs";
+import testQuality from "./scripts/eslint-test-quality.mjs";
 
 const sourceFiles = ["**/*.{js,mjs,cjs,ts,vue}"];
 
@@ -21,18 +21,22 @@ export default [
   {
     files: sourceFiles,
     languageOptions: {
-      globals: { ...globals.browser, ...globals.node },
+      globals: {
+        ...globals.browser,
+        ...globals.node,
+        ...rendererGlobals,
+        ...dmsGlobals,
+      },
       parserOptions: {
         parser: typescriptParser,
         sourceType: "module",
+        lib: ["esnext", "dom", "dom.iterable"],
       },
     },
     plugins: { "@typescript-eslint": typescript },
     rules: {
       "no-redeclare": "off",
-      "no-undef": "off",
       "no-unused-vars": "off",
-      "@typescript-eslint/no-explicit-any": "off",
       "@typescript-eslint/no-unused-vars": [
         "error",
         {
@@ -41,11 +45,32 @@ export default [
           caughtErrorsIgnorePattern: "^_",
         },
       ],
-      "vue/attributes-order": "off",
       "vue/html-indent": "off",
-      "vue/html-self-closing": "off",
+      "vue/attributes-order": "error",
+      "vue/html-self-closing": ["error", { html: { void: "always" } }],
       "vue/max-attributes-per-line": "off",
-      "vue/multi-word-component-names": "off",
+      "vue/multi-word-component-names": [
+        "error",
+        {
+          ignores: [
+            "Icon",
+            "2fa",
+            "accounts",
+            "backup",
+            "error",
+            "forgot",
+            "login",
+            "modules",
+            "onboarding",
+            "recover",
+            "roles",
+            "shortcuts",
+            "signup",
+            "validate",
+            "[...slug]",
+          ],
+        },
+      ],
       "vue/require-default-prop": "off",
       "vue/singleline-html-element-content-newline": "off",
     },

@@ -1,7 +1,4 @@
-import {
-  type ControllerClass,
-  ControllerMeta,
-} from "@antelopejs/interface-api";
+import type { ControllerClass } from "@antelopejs/interface-api";
 import { GetMetadata } from "@antelopejs/interface-core";
 import { Logging } from "@antelopejs/interface-core/logging";
 import type { DataControllerCallbackWithOptions } from "@antelopejs/interface-data-api";
@@ -13,12 +10,10 @@ import type {
   TableViewTab,
   TableViewTabSerialized,
 } from "../options";
+import { isString } from "../../../utils/internal/type-check";
 
 function dataApiLocation(countFrom: ControllerClass | string): string {
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- The option declares either a literal location or a controller class; typeof selects the declared variant.
-  return typeof countFrom === "string"
-    ? countFrom
-    : GetMetadata(countFrom, ControllerMeta).location;
+  return isString(countFrom) ? countFrom : countFrom.location;
 }
 
 /**
@@ -40,8 +35,7 @@ export function serializeTableViewTabs(
       ...tab
     }) => {
       const serialized: TableViewTabSerialized = { ...tab };
-      // oxlint-disable-next-line anti-slop/no-runtime-typeof -- A tab target is declared as a path or controller class; only the path is serializable before page registration.
-      if (typeof to === "string") serialized.to = to;
+      if (isString(to)) serialized.to = to;
       if (countFrom) serialized.countFrom = dataApiLocation(countFrom);
       return serialized;
     },
@@ -71,8 +65,7 @@ export async function resolveTableViewTabs(
   for (const [index, tab] of serializedTabs.entries()) {
     const declared = declaredTabs[index];
     const target = declared?.to;
-    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- The published tab target union uses strings for paths and classes for pages; this selects the page variant.
-    if (target && typeof target !== "string") {
+    if (target && !isString(target)) {
       const page = GetMetadata(target, PageMetadata).pageInfo;
       if (!page) continue;
       const permissionId = GetPermissionId(target);
@@ -102,17 +95,18 @@ export async function resolveTableViewTabs(
  * @internal
  */
 export function declaresCounters(
-  options: Pick<TableViewOptions, "tabs" | "views" | "grouped">,
+  options: Pick<TableViewOptions, "tabs" | "tabsFrom" | "views" | "grouped">,
 ): boolean {
   return (
     (options.tabs?.length ?? 0) > 0 ||
+    options.tabsFrom !== undefined ||
     !!options.views?.items.some((view) => view.count) ||
     !!options.grouped?.count
   );
 }
 
 const COUNT_BATCH_PATH = "count/batch";
-const COUNT_BATCH_METHOD = "post";
+const COUNT_BATCH_METHOD = "get";
 const EDGE_SLASHES = /^\/+|\/+$/g;
 
 const controllersWarnedForTabCounts = new WeakSet<ControllerClass>();
@@ -132,7 +126,7 @@ export function servesRoute(
 
 /**
  * Warn, once per controller, when a table view declares filter tabs, counted
- * views or counted groups but its controller mounts no `POST count/batch`
+ * views or counted groups but its controller mounts no `GET count/batch`
  * route: every counter request would fail. The fix belongs in the controller
  * (mount `countBatch: TableViewRoutes.CountBatch`), so this only reports it.
  *
@@ -148,6 +142,6 @@ export function warnIfTabsLackCountBatch(
   if (servesRoute(endpoints, COUNT_BATCH_PATH, COUNT_BATCH_METHOD)) return;
   controllersWarnedForTabCounts.add(controller);
   Logging.Warn(
-    `[DMS] TableView on "${controller.name}" (${location}) declares filter tabs, counted views or counted groups but its controller mounts no POST ${location}/${COUNT_BATCH_PATH} route: their counters will fail. Mount \`countBatch: TableViewRoutes.CountBatch\` on the controller.`,
+    `[DMS] TableView on "${controller.name}" (${location}) declares filter tabs, counted views or counted groups but its controller mounts no GET ${location}/${COUNT_BATCH_PATH} route: their counters will fail. Mount \`countBatch: TableViewRoutes.CountBatch\` on the controller.`,
   );
 }

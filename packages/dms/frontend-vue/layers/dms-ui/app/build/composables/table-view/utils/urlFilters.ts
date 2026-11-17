@@ -1,4 +1,4 @@
-import type { TableUrlFilter } from "../../../components/table/Table.vue";
+import type { TableUrlFilter } from "../../../components/table/TableRoot.vue";
 import type { QueryParamFilters } from "../../../../composables/table-view/types/config";
 import type { LocationQuery } from "#dms/frontend-module";
 

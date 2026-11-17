@@ -43,9 +43,11 @@ export interface FormValidationIssue {
   path: PropertyKey[];
 }
 
+type StateValue = Parameters<typeof isBlankValue>[0];
+
 export type FormValidationResult =
-  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Server-supplied schemas permit arbitrary field values; the result must retain the schema's open object contract.
-  { value: Record<string, unknown> } | { issues: FormValidationIssue[] };
+  | { value: Record<string, StateValue> }
+  | { issues: FormValidationIssue[] };
 
 export interface FormValidationContext {
   fields: readonly FormValidationField[];
@@ -67,6 +69,13 @@ const BOOLEAN_TYPE = "boolean";
 
 function issueField(issue: { path: PropertyKey[] }): PropertyKey | undefined {
   return issue.path[0];
+}
+
+function ownStateValue(
+  state: Record<string, StateValue>,
+  id: string,
+): StateValue {
+  return Object.hasOwn(state, id) ? state[id] : undefined;
 }
 
 /** Whether a localized value fills some language but not its fallback one. */
@@ -135,8 +144,7 @@ function emptyValueOf(field: FormValidationField): false | null {
  */
 export async function validateFormState(
   schema: z.ZodObject<Record<string, z.ZodTypeAny>>,
-  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- This is the parsing boundary for a server-defined schema; malformed values must reach validation unchanged.
-  state: Record<string, unknown>,
+  state: Record<string, StateValue>,
   context: FormValidationContext,
 ): Promise<FormValidationResult> {
   const input = { ...state };
@@ -145,7 +153,7 @@ export async function validateFormState(
   const reported = context.controlErrors ?? new Map<string, string>();
 
   for (const field of context.fields) {
-    const value = state[field.id];
+    const value = ownStateValue(state, field.id);
     if (reported.has(field.id)) continue;
     if (lacksFallbackLocale(field, value)) {
       missing.add(field.id);

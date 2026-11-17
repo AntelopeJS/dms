@@ -19,7 +19,10 @@ import {
   mapRelationBeforeState,
   sameRelationValue,
 } from "../layers/dms-ui/app/entries/composables/data-types/relationValue";
-import { FORM_ENTRY_CONTEXT_KEY } from "../layers/dms-ui/app/entries/composables/form/formEntryContext";
+import {
+  FORM_ENTRY_CONTEXT_KEY,
+  type FormEntryContext,
+} from "../layers/dms-ui/app/entries/composables/form/formEntryContext";
 import { FORM_LAYOUT_CLASSES } from "../layers/dms-ui/app/entries/composables/form/formLayout";
 import type { FormField } from "../layers/dms-ui/app/composables/form/types/field";
 import type { FormData } from "../layers/dms-ui/app/composables/form/types/value";
@@ -76,27 +79,28 @@ async function changeNote(setup: NotesSetup): Promise<string> {
   const field: FormField = {
     id: "customer",
     type: "relation",
-    component: { componentName: "DmsRelation", options: setup.options },
+    component: { componentName: "DmsInputRelation", options: setup.options },
   };
+  const context = {
+    state: ref<FormData>({ customer: setup.value }),
+    initialValues: ref<FormData>({ customer: setup.loaded }),
+    loading: ref(false),
+    componentId: "notes",
+    pageId: "customers",
+    layoutClasses: () => FORM_LAYOUT_CLASSES.vertical,
+    isFieldHidden: () => false,
+    isFieldRequired: () => false,
+    isReadOnly: ref(false),
+    showsChanges: true,
+    isFieldChanged: () => true,
+    isFieldDisabled: () => false,
+    baselineValue: () => setup.baseline,
+    fieldSaveState: () => "idle",
+    retrySave: () => {},
+  } satisfies FormEntryContext;
   app = createApp({
     setup() {
-      provide(FORM_ENTRY_CONTEXT_KEY, {
-        state: ref({ customer: setup.value }),
-        initialValues: ref({ customer: setup.loaded }),
-        loading: ref(false),
-        componentId: "notes",
-        pageId: "customers",
-        layoutClasses: () => FORM_LAYOUT_CLASSES.vertical,
-        isFieldHidden: () => false,
-        isFieldRequired: () => false,
-        isReadOnly: ref(false),
-        showsChanges: true,
-        isFieldChanged: () => true,
-        isFieldDisabled: () => false,
-        baselineValue: () => setup.baseline,
-        fieldSaveState: () => "idle",
-        retrySave: () => {},
-      });
+      provide(FORM_ENTRY_CONTEXT_KEY, context);
       return () => h(FormFieldNotes, { field });
     },
   });

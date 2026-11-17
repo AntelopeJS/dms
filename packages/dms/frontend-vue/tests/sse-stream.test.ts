@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   openSseStream,
+  parseRetryAfterMs,
   type SseCloseReason,
   type SseStreamOptions,
 } from "../layers/dms-core/app/composables/realtime/useSseStream";
@@ -122,6 +123,30 @@ function registerSseFrameTests() {
 }
 
 function registerSseFailureTests() {
+  it("carries the Retry-After delay of a 429 on the error", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn()
+        .mockResolvedValue(
+          new Response(null, { status: 429, headers: { "Retry-After": "7" } }),
+        ),
+    );
+    const onError = vi.fn();
+    expect(await read({ onError })).toBe("error");
+    expect(onError).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({ status: 429, retryAfterMs: 7000 }),
+    );
+  });
+
+  it("reads an HTTP-date Retry-After and ignores an unreadable one", () => {
+    const now = Date.parse("2026-11-15T12:00:00Z");
+    expect(parseRetryAfterMs("Sun, 15 Nov 2026 12:00:05 GMT", now)).toBe(5000);
+    expect(parseRetryAfterMs("Sun, 15 Nov 2026 11:00:00 GMT", now)).toBe(0);
+    expect(parseRetryAfterMs("soon", now)).toBeUndefined();
+    expect(parseRetryAfterMs(null, now)).toBeUndefined();
+  });
+
   it("does not dispatch a throwing consumer twice or reinterpret its JSON", async () => {
     const response = respond([encoder.encode("data: {}\n\ndata: 2\n\n")]);
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(response));
@@ -260,10 +285,12 @@ function registerSseResumeTests() {
     let cursor: string | null = null;
     let token = "first";
     const options: Partial<SseStreamOptions> = {
-      headers: () =>
-        cursor
-          ? { Authorization: `Bearer ${token}`, "Last-Event-ID": cursor }
-          : { Authorization: `Bearer ${token}` },
+      headers: () => {
+        const authorization = { Authorization: `Bearer ${token}` };
+        return cursor
+          ? { ...authorization, "Last-Event-ID": cursor }
+          : authorization;
+      },
       onEvent: (_name, _data, id) => {
         if (id !== null) cursor = id;
       },

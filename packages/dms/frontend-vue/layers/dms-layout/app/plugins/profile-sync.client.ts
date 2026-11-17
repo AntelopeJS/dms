@@ -1,10 +1,6 @@
 import { pageRoutePath } from "#dms-core/app/utils/pageRoutes";
 import { FormEvents } from "#dms-ui/app/composables/form/types/events";
-import type { ComponentEventData } from "#dms-core/app/types/component";
-
-interface FormSubmitSuccessPayload {
-  submitUrl?: string;
-}
+import { submittedUrlOf } from "../build/utils/submittedUrl";
 
 const REGION_PREFERENCES_ROUTE = pageRoutePath(
   "/settings/user/region",
@@ -24,13 +20,8 @@ export default defineDmsPlugin(() => {
   const { refresh } = useCurrentUser();
 
   window.addEventListener(FormEvents.SUBMIT_SUCCESS, (event) => {
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- DOM listener inference yields Event, not the form publisher's CustomEvent. The existing unchecked projection tolerates a missing detail; an instanceof guard would change acceptance of structural events.
-    const detail = (event as CustomEvent<ComponentEventData>).detail;
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- ComponentEventData leaves data unknown. This historical optional projection does not validate the payload; requiring a schema would change malformed-event behavior.
-    const payload = detail?.data as FormSubmitSuccessPayload | undefined;
-    if (!payload?.submitUrl || !SESSION_FORM_ROUTES.has(payload.submitUrl)) {
-      return;
-    }
+    const submitUrl = submittedUrlOf(event);
+    if (!submitUrl || !SESSION_FORM_ROUTES.has(submitUrl)) return;
     void refresh().catch(() => undefined);
   });
 });

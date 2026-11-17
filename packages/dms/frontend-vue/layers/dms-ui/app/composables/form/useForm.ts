@@ -1,20 +1,24 @@
 import type { FormSubmitEvent } from "@nuxt/ui";
 import { nextTick } from "vue";
-import type { FormProps, FormSubmitResponse } from "./types";
+import type { FormFetchResponse, FormProps, FormSubmitResponse } from "./types";
 import { FormEvents } from "./types/events";
-import type { FormData } from "./types/value";
+import type { FormData, FormFieldValue } from "./types/value";
 import { isFieldGroup } from "./types/field";
 import { resolveResponseToast } from "../../build/utils/responseWarning";
-import {
-  type ReplaceUrlVariablesContext,
-  resolveLinkVariables,
-} from "../../build/utils/urlVariables";
-import { apiErrorText } from "#dms-core/app/composables/useFieldErrors";
+import { isJsonObject } from "../../build/utils/json";
+import { resolveLinkVariables } from "../../build/utils/urlVariables";
 import type { I18nTranslate } from "#dms-core/app/composables/translation/useTranslation";
-import { isNumber } from "#dms-core/app/utils/type-check";
+import {
+  isNull,
+  isNumber,
+  isObject,
+  isString,
+  isUndefined,
+} from "#dms-core/app/utils/type-check";
 import { isPlainObject } from "../../build/composables/unsaved-changes/formValue";
 import { createFormFields } from "../../build/composables/form/formState";
 import {
+  cloneFormValue,
   collectSubmitData,
   computeResetState,
   processBeforeStateMappers,
@@ -60,11 +64,37 @@ export type SubmitTarget =
 /** A toast a submit response asks for, on top of the success one. */
 interface FormSubmitNotice {
   title: string;
-  description?: string;
+  description?: string | null;
   /** Toast color; info by default. */
-  color?: string;
+  color?: string | null;
   /** Translation parameters; a numeric count pluralizes the text. */
-  params?: Parameters<I18nTranslate>[1];
+  params?: Parameters<I18nTranslate>[1] | null;
+}
+
+function isFormSubmitNotice(value: unknown): value is FormSubmitNotice {
+  if (!isObject(value) || isNull(value)) return false;
+  const { title, description, color, params } = value;
+  return (
+    isString(title) &&
+    [description, color].every(
+      (text) => isUndefined(text) || isNull(text) || isString(text),
+    ) &&
+    (isUndefined(params) || isObject(params))
+  );
+}
+
+/** What a submit answers: its outcome, and the saved record's fields when the route returns them. */
+type FormSubmitAnswer = FormSubmitResponse & FormFetchResponse;
+
+/** The entries of `values` that hold a value, as JSON keeps them. */
+function definedValues(
+  values: Record<string, FormFieldValue | undefined>,
+): FormData {
+  const result: FormData = {};
+  for (const [key, value] of Object.entries(values)) {
+    if (value !== undefined) result[key] = value;
+  }
+  return result;
 }
 
 /** A server error shown under its field, translated. */
@@ -93,6 +123,7 @@ function createFormNotices(
   context: ReturnType<typeof createFormFields>,
   options: UseFormOptions,
 ) {
+  const presenter = useApiErrorPresenter();
   const {
     props,
     toast,
@@ -129,11 +160,9 @@ function createFormNotices(
   };
 
   /** Shows a server-authored notice next to the ordinary success toast. */
-  const showSubmitNotice = (response: FormSubmitResponse | undefined) => {
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The response contract omits this optional server extension. Keep the original unchecked title/description behavior for malformed notices instead of validating or dropping them.
-    const notice = (response as { notice?: FormSubmitNotice } | undefined)
-      ?.notice;
-    if (!notice?.title) return;
+  const showSubmitNotice = (response: FormSubmitAnswer | undefined) => {
+    const notice = response?.notice;
+    if (!isFormSubmitNotice(notice) || !notice.title) return;
     toast.add({
       title: noticeText(notice.title, notice.params),
       description: notice.description
@@ -141,13 +170,6 @@ function createFormNotices(
         : undefined,
       color: notice.color ?? Color.info,
     });
-  };
-
-  const resolveSubmitErrorDescription = (error: EventError) => {
-    if (props.errorMessage) return processI18n(props.errorMessage);
-    const text = apiErrorText(error);
-    if (text) return processApiMessage(text);
-    return processI18n("$dms.form.error_unknown");
   };
 
   /** Puts a refused submit's field errors under its fields, if any. */
@@ -165,27 +187,34 @@ function createFormNotices(
         name: entry.field,
         message: entry.values?.length
           ? t("dms.field_errors.with_values", {
-              message: processApiMessage(entry.message, entry.params),
+              message: presenter.resolveError(entry.message, {
+                fallbackKey: entry.fallbackKey ?? "dms.field_errors.invalid",
+                params: entry.params,
+              })?.message,
               values: entry.values.join(", "),
             })
-          : processApiMessage(entry.message, entry.params),
+          : (presenter.resolveError(entry.message, {
+              fallbackKey: entry.fallbackKey ?? "dms.field_errors.invalid",
+              params: entry.params,
+            })?.message ?? ""),
         values: entry.values,
         path: entry.path,
       })),
     );
   };
 
-  const showSubmitErrorToast = (error: EventError) => {
-    toast.add({
-      title: processI18n("$dms.form.error_title"),
-      description: resolveSubmitErrorDescription(error),
-      color: Color.error,
+  const showSubmitErrorToast = (
+    error: Parameters<typeof presenter.presentError>[0],
+  ) => {
+    presenter.presentError(error, {
+      fallbackKey: props.errorMessage || "dms.form.error_unknown",
     });
   };
 
   return {
     ...context,
     options,
+    presenter,
     showSubmitSuccessToast,
     showSubmitNotice,
     showServerFieldErrors,
@@ -209,15 +238,14 @@ function createSavedForm(context: ReturnType<typeof createFormNotices>) {
   /** Puts every field back to the value it opened with. */
   const restoreInitialValues = (): void => {
     const restored = computeResetState(state.value, initialValues.value);
-    Object.assign(
-      state.value,
-      processBeforeStateMappers(
-        // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Reset intentionally carries undefined for initially absent fields. The mapper's nominal FormData contract omits undefined, but no validation or dropping of those fields is intended.
-        restored as FormData,
-        props.fields,
+    Object.assign(state.value, {
+      ...restored,
+      ...processBeforeStateMappers(
+        definedValues(restored),
+        props.fields ?? [],
         getDataType,
       ),
-    );
+    });
   };
 
   /** Marks values clean before the accepted submit emits its success event. */
@@ -252,23 +280,29 @@ function createSavedForm(context: ReturnType<typeof createFormNotices>) {
 
   /** Uses response fields as the saved record, otherwise re-reads fetchUrl. */
   const showSavedRecord = async (
-    response: FormSubmitResponse | undefined,
+    response: FormSubmitAnswer | undefined,
   ): Promise<void> => {
     if (!submitSucceeded.value) return;
     const fieldIds = new Set(allFields.value.map((field) => field.id));
     const record: FormData = isPlainObject(response)
-      ? // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Only field names are checked, not values; preserve arbitrary response values at this existing unchecked FormData boundary.
-        (Object.fromEntries(
+      ? Object.fromEntries(
           Object.entries(response).filter(([key]) => fieldIds.has(key)),
-        ) as FormData)
+        )
       : {};
     if (Object.keys(record).length === 0) return refreshSavedRecord();
     initialValues.value = {
       ...initialValues.value,
-      ...JSON.parse(JSON.stringify(record)),
+      ...definedValues(
+        Object.fromEntries(
+          Object.entries(record).map(([key, value]) => [
+            key,
+            cloneFormValue(value),
+          ]),
+        ),
+      ),
     };
     await applyStoredRecord(
-      processBeforeStateMappers(record, props.fields, getDataType),
+      processBeforeStateMappers(record, props.fields ?? [], getDataType),
     );
   };
 
@@ -278,8 +312,7 @@ function createSavedForm(context: ReturnType<typeof createFormNotices>) {
 function createFormSubmission(context: ReturnType<typeof createSavedForm>) {
   const {
     props,
-    toast,
-    processI18n,
+    presenter,
     buildUrlContext,
     showSubmitSuccessToast,
     showSubmitNotice,
@@ -290,7 +323,7 @@ function createFormSubmission(context: ReturnType<typeof createSavedForm>) {
   } = context;
 
   const handleSubmitSuccess = async (
-    response: FormSubmitResponse | undefined,
+    response: FormSubmitAnswer | undefined,
     plainData: FormData,
   ) => {
     showSubmitSuccessToast(response);
@@ -299,19 +332,14 @@ function createFormSubmission(context: ReturnType<typeof createSavedForm>) {
     if (props.redirectOnSuccess) {
       const target = resolveLinkVariables(
         props.redirectOnSuccess,
-        // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- URL interpolation reads the response's arbitrary keys without validation. The nominal success contract has no index signature; preserve this unchecked projection and malformed runtime responses.
-        buildUrlContext(response as ReplaceUrlVariablesContext["response"]),
+        buildUrlContext(isJsonObject(response) ? response : undefined),
       );
       await navigateDms(target);
     }
   };
 
   const showUnresolvedTargetToast = () => {
-    toast.add({
-      title: processI18n("$dms.form.error_title"),
-      description: processI18n("$dms.form.error_no_target"),
-      color: Color.error,
-    });
+    presenter.presentError(null, { fallbackKey: "dms.form.error_no_target" });
   };
 
   /** Sends through submit events, marking accepted data clean before success. */
@@ -319,11 +347,11 @@ function createFormSubmission(context: ReturnType<typeof createSavedForm>) {
     submitUrl: string,
     body: FormData,
     onAccepted?: () => void,
-  ): Promise<FormSubmitResponse | undefined> => {
-    let submitResponse: FormSubmitResponse | undefined;
+  ): Promise<FormSubmitAnswer | undefined> => {
+    let submitResponse: FormSubmitAnswer | undefined;
     await executeSubmit(
       () =>
-        $authFetch<FormSubmitResponse>(submitUrl, {
+        $authFetch<FormSubmitAnswer>(submitUrl, {
           method: props.submitUrlMethod || "PUT",
           body,
           headers: { [CONTENT_LANGUAGE_HEADER]: "*" },
@@ -337,8 +365,7 @@ function createFormSubmission(context: ReturnType<typeof createSavedForm>) {
         successPayload: (response) => ({ data: body, response, submitUrl }),
         errorPayload: (error) => ({
           data: body,
-          // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Evented actions may reject with anything. Retain direct data/message access, fallback ordering and nullish throws rather than narrowing to Error instances.
-          error: (error as EventError).data || (error as EventError).message,
+          error: isObject(error) ? error.data || error.message : undefined,
         }),
       },
     );
@@ -350,8 +377,7 @@ function createFormSubmission(context: ReturnType<typeof createSavedForm>) {
     error: Parameters<typeof resolveFormFieldErrors>[0],
   ): void => {
     if (!showServerFieldErrors(error)) {
-      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Rejection values are passed unchanged to the existing error formatter; there is no Error-instance validation at this boundary.
-      showSubmitErrorToast(error as EventError);
+      showSubmitErrorToast(error);
     }
   };
 
@@ -416,7 +442,9 @@ function createFormActions(context: ReturnType<typeof createFormSubmission>) {
   };
 
   /** Saves only changed fields without success toasts, rejecting refused saves. */
-  const submitChanges = async (changes: FormData): Promise<void> => {
+  const submitChanges = async (
+    changes: Parameters<typeof snapshotFormState>[0],
+  ): Promise<void> => {
     const target = resolveSubmitTarget(props.submitUrl, buildUrlContext());
     if ("missing" in target) {
       showUnresolvedTargetToast();

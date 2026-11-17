@@ -1,15 +1,12 @@
 import { GetDataControllerMeta } from "@antelopejs/interface-data-api";
-import type { Parameters } from "@antelopejs/interface-data-api/components";
 import {
   fromPlainData,
   LocalizationModifier,
   unlock,
 } from "@antelopejs/interface-database-decorators";
 import { fetchRowForGuard } from "../db";
-import type {
-  AttachmentField,
-  internal,
-} from "@antelopejs/interface-dms/attachments";
+import { ownValue } from "../utils/own-value";
+import type { AttachmentField } from "@antelopejs/interface-dms/attachments";
 import type { TableViewAttachmentSaveRequest } from "@antelopejs/interface-dms/internal/attachments";
 import { parseGuardBody } from "@antelopejs/interface-dms/base/table-view/internal/guards";
 import {
@@ -20,6 +17,20 @@ import { tableAttachmentFields } from "./bindings";
 import { collectAttachments } from "./fields";
 import { denyAttachment } from "./registry";
 import { SaveComponentFiles } from "./save";
+import {
+  isObject,
+  isString,
+} from "@antelopejs/interface-dms/utils/internal/type-check";
+
+/** A table instance read by field name, through its own fields and its modifiers' accessors. */
+function isFieldHolder(row: unknown): row is Record<string, unknown> {
+  return typeof row === "object" && row !== null;
+}
+
+/** Whether a route answered a row that names its id. */
+function isSavedRow(result: unknown): result is { _id: unknown } {
+  return typeof result === "object" && result !== null && "_id" in result;
+}
 
 async function loadDocument(
   controller: TableViewAttachmentSaveRequest["controller"],
@@ -36,6 +47,9 @@ async function loadDocument(
   if (!row) return undefined;
   const stored = fromPlainData(row, meta.tableClass);
   unlock(stored, LocalizationModifier, undefined, "*");
+  if (!isFieldHolder(stored)) {
+    throw new TypeError(`A stored ${meta.tableName} row is not an object`);
+  }
   return Object.fromEntries(
     [idField, ...fields.map((field) => field.key)].map((key) => [
       key,
@@ -44,29 +58,20 @@ async function loadDocument(
   );
 }
 
-function retainedFiles(
-  fields: AttachmentField[],
-  before: Parameters<typeof collectAttachments>[1],
-) {
-  return Object.fromEntries(
-    fields
-      .filter((field) => collectAttachments([field], before).length > 0)
-      .map((field) => [field.key, before[field.key]]),
-  );
-}
-
 /** Keeps the database/registry implementation out of host modules' interfaces. */
 export async function SaveTableViewAttachments(
   request: TableViewAttachmentSaveRequest,
-): Promise<Awaited<ReturnType<typeof internal.SaveTableViewAttachments>>> {
+): Promise<void> {
   const { controller, route, context, params, args, mode, componentIds } =
     request;
   const fields = tableAttachmentFields(
     getTableViewMetaFor(controller),
     getControllerLocation(controller),
   );
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Route params are erased by the wrapper contract; preserve the existing optional edit-id probe before dispatch.
-  const documentId = (params as Partial<Parameters.EditParameters>)?.id;
+  const documentId =
+    isObject(params) && params !== null && "id" in params && isString(params.id)
+      ? params.id
+      : undefined;
   if (mode === "delete") {
     return deleteDocuments({ ...request, fields });
   }
@@ -80,7 +85,11 @@ export async function SaveTableViewAttachments(
       fields,
       before,
       submitted: {
-        ...retainedFiles(fields, before),
+        ...Object.fromEntries(
+          fields
+            .filter((field) => collectAttachments([field], before).length > 0)
+            .map((field) => [field.key, ownValue(before, field.key)]),
+        ),
         ...parseGuardBody(args[0]),
       },
     },
@@ -93,12 +102,11 @@ export async function SaveTableViewAttachments(
         ...args.slice(1),
       );
 
-      const id = documentId || result?._id;
-      // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Only a nonempty string id may be used to reload the saved document.
-      if (typeof id !== "string" || !id) denyAttachment();
+      const id = documentId || (isSavedRow(result) ? result._id : undefined);
+      if (!isString(id) || !id) denyAttachment();
       const document = await loadDocument(controller, fields, id);
       if (!document) denyAttachment();
-      return { id, document, result };
+      return { id, document, result: undefined };
     },
   );
 }
@@ -110,21 +118,28 @@ interface DeleteDocumentsRequest extends TableViewAttachmentSaveRequest {
 async function deleteDocuments(request: DeleteDocumentsRequest) {
   const { controller, route, context, params, args, fields, componentIds } =
     request;
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Delete mode selects delete-route params, but the wrapper's external contract erases that correlation.
-  const ids = (params as Parameters.DeleteParameters).id;
+  const ids =
+    isObject(params) && params !== null && "id" in params
+      ? params.id
+      : undefined;
+  const deleted: unknown[] = Array.isArray(ids) ? ids : [ids];
+  if (!deleted.every(isString)) {
+    throw new TypeError("A delete request's parameters name no string ids");
+  }
   const rows = await Promise.all(
-    (Array.isArray(ids) ? ids : [ids]).map((id) =>
-      loadDocument(controller, fields, String(id)),
-    ),
+    deleted.map((id) => loadDocument(controller, fields, id)),
   );
   const before = Object.fromEntries(
-    fields.map((field) => [field.key, rows.map((row) => row?.[field.key])]),
+    fields.map((field) => [
+      field.key,
+      rows.map((row) => (row ? ownValue(row, field.key) : undefined)),
+    ]),
   );
   return SaveComponentFiles(
     { context, componentIds, fields, before, submitted: {} },
-    async () => ({
-      result: await route.func.call(controller, context, params, ...args),
-      document: {},
-    }),
+    async () => {
+      await route.func.call(controller, context, params, ...args);
+      return { result: undefined, document: {} };
+    },
   );
 }

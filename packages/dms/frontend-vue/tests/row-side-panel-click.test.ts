@@ -19,8 +19,9 @@ describe("row click mode", () => {
     document.body.append(row);
     let result = false;
     row.addEventListener(type, (event) => {
-      // SAFETY: The only dispatched event in this helper is the MouseEvent constructed below.
-      result = isRowClickTrigger(mode, event as MouseEvent);
+      if (event instanceof MouseEvent) {
+        result = isRowClickTrigger(mode, event);
+      }
     });
     const target = cell.firstElementChild ?? cell;
     target.dispatchEvent(new MouseEvent(type, { bubbles: true, ...init }));

@@ -20,7 +20,11 @@ import {
 import { expect } from "chai";
 import { DefaultDataTypes } from "@antelopejs/interface-dms/base/data-types/default-types";
 import { adaptFieldValidationSchema } from "@antelopejs/interface-dms/base/form-schema";
-import type { FormField } from "@antelopejs/interface-dms/base/form-types";
+import {
+  type FormField,
+  type FormFieldOrGroup,
+  isFieldGroup,
+} from "@antelopejs/interface-dms/base/form-types";
 import {
   Column,
   TableViewMeta,
@@ -28,6 +32,7 @@ import {
 import { TableViewRoutes } from "@antelopejs/interface-dms/base/table-view/routes";
 import { GetMetadata } from "@antelopejs/interface-core";
 import { z } from "zod";
+import { withFallbackLocale } from "@antelopejs/interface-dms/base/internal/form-schema-validation";
 
 const SCHEMA = "form-fallback-locale-test";
 const TABLE = "ranges";
@@ -68,11 +73,15 @@ class RangeAPI extends DataController(
   declare code: string;
 }
 
+function ungrouped(entry: FormFieldOrGroup): FormField {
+  if (isFieldGroup(entry)) throw new Error("expected an ungrouped field");
+  return entry;
+}
+
 function formFields(): Map<string, FormField> {
-  // SAFETY: RangeAPI declares only ungrouped columns; getFormFields includes groups in its return type for other controllers.
-  const fields = GetMetadata(RangeAPI, TableViewMeta).getFormFields(
-    "new",
-  ) as FormField[];
+  const fields = GetMetadata(RangeAPI, TableViewMeta)
+    .getFormFields("new")
+    .map(ungrouped);
   return new Map(fields.map((field) => [field.id, field]));
 }
 
@@ -100,6 +109,14 @@ describe("[unit] interfaces/dms-base/form-fallback-locale — the fallback langu
     ]);
     expect(schema.safeParse({ en: "Range", fr: "" }).success).to.equal(true);
     expect(schema.safeParse({ en: "", fr: "" }).success).to.equal(true);
+    expect(schema.safeParse(null).success).to.equal(true);
+  });
+
+  it("leaves a value that is no language map to the schema it wraps", () => {
+    const schema = withFallbackLocale(
+      z.record(z.string(), z.string()).or(z.null()),
+      "en",
+    );
     expect(schema.safeParse(null).success).to.equal(true);
   });
 });

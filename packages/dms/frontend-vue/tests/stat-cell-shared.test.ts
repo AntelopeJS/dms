@@ -21,7 +21,7 @@ type StatProps =
 
 async function render(component: Component, props: StatProps) {
   const app = createSSRApp({ render: () => h(component, props) });
-  for (const name of ["DmsCard", "UIcon", "USkeleton", "UButton"]) {
+  for (const name of ["DmsCardPanel", "UIcon", "USkeleton", "UButton"]) {
     app.component(name, Slot);
   }
   return renderToString(app);

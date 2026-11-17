@@ -1,6 +1,7 @@
 import { isString, isNumber } from "../../../../dms-core/app/utils/type-check";
 import { get } from "@nuxt/ui/runtime/utils/index.js";
 import type { MenuRouteState } from "#dms-core/app/types/menu";
+import type { JsonObject } from "./json";
 
 const PARAM_KEY = String.raw`params\.(\w+(?::\d+)?)`;
 
@@ -19,8 +20,7 @@ const TOKEN_OPENING = "{{";
 export interface ReplaceUrlVariablesContext {
   routeParams?: Record<string, string>;
   routeQuery: MenuRouteState["query"];
-  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Response bodies retain arbitrary nested values for path lookup; the core JSON contract would exclude existing non-JSON inputs.
-  response?: Record<string, unknown>;
+  response?: JsonObject;
 }
 
 type EncodeValue = (value: string) => string;

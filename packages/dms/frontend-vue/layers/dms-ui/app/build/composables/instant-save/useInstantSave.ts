@@ -30,8 +30,7 @@ export interface InstantSaveSource<V extends object> {
   /** Keeps the changed keys; rejects when they are refused. */
   save: (changes: Partial<V>) => Promise<void>;
   /** Called after a refused save is put back (field errors, a toast). */
-  // oxlint-disable-next-line anti-slop/no-unknown-parameters -- A rejected save can throw any JavaScript value; Promise<void> has no rejection type to derive for this callback contract.
-  onError?: (error: unknown, changes: Partial<V>) => void;
+  onError?: (cause: unknown, changes: Partial<V>) => void;
 }
 
 export interface InstantChangeOptions {
@@ -73,8 +72,9 @@ export interface InstantSave<V extends object> {
 type Timer = ReturnType<typeof setTimeout>;
 
 function saveKeys<V extends object>(values: Partial<V>): InstantSaveKey<V>[] {
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Partial<V> does not guarantee exact string keys at runtime; retain the unchecked Object.keys projection.
-  return Object.keys(values) as InstantSaveKey<V>[];
+  return Object.keys(values).filter((key): key is InstantSaveKey<V> =>
+    Object.hasOwn(values, key),
+  );
 }
 
 /** The saves of one page: what waits, what runs, what the server holds. */
@@ -122,12 +122,14 @@ class InstantSaveQueue<V extends object> {
   ): void {
     this.put(key, value);
     if (!debounce) {
-      void this.send([key]);
+      this.send([key]).catch(() => undefined);
       return;
     }
     this.debounceTimers.set(
       key,
-      setTimeout(() => void this.send([key]), INSTANT_SAVE_DEBOUNCE_MS),
+      setTimeout(() => {
+        this.send([key]).catch(() => undefined);
+      }, INSTANT_SAVE_DEBOUNCE_MS),
     );
   }
 
@@ -159,13 +161,13 @@ class InstantSaveQueue<V extends object> {
     } finally {
       for (const key of ready) this.inFlight.delete(key);
       const followers = ready.filter((key) => this.pending.has(key));
-      if (followers.length) void this.send(followers);
+      if (followers.length) this.send(followers).catch(() => undefined);
     }
   }
 
   /** Moves the waiting changes of these keys to a running save. */
   private take(keys: InstantSaveKey<V>[]): Partial<V> {
-    // SAFETY: pending stores only V[K] or undefined for a key K; ready contains only keys in pending. Partial<V> permits those supplied values, while Object.fromEntries loses their per-key relationship.
+    // SAFETY: Holds while put<K>(key, value: V[K] | undefined) stays the only writer of pending, so pending holds under each key K a V[K] or undefined: Object.fromEntries then gives each key of keys its own property holding a V[key] or undefined, which Partial<V> admits.
     const changes = Object.fromEntries(
       keys.map((key) => [key, this.pending.get(key)]),
     ) as Partial<V>;
@@ -194,8 +196,7 @@ class InstantSaveQueue<V extends object> {
         !this.pending.has(key) &&
         sameFormValue(this.source.read(key), changes[key]);
       if (isShown) {
-        // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The queue API does not require a remembered value; preserve the unchecked rollback lookup.
-        this.source.write(key, this.confirmed.get(key) as V[typeof key]);
+        this.source.write(key, this.confirmed.get(key)!);
       }
       this.setState(key, "error");
     }
@@ -246,11 +247,10 @@ export function useInstantSave<V extends object>(
     const keys = saveKeys(changes);
     for (const key of keys) {
       saves.remember(key);
-      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Partial changes may contain undefined for required source fields; retain the unchecked write-through.
-      source.write(key, changes[key] as V[typeof key]);
+      source.write(key, changes[key]!);
       saves.put(key, changes[key]);
     }
-    void saves.send(keys);
+    saves.send(keys).catch(() => undefined);
   };
 
   const retry: InstantSave<V>["retry"] = () => {
@@ -261,7 +261,7 @@ export function useInstantSave<V extends object>(
 
   onScopeDispose(() => {
     saves.dispose();
-    void saves.flush();
+    saves.flush().catch(() => undefined);
   });
 
   return {

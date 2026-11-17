@@ -210,8 +210,8 @@ function keyOf(item: KeyValueItem, index: number): string {
             class="ms-auto flex min-w-0 flex-wrap items-center justify-end gap-x-1.5 gap-y-0.5 text-end"
           >
             <USkeleton
-              :aria-label="t('dms.a11y.loading')"
               v-if="props.loading || item.loading"
+              :aria-label="t('dms.a11y.loading')"
               class="h-3 w-24"
             />
             <slot

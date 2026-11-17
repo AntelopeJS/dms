@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import type { VNode } from "vue";
+
 interface MdItem {
   value: string | number;
   label: string;
@@ -14,8 +16,7 @@ defineProps<{
 const selected = defineModel<string | number>();
 
 defineSlots<{
-  // oxlint-disable-next-line anti-slop/no-unknown-returns -- Vue's Slot return type narrows this existing consumer-provided slot contract; preserve the unrestricted return annotation.
-  default?: (props: { selected: string | number | undefined }) => unknown;
+  default?: (props: { selected: string | number | undefined }) => VNode[];
 }>();
 </script>
 

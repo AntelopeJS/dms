@@ -33,7 +33,7 @@ export function tableViewBindings<T extends Data>(scope: TableViewScope<T>) {
     globalFilter: scope.filterState.globalFilter,
     showArchived: scope.filterState.showArchived,
     activeViewId: scope.views.activeViewId,
-    isViewModified: scope.views.isViewModified,
+    viewChange: scope.views.viewChange,
     canSaveViews: scope.views.canSaveViews,
     selectView: scope.views.selectView,
     resetView: scope.views.resetView,

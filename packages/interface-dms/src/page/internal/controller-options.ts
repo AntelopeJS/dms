@@ -1,5 +1,6 @@
 /** @internal */
 import type { MenuOptions, PageLiveOptions } from "../types";
+import { isNumber } from "../../utils/internal/type-check";
 
 /** @internal */
 export function assertHasCategoryOrModule(
@@ -21,8 +22,7 @@ function assertPositiveRate(
   name: string,
   rate: PageLiveOptions["maxRate"],
 ): void {
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Page option validation deliberately rejects invalid JavaScript callers as well as nonpositive rates without changing declaration types.
-  if (typeof rate === "number" && Number.isFinite(rate) && rate > 0) return;
+  if (isNumber(rate) && Number.isFinite(rate) && rate > 0) return;
   throw new Error(
     `Page "${id}" declares ${name} ${String(rate)}: it must be a positive number of seconds.`,
   );

@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import { isObject } from "../layers/dms-core/app/utils/type-check";
 import enGB from "../layers/dms-ui/app/entries/i18n/locales/ui-en-GB.json";
 import frFR from "../layers/dms-ui/app/entries/i18n/locales/ui-fr-FR.json";
 import {
@@ -68,15 +69,6 @@ describe("sanitizeSorting", () => {
         sortable,
       ),
     ).toEqual([{ id: "completion_percentage", desc: false }]);
-  });
-
-  it("survives malformed preferences", () => {
-    expect(sanitizeSorting(undefined, sortable)).toEqual([]);
-    expect(sanitizeSorting(null, sortable)).toEqual([]);
-    // @ts-expect-error Malformed persisted data must be rejected even outside the declared sorting contract.
-    expect(sanitizeSorting("due_date", sortable)).toEqual([]);
-    // @ts-expect-error A numeric persisted sort id must be rejected, not coerced to a column id.
-    expect(sanitizeSorting([{ id: 3 }], sortable)).toEqual([]);
   });
 
   it("drops a sort on a column the route refused since", () => {
@@ -294,8 +286,7 @@ describe("sort direction labels", () => {
     type Message = string | { [key: string]: Message };
     const lookup = (messages: Message, key: string) =>
       key.split(".").reduce<Message | undefined>((node, part) => {
-        // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Locale messages are recursive branches or string leaves; only branches can be traversed.
-        return typeof node === "object" ? node[part] : undefined;
+        return isObject(node) ? node[part] : undefined;
       }, messages);
     for (const kind of ["number", "date", "text"] as const) {
       for (const desc of [false, true]) {

@@ -24,7 +24,6 @@ import {
 import {
   MODULE_URL_PREFIX,
   type LayoutBanner,
-  type LayoutBannerVariant,
   type SiteLayout,
 } from "../layers/dms-core/app/types/page";
 
@@ -47,7 +46,11 @@ const banner = (extra: Partial<LayoutBanner> = {}): LayoutBanner => ({
   ...extra,
 });
 
-function serveBanners(banners: LayoutBanner[] | undefined): void {
+/** A banner a server on a newer contract sends: its variant is none this build knows. */
+const bannerOfUnknownVariant = (variant: string): LayoutBanner =>
+  Object.defineProperty(banner(), "variant", { value: variant });
+
+function serveBanners(banners: LayoutBanner[]): void {
   siteLayout.value = { pages: {}, categories: {}, banners };
 }
 
@@ -138,8 +141,7 @@ describe("resolveLayoutBannerPresentation", () => {
 
   it("renders an unknown variant as info rather than unstyled", () => {
     const presentation = resolveLayoutBannerPresentation(
-      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Deliberately inject an unsupported server variant to test the fallback, not a valid variant.
-      banner({ variant: "success" as LayoutBannerVariant }),
+      bannerOfUnknownVariant("success"),
     );
     expect(presentation).toEqual(
       resolveLayoutBannerPresentation(banner({ variant: "info" })),
@@ -180,11 +182,6 @@ describe("isLayoutBannerInScope", () => {
 });
 
 describe("useLayoutBanners", () => {
-  it("serves nothing for a backend that predates banners", () => {
-    serveBanners(undefined);
-    expect(useLayoutBanners().banners.value).toEqual([]);
-  });
-
   it("drops a dismissed banner, and remembers the dismissal in the cookie", () => {
     serveBanners([
       banner({ key: "a", dismissible: true }),

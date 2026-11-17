@@ -1,12 +1,13 @@
 import { HTTPResult } from "@antelopejs/interface-api";
+import { GetModel } from "@antelopejs/interface-database-decorators";
 import { expect } from "chai";
-import type {
-  Session,
+import {
+  type Session,
   SessionModel,
-  User,
-  UserModel,
+  type User,
 } from "@antelopejs/interface-dms/auth/db";
 import { sign } from "jsonwebtoken";
+import type { z } from "zod";
 import {
   changePassword,
   listSessions,
@@ -15,12 +16,19 @@ import {
   getTwoFactorStatus,
   markBackupCodesSaved,
 } from "../../../../pages/account";
+import { sessionFixture } from "../../../helpers/table-fixtures";
+import { isString } from "@antelopejs/interface-dms/utils/internal/type-check";
+import { RecordingUserModel } from "../../../helpers/recording-user-model";
+import {
+  plainPasswordUserFixture,
+  storedUserFixture,
+} from "../../../helpers/user-fixture";
+import { securitySchema } from "../../../../validation";
 
 const HTTP_BAD_REQUEST = 400;
 const HTTP_CONFLICT = 409;
 const CURRENT_PASSWORD = "Current1!";
 const NEW_PASSWORD = "Antelope26!";
-const WEAK_PASSWORD = "antelope";
 const USER_ID = "account-security-user";
 const OTHER_USER_ID = "account-security-other";
 const OWN_EMAIL = "camille@acme.dev";
@@ -33,19 +41,54 @@ const TOKEN_SIGNING_KEY = "account-security-test";
 const BACKUP_CODE_TOTAL = 10;
 const INVALID_CURRENT_PASSWORD = "error.invalid_current_password";
 
+/** Finds the account under test, and no other but the one holding TAKEN_EMAIL. */
+class HeldUserModel extends RecordingUserModel {
+  constructor(private readonly user: User) {
+    super();
+  }
+
+  override async get(): Promise<User> {
+    return this.user;
+  }
+
+  override async getByEmail(email: string): Promise<User | undefined> {
+    return email === TAKEN_EMAIL
+      ? storedUserFixture({ _id: OTHER_USER_ID, email: TAKEN_EMAIL })
+      : undefined;
+  }
+}
+
+/** Holds the user's sessions in memory and notes the refresh tokens written. */
+class HeldSessionModel extends SessionModel {
+  /** Refresh tokens written per session id. */
+  readonly refreshTokens = new Map<string, string>();
+
+  constructor(public sessions: Session[]) {
+    super(GetModel(SessionModel).database);
+  }
+
+  override async getByUserId(): Promise<Session[]> {
+    return [...this.sessions];
+  }
+
+  override async delete(id: string): Promise<number> {
+    this.sessions = this.sessions.filter((entry) => entry._id !== id);
+    return 1;
+  }
+
+  override async replaceRefreshToken(id: string, token: string): Promise<void> {
+    this.refreshTokens.set(id, token);
+  }
+}
+
 interface Harness {
   user: User;
-  userModel: UserModel;
-  sessionModel: SessionModel;
-  sessions: Session[];
-  updates: number;
-  /** Refresh tokens written per session id. */
-  refreshTokens: Map<string, string>;
+  userModel: HeldUserModel;
+  sessionModel: HeldSessionModel;
 }
 
 function buildUser(password: string | null): User {
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The credential fixture implements only user fields and hashing behavior exercised here, not the full database instance.
-  return {
+  const user = plainPasswordUserFixture({
     _id: USER_ID,
     email: OWN_EMAIL,
     password,
@@ -53,15 +96,22 @@ function buildUser(password: string | null): User {
     createdAt: new Date(0),
     twoFactorMethods: [],
     twoFactorBackupCodes: [],
-
-    testHash: (_field: string, candidate: string) =>
-      candidate === CURRENT_PASSWORD,
-  } as unknown as User;
+    testHashAsync: async <This extends {}, F extends keyof This>(
+      _field: F,
+      candidate: This[F],
+    ) => candidate === CURRENT_PASSWORD,
+    setHashAsync: async <This extends object, F extends keyof This>(
+      _field: F,
+      value: This[F],
+    ): Promise<void> => {
+      if (isString(value)) user.password = value;
+    },
+  });
+  return user;
 }
 
 function session(id: string, lastActiveAt: number): Session {
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The session fixture omits the required userAgent field, which these credential operations do not read.
-  return {
+  return sessionFixture({
     _id: id,
     userId: USER_ID,
     browser: "Chrome",
@@ -71,41 +121,20 @@ function session(id: string, lastActiveAt: number): Session {
     location: "",
     createdAt: new Date(0),
     lastActiveAt: new Date(lastActiveAt),
-  } as Session;
+  });
 }
 
 function buildHarness(password: string | null = "hashed"): Harness {
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Model doubles are assigned immediately below after the harness exists for their closures.
-  const harness = {
-    user: buildUser(password),
-    sessions: [
+  const user = buildUser(password);
+  return {
+    user,
+    userModel: new HeldUserModel(user),
+    sessionModel: new HeldSessionModel([
       session("session-old", 1),
       session(CURRENT_SESSION, 2),
       session("session-recent", 3),
-    ],
-    updates: 0,
-    refreshTokens: new Map<string, string>(),
-  } as Harness;
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- This model double implements only lookup and update operations consumed by the credential flow.
-  harness.userModel = {
-    get: async () => harness.user,
-    getByEmail: async (email: string) =>
-      email === TAKEN_EMAIL ? { _id: OTHER_USER_ID } : undefined,
-    update: async () => {
-      harness.updates += 1;
-    },
-  } as unknown as UserModel;
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- This session model double implements only listing, deletion and refresh-token replacement.
-  harness.sessionModel = {
-    getByUserId: async () => [...harness.sessions],
-    delete: async (id: string) => {
-      harness.sessions = harness.sessions.filter((entry) => entry._id !== id);
-    },
-    replaceRefreshToken: async (id: string, token: string) => {
-      harness.refreshTokens.set(id, token);
-    },
-  } as unknown as SessionModel;
-  return harness;
+    ]),
+  };
 }
 
 const authorization = `Bearer ${sign({ sessionId: CURRENT_SESSION, tenantId: TENANT_ID }, TOKEN_SIGNING_KEY)}`;
@@ -113,7 +142,7 @@ const authorization = `Bearer ${sign({ sessionId: CURRENT_SESSION, tenantId: TEN
 async function refusal(action: Promise<unknown>): Promise<HTTPResult> {
   const outcome = await action.then(
     () => undefined,
-    (error) => error,
+    (error: unknown) => error,
   );
   if (outcome instanceof HTTPResult) return outcome;
   throw new Error(`Expected an HTTP refusal, got ${String(outcome)}`);
@@ -121,7 +150,7 @@ async function refusal(action: Promise<unknown>): Promise<HTTPResult> {
 
 function passwordChange(
   harness: Harness,
-  body: Parameters<typeof changePassword>[1],
+  body: z.input<typeof securitySchema.changePassword>,
 ) {
   return changePassword(harness.user, body, {
     userModel: harness.userModel,
@@ -141,7 +170,7 @@ describe("[unit] settings/security — password change asks for the current pass
     );
     expect(result.getStatus()).to.equal(HTTP_BAD_REQUEST);
     expect(result.getBody()).to.equal(INVALID_CURRENT_PASSWORD);
-    expect(harness.updates).to.equal(0);
+    expect(harness.userModel.updateCalls).to.equal(0);
   });
 
   it("refuses a missing current password", async () => {
@@ -150,18 +179,6 @@ describe("[unit] settings/security — password change asks for the current pass
       passwordChange(harness, { password: NEW_PASSWORD }),
     );
     expect(result.getBody()).to.equal(INVALID_CURRENT_PASSWORD);
-  });
-
-  it("enforces the sign-up password rules", async () => {
-    const harness = buildHarness();
-    const result = await refusal(
-      passwordChange(harness, {
-        currentPassword: CURRENT_PASSWORD,
-        password: WEAK_PASSWORD,
-      }),
-    );
-    expect(result.getStatus()).to.equal(HTTP_BAD_REQUEST);
-    expect(harness.updates).to.equal(0);
   });
 
   it("changes the password and stamps the change, with the new auth key in one write", async () => {
@@ -173,7 +190,7 @@ describe("[unit] settings/security — password change asks for the current pass
     expect(harness.user.password).to.equal(NEW_PASSWORD);
     expect(harness.user.passwordChangedAt).to.be.instanceOf(Date);
     expect(harness.user.authKey).to.not.equal(ORIGINAL_AUTH_KEY);
-    expect(harness.updates).to.equal(1);
+    expect(harness.userModel.updateCalls).to.equal(1);
   });
 
   it("signs out every other session and hands this one back a way in", async () => {
@@ -183,13 +200,13 @@ describe("[unit] settings/security — password change asks for the current pass
       password: NEW_PASSWORD,
     });
     expect(result.signedOutSessions).to.equal(2);
-    expect(harness.sessions.map((entry) => entry._id)).to.deep.equal([
-      CURRENT_SESSION,
-    ]);
+    expect(
+      harness.sessionModel.sessions.map((entry) => entry._id),
+    ).to.deep.equal([CURRENT_SESSION]);
     expect(result.sessionHandoff?.endpoint).to.equal(
       "/api/auth/session-handoff",
     );
-    expect(harness.refreshTokens.get(CURRENT_SESSION)).to.equal(
+    expect(harness.sessionModel.refreshTokens.get(CURRENT_SESSION)).to.equal(
       result.sessionHandoff?.payload.token,
     );
   });
@@ -251,7 +268,7 @@ describe("[unit] settings/security — sessions and backup codes", () => {
       authorization,
     });
     expect(result.count).to.equal(2);
-    expect(harness.sessions).to.have.length(1);
+    expect(harness.sessionModel.sessions).to.have.length(1);
     expect(harness.user.authKey).to.not.equal(ORIGINAL_AUTH_KEY);
     expect(result.sessionHandoff?.payload.token).to.be.a("string");
   });

@@ -1,18 +1,35 @@
 import { get } from "@nuxt/ui/runtime/utils/index.js";
-import type { describeTableWriteError } from "./utils/writeError";
+import {
+  isBoolean,
+  isNull,
+  isNumber,
+  isObject,
+  isString,
+} from "#dms-core/app/utils/type-check";
 export const DEFAULT_ROW_ID_KEY = "_id";
+
+/** What a failed request reports to listeners: its body or its message. */
+export type ErrorPayload = string | number | boolean | object;
+
+const isRowId = (value: unknown): value is string | number =>
+  isString(value) || isNumber(value);
+
+const isErrorPayload = (value: unknown): value is ErrorPayload =>
+  isString(value) ||
+  isNumber(value) ||
+  isBoolean(value) ||
+  (isObject(value) && !isNull(value));
 
 export const getItemId = (
   item: Data,
   idKey: string = DEFAULT_ROW_ID_KEY,
 ): string | undefined => {
-  return get(item, idKey) ?? item._id ?? item.id;
+  const id = [get(item, idKey), item._id, item.id].find(isRowId);
+  return id === undefined ? undefined : String(id);
 };
 
-export const getErrorPayload = (
-  error: Parameters<typeof describeTableWriteError>[0],
-) => {
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Rejections may be arbitrary JavaScript values, not EventError instances. Its owner describes only the fields forwarded here; inference cannot prove them, and validation would change primitive and malformed-error payloads.
-  const err = error as EventError;
-  return err?.data || err?.message;
+export const getErrorPayload = (cause: unknown): ErrorPayload | undefined => {
+  if (!isObject(cause) || isNull(cause)) return undefined;
+  const payload = cause.data || cause.message;
+  return isErrorPayload(payload) ? payload : undefined;
 };

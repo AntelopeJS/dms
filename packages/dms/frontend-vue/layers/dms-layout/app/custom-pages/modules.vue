@@ -4,10 +4,11 @@ import UButton from "@nuxt/ui/components/Button.vue";
 import UIcon from "@nuxt/ui/runtime/vue/components/Icon.vue";
 import DmsEmptyState from "#dms-ui/app/components/empty-state/EmptyState.vue";
 import DmsSectionHeader from "#dms-ui/app/components/section-header/SectionHeader.vue";
-import DmsSegmented from "#dms-ui/app/components/segmented/Segmented.vue";
+import DmsSegmentedControl from "#dms-ui/app/components/segmented/SegmentedControl.vue";
 import DmsStatGroup, {
   type StatGroupItem,
 } from "#dms-ui/app/components/stat-group/StatGroup.vue";
+import type { JsonValue } from "#dms-core/app/types/json";
 import type { Tone } from "#dms-core/app/types/tone";
 import { useKeyboardPlatform } from "#dms-ui/app/composables/global/keyboardPlatform";
 import DmsChipGroup from "#dms-ui/app/entries/components/form/ChipGroup";
@@ -20,7 +21,6 @@ import {
   useModulesListing,
 } from "../composables/page/useModulesListing";
 import { useModuleHistory } from "../composables/page/useModuleHistory";
-import type { ModuleCatalogEntry } from "#dms-core/app/types/page";
 import {
   MODULE_CATEGORY_ALL,
   MODULE_STORE_PATH,
@@ -33,13 +33,8 @@ import {
   summarizeModules,
   type ModuleSortMode,
 } from "../build/utils/modules-catalog";
-import {
-  sortStoreModules,
-  storeOnlyModules,
-  storeOpenTarget,
-  toModuleStoreEntry,
-  withStoreDetails,
-} from "../build/utils/module-store-catalog";
+import { storeOpenTarget } from "../build/utils/module-store-catalog";
+import { useInstalledModules } from "../composables/page/useInstalledModules";
 import { useModuleStore } from "../composables/page/useModuleStore";
 import { useModuleStoreActions } from "../composables/page/useModuleStoreActions";
 import DmsSearchInput from "#dms-ui/app/entries/components/form/SearchInput";
@@ -123,26 +118,13 @@ const isInitiallyLoading = computed(
 );
 const isRetrying = ref(false);
 
-const storeModules = computed(() =>
-  sortStoreModules(
-    (moduleStore.listing.value?.modules ?? []).map((entry) =>
-      toModuleStoreEntry(entry, modulesListing.modules.value ?? []),
-    ),
-    processI18n,
-    locale.value,
-  ),
+const { storeModules, modules } = useInstalledModules(
+  modulesListing,
+  moduleStore,
 );
 const storeEntries = computed(
   () => new Map(storeModules.value.map((entry) => [entry.id, entry])),
 );
-
-const modules = computed<ModuleCatalogEntry[]>(() => {
-  const registered = withStoreDetails(
-    (modulesListing.modules.value ?? []).filter((entry) => entry.hasAccess),
-    storeModules.value,
-  );
-  return [...registered, ...storeOnlyModules(storeModules.value, registered)];
-});
 const summary = computed(() => summarizeModules(modules.value));
 
 const visitedAt = computed(
@@ -163,7 +145,10 @@ const category = ref<string>(MODULE_CATEGORY_ALL);
 const SORT_MODE_PREFERENCE_KEY = "modulesPage.sort";
 const { getPreference, setPreference } = usePreferences();
 const sortMode = computed<ModuleSortMode>({
-  get: () => parseModuleSortMode(getPreference(SORT_MODE_PREFERENCE_KEY)),
+  get: () =>
+    parseModuleSortMode(
+      getPreference<JsonValue | undefined>(SORT_MODE_PREFERENCE_KEY),
+    ),
   set: (mode) => setPreference(SORT_MODE_PREFERENCE_KEY, mode),
 });
 
@@ -285,7 +270,7 @@ const summaryCards = computed<StatGroupItem[]>(() =>
 <template>
   <div class="pb-20">
     <!-- Not a platform owner: say who manages modules instead of redirecting. -->
-    <DmsCard v-if="isForbidden" :padded="false">
+    <DmsCardPanel v-if="isForbidden" :padded="false">
       <DmsEmptyState
         variant="no-access"
         :title="t('modules.forbidden.title')"
@@ -302,11 +287,11 @@ const summaryCards = computed<StatGroupItem[]>(() =>
           />
         </template>
       </DmsEmptyState>
-    </DmsCard>
+    </DmsCardPanel>
 
     <!-- Load failure: what failed, what still works, and a retry. -->
     <div v-else-if="failure" role="alert">
-      <DmsBanner
+      <DmsNoticeBanner
         tone="error"
         icon="i-ph-plugs"
         :title="t('modules.error.title')"
@@ -336,7 +321,7 @@ const summaryCards = computed<StatGroupItem[]>(() =>
             @click="retry"
           />
         </template>
-      </DmsBanner>
+      </DmsNoticeBanner>
     </div>
 
     <template v-else>
@@ -362,7 +347,7 @@ const summaryCards = computed<StatGroupItem[]>(() =>
           :description="t('modules.installed.description')"
         >
           <template #trailing>
-            <DmsSegmented
+            <DmsSegmentedControl
               v-model="sortMode"
               :items="sortItems"
               size="sm"
@@ -401,16 +386,16 @@ const summaryCards = computed<StatGroupItem[]>(() =>
         </div>
 
         <!-- Nothing installed -->
-        <DmsCard v-else-if="modules.length === 0" :padded="false">
+        <DmsCardPanel v-else-if="modules.length === 0" :padded="false">
           <DmsEmptyState
             icon="i-ph-package"
             :title="t('modules.empty.title')"
             :description="t('modules.empty.description')"
           />
-        </DmsCard>
+        </DmsCardPanel>
 
         <!-- Search with no result: point to where the thing lives. -->
-        <DmsCard v-else-if="visibleModules.length === 0" :padded="false">
+        <DmsCardPanel v-else-if="visibleModules.length === 0" :padded="false">
           <DmsEmptyState
             variant="no-result"
             :title="
@@ -473,7 +458,7 @@ const summaryCards = computed<StatGroupItem[]>(() =>
               />
             </template>
           </DmsEmptyState>
-        </DmsCard>
+        </DmsCardPanel>
 
         <div v-else :class="MODULE_TILE_GRID_CLASS">
           <ModuleCatalogTile

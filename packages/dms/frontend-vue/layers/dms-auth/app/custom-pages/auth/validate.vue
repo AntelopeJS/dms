@@ -105,7 +105,9 @@ function onUpdatePin(value: string[] | undefined) {
 async function requestEmailValidation() {
   try {
     isLoading.value = true;
-    await $authFetch("/api/auth/request-email-verification");
+    await $authFetch("/api/auth/request-email-verification", {
+      method: "POST",
+    });
 
     startCooldown();
 
@@ -139,11 +141,11 @@ async function requestEmailValidation() {
 
       <DmsOtpInput
         ref="codeInput"
+        v-model="state.pin"
         :label="$t('page.auth.code.label')"
         size="xl"
         is-split
         is-centered
-        v-model="state.pin"
         :error="codeError"
         :length="PIN_LENGTH"
         :disabled="isLoading"

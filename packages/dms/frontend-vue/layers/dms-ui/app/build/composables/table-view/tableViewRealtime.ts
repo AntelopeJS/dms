@@ -1,6 +1,11 @@
 import { usePageLive } from "../../../composables/live/usePageLive";
-import type { RealtimeTopicHandler } from "#dms-core/app/composables/realtime/useUserRealtime";
+import {
+  useUserRealtime,
+  type RealtimeTopicHandler,
+} from "#dms-core/app/composables/realtime/useUserRealtime";
+import { isString } from "#dms-core/app/utils/type-check";
 import type { RealtimePresenceMap } from "./tableViewTypes";
+import { detach } from "../detach";
 import type { TableViewScope } from "./tableViewScope";
 
 export function useTableViewRowRealtime<T extends Data>(
@@ -16,7 +21,7 @@ export function useTableViewRowRealtime<T extends Data>(
     REALTIME_PRESENCE_TOPIC_PREFIX,
   } = scope.configuration;
   const { tableRows } = scope.rows;
-  const { data } = scope.listState;
+  const { data, readOrder } = scope.listState;
   const { props } = scope;
   const rowIdKey = props.rowIdKey ?? ROW_ID_DEFAULT_KEY;
 
@@ -51,13 +56,21 @@ export function useTableViewRowRealtime<T extends Data>(
     data.value = { ...data.value, results: next };
   };
 
+  const findRow = (id: string) =>
+    data.value?.results.findIndex((row) => getRowId(row) === id) ?? -1;
+
   const patchRowLocal = async (id: string) => {
-    if (!data.value?.results) return;
-    const idx = data.value.results.findIndex((row) => getRowId(row) === id);
-    if (idx === -1) return;
+    if (findRow(id) === -1) return;
+    readOrder.rows += 1;
+    const read = readOrder.rows;
+    const listRead = readOrder.lists;
     try {
       const fresh = await tableRows.getRow(id);
-      if (!fresh) return;
+      if (!fresh || readOrder.lists !== listRead) return;
+      if (read < (readOrder.applied.get(id) ?? 0)) return;
+      const idx = findRow(id);
+      if (!data.value || idx === -1) return;
+      readOrder.applied.set(id, read);
       const next = [...data.value.results];
       next[idx] = fresh;
       data.value = { ...data.value, results: next };
@@ -81,6 +94,7 @@ export function useTableViewRowEvents<T extends Data>(
   scope: Pick<
     TableViewScope<T>,
     | "configuration"
+    | "listState"
     | "rowRealtime"
     | "rowCommands"
     | "refresh"
@@ -89,6 +103,7 @@ export function useTableViewRowEvents<T extends Data>(
   >,
 ) {
   const { REALTIME_EVENT_TYPE } = scope.configuration;
+  const { isListLoading } = scope.listState;
   const { removeRowsLocal, patchRowLocal, realtimeRowTopic } =
     scope.rowRealtime;
   const { deselectRows } = scope.rowCommands;
@@ -115,6 +130,10 @@ export function useTableViewRowEvents<T extends Data>(
         ]);
         return;
       }
+      if (isListLoading.value) {
+        await refreshAll();
+        return;
+      }
       await Promise.all([
         ...ids.map((id) => patchRowLocal(id)),
         refreshCounts(),
@@ -135,18 +154,21 @@ export function useTableViewRowEvents<T extends Data>(
   };
 
   useRealtimeTopic(realtimeRowTopic, (event) => {
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- RealtimeTopicHandler leaves payload values unknown; this existing row-topic consumer trusts server ids without validating them.
-    const payload = event as { type: string; payload?: { ids?: string[] } };
-    const handler = realtimeEventHandlers[payload.type];
+    if (!("type" in event)) return;
+    const handler = realtimeEventHandlers[event.type];
     if (!handler) return;
-    const ids = payload.payload?.ids ?? [];
-    if (ids.length === 0 && payload.type !== REALTIME_EVENT_TYPE.CREATED)
-      return;
+    const rawIds = event.payload?.ids;
+    const ids = Array.isArray(rawIds) ? rawIds.filter(isString) : [];
+    if (ids.length === 0 && event.type !== REALTIME_EVENT_TYPE.CREATED) return;
     if (isPageLive.value) {
-      gateRowEvent(payload.type, ids, event);
+      gateRowEvent(event.type, ids, event);
       return;
     }
-    void handler(ids);
+    detach(Promise.resolve(handler(ids)));
+  });
+
+  watch(useUserRealtime().pageTopics, (topics) => {
+    if (realtimeRowTopic.value && topics.length > 0) liveGate.owe();
   });
   return {};
 }

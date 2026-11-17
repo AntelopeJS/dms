@@ -28,17 +28,14 @@ interface BrowserSession {
  * account entry, and the old entry — holding a dead refresh token — is dropped.
  */
 export function useSessionHandoff() {
-  const { session, fetch: refreshUser } = useDmsUserSession<
-    unknown,
-    BrowserSession
-  >();
+  const userSession = useDmsUserSession<unknown, BrowserSession>();
   const { addCurrentAccount } = useMultiAccount();
 
   return async function adoptSessionHandoff(
     handoff: SessionHandoff | undefined,
   ): Promise<void> {
     if (!handoff) return;
-    const previousAccountId = session.value?.accountId;
+    const previousAccountId = userSession.session.value?.accountId;
     await $fetch(ESTABLISH_ENDPOINT, {
       method: "POST",
       body: { endpoint: handoff.endpoint, payload: handoff.payload },
@@ -49,7 +46,7 @@ export function useSessionHandoff() {
         body: { accountId: previousAccountId },
       });
     }
-    await refreshUser();
+    await userSession.fetch();
     addCurrentAccount();
   };
 }

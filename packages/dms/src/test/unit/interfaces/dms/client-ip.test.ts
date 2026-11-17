@@ -5,6 +5,7 @@ import {
   getClientIp,
 } from "@antelopejs/interface-dms/client-ip";
 import { getAuthConfig } from "../../../../config";
+import { peerRequestContext } from "../../../helpers/peer-request-context";
 
 const PROXY_ADDRESS = "::ffff:10.0.0.9";
 const CLIENT_ADDRESS = "109.132.199.8";
@@ -20,18 +21,7 @@ function requestContext(request: FakeRequest): RequestContext {
     request.forwardedFor === undefined
       ? {}
       : { "x-forwarded-for": request.forwardedFor };
-  const context = {
-    rawRequest: {
-      socket: { remoteAddress: request.socketAddress },
-      headers,
-    },
-  } satisfies {
-    rawRequest: Pick<RequestContext["rawRequest"], "headers"> & {
-      socket: Pick<RequestContext["rawRequest"]["socket"], "remoteAddress">;
-    };
-  };
-  // SAFETY: getClientIp reads only rawRequest.socket.remoteAddress and rawRequest.headers; this fixture never runs request handling or response methods.
-  return context as RequestContext;
+  return peerRequestContext(request.socketAddress, headers);
 }
 
 describe("[unit] client ip interface", () => {

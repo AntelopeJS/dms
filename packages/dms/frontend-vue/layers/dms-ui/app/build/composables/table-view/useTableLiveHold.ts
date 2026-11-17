@@ -30,8 +30,7 @@ export interface TableLiveHoldSignals {
    * The table's element: whether it is on screen, and where its first row
    * stands for `whileScrolled`.
    */
-  // oxlint-disable-next-line anti-slop/no-unknown-returns -- The resolver may return unparsed or missing element refs. useLocalHold accepts only HTMLElement instances and treats other values as absent; an HTMLElement-only contract would exclude those existing fallback cases.
-  tableElement?: () => unknown;
+  tableElement?: () => HTMLElement | null;
 }
 
 /** Why a table holds its rows by itself, its page staying live. */
@@ -119,19 +118,16 @@ function useLocalHold(
   holdOptions: TableViewLiveHoldOptions | null,
   signals: TableLiveHoldSignals,
 ): ComputedRef<LocalHoldReason | null> {
-  const tableElement = signals.tableElement ?? NO_ELEMENT;
-  const element = () => {
-    const target = tableElement();
-    return target instanceof HTMLElement ? target : null;
-  };
+  const element = signals.tableElement ?? NO_ELEMENT;
+  const holdsOnScreen = !!holdOptions && holdOptions.whileOnScreen !== false;
   const isScrolled = useScrolledPastTop(element, !!holdOptions?.whileScrolled);
-  const isReached = useTableReached(element, !!holdOptions);
+  const isReached = useTableReached(element, holdsOnScreen);
   const reasons: Array<[LocalHoldReason, boolean, () => boolean]> = [
     ["rowOpen", !!holdOptions?.whileRowOpen, signals.isRowOpen ?? NEVER],
     ["searching", !!holdOptions?.whileSearching, signals.isSearching ?? NEVER],
     ["sorted", !!holdOptions?.whileSorted, signals.isSorted ?? NEVER],
     ["scrolled", !!holdOptions?.whileScrolled, () => isScrolled.value],
-    ["reading", !!holdOptions, () => isReached.value],
+    ["reading", holdsOnScreen, () => isReached.value],
   ];
   return computed(
     () =>
@@ -143,7 +139,7 @@ function useLocalHold(
 /**
  * The `liveHold` of a table view: while its live page is paused, while its
  * rows are on screen or scrolled past (rows landing at the top would move
- * them) — or, with `whileRowOpen` / `whileSearching` / `whileSorted` /
+ * them; not with `whileOnScreen: false`) — or, with `whileRowOpen` / `whileSearching` / `whileSorted` /
  * `whileScrolled`, saying so, while the user reads a row, searches, sorts or
  * scrolled down — the table keeps its rows: the gate requests nothing on its events and counts them, and a
  * source route is told the moment they were frozen, so the user's own

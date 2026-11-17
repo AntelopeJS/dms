@@ -12,10 +12,11 @@ import {
   ref,
   watch,
   type App,
-  type PropType,
   type Ref,
 } from "vue";
 import { renderToString } from "vue/server-renderer";
+import { freshDmsState, sharedDmsCookie, type StateValue } from "./state-stub";
+import { stubModuleReads } from "./helpers/installed-modules-runtime";
 import Sidebar from "../layers/dms-layout/app/entries/components/layout/DashboardSidebar";
 import { KEYBOARD_PLATFORM_COOKIE } from "../layers/dms-ui/app/composables/global/keyboardPlatform";
 
@@ -29,26 +30,23 @@ const NAVIGATORS = {
 } as const;
 
 const route = reactive({ path: "/settings", query: {} });
-let cookies: Map<string, Ref<unknown>>;
+let cookies: Map<string, Ref<StateValue>>;
 let app: App | undefined;
 let host: HTMLDivElement;
 
 /** Stands in for Nuxt UI's button: its kbds, and its tooltip's while collapsed. */
-const SearchButton = defineComponent({
-  props: {
-    // SAFETY: Sidebar passes the search button's keyboard labels as strings.
-    kbds: { type: Array as PropType<string[]>, default: () => [] },
-    // SAFETY: Sidebar supplies the tooltip's keyboard labels in its kbds property.
-    tooltip: { type: Object as PropType<{ kbds?: string[] }>, default: null },
-  },
-  setup: (props) => () =>
+const SearchButton = defineComponent(
+  (props: { kbds?: string[]; tooltip?: { kbds?: string[] } | null }) => () =>
     h("button", { "data-testid": "search" }, [
-      ...props.kbds.map((kbd) => h("kbd", { "data-slot": "hint" }, kbd)),
+      ...(props.kbds ?? []).map((kbd) =>
+        h("kbd", { "data-slot": "hint" }, kbd),
+      ),
       ...(props.tooltip?.kbds ?? []).map((kbd) =>
         h("kbd", { "data-slot": "tooltip" }, kbd),
       ),
     ]),
-});
+  { props: { kbds: Array, tooltip: Object } },
+);
 
 function installRuntime(initialCookies: Record<string, string>) {
   cookies = new Map(
@@ -61,23 +59,20 @@ function installRuntime(initialCookies: Record<string, string>) {
     onMounted,
     onBeforeUnmount,
   }).forEach(([key, value]) => vi.stubGlobal(key, value));
-  vi.stubGlobal("useI18n", () => ({ t: (key: string) => key }));
+  vi.stubGlobal("useI18n", () => ({
+    t: (key: string) => key,
+    locale: ref("en"),
+  }));
+  stubModuleReads();
   vi.stubGlobal("useDmsAppConfig", () => ({}));
   vi.stubGlobal("useTranslation", () => ({
     processI18n: (value: string) => value,
   }));
   vi.stubGlobal("useDmsRoute", () => route);
-  vi.stubGlobal("useDmsState", <T>(_key: string, initial: () => T) =>
-    ref(initial()),
-  );
+  vi.stubGlobal("useDmsState", freshDmsState);
+  vi.stubGlobal("isDmsHydrating", () => false);
 
-  vi.stubGlobal(
-    "useDmsCookie",
-    <T>(key: string, options: { default: () => T }) => {
-      if (!cookies.has(key)) cookies.set(key, ref(options.default()));
-      return cookies.get(key);
-    },
-  );
+  vi.stubGlobal("useDmsCookie", sharedDmsCookie(cookies));
   vi.stubGlobal("useSiteLayout", () => ({
     siteLayout: ref({}),
     siteLayoutTree: ref(),

@@ -28,6 +28,8 @@
         "first_name": "First name",
         "last_name": "Last name",
         "name_required": "Required",
+        "setup_token": "Setup token",
+        "setup_token_help": "Printed in the server log when the instance started, or the value of DMS_SETUP_TOKEN.",
         "email": "Work e-mail",
         "submit": "Create administrator account",
         "back": "Back to platform details",

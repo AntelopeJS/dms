@@ -39,7 +39,7 @@ const BLOCKS = {
   TopListCard: () =>
     import("../layers/dms-ui/app/components/top-list/TopListCard.vue"),
   KpiCard: () => import("../layers/dms-ui/app/components/kpi/KpiCard.vue"),
-  Guard: () => import("../layers/dms-ui/app/components/guard/Guard.vue"),
+  Guard: () => import("../layers/dms-ui/app/components/guard/GuardBlock.vue"),
 };
 const SCOPE = "dashboard";
 const TOPICS = ["stats:first", "stats:second"];

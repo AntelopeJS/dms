@@ -1,4 +1,9 @@
-import { Controller, Parameter, Post } from "@antelopejs/interface-api";
+import {
+  Controller,
+  Parameter,
+  Post,
+  type QueryValue,
+} from "@antelopejs/interface-api";
 import {
   DataController,
   RegisterDataController,
@@ -12,6 +17,7 @@ import { taskDataAPI } from "../data-api";
 import { Task } from "../database";
 import { demoFormPages } from "../form-texts";
 import { demoGuide } from "../guide";
+import { queryText } from "../../query-text";
 
 @RegisterDataController()
 class kanbanCardTaskDataAPI extends DataController(
@@ -21,8 +27,8 @@ class kanbanCardTaskDataAPI extends DataController(
 ) {
   /** The cards' "Start" button: a custom row action the card places itself. */
   @Post("start")
-  async start(@Parameter("id", "query") id: string) {
-    await this.model.update(id, { status: "in_progress" });
+  async start(@Parameter("id", "query") id: QueryValue) {
+    await this.model.update(queryText(id) ?? "", { status: "in_progress" });
     return { ok: true };
   }
 }

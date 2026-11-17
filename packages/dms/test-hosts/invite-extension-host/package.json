@@ -6,7 +6,7 @@
     "baseUrl": "../../dist/test/invite-extension-host"
   },
   "dependencies": {
-    "@antelopejs/interface-dms": ">=0.3.1 <1.0.0",
-    "zod": "~3.24.2"
+    "@antelopejs/interface-dms": ">=0.14.1 <0.15.0",
+    "zod": "^3.24.2"
   }
 }

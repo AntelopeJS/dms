@@ -4,6 +4,12 @@ import { isRelativePreset } from "../layers/dms-core/app/composables/period/pres
 
 const REFRESH_MS = 60000;
 
+function rangeEnd(period: ReturnType<typeof usePeriod>): number {
+  const { range } = period.state.value;
+  if (!range) throw new Error("The preset resolved no range");
+  return range.to.getTime();
+}
+
 describe("relative preset refresh", () => {
   beforeEach(() => {
     vi.useFakeTimers();
@@ -24,9 +30,9 @@ describe("relative preset refresh", () => {
 
   it("slides a relative preset's range as time passes", () => {
     const period = usePeriod({ defaultPreset: "last-hour" });
-    const initialTo = period.state.value.range.to.getTime();
+    const initialTo = rangeEnd(period);
     vi.advanceTimersByTime(REFRESH_MS);
-    expect(period.state.value.range.to.getTime()).toBe(initialTo + REFRESH_MS);
+    expect(rangeEnd(period)).toBe(initialTo + REFRESH_MS);
   });
 
   it("changes the state key on each slide so consumers refetch", () => {
@@ -47,7 +53,7 @@ describe("relative preset refresh", () => {
     const period = usePeriod({ defaultPreset: "this-month" });
     period.setPreset("last-hour");
     await vi.advanceTimersByTimeAsync(REFRESH_MS);
-    expect(period.state.value.range.to.getTime()).toBe(Date.now());
+    expect(rangeEnd(period)).toBe(Date.now());
   });
 
   it("stops sliding after switching back to a calendar preset", async () => {

@@ -10,29 +10,30 @@ const CATEGORY_ID = "system";
 const SUBJECT_ID = "general";
 const NOTIFICATION_COUNT = 3;
 
+const model = GetModel(UserNotificationsModel);
+
+async function seed(userId: string, title: string): Promise<string> {
+  const created = await model.create({
+    userId,
+    icon: "i-ph-bell",
+    title,
+    description: "",
+    categoryId: CATEGORY_ID,
+    subjectId: SUBJECT_ID,
+    tone: "warning",
+  });
+  return created._id;
+}
+
+async function clear(): Promise<void> {
+  for (const userId of [USER_ID, OTHER_USER_ID]) {
+    await model.table.getAll(userId, "userId").delete().run();
+  }
+}
+
 describe("[unit] user notifications — inbox filters, counts and undo", () => {
-  const model = GetModel(UserNotificationsModel);
-
-  async function seed(userId: string, title: string): Promise<string> {
-    const created = await model.create({
-      userId,
-      icon: "i-ph-bell",
-      title,
-      description: "",
-      categoryId: CATEGORY_ID,
-      subjectId: SUBJECT_ID,
-      tone: "warning",
-    });
-    return created._id;
-  }
-
-  async function clear(): Promise<void> {
-    for (const userId of [USER_ID, OTHER_USER_ID]) {
-      await model.table.getAll(userId, "userId").delete().run();
-    }
-  }
-
   beforeEach(clear);
+
   after(clear);
 
   it("stores the tone of a notification", async () => {
@@ -74,27 +75,95 @@ describe("[unit] user notifications — inbox filters, counts and undo", () => {
     expect(ids).to.have.members(unreadIds);
     expect(await model.countUnread(USER_ID)).to.equal(0);
 
-    expect(await model.undoMarkAllAsRead(OTHER_USER_ID, batchId!)).to.be.empty;
+    expect(
+      await model.undoMarkAllAsRead(OTHER_USER_ID, batchId!),
+    ).to.have.lengthOf(0);
     const reopened = await model.undoMarkAllAsRead(USER_ID, batchId!);
     expect(reopened).to.have.members(unreadIds);
     expect(await model.countUnread(USER_ID)).to.equal(unreadIds.length);
     expect((await model.get(readId))?.isRead).to.equal(true);
     expect((await model.get(foreignId))?.isRead).to.equal(false);
   });
+});
+
+describe("[unit] user notifications — visible reads", () => {
+  beforeEach(clear);
+  after(clear);
+
+  it("lists and queries what the dismissed filter used to keep, in the same order", async () => {
+    const kept = [
+      await seed(USER_ID, "first"),
+      await seed(OTHER_USER_ID, "foreign"),
+      await seed(USER_ID, "second"),
+    ];
+    const dismissed = await seed(USER_ID, "dismissed");
+    await model.table.get(dismissed).update({ isDismissed: true }).run();
+    const raw = (await model.table.run()).map((row) => row._id);
+    const expected = (ids: string[]) => raw.filter((id) => ids.includes(id));
+
+    expect((await model.getAll()).map((row) => row._id)).to.deep.equal(
+      expected(kept),
+    );
+    expect(
+      (await model.getBy("userId", USER_ID)).map((row) => row._id),
+    ).to.deep.equal(expected([kept[0], kept[2]]));
+    expect(await model.getBy("userId", "nobody")).to.deep.equal([]);
+  });
+});
+
+describe("[unit] user notifications — inbox filters, counts and undo, batches", () => {
+  beforeEach(clear);
+  after(clear);
 
   it("undoes mark-all-read past 500 notifications", async () => {
     const count = 501;
-    await Promise.all(
-      Array.from({ length: count }, (_, index) =>
-        seed(USER_ID, `bulk ${index}`),
-      ),
-    );
+    const now = new Date();
+    await model.table
+      .insert(
+        Array.from({ length: count }, (_, index) => ({
+          userId: USER_ID,
+          icon: "i-ph-bell",
+          title: `bulk ${index}`,
+          description: "",
+          categoryId: CATEGORY_ID,
+          subjectId: SUBJECT_ID,
+          isRead: false,
+          groupId: null,
+          createdAt: now,
+          updatedAt: now,
+        })),
+      )
+      .run();
 
     const { batchId } = await model.markAllAsRead(USER_ID);
     expect(await model.countUnread(USER_ID)).to.equal(0);
     const reopened = await model.undoMarkAllAsRead(USER_ID, batchId!);
     expect(reopened).to.have.length(count);
     expect(await model.countUnread(USER_ID)).to.equal(count);
+  });
+
+  it("undoes mark-all-read for every copy of a shared notification", async () => {
+    const groupId = "notification-inbox-group";
+    const shared = (userId: string) =>
+      model.create({
+        userId,
+        icon: "i-ph-bell",
+        title: "shared",
+        description: "",
+        categoryId: CATEGORY_ID,
+        subjectId: SUBJECT_ID,
+        groupId,
+      });
+    const own = await shared(USER_ID);
+    const copy = await shared(OTHER_USER_ID);
+
+    const { batchId } = await model.markAllAsRead(USER_ID);
+    expect((await model.get(copy._id))?.isRead).to.equal(true);
+
+    expect(await model.undoMarkAllAsRead(USER_ID, batchId!)).to.deep.equal([
+      own._id,
+    ]);
+    expect((await model.get(copy._id))?.isRead).to.equal(false);
   });
 
   it("leaves out of the undo a notification changed since", async () => {
@@ -118,6 +187,11 @@ describe("[unit] user notifications — inbox filters, counts and undo", () => {
       ids: [],
     });
   });
+});
+
+describe("[unit] user notifications — inbox filters, counts and undo, badge", () => {
+  beforeEach(clear);
+  after(clear);
 
   describe("unread badge", () => {
     async function seedToned(

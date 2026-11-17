@@ -170,13 +170,13 @@ async function settle(event: Event): Promise<void> {
   >
     <UInputNumber
       v-bind="{ ...inputProps, ...$attrs }"
-      @blur="settle"
-      @update:model-value="onSettledValue"
       :class="[suffixText && 'min-w-0 flex-1', isCompact && 'sm:max-w-44']"
       :ui="fieldUi"
       :orientation="props.orientation ?? DEFAULT_ORIENTATION"
       :increment="{ color: 'neutral' }"
       :decrement="{ color: 'neutral' }"
+      @blur="settle"
+      @update:model-value="onSettledValue"
     />
     <span
       v-if="suffixText"

@@ -10,6 +10,7 @@ import { formSchema } from "@antelopejs/interface-dms/base/form";
 import { AuthUserWithPermission } from "@antelopejs/interface-dms/guards";
 import type { DemoRecord } from "./demo-record-api";
 import { PageFormInstant } from "./instant/page";
+import { z } from "zod";
 
 const HTTP_BAD_REQUEST = 400;
 const HTTP_CONFLICT = 409;
@@ -18,8 +19,17 @@ const JSON_TYPE = "application/json";
 const TAKEN_NAME = "taken";
 const OFFLINE_NAME = "offline";
 
+/** The values the "Instant save" form saves, as its form schema parses them. */
+const PreferencesSchema = z.object({
+  name: z.string(),
+  website: z.string().nullable(),
+  digest: z.enum(["never", "daily", "weekly"]).nullable(),
+  mentions: z.boolean().nullable(),
+  retention: z.number().nullable(),
+});
+
 /** The demo's preferences, kept in memory: a restart puts them back. */
-const preferences = {
+const preferences: z.infer<typeof PreferencesSchema> = {
   name: "Acme",
   website: "https://acme.example",
   digest: "weekly",
@@ -62,7 +72,7 @@ export class FormInstantAPIController extends Controller("/api/form-instant") {
         JSON_TYPE,
       );
     }
-    Object.assign(preferences, parsed.data);
+    Object.assign(preferences, PreferencesSchema.partial().parse(parsed.data));
     return preferences;
   }
 }

@@ -136,12 +136,12 @@ function buildKey(state: Omit<PeriodState, "key">): string {
   ].join("|");
 }
 
-interface PeriodRefs {
+type PeriodRefs = {
   preset: Ref<PeriodPreset>;
   comparison: Ref<PeriodComparison>;
   customRange: Ref<PeriodRange | null>;
   customCompareRange: Ref<PeriodRange | null>;
-}
+};
 
 function buildState(refs: PeriodRefs, now: Date): PeriodState {
   const fallback = refs.customRange.value ?? defaultFallbackRange(now);

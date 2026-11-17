@@ -8,7 +8,7 @@ import { GetMetadata } from "@antelopejs/interface-core";
 import { DEFAULT_TENANT_ID } from "@antelopejs/interface-dms/constants";
 import { decode, sign } from "jsonwebtoken";
 import { GetModel } from "@antelopejs/interface-database-decorators";
-import { expect } from "chai";
+import { assert, expect } from "chai";
 import { TenantMemberModel } from "@antelopejs/interface-dms/db";
 import { authenticateTenantRequest } from "@antelopejs/interface-dms/guards";
 import {
@@ -22,12 +22,13 @@ import {
 import {
   AuthUser,
   authenticateRequestUser,
-  generateAccessToken,
   IfAuthUser,
   type RequestAuthenticator,
 } from "@antelopejs/interface-dms/auth";
-import { type User, UserModel } from "@antelopejs/interface-dms/auth/db";
+import { User, UserModel } from "@antelopejs/interface-dms/auth/db";
 import { denyingTenantGate } from "../helpers/page-access";
+import { requestContextFixture } from "../helpers/request-context";
+import { sessionAccessToken } from "../helpers/session-token";
 
 const TENANT = "request-guard-tenant";
 const OTHER_TENANT = "request-guard-other";
@@ -41,10 +42,7 @@ const TENANT_OWNER_REQUIRED = "error.tenant_owner_required";
 const TENANT_MEMBER_REQUIRED = "error.tenant_member_required";
 
 function context(token: string): RequestContext {
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The guard context double provides authorization headers only, not the full HTTP request lifecycle.
-  return {
-    rawRequest: { headers: { authorization: `Bearer ${token}` } },
-  } as RequestContext;
+  return requestContextFixture(undefined, `Bearer ${token}`);
 }
 
 async function expectStatus<T>(
@@ -54,8 +52,8 @@ async function expectStatus<T>(
   try {
     await action();
     expect.fail("Expected guard rejection");
-  } catch (error: PromiseRejectedResult["reason"]) {
-    expect(error).to.be.instanceOf(HTTPResult);
+  } catch (error: unknown) {
+    assert.instanceOf(error, HTTPResult);
     expect(error.getStatus()).to.equal(status);
   }
 }
@@ -65,8 +63,8 @@ async function refusalOf<T>(
 ): Promise<ReturnType<HTTPResult["getBody"]>> {
   try {
     await action();
-  } catch (error: PromiseRejectedResult["reason"]) {
-    expect(error).to.be.instanceOf(HTTPResult);
+  } catch (error: unknown) {
+    if (!(error instanceof HTTPResult)) throw error;
     expect(error.getStatus()).to.equal(HTTP_FORBIDDEN);
     return error.getBody();
   }
@@ -75,12 +73,9 @@ async function refusalOf<T>(
 
 /** A token claiming `tenantId`, signed with a key the DMS never issued. */
 function forgedToken(genuine: string, tenantId: string): string {
-  const {
-    iat: _iat,
-    exp: _exp,
-    ...claims
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The helper assumes its genuine locally generated JWT has object claims; decode itself does not verify that shape.
-  } = decode(genuine) as Exclude<ReturnType<typeof decode>, string | null>;
+  const decoded = decode(genuine, { json: true });
+  assert.isNotNull(decoded, "the genuine token decodes to claims");
+  const { iat: _iat, exp: _exp, ...claims } = decoded;
   return sign({ ...claims, tenantId }, "not-the-user-secret");
 }
 
@@ -88,52 +83,32 @@ function forgedToken(genuine: string, tenantId: string): string {
 async function provided(
   decorator: ReturnType<typeof AuthUser>,
   ctx: RequestContext,
-): Promise<Awaited<ReturnType<typeof computeParameter>>> {
+): Promise<User | undefined> {
   class Probe {
     static location = "/probe";
   }
   decorator(Probe.prototype, "user");
   const meta = GetMetadata(Probe, ControllerMeta);
-  return computeParameter(ctx, meta.computed_props.user, new Probe());
+  const provided = await computeParameter(
+    ctx,
+    meta.computed_props.user,
+    new Probe(),
+  );
+  if (provided !== undefined && !(provided instanceof User)) {
+    throw new Error("The auth decorator provided something other than a user");
+  }
+  return provided;
 }
 
-describe("[unit] request tenant guards — JWT and custom credentials", () => {
-  let user: User;
-  let jwt: string;
-  const authenticator: RequestAuthenticator = {
-    recognizes: (token) => token.startsWith("opaque."),
-    authenticate: async () => ({ user, tenantId: TENANT }),
-  };
-  const options = { authenticators: [authenticator] };
+let user: User;
+let jwt: string;
+const authenticator: RequestAuthenticator = {
+  recognizes: (token) => token.startsWith("opaque."),
+  authenticate: async () => ({ user, tenantId: TENANT }),
+};
+const options = { authenticators: [authenticator] };
 
-  before(async () => {
-    await GetModel(UserModel).insert({
-      _id: USER_ID,
-      email: "request-guard@test.local",
-      name: "Request guard",
-      authKey: AUTH_KEY,
-      isValidated: true,
-      language: "en",
-      password: null,
-    });
-    const stored = await GetModel(UserModel).get(USER_ID);
-    if (!stored) throw new Error("Missing guard test user");
-    user = stored;
-    jwt = (await generateAccessToken(TENANT, user)).token;
-    await GetModel(TenantMemberModel, TENANT).insert({
-      _id: MEMBER_ID,
-      userId: USER_ID,
-      roleIds: [],
-      isTenantOwner: false,
-      joinedAt: new Date(),
-      invitedBy: null,
-    });
-  });
-
-  afterEach(() => {
-    tenantAccessInternal.RegisterTenantAccessGate.unregister(gate);
-  });
-
+function registerJwtBindingCases(): void {
   it("preserves JWT authentication and binds its verified tenant", async () => {
     expect((await authenticateRequestUser(context(jwt)))._id).to.equal(USER_ID);
     const ctx = context(jwt);
@@ -162,14 +137,13 @@ describe("[unit] request tenant guards — JWT and custom credentials", () => {
   });
 
   it("binds the tenant of a verified token, through the decorators or on demand", async () => {
-    const other = (await generateAccessToken(OTHER_TENANT, user)).token;
+    const other = await sessionAccessToken(OTHER_TENANT, user);
 
     const anonymous = context(other);
     expect(getRequestTenantId(anonymous)).to.equal(DEFAULT_TENANT_ID);
-    expect(
-      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The decorator computation API erases its result type; this test assumes IfAuthUser supplies a user or undefined.
-      ((await provided(IfAuthUser(), anonymous)) as User | undefined)?._id,
-    ).to.equal(USER_ID);
+    const resolved = await provided(IfAuthUser(), anonymous);
+    assert.instanceOf(resolved, User);
+    expect(resolved._id).to.equal(USER_ID);
     expect(getRequestTenantId(anonymous)).to.equal(OTHER_TENANT);
 
     const guarded = context(other);
@@ -202,7 +176,9 @@ describe("[unit] request tenant guards — JWT and custom credentials", () => {
       await GetModel(UserModel).update(USER_ID, { authKey: AUTH_KEY });
     }
   });
+}
 
+function registerMembershipCases(): void {
   it("does not enable opaque credentials on JWT-only routes", async () => {
     await expectStatus(
       () => authenticateTenantRequest(context("opaque.secret")),
@@ -215,9 +191,7 @@ describe("[unit] request tenant guards — JWT and custom credentials", () => {
       ...authenticator,
       authenticate: async () => ({ user, tenantId: OTHER_TENANT }),
     };
-    const authenticated = context(
-      (await generateAccessToken(OTHER_TENANT, user)).token,
-    );
+    const authenticated = context(await sessionAccessToken(OTHER_TENANT, user));
     expect((await authenticateRequestUser(authenticated))._id).to.equal(
       USER_ID,
     );
@@ -291,7 +265,9 @@ describe("[unit] request tenant guards — JWT and custom credentials", () => {
       });
     }
   });
+}
 
+function registerLongLivedRequestCases(): void {
   it("refuses with an i18n key the dashboard translates", async () => {
     expect(
       await refusalOf(() =>
@@ -359,4 +335,38 @@ describe("[unit] request tenant guards — JWT and custom credentials", () => {
       });
     }
   });
+}
+
+describe("[unit] request tenant guards — JWT and custom credentials", () => {
+  before(async () => {
+    await GetModel(UserModel).insert({
+      _id: USER_ID,
+      email: "request-guard@test.local",
+      name: "Request guard",
+      authKey: AUTH_KEY,
+      isValidated: true,
+      language: "en",
+      password: null,
+    });
+    const stored = await GetModel(UserModel).get(USER_ID);
+    if (!stored) throw new Error("Missing guard test user");
+    user = stored;
+    jwt = await sessionAccessToken(TENANT, user);
+    await GetModel(TenantMemberModel, TENANT).insert({
+      _id: MEMBER_ID,
+      userId: USER_ID,
+      roleIds: [],
+      isTenantOwner: false,
+      joinedAt: new Date(),
+      invitedBy: null,
+    });
+  });
+
+  afterEach(() => {
+    tenantAccessInternal.RegisterTenantAccessGate.unregister(gate);
+  });
+
+  registerJwtBindingCases();
+  registerMembershipCases();
+  registerLongLivedRequestCases();
 });

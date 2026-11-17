@@ -8,6 +8,7 @@
  */
 import { computed } from "vue";
 import type { Component } from "vue";
+import type { ContainerOptions } from "../../../../composables/containers/types";
 import type { RowNavigation } from "../../../../types/row-navigation";
 
 interface RowHeaderProps {
@@ -25,8 +26,7 @@ interface RowHeaderProps {
   subtitleClass?: string;
   /** Drawn under the position line (pills, hints). */
   component?: Component;
-  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- DrawerRowHeader derives VNode props and constrains reserved keys such as key and ref. This legacy header-prop boundary accepts arbitrary values for every string key without validation.
-  componentOptions?: Record<string, unknown>;
+  componentOptions?: ContainerOptions["componentOptions"];
 }
 
 const props = withDefaults(defineProps<RowHeaderProps>(), {

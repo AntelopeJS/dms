@@ -1,5 +1,766 @@
 # Changelog
 
+## v0.14.4
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/interface-v0.14.3...interface-v0.14.4)
+
+### 🩹 Fixes
+
+- **dms:** Draw no request-sending input from a fetched confirm dialog ([#1091](https://github.com/AntelopeJS/dms/pull/1091))
+- **dms:** Write column references instead of row values in mapped modules ([#1104](https://github.com/AntelopeJS/dms/pull/1104))
+
+### 📦 Build
+
+- Build and typecheck with TypeScript 7 through antelopejs-tsc ([#1132](https://github.com/AntelopeJS/dms/pull/1132))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli
+
+## v0.14.3
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/interface-v0.14.2...interface-v0.14.3)
+
+### 🩹 Fixes
+
+- **dms:** Post e-mail renders to the dashboard's own origin ([#1060](https://github.com/AntelopeJS/dms/pull/1060))
+- **release:** Leave a workspace specifier alone when the interface version is raised ([#1111](https://github.com/AntelopeJS/dms/pull/1111))
+
+### 💅 Refactors
+
+- **dms:** Check a database connection with the probe its driver exports ([#1055](https://github.com/AntelopeJS/dms/pull/1055))
+- **dms:** Remove the checks marked Drop in the tooling review ([#1077](https://github.com/AntelopeJS/dms/pull/1077))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli
+
+## v0.14.2
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/interface-v0.14.1...v0.14.2)
+
+### 🚀 Enhancements
+
+- **dms:** Fail a layer's lint on a Dms component nothing installed registers ([#1033](https://github.com/AntelopeJS/dms/pull/1033))
+
+### 🩹 Fixes
+
+- **dms:** Offer the MySQL driver on interface-database 0.4 ([#1029](https://github.com/AntelopeJS/dms/pull/1029))
+- **dms:** Capture the auth middleware's toast before its first await ([#1031](https://github.com/AntelopeJS/dms/pull/1031))
+- **dms:** Finish a dms-control watch restart of the playground ([#1035](https://github.com/AntelopeJS/dms/pull/1035))
+- **dms:** Keep a logo the app config names in a query, a fragment or a literal-only join ([#1036](https://github.com/AntelopeJS/dms/pull/1036))
+- **interface-dms:** Let a resend through a withdrawn fresh invite left by a failed delete, and name the invite that blocks it ([#1037](https://github.com/AntelopeJS/dms/pull/1037))
+- **deps:** Require zod 3.25 in interface-dms and dms so a reused lock drops zod 3.24 ([#1039](https://github.com/AntelopeJS/dms/pull/1039))
+- **interface-dms:** Hand a fresh invite whose rival retires during its withdrawal a pending invitation ([#1038](https://github.com/AntelopeJS/dms/pull/1038))
+- **dms:** Refuse access and refresh tokens that carry no session ([#1042](https://github.com/AntelopeJS/dms/pull/1042))
+- **dms:** Keep a logo the app config names in a percent-encoded optimizer URL ([#1041](https://github.com/AntelopeJS/dms/pull/1041))
+- **interface-dms:** Keep a new invitation's re-read when its stray-removal retry finds the read invite cancelled ([#1045](https://github.com/AntelopeJS/dms/pull/1045))
+- **dms:** Run the DMS component check without @antelopejs/dms-frontend, and name what a layer must install ([#1044](https://github.com/AntelopeJS/dms/pull/1044))
+- **interface-dms:** Settle a fresh invite once as kept or withdrawn, so no caller yields to one that then withdraws ([#1046](https://github.com/AntelopeJS/dms/pull/1046))
+- **dms:** Report a connection variable the starting environment shadows instead of writing it to .env ([#1049](https://github.com/AntelopeJS/dms/pull/1049))
+- **dms:** Let a restart load a .env value after a builder call loaded the configuration ([#1050](https://github.com/AntelopeJS/dms/pull/1050))
+- **deps:** Cap every @antelopejs range below the next minor ([#1051](https://github.com/AntelopeJS/dms/pull/1051))
+
+### 📖 Documentation
+
+- **dms:** Replace dms-ai and dms-builder with dms-assistant ([#894](https://github.com/AntelopeJS/dms/pull/894))
+- Name the assistant dms-assistant where dms-ai was left ([#1048](https://github.com/AntelopeJS/dms/pull/1048))
+
+### ✅ Tests
+
+- **dms:** Restore the mail renderer and sender after each suite that captures emails ([#1030](https://github.com/AntelopeJS/dms/pull/1030))
+- **dms:** Give the menu-access-events setup hook a timeout sized to its sign-ups ([#1032](https://github.com/AntelopeJS/dms/pull/1032))
+- **dms:** Size the sketch rebuild test's timeout to its seventeen checks ([#1040](https://github.com/AntelopeJS/dms/pull/1040))
+- **dms:** Keep the integration file storage off the test mongod's disk ([#1028](https://github.com/AntelopeJS/dms/pull/1028))
+- **dms:** Move cold module and Intl setup out of two frontend-vue test bodies ([#1047](https://github.com/AntelopeJS/dms/pull/1047))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli ([@Upd4ting](http://github.com/Upd4ting))
+
+## v0.14.1
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/interface-v0.14.0...v0.14.1)
+
+### 🩹 Fixes
+
+- **dms:** Restrict credential files to their owner on Windows ([#1008](https://github.com/AntelopeJS/dms/pull/1008))
+- **dms:** Keep a logo file the app config builds with +, concat or join ([#1024](https://github.com/AntelopeJS/dms/pull/1024))
+- **interface-dms:** Keep one pending invite when a cancel, accept or expiry lands during a fresh invite's withdrawal ([#1021](https://github.com/AntelopeJS/dms/pull/1021))
+- **dms:** Install a scaffolded module outside the project's pnpm workspace ([#1022](https://github.com/AntelopeJS/dms/pull/1022))
+- **dms:** Check preview_blocks sketches with the mockup compiler's sanitizer and publish it as @antelopejs/dms/sketch ([#1009](https://github.com/AntelopeJS/dms/pull/1009))
+
+### 📖 Documentation
+
+- **interface-dms-builder:** Say when a second catalog provider needs exportPriority or a pin ([#1026](https://github.com/AntelopeJS/dms/pull/1026))
+
+### 🏡 Chore
+
+- **release:** @antelopejs/interface-dms-builder v0.5.1 ([77d48d67](https://github.com/AntelopeJS/dms/commit/77d48d67))
+- **release:** @antelopejs/dms v0.20.0 ([b540c6be](https://github.com/AntelopeJS/dms/commit/b540c6be))
+
+### ✅ Tests
+
+- **dms:** Let the invite host take any zod 3.x and spawn npm through its Windows shim ([#1023](https://github.com/AntelopeJS/dms/pull/1023))
+- **dms:** Load TableView in the table runtime setup, not the first test ([#1025](https://github.com/AntelopeJS/dms/pull/1025))
+- **dms:** Acknowledge test MongoDB writes on apply so Windows integration runs stop stalling ([#1027](https://github.com/AntelopeJS/dms/pull/1027))
+
+### 🤖 CI
+
+- Run the CI on Windows in parallel with Linux ([#906](https://github.com/AntelopeJS/dms/pull/906))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli ([@Upd4ting](http://github.com/Upd4ting))
+
+## v0.14.0
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/interface-v0.13.3...v0.14.0)
+
+### 🚀 Enhancements
+
+- **dms:** Serve the builder engine and its MCP tools to coding agents in development ([#857](https://github.com/AntelopeJS/dms/pull/857))
+- **mcp:** Mockup tools to write and patch a spec and read and resolve its annotations ([#859](https://github.com/AntelopeJS/dms/pull/859))
+- **mcp:** Add page_verify, which tests a real page in a headless browser ([#861](https://github.com/AntelopeJS/dms/pull/861))
+- **branding:** Edit the platform theme from a dev-only Branding editor ([#870](https://github.com/AntelopeJS/dms/pull/870))
+- **widgets:** Let an app widget take a click action and an attention dot ([#871](https://github.com/AntelopeJS/dms/pull/871))
+- **interface:** OwnerOnly page option for platform-owner-only pages ([#880](https://github.com/AntelopeJS/dms/pull/880))
+- **verify:** Dms-control can start development backends ([#881](https://github.com/AntelopeJS/dms/pull/881))
+- **mockup:** Edit mode in /mockup ([#866](https://github.com/AntelopeJS/dms/pull/866))
+- **sidebar:** Let a module lock its sidebar entries with a reason ([#868](https://github.com/AntelopeJS/dms/pull/868))
+- **mockup:** Turn a live page into a mockup with Edit as mockup ([#873](https://github.com/AntelopeJS/dms/pull/873))
+- **dms:** Read a template literal of constants as the string it builds ([#879](https://github.com/AntelopeJS/dms/pull/879))
+- **mockup:** Add a dev-only Mockups page opened from a header icon ([#872](https://github.com/AntelopeJS/dms/pull/872))
+- **dms:** Refuse builder write paths on a read-only external connection ([#883](https://github.com/AntelopeJS/dms/pull/883))
+- **mcp:** Mark a held tool's failure after confirmation with confirmation_consumed ([#900](https://github.com/AntelopeJS/dms/pull/900))
+- **dms:** Let the database MCP tools read every declared catalog connection ([#917](https://github.com/AntelopeJS/dms/pull/917))
+- **dms:** Add the dms MCP server to the project's .codex/config.toml in development ([#943](https://github.com/AntelopeJS/dms/pull/943))
+- **dms-control:** Let a journey declare standby: false ([#946](https://github.com/AntelopeJS/dms/pull/946))
+- **mockup:** Build a converted mockup back into its live page with mockup_apply_to_page ([#916](https://github.com/AntelopeJS/dms/pull/916))
+- **dms:** Move the leader dashboard tab on navigate_to_page ([#996](https://github.com/AntelopeJS/dms/pull/996))
+- **dms:** Serve the external-database connect flow through interface-dms-builder ([#891](https://github.com/AntelopeJS/dms/pull/891))
+- **mockup:** Mark a built mockup out of sync when its pages change after the build ([#995](https://github.com/AntelopeJS/dms/pull/995))
+- **interface-dms-builder:** List the database connections a module entry declares ([#905](https://github.com/AntelopeJS/dms/pull/905))
+- **interface-dms-builder:** Accept mongodb+srv URLs in the database connect flow ([#1006](https://github.com/AntelopeJS/dms/pull/1006))
+- **dms:** ⚠️  Move to interface-database 0.4.0 ([#907](https://github.com/AntelopeJS/dms/pull/907))
+- **dms:** Record source chat for a mockup spec the chat's MCP session writes ([#1011](https://github.com/AntelopeJS/dms/pull/1011))
+
+### 🩹 Fixes
+
+- **auth:** Answer one 401 for every token refused before its signature checks out ([#882](https://github.com/AntelopeJS/dms/pull/882))
+- **test:** Split long unit test callbacks and resync the dms README ([#889](https://github.com/AntelopeJS/dms/pull/889))
+- **mockup:** Make the mockup API and the Branding and mockup pages owner-only ([#887](https://github.com/AntelopeJS/dms/pull/887))
+- **auth:** Verify a token naming no user against a dummy key and read its session after ([#885](https://github.com/AntelopeJS/dms/pull/885))
+- **mockup:** Keep a note on its block after any insert, move, remove or page rename ([#886](https://github.com/AntelopeJS/dms/pull/886))
+- **test:** Reconcile the mockup routes tests with the owner-only route setup ([#893](https://github.com/AntelopeJS/dms/pull/893))
+- **mcp:** Hold a refused builder call for the MCP session that made it ([#895](https://github.com/AntelopeJS/dms/pull/895))
+- **dms:** Run the queries interface-database 0.4.0 no longer runs when awaited ([#903](https://github.com/AntelopeJS/dms/pull/903))
+- **interface-dms:** ⚠️  Type the published contracts as the runtime implements them and break the table-view/data-types cycle ([#904](https://github.com/AntelopeJS/dms/pull/904))
+- **frontend-vue:** Narrow the backend answers and request bodies the auth routes read ([#909](https://github.com/AntelopeJS/dms/pull/909))
+- **dms:** ⚠️  Grant only held permissions in the roles API and read platform ownership from user.owner ([#913](https://github.com/AntelopeJS/dms/pull/913))
+- ⚠️  Grant * only to the platform owner, never through a stored role ([#949](https://github.com/AntelopeJS/dms/pull/949))
+- **builder:** List a stored * role as reaching no page in the page access panel ([#970](https://github.com/AntelopeJS/dms/pull/970))
+- **dms:** Refuse agent config writes a template reads, and keys written twice or computed along a path ([#914](https://github.com/AntelopeJS/dms/pull/914))
+- **dms:** Keep a partial export summary with incomplete failures and a failed SSR permission load off the error page ([#918](https://github.com/AntelopeJS/dms/pull/918))
+- **dms:** Move the shortcuts-aggregated declaration out of the auto-imported types folder ([#919](https://github.com/AntelopeJS/dms/pull/919))
+- **dms:** Derive the status tints and lines from the theme's status palettes ([#920](https://github.com/AntelopeJS/dms/pull/920))
+- **interface-dms:** ⚠️  Close the dms#904 contract leftovers (RelationType fallback, field props, export SAFETY) ([#921](https://github.com/AntelopeJS/dms/pull/921), [#904](https://github.com/AntelopeJS/dms/issues/904))
+- **dms:** Indent a block ConfigureModule adds as the configuration's own literals ([#922](https://github.com/AntelopeJS/dms/pull/922))
+- **dms:** Build a scaffolded module to CommonJS in dist whatever the project's tsconfig emits ([#923](https://github.com/AntelopeJS/dms/pull/923))
+- **dms:** Name a block by its type in the mockup breadcrumb when its only id is stamped ([#925](https://github.com/AntelopeJS/dms/pull/925))
+- **dms:** Keep the constants a page option was written with through a page draft save ([#927](https://github.com/AntelopeJS/dms/pull/927))
+- **dms:** Replace a shorthand page option on patch instead of adding a second one ([#964](https://github.com/AntelopeJS/dms/pull/964))
+- **dms:** Read an enum member in a block option as its value ([#928](https://github.com/AntelopeJS/dms/pull/928))
+- **dms:** Stop reporting an unreadable mockup spec as a failed save ([#930](https://github.com/AntelopeJS/dms/pull/930))
+- **dms:** Delete the email logo file SetTheme no longer references ([#931](https://github.com/AntelopeJS/dms/pull/931))
+- **dms:** Indent builder edits like the project's sources when no config sets it ([#932](https://github.com/AntelopeJS/dms/pull/932))
+- **mockup:** Draw a Form whose sections hold their own fields ([#933](https://github.com/AntelopeJS/dms/pull/933))
+- **dms:** Carry the dms-builder QueryValue route and TypeScript 6 checker fixes into the engine ([#934](https://github.com/AntelopeJS/dms/pull/934))
+- **dms:** Typecheck builder saves with TypeScript 6 so a writable mapping passes the lib check ([#935](https://github.com/AntelopeJS/dms/pull/935))
+- **dms:** Name a table view's list URL and read dropdown openers in page_verify ([#936](https://github.com/AntelopeJS/dms/pull/936))
+- **dms-control:** Give the run's API forwarder a port outside the ephemeral range ([#961](https://github.com/AntelopeJS/dms/pull/961))
+- **mcp:** Find page blocks on a production dashboard in page_verify ([#944](https://github.com/AntelopeJS/dms/pull/944))
+- **dms:** ⚠️  Hold built page paths and live routes to one route pattern ([#950](https://github.com/AntelopeJS/dms/pull/950))
+- **dms:** Stop the module-root search at the playground's checkout ([#952](https://github.com/AntelopeJS/dms/pull/952))
+- **dms:** Derive the assistant tint, line and halo from the theme's secondary palette ([#953](https://github.com/AntelopeJS/dms/pull/953))
+- **frontend:** Build the theming fixture again ([#955](https://github.com/AntelopeJS/dms/pull/955))
+- **frontend:** Generate the layout theme's utility classes from its own stylesheet ([#968](https://github.com/AntelopeJS/dms/pull/968))
+- **dms:** Keep the build-key tests independent of installs above TMPDIR ([#956](https://github.com/AntelopeJS/dms/pull/956))
+- **dms:** Ship @types/jsonwebtoken for the published declarations ([#958](https://github.com/AntelopeJS/dms/pull/958))
+- **dms:** Open no file watcher in the notification tone lint check ([#960](https://github.com/AntelopeJS/dms/pull/960))
+- **interface-dms:** Keep one pending invite when two invites of one email race ([#974](https://github.com/AntelopeJS/dms/pull/974))
+- **dms:** Give a mockup form field written with only a type its data type's input ([#959](https://github.com/AntelopeJS/dms/pull/959))
+- **interface-dms:** ⚠️  Send the archive filter as text and type an empty select's validation honestly ([#947](https://github.com/AntelopeJS/dms/pull/947))
+- **interface-dms:** ⚠️  Move to interface-data-api 0.7's StoredRow ([#888](https://github.com/AntelopeJS/dms/pull/888))
+- **dms:** Make main green after the merge wave ([#978](https://github.com/AntelopeJS/dms/pull/978))
+- **checks:** Run the backend invariant checks in pnpm run checks ([#941](https://github.com/AntelopeJS/dms/pull/941))
+- **dms:** Refuse writes on a read external connection outside the builder tools ([#929](https://github.com/AntelopeJS/dms/pull/929))
+- **dms:** Stop naming a table view once the user's changes leave it ([#924](https://github.com/AntelopeJS/dms/pull/924))
+- **dms:** Drop the constant chain and default import a patched option value read ([#977](https://github.com/AntelopeJS/dms/pull/977))
+- **dms:** Forget the stored account when the backend refuses its renewal ([#911](https://github.com/AntelopeJS/dms/pull/911))
+- **dms:** Rebase a project's relative path specs onto the module the builder scaffolds ([#938](https://github.com/AntelopeJS/dms/pull/938))
+- **dms:** Hold the Vue built-page path check to the backend's route pattern ([#975](https://github.com/AntelopeJS/dms/pull/975))
+- **dms:** Keep a logo file the app config still names through a constant ([#985](https://github.com/AntelopeJS/dms/pull/985))
+- **dms:** Emit a declaration for every frontend-vue component ([#973](https://github.com/AntelopeJS/dms/pull/973))
+- **dms:** Revoke the session on sign-out under dms-frontend 0.11 ([#979](https://github.com/AntelopeJS/dms/pull/979))
+- **dms:** Fill the roles overview's grantable with the editor's held permissions ([#980](https://github.com/AntelopeJS/dms/pull/980))
+- **dms:** Read page options written as constants and leave an unchanged echo as written ([#962](https://github.com/AntelopeJS/dms/pull/962))
+- **dms:** Keep a live route whose {{ }} token pads its key with spaces ([#976](https://github.com/AntelopeJS/dms/pull/976))
+- **interface-dms:** Keep one pending invite when a fresh invite lands after a replacement ([#986](https://github.com/AntelopeJS/dms/pull/986))
+- **dms:** Extend the project tsconfig from a scaffolded module and leave out what only the project installs ([#963](https://github.com/AntelopeJS/dms/pull/963))
+- **mockup:** Write a title the mockup changed as the live page's display name ([#972](https://github.com/AntelopeJS/dms/pull/972))
+- **dms:** Mint the unknown-user dummy key per process and refuse unknown users in validateRefreshToken ([#987](https://github.com/AntelopeJS/dms/pull/987))
+- **dms:** Prune the bindings a patched value read by symbol, not by spelling ([#990](https://github.com/AntelopeJS/dms/pull/990))
+- **dms:** Stop warning that a roles editor can become owner or grant any permission ([#991](https://github.com/AntelopeJS/dms/pull/991))
+- **dms-control:** Give the run's mail sink and dashboard ports outside the ephemeral range ([#966](https://github.com/AntelopeJS/dms/pull/966))
+- **dms:** Read category options written as constants and leave an unchanged echo as written ([#969](https://github.com/AntelopeJS/dms/pull/969))
+- **mockup:** Say in the apply answer when the page's display name was written ([#984](https://github.com/AntelopeJS/dms/pull/984))
+- **dms:** Leave a page displayName written as code when ConfigurePage echoes the id it reads as ([#981](https://github.com/AntelopeJS/dms/pull/981))
+- **mockup:** Title a single-page mockup with its page's new name on apply and replace ([#982](https://github.com/AntelopeJS/dms/pull/982))
+- **dms:** Read a page's or category's urlSlug written as a constant ([#993](https://github.com/AntelopeJS/dms/pull/993))
+- **dms:** Read a module's title and default category name written as constants ([#994](https://github.com/AntelopeJS/dms/pull/994))
+- **dms:** Reject every builder operation at once when the builder is off ([#896](https://github.com/AntelopeJS/dms/pull/896))
+- **dms:** Read MySQL privileges the way the session holds them in the database probe ([#1005](https://github.com/AntelopeJS/dms/pull/1005))
+- **dms:** Declare typescript as an optional peer for the api-error-presentation check ([#997](https://github.com/AntelopeJS/dms/pull/997))
+- **dms:** Leave an icon written as code when an echo sends it as null ([#1003](https://github.com/AntelopeJS/dms/pull/1003))
+- **dms:** Keep a logo file the app config reaches through an imported constant ([#999](https://github.com/AntelopeJS/dms/pull/999))
+- **dms:** Prune every declaration of a merged interface, enum or overloaded function ([#1001](https://github.com/AntelopeJS/dms/pull/1001))
+- **dms:** Prune one name of a destructured literal with its member ([#1004](https://github.com/AntelopeJS/dms/pull/1004))
+- **dms:** Resolve the root category declared in a linked interface so a remap reuses its category ([#1007](https://github.com/AntelopeJS/dms/pull/1007))
+- **dms:** Refuse a MySQL socket host in the connect check ([#1002](https://github.com/AntelopeJS/dms/pull/1002))
+- **verify-dms:** Wait 180 s for an MCP bridge answer ([#1012](https://github.com/AntelopeJS/dms/pull/1012))
+- **dms:** Keep a logo file the app config names through a template literal ([#1010](https://github.com/AntelopeJS/dms/pull/1010))
+- **dms:** Serve the project's database wiring to MCP clients so a connect batch writes a startable driver range ([#1016](https://github.com/AntelopeJS/dms/pull/1016))
+- **interface-dms:** Keep one pending invite when a fourth caller replaces a fresh invite ([#1013](https://github.com/AntelopeJS/dms/pull/1013))
+- **interface-dms:** Accept any zod 3.x from 3.24.2 so a module's newer zod is shared ([#1015](https://github.com/AntelopeJS/dms/pull/1015))
+- **dms:** Accept any zod 3.x from 3.24.2 so the workspace shares one zod copy ([#1018](https://github.com/AntelopeJS/dms/pull/1018))
+- **dms:** Keep a logo file the app config builds from substitutions alone ([#1019](https://github.com/AntelopeJS/dms/pull/1019))
+- **dms:** ⚠️  Verify a token's signature before looking up its user ([#1014](https://github.com/AntelopeJS/dms/pull/1014))
+- **release:** Build interface-dms-builder before the release lint ([#1020](https://github.com/AntelopeJS/dms/pull/1020))
+
+### 💅 Refactors
+
+- Fix the code behind the small-rule lint directives ([#897](https://github.com/AntelopeJS/dms/pull/897))
+- **interface-dms:** Break the page-categories import cycle ([#898](https://github.com/AntelopeJS/dms/pull/898))
+- **frontend-vue:** ⚠️  Give every Vue component a multi-word name ([#910](https://github.com/AntelopeJS/dms/pull/910))
+- ⚠️  Call keyed notification sends and store declarations without capability guards ([#937](https://github.com/AntelopeJS/dms/pull/937))
+- ⚠️  Remove the migration guides and the compatibility code before 0.20.0 ([#915](https://github.com/AntelopeJS/dms/pull/915))
+- **dms:** Drop the skills moved to the antelopejs plugin ([#890](https://github.com/AntelopeJS/dms/pull/890))
+
+### 📖 Documentation
+
+- Name MySQL and MariaDB in the Connect lists ([#884](https://github.com/AntelopeJS/dms/pull/884))
+- Describe current file-key and ownership behaviour without legacy or shim wording ([#957](https://github.com/AntelopeJS/dms/pull/957))
+- **verify-dms:** Point the Branding and mockups gotchas at dms-control up --dev-backend ([#942](https://github.com/AntelopeJS/dms/pull/942))
+- Delete the remaining migration guides and UPGRADING.md ([#926](https://github.com/AntelopeJS/dms/pull/926))
+- **dms:** Name AdonisJS and MySQL without versions in prose ([#1017](https://github.com/AntelopeJS/dms/pull/1017))
+
+### 📦 Build
+
+- **frontend-vue:** Turn no-undef back on with the dms and renderer globals ([#899](https://github.com/AntelopeJS/dms/pull/899))
+- **dms:** Type-check the frontend-vue tests in pnpm run checks ([#992](https://github.com/AntelopeJS/dms/pull/992))
+
+### 🏡 Chore
+
+- **release:** @antelopejs/dms v0.19.5 ([577cec13](https://github.com/AntelopeJS/dms/commit/577cec13))
+- **release:** @antelopejs/dms v0.19.6 ([2817ff47](https://github.com/AntelopeJS/dms/commit/2817ff47))
+- **release:** @antelopejs/interface-dms-builder v0.5.0 ([0993d22a](https://github.com/AntelopeJS/dms/commit/0993d22a))
+
+### ✅ Tests
+
+- Move tests that pass a forbidden value into untyped specs ([#901](https://github.com/AntelopeJS/dms/pull/901))
+- **dms:** Give the fake run's API port a port outside the ephemeral range ([#939](https://github.com/AntelopeJS/dms/pull/939))
+- **dms:** Assert the concurrent annotation creates as a set, not in call order ([#940](https://github.com/AntelopeJS/dms/pull/940))
+- **verify-dms:** Run page_verify as a member role against a mockup ([#945](https://github.com/AntelopeJS/dms/pull/945))
+- **interface-dms:** Bound the decoder load tests by CPU time, not wall time ([#951](https://github.com/AntelopeJS/dms/pull/951))
+- **dms:** Stop the build-layout fixture's install walk at its own folder ([#965](https://github.com/AntelopeJS/dms/pull/965))
+- **dms-control:** Fail when prepare drops a journey's backend or standby pin ([#971](https://github.com/AntelopeJS/dms/pull/971))
+- **dms:** Bind the dms-dev test servers to kernel-chosen ports ([#988](https://github.com/AntelopeJS/dms/pull/988))
+- **dms:** Stop the mockup store save test flaking on its debounce lower bound ([#983](https://github.com/AntelopeJS/dms/pull/983))
+- **dms:** Validate mockup specs through the generated JSON Schema route patterns ([#989](https://github.com/AntelopeJS/dms/pull/989))
+- **dms:** Bundle the Phosphor icons the Vue tests render instead of fetching them ([#998](https://github.com/AntelopeJS/dms/pull/998))
+- **dms:** Check that recent modules list the most recent visit first ([#1000](https://github.com/AntelopeJS/dms/pull/1000))
+- **verify-dms:** Fail a journey when the builder loses its provider on a dev reload ([#948](https://github.com/AntelopeJS/dms/pull/948))
+
+### 🤖 CI
+
+- **release:** Raise the dms interface-dms range when the interface release leaves it ([#908](https://github.com/AntelopeJS/dms/pull/908))
+- **release:** Refuse a dms release while an interface it depends on has unreleased source ([#912](https://github.com/AntelopeJS/dms/pull/912))
+- **release:** Refuse a dms release while the in-tree interface-dms-builder version is unpublished ([#954](https://github.com/AntelopeJS/dms/pull/954))
+- **release:** Refuse a dms release when the in-tree interface-dms-builder version leaves its declared range ([#967](https://github.com/AntelopeJS/dms/pull/967))
+
+#### ⚠️ Breaking Changes
+
+- **dms:** ⚠️  Move to interface-database 0.4.0 ([#907](https://github.com/AntelopeJS/dms/pull/907))
+- **interface-dms:** ⚠️  Type the published contracts as the runtime implements them and break the table-view/data-types cycle ([#904](https://github.com/AntelopeJS/dms/pull/904))
+- **dms:** ⚠️  Grant only held permissions in the roles API and read platform ownership from user.owner ([#913](https://github.com/AntelopeJS/dms/pull/913))
+- ⚠️  Grant * only to the platform owner, never through a stored role ([#949](https://github.com/AntelopeJS/dms/pull/949))
+- **interface-dms:** ⚠️  Close the dms#904 contract leftovers (RelationType fallback, field props, export SAFETY) ([#921](https://github.com/AntelopeJS/dms/pull/921), [#904](https://github.com/AntelopeJS/dms/issues/904))
+- **dms:** ⚠️  Hold built page paths and live routes to one route pattern ([#950](https://github.com/AntelopeJS/dms/pull/950))
+- **interface-dms:** ⚠️  Send the archive filter as text and type an empty select's validation honestly ([#947](https://github.com/AntelopeJS/dms/pull/947))
+- **interface-dms:** ⚠️  Move to interface-data-api 0.7's StoredRow ([#888](https://github.com/AntelopeJS/dms/pull/888))
+- **dms:** ⚠️  Verify a token's signature before looking up its user ([#1014](https://github.com/AntelopeJS/dms/pull/1014))
+- **frontend-vue:** ⚠️  Give every Vue component a multi-word name ([#910](https://github.com/AntelopeJS/dms/pull/910))
+- ⚠️  Call keyed notification sends and store declarations without capability guards ([#937](https://github.com/AntelopeJS/dms/pull/937))
+- ⚠️  Remove the migration guides and the compatibility code before 0.20.0 ([#915](https://github.com/AntelopeJS/dms/pull/915))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli ([@Upd4ting](http://github.com/Upd4ting))
+- Dada-sudo <damir@altab.be>
+
+## v0.13.3
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/interface-v0.13.2...v0.13.3)
+
+### 🚀 Enhancements
+
+- **frontend:** Publish @antelopejs/dms/eslint-globals for the layer's auto-imports ([#869](https://github.com/AntelopeJS/dms/pull/869))
+
+### 🔥 Performance
+
+- **layout:** Split the Geist fonts so the first paint loads only Latin ([#854](https://github.com/AntelopeJS/dms/pull/854))
+- **table:** Stop re-rendering every row after the table mounts ([#860](https://github.com/AntelopeJS/dms/pull/860))
+
+### 🩹 Fixes
+
+- **release:** Regenerate the dms README table when interface-dms bumps ([#855](https://github.com/AntelopeJS/dms/pull/855))
+
+### 💅 Refactors
+
+- **frontend:** Drop oxlint directives no linter reads ([#862](https://github.com/AntelopeJS/dms/pull/862))
+- Type unpublished dictionaries from their owners ([#863](https://github.com/AntelopeJS/dms/pull/863))
+- Narrow with type guards instead of runtime typeof ([#864](https://github.com/AntelopeJS/dms/pull/864))
+- Type unknown parameters and returns from their owners ([#865](https://github.com/AntelopeJS/dms/pull/865))
+- Remove type assertions or give each a SAFETY reason ([#867](https://github.com/AntelopeJS/dms/pull/867))
+- Remove the type assertions behind existing SAFETY comments ([#874](https://github.com/AntelopeJS/dms/pull/874))
+- Keep lookup tables' known types instead of widening them ([#875](https://github.com/AntelopeJS/dms/pull/875))
+- Replace ts-expect-error with type-level assertions where a type can carry the check ([#876](https://github.com/AntelopeJS/dms/pull/876))
+
+### 📖 Documentation
+
+- Name MySQL and MariaDB as database modules the DMS runs on ([#878](https://github.com/AntelopeJS/dms/pull/878))
+
+### 📦 Build
+
+- **deps:** Take tooling-configs 0.5.3 so checks orders typecheck before lint ([#856](https://github.com/AntelopeJS/dms/pull/856))
+- **lint:** Remove the config rule offs whose findings are fixed ([#877](https://github.com/AntelopeJS/dms/pull/877))
+
+### 🏡 Chore
+
+- **release:** @antelopejs/dms v0.19.2 ([9e222d8b](https://github.com/AntelopeJS/dms/commit/9e222d8b))
+- **release:** @antelopejs/dms v0.19.3 ([830ed1e5](https://github.com/AntelopeJS/dms/commit/830ed1e5))
+- **release:** @antelopejs/dms v0.19.4 ([55422453](https://github.com/AntelopeJS/dms/commit/55422453))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli ([@Upd4ting](http://github.com/Upd4ting))
+
+## v0.13.2
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/interface-v0.13.1...v0.13.2)
+
+### 🔥 Performance
+
+- **interface-dms:** Skip the watch-action walk when options hold none ([#846](https://github.com/AntelopeJS/dms/pull/846))
+- **dms-auth:** Sign and verify tokens with a secret KeyObject ([#847](https://github.com/AntelopeJS/dms/pull/847))
+- **auth:** Hash passwords off the event loop with setHashAsync ([#852](https://github.com/AntelopeJS/dms/pull/852))
+
+### 🩹 Fixes
+
+- **dms-ui:** Show the dragged row or card under the pointer in the table view ([#845](https://github.com/AntelopeJS/dms/pull/845))
+- **dms:** Retry default-tenant provisioning when a failed run lost its lease ([#849](https://github.com/AntelopeJS/dms/pull/849))
+
+### 📖 Documentation
+
+- **ai:** List the sync search order the code uses ([#850](https://github.com/AntelopeJS/dms/pull/850))
+- **readme:** Remove the links that 404 for signed-out visitors ([#853](https://github.com/AntelopeJS/dms/pull/853))
+
+### 📦 Build
+
+- Adopt @antelopejs/tooling-configs 0.5.1 ([#851](https://github.com/AntelopeJS/dms/pull/851))
+
+### ✅ Tests
+
+- **formal:** Model the default tenant's provisioning lease with TLA+ ([#848](https://github.com/AntelopeJS/dms/pull/848))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli ([@Upd4ting](http://github.com/Upd4ting))
+
+## v0.13.1
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/interface-v0.13.0...v0.13.1)
+
+### 🚀 Enhancements
+
+- **dms-ui:** Show a KPI payload's caption as the card's footnote ([#844](https://github.com/AntelopeJS/dms/pull/844))
+
+### 🩹 Fixes
+
+- **docs:** Open the sign-in capture signed out so later scenes keep the session ([#836](https://github.com/AntelopeJS/dms/pull/836))
+- **dms-control:** Let read-only commands read a run from another PID namespace ([#843](https://github.com/AntelopeJS/dms/pull/843))
+- **agents:** Type-check the probes' JSDoc with checkJs ([#842](https://github.com/AntelopeJS/dms/pull/842))
+
+### 📖 Documentation
+
+- **readme:** Tell the one-run story from the X article ([#841](https://github.com/AntelopeJS/dms/pull/841))
+
+### 📦 Build
+
+- **deps:** Take tooling-configs 0.5.0 ([#840](https://github.com/AntelopeJS/dms/pull/840))
+
+### 🏡 Chore
+
+- **dms:** Depend on @antelopejs/interface-dms 0.13 ([#839](https://github.com/AntelopeJS/dms/pull/839))
+- **release:** @antelopejs/dms v0.19.0 ([f1b73262](https://github.com/AntelopeJS/dms/commit/f1b73262))
+- **release:** @antelopejs/dms v0.19.1 ([1fb6093f](https://github.com/AntelopeJS/dms/commit/1fb6093f))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli ([@Upd4ting](http://github.com/Upd4ting))
+
+## v0.13.0
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/interface-v0.12.0...v0.13.0)
+
+### 🚀 Enhancements
+
+- **header:** Let a header action draw a module component as its icon ([#772](https://github.com/AntelopeJS/dms/pull/772))
+- **dms:** Read the sign-in country without a bundled database ([#776](https://github.com/AntelopeJS/dms/pull/776))
+- **verify-dms:** Run every feature when a shared file changes ([#783](https://github.com/AntelopeJS/dms/pull/783))
+- **dms-control:** Record per-phase timings of a verify run ([#784](https://github.com/AntelopeJS/dms/pull/784))
+- **dms-control:** Serve the dashboard with ajs dms dev under up --dev-frontend ([#829](https://github.com/AntelopeJS/dms/pull/829))
+- **table-view:** Add liveHold.whileOnScreen to let a live table follow its feed on screen ([#808](https://github.com/AntelopeJS/dms/pull/808))
+
+### 🔥 Performance
+
+- **store:** Let the modules listing read stale registry answers ([#768](https://github.com/AntelopeJS/dms/pull/768))
+- **dms-control:** Stop the previous journey's backend at once ([#785](https://github.com/AntelopeJS/dms/pull/785))
+- **ci:** Scan the playground import fixtures together ([#791](https://github.com/AntelopeJS/dms/pull/791))
+- **dms-control:** Start the next journey's backend while the current one runs ([#788](https://github.com/AntelopeJS/dms/pull/788))
+- **docs:** Capture the documentation screenshots in parallel ([#792](https://github.com/AntelopeJS/dms/pull/792))
+- **dms-control:** Reuse the frontend build of unchanged sources ([#787](https://github.com/AntelopeJS/dms/pull/787))
+- **dms-control:** Take screenshots on checks and failures only ([#786](https://github.com/AntelopeJS/dms/pull/786))
+
+### 🩹 Fixes
+
+- **layout:** Keep the platform title in the document title after sign-in ([#767](https://github.com/AntelopeJS/dms/pull/767))
+- **layout:** Keep a closing toast inside the collapsed stack ([#771](https://github.com/AntelopeJS/dms/pull/771))
+- **auth:** List each person once in the account switcher ([#770](https://github.com/AntelopeJS/dms/pull/770))
+- **dms-dev:** Run dev servers side by side across worktrees ([#769](https://github.com/AntelopeJS/dms/pull/769))
+- **dms-layout:** Re-export usePageHeaderActions by relative path so unimport scans it ([#777](https://github.com/AntelopeJS/dms/pull/777))
+- **dms-control:** Refuse to signal a pid that is not a whole number above 1 ([#789](https://github.com/AntelopeJS/dms/pull/789))
+- **ci:** Check the scanner exit status per diagnostic kind in the import test ([#793](https://github.com/AntelopeJS/dms/pull/793))
+- **verify-dms:** Expect the assistant ask item in the palette no-match journey ([#799](https://github.com/AntelopeJS/dms/pull/799))
+- **notifications:** Undo mark-all-read in one bulk update ([#826](https://github.com/AntelopeJS/dms/pull/826))
+- **dms:** Auto-import isReducedMotionActive for frontend modules ([#823](https://github.com/AntelopeJS/dms/pull/823))
+- **dms-control:** Resolve moduleRoot to the module above a skill playground ([#827](https://github.com/AntelopeJS/dms/pull/827))
+- **preview:** Draw a serialized resource form that reads any path of the site ([#820](https://github.com/AntelopeJS/dms/pull/820))
+- **dms-control:** Key a non-literal module specifier by its structure in the emit fingerprint ([#816](https://github.com/AntelopeJS/dms/pull/816))
+- **dms:** Keep the newest row read when two table row updates answer out of order ([#812](https://github.com/AntelopeJS/dms/pull/812))
+- **dms-ui:** Keep query-only block action links in the browser ([#832](https://github.com/AntelopeJS/dms/pull/832))
+- **chart:** Stop a donut redrawing itself through its parent resize observer ([#835](https://github.com/AntelopeJS/dms/pull/835))
+- **release:** Decide the interface range check as semver does ([#813](https://github.com/AntelopeJS/dms/pull/813))
+- **dms-control:** Let journeys stop and restart the run's mongod ([#831](https://github.com/AntelopeJS/dms/pull/831))
+- **dms-control:** Start the base backend when the base ref has no playground ([#818](https://github.com/AntelopeJS/dms/pull/818))
+- **dms-control:** Start the run's mongod as a single-node replica set ([#830](https://github.com/AntelopeJS/dms/pull/830))
+- **realtime:** Read a page's data again once its subscription is in place ([#810](https://github.com/AntelopeJS/dms/pull/810))
+- **dms-control:** Ship playwright-core as an optional dependency of @antelopejs/dms ([#817](https://github.com/AntelopeJS/dms/pull/817))
+- **auth:** Show a no-workspace screen when no module serves /auth/no-workspace ([#800](https://github.com/AntelopeJS/dms/pull/800))
+- **dms-control:** Fail a formal finding dropped by a check edit instead of counting it fixed ([#821](https://github.com/AntelopeJS/dms/pull/821))
+- **playground:** Load an api that reads RouteHandler.controller ([#819](https://github.com/AntelopeJS/dms/pull/819))
+- **dms-ui:** Build a module drawer's provides from the raw caller provides ([#809](https://github.com/AntelopeJS/dms/pull/809))
+- **dms-control:** Identify each process from the read that finds it, and check it again before each signal ([#801](https://github.com/AntelopeJS/dms/pull/801))
+- **interface-dms:** Answer 400 to a guarded confirmation body that is not a JSON object ([#828](https://github.com/AntelopeJS/dms/pull/828))
+- **interface-dms:** Accept a model row or a PromiseLike from PageRecordLoader ([#815](https://github.com/AntelopeJS/dms/pull/815))
+- **interface-dms:** Refuse upload field options that are not an object ([#825](https://github.com/AntelopeJS/dms/pull/825))
+- **oauth:** Create no account before the platform has its owner ([#807](https://github.com/AntelopeJS/dms/pull/807))
+- **dms:** Stop without waiting for a default tenant provisioning run in progress ([#804](https://github.com/AntelopeJS/dms/pull/804))
+- **tenant-lifecycle:** Name a blocked release and give operators a way to retire it ([#822](https://github.com/AntelopeJS/dms/pull/822))
+- **onboarding:** Keep the register as the one writer of has_onboarded ([#806](https://github.com/AntelopeJS/dms/pull/806))
+
+### 💅 Refactors
+
+- **dms-control:** Remove publish, its evidence branch, comment and status ([#838](https://github.com/AntelopeJS/dms/pull/838))
+- **iface:** Drop the shape-name suppressions in block-registry describe ([#803](https://github.com/AntelopeJS/dms/pull/803))
+
+### 📖 Documentation
+
+- **dms:** Explain what the AntelopeJS agent plugin unlocks, External database included ([#773](https://github.com/AntelopeJS/dms/pull/773))
+- **dms:** Mark the ResourceForm mode and the source tables in the docs examples ([#780](https://github.com/AntelopeJS/dms/pull/780))
+- **dms:** Start the quickstart with the dms-starter template ([#782](https://github.com/AntelopeJS/dms/pull/782))
+- **readme:** Lead with the problem and add animated section banners ([#833](https://github.com/AntelopeJS/dms/pull/833))
+- **readme:** Open on the Helio tour and explain the Connect flow ([#834](https://github.com/AntelopeJS/dms/pull/834))
+- **getting-started:** Title the starter guide "Quickstart" ([#837](https://github.com/AntelopeJS/dms/pull/837))
+- Refresh the stale block screenshots ([#802](https://github.com/AntelopeJS/dms/pull/802))
+
+### 📦 Build
+
+- **deps:** Move to @antelopejs/core 1.20 and drop the interface-core override ([#765](https://github.com/AntelopeJS/dms/pull/765))
+- **deps:** Bump @antelopejs packages to the 2026-11-06 releases ([#781](https://github.com/AntelopeJS/dms/pull/781))
+
+### 🏡 Chore
+
+- **release:** @antelopejs/dms v0.16.0 ([f438f68f](https://github.com/AntelopeJS/dms/commit/f438f68f))
+- Land the cleanup campaign on main ([#764](https://github.com/AntelopeJS/dms/pull/764))
+- **release:** @antelopejs/dms v0.16.1 ([15b8db45](https://github.com/AntelopeJS/dms/commit/15b8db45))
+- Remove the .amp directory ([#766](https://github.com/AntelopeJS/dms/pull/766))
+- **release:** @antelopejs/dms v0.16.2 ([a623158c](https://github.com/AntelopeJS/dms/commit/a623158c))
+- **dms-control:** Remove seeded runs and containment journeys from verification ([#774](https://github.com/AntelopeJS/dms/pull/774))
+- **release:** @antelopejs/dms v0.17.0 ([b6f3224e](https://github.com/AntelopeJS/dms/commit/b6f3224e))
+- **dms:** Commit the module locks the test runs record ([#775](https://github.com/AntelopeJS/dms/pull/775))
+- **ci:** Remove the weekly mutation caller ([#778](https://github.com/AntelopeJS/dms/pull/778))
+- **release:** @antelopejs/dms v0.18.0 ([95115920](https://github.com/AntelopeJS/dms/commit/95115920))
+- **release:** @antelopejs/dms v0.18.1 ([07d0e757](https://github.com/AntelopeJS/dms/commit/07d0e757))
+- **release:** @antelopejs/dms v0.18.2 ([1834895e](https://github.com/AntelopeJS/dms/commit/1834895e))
+
+### ✅ Tests
+
+- **frontend:** Import the table row actions subject at file load ([#805](https://github.com/AntelopeJS/dms/pull/805))
+
+### 🤖 CI
+
+- Call ci-node.yml@v1 ([#779](https://github.com/AntelopeJS/dms/pull/779))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli ([@Upd4ting](http://github.com/Upd4ting))
+
+## v0.12.0
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/interface-v0.10.4...v0.12.0)
+
+### 📖 Documentation
+
+- **readme:** Start the demos with npx @antelopejs/core ([#753](https://github.com/AntelopeJS/dms/pull/753))
+- **readme:** Show the Meet and DMS films, with new GIFs ([1e3f7694](https://github.com/AntelopeJS/dms/commit/1e3f7694))
+- **readme:** Link the read-only live demo ([#665](https://github.com/AntelopeJS/dms/pull/665))
+
+### 🏡 Chore
+
+- **release:** @antelopejs/dms v0.15.1 ([c8651b86](https://github.com/AntelopeJS/dms/commit/c8651b86))
+- Land the cleanup campaign on main ([#761](https://github.com/AntelopeJS/dms/pull/761))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli ([@Upd4ting](http://github.com/Upd4ting))
+
+## v0.10.4
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/interface-v0.10.3...v0.10.4)
+
+### 🔥 Performance
+
+- **page:** Send anonymous visitors only the public pages of the site layout ([#675](https://github.com/AntelopeJS/dms/pull/675))
+
+### 🩹 Fixes
+
+- **auth:** Upgrade an outdated password hash on sign-in ([#691](https://github.com/AntelopeJS/dms/pull/691))
+- **dashboard:** Name the brand logo for screen readers ([#652](https://github.com/AntelopeJS/dms/pull/652))
+- **onboarding:** Require a setup token to register the first owner ([#654](https://github.com/AntelopeJS/dms/pull/654))
+- **tenants:** Elect one replica to provision the default tenant through a renewed lease ([#657](https://github.com/AntelopeJS/dms/pull/657))
+- **layout:** Count the sidebar's installed modules like the Modules page ([#666](https://github.com/AntelopeJS/dms/pull/666))
+
+### 📖 Documentation
+
+- **github:** Send questions and ideas to Discord ([#672](https://github.com/AntelopeJS/dms/pull/672))
+
+### 🏡 Chore
+
+- **release:** @antelopejs/dms v0.15.0 ([c630e0e2](https://github.com/AntelopeJS/dms/commit/c630e0e2))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli ([@Upd4ting](http://github.com/Upd4ting))
+
+## v0.10.3
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/interface-v0.10.2...v0.10.3)
+
+### 🚀 Enhancements
+
+- **dms-ui:** State the data state of each data block on its root element ([#585](https://github.com/AntelopeJS/dms/pull/585))
+
+### 🩹 Fixes
+
+- **frontend:** Run the API error CLIs when pnpm links the package ([#634](https://github.com/AntelopeJS/dms/pull/634))
+- **table-view:** Currency on prices, settled counters, no add without a new route ([#611](https://github.com/AntelopeJS/dms/pull/611))
+- **interface-dms:** Name a bucketed series' periods for a person, 202608 as Aug 2026 ([#617](https://github.com/AntelopeJS/dms/pull/617))
+- **chart:** Thin the category x-axis labels of a long series so they never overlap ([#626](https://github.com/AntelopeJS/dms/pull/626))
+
+### 💅 Refactors
+
+- **frontend:** ⚠️  Remove API error migration helpers ([#638](https://github.com/AntelopeJS/dms/pull/638))
+
+### 🏡 Chore
+
+- **release:** @antelopejs/dms v0.13.0 ([5f222413](https://github.com/AntelopeJS/dms/commit/5f222413))
+- **release:** @antelopejs/dms v0.13.1 ([5bf5a885](https://github.com/AntelopeJS/dms/commit/5bf5a885))
+- **release:** @antelopejs/dms v0.14.0 ([59a52f99](https://github.com/AntelopeJS/dms/commit/59a52f99))
+
+#### ⚠️ Breaking Changes
+
+- **frontend:** ⚠️  Remove API error migration helpers ([#638](https://github.com/AntelopeJS/dms/pull/638))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli ([@Upd4ting](http://github.com/Upd4ting))
+
+## v0.10.2
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/interface-v0.10.1...v0.10.2)
+
+### 🩹 Fixes
+
+- **chart:** Draw only the fetched series that carry their points ([#587](https://github.com/AntelopeJS/dms/pull/587))
+- **store:** Remove the archived CI/CD module from the catalog ([#609](https://github.com/AntelopeJS/dms/pull/609))
+- **tenants:** Resume the default tenant's provisioning after start ([#613](https://github.com/AntelopeJS/dms/pull/613))
+- **dms-ui:** Hydrate keyboard hints with the platform the server rendered ([#442](https://github.com/AntelopeJS/dms/pull/442))
+- **dms-ui:** Print Nuxt UI key hints for the dashboard's keyboard platform ([#541](https://github.com/AntelopeJS/dms/pull/541))
+- **playground:** Declare the playground's frontend, so dev and production include it ([#441](https://github.com/AntelopeJS/dms/pull/441))
+- **frontend:** Unify API error presentation ([#614](https://github.com/AntelopeJS/dms/pull/614))
+
+### 📖 Documentation
+
+- **readme:** Restore the realtime updates line and the live preview wording ([#589](https://github.com/AntelopeJS/dms/pull/589))
+- **readme:** Remove the How AntelopeJS makes money section ([#592](https://github.com/AntelopeJS/dms/pull/592))
+
+### 🏡 Chore
+
+- **release:** @antelopejs/dms v0.12.1 ([97b7122d](https://github.com/AntelopeJS/dms/commit/97b7122d))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli ([@Upd4ting](http://github.com/Upd4ting))
+- Alessandro Aloisio ([@alessaloisio](http://github.com/alessaloisio))
+
+## v0.10.1
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/interface-v0.10.0...v0.10.1)
+
+### 🚀 Enhancements
+
+- **dms-layout:** Restore a static GitHub star link in the footer ([#546](https://github.com/AntelopeJS/dms/pull/546))
+- **dms:** Support a read-only public demo ([#581](https://github.com/AntelopeJS/dms/pull/581))
+
+### 🩹 Fixes
+
+- **store:** Reuse the runtime id of an uninstalled module on reinstall ([#547](https://github.com/AntelopeJS/dms/pull/547))
+- **chart:** Draw the one point per group a series data source answers ([#586](https://github.com/AntelopeJS/dms/pull/586))
+
+### 💅 Refactors
+
+- **frontend:** Remove type assertions in tests ([#525](https://github.com/AntelopeJS/dms/pull/525))
+- **frontend:** Remove type assertions in core, auth and layout ([#526](https://github.com/AntelopeJS/dms/pull/526))
+- **frontend:** Remove type assertions in ui components and composables ([#527](https://github.com/AntelopeJS/dms/pull/527))
+- **frontend:** Remove type assertions in ui data types ([#528](https://github.com/AntelopeJS/dms/pull/528))
+- **backend:** Remove SAFETY assertions in test fixtures ([#542](https://github.com/AntelopeJS/dms/pull/542))
+- **backend:** Remove SAFETY assertions in serialized-option and fixture tests ([#543](https://github.com/AntelopeJS/dms/pull/543))
+- **agents:** Fix the lint findings in dms's own agent files ([#548](https://github.com/AntelopeJS/dms/pull/548))
+
+### 📖 Documentation
+
+- **readme:** Rewrite the README as a landing page ([#554](https://github.com/AntelopeJS/dms/pull/554))
+
+### 🏡 Chore
+
+- **release:** @antelopejs/dms v0.12.0 ([fdfcc0ad](https://github.com/AntelopeJS/dms/commit/fdfcc0ad))
+- **package:** Update the npm description and keywords ([#580](https://github.com/AntelopeJS/dms/pull/580))
+- **package:** Restore realtime in the npm description ([#588](https://github.com/AntelopeJS/dms/pull/588))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli ([@Upd4ting](http://github.com/Upd4ting))
+
+## v0.10.0
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/interface-v0.9.1...v0.10.0)
+
+### Upgrade notes
+
+- 16 new modules (11 public, 5 `@internal`) hold the types that pages, components and tables share: `component-options/*` (`action-target`, `button`, `confirm-dialog`, `row-action`, `form-field`, `data-type`, `page-layout`, and their `internal/` counterparts), `tones`, `watch-actions`, `export-status` and `invite-extension-payloads` ([#539](https://github.com/AntelopeJS/dms/pull/539)). Every old subpath still exports the same names, re-exported from the new module, so no import changes.
+- Do not augment `WatchFunctionParamMap` through `watch-actions`: keep augmenting it through `base/types`, as before.
+- Two type-only layer exceptions remain (`component.ts` to `page.ts`, and the `User` table to the default data types). They are removed in the next breaking release ([#531](https://github.com/AntelopeJS/dms/issues/531)).
+- Modules implementing interface-dms move to `>=0.10.0 <0.11.0`; `@antelopejs/dms` implements it.
+
+### 🚀 Enhancements
+
+- **interface-dms:** Expose stable default data type subpaths ([#475](https://github.com/AntelopeJS/dms/pull/475))
+- **frontend:** Enforce the backend boundary in production builds ([#501](https://github.com/AntelopeJS/dms/pull/501))
+- **skills:** Add the verify-dms verification skill, dms-control and formal checks ([#529](https://github.com/AntelopeJS/dms/pull/529))
+- **iface:** Layer interface-dms folders into one acyclic stack ([#539](https://github.com/AntelopeJS/dms/pull/539))
+
+### 🩹 Fixes
+
+- **relation:** Build cyclic relations and label rows without a label ([#471](https://github.com/AntelopeJS/dms/pull/471))
+- **iface:** Use the fallback when an error message is not a string ([#502](https://github.com/AntelopeJS/dms/pull/502))
+- **iface:** Pass consistent Date bounds from IsBetween ([#503](https://github.com/AntelopeJS/dms/pull/503))
+- **iface:** Normalize Action permissions when registering categories ([#504](https://github.com/AntelopeJS/dms/pull/504))
+- **iface:** Keep the original invite validation failure when the thrown value is null ([#505](https://github.com/AntelopeJS/dms/pull/505))
+- **frontend:** Propagate fetched ChartCard series during fresh SSR ([#506](https://github.com/AntelopeJS/dms/pull/506))
+- **iface:** Release a replaced page's component permission identities ([#507](https://github.com/AntelopeJS/dms/pull/507))
+- **dms:** Encode preview cache keys unambiguously ([#508](https://github.com/AntelopeJS/dms/pull/508))
+- **iface:** Keep a page's default permission when its Action is unbound ([#509](https://github.com/AntelopeJS/dms/pull/509))
+- **dms:** Skip persisted presence entries that miss required fields ([#510](https://github.com/AntelopeJS/dms/pull/510))
+- **iface:** Reject malformed footer summary rule operands ([#511](https://github.com/AntelopeJS/dms/pull/511))
+- **iface:** Refuse to build a notification without its required fields ([#512](https://github.com/AntelopeJS/dms/pull/512))
+- **frontend:** Add missing English member-status and form labels ([#513](https://github.com/AntelopeJS/dms/pull/513))
+- **frontend:** Attach native and create to $authFetch ([#514](https://github.com/AntelopeJS/dms/pull/514))
+- **iface:** Describe non-string Zod literals accurately ([#515](https://github.com/AntelopeJS/dms/pull/515))
+- **iface:** Narrow isPrimitive to primitive values ([#516](https://github.com/AntelopeJS/dms/pull/516))
+- **iface:** Reject symbol property keys in Searchable ([#517](https://github.com/AntelopeJS/dms/pull/517))
+- **dms:** Fail verify on recorded formal findings only when covered behaviour changes ([#540](https://github.com/AntelopeJS/dms/pull/540))
+
+### 💅 Refactors
+
+- **backend:** Remove ordinary comments ([#457](https://github.com/AntelopeJS/dms/pull/457))
+- **backend:** Derive types from their owners ([#458](https://github.com/AntelopeJS/dms/pull/458))
+- **backend:** Route dependencies through module entries ([#459](https://github.com/AntelopeJS/dms/pull/459))
+- **backend:** Split page implementation and oversize suites ([#460](https://github.com/AntelopeJS/dms/pull/460))
+- **frontend:** Remove implementation commentary ([#462](https://github.com/AntelopeJS/dms/pull/462))
+- **frontend:** Tighten types and lint ([#463](https://github.com/AntelopeJS/dms/pull/463))
+- **frontend:** Move shared services behind layer entries ([#469](https://github.com/AntelopeJS/dms/pull/469))
+- **frontend:** Split setup responsibilities and remove structural debt ([#470](https://github.com/AntelopeJS/dms/pull/470))
+- **playground:** Remove narrative comments ([#464](https://github.com/AntelopeJS/dms/pull/464))
+- **playground:** Derive types from demo contracts ([#465](https://github.com/AntelopeJS/dms/pull/465))
+- **playground:** Split feature catalogs and fixture literals ([#467](https://github.com/AntelopeJS/dms/pull/467))
+- **iface:** Remove comment debt without changing emit ([#453](https://github.com/AntelopeJS/dms/pull/453))
+- **iface:** Reduce type and lint debt ([#472](https://github.com/AntelopeJS/dms/pull/472))
+- **iface:** Extract private implementation bodies ([#473](https://github.com/AntelopeJS/dms/pull/473))
+- **iface:** Split table-view option type owners ([#474](https://github.com/AntelopeJS/dms/pull/474))
+- **iface:** Keep native async metadata orchestration ([#476](https://github.com/AntelopeJS/dms/pull/476))
+- Finish the dms cleanup and delete the ratchet ([#478](https://github.com/AntelopeJS/dms/pull/478))
+- **backend:** Remove type assertions in routes and pages ([#522](https://github.com/AntelopeJS/dms/pull/522))
+- **backend:** Remove type assertions in auth and table-view implementations ([#523](https://github.com/AntelopeJS/dms/pull/523))
+- **backend:** Remove type assertions in hooks, attachments, automation and fixtures ([#524](https://github.com/AntelopeJS/dms/pull/524))
+- **iface:** Remove type assertions in interface-dms ([#530](https://github.com/AntelopeJS/dms/pull/530))
+
+### 📦 Build
+
+- **playground:** Mark the playground package private ([#468](https://github.com/AntelopeJS/dms/pull/468))
+- Upgrade the guardrail pack to 0.2.6 for the cleanup stacks ([#452](https://github.com/AntelopeJS/dms/pull/452))
+- **playground:** Enforce source import boundaries ([#466](https://github.com/AntelopeJS/dms/pull/466))
+- Adopt the suppression budget from tooling-configs 0.2.7 ([#500](https://github.com/AntelopeJS/dms/pull/500))
+- **deps:** Adopt @antelopejs/interface-data-api 0.5.0 ([#521](https://github.com/AntelopeJS/dms/pull/521))
+
+### 🏡 Chore
+
+- **release:** @antelopejs/dms v0.11.1 ([8432e481](https://github.com/AntelopeJS/dms/commit/8432e481))
+
+### ✅ Tests
+
+- **backend:** Replace test debt with behavioral checks ([#456](https://github.com/AntelopeJS/dms/pull/456))
+- **frontend:** Replace source-text assertions and module mocks ([#461](https://github.com/AntelopeJS/dms/pull/461))
+- **skills:** Add eval cases for the dms skills ([#499](https://github.com/AntelopeJS/dms/pull/499))
+- **frontend:** Hold the identity refresh until the OAuth page remounts ([#518](https://github.com/AntelopeJS/dms/pull/518))
+- **frontend:** Import the URL preview and password panel subjects at file load ([#519](https://github.com/AntelopeJS/dms/pull/519))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli ([@Upd4ting](http://github.com/Upd4ting))
+- Thomas ([@Thomasims](http://github.com/Thomasims))
+
 ## v0.9.1
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/interface-v0.9.0...v0.9.1)
@@ -113,8 +874,6 @@
 
 - `KpiCard`: `showPreviousValue` defaults to `true`, so a card whose data carries `previousValue` prints it beside the change; set `false` to keep a card compact ([#352](https://github.com/AntelopeJS/dms/pull/352)).
 - A `RelationType` / `CascaderRelationType` with `multiple: true` filters with `include` / `exclude` instead of `is` / `is_not`: a saved view or a link filtering it with `is:` lists nothing until saved again or rewritten as `include:` ([#363](https://github.com/AntelopeJS/dms/pull/363)).
-- See [Migrate from 0.7 to 0.8](https://github.com/AntelopeJS/dms/blob/main/packages/dms/docs/02.building/16.migration-0-7-to-0-8.md) for the removed compatibility paths.
-
 ### 🚀 Enhancements
 
 - **config:** Refuse a production start on public secrets or without the dashboard origin ([#401](https://github.com/AntelopeJS/dms/pull/401))

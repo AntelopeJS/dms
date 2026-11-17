@@ -69,7 +69,7 @@ const lastUpdate = computed(() =>
 </script>
 
 <template>
-  <DmsCard :title="t('demo.blocks.live.health_title')" :count="missed">
+  <DmsCardPanel :title="t('demo.blocks.live.health_title')" :count="missed">
     <div class="flex flex-col gap-3 text-sm">
       <div class="flex items-center gap-2">
         <DmsStatusPill
@@ -106,5 +106,5 @@ const lastUpdate = computed(() =>
         @click="refreshNow()"
       />
     </div>
-  </DmsCard>
+  </DmsCardPanel>
 </template>

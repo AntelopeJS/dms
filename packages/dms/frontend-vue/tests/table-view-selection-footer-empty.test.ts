@@ -13,8 +13,8 @@ import {
 } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import TableRowSelection from "../layers/dms-ui/app/entries/components/table/RowSelection";
-import TableEmpty from "../layers/dms-ui/app/entries/components/table/Empty";
-import TablePagination from "../layers/dms-ui/app/entries/components/table/Pagination";
+import TableEmpty from "../layers/dms-ui/app/entries/components/table/TableEmpty";
+import TablePagination from "../layers/dms-ui/app/entries/components/table/TablePagination";
 
 const ButtonStub = defineComponent({
   props: { label: String, ariaLabel: String, to: String },
@@ -47,10 +47,12 @@ const I18nTStub = defineComponent({
 
 let app: App | undefined;
 
-function mount<Shared>(
+type SharedDataStub = NonNullable<Parameters<typeof provide>[1]>;
+
+function mount(
   component: Component,
   props: Parameters<typeof h>[1],
-  shared: Shared,
+  shared: SharedDataStub,
 ) {
   const emitted: unknown[][] = [];
   const Host = defineComponent({

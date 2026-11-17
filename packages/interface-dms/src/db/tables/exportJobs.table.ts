@@ -6,7 +6,7 @@ import {
   Table,
 } from "@antelopejs/interface-database-decorators";
 import { TENANT_SCHEMA_NAME } from "../../constants";
-import type { ExportStatus } from "../../base/types";
+import type { ExportStatus } from "../../export-status";
 import { User } from "../../auth/db/tables/users.table";
 import { exportJobsTableName } from "../internal/table-names";
 

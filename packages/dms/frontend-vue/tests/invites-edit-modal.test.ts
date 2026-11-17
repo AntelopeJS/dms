@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { unusedApi } from "./fixtures/unusedApi";
 import { ref, shallowRef } from "vue";
 import { createI18n } from "vue-i18n";
 import { Color } from "../layers/dms-core/app/types/color";
@@ -10,16 +11,21 @@ import { useEventedAction } from "../layers/dms-core/app/composables/useEventedA
 import core from "../layers/dms-core/app/entries/i18n/locales/core-en-GB.json";
 import ui from "../layers/dms-ui/app/entries/i18n/locales/ui-en-GB.json";
 import layout from "../layers/dms-layout/app/entries/i18n/locales/layout-en-GB.json";
-import { isObject } from "../layers/dms-core/app/utils/type-check";
+import { isFunction, isObject } from "../layers/dms-core/app/utils/type-check";
 import type { ModalOptions } from "../layers/dms-ui/app/composables/containers/types";
 import { FormContainerType } from "../layers/dms-ui/app/entries/composables/table-view/types";
+
+vi.stubGlobal("shallowRef", shallowRef);
+const { useTableRowActions } = await import(
+  "../layers/dms-ui/app/entries/composables/table-view/useTableViewRowActions"
+);
 
 interface Messages {
   [key: string]: string | Messages;
 }
 const merge = (target: Messages, source: Messages): Messages => {
   for (const [key, value] of Object.entries(source)) {
-    const current = target[key];
+    const current = Object.hasOwn(target, key) ? target[key] : undefined;
     target[key] =
       current && isObject(current) && isObject(value)
         ? merge({ ...current }, value)
@@ -50,16 +56,13 @@ const refresh = vi.fn();
  * serializes it: the edit form opens in a medium modal under the
  * "Edit invitation" texts, and no form page URL is handed down.
  */
-async function invitesRowActions() {
-  const { useTableRowActions } = await import(
-    "../layers/dms-ui/app/entries/composables/table-view/useTableViewRowActions"
-  );
+function invitesRowActions() {
   return useTableRowActions({
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Editing opens a modal without fetching; the mock deliberately omits unused fetch methods.
-    api: vi.fn() as never,
+    api: unusedApi(),
     location: "/api/tables/admin-invites",
     componentId: "table",
     pageId: "settings.workspace.invites",
+    columns: [],
     labelKey: "email",
     formContainer: {
       type: FormContainerType.modal,
@@ -72,15 +75,16 @@ async function invitesRowActions() {
       },
     },
     formComponents: {
-      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- This serialized edit-form fixture intentionally omits unrelated required form options.
       edit: {
-        componentName: "DmsForm",
+        componentName: "DmsFormBlock",
         options: {
+          componentId: "edit",
+          pageId: "settings.workspace.invites",
           fields: [],
           fetchUrl: "/api/tables/admin-invites/get?id={{params.id}}",
           submitUrl: "/api/tables/admin-invites/edit?id={{params.id}}",
         },
-      } as never,
+      },
     },
     refreshCallback: refresh,
   });
@@ -120,7 +124,7 @@ afterEach(() => {
 
 describe("Invitations table: Edit invitation", () => {
   it("opens the form in a modal over the list, not on a page", async () => {
-    const { editRow } = await invitesRowActions();
+    const { editRow } = invitesRowActions();
     await editRow(INVITE);
 
     expect(navigateDms).not.toHaveBeenCalled();
@@ -140,11 +144,14 @@ describe("Invitations table: Edit invitation", () => {
   });
 
   it("closes the modal and refreshes the list once saved", async () => {
-    const { editRow } = await invitesRowActions();
+    const { editRow } = invitesRowActions();
     await editRow(INVITE);
 
     const [opened] = openModal.mock.calls[0]!;
-    opened.componentOptions!.onSuccessCallback();
+    const onSuccess = opened.componentOptions?.onSuccessCallback;
+    if (!isFunction(onSuccess))
+      throw new Error("the modal hands no onSuccessCallback");
+    onSuccess();
 
     expect(modal.close).toHaveBeenCalledTimes(1);
     expect(refresh).toHaveBeenCalledTimes(1);

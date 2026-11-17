@@ -17,9 +17,10 @@ import * as rowRules from "../../layers/dms-core/app/utils/row-action-rule-evalu
 import { ButtonVariant } from "../../layers/dms-core/app/types/button";
 import { Size } from "../../layers/dms-core/app/types/size";
 import { SortDirection } from "../../layers/dms-ui/app/types/table/query";
-import { resolveApiErrorMessage } from "../../layers/dms-core/app/composables/useApiError";
+import { resolveApiErrorMessage } from "../../layers/dms-core/app/composables/resolveApiError";
 import * as typeChecks from "../../layers/dms-core/app/utils/type-check";
 import * as formatters from "../../layers/dms-core/app/utils/formatter";
+import type { Data } from "../../layers/dms-ui/app/types/table/base";
 import type { TableViewConfig } from "../../layers/dms-ui/app/composables/table-view/types";
 import { TableViewEvents } from "../../layers/dms-ui/app/composables/table-view/types";
 import { TableViewFunctions } from "../../layers/dms-ui/app/composables/table-view/types/functions";
@@ -71,12 +72,15 @@ export async function tableViewRuntime(
   vi.stubGlobal("useDmsAppConfig", () => ({ ui: { icons: {} } }));
   vi.stubGlobal("useI18n", () => i18n);
   vi.stubGlobal("resolveDmsComponent", () => undefined);
+  await loadTableView();
 }
 
-export async function mountTableView(
-  overrides: Partial<TableViewConfig> = {},
-  prepare?: () => void,
-) {
+/**
+ * Imports TableView and its plugins once the globals they read are stubbed.
+ * `tableViewRuntime` calls it so the cold transform of the component graph
+ * runs in the setup hook, not inside the first test's timeout.
+ */
+async function loadTableView() {
   const { default: TableView } = await import(
     "../../layers/dms-ui/app/components/table-view/TableView.vue"
   );
@@ -86,6 +90,14 @@ export async function mountTableView(
   const { default: registerDisplays } = await import(
     "../../layers/dms-ui/app/plugins/table-view-displays"
   );
+  return { TableView, register, registerDisplays };
+}
+
+export async function mountTableView(
+  overrides: Partial<TableViewConfig<Data>> = {},
+  prepare?: () => void,
+) {
+  const { TableView, register, registerDisplays } = await loadTableView();
   const config = {
     componentId: "orders",
     pageId: "sales",
@@ -121,18 +133,30 @@ export async function mountTableView(
     ],
     ...overrides,
   };
-  return mountInBrowser(
+  const registrations: Array<ReturnType<typeof register>> = [];
+  const generation = vue.ref(0);
+  const mounted = mountInBrowser(
     vue.defineComponent({
       setup: () => () =>
-        vue.h(vue.Suspense, null, {
-          default: () => vue.h(TableView, config),
-        }),
+        vue.h(
+          vue.Suspense,
+          { key: generation.value },
+          { default: () => vue.h(TableView, config) },
+        ),
     }),
     (app) =>
       app.runWithContext(() => {
-        register(engine.useDmsApp());
-        registerDisplays(engine.useDmsApp());
+        registrations.push(register(engine.useDmsApp()));
+        registrations.push(registerDisplays(engine.useDmsApp()));
         prepare?.();
       }),
   );
+  for (const registration of registrations) await registration;
+  return {
+    ...mounted,
+    /** Unmounts the table view and mounts it again in the same app. */
+    remount: () => {
+      generation.value += 1;
+    },
+  };
 }

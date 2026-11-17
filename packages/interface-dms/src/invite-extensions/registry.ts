@@ -78,17 +78,16 @@ export function RegisterInviteExtension<T>(
 ): () => void {
   assertUsableKey(options.key);
 
+  // SAFETY: Registrations of different payload types share one registry, so it holds the handlers with T erased. The handlers get a T exactly when every call passes what readPayload parsed with this registration's schema, or undefined where the handler admits it: DeliverInviteExtensions, CleanupInviteExtensions and notifyUpdate, their only callers, do.
+  const erased = options as InviteExtensionOptions<unknown>;
   const info: InviteExtensionInfo = {
     key: options.key,
     component: options.component,
     schema: options.schema,
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Heterogeneous registrations erase T; delivery reparses with this same schema before calling the handler, but the registry type cannot express that correlation.
-    onAccept: options.onAccept as InviteExtensionInfo["onAccept"],
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Cleanup receives this registration's parsed payload or undefined; the erased registry type cannot retain its correlation with T.
-    onCleanup: options.onCleanup as InviteExtensionInfo["onCleanup"],
+    onAccept: erased.onAccept,
+    onCleanup: erased.onCleanup,
     editable: options.editable,
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Updates reparse both stored inputs with this registration's schema; the erased registry type does not encode the handler's T.
-    onUpdate: options.onUpdate as InviteExtensionInfo["onUpdate"],
+    onUpdate: erased.onUpdate,
     label: options.label,
     description: options.description,
     placement: resolvePlacement(options.placement),

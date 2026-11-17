@@ -23,6 +23,7 @@ const FOLLOW_INTERVAL_MS = 1000;
  */
 export const useModuleStore = () => {
   const { $authFetch } = useAuthFetch();
+  const errorPresenter = useApiErrorPresenter();
   const isOwner = useIsOwner();
 
   const initial = useApiData<StoreListing>(() =>
@@ -41,6 +42,13 @@ export const useModuleStore = () => {
     followError.value === undefined
       ? (initial.error.value ?? null)
       : followError.value,
+  );
+  const loadingNotice = computed(() =>
+    loadingError.value
+      ? errorPresenter.resolveError(loadingError.value, {
+          fallbackKey: "modules.store.load_error",
+        })
+      : null,
   );
   /** Modules an operation from this page changed, until the frontend follows. */
   const awaitingReload = ref(new Set<string>());
@@ -87,7 +95,7 @@ export const useModuleStore = () => {
       return;
     }
     if (!listing.value) {
-      void load();
+      load().catch(() => undefined);
       return;
     }
     reloadWhenServed();
@@ -151,6 +159,7 @@ export const useModuleStore = () => {
   return {
     listing,
     loadingError,
+    loadingNotice,
     isFollowing,
     awaitingReload,
     load,

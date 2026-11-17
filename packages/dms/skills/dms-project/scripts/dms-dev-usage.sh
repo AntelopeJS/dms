@@ -22,8 +22,11 @@ Environment:
                      the playground convention for "ajs project dev -w" / legacy "run -w").
   DMS_FRONT_CMD      Command to start the frontend, run in DMS_BACK_DIR (default:
                      "pnpm frontend:dev", the playground convention for "ajs dms dev").
-  DMS_BACK_LOG       (default: /tmp/dms-back.log)
-  DMS_FRONT_LOG      (default: /tmp/dms-front.log)
+  DMS_BACK_PORT      Port of the backend: it becomes PORT for the backend process only, and the
+                     default of the URL reported when the backend gives none (default: unset).
+  DMS_FRONT_PORT     The same for the frontend (default: unset).
+  DMS_BACK_LOG       (default: <DMS_BACK_DIR>/.antelope/logs/back.log)
+  DMS_FRONT_LOG      (default: <DMS_BACK_DIR>/.antelope/logs/front.log)
   DMS_DEV_TIMEOUT    (default: 180 seconds per server)
   DMS_DEV_STOP_GRACE (default: 10 seconds between SIGTERM and SIGKILL; unused on Windows)
 EOF

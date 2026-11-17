@@ -4,7 +4,7 @@ import { Model } from "@antelopejs/interface-database-decorators";
 import { DEFAULT_TENANT_ID } from "@antelopejs/interface-dms/constants";
 import { applyTenantOwnership } from "@antelopejs/interface-dms/tenant-ownership";
 import { normalizeEmail, UserModel } from "@antelopejs/interface-dms/auth/db";
-import { SystemStateModel } from "../db";
+import { SetupTokenModel, SystemStateModel } from "../db";
 import { generateAuthKey } from "../utils";
 import {
   type OnboardingRegisterAdmin,
@@ -23,6 +23,9 @@ export class PublicOnboardingController extends Controller("/api/onboarding") {
   @Model(SystemStateModel)
   declare model: SystemStateModel;
 
+  @Model(SetupTokenModel)
+  declare setupTokens: SetupTokenModel;
+
   @Get("/informations")
   async getInformations(@Model(UserModel) userModel: UserModel) {
     const settings = await this.model.getConfig();
@@ -34,20 +37,14 @@ export class PublicOnboardingController extends Controller("/api/onboarding") {
     }
 
     const users = await userModel.table.slice(0, 1).run();
-    const hasUsers = users.length > 0;
 
-    if (hasUsers) {
-      // oxlint-disable-next-line typescript/no-misused-spread -- Persist the settings instance's own database fields alongside the onboarding flag, not its prototype methods.
-      await this.model.updateConfig({ ...settings, has_onboarded: true });
-    }
-
-    return { has_onboarded: hasUsers };
+    return { has_onboarded: users.length > 0 };
   }
 
   @Post("/register")
   async postRegister(
     @Model(UserModel) userModel: UserModel,
-    @JSONBody() body: Parameters<typeof onboardingRegisterAdminSchema.parse>[0],
+    @JSONBody() body: unknown,
   ) {
     const data = assertValidation(body, (v) =>
       onboardingRegisterAdminSchema.parse(v),
@@ -57,20 +54,31 @@ export class PublicOnboardingController extends Controller("/api/onboarding") {
 
     assert(users.length === 0, 400, "error.admin_already_set");
 
-    const insertedIds = await this.createOwner(userModel, data);
-    await this.completeOnboarding(data);
+    const spentToken = await this.setupTokens.claim(data.setupToken);
+    assert(spentToken, 403, "error.invalid_setup_token");
 
-    return insertedIds;
+    try {
+      const insertedIds = await this.createOwner(userModel, data);
+      await this.completeOnboarding(data);
+      return insertedIds;
+    } catch (error) {
+      await this.restoreUnusedToken(userModel, spentToken);
+      throw error;
+    }
+  }
+
+  private async restoreUnusedToken(userModel: UserModel, spentToken: string) {
+    const users = await userModel.table.slice(0, 1).run();
+    if (users.length === 0) await this.setupTokens.restore(spentToken);
   }
 
   private async createOwner(
     userModel: UserModel,
     data: OnboardingRegisterAdmin,
   ): Promise<string[]> {
-    const insertedIds = await userModel.insert({
+    const owner = UserModel.fromPlainData({
       name: data.name,
       email: normalizeEmail(data.email),
-      password: data.password,
       createdAt: new Date(),
       updatedAt: new Date(),
       isValidated: true,
@@ -78,6 +86,8 @@ export class PublicOnboardingController extends Controller("/api/onboarding") {
       owner: true,
       language: data.language ?? DEFAULT_ADMIN_LANGUAGE,
     });
+    await owner.setHashAsync("password", data.password);
+    const insertedIds = await userModel.insert(owner);
 
     const newUserId = insertedIds[0];
     assert(newUserId, 500, "error.user_creation_failed");
@@ -95,12 +105,9 @@ export class PublicOnboardingController extends Controller("/api/onboarding") {
     assert(settings, 428, "error.settings_not_found");
     assert(!settings.has_onboarded, 412, "error.onboarding_already_completed");
 
-    await this.model.updateConfig({
-      // oxlint-disable-next-line typescript/no-misused-spread -- Copy the settings instance's own persisted fields before overriding onboarding details; its prototype methods are not configuration.
-      ...settings,
-      has_onboarded: true,
-      platform_name: details.platformName ?? settings.platform_name,
-      default_language: details.language ?? settings.default_language,
-    });
+    settings.has_onboarded = true;
+    settings.platform_name = details.platformName ?? settings.platform_name;
+    settings.default_language = details.language ?? settings.default_language;
+    await this.model.updateConfig(settings);
   }
 }

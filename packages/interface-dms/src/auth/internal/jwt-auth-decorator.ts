@@ -2,6 +2,8 @@ import type { RequestContext } from "@antelopejs/interface-api";
 import { SetParameterProvider } from "@antelopejs/interface-api";
 import { MakeParameterAndPropertyAndClassDecorator } from "@antelopejs/interface-core/decorators";
 import { DEFAULT_TENANT_ID } from "../../constants";
+import { prototypeOf } from "../../utils/internal/decorated-class";
+import { isClass, isString } from "../../utils/internal/type-check";
 import { bindVerifiedRequestPrincipal } from "./request-authenticators";
 
 const CLASS_PROVIDER_DESCRIPTION = "authentication-class-provider";
@@ -15,15 +17,12 @@ type Validator<T, R> = (data: T) => R | Promise<R>;
 
 function bearerToken(ctx: RequestContext): string | undefined {
   const header = ctx.rawRequest?.headers?.authorization;
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Incoming HTTP authorization is read before token validation; non-string values supply no bearer token.
-  return typeof header === "string" ? header.split(" ")[1] : undefined;
+  return isString(header) ? header.split(" ")[1] : undefined;
 }
 
 function isVerifiedUser(value: unknown): value is { _id: string } {
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- A custom authenticator validator can return any value; only an object with a string id binds a principal.
   if (typeof value !== "object" || value === null) return false;
   const { _id }: { _id?: unknown } = value;
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- The verified principal requires a string id rather than an arbitrary validator result.
   return typeof _id === "string";
 }
 
@@ -56,8 +55,11 @@ export function CreateJwtAuthDecorator<
         return result;
       };
       if (key === undefined) {
+        if (!isClass(target)) {
+          throw new TypeError("A class decorator applies to a class.");
+        }
         SetParameterProvider(
-          target.prototype,
+          prototypeOf(target),
           Symbol(CLASS_PROVIDER_DESCRIPTION),
           undefined,
           provider,

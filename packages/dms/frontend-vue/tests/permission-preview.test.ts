@@ -10,6 +10,7 @@ import {
   PERMISSION_PREVIEW_TTL_MS,
   type PermissionPreviewResult,
   type PreviewLockableEntry,
+  type PreviewablePageSource,
   resolveActivePreviewBlock,
   resolvePreviewBlock,
 } from "#dms-core/app/entries/utils/permission-preview";
@@ -74,6 +75,9 @@ function registerPreviewSessionAndRenderingTests() {
         "grid.kpis": { state: "hidden" },
       },
       hiddenEntries: [],
+      partialEntries: [],
+      hiddenHeaderActions: [],
+      hiddenQuickActions: [],
       outOfScope: 0,
     };
     expect(resolvePreviewBlock(result, "grid.kpis")).toEqual({
@@ -90,17 +94,19 @@ function registerPreviewSessionAndRenderingTests() {
   });
 
   it("offers the pages reachable without parameters", () => {
+    const page = (source: PreviewablePageSource & { displayName: string }) =>
+      source;
     const pages = {
-      "/": { displayName: "Home" },
-      "/orders": { displayName: "Orders", hasAccess: true },
-      "/denied": { displayName: "Denied", hasAccess: false },
-      "/auth/login": { displayName: "Login", publicAccess: true },
-      "/hidden": { displayName: "Hidden", hidden: true },
-      "/orders/:id": { displayName: "Order" },
-      "/edit": {
+      "/": page({ displayName: "Home" }),
+      "/orders": page({ displayName: "Orders", hasAccess: true }),
+      "/denied": page({ displayName: "Denied", hasAccess: false }),
+      "/auth/login": page({ displayName: "Login", publicAccess: true }),
+      "/hidden": page({ displayName: "Hidden", hidden: true }),
+      "/orders/:id": page({ displayName: "Order" }),
+      "/edit": page({
         displayName: "Edit",
         validation: { requiredQueryParams: ["id"] },
-      },
+      }),
     };
     expect(listPreviewablePages(pages).map(({ slug }) => slug)).toEqual([
       "/",
@@ -112,6 +118,9 @@ function registerPreviewSessionAndRenderingTests() {
       page: { fullId: "sales.orders", displayName: "Orders", hidden: false },
       blocks: { table: { state: "hidden" } },
       hiddenEntries: ["sales.orders"],
+      partialEntries: [],
+      hiddenHeaderActions: [],
+      hiddenQuickActions: [],
       outOfScope: 0,
     };
     const HIDDEN = new Set(RESULT.hiddenEntries);

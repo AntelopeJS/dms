@@ -16,7 +16,7 @@ import { liveIntervalMs } from "./liveCadence";
 import { LiveHolds, toLiveNote } from "./liveHolds";
 import { LivePoller } from "./livePoller";
 import { liveStorageKey, readStoredPause, storePause } from "./liveStorage";
-import { MissedTally } from "./missedTally";
+import { MissedTally, type LiveEvent } from "./missedTally";
 
 /**
  * Why a page hidden in a background tab is paused.
@@ -39,8 +39,7 @@ export interface LiveSubscription {
    * reaching several blocks counts once in the page's `missedCount`; its
    * `payload.ids` or `payload.count` say how many rows it stands for.
    */
-  // oxlint-disable-next-line anti-slop/no-object-parameters -- Event identity is any object; payload-less events and arbitrary publisher objects must remain accepted.
-  trigger(event?: object): void;
+  trigger: (event?: LiveEvent) => void;
   /** Rows and events the block received while paused or held, not read yet. */
   readonly missed: Readonly<Ref<number>>;
   /** When the block last read through the gate (ms since the epoch), 0 before. */
@@ -48,13 +47,19 @@ export interface LiveSubscription {
   /** Reads now, whatever the state, and forgets what was missed. */
   catchUp(): void;
   /**
+   * The block may be stale with no event to show for it: reads as soon as it
+   * may, now on a live page, else once paused or held ends, and counts
+   * nothing missed.
+   */
+  owe(): void;
+  /**
    * Records a read the block made by itself (one the user asked for): it
    * forgets what was missed, and a waiting trailing read is dropped.
    */
   acknowledge(): void;
   /**
    * Holds the block alone while the page stays live: its events are counted,
-   * not read. Released on a live page, it reads once if it missed any.
+   * not read. Released on a live page, it reads once if it missed any or owes a read.
    */
   setHeld(isHeld: boolean): void;
   unsubscribe(): void;
@@ -120,6 +125,8 @@ interface SubscriberState {
   /** The events the trailing call stands for, counted if the page pauses first. */
   pendingEvents: Array<object | undefined>;
   isHeld: boolean;
+  /** A read is owed that no missed event stands for (see `owe`). */
+  isOwed: boolean;
 }
 
 class PageLive implements PageLiveController {
@@ -230,6 +237,7 @@ class PageLive implements PageLiveController {
       timer: null,
       pendingEvents: [],
       isHeld: false,
+      isOwed: false,
     };
     this.subscribers.add(state);
     return {
@@ -237,6 +245,7 @@ class PageLive implements PageLiveController {
       missed: state.tally.total,
       lastReadAt: readonly(state.lastRunAt),
       catchUp: () => this.catchUp(state),
+      owe: () => this.owe(state),
       acknowledge: () => {
         state.tally.reset();
         this.markRead(state);
@@ -283,7 +292,7 @@ class PageLive implements PageLiveController {
     this.detail.value = null;
     this.updatedAt.value = Date.now();
     for (const state of this.subscribers) {
-      if (state.isHeld || state.tally.total.value === 0) continue;
+      if (state.isHeld || !isBehind(state)) continue;
       this.catchUp(state);
     }
   }
@@ -304,7 +313,7 @@ class PageLive implements PageLiveController {
     if (state.isHeld === isHeld) return;
     state.isHeld = isHeld;
     if (isHeld) this.flushPending(state, false);
-    else if (!this.paused.value && state.tally.total.value > 0) {
+    else if (!this.paused.value && isBehind(state)) {
       this.catchUp(state);
     }
   }
@@ -316,6 +325,11 @@ class PageLive implements PageLiveController {
     if (this.paused.value) this.countMissed(state, event, true);
     else if (state.isHeld) this.countMissed(state, event, false);
     else this.triggerDirect(state, event);
+  }
+
+  private owe(state: SubscriberState): void {
+    if (this.paused.value || state.isHeld || state.timer) state.isOwed = true;
+    else this.run(state);
   }
 
   private triggerDirect(
@@ -354,6 +368,7 @@ class PageLive implements PageLiveController {
 
   private markRead(state: SubscriberState): void {
     clearTimer(state);
+    state.isOwed = false;
     state.lastRunAt.value = Date.now();
     this.updatedAt.value = state.lastRunAt.value;
   }
@@ -366,6 +381,10 @@ class PageLive implements PageLiveController {
     state.tally.add(event);
     if (isPageMissed) this.tally.add(event);
   }
+}
+
+function isBehind(state: SubscriberState): boolean {
+  return state.isOwed || state.tally.total.value > 0;
 }
 
 function clearTimer(state: SubscriberState): void {

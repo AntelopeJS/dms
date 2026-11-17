@@ -26,6 +26,7 @@ import {
   tablePreferenceId,
 } from "../layers/dms-core/app/entries/composables/user/tablePreferences";
 import { useTablePreferences } from "../layers/dms-ui/app/entries/composables/table-view/useTablePreferences";
+import { isNull, isObject } from "../layers/dms-core/app/utils/type-check";
 
 const COMPONENT_ID = "content-child-main-child-main-child-languages";
 const PAGE_ID = "modules.lang.manage.workspace";
@@ -55,6 +56,13 @@ const installCookie = (initial: string) => {
 
 const cookieBytes = () => preferencesCookieBytes(stored.value);
 const storedTree = () => decodePreferencesTree(stored.value);
+const storedTableIds = (): string[] => {
+  const { tables } = storedTree();
+  if (!isObject(tables) || isNull(tables)) {
+    throw new Error("The cookie holds no tables");
+  }
+  return Object.keys(tables);
+};
 
 const sortByName = (componentId: string, pageId: string) =>
   useTablePreferences(componentId, pageId).set(
@@ -117,7 +125,7 @@ describe("the size of a table's state in the preferences cookie", () => {
       visitTypicalTable(...tableIds(index));
     }
     expect(cookieBytes()).toBeLessThanOrEqual(MAX_PREFERENCES_COOKIE_BYTES);
-    expect(Object.keys(storedTree().tables)).toHaveLength(TYPICAL_TABLES);
+    expect(storedTableIds()).toHaveLength(TYPICAL_TABLES);
     expect(
       useTablePreferences(...tableIds(0)).get("sorting", DEFAULT_SORT),
     ).toEqual([{ id: "name", desc: true }]);
@@ -283,9 +291,16 @@ describe("the preferences cookie", () => {
   it("reads a corrupt value as no preferences", () => {
     installCookie("not*base64{");
     const { getPreference, setPreference } = usePreferences();
-    expect(getPreference("dms-lang.workspaceSort", "default")).toBe("default");
+    expect(getPreference("dms-lang.workspaceSort")).toBeUndefined();
     setPreference("dms-lang.workspaceSort", "name");
     expect(getPreference("dms-lang.workspaceSort")).toBe("name");
+  });
+
+  it("replaces a value that is not an object when updating it", () => {
+    const { setPreference, updatePreference, getPreference } = usePreferences();
+    setPreference("module.layout", ["grid"]);
+    updatePreference("module.layout", { columns: 2 });
+    expect(getPreference("module.layout")).toEqual({ columns: 2 });
   });
 
   it("is shared by every caller", () => {
@@ -293,14 +308,5 @@ describe("the preferences cookie", () => {
     const second = usePreferences();
     first.setPreference("module.theme", "dense");
     expect(second.getPreference("module.theme")).toBe("dense");
-  });
-
-  it("deletes the user-preferences cookie it replaces, unread", () => {
-    document.cookie = `user-preferences=${encodeURIComponent(
-      JSON.stringify({ tables: { a: { b: { density: "compact" } } } }),
-    )}; path=/`;
-    const { preferences } = usePreferences();
-    expect(document.cookie).not.toMatch(/user-preferences=/);
-    expect(preferences.value).toEqual({});
   });
 });

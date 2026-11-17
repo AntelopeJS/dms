@@ -20,6 +20,43 @@ type DragReplay = Partial<
 >;
 type DragCallback = "onStart" | "onUpdate" | "onEnd" | "onAdd" | "onRemove";
 
+/** A complete SortableJS event: the replayed fields, and empty stand-ins for the rest. */
+class ReplayedDrag extends Event implements Sortable.SortableEvent {
+  readonly clone = document.createElement("div");
+  readonly from: HTMLElement;
+  readonly item: HTMLElement;
+  readonly items: HTMLElement[];
+  readonly newIndex: number | undefined;
+  readonly oldIndex: number | undefined;
+  override readonly target: HTMLElement;
+  readonly to: HTMLElement;
+  readonly oldDraggableIndex: number | undefined;
+  readonly newDraggableIndex: number | undefined;
+  readonly pullMode = undefined;
+  readonly oldIndicies = [];
+  readonly newIndicies = [];
+  readonly swapItem = null;
+
+  constructor(replay: DragReplay) {
+    super("replay");
+    this.from = replay.from ?? document.createElement("div");
+    this.item = replay.item ?? document.createElement("div");
+    this.items = [this.item];
+    this.newIndex = replay.newIndex;
+    this.oldIndex = replay.oldIndex;
+    this.target = this.item;
+    this.to = this.from;
+    this.oldDraggableIndex = replay.oldIndex;
+    this.newDraggableIndex = replay.newIndex;
+  }
+}
+
+function drag(sortable: FakeSortable, name: DragCallback, replay: DragReplay) {
+  const handler = sortable.options[name];
+  if (!handler) throw new Error(`${name} is not registered`);
+  handler.call(sortable.options, new ReplayedDrag(replay));
+}
+
 const instances: FakeSortable[] = [];
 
 const { default: SortableList } = await import(
@@ -99,8 +136,7 @@ describe("a sortable list", () => {
     await nextTick();
     const [sortable] = instances;
     const call = (name: DragCallback, event: DragReplay) =>
-      // SAFETY: The list's drag handlers read only the replayed item, source, and index fields; onEnd reads none.
-      (sortable!.options[name] as (event: DragReplay) => void)(event);
+      drag(sortable!, name, event);
 
     call("onStart", {
       item: sortable!.el.querySelectorAll<HTMLElement>(":scope > *")[0],
@@ -126,33 +162,25 @@ describe("a sortable list", () => {
     );
     await nextTick();
     const [source, target] = instances;
-    const call = (
-      sortable: FakeSortable,
-      name: DragCallback,
-      event: DragReplay,
-    ) =>
-      // SAFETY: The list's drag handlers read only the replayed item, source, and index fields; onEnd reads none.
-      (sortable.options[name] as (event: DragReplay) => void)(event);
-
-    call(source!, "onStart", {
+    drag(source!, "onStart", {
       item: source!.el.querySelectorAll<HTMLElement>(":scope > *")[1],
       oldIndex: 1,
     });
     const item = moveElement(source!.el, 1, target!.el, 0);
 
-    call(target!, "onAdd", {
+    drag(target!, "onAdd", {
       from: source!.el,
       item,
       oldIndex: 1,
       newIndex: 0,
     });
-    call(source!, "onRemove", {
+    drag(source!, "onRemove", {
       from: source!.el,
       item,
       oldIndex: 1,
       newIndex: 0,
     });
-    call(source!, "onEnd", {});
+    drag(source!, "onEnd", {});
     await nextTick();
 
     expect(ids(lists[0]!)).toEqual(["a"]);

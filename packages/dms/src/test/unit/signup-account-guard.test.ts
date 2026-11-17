@@ -2,13 +2,11 @@ import { HTTPResult } from "@antelopejs/interface-api";
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import { expect } from "chai";
 import { TenantMemberModel } from "@antelopejs/interface-dms/db";
-import type {
-  SessionModel,
-  User,
-  UserModel,
-} from "@antelopejs/interface-dms/auth/db";
+import { SessionModel, type User } from "@antelopejs/interface-dms/auth/db";
 import { signup } from "../../routes/authentication";
 import { seedUserInvite } from "../helpers/fixtures";
+import { SingleAccountUserModel } from "../helpers/recording-user-model";
+import { userFixture } from "../helpers/user-fixture";
 
 const HTTP_BAD_REQUEST = 400;
 const EMAIL_TAKEN = "error.email_already_used";
@@ -25,13 +23,12 @@ const USER_AGENT = "signup-guard-test";
 const IP = "127.0.0.1";
 
 interface SignupAttempt {
-  error: PromiseRejectedResult["reason"];
+  error: unknown;
   updatedUsers: User[];
 }
 
 function buildAccount(id: string, email: string, isValidated: boolean): User {
-  // SAFETY: Signup's account guard and draft takeover read or replace these plain fields; the fixture does not implement persisted-row methods.
-  return {
+  return userFixture({
     _id: id,
     email,
     name: HOLDER_NAME,
@@ -39,7 +36,7 @@ function buildAccount(id: string, email: string, isValidated: boolean): User {
     authKey: HOLDER_AUTH_KEY,
     isValidated,
     language: "en",
-  } as User;
+  });
 }
 
 async function joinWorkspace(userId: string): Promise<void> {
@@ -65,26 +62,13 @@ async function attemptSignup(
   claimedEmail: string = existingUser.email,
   lang?: string,
 ): Promise<SignupAttempt> {
-  const updatedUsers: User[] = [];
-  // SAFETY: The harness implements signup's account lookups and records writes; unsupported downstream token interfaces may fail after those writes and are deliberately captured below.
-  const userModel = {
-    getByEmail: async (lookup: string) =>
-      lookup === existingUser.email ? existingUser : undefined,
-    get: async () => existingUser,
-    getOwners: async () => [],
-    update: async (user: User) => {
-      updatedUsers.push(user);
-    },
-    insert: async () => {
-      throw new Error("signup must not create a second account");
-    },
-  } as unknown as UserModel;
+  const userModel = new SingleAccountUserModel(existingUser);
+  const { updated: updatedUsers } = userModel;
 
   try {
     await signup(
       userModel,
-      // SAFETY: This deliberately unimplemented session model is not a working persistence model; the harness observes guard refusal or earlier user writes and captures downstream failures.
-      {} as SessionModel,
+      GetModel(SessionModel),
       {
         name: INVITEE_NAME,
         email: claimedEmail,
@@ -95,15 +79,24 @@ async function attemptSignup(
       USER_AGENT,
       { ip: IP },
     );
-  } catch (error: PromiseRejectedResult["reason"]) {
+  } catch (error: unknown) {
     return { error, updatedUsers };
   }
   return { error: undefined, updatedUsers };
 }
 
+/** The row the signup wrote over `draft`. */
+function writtenDraft(attempt: SignupAttempt, draft: User): User {
+  const written = attempt.updatedUsers.find((user) => user._id === draft._id);
+  if (!written) expect.fail(`signup wrote nothing over ${draft._id}`);
+  return written;
+}
+
 function expectRefusal(attempt: SignupAttempt, message: string): void {
-  expect(attempt.error).to.be.instanceOf(HTTPResult);
   const refusal = attempt.error;
+  if (!(refusal instanceof HTTPResult)) {
+    expect.fail("expected an HTTPResult refusal");
+  }
   expect(refusal.getStatus()).to.equal(HTTP_BAD_REQUEST);
   expect(refusal.getBody()).to.equal(message);
 }
@@ -115,6 +108,7 @@ describe("[unit] auth/signup — overwriting an existing account", () => {
       "provisioned@acme.dev",
       false,
     );
+    const heldPassword = provisioned.password;
     await joinWorkspace(provisioned._id);
     const { token } = await seedUserInvite({ email: provisioned.email });
 
@@ -123,7 +117,7 @@ describe("[unit] auth/signup — overwriting an existing account", () => {
     expectRefusal(attempt, EMAIL_TAKEN);
     expect(attempt.updatedUsers).to.deep.equal([]);
     expect(provisioned.name).to.equal(HOLDER_NAME);
-    expect(provisioned.password).to.equal(HOLDER_PASSWORD);
+    expect(provisioned.password).to.equal(heldPassword);
     expect(provisioned.authKey).to.equal(HOLDER_AUTH_KEY);
   });
 
@@ -170,7 +164,7 @@ describe("[unit] auth/signup — overwriting an existing account", () => {
     expect(attempt.updatedUsers.map((user) => user.name)).to.include(
       INVITEE_NAME,
     );
-    expect(draft.authKey).to.not.equal(HOLDER_AUTH_KEY);
+    expect(writtenDraft(attempt, draft).authKey).to.not.equal(HOLDER_AUTH_KEY);
   });
 
   it("stores the taken-over draft under the canonical address", async () => {
@@ -181,9 +175,9 @@ describe("[unit] auth/signup — overwriting an existing account", () => {
     );
     const { token } = await seedUserInvite({ email: draft.email });
 
-    await attemptSignup(draft, token, "Draft-Case@Acme.dev");
+    const attempt = await attemptSignup(draft, token, "Draft-Case@Acme.dev");
 
-    expect(draft.email).to.equal("draft-case@acme.dev");
+    expect(writtenDraft(attempt, draft).email).to.equal("draft-case@acme.dev");
   });
 
   it("takes over a draft in the invitation's language when none is chosen", async () => {
@@ -197,9 +191,9 @@ describe("[unit] auth/signup — overwriting an existing account", () => {
       language: "fr",
     });
 
-    await attemptSignup(draft, token);
+    const attempt = await attemptSignup(draft, token);
 
-    expect(draft.language).to.equal("fr");
+    expect(writtenDraft(attempt, draft).language).to.equal("fr");
   });
 
   it("keeps the language the invitee chose over the invitation's", async () => {
@@ -213,9 +207,9 @@ describe("[unit] auth/signup — overwriting an existing account", () => {
       language: "fr",
     });
 
-    await attemptSignup(draft, token, draft.email, "en");
+    const attempt = await attemptSignup(draft, token, draft.email, "en");
 
-    expect(draft.language).to.equal("en");
+    expect(writtenDraft(attempt, draft).language).to.equal("en");
   });
 
   it("settles the invitation before disclosing that the address is taken", async () => {

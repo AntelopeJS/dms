@@ -1,6 +1,3 @@
-import { EventEmitter } from "node:events";
-import type { RequestContext } from "@antelopejs/interface-api";
-import type { User } from "@antelopejs/interface-dms/auth/db";
 import { expect } from "chai";
 import {
   InMemoryBroker,
@@ -9,14 +6,19 @@ import {
   getSessionInfo,
 } from "../../../realtime";
 import { RealtimeController } from "../../../routes";
+import {
+  type RecordedSseStream,
+  recordedSseStream,
+} from "../../helpers/recorded-sse-stream";
+import { helloConnectionId } from "../../helpers/sse-frames";
+import { userFixture } from "../../helpers/user-fixture";
 
-const USER = { _id: "stop-closes-streams-user", email: "u@example.com" };
+const USER = userFixture({
+  _id: "stop-closes-streams-user",
+  email: "u@example.com",
+});
 
-interface FakeStream {
-  ctx: RequestContext;
-  frames: string[];
-  isEnded: () => boolean;
-}
+type FakeStream = RecordedSseStream;
 
 interface TimerSpy {
   started: Set<unknown>;
@@ -24,43 +26,25 @@ interface TimerSpy {
   restore: () => void;
 }
 
-const createFakeStream = (): FakeStream => {
-  const frames: string[] = [];
-  let isEnded = false;
-  const writer = {
-    write: (frame: string) => {
-      frames.push(frame);
-      return true;
-    },
-    end: () => {
-      isEnded = true;
-    },
-  };
-  const rawRequest = Object.assign(new EventEmitter(), { headers: {} });
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The SSE context double provides lifecycle events and a writer, not the full HTTP context.
-  const ctx = {
-    rawRequest,
-    response: { addHeader: () => {}, getWriteStream: () => writer },
-  } as unknown as RequestContext;
-  return { ctx, frames, isEnded: () => isEnded };
-};
+const createFakeStream = (): FakeStream => recordedSseStream();
 
 const spyOnIntervals = (): TimerSpy => {
   const originalSet = globalThis.setInterval;
   const originalClear = globalThis.clearInterval;
   const started = new Set<unknown>();
   const cleared = new Set<unknown>();
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The forwarding spy covers interval calls only and does not reproduce Node's promisified overload metadata.
+  // SAFETY: Parameters reads only the last of setInterval's overloads, so the spy's own type names one; at runtime it forwards every argument to the original setInterval and answers its handle unchanged, so each call of any overload behaves as the original's.
   globalThis.setInterval = ((...args: Parameters<typeof setInterval>) => {
     const timer = originalSet(...args);
     started.add(timer);
     return timer;
   }) as typeof setInterval;
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The fixture observes Node timer handles only; clearInterval also accepts handles outside this test's contract.
-  globalThis.clearInterval = ((timer: NodeJS.Timeout) => {
+  globalThis.clearInterval = (
+    timer: NodeJS.Timeout | string | number | undefined,
+  ) => {
     cleared.add(timer);
     originalClear(timer);
-  }) as typeof clearInterval;
+  };
   return {
     started,
     cleared,
@@ -71,18 +55,11 @@ const spyOnIntervals = (): TimerSpy => {
   };
 };
 
-const readConnectionId = (stream: FakeStream): string => {
-  const hello = stream.frames.find((frame) => frame.startsWith("event: hello"));
-  const data = hello?.split("\ndata: ")[1] ?? "{}";
-  return JSON.parse(data).connectionId;
-};
-
 const openConnection = async (stream: FakeStream): Promise<void> => {
   await RealtimeController.prototype.connectionStream.call(
     undefined,
     stream.ctx,
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The realtime fixture supplies identity fields only, not a complete stored user instance.
-    USER as User,
+    USER,
   );
 };
 
@@ -91,9 +68,8 @@ const openSession = async (stream: FakeStream): Promise<string> => {
   const greeting = await RealtimeController.prototype.openSession.call(
     undefined,
     createFakeStream().ctx,
-    readConnectionId(stream),
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The realtime fixture supplies identity fields only, not a complete stored user instance.
-    USER as User,
+    helloConnectionId(stream.frames),
+    USER,
   );
   return greeting.sessionId!;
 };

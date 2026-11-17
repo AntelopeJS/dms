@@ -2,7 +2,8 @@ import { describe, expect, it } from "vitest";
 import { useApexChart } from "../layers/dms-ui/app/composables/chart/useApexChart";
 import type { UseApexChartInput } from "../layers/dms-ui/app/composables/chart/useApexChart.types";
 import type { ChartSeries } from "../layers/dms-ui/app/composables/chart/types";
-import type { ApexOptions } from "apexcharts";
+import { isFunction } from "../layers/dms-core/app/utils/type-check";
+import { sectionIn } from "./fixtures/axisCallbacks";
 
 const DEALS: ChartSeries[] = [
   {
@@ -14,22 +15,9 @@ const DEALS: ChartSeries[] = [
   },
 ];
 
-type Section = ReturnType<typeof useApexChart>["options"]["value"];
-type LabelFormatter = NonNullable<
-  NonNullable<ApexOptions["dataLabels"]>["formatter"]
->;
-
-function optionsFor(input: Partial<UseApexChartInput>): Section {
+function optionsFor(input: Partial<UseApexChartInput>) {
   return useApexChart(() => ({ type: "line", series: [], ...input })).options
     .value;
-}
-
-function sectionOf<Key extends keyof ApexOptions>(
-  options: Section,
-  key: Key,
-): NonNullable<ApexOptions[Key]> {
-  // SAFETY: The tested keys are generated Apex sections or object-shaped raw overrides supplied by these fixtures.
-  return options[key] as NonNullable<ApexOptions[Key]>;
 }
 
 function labelContext(dataPointIndex: number) {
@@ -38,22 +26,22 @@ function labelContext(dataPointIndex: number) {
 
 describe("radar grid", () => {
   it("leaves the grid to the radar's own polygons", () => {
-    expect(sectionOf(optionsFor({ type: "radar" }), "grid").show).toBe(false);
+    expect(sectionIn(optionsFor({ type: "radar" }), "grid").show).toBe(false);
   });
 
   it("keeps the cartesian grid on axis charts", () => {
-    expect(sectionOf(optionsFor({ type: "line" }), "grid").show).toBe(true);
+    expect(sectionIn(optionsFor({ type: "line" }), "grid").show).toBe(true);
   });
 });
 
 describe("donut slice labels", () => {
   it("hides them on the default thin ring they overflow", () => {
-    const labels = sectionOf(optionsFor({ type: "donut" }), "dataLabels");
+    const labels = sectionIn(optionsFor({ type: "donut" }), "dataLabels");
     expect(labels.enabled).toBe(false);
   });
 
   it("shows them on a ring wide enough to hold them", () => {
-    const labels = sectionOf(
+    const labels = sectionIn(
       optionsFor({ type: "donut", arcWidth: 45 }),
       "dataLabels",
     );
@@ -61,7 +49,7 @@ describe("donut slice labels", () => {
   });
 
   it("keeps them on a pie, and Apex's own percent formatter", () => {
-    const labels = sectionOf(optionsFor({ type: "pie" }), "dataLabels");
+    const labels = sectionIn(optionsFor({ type: "pie" }), "dataLabels");
     expect(labels.enabled).toBe(true);
     expect(labels.formatter).toBeUndefined();
   });
@@ -69,12 +57,12 @@ describe("donut slice labels", () => {
 
 describe("scatter points", () => {
   it("draws its points without a pointSize", () => {
-    const markers = sectionOf(optionsFor({ type: "scatter" }), "markers");
+    const markers = sectionIn(optionsFor({ type: "scatter" }), "markers");
     expect(markers.size).toBeGreaterThan(0);
   });
 
   it("honours an explicit pointSize", () => {
-    const markers = sectionOf(
+    const markers = sectionIn(
       optionsFor({ type: "scatter", pointSize: 9 }),
       "markers",
     );
@@ -82,33 +70,36 @@ describe("scatter points", () => {
   });
 
   it("keeps line markers hidden", () => {
-    expect(sectionOf(optionsFor({ type: "line" }), "markers").size).toBe(0);
+    expect(sectionIn(optionsFor({ type: "line" }), "markers").size).toBe(0);
   });
 
   it("labels a point with its own label, else its value", () => {
-    const labels = sectionOf(
+    const labels = sectionIn(
       optionsFor({ type: "scatter", series: DEALS, showLabels: true }),
       "dataLabels",
     );
-    const format: LabelFormatter = labels.formatter!;
+    const format = labels.formatter;
+    if (!isFunction(format)) {
+      throw new Error("The scatter data labels hold no formatter");
+    }
     expect(format(120, labelContext(0))).toBe("Acme");
     expect(format(340, labelContext(1))).toBe(340);
   });
 
   it("lifts a point's label off the point it names", () => {
-    const labels = sectionOf(
+    const labels = sectionIn(
       optionsFor({ type: "scatter", showLabels: true }),
       "dataLabels",
     );
     expect(labels.offsetY).toBeLessThan(0);
-    const line = sectionOf(optionsFor({ type: "line" }), "dataLabels");
+    const line = sectionIn(optionsFor({ type: "line" }), "dataLabels");
     expect(line.offsetY).toBe(0);
   });
 });
 
 describe("rawOptions paths", () => {
   it("sets a dotted key inside its section", () => {
-    const markers = sectionOf(
+    const markers = sectionIn(
       optionsFor({
         type: "scatter",
         rawOptions: [{ key: "markers.size", value: "5" }],

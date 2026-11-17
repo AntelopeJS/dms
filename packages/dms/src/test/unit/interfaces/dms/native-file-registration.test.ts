@@ -13,11 +13,15 @@ import type {
 } from "@antelopejs/interface-dms/internal/uploads";
 import * as uploads from "@antelopejs/interface-dms/uploads";
 
-function fileComponent(type = "file", name = "dms-table-view") {
+function fileComponent(
+  type = "file",
+  name = "dms-table-view",
+  options: Record<string, never> | number | readonly never[] | null = {},
+) {
   return new ComponentBuilder(name)
     .options({
       formComponents: {
-        new: { fields: [{ type, component: { options: {} } }] },
+        new: { fields: [{ type, component: { options } }] },
       },
     })
     .action("add", { title: "Add" });
@@ -115,5 +119,39 @@ describe("[unit] native file registration lifetime", () => {
     pages.push(page);
     await page.Register();
     expect(declarations).to.have.length(0);
+  });
+
+  for (const [label, options] of [
+    ["a number", 5],
+    ["an array", []],
+  ] as const) {
+    it(`refuses a page whose file field options are ${label}`, async () => {
+      const page = pageMetadata(
+        "native-bad-options",
+        fileComponent("file", "dms-table-view", options),
+      );
+      pages.push(page);
+      let failure: unknown;
+      await page.Register().catch((error: unknown) => {
+        failure = error;
+      });
+      expect(failure)
+        .to.be.instanceOf(TypeError)
+        .with.property("message")
+        .that.matches(/file field's component options must be an object/);
+      expect(declarations).to.have.length(0);
+    });
+  }
+
+  it("registers a file field whose component options are null", async () => {
+    const page = pageMetadata(
+      "native-null-options",
+      fileComponent("file", "dms-table-view", null),
+    );
+    pages.push(page);
+    await page.Register();
+    expect(declarations.map((item) => item.componentId)).to.deep.equal([
+      "pages.native-null-options.files",
+    ]);
   });
 });

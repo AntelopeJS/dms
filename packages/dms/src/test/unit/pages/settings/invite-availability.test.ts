@@ -1,7 +1,6 @@
 import { GetMetadata, ImplementInterface } from "@antelopejs/interface-core";
 import { expect } from "chai";
 import type { CustomButtonSerialized } from "@antelopejs/interface-dms/base/types";
-import type { ComponentInfoSerialized } from "@antelopejs/interface-dms/component";
 import { RegisterInviteAvailability } from "@antelopejs/interface-dms/invite-extensions";
 import {
   GetPageLayoutBySlug,
@@ -11,7 +10,6 @@ import {
 import * as permissionsInterface from "@antelopejs/interface-dms/permissions";
 import * as permissionsResolverInterface from "@antelopejs/interface-dms/permissions-resolver";
 import * as tenantAccessInterface from "@antelopejs/interface-dms/tenant-access";
-import type { User } from "@antelopejs/interface-dms/auth/db";
 import { internal as pageImplInternal } from "../../../../implementations/dms/page";
 import * as permissionsImpl from "../../../../implementations/dms/permissions";
 import * as permissionsResolverImpl from "../../../../implementations/dms/permissions-resolver";
@@ -22,16 +20,16 @@ import {
   MembersSettingsController,
 } from "../../../../pages/members";
 import { stubPageAccessModels } from "../../../helpers/page-access";
+import { tableViewOptionsOf } from "../../../helpers/serialized-options";
+import { userFixture } from "../../../helpers/user-fixture";
 
 const FULL_TENANT = "invite-availability-full-tenant";
 const OPEN_TENANT = "invite-availability-open-tenant";
 const SEAT_LIMIT_REASON = "$test.seat_limit_reached";
-// SAFETY: The members layout uses only the inviter's _id; the separate language tests below call resolveInviteLanguage directly.
-const INVITER = { _id: "invite-availability-inviter" } as User;
-
-interface MembersTableOptions {
-  customButtons?: CustomButtonSerialized[];
-}
+const INVITER = userFixture({
+  _id: "invite-availability-inviter",
+  owner: true,
+});
 
 function membersPageSlug(): string {
   const pageInfo = GetMetadata(
@@ -47,17 +45,14 @@ async function inviteButtonFor(
 ): Promise<CustomButtonSerialized | undefined> {
   const handler = GetPageLayoutBySlug(membersPageSlug());
   if (!handler) throw new Error("The members page serves no layout");
-  const { memberModel, roleModel } = stubPageAccessModels(["*"]);
+  const { memberModel, roleModel } = stubPageAccessModels([]);
   const layout = await handler({
     user: INVITER,
     memberModel,
     roleModel,
     tenantId,
   });
-  // SAFETY: The registered members layout declares its table component with customButtons; the generic layout component map erases that options type.
-  const table = layout.components
-    .table as ComponentInfoSerialized<MembersTableOptions>;
-  return table.options?.customButtons?.find(
+  return tableViewOptionsOf(layout.components.table).customButtons?.find(
     (button) => button.id === MEMBER_INVITE_BUTTON_ID,
   );
 }
@@ -79,7 +74,7 @@ describe("[unit] pages/settings/users/members — invite availability", () => {
   it("serves the invite button enabled while no module refuses", async () => {
     const button = await inviteButtonFor(OPEN_TENANT);
 
-    expect(button).to.exist;
+    expect(button).to.not.be.oneOf([null, undefined]);
     expect(button?.disabled).to.equal(undefined);
     expect(button).to.not.have.property("availability");
   });

@@ -50,7 +50,7 @@ const TREE = {
 
 const COMPONENTS = {
   kpis: {
-    componentName: "DmsGrid",
+    componentName: "DmsGridBlock",
     children: [{ id: "revenue", component: { componentName: "DmsKpi" } }],
   },
   table: { componentName: "DmsTableView" },
@@ -68,7 +68,7 @@ function without(...ids: string[]): Set<string> {
   return new Set([...ALL_IDS].filter((id) => !ids.includes(id)));
 }
 
-describe("[unit] pages/settings/users/role-preview", () => {
+function registerPreviewLookupCases(): void {
   describe("sanitizePreviewPermissions", () => {
     it("drops empty ids and duplicates", () => {
       expect([
@@ -76,11 +76,8 @@ describe("[unit] pages/settings/users/role-preview", () => {
       ]).to.deep.equal(["a", "b"]);
     });
 
-    it("keeps the wildcard of a role granting everything", () => {
-      expect([...sanitizePreviewPermissions(["*", "a"])]).to.deep.equal([
-        "*",
-        "a",
-      ]);
+    it("leaves out the wildcard a role lists", () => {
+      expect([...sanitizePreviewPermissions(["*", "a"])]).to.deep.equal(["a"]);
     });
 
     it("previews the ids a permission sits under, as saving stores them", () => {
@@ -138,7 +135,9 @@ describe("[unit] pages/settings/users/role-preview", () => {
       ]);
     });
   });
+}
 
+function registerClassifyPreviewBlocksCases(): void {
   describe("classifyPreviewBlocks", () => {
     it("changes nothing when the role holds what the viewer holds", () => {
       const blocks = classifyPreviewBlocks(
@@ -266,7 +265,9 @@ describe("[unit] pages/settings/users/role-preview", () => {
       });
     });
   });
+}
 
+function registerPreviewScopeCases(): void {
   describe("losesOnPreviewPage", () => {
     it("keeps a page whole when no block and no header action changes", () => {
       const blocks = classifyPreviewBlocks(
@@ -321,4 +322,10 @@ describe("[unit] pages/settings/users/role-preview", () => {
       ).to.equal(2);
     });
   });
+}
+
+describe("[unit] pages/settings/users/role-preview", () => {
+  registerPreviewLookupCases();
+  registerClassifyPreviewBlocksCases();
+  registerPreviewScopeCases();
 });

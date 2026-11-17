@@ -39,13 +39,34 @@ import {
 } from "../layers/dms-ui/app/entries/composables/containers/closingLayers";
 
 import { DialogRoot as LayerDialogRoot } from "reka-ui";
+import {
+  isFunction,
+  isNull,
+  isObject,
+} from "../layers/dms-core/app/utils/type-check";
 
 const nuxtUiDir = realpathSync(join(process.cwd(), "node_modules/@nuxt/ui"));
 const nuxtUiRequire = createRequire(join(nuxtUiDir, "package.json"));
-// SAFETY: The resolved module is Nuxt UI's installed reka-ui entry and exports the DialogContent and DialogRoot declared by reka-ui.
-const { DialogContent, DialogRoot } = (await import(
+
+function isComponent(value: unknown): value is Component {
+  return isObject(value) && !isNull(value) && isFunction(value.setup);
+}
+
+const nuxtUiReka: unknown = await import(
   pathToFileURL(nuxtUiRequire.resolve("reka-ui")).href
-)) as typeof import("reka-ui");
+);
+
+function rekaComponent(name: string): Component {
+  const component =
+    isObject(nuxtUiReka) && !isNull(nuxtUiReka) ? nuxtUiReka[name] : undefined;
+  if (!isComponent(component)) {
+    throw new Error(`Nuxt UI's reka-ui exports no ${name} component`);
+  }
+  return component;
+}
+
+const DialogContent = rekaComponent("DialogContent");
+const DialogRoot = rekaComponent("DialogRoot");
 
 const BackdropStub = defineComponent({
   setup() {

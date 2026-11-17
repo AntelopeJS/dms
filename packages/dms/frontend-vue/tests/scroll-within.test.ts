@@ -14,14 +14,15 @@ function box(element: HTMLElement, top: number, height: number): void {
   element.getBoundingClientRect = () => new DOMRect(0, top, 0, height);
 }
 
-function scroller(overflowY: string, scrollTop = 0): HTMLDivElement {
+function scroller(overflowY: string, scrollTop = 0) {
   const element = document.createElement("div");
   element.style.overflowY = overflowY;
   Object.defineProperty(element, "scrollHeight", { value: 2000 });
   Object.defineProperty(element, "clientHeight", { value: 500 });
   element.scrollTop = scrollTop;
-  element.scrollTo = vi.fn();
-  return element;
+  const scrollTo = vi.fn();
+  element.scrollTo = scrollTo;
+  return { element, scrollTo };
 }
 
 afterEach(() => {
@@ -30,8 +31,8 @@ afterEach(() => {
 
 describe("scrollWithin", () => {
   it("scrolls the nearest scrolling ancestor, never a hidden one", () => {
-    const root = scroller("hidden");
-    const main = scroller("auto", 100);
+    const { element: root, scrollTo: rootScrollTo } = scroller("hidden");
+    const { element: main, scrollTo: mainScrollTo } = scroller("auto", 100);
     const section = document.createElement("div");
     section.style.scrollMarginTop = "56px";
     main.append(section);
@@ -43,15 +44,15 @@ describe("scrollWithin", () => {
     expect(scrollParent(section)).toBe(main);
     scrollWithin(section, { block: "start", behavior: "smooth" });
 
-    expect(main.scrollTo).toHaveBeenCalledWith({
+    expect(mainScrollTo).toHaveBeenCalledWith({
       top: 100 + 900 - 80 - 56,
       behavior: "smooth",
     });
-    expect(root.scrollTo).not.toHaveBeenCalled();
+    expect(rootScrollTo).not.toHaveBeenCalled();
   });
 
   it("centres a field in its container", () => {
-    const main = scroller("auto");
+    const { element: main, scrollTo: mainScrollTo } = scroller("auto");
     const row = document.createElement("div");
     main.append(row);
     document.body.append(main);
@@ -60,14 +61,14 @@ describe("scrollWithin", () => {
 
     scrollWithin(row, { block: "center" });
 
-    expect(main.scrollTo).toHaveBeenCalledWith({
+    expect(mainScrollTo).toHaveBeenCalledWith({
       top: 1000 - 200,
       behavior: "auto",
     });
   });
 
   it("leaves a field already in view where it is on `nearest`", () => {
-    const main = scroller("auto");
+    const { element: main, scrollTo: mainScrollTo } = scroller("auto");
     const row = document.createElement("div");
     main.append(row);
     document.body.append(main);
@@ -76,7 +77,7 @@ describe("scrollWithin", () => {
 
     scrollWithin(row, { block: "nearest" });
 
-    expect(main.scrollTo).not.toHaveBeenCalled();
+    expect(mainScrollTo).not.toHaveBeenCalled();
   });
 
   it("falls back to the window when nothing closer scrolls", () => {

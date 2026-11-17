@@ -31,9 +31,9 @@ const { t } = useI18n();
     />
     <div class="min-w-0 flex-1" :class="props.linesClass">
       <USkeleton
-        :aria-label="t('dms.a11y.loading')"
         v-for="(line, index) in props.lines"
         :key="index"
+        :aria-label="t('dms.a11y.loading')"
         :class="line"
       />
     </div>

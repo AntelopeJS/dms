@@ -1,9 +1,20 @@
 <script setup lang="ts">
-import { isObject } from "../../../../dms-core/app/utils/type-check";
+import {
+  isBigint,
+  isBoolean,
+  isFunction,
+  isNull,
+  isNumber,
+  isObject,
+  isString,
+  isSymbol,
+  isUndefined,
+} from "../../../../dms-core/app/utils/type-check";
 import {
   computed,
   defineAsyncComponent,
   markRaw,
+  onBeforeUnmount,
   onMounted,
   ref,
   shallowRef,
@@ -12,13 +23,13 @@ import {
   type Component,
 } from "vue";
 import type { VueApexChartsComponentMethods } from "vue3-apexcharts";
+import type { RawOptionSection } from "../../build/composables/chart/apexRawOptions";
 import { ensureApexLocale } from "../../composables/chart/apexLocales";
 
 interface Props {
   apexType: string;
   height: number | string;
-  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- The existing public prop accepts raw Apex overrides; ApexOptions would narrow that contract and cannot type arbitrary dotted-path values.
-  options: Record<string, unknown>;
+  options: RawOptionSection;
   series: unknown;
 }
 
@@ -29,8 +40,14 @@ interface Emits {
 
 /** The ApexCharts instance the wrapper exposes as `chart`. */
 interface ApexCore {
-  /** Apex's own (debounced) window resize handler: redraws at the container width. */
-  windowResizeHandler: () => void;
+  /**
+   * Apex's (debounced) redraw at the container width, the one its parent
+   * resize observer starts. Unlike its window resize handler it does not
+   * read `chart.redrawOnWindowResize`, which only opts out of window resizes.
+   */
+  _windowResize: () => void;
+  /** Apex's state: `animationEnded` is false while the chart is animating. */
+  w: { globals: { animationEnded: boolean } };
 }
 
 interface ApexChartInstance {
@@ -57,12 +74,56 @@ const ApexChart = defineAsyncComponent<Component>(async () => {
   return mod.default ?? mod;
 });
 
-onMounted(() => {
-  void ensureApexLocale(locale.value).catch(() => undefined);
-});
-
 const hostRef = ref<HTMLElement | null>(null);
 const chartRef = ref<ApexChartInstance | null>(null);
+let hostResizes: ResizeObserver | undefined;
+
+onMounted(() => {
+  void ensureApexLocale(locale.value).catch(() => undefined);
+  if (!hostRef.value) return;
+  hostResizes = new ResizeObserver(redrawIfResizedWhileIdle);
+  hostResizes.observe(hostRef.value);
+});
+
+onBeforeUnmount(() => {
+  hostResizes?.disconnect();
+});
+
+type ApexFunction = typeof isFunction extends (
+  value: unknown,
+) => value is infer F
+  ? F
+  : never;
+
+/** A value Apex is handed: its options and series, formatters and dates included. */
+type ApexInput =
+  | string
+  | number
+  | boolean
+  | bigint
+  | symbol
+  | null
+  | undefined
+  | Date
+  | ApexFunction
+  | ApexInput[]
+  | { [key: string]: ApexInput };
+
+function isApexLeaf(
+  value: unknown,
+): value is Exclude<ApexInput, ApexInput[] | { [key: string]: ApexInput }> {
+  return (
+    isString(value) ||
+    isNumber(value) ||
+    isBoolean(value) ||
+    isBigint(value) ||
+    isSymbol(value) ||
+    isNull(value) ||
+    isUndefined(value) ||
+    isFunction(value) ||
+    value instanceof Date
+  );
+}
 
 /**
  * A plain, non-reactive copy of a value handed to Apex. Apex writes into the
@@ -73,30 +134,48 @@ const chartRef = ref<ApexChartInstance | null>(null);
  * deep watcher only reacts to a new series, breaks that loop. Functions
  * (formatters, event handlers) and dates are kept as they are.
  */
-function toApexInput<T>(value: T): T {
+// oxlint-disable-next-line anti-slop/no-unknown-parameters -- Recursive copy of the untyped Props.series and RawOptionSection values: each nested value it walks is only known once isApexLeaf, Array.isArray or isObject classifies it.
+function toApexInput(value: unknown): ApexInput {
   const raw = toRaw(value);
+  if (isApexLeaf(raw)) return raw;
   if (Array.isArray(raw)) {
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Generic T may contain class instances or array properties this existing traversal does not preserve; its callers have no narrower validated options owner.
-    return raw.map((entry) => toApexInput(entry)) as T;
+    return raw.map((entry) => toApexInput(entry));
   }
-  if (raw && isObject(raw) && !(raw instanceof Date)) {
-    const copy: Props["options"] = {};
+  const copy: { [key: string]: ApexInput } = {};
+  if (isObject(raw)) {
     for (const [key, entry] of Object.entries(raw)) {
       copy[key] = toApexInput(entry);
     }
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Generic T does not establish a plain object; the existing clone drops prototypes and non-enumerable fields, so inference cannot prove it retains T.
-    return copy as T;
   }
-  return raw;
+  return copy;
 }
 
-function rawApexInput<T extends object>(value: T): T {
-  return markRaw(toApexInput(value));
+// oxlint-disable-next-line anti-slop/no-unknown-parameters -- Takes Props.series, which the component declares unknown, and the RawOptionSection options, and hands both to toApexInput.
+function rawApexInput(value: unknown): ApexInput {
+  const copy = toApexInput(value);
+  return isObject(copy) ? markRaw(copy) : copy;
 }
 
 const apexSeries = computed(() => rawApexInput(props.series ?? []));
 
-const pinnedOptions = shallowRef<Props["options"]>(rawApexInput(props.options));
+/**
+ * The options handed to Apex, its parent resize observer off. That observer
+ * redraws on any change of the host's size, height included, and a circular
+ * chart changes the height itself: Apex draws it at its configured height,
+ * then fits its box to the ring and legend, and the redraw that resize starts
+ * draws it at the configured height again. The donut redraws every 150ms or
+ * so for as long as the page is open, and a screenshot taken mid-redraw
+ * shows the ring off centre. The host redraws on width changes instead.
+ */
+function apexOptions(options: Props["options"]): ApexInput {
+  const chart = isObject(options.chart) ? options.chart : {};
+  return rawApexInput({
+    ...options,
+    chart: { ...chart, redrawOnParentResize: false },
+  });
+}
+
+const pinnedOptions = shallowRef<ApexInput>(apexOptions(props.options));
 
 function pushOptionsWithoutGroupBroadcast(
   instance: ApexChartInstance,
@@ -104,7 +183,7 @@ function pushOptionsWithoutGroupBroadcast(
 ): void {
   void instance
     .updateOptions(
-      rawApexInput(next),
+      apexOptions(next),
       REDRAW_PATHS,
       ANIMATE,
       UPDATE_SYNCED_CHARTS,
@@ -113,8 +192,8 @@ function pushOptionsWithoutGroupBroadcast(
 }
 
 function axisTypeOf(options: Props["options"]) {
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Raw option overrides leave xaxis unknown; no owner proves this object shape, and validation would change the existing optional-property projection.
-  return (options.xaxis as { type?: unknown } | undefined)?.type;
+  const xaxis = options.xaxis;
+  return isObject(xaxis) && !isNull(xaxis) ? xaxis.type : undefined;
 }
 
 /**
@@ -131,7 +210,7 @@ watch(
   (next, previous) => {
     const instance = chartRef.value;
     if (!instance || axisTypeOf(next) !== axisTypeOf(previous)) {
-      pinnedOptions.value = rawApexInput(next);
+      pinnedOptions.value = apexOptions(next);
       return;
     }
     pushOptionsWithoutGroupBroadcast(instance, next);
@@ -160,7 +239,18 @@ function redrawIfResizedWhileAnimating() {
   const host = hostRef.value;
   const chart = chartRef.value?.chart;
   if (!host || !chart || !isDrawnAtStaleWidth(host)) return;
-  chart.windowResizeHandler();
+  chart._windowResize();
+}
+
+/**
+ * The host's own resize observer, in place of Apex's: a chart drawn at
+ * another width than its host redraws, and a change of height alone, such as
+ * the one a circular chart makes when it fits its box, redraws nothing. While
+ * an animation runs the redraw waits for its end.
+ */
+function redrawIfResizedWhileIdle() {
+  if (chartRef.value?.chart?.w.globals.animationEnded !== true) return;
+  redrawIfResizedWhileAnimating();
 }
 </script>
 

@@ -6,7 +6,7 @@ import DmsBlockActions, {
   type BlockAction,
 } from "../../build/components/blocks/BlockActions.vue";
 import DmsEmptyState from "../empty-state/EmptyState.vue";
-import DmsEyebrow from "../section-header/Eyebrow.vue";
+import DmsEyebrowLabel from "../section-header/EyebrowLabel.vue";
 import DmsRowSkeleton from "../../build/components/skeleton/RowSkeleton.vue";
 import { useBlockItems } from "../../build/composables/blocks/useBlockItems";
 import { formatRelativeTime } from "#dms-core/app/utils/formatter";
@@ -228,7 +228,7 @@ const foldClass = computed(
   () => props.fillHeight && "sticky bottom-0 z-[1] bg-(--dms-surface-card)",
 );
 
-const Wrapper = props.card ? resolveComponent("DmsCard") : "div";
+const Wrapper = props.card ? resolveComponent("DmsCardPanel") : "div";
 const wrapperProps = computed(() =>
   props.card
     ? {
@@ -339,10 +339,10 @@ const wrapperProps = computed(() =>
             class="flex items-center gap-2.5 px-[18px] pt-3.5 pb-1.5 after:h-px after:flex-1 after:bg-(--ui-border-muted)"
             :class="dayHeadClass"
           >
-            <DmsEyebrow as="h3">
+            <DmsEyebrowLabel as="h3">
               <b class="text-muted font-semibold">{{ day.name }}</b>
               {{ day.date ? ` · ${day.date}` : "" }}
-            </DmsEyebrow>
+            </DmsEyebrowLabel>
           </div>
           <DmsActivityItem
             v-for="(item, index) in day.items"

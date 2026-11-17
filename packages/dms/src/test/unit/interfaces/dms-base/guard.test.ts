@@ -1,3 +1,4 @@
+import type { JsonValue } from "@antelopejs/interface-dms/base/types";
 import { expect } from "chai";
 import {
   GetBlockType,
@@ -11,7 +12,7 @@ function declared(type: string) {
   return block!;
 }
 
-const valid = (options: Parameters<typeof ValidateBlockOptions>[1]) =>
+const valid = (options: Record<string, JsonValue | undefined>) =>
   ValidateBlockOptions("Guard", options).valid;
 
 const GUARD = {
@@ -34,7 +35,7 @@ describe("[unit] interfaces/dms-base — Guard", () => {
     expect(block.container).to.equal(true);
     expect(block.allowedChildren).to.equal(undefined);
     expect(block.meta.group).to.equal("layout");
-    expect(block.componentName).to.equal("dms-guard");
+    expect(block.componentName).to.equal("dms-guard-block");
   });
 
   it("reads a route that may follow a period scope", () => {
@@ -65,7 +66,7 @@ describe("[unit] interfaces/dms-base — Guard", () => {
 
   it("serializes its options with the default condition", async () => {
     const serialized = await Guard(GUARD).serialize();
-    expect(serialized.componentName).to.equal("dms-guard");
+    expect(serialized.componentName).to.equal("dms-guard-block");
     expect(serialized.options).to.deep.include({ ...GUARD, when: "empty" });
   });
 });

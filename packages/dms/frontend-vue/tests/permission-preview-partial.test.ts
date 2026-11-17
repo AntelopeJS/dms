@@ -6,7 +6,6 @@ import {
   h,
   ref,
   type App,
-  type PropType,
   type Ref,
   type VNode,
 } from "vue";
@@ -21,6 +20,7 @@ import {
 } from "#dms-core/app/entries/utils/permission-preview";
 import { MENU_STATUS_TEXT_CLASSES } from "#dms-core/app/utils/menu";
 import NavigationMenu from "../layers/dms-layout/app/components/navigation/NavigationMenu.vue";
+import { stubDmsState } from "./helpers/dms-state-stub";
 
 const HIDDEN = new Set(["pages.sales.invoices"]);
 const PARTIAL = new Set(["pages.sales", "pages.sales.orders", "settings"]);
@@ -170,6 +170,8 @@ function createPermissionPreviewPartialFixture() {
     blocks: {},
     hiddenEntries: ["pages.sales.invoices"],
     partialEntries: ["pages.sales", "pages.sales.orders"],
+    hiddenHeaderActions: [],
+    hiddenQuickActions: [],
     outOfScope: 0,
   };
 
@@ -177,33 +179,31 @@ function createPermissionPreviewPartialFixture() {
   let host: HTMLDivElement;
   let state: Map<string, Ref<unknown>>;
 
-  const MenuStub = defineComponent({
-    props: {
-      items: {
-        // SAFETY: Vue's Array constructor validates the container; every supplied item comes from ITEMS.
-        type: Array as PropType<NavigationMenuItem[][]>,
-        required: true,
-      },
-    },
-    setup(props) {
-      const renderItem = (item: NavigationMenuItem): VNode =>
-        h("div", { "data-entry": item.fullId }, [
+  const MenuStub = defineComponent(
+    (props: { items: NavigationMenuItem[][] }) => {
+      const renderItem = (item: NavigationMenuItem): VNode => {
+        const entry: unknown = item.fullId;
+        const previewState: unknown = item.previewState;
+        const trailing: unknown = item.trailingIcon;
+        return h("div", { "data-entry": entry }, [
           h(
             "a",
             {
               class: item.class,
               title: item.title,
-              "data-state": item.previewState,
-              "data-trailing": item.trailingIcon,
+              "data-state": previewState,
+              "data-trailing": trailing,
               "data-trailing-class": item.ui?.linkTrailingIcon,
             },
             item.label,
           ),
           ...(item.children ?? []).map(renderItem),
         ]);
+      };
       return () => h("nav", props.items.flat().map(renderItem));
     },
-  });
+    { props: { items: { type: Array, required: true } } },
+  );
 
   function mount(previewing: boolean) {
     state.set(
@@ -239,10 +239,10 @@ function createPermissionPreviewPartialFixture() {
       t: (key: string, values?: { role?: string }) =>
         values?.role ? `${key}(${values.role})` : key,
     }));
-    vi.stubGlobal("useDmsState", <T>(key: string, initial: () => T) => {
-      if (!state.has(key)) state.set(key, ref(initial()));
-      return state.get(key);
-    });
+    vi.stubGlobal("useTranslation", () => ({
+      processI18n: (value: string) => value,
+    }));
+    stubDmsState(state);
     vi.stubGlobal("MENU_STATUS_TEXT_CLASSES", MENU_STATUS_TEXT_CLASSES);
     host = document.createElement("div");
     document.body.append(host);

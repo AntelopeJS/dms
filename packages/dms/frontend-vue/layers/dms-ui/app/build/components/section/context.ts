@@ -1,7 +1,7 @@
 import type { InjectionKey } from "vue";
 
 /**
- * Provided by a framed DmsSection to its content. A block that brings its own
+ * Provided by a framed DmsSectionPanel to its content. A block that brings its own
  * card (a Form) reads it to drop that card and lay its rows out like the
  * section's field rows instead of nesting a second frame.
  */

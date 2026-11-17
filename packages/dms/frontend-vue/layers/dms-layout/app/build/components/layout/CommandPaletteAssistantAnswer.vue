@@ -62,9 +62,9 @@ onErrorCaptured((error) => {
             {{ t("commandPalette.assistant.loading") }}
           </span>
           <USkeleton
-            :aria-label="t('dms.a11y.loading')"
             v-for="width in SKELETON_WIDTHS"
             :key="width"
+            :aria-label="t('dms.a11y.loading')"
             :class="['h-3 bg-(--dms-assistant-tint)', width]"
           />
         </div>

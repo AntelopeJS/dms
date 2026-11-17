@@ -1,5 +1,5 @@
 import { GetMetadata } from "@antelopejs/interface-core";
-import { expect } from "chai";
+import { assert, expect } from "chai";
 import {
   type FormFieldSerialized,
   type FormPropsSerialized,
@@ -14,8 +14,9 @@ import {
 const RETIRED_OPTION = "skipEmailValidation";
 
 function inviteFormOptions(): FormPropsSerialized {
-  // SAFETY: memberInviteForm is a form component; serialization erases its options type but retains the form fields read below.
-  return memberInviteForm.serializeSync().options as FormPropsSerialized;
+  const { options } = memberInviteForm.serializeSync();
+  assert.isDefined(options);
+  return options;
 }
 
 function inviteFormFields(): FormFieldSerialized[] {
@@ -38,7 +39,7 @@ describe("[unit] pages/settings/users — invitation email validation option", (
   it("keeps the name optional, with no rule making it required", () => {
     const name = inviteFormFields().find((field) => field.id === "name");
 
-    expect(name, "the invite form has a name field").to.exist;
+    expect(name, "the invite form has a name field").to.not.equal(undefined);
     expect(name?.required).to.equal(false);
     expect(JSON.stringify(inviteFormOptions())).to.not.include(RETIRED_OPTION);
   });

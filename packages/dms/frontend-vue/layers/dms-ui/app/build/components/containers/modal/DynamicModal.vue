@@ -5,6 +5,7 @@ import type { ModalSize } from "../../../../types/modal";
 import type {
   ContainerColor,
   ContainerInstance,
+  ContainerOptions,
 } from "../../../../composables/containers/types";
 import DmsIconWell from "../../../../components/icon-well/IconWell.vue";
 import {
@@ -20,13 +21,11 @@ interface DynamicModalProps {
   size?: ModalSize;
   containerId: string;
   component: Component;
-  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- ContainerOptions derives VNode props and constrains reserved keys such as key and ref. This legacy component-prop boundary accepts arbitrary values for every string key without validation.
-  componentOptions?: Record<string, unknown>;
+  componentOptions?: ContainerOptions["componentOptions"];
   /** Mounts the body component anew when it changes. */
   componentKey?: string;
   headerComponent?: Component;
-  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- ContainerOptions derives VNode props and constrains reserved keys such as key and ref. This legacy header-prop boundary accepts arbitrary values for every string key without validation.
-  headerComponentOptions?: Record<string, unknown>;
+  headerComponentOptions?: ContainerOptions["headerComponentOptions"];
   icon?: string;
   color?: ContainerColor;
 }

@@ -1,17 +1,17 @@
-import { GetDataControllerMeta } from "@antelopejs/interface-data-api";
+import {
+  type DataControllerInstance,
+  GetDataControllerMeta,
+} from "@antelopejs/interface-data-api";
 import { Query } from "@antelopejs/interface-data-api/components";
-import { evaluateRowActionRule } from "../utils";
-
-export type RuleRow = globalThis.Parameters<typeof evaluateRowActionRule>[1];
+import type { StoredRow } from "@antelopejs/interface-data-api/metadata";
 
 export async function fetchRowForGuard(
-  controller: any,
+  controller: DataControllerInstance,
   id: string,
   idField: string,
-): Promise<RuleRow | undefined> {
+): Promise<StoredRow | undefined> {
   const controllerMetadata = GetDataControllerMeta(controller);
   const model = Query.GetModel(controller, controllerMetadata);
-  const rows = await model.table.getAll([id], idField);
-  const row: RuleRow | undefined = rows[0];
-  return row;
+  const rows = await model.table.getAll([id], idField).run();
+  return rows[0];
 }

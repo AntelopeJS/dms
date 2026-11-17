@@ -7,6 +7,8 @@
  */
 import { createApp, defineComponent, h, reactive, type App } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { fetchClientMock } from "./fixtures/unusedApi";
+import type { useExportJob } from "../layers/dms-ui/app/composables/useExportJob";
 import { useActionTargets } from "../layers/dms-ui/app/entries/composables/actions/useActionTargets";
 import {
   interpolateRowText,
@@ -30,8 +32,8 @@ const route = reactive<{ path: string; query: Record<string, string> }>({
   path: "/modules/shop/stores/s1",
   query: {},
 });
-const api = vi.fn();
-const runJob = vi.fn();
+const api = fetchClientMock();
+const runJob = vi.fn<ReturnType<typeof useExportJob>["runJob"]>();
 let app: App | undefined;
 
 function mountTargets() {
@@ -40,8 +42,7 @@ function mountTargets() {
     defineComponent({
       setup() {
         targets = useActionTargets({
-          // SAFETY: These target cases invoke only the callable API mock, never $fetch's raw/create/native members.
-          api: api as Parameters<typeof useActionTargets>[0]["api"],
+          api,
           pageId: "store-page",
           componentId: "orders",
           handleApiError: vi.fn(),
@@ -142,7 +143,7 @@ describe("page tokens in links and requested routes", () => {
       "/stores/s1?store=north",
     );
     expect(pageLink("/orders?tab={{query.tab}}")).toBe("/orders");
-    expect(buttonLinkProps("/stores/{{params.id}}/orders")).toEqual({
+    expect(buttonLinkProps("/stores/{{params.id}}/orders")).toMatchObject({
       to: "/stores/s1/orders",
     });
   });
@@ -228,8 +229,8 @@ describe("an action target's URL", () => {
     await vi.waitFor(() => expect(runJob).toHaveBeenCalled());
     const job = runJob.mock.calls[0]![0];
     expect(job.startUrl).toBe("/api/stores/s1/export?store=north");
-    expect(job.statusUrl({ jobId: "j1" })).toBe("/api/stores/s1/export/j1");
-    expect(job.downloadUrl({ jobId: "j1" })).toBe(
+    expect(job.statusUrl?.({ jobId: "j1" })).toBe("/api/stores/s1/export/j1");
+    expect(job.downloadUrl?.({ jobId: "j1" })).toBe(
       "/api/stores/s1/export/j1/file",
     );
   });

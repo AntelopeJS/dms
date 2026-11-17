@@ -156,6 +156,24 @@ describe("[unit] implementations/dms/permission-preview — loss cache", () => {
     );
   });
 
+  /** Catches a key that joins ids with "\n" and scope fields with NUL before hashing. */
+  it("keeps keys apart when ids or fields embed the old delimiters", () => {
+    expect(previewCacheKey({ ...scope, real: ["a\nb"] })).to.not.equal(
+      previewCacheKey({ ...scope, real: ["a", "b"] }),
+    );
+    expect(previewCacheKey({ ...scope, preview: ["a\nb"] })).to.not.equal(
+      previewCacheKey({ ...scope, preview: ["a", "b"] }),
+    );
+    expect(
+      previewCacheKey({ ...scope, tenantId: "a\u0000b", userId: "c" }),
+    ).to.not.equal(
+      previewCacheKey({ ...scope, tenantId: "a", userId: "b\u0000c" }),
+    );
+    expect(previewCacheKey({ ...scope, real: ["b", "a\nb", "a\nb"] })).to.equal(
+      previewCacheKey({ ...scope, real: ["a\nb", "b"] }),
+    );
+  });
+
   it("answers a scope from its entry until it expires", () => {
     let time = 0;
     const cache = new PreviewScopeCache<boolean>(1000, 4, () => time);

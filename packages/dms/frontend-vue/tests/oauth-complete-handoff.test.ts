@@ -14,10 +14,13 @@ import {
   type Ref,
 } from "vue";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
+import { setupFrontendModules } from "#dms/frontend-module";
+import { stubDmsState } from "./helpers/dms-state-stub";
 import { usePostLoginRedirect } from "../layers/dms-auth/app/composables/usePostLoginRedirect";
 import { usePageLayout } from "../layers/dms-layout/app/composables/page/usePageLayout";
 import { useSiteLayout } from "../layers/dms-core/app/composables/page/useSiteLayout";
 import type { PageLayout } from "../layers/dms-core/app/types/page";
+import { isString } from "../layers/dms-core/app/utils/type-check";
 
 const { default: OAuthCompletePage } = await import(
   "../layers/dms-auth/app/custom-pages/auth/oauth-complete.vue"
@@ -29,9 +32,16 @@ const SITE_LAYOUT_URL = "/dms/sitelayout";
 const HANDOFF_URL = "/auth/oauth/handoff";
 const HOMEPAGE = "/home";
 
-const state = new Map<string, Ref>();
+interface Handoff {
+  kind: string;
+  token?: string;
+  provider?: string;
+}
+
+const state = new Map<string, Ref<unknown>>();
 const authFetch = vi.fn();
-const fetchHandoff = vi.fn();
+const fetchHandoff =
+  vi.fn<(options: Parameters<typeof $fetch>[1]) => Promise<Handoff>>();
 const navigate = vi.fn();
 let mounts = 0;
 let route: { path: string; query: Record<string, string> };
@@ -56,6 +66,7 @@ const siteResponse = {
       },
     },
     categories: {},
+    banners: [],
   },
   siteLayoutTree: undefined,
   quickActions: undefined,
@@ -87,15 +98,13 @@ function installRuntime() {
   vi.stubGlobal("onMounted", (hook: Parameters<typeof onMounted>[0]) =>
     onMounted(() => {
       mounts += 1;
-      return hook();
+      const mounted: unknown = hook();
+      return mounted;
     }),
   );
   vi.stubGlobal("useDmsApp", () => runtime);
   vi.stubGlobal("useDmsRoute", () => route);
-  vi.stubGlobal("useDmsState", <T>(key: string, initial: () => T) => {
-    if (!state.has(key)) state.set(key, ref(initial()));
-    return state.get(key);
-  });
+  stubDmsState(state);
   vi.stubGlobal("useAuthFetch", () => ({ $authFetch: authFetch }));
   vi.stubGlobal("useSiteLayout", useSiteLayout);
   vi.stubGlobal("useHomepage", () => HOMEPAGE);
@@ -136,21 +145,43 @@ async function settle() {
   }
 }
 
-beforeEach(() => {
+async function respond(url: string) {
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  return url === SITE_LAYOUT_URL ? siteResponse : completionLayout;
+}
+
+async function serveModulePages(paths: string[]): Promise<void> {
+  await setupFrontendModules([
+    {
+      name: "workspace-signup",
+      options: { public: {} },
+      module: {
+        setup(sdk) {
+          for (const path of paths)
+            sdk.registerPage(path, defineComponent({ render: () => null }));
+        },
+      },
+    },
+  ]);
+}
+
+const NO_WORKSPACE_HANDOFF = {
+  kind: "no-workspace",
+  token: "assignment-token",
+  provider: "google",
+};
+
+beforeEach(async () => {
+  await setupFrontendModules([]);
   state.clear();
   mounts = 0;
 
-  authFetch.mockImplementation(async (url: string) => {
-    const site = url === SITE_LAYOUT_URL;
-    await new Promise((resolve) => setTimeout(resolve, site ? 5 : 0));
-    return site ? siteResponse : completionLayout;
-  });
+  authFetch.mockImplementation(respond);
   fetchHandoff.mockResolvedValue({ kind: "none" });
   route = reactive({ path: PATH, query: {} });
 
   navigate.mockImplementation(async (to: string | { path: string }) => {
-    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- The navigation stub accepts the router's string and object destination variants.
-    route.path = typeof to === "string" ? to : to.path;
+    route.path = isString(to) ? to : to.path;
   });
   installRuntime();
   host = document.createElement("div");
@@ -165,7 +196,14 @@ afterEach(() => {
 });
 
 it("consumes the handoff once when the identity refresh remounts the page", async () => {
+  const identityRefresh = Promise.withResolvers<void>();
+  authFetch.mockImplementation(async (url: string) => {
+    if (url === SITE_LAYOUT_URL) await identityRefresh.promise;
+    return respond(url);
+  });
   mountCompletionPage();
+  await vi.waitFor(() => expect(mounts).toBeGreaterThanOrEqual(2));
+  identityRefresh.resolve();
   await vi.waitFor(() =>
     expect(navigate).toHaveBeenCalledWith(HOMEPAGE, { replace: true }),
   );
@@ -202,4 +240,31 @@ it("completes again on a later visit, once the previous one settled", async () =
   await settle();
 
   expect(fetchHandoff).toHaveBeenCalledTimes(2);
+});
+
+it("sends an account with no workspace to the core screen, without its token, when no module serves /auth/no-workspace", async () => {
+  await serveModulePages(["auth/pricing"]);
+  fetchHandoff.mockResolvedValue(NO_WORKSPACE_HANDOFF);
+  mountCompletionPage();
+  await vi.waitFor(() => expect(navigate).toHaveBeenCalled());
+
+  expect(navigate).toHaveBeenCalledExactlyOnceWith(
+    { path: "/auth/not-a-member" },
+    { replace: true },
+  );
+});
+
+it("hands an account with no workspace to the module page, with its token, when a module serves /auth/no-workspace", async () => {
+  await serveModulePages(["auth/no-workspace"]);
+  fetchHandoff.mockResolvedValue(NO_WORKSPACE_HANDOFF);
+  mountCompletionPage();
+  await vi.waitFor(() => expect(navigate).toHaveBeenCalled());
+
+  expect(navigate).toHaveBeenCalledExactlyOnceWith(
+    {
+      path: "/auth/no-workspace",
+      query: { token: "assignment-token", provider: "google" },
+    },
+    { replace: true },
+  );
 });

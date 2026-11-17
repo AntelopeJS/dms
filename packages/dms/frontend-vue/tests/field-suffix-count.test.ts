@@ -52,7 +52,7 @@ const loaders = {
   InputText: () =>
     import("../layers/dms-ui/app/components/form/components/InputText.vue"),
   Textarea: () =>
-    import("../layers/dms-ui/app/components/form/components/Textarea.vue"),
+    import("../layers/dms-ui/app/components/form/components/InputTextarea.vue"),
   InputNumber: () =>
     import("../layers/dms-ui/app/components/form/components/InputNumber.vue"),
 };

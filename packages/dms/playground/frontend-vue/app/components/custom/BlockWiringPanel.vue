@@ -77,7 +77,7 @@ const wiringItems = computed(() => [
 </script>
 
 <template>
-  <DmsCard title="Wired custom block">
+  <DmsCardPanel title="Wired custom block">
     <div class="grid gap-4">
       <DmsKeyValueList :items="wiringItems" dense />
       <div class="flex flex-wrap gap-2">
@@ -113,5 +113,5 @@ const wiringItems = computed(() => [
         />
       </div>
     </div>
-  </DmsCard>
+  </DmsCardPanel>
 </template>

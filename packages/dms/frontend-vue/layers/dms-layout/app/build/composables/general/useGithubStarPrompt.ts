@@ -37,12 +37,16 @@ function readStorage(key: string): string | null {
   }
 }
 
-function writeStorage(key: string, value: string): void {
-  // prettier-ignore
+/**
+ * Stores `value` under `key`. Answers `false` when the storage refuses it:
+ * the prompt's state then lasts for this page only.
+ */
+function writeStorage(key: string, value: string): boolean {
   try {
     localStorage.setItem(key, value);
+    return true;
   } catch {
-    // eslint-disable-line no-empty -- Unavailable storage leaves prompt state in memory for this page only.
+    return false;
   }
 }
 

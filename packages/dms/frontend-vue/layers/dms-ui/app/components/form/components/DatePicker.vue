@@ -16,11 +16,27 @@ import {
 import { reactivePick } from "@vueuse/core";
 import { useFormField } from "@nuxt/ui/composables/useFormField";
 import { useControlError } from "../../../composables/form/useControlError";
+import { toCalendarDay } from "../../../build/utils/calendarDay";
 import {
   FIELD_TRIGGER_CLASS,
   FIELD_TRIGGER_INVALID_CLASS,
   FIELD_TRIGGER_UI,
 } from "../../../build/utils/fieldTrigger";
+
+export interface DatePickerProps<R extends boolean, M extends boolean>
+  extends Omit<CalendarProps<R, M>, "modelValue"> {
+  /** Id of the trigger, the control a field label points to. */
+  id?: string;
+  /** Earliest day that can be picked (ISO date). */
+  minDate?: string;
+  /** Latest day that can be picked (ISO date). */
+  maxDate?: string;
+  /**
+   * `error` marks the field invalid, as UFormField does for the controls it
+   * wraps; any other colour tints the calendar.
+   */
+  color?: CalendarProps<R, M>["color"] | "error";
+}
 
 interface StrictDateRange {
   start: CalendarDate | undefined;
@@ -45,21 +61,7 @@ type DateValue =
   | null
   | undefined;
 
-interface DatePickerProps extends Omit<CalendarProps<R, M>, "modelValue"> {
-  /** Id of the trigger, the control a field label points to. */
-  id?: string;
-  /** Earliest day that can be picked (ISO date). */
-  minDate?: string;
-  /** Latest day that can be picked (ISO date). */
-  maxDate?: string;
-  /**
-   * `error` marks the field invalid, as UFormField does for the controls it
-   * wraps; any other colour tints the calendar.
-   */
-  color?: CalendarProps<R, M>["color"] | "error";
-}
-
-const props = defineProps<DatePickerProps>();
+const props = defineProps<DatePickerProps<R, M>>();
 const emits = defineEmits<{
   "update:modelValue": [
     value:
@@ -150,7 +152,7 @@ const {
   ariaAttrs,
   emitFormBlur,
   emitFormChange,
-} = useFormField<DatePickerProps>(props);
+} = useFormField<DatePickerProps<R, M>>(props);
 const invalid = computed(() => fieldColor.value === "error");
 
 const RANGE_INCOMPLETE = "$dms.field_errors.range_incomplete";
@@ -164,8 +166,7 @@ function trackRangePick(value: Parameters<typeof forwardEmit>[1]): void {
     report(undefined);
     return;
   }
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The forwarded event has no validated range owner; keep optional property reads on arbitrary non-null values rather than adding validation.
-  const ends = value as Partial<StrictDateRange>;
+  const ends: { start?: unknown; end?: unknown } = value;
   if (!ends.start) return;
   isHalfPicked = !ends.end;
   if (!isHalfPicked) report(undefined);
@@ -180,8 +181,7 @@ const isPickerOpen = ref(false);
 function isPickComplete(value: Parameters<typeof forwardEmit>[1]): boolean {
   if (!value || props.multiple) return false;
   if (!props.range) return true;
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The forwarded event has no validated range owner; keep its existing optional-property truthiness checks on arbitrary values.
-  const ends = value as Partial<StrictDateRange>;
+  const ends: { start?: unknown; end?: unknown } = value;
   return !!ends.start && !!ends.end;
 }
 
@@ -228,31 +228,37 @@ const wrappedEmits = (event: EmitEvent, value: EmitValue) => {
   }
 };
 
+function forwardModelValue(value: EmitValue): void {
+  if (value === null || value === undefined || isString(value)) {
+    emits("update:modelValue", value);
+  } else if (Array.isArray(value)) {
+    const isoStrings = value.map((date) => date.toString());
+    emits("update:modelValue", isoStrings);
+  } else if (
+    isObject(value) &&
+    "year" in value &&
+    "month" in value &&
+    "day" in value
+  ) {
+    const isoString = value.toString();
+    emits("update:modelValue", isoString);
+  } else if (isObject(value) && "start" in value && "end" in value) {
+    const startIso = value.start?.toString();
+    const endIso = value.end?.toString();
+    emits("update:modelValue", { start: startIso, end: endIso });
+  }
+}
+
 function forwardEmit(event: EmitEvent, value: EmitValue): void {
-  if (event === "update:modelValue" && value) {
-    if (Array.isArray(value)) {
-      const isoStrings = value.map((date) => date.toString());
-      emits("update:modelValue", isoStrings);
-    } else if (
-      isObject(value) &&
-      "year" in value &&
-      "month" in value &&
-      "day" in value
-    ) {
-      const isoString = value.toString();
-      emits("update:modelValue", isoString);
-    } else if (isObject(value) && "start" in value && "end" in value) {
-      const startIso = value.start?.toString();
-      const endIso = value.end?.toString();
-      emits("update:modelValue", { start: startIso, end: endIso });
-    } else {
-      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The declared model emit excludes this unchecked passthrough branch's arbitrary values; inference and the emit owner cannot establish a valid string here.
-      emits("update:modelValue", value as string | null | undefined);
-    }
-  } else {
-    // SAFETY: Vue emit forwards event names and payloads at runtime, including the placeholder and start-value events not serialized above.
-    const forwardEvent = emits as (event: string, ...args: unknown[]) => void;
-    forwardEvent(event, value);
+  if (event === "update:modelValue") {
+    forwardModelValue(value);
+    return;
+  }
+  const day = toCalendarDay(value);
+  if (event === "update:placeholder" && day) {
+    emits("update:placeholder", day);
+  } else if (event === "update:startValue" && (day || value === undefined)) {
+    emits("update:startValue", day);
   }
 }
 

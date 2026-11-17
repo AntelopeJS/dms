@@ -1,13 +1,14 @@
-import { type ControllerClass } from "@antelopejs/interface-api";
+import type { DecoratorTarget } from "@antelopejs/interface-core/decorators";
 import {
   type Component,
   type ComponentInfo,
   type ComponentInfoSerialized,
 } from "../component";
-import type { SlotOptions } from "../component-slots";
 import { type TenantGuardOptions } from "../guards";
 import type { NativeUploadFieldRegistration } from "../internal/uploads";
 import type { ComponentTreeNode } from "./component-tree";
+import type { UploadFieldNode } from "./internal/metadata-uploads";
+import { registerNativeUploadField } from "./internal/metadata-upload-registration";
 import type { PageExtensionEntry } from "./internal/extension-assembly";
 import type { ComponentNodeMap } from "./layout-filter";
 import {
@@ -18,15 +19,16 @@ import {
   type PageLayout,
   type PageLayoutRequest,
 } from "./types";
-import type { UploadFieldNode } from "./internal/metadata-uploads";
-import { SignUploadToken } from "../uploads";
-// oxlint-disable-next-line import/no-cycle -- Category proxies are read after evaluation.
 import * as metadata from "./internal/metadata-lifecycle";
+import { installPageMetadata } from "./internal/category-resolution";
+import { pageController } from "./internal/page-controller";
+import { isObject } from "../utils/internal/type-check";
 
 export class PageMetadata {
   public static key = Symbol();
 
   static {
+    installPageMetadata(PageMetadata);
     metadata.installMetadataOwner((page) => ({
       get registration() {
         return page.registration;
@@ -162,7 +164,7 @@ export class PageMetadata {
   private skipComponentPermissions = false;
   private moduleScoped = false;
 
-  constructor(public readonly target: ControllerClass) {}
+  constructor(public readonly target: DecoratorTarget) {}
 
   inherit(parent: PageMetadata) {
     metadata.inherit(this, parent);
@@ -338,7 +340,7 @@ export class PageMetadata {
 
   private registerLayoutRoute(pageInfo: PageInfo) {
     metadata.registerLayoutRoute(
-      () => this.target,
+      () => pageController(this.target),
       pageInfo,
       () => this.registration,
       (request) => this.resolvePageLayout(request),
@@ -456,13 +458,13 @@ export class PageMetadata {
   }
 
   private async bindUploadOptions(
-    value: SlotOptions[string],
+    // oxlint-disable-next-line anti-slop/no-unknown-parameters -- Walks the serialized options of a page's component at registration, at any depth its declaration has, and registers every native upload field among them.
+    value: unknown,
     name: string,
     id: string,
     path: string[],
   ) {
-    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Serialized options may be primitives; recurse only through objects.
-    if (!value || typeof value !== "object") return;
+    if (!value || !isObject(value)) return;
     if (metadata.isNativeUploadField(value)) {
       await this.registerNativeUploadField(value, name, id, path);
     }
@@ -477,16 +479,7 @@ export class PageMetadata {
     id: string,
     path: string[],
   ) {
-    const phase = metadata.prepareUploadRegistration(
-      this,
-      node,
-      name,
-      id,
-      path,
-    );
-    if (!phase) return;
-    phase.options.uploadToken = await SignUploadToken(phase.registration);
-    metadata.finishUploadRegistration(this, phase);
+    await registerNativeUploadField(this, node, name, id, path);
   }
 
   private registerComponentNode(node: ComponentTreeNode) {

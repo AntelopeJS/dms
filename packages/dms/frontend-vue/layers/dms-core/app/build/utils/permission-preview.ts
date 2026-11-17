@@ -18,13 +18,13 @@ export interface PermissionPreviewResult {
   /**
    * Menu entries (`fullId`) the role opens without all the viewer has there:
    * a page losing a block or an action, a group holding a refused or partial
-   * entry. Absent from servers predating partial access.
+   * entry.
    */
-  partialEntries?: string[];
+  partialEntries: string[];
   /** Header actions of the page (ids) the viewer is shown and the role would not be. */
-  hiddenHeaderActions?: string[];
+  hiddenHeaderActions: string[];
   /** Quick actions (`category:id`) the viewer is served and the role would not be. */
-  hiddenQuickActions?: string[];
+  hiddenQuickActions: string[];
   /** Role permissions outside the viewer's own access, left out of the preview. */
   outOfScope: number;
 }
@@ -183,12 +183,11 @@ export function quickActionKey(action: {
 
 /**
  * What `applyPreviewLocks` reads from a menu entry. Children are walked as
- * entries of the same kind (Nuxt UI types them as child items, which carry the
- * same `fullId` at runtime).
+ * entries of the same kind, `Child`.
  */
-export interface PreviewLockableEntry {
+export interface PreviewLockableEntry<Child = object> {
   fullId?: string;
-  children?: readonly object[];
+  children?: readonly Child[];
 }
 
 /**
@@ -196,7 +195,7 @@ export interface PreviewLockableEntry {
  * pass each entry the preview locks to `lock`. Labels, collapsed groups and
  * nested entries are all visited; an entry without a `fullId` is left as is.
  */
-export function applyPreviewLocks<T extends PreviewLockableEntry>(
+export function applyPreviewLocks<T extends PreviewLockableEntry<T>>(
   items: readonly T[],
   isLocked: (fullId: string | undefined) => boolean,
   lock: (item: T) => T,
@@ -212,19 +211,14 @@ export function applyPreviewLocks<T extends PreviewLockableEntry>(
  * Walk a menu like `applyPreviewLocks`, passing each entry with a preview
  * state (refused or partial) to `decorate` along with that state.
  */
-export function applyPreviewEntryStates<T extends PreviewLockableEntry>(
+export function applyPreviewEntryStates<T extends PreviewLockableEntry<T>>(
   items: readonly T[],
   stateOf: (fullId: string | undefined) => PreviewEntryState | null,
   decorate: (item: T, state: PreviewEntryState) => T,
 ): T[] {
   return items.map((item) => {
     const children = item.children
-      ? applyPreviewEntryStates(
-          // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The existing recursive API assumes children share T, but its public object[] contract does not prove this. Strengthening that contract would be a separate breaking change.
-          item.children as readonly T[],
-          stateOf,
-          decorate,
-        )
+      ? applyPreviewEntryStates(item.children, stateOf, decorate)
       : undefined;
     const visited = children ? { ...item, children } : item;
     const state = stateOf(item.fullId);

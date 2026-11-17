@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import type { JsonValue } from "../layers/dms-core/app/types/json";
 import {
   collectPreviewIssues,
   decodePreviewState,
@@ -15,10 +16,13 @@ import {
 
 const BLOCK_TYPES: PreviewBlockTypes = {
   KpiCard: { componentName: "dms-kpi-card" },
-  ChartLine: { componentName: "dms-chart", fixedOptions: { type: "line" } },
+  ChartLine: {
+    componentName: "dms-chart-block",
+    fixedOptions: { type: "line" },
+  },
   Card: { componentName: "dms-card-block" },
   TableView: { componentName: "dms-table-view", needsController: true },
-  ResourceForm: { componentName: "dms-form", needsController: true },
+  ResourceForm: { componentName: "dms-form-block", needsController: true },
 };
 
 describe("preview state parameter", () => {
@@ -42,7 +46,7 @@ describe("preview state parameter", () => {
   });
 
   it("refuses garbage, a missing tree and an unknown theme", () => {
-    const encode = <Value>(value: Value) =>
+    const encode = (value: JsonValue) =>
       Buffer.from(JSON.stringify(value)).toString("base64url");
     expect(decodePreviewState("%%%")).toBeUndefined();
     expect(decodePreviewState(encode({ theme: "dark" }))).toBeUndefined();
@@ -68,7 +72,7 @@ describe("preview allowlist", () => {
     );
     expect(node).toMatchObject({
       id: "block-0",
-      componentName: "dms-chart",
+      componentName: "dms-chart-block",
       options: { title: "Sales", type: "line" },
     });
     expect(node.issue).toBeUndefined();
@@ -119,20 +123,34 @@ describe("preview allowlist", () => {
 });
 
 describe("route-sourced blocks", () => {
-  it("renders a serialized resource form only against the read-only demo record", () => {
+  it("renders a serialized resource form that reads any path of the site", () => {
     const options = {
       fields: [{ id: "name", component: { componentName: "dms-input-text" } }],
-      fetchUrl: "/api/block-preview/fixtures/workspace",
+      fetchUrl: "/docs-fixtures/projects/get?id=project-04",
     };
     const [node] = resolvePreviewTree(
       { type: "ResourceForm", options },
       BLOCK_TYPES,
     );
     expect(node.issue).toBeUndefined();
-    expect(node.componentName).toBe("dms-form");
+    expect(node.componentName).toBe("dms-form-block");
     expect(node.options).toEqual(options);
+    expect(
+      resolvePreviewTree(
+        {
+          type: "ResourceForm",
+          options: { ...options, fetchUrl: "https://evil.example/record" },
+        },
+        BLOCK_TYPES,
+      )[0].issue,
+    ).toEqual({
+      key: "unsafe_url",
+      name: "ResourceForm",
+      value: "https://evil.example/record",
+    });
     for (const changed of [
-      { ...options, fetchUrl: "/api/private/workspace" },
+      { ...options, fetchUrl: undefined },
+      { ...options, fetchUrl: 123 },
       { ...options, submitUrl: "/api/private/workspace" },
       { ...options, fields: undefined },
     ]) {

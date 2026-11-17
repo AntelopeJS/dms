@@ -9,7 +9,7 @@ import {
   UpdateTime,
 } from "@antelopejs/interface-database-decorators";
 import { CORE_SCHEMA_NAME } from "../../../constants";
-import type { DefaultDataTypes } from "../../../base/data-types/default-types";
+import type { ImageValue } from "../../../types";
 
 export const USERS_TABLE_NAME = "users";
 
@@ -49,7 +49,7 @@ export class User extends Table.with(HashModifier) {
    * downscaled client-side to a square of at most 100x100 pixels.
    */
   @Field("any")
-  declare avatar: DefaultDataTypes.ImageValue | null;
+  declare avatar: ImageValue | null;
 
   /**
    * User's preferred language/locale (e.g., 'en', 'fr')

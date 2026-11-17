@@ -5,7 +5,7 @@
  * The menu badge of a `navBadge` tab stays the page's global count.
  */
 import { describe, expect, it } from "vitest";
-import type { TableFilter } from "../layers/dms-ui/app/entries/components/table/Table";
+import type { TableFilter } from "../layers/dms-ui/app/entries/components/table/TableRoot";
 import {
   buildTableCountQueries,
   isCountNarrowed,

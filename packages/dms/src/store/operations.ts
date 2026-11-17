@@ -26,6 +26,8 @@ import {
   isLive,
   listRuntimeModules,
   loadStoreModule,
+  packageRuntimeId,
+  type StoreModuleLoad,
   unloadStoreModule,
 } from "./runtime";
 import type {
@@ -96,17 +98,17 @@ function setStep(step: StoreOperationStep): void {
   if (current) current.step = step;
 }
 
-function describeError(error: PromiseRejectedResult["reason"]): string {
-  if (error instanceof AggregateError && error.errors.length > 0) {
-    return error.errors.map(describeError).join("; ");
+function describeError(cause: unknown): string {
+  if (cause instanceof AggregateError && cause.errors.length > 0) {
+    return cause.errors.map(describeError).join("; ");
   }
-  return error instanceof Error ? error.message : String(error);
+  return cause instanceof Error ? cause.message : String(cause);
 }
 
 async function load(
   context: OperationContext,
   range: string,
-  config?: StoreDeclaration["config"],
+  config?: StoreModuleLoad["config"],
 ): Promise<void> {
   setStep("load");
   await loadStoreModule(context.key, {
@@ -145,7 +147,11 @@ async function resolveTargetRelease(
 ): Promise<PackageRelease> {
   setStep("resolve");
   const { package: packageName } = context.catalogEntry;
-  const release = await latestRelease(packageName, context.projectPath, true);
+  const release = await latestRelease(
+    packageName,
+    context.projectPath,
+    "fresh",
+  );
   if (!release) {
     throw new Error(
       `The npm registry has no release of ${packageName} this platform can read`,
@@ -324,7 +330,7 @@ async function execute(
     const message = describeError(error);
     Logging.Error(`[DMS] Module store: ${kind} ${context.id} failed`, error);
     errors.set(context.id, message);
-    await rollback(context).catch((rollbackError) =>
+    await rollback(context).catch((rollbackError: unknown) =>
       Logging.Error(
         `[DMS] Module store: rolling back ${context.id} failed`,
         rollbackError,
@@ -351,6 +357,7 @@ async function prepareContext(
     "error.store_invalid_state",
   );
 
+  let key = declaration?.key ?? catalogEntry.package;
   if (!declaration) {
     const runtime = await listRuntimeModules();
     assert(
@@ -358,12 +365,13 @@ async function prepareContext(
       HTTP_CONFLICT,
       "error.store_working_copy",
     );
+    key = packageRuntimeId(catalogEntry.package, runtime.values());
   }
   const context: OperationContext = {
     id,
     catalogEntry,
     projectPath,
-    key: declaration?.key ?? catalogEntry.package,
+    key,
     declaration,
     written: false,
     dependencies: options.dependencies ?? [],
@@ -400,7 +408,7 @@ export async function startStoreOperation(
       execute(kind, context).finally(() => {
         setCurrent(undefined);
       }),
-    ).catch((error) =>
+    ).catch((error: unknown) =>
       Logging.Error(`[DMS] Module store: ${kind} ${id} failed`, error),
     );
   } catch (error) {

@@ -111,7 +111,7 @@ export interface SpacerOptions {
 
 const H_STACK_COMPONENT_NAME = "dms-h-stack";
 const V_STACK_COMPONENT_NAME = "dms-v-stack";
-const SPACER_COMPONENT_NAME = "dms-spacer";
+const SPACER_COMPONENT_NAME = "dms-stack-spacer";
 
 const STACK_DEFAULTS = {
   alignment: "center",
@@ -228,6 +228,8 @@ export const SpacerSchema = z.object({
  *   .child('item1', someComponent)
  *   .child('item2', anotherComponent)
  * ```
+ *
+ * @docsApi
  */
 export function HStack(
   options?: HStackOptions,
@@ -260,6 +262,8 @@ export function HStack(
  *   .child('item1', someComponent)
  *   .child('item2', anotherComponent)
  * ```
+ *
+ * @docsApi
  */
 export function VStack(
   options?: VStackOptions,
@@ -295,6 +299,8 @@ export function VStack(
  *   .child('spacer', Spacer({ maxSize: '50px' }))
  *   .child('bottom', Text('Bottom'))
  * ```
+ *
+ * @docsApi
  */
 export function Spacer(
   options?: SpacerOptions,

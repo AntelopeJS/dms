@@ -4,8 +4,10 @@
 @import "@nuxt/ui";
 @plugin "@tailwindcss/typography";
 @source "../../app.config.ts";
+@source "../../theme";
 
 @import "./foundation.css";
+@import "./status.css";
 
 /* Defaults beat framework tokens, but not unlayered consumer declarations,
    regardless of stylesheet order. */
@@ -113,13 +115,22 @@
       0 1px 2px rgb(11 17 20 / 0.06), 0 30px 80px rgb(11 17 20 / 0.18);
     --dms-halo-accent: 0 0 0 6px
       color-mix(in srgb, var(--ui-color-primary-600) 12%, transparent);
-    /* Assistant mode swaps the accent halo for a violet (secondary) one,
-       and tints its surfaces and lines with the same violet. Plain rgb():
+    /* Assistant mode swaps the accent halo for a secondary one, and tints
+       its surfaces and lines with the same secondary. Mixed in srgb:
        Chromium fringes the anti-aliased edge of an oklab colour-mix border
        with its complementary yellow. */
-    --dms-assistant-halo: 0 0 0 6px rgb(124 58 237 / 0.1);
-    --dms-assistant-tint: rgb(124 58 237 / 0.08);
-    --dms-assistant-line: rgb(124 58 237 / 0.3);
+    --dms-assistant-halo: 0 0 0 6px
+      color-mix(in srgb, var(--ui-color-secondary-600) 10%, transparent);
+    --dms-assistant-tint: color-mix(
+      in srgb,
+      var(--ui-color-secondary-600) 8%,
+      transparent
+    );
+    --dms-assistant-line: color-mix(
+      in srgb,
+      var(--ui-color-secondary-600) 30%,
+      transparent
+    );
     /* Base surfaces (v2 --shadow-card/-pop/-modal, --overlay, --glow-accent):
      cards, floating panels (menus, popovers, toasts), modals and drawers,
      their backdrop, and the ring of a selected card. */
@@ -154,7 +165,6 @@
       var(--ui-color-primary-600) 35%,
       transparent
     );
-    --dms-error-tint: rgb(220 38 38 / 0.08);
     --dms-border-top: #c9d1d7;
     --dms-field-border-hover: color-mix(
       in srgb,
@@ -177,13 +187,6 @@
     --dms-sparkline: var(--ui-color-primary-600);
     --dms-skeleton: #e9edf0;
     --dms-neutral-tint: #eef1f3;
-    --dms-success-tint: rgb(22 163 74 / 0.1);
-    --dms-success-line: rgb(22 163 74 / 0.3);
-    --dms-warning-tint: rgb(245 158 11 / 0.13);
-    --dms-warning-line: rgb(217 119 6 / 0.35);
-    --dms-error-line: rgb(220 38 38 / 0.3);
-    --dms-info-tint: rgb(27 162 175 / 0.09);
-    --dms-info-line: rgb(27 162 175 / 0.3);
 
     /* Motion (design --ease-* / --dur-*) */
     --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
@@ -254,9 +257,18 @@
       0 50px 140px rgb(0 0 0 / 0.7), inset 0 1px 0 rgb(255 255 255 / 0.04);
     --dms-halo-accent: 0 0 0 8px
       color-mix(in srgb, var(--ui-color-primary-400) 7%, transparent);
-    --dms-assistant-halo: 0 0 0 8px rgb(167 139 250 / 0.09);
-    --dms-assistant-tint: rgb(167 139 250 / 0.12);
-    --dms-assistant-line: rgb(167 139 250 / 0.4);
+    --dms-assistant-halo: 0 0 0 8px
+      color-mix(in srgb, var(--ui-color-secondary-400) 9%, transparent);
+    --dms-assistant-tint: color-mix(
+      in srgb,
+      var(--ui-color-secondary-400) 12%,
+      transparent
+    );
+    --dms-assistant-line: color-mix(
+      in srgb,
+      var(--ui-color-secondary-400) 40%,
+      transparent
+    );
     --dms-shadow-card: inset 0 1px 0 rgb(255 255 255 / 0.03);
     --dms-shadow-pop: 0 16px 40px rgb(0 0 0 / 0.55), 0 0 0 1px rgb(0 0 0 / 0.2);
     --dms-shadow-modal:
@@ -282,7 +294,6 @@
       var(--ui-color-primary-400) 35%,
       transparent
     );
-    --dms-error-tint: rgb(248 113 113 / 0.13);
     --dms-border-top: #3a4550;
     --dms-field-border-hover: color-mix(
       in srgb,
@@ -300,13 +311,6 @@
     --dms-sparkline: var(--ui-color-primary-400);
     --dms-skeleton: #1a2128;
     --dms-neutral-tint: #1a2127;
-    --dms-success-tint: rgb(74 222 128 / 0.12);
-    --dms-success-line: rgb(74 222 128 / 0.4);
-    --dms-warning-tint: rgb(251 191 36 / 0.12);
-    --dms-warning-line: rgb(251 191 36 / 0.4);
-    --dms-error-line: rgb(248 113 113 / 0.4);
-    --dms-info-tint: rgb(77 217 230 / 0.1);
-    --dms-info-line: rgb(77 217 230 / 0.35);
   }
 }
 
@@ -332,10 +336,6 @@
       var(--ui-color-primary-600) 60%,
       transparent
     );
-    --dms-success-line: rgb(22 163 74 / 0.55);
-    --dms-warning-line: rgb(217 119 6 / 0.6);
-    --dms-error-line: rgb(220 38 38 / 0.55);
-    --dms-info-line: rgb(27 162 175 / 0.55);
   }
 
   :root.dms-increase-contrast.dark,
@@ -354,10 +354,6 @@
       var(--ui-color-primary-400) 60%,
       transparent
     );
-    --dms-success-line: rgb(74 222 128 / 0.6);
-    --dms-warning-line: rgb(251 191 36 / 0.6);
-    --dms-error-line: rgb(248 113 113 / 0.6);
-    --dms-info-line: rgb(77 217 230 / 0.6);
   }
 
   /* Reduce motion: animations and transitions run in ~0ms (not `none`, so

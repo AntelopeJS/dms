@@ -13,7 +13,7 @@ import {
 } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import TableFiltersRow from "../layers/dms-ui/app/entries/components/table/FiltersRow";
-import type { TableUrlFilter } from "../layers/dms-ui/app/entries/components/table/Table";
+import type { TableUrlFilter } from "../layers/dms-ui/app/entries/components/table/TableRoot";
 import { isString } from "../layers/dms-core/app/utils/type-check";
 import {
   visibleUrlFilters,

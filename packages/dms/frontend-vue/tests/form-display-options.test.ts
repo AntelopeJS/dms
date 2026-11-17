@@ -1,7 +1,7 @@
 /** @vitest-environment jsdom */
 import { computed, createApp, h, useAttrs } from "vue";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import Display from "../layers/dms-ui/app/components/form/components/Display.vue";
+import Display from "../layers/dms-ui/app/components/form/components/DisplayValue.vue";
 import type { DataTypeFormatter } from "../layers/dms-core/app/composables/data-types/useDataType";
 
 interface StatusOptions {

@@ -1,4 +1,5 @@
 import type { ComponentEventData } from "../types/component";
+import type { ApiErrorPresenter } from "./useApiErrorPresenter";
 
 interface EventedActionOptions {
   componentId?: string;
@@ -12,8 +13,9 @@ interface EventedActionOptions {
 interface ExecuteOptions<TResult> {
   startPayload?: ComponentEventData["data"];
   successPayload?: (result: TResult) => ComponentEventData["data"];
-  // oxlint-disable-next-line anti-slop/no-unknown-parameters -- JavaScript actions may reject with any value; neither Promise<TResult> nor the component-event owner provides a narrower rejection type.
-  errorPayload?: (error: unknown) => ComponentEventData["data"];
+  errorPayload?: (
+    error: Parameters<ApiErrorPresenter["resolveError"]>[0],
+  ) => ComponentEventData["data"];
 }
 
 export function useEventedAction<TResult = unknown>(

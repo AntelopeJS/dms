@@ -3,18 +3,19 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createApp, defineComponent, h, nextTick, type App } from "vue";
 import uiEn from "../layers/dms-ui/app/entries/i18n/locales/ui-en-GB.json";
 import uiFr from "../layers/dms-ui/app/entries/i18n/locales/ui-fr-FR.json";
+import { isObject, isString } from "../layers/dms-core/app/utils/type-check";
 import { providePageHeaderActions } from "../layers/dms-ui/app/composables/layout/usePageHeaderActions";
 
-type Messages = typeof uiEn | typeof uiFr;
+interface MessageTree {
+  readonly [part: string]: string | MessageTree;
+}
 
-const translator = (messages: Messages) => (key: string) =>
-  String(
-    key.split(".").reduce<unknown>(
-      // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type, anti-slop/require-safety-comment-for-type-assertion -- A dotted translation path walks nested JSON nodes before reaching a string. Inference and the concrete locale owners cannot index arbitrary path segments; this preserves the existing optional lookup without prevalidating it.
-      (node, part) => (node as Record<string, unknown> | undefined)?.[part],
-      messages,
-    ) ?? key,
-  );
+const translator = (messages: MessageTree) => (key: string) => {
+  let node: string | MessageTree | undefined = messages;
+  for (const part of key.split("."))
+    node = isObject(node) && Object.hasOwn(node, part) ? node[part] : undefined;
+  return isString(node) ? node : key;
+};
 
 const IconStub = defineComponent({
   props: { name: String },
@@ -73,12 +74,12 @@ describe("DmsInstantSaveBadge", () => {
     const { default: InstantSaveBadge } = await import(
       "../layers/dms-ui/app/components/save-bar/InstantSaveBadge.vue"
     );
-    const icons = {
-      idle: "i-ph-lightning",
-      saving: "i-ph-circle-notch",
-      saved: "i-ph-check",
-    };
-    for (const [state, icon] of Object.entries(icons)) {
+    const icons = [
+      ["idle", "i-ph-lightning"],
+      ["saving", "i-ph-circle-notch"],
+      ["saved", "i-ph-check"],
+    ] as const;
+    for (const [state, icon] of icons) {
       await mount({ render: () => h(InstantSaveBadge, { state }) });
       expect(badge()?.querySelector("i")?.dataset.icon).toBe(icon);
       app?.unmount();
@@ -112,7 +113,7 @@ describe("useInstantSaveHeader", () => {
       setup() {
         actions = providePageHeaderActions();
         return () =>
-          h("div", [h("header", actions?.actions.value?.()), h(Page)]);
+          h("div", [h("header", [actions?.actions.value?.()]), h(Page)]);
       },
     });
     await mount(Layout);

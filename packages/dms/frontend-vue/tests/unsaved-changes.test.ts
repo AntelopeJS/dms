@@ -1,3 +1,4 @@
+/** @vitest-environment jsdom */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { nextTick, ref } from "vue";
 import {
@@ -145,9 +146,8 @@ describe("leave guard", () => {
 
   it("only asks for the forms of the scope left", async () => {
     const prompt = vi.fn(async () => true);
-    const panel = { contains: (element: Node | null) => element === inside };
-    // SAFETY: The guard uses this sentinel solely for identity comparison in contains.
-    const inside = {} as Element;
+    const panel = document.createElement("section");
+    const inside = panel.appendChild(document.createElement("form"));
     registerUnsavedChanges(
       { isDirty: () => true, containerId: "modal-1" },
       prompt,
@@ -158,8 +158,7 @@ describe("leave guard", () => {
     );
     expect(await confirmLeave({ containerId: "modal-2" })).toBe(true);
     expect(prompt).not.toHaveBeenCalled();
-    // SAFETY: confirmLeave only calls contains on within; the stub supplies that exact operation.
-    expect(await confirmLeave({ within: panel as Element })).toBe(true);
+    expect(await confirmLeave({ within: panel })).toBe(true);
     expect(prompt).toHaveBeenCalledTimes(1);
 
     expect(hasUnsavedChanges({ containerId: "modal-1" })).toBe(true);

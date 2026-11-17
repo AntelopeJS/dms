@@ -2,6 +2,7 @@ import type { VNodeChild } from "vue";
 import type {
   ConfirmDialog,
   ConfirmDialogColor,
+  ConfirmDialogField,
   ConfirmDialogImpact,
 } from "#dms-core/app/types/confirm-dialog";
 
@@ -17,8 +18,10 @@ export type ConfirmBodyRender = () => VNodeChild;
 export type ConfirmImpact = ConfirmDialogImpact;
 
 /** The values the dialog's fields hold when the user confirms. */
-// oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Dialog fields are extensible plugin controls whose values are not restricted to JSON.
-export type ConfirmValues = Record<string, unknown>;
+export type ConfirmValues = Record<
+  ConfirmDialogField["id"],
+  ConfirmDialogField["defaultValue"]
+>;
 
 /**
  * A confirmation dialog as `useConfirm()` opens it: a {@link ConfirmDialog}
@@ -58,7 +61,7 @@ export interface ConfirmOptions
    * dismissal, and resolves `true` only once it succeeds; a rejection is
    * shown inline and the modal stays open (a {@link ConfirmTextError} under
    * the typed field), its confirm button ready for a retry. The alert words
-   * the error for users (see `resolveActionError`): the server's message when
+   * the error for users (see `useApiErrorPresenter`): the server's message when
    * it is user-facing, else a translated fallback. Resolving `false` also
    * keeps it open, for a handler that already reported the problem itself
    * (toast); resolving a {@link ConfirmPartialOutcome} keeps it open to say
@@ -115,15 +118,15 @@ export interface ConfirmPartialOutcome {
 }
 
 /**
- * Thrown by `onConfirm` with a message already worded for users (a title and
- * its reason): the modal shows both in its error alert, as they are.
+ * Thrown by `onConfirm` with a fallback translation key and optional params.
+ * A translated server reason retained in `cause` takes precedence.
  */
 export class ConfirmActionError extends Error {
-  readonly description?: string;
+  readonly params?: ApiErrorParams;
 
-  constructor(notice: ConfirmNotice) {
-    super(notice.title);
-    this.description = notice.description;
+  constructor(options: ResolveApiErrorOptions, cause?: ErrorOptions) {
+    super(options.fallbackKey, cause);
+    this.params = options.params;
   }
 }
 

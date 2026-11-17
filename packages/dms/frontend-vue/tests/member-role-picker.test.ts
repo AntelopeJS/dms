@@ -68,7 +68,7 @@ async function mountPicker(props: NonNullable<VNode["props"]> = {}) {
           id: "roleIds",
           rolesUrl: ROLES_URL,
           modelValue: model.value,
-          "onUpdate:modelValue": (value: string[]) => {
+          "onUpdate:modelValue": (value) => {
             model.value = value;
           },
           ...props,

@@ -20,12 +20,8 @@ const MS_PER_MINUTE = 60 * 1000;
 /** Attempts older than this are pruned; they no longer weigh in any window. */
 export const ATTEMPT_RETENTION_MS = 24 * 60 * MS_PER_MINUTE;
 
-function logFailure(
-  what: string,
-  userId: string,
-  error: PromiseRejectedResult["reason"],
-): void {
-  Logging.Error(`[DMS] Could not ${what} for "${userId}": ${String(error)}`);
+function logFailure(what: string, userId: string, reason: string): void {
+  Logging.Error(`[DMS] Could not ${what} for "${userId}": ${reason}`);
 }
 
 async function openSessionFingerprints(userId: string): Promise<string[]> {
@@ -76,7 +72,7 @@ export async function recordSignIn(
     if (kind === "new")
       fireAndForget(notifyNewLogin(user, device), "new sign-in notification");
   } catch (error) {
-    logFailure("record the sign-in device", user._id, error);
+    logFailure("record the sign-in device", user._id, String(error));
   }
 }
 
@@ -97,7 +93,7 @@ export async function rememberSignInDevice(
       new Date(),
     );
   } catch (error) {
-    logFailure("remember the sign-up device", userId, error);
+    logFailure("remember the sign-up device", userId, String(error));
   }
 }
 
@@ -135,7 +131,7 @@ export async function recordFailedPassword(user: User): Promise<void> {
     );
     await alertOnBurst(user, now);
   } catch (error) {
-    logFailure("record the failed sign-in", user._id, error);
+    logFailure("record the failed sign-in", user._id, String(error));
   }
 }
 
@@ -144,6 +140,6 @@ export async function clearFailedPasswords(userId: string): Promise<void> {
   try {
     await GetModel(SignInAttemptsModel).clearFailures(userId);
   } catch (error) {
-    logFailure("clear the failed sign-ins", userId, error);
+    logFailure("clear the failed sign-ins", userId, String(error));
   }
 }

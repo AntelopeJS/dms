@@ -1,3 +1,4 @@
+import { ownValue } from "./own-value";
 import type {
   DeviceType,
   ParsedUserAgent,
@@ -9,11 +10,10 @@ export type {
   ParsedUserAgent,
 } from "@antelopejs/interface-dms/auth/internal/user-agent";
 
-// oxlint-disable-next-line anti-slop/no-known-value-widening -- UAParser device names are open-ended; unknown names intentionally use the existing desktop fallback.
-const DEVICE_TYPES: Record<string, DeviceType> = {
+const DEVICE_TYPES = {
   mobile: "mobile",
   tablet: "tablet",
-};
+} satisfies Record<string, DeviceType>;
 
 export function parseUserAgent(userAgent: string): ParsedUserAgent {
   const parsed = new UAParser(userAgent);
@@ -26,6 +26,6 @@ export function parseUserAgent(userAgent: string): ParsedUserAgent {
     browserVersion: browser.version ?? "",
     osName: os.name ?? "",
     osVersion: os.version ?? "",
-    deviceType: DEVICE_TYPES[device.type ?? ""] ?? "desktop",
+    deviceType: ownValue(DEVICE_TYPES, device.type ?? "") ?? "desktop",
   };
 }

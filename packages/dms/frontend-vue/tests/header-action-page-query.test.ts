@@ -16,6 +16,7 @@ import {
   reactive,
   ref,
   type App,
+  type Component,
   type FunctionalComponent,
   type VNode,
 } from "vue";
@@ -33,8 +34,13 @@ import {
 } from "../layers/dms-ui/app/composables/layout/usePageHeaderActions";
 import { refreshPageBlocks } from "../layers/dms-ui/app/utils/blockRefresh";
 import { stubMiscActions } from "./helpers/misc-runtime";
+import type PageHeaderActionsOutlet from "../layers/dms-layout/app/entries/components/layout/PageHeaderActionsOutlet";
 import type { LocationQuery } from "#dms/frontend-module";
 import type { NamedValue } from "vue-i18n";
+
+type LayoutHeaderAction = InstanceType<
+  typeof PageHeaderActionsOutlet
+>["$props"]["actions"][number];
 
 const LAYOUT_URL = "/modules/lang/queue/pagelayout";
 const route = reactive<{ path: string; query: LocationQuery }>({
@@ -56,7 +62,9 @@ const ButtonStub = defineComponent({
       {
         disabled: props.disabled,
         "data-to": props.to,
-        onClick: () => props.onClick?.(),
+        onClick: () => {
+          props.onClick?.();
+        },
       },
       props.label,
     ),
@@ -72,11 +80,11 @@ beforeEach(() => {
   authFetch.mockReset();
   rawFetch.mockClear();
   downloads.length = 0;
-  vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(
-    function () {
-      downloads.push(this.download);
-    },
-  );
+  vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(function (
+    this: HTMLAnchorElement,
+  ) {
+    downloads.push(this.download);
+  });
   vi.stubGlobal(
     "URL",
     class extends URL {
@@ -134,7 +142,8 @@ async function mount(
   path: keyof typeof loaders,
   props: NonNullable<VNode["props"]>,
 ) {
-  const { default: component } = await loaders[path]();
+  const { default: loaded } = await loaders[path]();
+  const component: Component = loaded;
   app = createApp({ render: () => h(component, props) });
   app.component("UButton", ButtonStub);
   app.component("UTooltip", SlotStub);
@@ -329,24 +338,43 @@ describe("a header button's label", () => {
   });
 });
 
+const download = (disabled: boolean) => ({
+  id: "download",
+  label: "Download",
+  target: { type: "page", url: "/download" },
+  disabled,
+});
+
+const mountOutlet = (servedQuery?: Record<string, string>) =>
+  mount(
+    "../layers/dms-layout/app/build/components/layout/PageHeaderActionsOutlet.vue",
+    { actions: [download(false)], servedQuery },
+  );
+
 describe("a header button's availability", () => {
-  const download = (disabled: boolean) => ({
-    id: "download",
-    label: "Download",
-    target: { type: "page", url: "/download" },
-    disabled,
-  });
-
-  const mountOutlet = (servedQuery?: Record<string, string>) =>
-    mount(
-      "../layers/dms-layout/app/build/components/layout/PageHeaderActionsOutlet.vue",
-      { actions: [download(false)], servedQuery },
-    );
-
   it("is not asked again while the query is the one it was served for", async () => {
     await mountOutlet({ workspace: "web" });
     expect(authFetch).not.toHaveBeenCalled();
     expect(buttons()[0]?.disabled).toBe(false);
+  });
+
+  it("keeps the last buttons and shows the failure when asking again fails", async () => {
+    const toast = { add: vi.fn(() => ({ id: "failure" })), remove: vi.fn() };
+    vi.stubGlobal("useToast", () => toast);
+    authFetch.mockRejectedValue(new Error("layout unavailable"));
+    await mountOutlet({ workspace: "web" });
+
+    route.query = { workspace: "gone" };
+    await nextTick();
+    await new Promise((resolve) => setTimeout(resolve));
+
+    expect(authFetch).toHaveBeenCalledWith(`${LAYOUT_URL}?workspace=gone`);
+    expect(labels()).toEqual(["Download"]);
+    expect(buttons()[0]?.disabled).toBe(false);
+    expect(toast.add).toHaveBeenCalledTimes(1);
+    expect(toast.add).toHaveBeenCalledWith(
+      expect.objectContaining({ title: "error.500.description" }),
+    );
   });
 
   it("is asked again for the page's query when it changes", async () => {
@@ -393,7 +421,9 @@ describe("a header button's availability", () => {
     await nextTick();
     expect(labels()).toEqual(["Download", "Add key"]);
   });
+});
 
+describe("a header button's availability on a record and after a write", () => {
   it("is asked again on the record of the page's route parameters", async () => {
     const pattern = "/projects/project/:id";
     vi.stubGlobal("useSiteLayout", () => ({
@@ -455,7 +485,7 @@ describe("a header button's availability", () => {
 });
 
 describe("the order of the header's buttons", () => {
-  const served = (id: string, order?: number) => ({
+  const served = (id: string, order?: number): LayoutHeaderAction => ({
     id,
     label: id,
     target: { type: "page", url: `/${id}` },
@@ -463,7 +493,7 @@ describe("the order of the header's buttons", () => {
   });
 
   async function mountPage(
-    actions: unknown[],
+    actions: LayoutHeaderAction[],
     options?: PageHeaderActionsOptions,
   ) {
     const { default: Outlet } = await import(

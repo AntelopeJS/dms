@@ -1,5 +1,12 @@
-/* oxlint-disable anti-slop/no-unknown-parameters, anti-slop/no-unsafe-dictionary-type -- Cascader mappings read arbitrary custom row fields and picked values. JSON-only or id-only owner contracts would exclude currently supported objects, arrays and values converted with String. */
+import type { DataTypeFormatter } from "../../../dms-core/app/composables/data-types/useDataType";
 import { isObject } from "../../../dms-core/app/utils/type-check";
+
+/** A row of the flat list the tree is built from: what a `select` route answers. */
+type CascaderRow = NonNullable<Parameters<DataTypeFormatter>[3]>;
+
+/** A picked value: an id, or a row carrying its id. */
+type CascaderPicked = Parameters<DataTypeFormatter>[0];
+
 export interface CascaderKeyMapping {
   label: string;
   value: string;
@@ -15,7 +22,7 @@ export interface CascaderNode {
   pathLabels: string[];
   pathValues: string[];
   children: CascaderNode[];
-  raw: Record<string, unknown>;
+  raw: CascaderRow;
 }
 
 export interface CascaderSelectionRules {
@@ -44,10 +51,12 @@ export function resolveCascaderKeyMapping(
   return { ...DEFAULT_CASCADER_KEY_MAPPING, ...mapping };
 }
 
-type CascaderRow = Record<string, unknown>;
+function rowField(row: CascaderRow, key: string): CascaderRow[string] {
+  return Object.hasOwn(row, key) ? row[key] : undefined;
+}
 
 function rowValue(row: CascaderRow, key: string): string | undefined {
-  const value = row[key];
+  const value = rowField(row, key);
   if (value === null || value === undefined || value === "") return undefined;
   return String(value);
 }
@@ -60,7 +69,7 @@ function createNode(
   const value = rowValue(row, keyMapping.value) ?? "";
   const label = rowValue(row, keyMapping.label) ?? value;
   const ownDisabled = keyMapping.disabled
-    ? Boolean(row[keyMapping.disabled])
+    ? Boolean(rowField(row, keyMapping.disabled))
     : false;
 
   return {
@@ -205,7 +214,7 @@ export function buildCascaderPathLabels(
   return labels;
 }
 
-function asPickedRow(item: unknown): CascaderRow | undefined {
+function asPickedRow(item: CascaderPicked): CascaderRow | undefined {
   return isObject(item) && item !== null ? item : undefined;
 }
 
@@ -215,7 +224,7 @@ function asPickedRow(item: unknown): CascaderRow | undefined {
  * own label, or its id, until then or when the list does not hold it.
  */
 export function cascaderValuePath(
-  item: unknown,
+  item: CascaderPicked,
   keyMapping: CascaderKeyMapping,
   rows?: CascaderRow[],
 ): string[] {
@@ -278,13 +287,12 @@ export async function readCascaderAncestry(
 
 /** The id of a picked value: an id, or a row carrying its id. */
 export function cascaderValueId(
-  item: unknown,
+  item: CascaderPicked,
   keyMapping: CascaderKeyMapping,
 ): string | undefined {
   const row = asPickedRow(item);
   return row ? rowValue(row, keyMapping.value) : rowValue({ id: item }, "id");
 }
-/* oxlint-enable anti-slop/no-unknown-parameters, anti-slop/no-unsafe-dictionary-type */
 
 /** What a cell already holds of its path, and the ids it still has to read. */
 export interface CascaderValueReads {
@@ -301,7 +309,7 @@ export interface CascaderValueReads {
  * for a pick at the top of the tree.
  */
 export function cascaderValueReads(
-  values: unknown[],
+  values: CascaderPicked[],
   keyMapping: CascaderKeyMapping,
 ): CascaderValueReads {
   const joinedRows = values

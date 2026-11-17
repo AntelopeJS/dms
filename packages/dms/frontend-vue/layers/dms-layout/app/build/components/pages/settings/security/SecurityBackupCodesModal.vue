@@ -123,7 +123,7 @@ function acknowledge(): void {
             @click="copy"
           />
         </div>
-        <DmsBanner
+        <DmsNoticeBanner
           v-if="props.isRegenerated"
           size="sm"
           tone="warning"

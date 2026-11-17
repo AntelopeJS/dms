@@ -73,7 +73,7 @@ const LIST_TREE: RolePermissionNode[] = [
 ];
 
 describe("table actions depending on the list", () => {
-  const listIndex = buildPermissionIndex(LIST_TREE, identity);
+  const listIndex = buildPermissionIndex(LIST_TREE);
 
   it("ticks the list with an edit", () => {
     const grant = grantPermission(
@@ -386,10 +386,16 @@ function registerPermissionSelectionTests(
       "refund",
       identity,
     );
-    expect(hits).toEqual([
+    expect(
+      hits.map((hit) => ({
+        heading: hit.heading,
+        nodeId: hit.node.id,
+        areaId: hit.areaId,
+      })),
+    ).toEqual([
       {
         heading: "Pages › Sales › Orders",
-        node: expect.objectContaining({ id: "pages.sales.orders.refund" }),
+        nodeId: "pages.sales.orders.refund",
         areaId: "pages.sales",
       },
     ]);

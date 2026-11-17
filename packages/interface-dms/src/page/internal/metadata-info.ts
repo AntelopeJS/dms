@@ -1,10 +1,9 @@
 /** @internal @packageDocumentation */
-import { DefaultLayout } from "../../base/layouts";
+import { DefaultLayout } from "../../component-options/page-layout";
 import type { ComponentInfo } from "../../component";
 import type { PageMetadata } from "../metadata";
 import { pageRoutePath } from "../page-routes";
-import type { MenuOptions, PageInfo } from "../types";
-// oxlint-disable-next-line import/no-cycle -- Category resolution reads PageMetadata inside functions, after metadata initialization.
+import type { CategoryInfo, MenuOptions, PageInfo } from "../types";
 import { resolveCategoryInfo, resolveInheritedLayout } from "./categories";
 import { inheritedMemberAccess } from "./member-access";
 
@@ -31,14 +30,7 @@ export function setPageInfo(
     fullSlug,
     layoutUrl: location,
     parentSlug: parent ? resolveCategoryInfo(parent)?.fullSlug : undefined,
-    hidden: menu.hidden || resolvedCategory?.hidden,
-    publicAccess: menu.publicAccess || resolvedCategory?.publicAccess,
-    authOnly: menu.authOnly || resolvedCategory?.authOnly,
-    memberAccess:
-      menu.memberAccess ||
-      inheritedMemberAccess(resolvedCategory?.memberAccess),
-    bypassTenantAccessGate:
-      menu.bypassTenantAccessGate || resolvedCategory?.bypassTenantAccessGate,
+    ...inheritedAccess(menu, resolvedCategory),
   };
 
   page.layout =
@@ -47,4 +39,37 @@ export function setPageInfo(
     resolveInheritedLayout(resolvedCategory) ??
     DefaultLayout();
   page.pageInfo = pageInfo;
+}
+
+type InheritedAccess = Pick<
+  PageInfo,
+  | "hidden"
+  | "publicAccess"
+  | "authOnly"
+  | "memberAccess"
+  | "bypassTenantAccessGate"
+  | "ownerOnly"
+>;
+
+function inheritedAccess(
+  menu: MenuOptions,
+  category: CategoryInfo | undefined,
+): InheritedAccess {
+  const access: InheritedAccess = {
+    hidden: menu.hidden || category?.hidden,
+    publicAccess: menu.publicAccess || category?.publicAccess,
+    authOnly: menu.authOnly || category?.authOnly,
+    memberAccess:
+      menu.memberAccess || inheritedMemberAccess(category?.memberAccess),
+    bypassTenantAccessGate:
+      menu.bypassTenantAccessGate || category?.bypassTenantAccessGate,
+    ownerOnly: menu.ownerOnly || category?.ownerOnly,
+  };
+  if (!access.ownerOnly) return access;
+  return {
+    ...access,
+    publicAccess: undefined,
+    authOnly: undefined,
+    memberAccess: undefined,
+  };
 }

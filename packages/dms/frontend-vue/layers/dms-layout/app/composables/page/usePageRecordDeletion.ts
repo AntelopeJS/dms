@@ -110,7 +110,7 @@ export function usePageRecordDeletion(source: PageRecordDeletionSource): void {
   const declaresRecord = () =>
     optionsOf(source.pageLayout())?.recordStatus !== undefined;
 
-  function follow(): void {
+  async function follow(): Promise<void> {
     if (known?.key === recordKey()) return;
     latestRead++;
     known = undefined;
@@ -123,7 +123,7 @@ export function usePageRecordDeletion(source: PageRecordDeletionSource): void {
         pageRoute()?.params ?? {},
       );
     if (served) known = { key: recordKey(), status: options.recordStatus };
-    else void check();
+    else await check();
   }
 
   let timer: ReturnType<typeof setTimeout> | undefined;

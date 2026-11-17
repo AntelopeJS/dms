@@ -13,7 +13,7 @@ import {
 } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { defineShortcuts } from "@nuxt/ui/runtime/composables/defineShortcuts.js";
-import TableActions from "../layers/dms-ui/app/entries/components/table/Actions";
+import TableActions from "../layers/dms-ui/app/entries/components/table/TableActions";
 import { FULL_TABLE_CHROME } from "../layers/dms-ui/app/entries/composables/table-view/utils/chrome";
 
 const PassThrough = defineComponent({

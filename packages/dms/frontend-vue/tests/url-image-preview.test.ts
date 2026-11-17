@@ -8,6 +8,7 @@ import { createApp, defineComponent, h, type App } from "vue";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import type { DataType } from "../layers/dms-core/app/composables/data-types/useDataType";
 import { isObject, isString } from "../layers/dms-core/app/utils/type-check";
+import { registerDefaultDataTypes } from "../layers/dms-ui/app/entries/composables/data-types/registerDefaults";
 
 type Formatter = NonNullable<DataType["formatter"]>["default"];
 
@@ -28,7 +29,7 @@ function renderUrl(
   return container;
 }
 
-beforeAll(async () => {
+beforeAll(() => {
   vi.stubGlobal("h", h);
   vi.stubGlobal("isObject", isObject);
   vi.stubGlobal("isString", isString);
@@ -49,9 +50,6 @@ beforeAll(async () => {
     registerDataType: (dataType: DataType) =>
       registered.set(dataType.id, dataType.formatter),
   }));
-  const { registerDefaultDataTypes } = await import(
-    "../layers/dms-ui/app/entries/composables/data-types/registerDefaults"
-  );
   registerDefaultDataTypes();
 });
 

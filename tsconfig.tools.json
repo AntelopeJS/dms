@@ -1,0 +1,12 @@
+{
+  "compilerOptions": {
+    "composite": true,
+    "emitDeclarationOnly": true,
+    "outDir": "node_modules/.cache/tsconfig-tools",
+    "allowJs": true,
+    "module": "commonjs",
+    "moduleResolution": "bundler",
+    "types": ["node"]
+  },
+  "include": [".dependency-cruiser.cjs", ".dependency-cruiser/*.cjs"]
+}

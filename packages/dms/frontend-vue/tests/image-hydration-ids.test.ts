@@ -13,7 +13,7 @@ import {
   type App,
 } from "vue";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import Image from "../layers/dms-ui/app/components/form/components/Image.vue";
+import Image from "../layers/dms-ui/app/components/form/components/InputImage.vue";
 import { hydrate, serverRender, stubApiData } from "./helpers/api-data-runtime";
 
 const STORED_IMAGE = { key: "files/profile/cover.png", alt: "Cover" };

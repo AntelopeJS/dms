@@ -1,3 +1,4 @@
+import { ownValue } from "../../../utils";
 import type { User } from "@antelopejs/interface-dms/auth/db";
 import type { KeyValueListItem } from "@antelopejs/interface-dms/base/key-value-list";
 import { getTwoFactorStatus } from "../users/two-factor-operations";
@@ -11,11 +12,10 @@ export interface BlockItems<T> {
 }
 
 /** The label of a two-factor method the user turned on. */
-// oxlint-disable-next-line anti-slop/no-known-value-widening -- Stored authentication method names are extensible; unmapped methods retain their fallback label.
-const METHOD_LABELS: Record<string, string> = {
+const METHOD_LABELS = {
   totp: `${TEXTS}.activity.method.totp`,
   email: `${TEXTS}.activity.method.email`,
-};
+} satisfies Record<string, string>;
 
 /** The user's language, named in itself: "Français", "English". */
 export function languageName(language: string): string {
@@ -34,7 +34,10 @@ function twoFactorItem(user: User): KeyValueListItem {
     type: "status",
     value: isOn ? `${TEXTS}.two_factor_on_short` : `${TEXTS}.two_factor_off`,
     tone: isOn ? "success" : "warning",
-    detail: methods.length === 1 ? METHOD_LABELS[methods[0] ?? ""] : undefined,
+    detail:
+      methods.length === 1
+        ? ownValue(METHOD_LABELS, methods[0] ?? "")
+        : undefined,
   };
 }
 

@@ -1,6 +1,11 @@
 <script setup lang="ts">
-import { computed, provide, reactive, watchEffect } from "vue";
-import DmsEyebrow from "../section-header/Eyebrow.vue";
+import { computed, provide, reactive } from "vue";
+import {
+  hasDrawablePoints,
+  resolveBlockState,
+  useBlockStateAttributes,
+} from "../../build/composables/blocks/blockDataState";
+import DmsEyebrowLabel from "../section-header/EyebrowLabel.vue";
 
 import DmsTrendBadge from "./internal/TrendBadge.vue";
 import { useChartFetch } from "../../composables/chart/useChartFetch";
@@ -21,6 +26,7 @@ import {
   type ValuePrecision,
 } from "../../composables/chart/types";
 import type { DefaultComponentProps } from "../../../../dms-core/app/types/component";
+import { drawableSeries } from "../../build/composables/chart/groupPoints";
 
 interface Props extends DefaultComponentProps {
   title: string;
@@ -70,7 +76,7 @@ const { state: watchState } = useWatch(
 );
 const watchKey = computed(() => JSON.stringify(watchState.value));
 
-const { data, isLoading } = useChartFetch<ChartCardResponse>({
+const { data, isLoading, error } = useChartFetch<ChartCardResponse>({
   fetchUrl: props.fetchUrl,
   fetchUrlMethod: props.fetchUrlMethod,
   routeParams: () => props.routeParams,
@@ -93,13 +99,13 @@ function localized(entry: ChartSeries): ChartSeries {
 }
 
 const cardSeries = computed<ChartSeries[]>(() =>
-  (data.value?.series ?? []).map(localized),
+  drawableSeries(data.value?.series ?? []).map(localized),
 );
 
 const cardComparisonSeries = computed<ChartSeries[]>(() =>
   comparison.isOff.value
     ? []
-    : (data.value?.comparisonSeries ?? []).map((entry) => ({
+    : drawableSeries(data.value?.comparisonSeries ?? []).map((entry) => ({
         ...localized(entry),
         color: entry.color ?? comparisonColor.value,
       })),
@@ -133,27 +139,17 @@ const previousFormatted = computed(() =>
 
 const hasComparison = computed(() => cardComparisonSeries.value.length > 0);
 
-const nestedContext = reactive<NestedChartContext>({
-  cardSeries: [],
-  cardComparisonSeries: [],
-  isLoading: false,
-  hideLegend: !props.showSeriesLegend,
-  valueFormat: props.valueFormat,
-  currencyCode: props.currencyCode,
-  valuePrecision: props.valuePrecision,
+const nestedContext: NestedChartContext = reactive({
+  cardSeries,
+  cardComparisonSeries,
+  isLoading,
+  hideLegend: computed(() => !props.showSeriesLegend),
+  valueFormat: computed(() => props.valueFormat),
+  currencyCode: computed(() => props.currencyCode),
+  valuePrecision: computed(() => props.valuePrecision),
 });
 
 provide(NESTED_CHART_INJECT_KEY, nestedContext);
-
-watchEffect(() => {
-  nestedContext.cardSeries = cardSeries.value;
-  nestedContext.cardComparisonSeries = cardComparisonSeries.value;
-  nestedContext.isLoading = isLoading.value;
-  nestedContext.hideLegend = !props.showSeriesLegend;
-  nestedContext.valueFormat = props.valueFormat;
-  nestedContext.currencyCode = props.currencyCode;
-  nestedContext.valuePrecision = props.valuePrecision;
-});
 
 const primaryLegendLabel = computed(() =>
   props.primaryLabel
@@ -168,6 +164,17 @@ const comparisonLegendLabel = computed(() =>
       t(DEFAULT_COMPARISON_LABEL_KEY, "Comparison")),
 );
 
+const blockAttributes = useBlockStateAttributes("ChartCard", () =>
+  resolveBlockState({
+    loading: isLoading.value,
+    failed: Boolean(error.value),
+    hasContent:
+      value.value !== undefined ||
+      hasDrawablePoints(cardSeries.value) ||
+      hasDrawablePoints(cardComparisonSeries.value),
+  }),
+);
+
 const isFirstLoad = computed(() => isLoading.value && data.value === null);
 
 const isRefreshing = computed(() => isLoading.value && data.value !== null);
@@ -179,10 +186,14 @@ const hasMeta = computed(
 </script>
 
 <template>
-  <DmsCard :padded="false" class="flex min-w-0 flex-col">
+  <DmsCardPanel
+    v-bind="blockAttributes"
+    :padded="false"
+    class="flex min-w-0 flex-col"
+  >
     <div class="flex flex-wrap items-start gap-3 px-4 pt-4 pb-1.5 sm:px-[18px]">
       <div class="grid min-w-0 justify-items-start">
-        <DmsEyebrow
+        <DmsEyebrowLabel
           tone="muted"
           truncate
           class="max-w-full max-sm:whitespace-normal"
@@ -192,8 +203,8 @@ const hasMeta = computed(
           class="text-highlighted mt-2 text-[30px] leading-[1.1] font-[650] tracking-[-0.035em] tabular-nums"
         >
           <USkeleton
-            :aria-label="t('dms.a11y.loading')"
             v-if="isFirstLoad"
+            :aria-label="t('dms.a11y.loading')"
             class="h-[33px] w-36"
           />
           <span
@@ -257,5 +268,5 @@ const hasMeta = computed(
     <div class="px-3.5 pt-2.5 pb-3.5 sm:pr-[18px]">
       <slot :series="cardSeries" :comparison-series="cardComparisonSeries" />
     </div>
-  </DmsCard>
+  </DmsCardPanel>
 </template>

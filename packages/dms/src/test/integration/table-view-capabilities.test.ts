@@ -1,7 +1,12 @@
+import type { TableViewOptionsSerialized } from "@antelopejs/interface-dms/base/table-view";
+import type { JsonValue } from "@antelopejs/interface-dms/base/types";
 import type { AxiosInstance } from "axios";
 import { expect } from "chai";
+import { z } from "zod";
+import type { InvoiceBulkController } from "../attachment-host/capabilities";
 import { authorizedClient, registerUser } from "../helpers/auth";
 import { countRawDocuments, resetDatabase } from "../helpers/db";
+import { parseBody } from "../helpers/parse-body";
 
 const LOCATION = "/api/capabilities/invoices";
 const BULK_LOCATION = "/api/capabilities/invoice-bulk";
@@ -10,6 +15,14 @@ const SLUG = "/capability-invoices";
 const HTTP_OK = 200;
 const HTTP_BAD_REQUEST = 400;
 const HTTP_FORBIDDEN = 403;
+const HTTP_URI_TOO_LONG = 414;
+const MAX_BATCH_COUNT_TARGET_BYTES = 8_192;
+
+function batchUrl(location: string, entries: string[]): string {
+  const query = new URLSearchParams();
+  entries.forEach((entry) => query.append("query", entry));
+  return `${location}/count/batch?${query}`;
+}
 
 interface Invoice {
   _id: string;
@@ -17,10 +30,54 @@ interface Invoice {
   status: string;
 }
 
-interface FooterSummary {
-  id: string;
-  label: string;
-}
+type BulkIds = Awaited<ReturnType<InvoiceBulkController["matching"]>>;
+
+const CountBody = z.object({ total: z.number() });
+
+const CountsBody = z.record(z.string(), z.number());
+
+const BulkIdsBody = z.object({
+  ids: z.array(z.string()),
+}) satisfies z.ZodType<BulkIds>;
+
+const FooterBody = z.object({
+  legend: z.string().optional(),
+  summary: z
+    .array(
+      z
+        .object({
+          id: z.string(),
+          label: z.string(),
+          op: z.enum(["sum", "count"]),
+          field: z.string().optional(),
+        })
+        .strict(),
+    )
+    .optional(),
+});
+
+const TableLayoutBody = z.object({
+  components: z.object({
+    content: z.object({
+      options: z
+        .object({
+          tableId: z.string().optional(),
+          isSoleTableView: z.boolean().optional(),
+          footer: FooterBody.optional(),
+        })
+        .optional(),
+    }),
+  }),
+}) satisfies z.ZodType<{
+  components: {
+    content: {
+      options?: Pick<
+        TableViewOptionsSerialized,
+        "tableId" | "isSoleTableView" | "footer"
+      >;
+    };
+  };
+}>;
 
 async function seed(client: AxiosInstance, ownerId: string): Promise<void> {
   const rows = [
@@ -64,37 +121,42 @@ async function list(client: AxiosInstance, query = ""): Promise<Invoice[]> {
   return response.data.results;
 }
 
-describe("[integration] table view capabilities", () => {
-  let client: AxiosInstance;
-  let userId: string;
-  let summaryIds: string[];
+let client: AxiosInstance;
 
-  before(async () => {
-    await resetDatabase();
-    const owner = await registerUser({ owner: true });
-    userId = owner.userId;
-    client = authorizedClient(owner.accessToken);
-    await seed(client, userId);
-    const layout = await client.get("/dms/pagelayout", {
-      params: { slug: SLUG },
-    });
-    expect(layout.status, JSON.stringify(layout.data)).to.equal(HTTP_OK);
-    const options = layout.data.components.content.options;
-    expect(options.tableId).to.equal("content");
-    expect(options.isSoleTableView).to.equal(true);
-    expect(options.footer.legend).to.equal("status");
-    const summaries: FooterSummary[] = options.footer.summary;
-    expect(summaries.map((summary) => summary.label)).to.deep.equal([
-      "Total",
-      "Open",
-      "Open or large",
-    ]);
-    expect(JSON.stringify(summaries)).not.to.contain("where");
-    summaryIds = summaries.map((summary) => summary.id);
+let userId: string;
+
+let summaryIds: string[];
+
+const summaryQuery = (filters = "") =>
+  `${LOCATION}/summary?${summaryIds.map((id) => `ids=${id}`).join("&")}${filters}`;
+
+async function seedCapabilities() {
+  await resetDatabase();
+  const owner = await registerUser({ owner: true });
+  userId = owner.userId;
+  client = authorizedClient(owner.accessToken);
+  await seed(client, userId);
+  const layout = await client.get("/dms/pagelayout", {
+    params: { slug: SLUG },
   });
+  expect(layout.status, JSON.stringify(layout.data)).to.equal(HTTP_OK);
+  const { options } = parseBody(TableLayoutBody, layout).components.content;
+  if (!options?.footer?.summary) throw new Error(`No footer on ${SLUG}`);
+  expect(options.tableId).to.equal("content");
+  expect(options.isSoleTableView).to.equal(true);
+  expect(options.footer.legend).to.equal("status");
+  const { summary: summaries } = options.footer;
+  expect(summaries.map((summary) => summary.label)).to.deep.equal([
+    "Total",
+    "Open",
+    "Open or large",
+  ]);
+  expect(JSON.stringify(summaries)).not.to.contain("where");
+  summaryIds = summaries.map((summary) => summary.id);
+}
 
-  const summaryQuery = (filters = "") =>
-    `${LOCATION}/summary?${summaryIds.map((id) => `ids=${id}`).join("&")}${filters}`;
+describe("[integration] table view capabilities", () => {
+  before(seedCapabilities);
 
   it("computes the footer summaries over every row the filters list", async () => {
     const all = await client.get(summaryQuery());
@@ -116,7 +178,7 @@ describe("[integration] table view capabilities", () => {
 
   it("stores the dates an edit sends as text as dates, and keeps what it leaves out", async () => {
     const [invoice] = await list(client, "&filter_number=is:INV-3");
-    const edit = async (body: Parameters<AxiosInstance["put"]>[1]) => {
+    const edit = async (body: JsonValue) => {
       const response = await client.put(`${LOCATION}/edit`, body, {
         params: { id: invoice!._id },
       });
@@ -180,6 +242,10 @@ describe("[integration] table view capabilities", () => {
     expect(count.status, JSON.stringify(count.data)).to.equal(HTTP_OK);
     expect(count.data).to.deep.equal({ total: 2 });
   });
+});
+
+describe("[integration] table view capabilities, counters and batches", () => {
+  before(seedCapabilities);
 
   it("resolves {{user.id}} to the caller in lists and counters", async () => {
     const mine = await list(client, "&filter_ownerId=is:{{user.id}}");
@@ -187,33 +253,104 @@ describe("[integration] table view capabilities", () => {
       "INV-1",
       "INV-2",
     ]);
-    const counts = await client.post(`${LOCATION}/count/batch`, {
-      queries: [{ id: "mine", query: { filter_ownerId: "is:{{user.id}}" } }],
-    });
+    const url = batchUrl(LOCATION, ["mine?filter_ownerId=is:{{user.id}}"]);
+    const counts = await client.get(url);
     expect(counts.data).to.deep.equal({ mine: 2 });
 
     const other = await registerUser({ owner: true });
-    const otherCounts = await authorizedClient(other.accessToken).post(
-      `${LOCATION}/count/batch`,
-      {
-        queries: [{ id: "mine", query: { filter_ownerId: "is:{{user.id}}" } }],
-      },
-    );
+    const otherCounts = await authorizedClient(other.accessToken).get(url);
     expect(otherCounts.data).to.deep.equal({ mine: 0 });
+  });
+
+  it("counts the entries the table view sends, paging parameters included", async () => {
+    const counts = await client.get(
+      batchUrl(LOCATION, [
+        "all?offset=0&limit=0",
+        "paid?filter_status=is%3Apaid&offset=0&limit=0",
+      ]),
+    );
+    expect(counts.status, JSON.stringify(counts.data)).to.equal(HTTP_OK);
+    expect(counts.data).to.deep.equal({ all: 5, paid: 2 });
   });
 
   it("keeps a route scope in the tab counters' batch count", async () => {
     const scoped = "/api/capabilities/open-invoices";
     const count = await client.get(`${scoped}/count`);
     expect(count.data).to.deep.equal({ total: 3 });
-    const counts = await client.post(`${scoped}/count/batch`, {
-      queries: [
-        { id: "all", query: {} },
-        { id: "mine", query: { filter_ownerId: "is:{{user.id}}" } },
-      ],
-    });
+    const counts = await client.get(
+      batchUrl(scoped, ["all?", "mine?filter_ownerId=is:{{user.id}}"]),
+    );
     expect(counts.status, JSON.stringify(counts.data)).to.equal(HTTP_OK);
     expect(counts.data).to.deep.equal({ all: 3, mine: 2 });
+  });
+
+  it("counts zero and three independently without inheriting the contradictory outer filter", async () => {
+    const query = new URLSearchParams({ filter_number: "is:missing" });
+    query.append("query", "none?filter_number=is:missing");
+    query.append("query", "all?");
+    const counts = await client.get(
+      `/api/capabilities/open-invoices/count/batch?${query}`,
+    );
+    expect(counts.status, JSON.stringify(counts.data)).to.equal(HTTP_OK);
+    expect(counts.data).to.deep.equal({ none: 0, all: 3 });
+  });
+
+  it("decodes an escaped id only once and splits before a nested search question mark", async () => {
+    const id = "why?50% & é";
+    const search = "Acme? & + % é";
+    const query = new URLSearchParams({ search });
+    const single = await client.get(`${LOCATION}/count?${query}`);
+    const counts = await client.get(
+      batchUrl(LOCATION, [
+        `${encodeURIComponent(id)}?${query}`,
+        "?",
+        "duplicate?filter_status=is:missing",
+        "duplicate?",
+      ]),
+    );
+    expect(counts.status).to.equal(HTTP_OK);
+    expect(counts.data).to.deep.equal({
+      [id]: parseBody(CountBody, single).total,
+      "": 5,
+      duplicate: 5,
+    });
+  });
+
+  it("accepts empty and fifty-entry batches but rejects fifty-one or malformed entries", async () => {
+    const empty = await client.get(batchUrl(LOCATION, []));
+    expect(empty.data).to.deep.equal({});
+    const fifty = Array.from({ length: 50 }, (_, index) => `${index}?`);
+    const accepted = await client.get(batchUrl(LOCATION, fifty));
+    expect(accepted.status).to.equal(HTTP_OK);
+    expect(Object.values(parseBody(CountsBody, accepted))).to.deep.equal(
+      Array(50).fill(5),
+    );
+    for (const entries of [[...fifty, "extra?"], ["missing"], ["%GG?"]]) {
+      const refused = await client.get(batchUrl(LOCATION, entries));
+      expect(refused.status, JSON.stringify(entries)).to.equal(
+        HTTP_BAD_REQUEST,
+      );
+    }
+    const post = await client.post(`${LOCATION}/count/batch`, { queries: [] });
+    expect(post.status).not.to.equal(HTTP_OK);
+  });
+});
+
+describe("[integration] table view capabilities, filters and bulk routes", () => {
+  before(seedCapabilities);
+
+  it("bounds the encoded path plus search at 8192 bytes, not the decoded query size", async () => {
+    const prefix = `${batchUrl(LOCATION, ["all?"])}&padding=`;
+    const padding = "x".repeat(
+      MAX_BATCH_COUNT_TARGET_BYTES - Buffer.byteLength(prefix),
+    );
+    const accepted = await client.get(prefix + padding);
+    expect(accepted.status).to.equal(HTTP_OK);
+    expect(accepted.data).to.deep.equal({ all: 5 });
+    const refused = await client.get(prefix + padding + "x");
+    expect(refused.status).to.equal(HTTP_URI_TOO_LONG);
+    const encoded = await client.get(prefix + "%C3%A9".repeat(1400));
+    expect(encoded.status).to.equal(HTTP_URI_TOO_LONG);
   });
 
   it("keeps the rows passing every filter of a column filtered twice", async () => {
@@ -230,12 +367,12 @@ describe("[integration] table view capabilities", () => {
       await list(client, "&filter_status=is:open&filter_status=is_not:open"),
     ).to.deep.equal([]);
 
-    const counts = await client.post(`${LOCATION}/count/batch`, {
-      queries: [
-        { id: "both", query: { filter_status: ["is_not:paid", "is:open"] } },
-        { id: "none", query: { filter_status: ["is:open", "is_not:open"] } },
-      ],
-    });
+    const counts = await client.get(
+      batchUrl(LOCATION, [
+        "both?filter_status=is_not:paid&filter_status=is:open",
+        "none?filter_status=is:open&filter_status=is_not:open",
+      ]),
+    );
     expect(counts.data).to.deep.equal({ both: open.length, none: 0 });
   });
 
@@ -254,12 +391,12 @@ describe("[integration] table view capabilities", () => {
     expect(summary.status, JSON.stringify(summary.data)).to.equal(HTTP_OK);
     expect(summary.data[summaryIds[0]!]).to.equal(350);
 
-    const counts = await client.post(`${LOCATION}/count/batch`, {
-      queries: [
-        { id: "included", query: { filter_labels: "include:urgent" } },
-        { id: "excluded", query: { filter_labels: "exclude:urgent" } },
-      ],
-    });
+    const counts = await client.get(
+      batchUrl(LOCATION, [
+        "included?filter_labels=include:urgent",
+        "excluded?filter_labels=exclude:urgent",
+      ]),
+    );
     expect(counts.status, JSON.stringify(counts.data)).to.equal(HTTP_OK);
     expect(counts.data).to.deep.equal({ included: 1, excluded: 4 });
   });
@@ -270,13 +407,13 @@ describe("[integration] table view capabilities", () => {
     const selected = await client.post(
       `${LOCATION}/mark-paid?ids=${first!._id}`,
     );
-    expect(selected.data.ids).to.deep.equal([first!._id]);
+    expect(parseBody(BulkIdsBody, selected).ids).to.deep.equal([first!._id]);
 
     const matching = await client.post(
       `${LOCATION}/mark-paid?allMatching=true&filter_status=is:open&search=INV`,
     );
     expect(matching.status, JSON.stringify(matching.data)).to.equal(HTTP_OK);
-    expect(matching.data.ids).to.have.length(2);
+    expect(parseBody(BulkIdsBody, matching).ids).to.have.length(2);
     expect(await list(client, "&filter_status=is:open")).to.deep.equal([]);
   });
 
@@ -305,12 +442,14 @@ describe("[integration] table view capabilities", () => {
       `${BULK_LOCATION}/matching?allMatching=true&filter_ownerId=is:${userId}`,
     );
     expect(matching.status, JSON.stringify(matching.data)).to.equal(HTTP_OK);
-    expect(sorted(matching.data.ids)).to.deep.equal(sorted(mine.map(idOf)));
+    expect(sorted(parseBody(BulkIdsBody, matching).ids)).to.deep.equal(
+      sorted(mine.map(idOf)),
+    );
 
     const selected = await client.post(
       `${BULK_LOCATION}/matching?ids=${mine[0]!._id}`,
     );
-    expect(selected.data.ids).to.deep.equal([mine[0]!._id]);
+    expect(parseBody(BulkIdsBody, selected).ids).to.deep.equal([mine[0]!._id]);
 
     const member = await registerUser();
     const refused = await authorizedClient(member.accessToken).post(

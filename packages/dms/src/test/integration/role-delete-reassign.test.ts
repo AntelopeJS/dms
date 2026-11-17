@@ -10,7 +10,6 @@ import { authorizedClient, registerUser } from "../helpers/auth";
 import { resetDatabase } from "../helpers/db";
 import { listUserInvitesByEmail, seedUserInvite } from "../helpers/fixtures";
 import { pageRoutePath } from "@antelopejs/interface-dms/page";
-import type { prepareRoleDeletion } from "../../pages/permissions";
 
 const ROLES = pageRoutePath("/settings/workspace/roles");
 const ROLES_TABLE = "/api/tables/roles";
@@ -32,10 +31,7 @@ describe("[integration] role delete with reassignment", () => {
     return response.data.id;
   }
 
-  const deleteRole = (
-    roleId: string,
-    answer?: Parameters<typeof prepareRoleDeletion>[2],
-  ) =>
+  const deleteRole = (roleId: string, answer?: { reassignTo: string | null }) =>
     client.delete(`${ROLES_TABLE}/delete`, {
       params: { id: roleId },
       data: answer,

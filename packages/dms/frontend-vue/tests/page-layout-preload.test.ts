@@ -12,8 +12,8 @@ const LAYOUT = {
   },
   components: {
     main: {
-      componentName: "DmsCard",
-      children: [{ id: "table", component: { componentName: "DmsTable" } }],
+      componentName: "DmsCardPanel",
+      children: [{ id: "table", component: { componentName: "DmsTableRoot" } }],
     },
   },
 } satisfies NonNullable<Parameters<typeof collectPageLayoutComponentNames>[0]>;
@@ -33,33 +33,42 @@ function stubLazyComponents() {
   return pending;
 }
 
+/** Whether `promise` resolved within a few microtask turns; a rejection reads as not settled. */
 const settled = async (promise: Promise<void>) => {
-  let isSettled = false;
-  void promise.then(() => (isSettled = true));
+  let isResolved = false;
+  promise.then(
+    () => {
+      isResolved = true;
+    },
+    () => {
+      isResolved = false;
+    },
+  );
 
   for (let turn = 0; turn < 10; turn++) await Promise.resolve();
-  return isSettled;
+  return isResolved;
 };
 
 describe("the preload of a page's components", () => {
   it("leaves the layout itself to the renderer, and takes its children", () => {
     expect(collectPageLayoutComponentNames(LAYOUT)).toEqual([
       "PageBanner",
-      "DmsCard",
-      "DmsTable",
+      "DmsCardPanel",
+      "DmsTableRoot",
     ]);
   });
 
-  it("looks up only components among the components", () => {
+  it("looks up only components among the components", async () => {
     vi.stubEnv("SSR", false);
     const resolve = vi.fn((_name: string) => undefined);
     vi.stubGlobal("resolveDmsComponent", resolve);
-    preloadPageLayoutComponents(LAYOUT);
+    const preloaded = preloadPageLayoutComponents(LAYOUT);
     expect(resolve.mock.calls.map(([name]) => name)).toEqual([
       "PageBanner",
-      "DmsCard",
-      "DmsTable",
+      "DmsCardPanel",
+      "DmsTableRoot",
     ]);
+    await preloaded;
   });
 
   it("settles once every chunk is in, for the page's setup to await", async () => {
@@ -69,9 +78,9 @@ describe("the preload of a page's components", () => {
     expect(await settled(preloaded)).toBe(false);
 
     pending.get("PageBanner")!();
-    pending.get("DmsCard")!();
+    pending.get("DmsCardPanel")!();
     expect(await settled(preloaded)).toBe(false);
-    pending.get("DmsTable")!();
+    pending.get("DmsTableRoot")!();
     expect(await settled(preloaded)).toBe(true);
   });
 

@@ -1,5 +1,5 @@
 import { regionalDateTimeFormat } from "#dms-core/app/utils/regional";
-import { isString } from "#dms-core/app/utils/type-check";
+import { isObject, isString } from "#dms-core/app/utils/type-check";
 
 const MS_PER_SECOND = 1000;
 const MS_PER_MINUTE = 60 * MS_PER_SECOND;
@@ -7,8 +7,6 @@ const MS_PER_HOUR = 60 * MS_PER_MINUTE;
 const MS_PER_DAY = 24 * MS_PER_HOUR;
 const MS_PER_MONTH = 30 * MS_PER_DAY;
 const MS_PER_YEAR = 365 * MS_PER_DAY;
-const ERROR_CODE_PREFIX = "error.";
-const SECURITY_ERRORS_PREFIX = "page.settings.security.errors.";
 
 interface RelativeUnit {
   unit: Intl.RelativeTimeFormatUnit;
@@ -24,8 +22,13 @@ const RELATIVE_UNITS: RelativeUnit[] = [
   { unit: "minute", ms: MS_PER_MINUTE },
 ];
 
-interface FetchErrorLike {
-  data?: unknown;
+/** A `$authFetch` failure whose body is an API error code (`error.xxx`). */
+interface CodedFetchError {
+  data: string;
+}
+
+function isCodedFetchError(error: unknown): error is CodedFetchError {
+  return error !== null && isObject(error) && isString(error.data);
 }
 
 type DateInput = string | Date;
@@ -35,7 +38,8 @@ type DateInput = string | Date;
  * translation of API error codes into sentences.
  */
 export function useSecurityFormat() {
-  const { locale, t, te } = useI18n();
+  const { locale } = useI18n();
+  const errorPresenter = useApiErrorPresenter();
 
   const formatDate = (value: DateInput): string =>
     regionalDateTimeFormat(locale.value, { dateStyle: "medium" }).format(
@@ -69,28 +73,16 @@ export function useSecurityFormat() {
   };
 
   /**
-   * @param error What `$authFetch` threw
+   * @param cause What `$authFetch` threw
    * @param fallbackKey Message used when the error carries no known code
    */
-  // oxlint-disable-next-line anti-slop/no-unknown-parameters -- JavaScript throws arbitrary values. FetchError-derived parameters would reject the boundary inputs this formatter already handles.
-  const errorMessage = (error: unknown, fallbackKey: string): string => {
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Unchecked optional property projection preserves primitive and nullish thrown values; this is not a validated FetchError and owner typing cannot guarantee one.
-    const code = (error as FetchErrorLike | undefined)?.data;
-    if (!isString(code) || !code.startsWith(ERROR_CODE_PREFIX)) {
-      return t(fallbackKey);
-    }
-    const ownKey = `${SECURITY_ERRORS_PREFIX}${code.slice(ERROR_CODE_PREFIX.length)}`;
-    if (te(ownKey)) return t(ownKey);
-    return te(code) ? t(code) : t(fallbackKey);
+  const errorMessage = (cause: unknown, fallbackKey: string): string => {
+    return errorPresenter.resolveError(cause, { fallbackKey })?.message ?? "";
   };
 
   /** @returns The error code (`error.xxx`) the API answered with, if any */
-  // oxlint-disable-next-line anti-slop/no-unknown-parameters -- JavaScript throws arbitrary values; a FetchError parameter would narrow this public error boundary.
-  const errorCode = (error: unknown): string | undefined => {
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- This historical projection is deliberately unchecked, including nullish and primitive errors; inference cannot project data from unknown without changing the boundary.
-    const code = (error as FetchErrorLike | undefined)?.data;
-    return isString(code) ? code : undefined;
-  };
+  const errorCode = (cause: unknown): string | undefined =>
+    isCodedFetchError(cause) ? cause.data : undefined;
 
   return {
     formatDate,

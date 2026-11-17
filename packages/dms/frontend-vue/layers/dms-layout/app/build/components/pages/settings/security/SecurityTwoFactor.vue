@@ -65,6 +65,7 @@ const METHODS: MethodConfig[] = [
 
 const { t } = useI18n();
 const toast = useToast();
+const { presentError } = useApiErrorPresenter();
 const { $authFetch } = useAuthFetch();
 const { overview, attention, attentionToneOf, refresh } = useSecurityOverview();
 const { formatDate, errorMessage } = useSecurityFormat();
@@ -148,7 +149,7 @@ function fail(
   error: Parameters<typeof errorMessage>[0],
   fallbackKey: string,
 ): void {
-  toast.add({ title: errorMessage(error, fallbackKey), color: "error" });
+  presentError(error, { fallbackKey });
 }
 
 function showCodes(
@@ -389,7 +390,7 @@ async function markSaved(): Promise<void> {
 </script>
 
 <template>
-  <DmsSection
+  <DmsSectionPanel
     id="two-factor"
     class="scroll-mt-6"
     title="$page.settings.two_factor.title"
@@ -397,8 +398,8 @@ async function markSaved(): Promise<void> {
   >
     <template #badge>
       <USkeleton
-        :aria-label="t('dms.a11y.loading')"
         v-if="!status"
+        :aria-label="t('dms.a11y.loading')"
         aria-hidden="true"
         class="h-5 w-12 rounded-full"
       />
@@ -643,5 +644,5 @@ async function markSaved(): Promise<void> {
       @confirm="confirmRegenerate"
       @send-code="sendEmailCode"
     />
-  </DmsSection>
+  </DmsSectionPanel>
 </template>

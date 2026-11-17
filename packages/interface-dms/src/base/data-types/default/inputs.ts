@@ -1,6 +1,11 @@
 /** Stable built-in input adapters. @packageDocumentation */
 import type { ComponentInfoSerialized } from "../../../component";
 import { FormComponents } from "../../form-schema";
+import {
+  type ColumnReference,
+  ITEMS_FROM_KEY,
+  withColumnReference,
+} from "../../internal/column-references";
 
 export type SelectDisplay =
   (typeof import("../default-types").SELECT_DISPLAYS)[number];
@@ -14,16 +19,19 @@ export const SINGLE_PICK_DISPLAYS = new Set<SelectDisplay>([
 ]);
 
 type SelectInputOptions = FormComponents.SelectOptions &
-  Pick<FormComponents.ChoiceCardsOptions, "columns">;
+  Pick<FormComponents.ChoiceCardsOptions, "columns"> & {
+    itemsFrom?: ColumnReference;
+  };
 
 function choiceCardsOptions({
   items,
   multiple,
   columns,
+  itemsFrom,
 }: SelectInputOptions): FormComponents.ChoiceCardsOptions {
   const options: FormComponents.ChoiceCardsOptions = { items, multiple };
   if (columns !== undefined) options.columns = columns;
-  return options;
+  return withColumnReference(options, ITEMS_FROM_KEY, itemsFrom);
 }
 
 export const SELECT_INPUTS: Record<
@@ -34,8 +42,14 @@ export const SELECT_INPUTS: Record<
     FormComponents.InputSelect(options),
   cards: (options) =>
     FormComponents.InputChoiceCards(choiceCardsOptions(options)),
-  segmented: ({ items }) => FormComponents.InputSegmentedSelect({ items }),
-  radio: ({ items }) => FormComponents.InputRadioGroup({ items }),
+  segmented: ({ items, itemsFrom }) =>
+    FormComponents.InputSegmentedSelect(
+      withColumnReference({ items }, ITEMS_FROM_KEY, itemsFrom),
+    ),
+  radio: ({ items, itemsFrom }) =>
+    FormComponents.InputRadioGroup(
+      withColumnReference({ items }, ITEMS_FROM_KEY, itemsFrom),
+    ),
 };
 
 type BooleanInputOptions = FormComponents.BooleanCardOptions;

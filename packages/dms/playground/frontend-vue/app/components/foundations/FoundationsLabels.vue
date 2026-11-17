@@ -189,12 +189,12 @@ const COPY_LABEL = `DmsCopyButton value='${API_KEY}'`;
 
     <ShowcaseSection
       id="eyebrow"
-      title="DmsEyebrow"
+      title="DmsEyebrowLabel"
       description="The v2 signature label: mono, uppercase and tracked."
     >
       <ShowcaseDemo label="tone='dimmed' · 'muted' · 'primary' · 'error'">
         <div class="grid gap-2">
-          <DmsEyebrow
+          <DmsEyebrowLabel
             v-for="tone in EYEBROW_TONES"
             :key="tone"
             :tone="tone"
@@ -204,10 +204,10 @@ const COPY_LABEL = `DmsCopyButton value='${API_KEY}'`;
       </ShowcaseDemo>
       <ShowcaseDemo label="size='sm' (10.5px) · size='xs' (9.5px) · truncate">
         <div class="grid gap-2">
-          <DmsEyebrow size="sm" label="Workspace settings" />
-          <DmsEyebrow size="xs" label="Last sync · 12 s ago" />
+          <DmsEyebrowLabel size="sm" label="Workspace settings" />
+          <DmsEyebrowLabel size="xs" label="Last sync · 12 s ago" />
           <div class="w-44">
-            <DmsEyebrow
+            <DmsEyebrowLabel
               truncate
               label="A very long eyebrow cut with an ellipsis"
             />

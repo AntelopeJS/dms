@@ -76,14 +76,15 @@ const KPI_CARD_COMPONENT_NAME = "dms-kpi-card";
  * places a block before anything is configured, and writes that as the bare
  * call `KpiCard()`. A page under construction has to compile — it is typechecked
  * on every edit — so a block with nothing set yet has to be a legal call.
+ *
+ * @docsApi
  */
 export function KpiCard(
   options?: KpiCardProps,
 ): ComponentBuilder<KpiCardProps> {
   return attachRealtimeTopicsHook(
     new ComponentBuilder<KpiCardProps>(KPI_CARD_COMPONENT_NAME)
-      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Public builders allow omitted options while pages are authored; a required title need not exist yet.
-      .options({ ...options } as KpiCardProps)
+      .options(options && { ...options })
       .meta({
         name: options?.title || "KPI card",
         icon: options?.icon || "i-ph-trend-up",

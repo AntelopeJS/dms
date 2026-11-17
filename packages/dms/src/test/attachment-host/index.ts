@@ -4,3 +4,8 @@ import "./capabilities";
 import "./archive";
 import "./computed";
 import "./conditions";
+import "./tenant-models";
+import "./column-values";
+import "./owner-only";
+import "./module-table";
+import "./external-connection";

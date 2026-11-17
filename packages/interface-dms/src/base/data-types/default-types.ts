@@ -6,8 +6,6 @@ import "../../utils/internal/value-parser";
 import "../../utils/internal/type-check";
 import "../../attachments";
 import "../form-schema";
-// oxlint-disable-next-line import/no-cycle -- Preserve the existing table metadata evaluation before built-in registration.
-import "../table-view/meta";
 import "../types";
 import "./core";
 import * as FieldTypes from "./field-types";
@@ -35,6 +33,7 @@ export type { SelectDisplay, BooleanDisplay } from "./default/inputs";
 
 export namespace DefaultDataTypes {
   export import NumberTypeOptions = defaultOptions.NumberTypeOptions;
+  export import PriceTypeOptions = defaultOptions.PriceTypeOptions;
   export import StringTypeOptions = defaultOptions.StringTypeOptions;
   export import DateTypeOptions = defaultOptions.DateTypeOptions;
   export import BooleanTypeOptions = defaultOptions.BooleanTypeOptions;
@@ -68,7 +67,7 @@ export namespace DefaultDataTypes {
   export import StringTimeType = defaultFiles.StringTimeType;
   export import FileTypeOptions = defaultFiles.FileTypeOptions;
   export import FileType = defaultFiles.FileType;
-  export import ImageValue = defaultFiles.ImageValue;
+  export type ImageValue = defaultFiles.ImageValue;
   export import ImageTypeOptions = defaultFiles.ImageTypeOptions;
   export import ImageType = defaultFiles.ImageType;
 

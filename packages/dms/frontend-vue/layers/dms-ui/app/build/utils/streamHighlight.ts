@@ -24,10 +24,11 @@ function tagsOf(type: string): Tag[] {
   const resolved = type.split(" ").flatMap((name) => {
     let found: Tag[] = [];
     for (const part of name.split(".")) {
-      const value = TAG_TABLE[part];
+      const value = Object.hasOwn(TAG_TABLE, part)
+        ? TAG_TABLE[part]
+        : undefined;
       if (isFunction(value)) found = found.map(value);
-      else if (value && !found.length)
-        found = Array.isArray(value) ? [...value] : [value];
+      else if (value && !found.length) found = [value];
     }
     return found;
   });
@@ -49,8 +50,8 @@ export function highlightStream<State>(
   highlighter: Highlighter,
   put: HighlightedRange,
 ): void {
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The CodeMirror-compatible fallback is true regardless of State; retain that unchecked parser default.
-  const state = parser.startState?.(INDENT_UNIT) ?? (true as State);
+  const stateful: StreamParser<State | true> = parser;
+  const state = stateful.startState?.(INDENT_UNIT) ?? true;
   let pending: { from: number; to: number; classes: string } | null = null;
   const flush = () => {
     if (pending) put(pending.from, pending.to, pending.classes);
@@ -66,12 +67,12 @@ export function highlightStream<State>(
 
   let lineStart = 0;
   for (const line of code.split("\n")) {
-    if (!line) parser.blankLine?.(state, INDENT_UNIT);
+    if (!line) stateful.blankLine?.(state, INDENT_UNIT);
     const stream = new StringStream(line, TAB_SIZE, INDENT_UNIT);
     let emptyTokens = 0;
     while (!stream.eol()) {
       stream.start = stream.pos;
-      const type = parser.token(stream, state);
+      const type = stateful.token(stream, state);
       if (stream.pos === stream.start) {
         if (++emptyTokens < MAX_EMPTY_TOKENS) continue;
         stream.next();

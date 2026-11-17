@@ -38,6 +38,7 @@ import {
   type ComponentNodeMap,
   filterComponents,
 } from "@antelopejs/interface-dms/page/layout-filter";
+import { tableViewOptionsOf } from "../../../helpers/serialized-options";
 
 const TABLE = "form-watch-contacts";
 const PAGE_PERMISSION_ID = "pages.form-watch-demo";
@@ -135,8 +136,7 @@ async function servedOptions(
     { tenantId: "form-watch-tenant", user: undefined },
   );
   if (!served.table) throw new Error("the table view was not served");
-  // SAFETY: filterComponents preserves the table-view options shape while filtering permissions; its heterogeneous component map erases each component's generic.
-  return served.table.options as TableViewOptionsSerialized;
+  return tableViewOptionsOf(served.table);
 }
 
 const ROW_ACTIONS = ["add", "edit", "view"].map(

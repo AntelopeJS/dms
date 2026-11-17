@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { ComponentPublicInstance, useAttrs } from "vue";
+import type { ResolvedComponentInfo } from "#dms-core/app/types/page";
 import { usePermissionPreview } from "#dms-core/app/entries/composables/auth/usePermissionPreview";
 import { childLayoutPath } from "#dms-core/app/entries/utils/permission-preview";
 import { childComponentId } from "../utils/componentId";
@@ -9,6 +10,7 @@ import {
 } from "./grid/constants";
 import DmsPermissionVeil from "../build/components/permission/PermissionVeil.vue";
 import { registerBlockAnchor } from "../build/composables/page/blockAnchors";
+import { BLOCK_PATH_KEY } from "../build/composables/blocks/blockDataState";
 
 interface Props {
   component: ResolvedComponentInfo;
@@ -33,12 +35,16 @@ interface Props {
 const props = defineProps<Props>();
 
 let anchored: ComponentPublicInstance | null = null;
-function anchorBlock(instance: Element | ComponentPublicInstance | null): void {
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Dynamic components can resolve to native elements; preserve the existing unchecked anchor forwarding.
-  const block = (instance as ComponentPublicInstance | null) ?? null;
+function anchorBlock(instance: ComponentPublicInstance | null): void {
+  const block = instance ?? null;
   registerBlockAnchor(props.layoutPath, block, anchored);
   anchored = block;
 }
+
+provide(
+  BLOCK_PATH_KEY,
+  computed(() => props.layoutPath),
+);
 
 const { t } = useI18n();
 const preview = usePermissionPreview();
@@ -66,11 +72,7 @@ function calculateColumnCount(
   children: ResolvedComponentInfo[] | undefined,
 ): number {
   if (!children) return 0;
-  return children.reduce(
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Keep the existing addition behavior even when an unvalidated colSpan is not numeric.
-    (sum, child) => sum + ((child.colSpan as number) || 1),
-    0,
-  );
+  return children.reduce((sum, child) => sum + (Number(child.colSpan) || 1), 0);
 }
 
 function getColSpanStyle(

@@ -1,13 +1,11 @@
-import type { RequestContext } from "@antelopejs/interface-api";
 import { GetMetadata } from "@antelopejs/interface-core";
-import type { DataControllerCallback } from "@antelopejs/interface-data-api";
-import { createGuardedRoute } from "@antelopejs/interface-dms/base/table-view/internal/guards";
+import { createGuardedConfirmRoute } from "@antelopejs/interface-dms/base/table-view/internal/guards";
 import { TableViewMeta } from "@antelopejs/interface-dms/base/table-view/meta";
 import type { TableViewGuards } from "@antelopejs/interface-dms/base/types/guards";
 import { expect } from "chai";
+import { untouchedRequestContext } from "../../../helpers/request-context";
 
-// SAFETY: These delete guards only record events; neither they nor the stubbed write access RequestContext members.
-const ctx = {} as RequestContext;
+const ctx = untouchedRequestContext();
 const DELETE_PARAMS = { id: ["row-1"] };
 
 class GuardedController {}
@@ -16,8 +14,8 @@ function withGuards(guards: TableViewGuards): void {
   GetMetadata(GuardedController, TableViewMeta).setControllerGuards(guards);
 }
 
-function route(write: () => Promise<string>): DataControllerCallback {
-  return createGuardedRoute(
+function route(write: () => Promise<string>) {
+  return createGuardedConfirmRoute(
     {
       func: write,
       args: [],
@@ -27,8 +25,13 @@ function route(write: () => Promise<string>): DataControllerCallback {
   );
 }
 
-async function call(guarded: DataControllerCallback) {
-  return guarded.func.call(new GuardedController(), ctx, DELETE_PARAMS);
+async function call(guarded: ReturnType<typeof route>) {
+  return guarded.func.call(
+    new GuardedController(),
+    ctx,
+    DELETE_PARAMS,
+    Buffer.alloc(0),
+  );
 }
 
 describe("[unit] interfaces/dms-base/table-view — after-write guards", () => {
@@ -65,7 +68,7 @@ describe("[unit] interfaces/dms-base/table-view — after-write guards", () => {
       }),
     ).then(
       () => undefined,
-      (error) => error,
+      (error: unknown) => error,
     );
     expect(failure).to.be.instanceOf(Error);
     expect(events).to.deep.equal([]);

@@ -5,6 +5,7 @@ import {
   describeOptions,
 } from "./internal/describe";
 import type { BlockTypeDefinition, BlockTypeDescriptor } from "./types";
+import { isObject } from "../../utils/internal/type-check";
 
 const DEFINITIONS = new Map<string, BlockTypeDefinition>();
 const DESCRIPTORS = new Map<string, BlockTypeDescriptor>();
@@ -50,8 +51,7 @@ function describe(definition: BlockTypeDefinition): BlockTypeDescriptor {
  * shared instance unwritable for every other consumer of the schema.
  */
 function deepFreeze<T>(value: T): T {
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Freezing arbitrary defaults must preserve primitive values without schema validation or coercion.
-  if (typeof value !== "object" || value === null || Object.isFrozen(value)) {
+  if (!isObject(value) || value === null || Object.isFrozen(value)) {
     return value;
   }
   for (const entry of Object.values(value)) {

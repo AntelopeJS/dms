@@ -7,10 +7,14 @@ import {
   Table,
 } from "@antelopejs/interface-database-decorators";
 import { TENANT_SCHEMA_NAME } from "../../constants";
-import type { InviteExtensionPayloads } from "../../invite-extensions/types";
+import type { InviteExtensionPayloads } from "../../invite-extension-payloads";
 import { Role } from "./roles.table";
 
 export const USER_INVITES_TABLE_NAME = "user_invites";
+const PENDING_INVITE_INDEX = "email_creationResolutionId";
+
+/** How an invitation created without a replacement settled. */
+export type FreshInviteOutcome = "kept" | "withdrawn";
 
 @RegisterTable(USER_INVITES_TABLE_NAME, TENANT_SCHEMA_NAME)
 export class UserInvite extends Table {
@@ -22,6 +26,7 @@ export class UserInvite extends Table {
   @Field("date")
   declare createdAt: Date;
 
+  @Index({ group: PENDING_INVITE_INDEX, unique: true })
   @Index({ crossInstance: true })
   @Field("string")
   declare email: string;
@@ -50,9 +55,25 @@ export class UserInvite extends Table {
   @Field("date")
   declare expiresAt: Date;
 
-  /** A replacement is actionable only after its creating resolution completes. */
+  /**
+   * Id of the resolution that created this invitation as a replacement, which
+   * is actionable only once that resolution completes. Empty for an invitation
+   * created without one: unique with `email`, so concurrent invitations of one
+   * email keep a single row.
+   */
+  @Index({ group: PENDING_INVITE_INDEX, unique: true })
   @Field("string")
   declare creationResolutionId?: string;
+
+  /**
+   * How an invitation created without a replacement settled after it looked
+   * for another invitation of its email: `kept`, or `withdrawn` because it
+   * found one. Absent while it is undecided. Written once, through
+   * `UserInviteModel.settleFresh`, so whichever of its creator's withdrawal
+   * and another caller's adoption writes first decides.
+   */
+  @Field("string")
+  declare freshOutcome?: FreshInviteOutcome;
 
   /**
    * Id of the user who sent the invitation, or last resent it. `null` for an

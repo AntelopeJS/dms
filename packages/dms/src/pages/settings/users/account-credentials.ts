@@ -1,4 +1,4 @@
-import { assert, assertValidation } from "@antelopejs/interface-api-util";
+import { assert } from "@antelopejs/interface-api-util";
 import type {
   SessionModel,
   User,
@@ -206,15 +206,13 @@ export async function revokeOtherSessions(
  */
 export async function changePassword(
   user: User,
-  body: Parameters<typeof securitySchema.changePassword.parse>[0],
+  body: ReturnType<typeof securitySchema.changePassword.parse>,
   context: PasswordChangeContext,
 ): Promise<PasswordChangeResult> {
-  const { currentPassword, password } = assertValidation(body, (value) =>
-    securitySchema.changePassword.parse(value),
-  );
+  const { currentPassword, password } = body;
   await assertCurrentPasswordIfSet(context.userModel, user, currentPassword);
   const passwordChangedAt = new Date();
-  user.password = password;
+  await user.setHashAsync("password", password);
   user.passwordChangedAt = passwordChangedAt;
   const revoked = await revokeOtherSessions(user, context);
   fireAndForget(

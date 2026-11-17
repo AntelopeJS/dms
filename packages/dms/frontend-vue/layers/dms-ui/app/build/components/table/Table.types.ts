@@ -29,7 +29,7 @@ import type {
 import type { CustomRowAction } from "../../../types/row-action";
 import type { TableViewRowClick } from "../../utils/rowClickTrigger";
 import type { RowActionConfig } from "#dms-core/app/types/row-action";
-import type { TableTabItem } from "./Tabs.vue";
+import type { TableTabItem } from "./TableTabs.vue";
 import type { ColumnDisplay } from "../../composables/data-types/useColumnValueRenderer";
 import type { ResolvedTableChrome } from "../../composables/table-view/utils/chrome";
 import type { ResolvedQuickFilter } from "../../composables/table-view/utils/quickFilters";
@@ -316,10 +316,10 @@ export interface TableEmits<T> {
 
 export interface TableFilter {
   accessorKey: string;
-  value?: unknown | unknown[];
+  value?: unknown;
   mode: string;
   pinned?: boolean;
-  initialValue?: unknown | unknown[];
+  initialValue?: unknown;
 }
 
 /** A filter the page URL applies and shows (see `TableProps.urlFilters`). */
@@ -362,9 +362,9 @@ export interface TableSharedData<T> {
    * Clears everything that narrows the rows — filter chips (quick filters
    * included) and the toolbar search — and goes back to the first page.
    */
-  resetFilters: () => void;
+  resetFilters: () => Promise<void>;
   /** Empties the toolbar search alone (the toolbar folds it). */
-  clearSearch: () => void;
+  clearSearch: () => Promise<void>;
   /** Clears the filter chips alone, the search kept. */
   clearFilters: () => void;
   /** What `resetFilters` would clear (nothing: no clear action to offer). */

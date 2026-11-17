@@ -1,38 +1,42 @@
 import type {
   AttachmentField,
-  AttachmentSaveRequest,
+  AttachmentSaveResult,
 } from "@antelopejs/interface-dms/attachments";
+import { ownValue } from "../utils/own-value";
+import { isString } from "@antelopejs/interface-dms/utils/internal/type-check";
 
 export interface AttachmentReference {
   key: string;
   field: AttachmentField;
 }
 
-function extractKeys(
-  value: AttachmentSaveRequest["submitted"][string],
-  kind: AttachmentField["kind"],
-): string[] {
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- A file reference is a nonempty string; other submitted values remain ignored.
-  if (kind === "file" && typeof value === "string") return value ? [value] : [];
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Only containers can hold nested references.
-  if (!value || typeof value !== "object") return [];
-  if (!Array.isArray(value) && kind === "image" && "key" in value) {
-    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Image references require a nonempty string key.
-    return typeof value.key === "string" && value.key ? [value.key] : [];
-  }
-  return Object.values(value).flatMap((item) => extractKeys(item, kind));
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
 }
 
 export function collectAttachments(
   fields: AttachmentField[],
-  document: AttachmentSaveRequest["submitted"],
+  document: AttachmentSaveResult<unknown>["document"],
 ): AttachmentReference[] {
-  return fields.flatMap((field) =>
-    [...new Set(extractKeys(document[field.key], field.kind))].map((key) => ({
-      key,
-      field,
-    })),
-  );
+  return fields.flatMap((field) => {
+    const keys = new Set<string>();
+    const pending: unknown[] = [ownValue(document, field.key)];
+    while (pending.length > 0) {
+      const item = pending.pop();
+      if (field.kind === "file" && isString(item)) {
+        if (item) keys.add(item);
+      } else if (isRecord(item)) {
+        if (!Array.isArray(item) && field.kind === "image" && "key" in item) {
+          if (isString(item.key) && item.key) keys.add(item.key);
+        } else {
+          const children = Object.values(item);
+          for (let index = children.length - 1; index >= 0; index -= 1)
+            pending.push(children[index]);
+        }
+      }
+    }
+    return [...keys].map((key) => ({ key, field }));
+  });
 }
 
 export function containsAttachment(

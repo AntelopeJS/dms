@@ -65,6 +65,7 @@ export interface TableViewOptionsSerialized extends Omit<
   | "forms"
   | "expandable"
   | "tabs"
+  | "tabsFrom"
   | "views"
   | "footer"
   | "emptyStates"
@@ -116,6 +117,14 @@ export interface TableViewOptionsSerialized extends Omit<
  * the rows once again when the hold ends, if it missed any.
  */
 export interface TableViewLiveHoldOptions {
+  /**
+   * While its rows are on screen or scrolled past: a new row landing at the
+   * top would push down the rows the user reads, so the new ones wait behind
+   * the "N new · Show" pill. `false` lets the table follow its feed while its
+   * page is in Direct, holding only while paused or for a reason it names.
+   * Defaults to true.
+   */
+  whileOnScreen?: boolean;
   /** While one of its rows is open in the side panel. Defaults to false. */
   whileRowOpen?: boolean;
   /** While the user has scrolled its first row out of view. Defaults to false. */
@@ -141,7 +150,7 @@ export interface TableViewLiveHoldOptions {
 
 export interface TableViewOptions<
   // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Published default accepts module-owned rows.
-  T extends Record<string, unknown> = Record<string, unknown>,
+  T extends object = Record<string, unknown>,
 > {
   caption?: string;
   /**
@@ -295,6 +304,15 @@ export interface TableViewOptions<
    * registration when a table declares tabs without it.
    */
   tabs?: TableViewTab[];
+  /**
+   * Reads the tabs from the rows instead of listing them in `tabs`: "All",
+   * then a tab per value `column`, a filterable column of the controller,
+   * holds in the rows the caller may list, filtering the rows that hold it
+   * and drawn in the tone the DMS's status rules give it. Read when the page
+   * is served; no tabs show when the column holds none, more than 10 values,
+   * or cannot be read. Registration refuses it together with `tabs`.
+   */
+  tabsFrom?: { column: string };
   /**
    * When false, disables realtime broadcast/presence for this resource.
    * Defaults to true (realtime is opt-out).

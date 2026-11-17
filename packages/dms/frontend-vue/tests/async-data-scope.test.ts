@@ -17,6 +17,7 @@ import {
 } from "vue";
 import { renderToString } from "vue/server-renderer";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { dmsAppContext, emptyTranslations } from "./fixtures/dmsAppContext";
 import type { DmsFrontendRuntime } from "#dms/frontend-module";
 import { asyncDataScopeOf } from "../layers/dms-core/app/entries/utils/asyncDataScope";
 
@@ -27,6 +28,10 @@ const { default: asyncDataScopePlugin } = await import(
 
 const ACCOUNT_A = { accountId: "account-a", activeTenantId: "tenant-1" };
 const ACCOUNT_B = { accountId: "account-b", activeTenantId: "tenant-1" };
+
+function sessionState() {
+  return engine.useDmsState<typeof ACCOUNT_A | null>("dms-session", () => null);
+}
 
 const handler = vi.fn(async () => "orders of account A");
 
@@ -43,16 +48,15 @@ const Root = defineComponent({
 
 const mounted: App[] = [];
 
-function start(
+async function start(
   app: App,
   runtime: DmsFrontendRuntime,
   session: typeof ACCOUNT_A,
-) {
+): Promise<void> {
   engine.provideDmsFrontendRuntime(app, runtime);
-  app.runWithContext(() => {
-    engine.useDmsState("dms-session", () => null).value = session;
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The plugin uses injected runtime state, not context fields; a full app context would be unused fixture data.
-    void asyncDataScopePlugin({} as never);
+  await app.runWithContext(() => {
+    sessionState().value = session;
+    return asyncDataScopePlugin(dmsAppContext(app));
   });
 }
 
@@ -87,7 +91,7 @@ describe("the async data scope", () => {
   it("hands the server's data to the browser under the same session", async () => {
     const server = engine.createDmsFrontendRuntime(undefined, {}, true);
     const serverApp = createSSRApp(Root);
-    start(serverApp, server, ACCOUNT_A);
+    await start(serverApp, server, ACCOUNT_A);
     expect(await renderToString(serverApp)).toBe("<p>orders of account A</p>");
     const payload = structuredClone(engine.serializeDmsPayload(server));
     expect(JSON.stringify(payload)).not.toContain("account-a");
@@ -95,7 +99,7 @@ describe("the async data scope", () => {
     handler.mockClear();
     const browser = engine.createDmsFrontendRuntime(undefined, {});
     const browserApp = createApp(Root);
-    start(browserApp, browser, ACCOUNT_A);
+    await start(browserApp, browser, ACCOUNT_A);
     engine.restoreDmsPayload(browser, payload);
     const host = document.createElement("div");
     browserApp.mount(host);
@@ -109,7 +113,7 @@ describe("the async data scope", () => {
   it("drops the previous account's data once the session switches", async () => {
     const browser = engine.createDmsFrontendRuntime(undefined, {});
     const browserApp = createApp(Root);
-    start(browserApp, browser, ACCOUNT_A);
+    await start(browserApp, browser, ACCOUNT_A);
     const host = document.createElement("div");
     browserApp.mount(host);
     mounted.push(browserApp);
@@ -117,7 +121,7 @@ describe("the async data scope", () => {
     expect(host.textContent).toBe("orders of account A");
 
     browserApp.runWithContext(() => {
-      engine.useDmsState("dms-session", () => null).value = ACCOUNT_B;
+      sessionState().value = ACCOUNT_B;
     });
     await settle();
 
@@ -152,12 +156,11 @@ describe("the async data scope", () => {
     const app = createApp(Root);
     engine.provideDmsFrontendRuntime(app, browser);
     app.runWithContext(() => {
-      engine.useDmsState("dms-session", () => null).value = ACCOUNT_A;
+      sessionState().value = ACCOUNT_A;
     });
     await engine.installDmsPlugins(
       app,
-      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Only the locale and message setter are used in this no-translation plugin fixture.
-      { locale: { value: "en" }, setLocaleMessage() {} } as never,
+      emptyTranslations(),
       browser,
       async () => ({}),
       ["en"],

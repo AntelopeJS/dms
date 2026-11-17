@@ -3,13 +3,14 @@ import type {
   ConfirmDialog,
 } from "#dms-core/app/types/confirm-dialog";
 import { isConfirmFrom } from "#dms-core/app/types/confirm-dialog";
-import { resolveActionError } from "./actionError";
 import type {
   ConfirmOptions,
   ConfirmPartialOutcome,
   ConfirmValues,
 } from "../../../composables/confirm/types";
 import { resolveConfirmDialog } from "./confirmDialogTexts";
+import { drawableFetchedDialog } from "./fetchedConfirmDialog";
+import type { DownloadFetch } from "../../utils/fileDownload";
 import { secondaryTargetRunner } from "./secondaryTarget";
 import { namesPageValue, resolveLinkVariables } from "../../utils/urlVariables";
 import { currentPageUrlValues } from "../page/pageUrlValues";
@@ -42,9 +43,11 @@ export interface ActionConfirmRequest {
 export function useActionConfirm() {
   const { confirm } = useConfirm();
   const { $authFetch } = useAuthFetch();
+  const fetchRaw: DownloadFetch = (url, options) =>
+    $authFetch.raw(url, options);
   const { t } = useI18n();
-  const toast = useToast();
-  const runSecondaryTarget = secondaryTargetRunner($authFetch.raw);
+  const errorPresenter = useApiErrorPresenter();
+  const runSecondaryTarget = secondaryTargetRunner(fetchRaw);
 
   const loadDialog = async (
     declared: ActionConfirm,
@@ -59,13 +62,14 @@ export function useActionConfirm() {
       ...request.urlParams,
     });
     try {
-      return await $authFetch<ConfirmDialog>(url);
+      const drawable = drawableFetchedDialog(
+        await $authFetch<ConfirmDialog>(url),
+      );
+      if (!drawable) throw new Error(`${url} answered a field it cannot draw`);
+      return drawable;
     } catch (error) {
-      toast.add({
-        color: Color.error,
-        icon: "i-ph-warning-circle",
-        title: t("dms.form.error_title"),
-        description: resolveActionError(error, t),
+      errorPresenter.presentError(error, {
+        fallbackKey: "dms.action_error.generic",
       });
       return undefined;
     }
@@ -100,8 +104,9 @@ export function useActionConfirm() {
 }
 
 function withoutUndefined<T extends object>(value: T): Partial<T> {
-  // SAFETY: Filtering Object.entries only removes properties from T; it never changes the values of the retained properties.
-  return Object.fromEntries(
-    Object.entries(value).filter(([, entry]) => entry !== undefined),
-  ) as Partial<T>;
+  const defined: Partial<T> = { ...value };
+  for (const [key, entry] of Object.entries(value)) {
+    if (entry === undefined) Reflect.deleteProperty(defined, key);
+  }
+  return defined;
 }

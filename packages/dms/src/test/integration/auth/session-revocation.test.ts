@@ -2,14 +2,17 @@ import { expect } from "chai";
 import {
   authorizedClient,
   loginUser,
+  parseAuthBody,
   type RegisteredUser,
   registerUser,
 } from "../../helpers/auth";
 import { resetDatabase } from "../../helpers/db";
+import { createClient } from "../../helpers/http";
 import { pageRoutePath } from "@antelopejs/interface-dms/page";
 
 const SESSIONS_URL = pageRoutePath("/settings/user/security", "/sessions");
 const LOGOUT_URL = "/api/auth/logout";
+const REFRESH_URL = "/api/auth/refresh";
 const ME_URL = "/api/auth/me";
 const HTTP_OK = 200;
 const HTTP_NO_CONTENT = 204;
@@ -71,5 +74,28 @@ describe("[integration] auth/session revocation", () => {
 
     expect(await meStatus(otherDevice.accessToken)).to.equal(HTTP_UNAUTHORIZED);
     expect(await meStatus(user.accessToken)).to.equal(HTTP_OK);
+  });
+
+  it("refuses the tokens a renewal returned just before the logout", async () => {
+    const renewed = parseAuthBody(
+      await createClient().post(REFRESH_URL, {
+        token: otherDevice.refreshToken,
+      }),
+    );
+    const logout = await authorizedClient(otherDevice.accessToken).post(
+      LOGOUT_URL,
+      { token: otherDevice.refreshToken },
+    );
+    expect(logout.status, JSON.stringify(logout.data)).to.equal(
+      HTTP_NO_CONTENT,
+    );
+
+    const reused = await createClient().post(REFRESH_URL, {
+      token: renewed.refresh_token,
+    });
+    expect(reused.status, JSON.stringify(reused.data)).to.equal(
+      HTTP_UNAUTHORIZED,
+    );
+    expect(await meStatus(renewed.access_token)).to.equal(HTTP_UNAUTHORIZED);
   });
 });

@@ -1,13 +1,18 @@
 <script setup lang="ts" generic="T extends Data">
+import { themeOverride } from "./tableComponentTheme";
 import { injectLocal } from "@vueuse/core";
 
-import type { Data, TableFilter, TableSharedData } from "./Table.vue";
+import type { Data, TableFilter, TableSharedData } from "./TableRoot.vue";
 import { tv } from "tailwind-variants";
 import type { ShallowRef } from "vue";
 import defu from "defu";
 import type { SelectItem } from "@nuxt/ui";
 import { formatFilterValue as formatFilterValueUtil } from "../../composables/table/utils/formatFilterValue";
 import { clearTableFiltersLabelKey } from "../../composables/table/utils/clearTableFilters";
+
+export interface MenuFilterProps {
+  isFormOnly?: boolean;
+}
 
 const theme = tv({
   slots: {
@@ -28,10 +33,6 @@ const theme = tv({
   },
 });
 
-interface MenuFilterProps {
-  isFormOnly?: boolean;
-}
-
 const props = withDefaults(defineProps<MenuFilterProps>(), {
   isFormOnly: false,
 });
@@ -44,10 +45,7 @@ const tableSharedData = computed(() => tableSharedDataRef?.value);
 const { getDataType } = useDataTypes();
 const { t, locale } = useI18n();
 
-// oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Module theme configuration is unchecked; retain its existing contract derived from this component's normalized theme.
-const appConfig = useDmsAppConfig() as ReturnType<typeof useDmsAppConfig> & {
-  ui: { tableMenuFilter: Partial<typeof theme> };
-};
+const appConfig = useDmsAppConfig();
 
 const usedAccessorKeys = computed(() => {
   const filtersValue = tableSharedData.value?.columnFiltersState.value || [];
@@ -241,7 +239,7 @@ if (props.isFormOnly) {
 
 const uiTableMenuFilterVariant = tv({
   extend: tv(theme),
-  ...appConfig.ui?.tableMenuFilter,
+  ...themeOverride("tableMenuFilter"),
 });
 const uiTableMenuFilter = computed(() => uiTableMenuFilterVariant());
 

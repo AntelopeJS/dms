@@ -1,5 +1,4 @@
 import { isNumber } from "../../../../dms-core/app/utils/type-check";
-import type { ChartXAxisFormatter } from "./types";
 
 /**
  * Width of one character of the axis font (11px, monospace) in pixels, with a
@@ -38,19 +37,22 @@ export function categoryLabelStep(
 }
 
 /**
- * A heatmap gives every column a label and ApexCharts does not thin them
- * (`hideOverlappingLabels` only acts on other charts), so on a phone they run
- * into each other ("07:0009:00"). This formatter keeps one label every few
- * columns, from the plot's width, and leaves the tooltip's (no column index)
- * whole.
+ * A category x-axis gives every point a label and ApexCharts does not thin
+ * them (`hideOverlappingLabels` only acts on numeric and datetime axes), so a
+ * long series or a narrow plot runs them into each other ("Aug 4, 2026Aug 8,
+ * 2026"). This formatter keeps one label every few columns, from the plot's
+ * width, and leaves the tooltip's (no column index) whole.
  */
 export function thinnedCategoryFormatter(
-  format: ChartXAxisFormatter | undefined,
+  format: ApexLabelFormatter | undefined,
 ): ApexLabelFormatter {
-  const write = (value: string, timestamp?: number): string =>
-    format ? format(value, timestamp) : String(value ?? "");
+  const write = (
+    value: string,
+    timestamp?: number,
+    opts?: ApexLabelFormatterOpts,
+  ): string => (format ? format(value, timestamp, opts) : String(value ?? ""));
   return (value, timestamp, opts) => {
-    const label = write(value, timestamp);
+    const label = write(value, timestamp, opts);
     const index = opts?.i;
     const globals = opts?.w?.globals;
     if (!isNumber(index) || !globals) return label;

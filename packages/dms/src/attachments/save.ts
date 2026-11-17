@@ -11,8 +11,12 @@ import type {
   AttachmentSaveRequest,
   AttachmentSaveResult,
 } from "@antelopejs/interface-dms/attachments";
-import type { UploadTokenClaims } from "../utils";
 import { assertNativeFileAccess } from "./access";
+import {
+  isNull,
+  isObject,
+  isString,
+} from "@antelopejs/interface-dms/utils/internal/type-check";
 import { findConstraintViolation } from "./constraints";
 import {
   type AttachmentReference,
@@ -20,14 +24,11 @@ import {
   containsAttachment,
 } from "./fields";
 import { denyAttachment, findAttachment, loadAttachment } from "./registry";
+import { readStoredClaims } from "./stored-claims";
 
 const BAD_REQUEST = 400;
 
 const FILE_NOT_FOUND_ERROR_NAME = "FileNotFoundError";
-
-function isFileNotFoundError(error: PromiseRejectedResult["reason"]): boolean {
-  return error instanceof Error && error.name === FILE_NOT_FOUND_ERROR_NAME;
-}
 
 /**
  * The canonical key of a submitted reference and its stored metadata. A
@@ -42,7 +43,7 @@ async function storedReference(ref: AttachmentReference) {
       : ref.key;
     return { key, metadata: await GetFileMetadata(key, ref.field.storage) };
   } catch (error) {
-    if (isFileNotFoundError(error))
+    if (error instanceof Error && error.name === FILE_NOT_FOUND_ERROR_NAME)
       throw new HTTPResult(
         BAD_REQUEST,
         "A submitted file was never stored. Upload it again.",
@@ -64,7 +65,7 @@ async function validateReference(
   ref: AttachmentReference,
 ): Promise<void> {
   const attachment = await loadAttachment(ref.key, ref.field.storage);
-  const owner: UploadTokenClaims = JSON.parse(attachment.claimsJson);
+  const owner = readStoredClaims(attachment.claimsJson);
   const principal = await assertNativeFileAccess(request.context, owner, false);
   if (
     principal.tenantId !== attachment.tenantId ||
@@ -85,24 +86,50 @@ async function prepareReferences(
   return submitted;
 }
 
-async function remapValue(
-  value: AttachmentSaveRequest["submitted"][string],
-  map: Map<string, string>,
-): Promise<AttachmentSaveRequest["submitted"][string]> {
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Only strings can match promoted storage keys.
-  if (typeof value === "string") return map.get(value) ?? value;
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Primitive non-string values are preserved without traversal.
-  if (!value || typeof value !== "object") return value;
-  if (Array.isArray(value))
-    return Promise.all(value.map((item) => remapValue(item, map)));
-  return Object.fromEntries(
-    await Promise.all(
-      Object.entries(value).map(async ([key, item]) => [
-        key,
-        await remapValue(item, map),
-      ]),
-    ),
-  );
+/** A container of the submitted value: its keys and values, and the copy that receives them remapped. */
+interface PendingCopy {
+  keys: string[];
+  values: unknown[];
+  copy: object;
+}
+
+/**
+ * Copies a submitted value with each string that names a promoted file
+ * replaced by its canonical key. Walks with an explicit stack and allocates
+ * no promise per node, so the memory it holds follows the size of the value
+ * and never its depth. The value is walked as the only entry of a one-slot
+ * array, so the root takes the same path as every child.
+ */
+// oxlint-disable-next-line anti-slop/no-unknown-parameters, anti-slop/no-unknown-returns -- remapValue copies one field of request.submitted, request JSON that may carry a value an earlier save stored, of any shape, with promoted keys swapped, after dms#728 bounds the body at 64 levels, walking it with the explicit stack of dms#739.
+function remapValue(value: unknown, map: Map<string, string>): unknown {
+  const result = [value];
+  const pending: PendingCopy[] = [
+    { keys: ["0"], values: [value], copy: result },
+  ];
+  for (let node = pending.pop(); node; node = pending.pop()) {
+    for (const [index, key] of node.keys.entries()) {
+      const item = node.values[index];
+      let remapped = item;
+      if (isString(item)) remapped = map.get(item) ?? item;
+      else if (item && isObject(item)) {
+        const copy = Array.isArray(item) ? Array.from(item) : {};
+        const source = Array.isArray(copy) ? copy : item;
+        pending.push({
+          keys: Object.keys(source),
+          values: Object.values(source),
+          copy,
+        });
+        remapped = copy;
+      }
+      Object.defineProperty(node.copy, key, {
+        value: remapped,
+        enumerable: true,
+        writable: true,
+        configurable: true,
+      });
+    }
+  }
+  return result[0];
 }
 
 async function promoteReferences(
@@ -117,15 +144,15 @@ async function promoteReferences(
       assertConstraints(metadata, ref);
       mapping.set(ref.key, key);
     }
-    if (field.key in document)
-      document[field.key] = await remapValue(document[field.key], mapping);
+    if (Object.hasOwn(document, field.key))
+      document[field.key] = remapValue(document[field.key], mapping);
   }
   return document;
 }
 
 async function cleanRemoved(
   request: AttachmentSaveRequest,
-  document: AttachmentSaveRequest["submitted"],
+  document: AttachmentSaveResult<unknown>["document"],
 ) {
   const after = collectAttachments(request.fields, document);
   for (const ref of collectAttachments(request.fields, request.before)) {
@@ -142,13 +169,45 @@ async function cleanRemoved(
   }
 }
 
-/** Failed saves retain promoted objects: another save may already reference them. */
+/** The deepest nesting of arrays and objects a submitted file field may have, the body itself counted. */
+const MAX_BODY_DEPTH = 64;
+
+/**
+ * Refuses a submitted file field that nests arrays and objects deeper than
+ * {@link MAX_BODY_DEPTH}, before the recursive walks over it can overflow the
+ * stack. Walks with an explicit stack, so it is safe at any depth.
+ *
+ * @throws HTTPResult 400 when a field is nested too deep.
+ */
+function assertBodyDepth(request: AttachmentSaveRequest): void {
+  const pending = request.fields.map((field) => ({
+    value: request.submitted[field.key],
+    depth: 2,
+  }));
+  for (let node = pending.pop(); node; node = pending.pop()) {
+    if (!isObject(node.value) || isNull(node.value)) continue;
+    if (node.depth > MAX_BODY_DEPTH)
+      throw new HTTPResult(
+        BAD_REQUEST,
+        `The JSON body nests more than ${MAX_BODY_DEPTH} levels deep.`,
+      );
+    for (const item of Object.values(node.value))
+      pending.push({ value: item, depth: node.depth + 1 });
+  }
+}
+
+/**
+ * Failed saves retain promoted objects: another save may already reference
+ * them. A submitted file field nested more than {@link MAX_BODY_DEPTH} levels
+ * deep is refused with HTTP 400 before any file is touched.
+ */
 export async function SaveComponentFiles<T>(
   request: AttachmentSaveRequest,
   save: (
-    document: AttachmentSaveRequest["submitted"],
+    promoted: AttachmentSaveRequest["submitted"],
   ) => Promise<AttachmentSaveResult<T>>,
 ): Promise<T> {
+  assertBodyDepth(request);
   const refs = await prepareReferences(request);
   const saved = await save(await promoteReferences(request, refs));
   await cleanRemoved(request, saved.document);

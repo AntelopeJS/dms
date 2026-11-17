@@ -15,7 +15,7 @@ import type { PageMetadata } from "../metadata";
 import { collectComponentTree } from "./component-tree";
 import { opensToMembers } from "./member-access";
 import type { PageRegistration } from "./page-registration";
-import { permissionMap } from "./registry";
+import { pageMetadataByFullId, permissionMap } from "./registry";
 
 /** @internal */
 export function actionPermissions(
@@ -129,8 +129,26 @@ export function unregisterComponent(
     context.nodes().delete(node.permissionId);
     context.notified().delete(node.component);
   }
-  if (!context.ownsPermissions()) return;
+  if (!context.ownsPermissions()) {
+    for (const node of nodes) releaseComponentIdentity(node);
+    return;
+  }
   for (const node of nodes) context.unregister(node);
+}
+
+/**
+ * Drop a position's entry from the permission map on behalf of a page that no
+ * longer owns its id, unless a live page holds the same component at that
+ * position. Only the entry is released: the permissions of the position and of
+ * its component's actions stay registered.
+ */
+function releaseComponentIdentity(node: ComponentTreeNode): void {
+  if (node.access !== "own") return;
+  if (permissionMap.get(node.component) !== node.permissionId) return;
+  const held = [...pageMetadataByFullId.values()].some((page) =>
+    page.ComponentPermissionIds(node.component).includes(node.permissionId),
+  );
+  if (!held) permissionMap.delete(node.component);
 }
 
 interface ComponentPreparationContext {

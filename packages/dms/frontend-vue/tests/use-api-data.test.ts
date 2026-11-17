@@ -5,6 +5,7 @@
  * browser hydrates with it and follows reactive requests, and every request
  * keeps `$authFetch`'s headers and session retry.
  */
+import { surfaceRejection } from "./surface-rejection";
 import {
   createApp,
   createSSRApp,
@@ -59,19 +60,20 @@ const sent: Sent[] = [];
 let failNextWith: number | undefined;
 
 /** The transport under `$fetch`: what reaches the backend. */
-// SAFETY: These cases request only { url, page }; the transport invokes the auth hook with normalized headers before answering.
-const transport = (async (
-  url: string,
-  options: {
-    query?: { page?: number };
-    headers?: HeadersInit;
-    signal?: AbortSignal;
-    onRequest?: (context: { options: { headers: Headers } }) => void;
-  } = {},
-) => {
+const transport: NonNullable<
+  Parameters<typeof engine.createDmsFrontendRuntime>[0]
+> = async (url, options = {}) => {
   const headers = new Headers(options.headers);
-  options.onRequest?.({ options: { headers } });
-  sent.push({ url, query: options.query, headers, signal: options.signal });
+  const hooks = options.onRequest ?? [];
+  for (const hook of Array.isArray(hooks) ? hooks : [hooks]) {
+    await hook({ request: url, options: { ...options, headers } });
+  }
+  sent.push({
+    url,
+    query: options.query,
+    headers,
+    signal: options.signal ?? undefined,
+  });
   if (failNextWith) {
     const status = failNextWith;
     failNextWith = undefined;
@@ -80,8 +82,9 @@ const transport = (async (
       response: { status },
     });
   }
-  return { url, page: options.query?.page ?? null };
-}) as Parameters<typeof engine.createDmsFrontendRuntime>[0];
+  const page: unknown = options.query?.page ?? null;
+  return { url, page };
+};
 
 const mounted: App[] = [];
 
@@ -357,7 +360,9 @@ function registerApiPollingTests() {
     const interval = ref(20);
     const Install = defineComponent({
       setup() {
-        useApiData("/api/install-check", { refreshInterval: interval });
+        surfaceRejection(
+          useApiData("/api/install-check", { refreshInterval: interval }),
+        );
         return () => h("p");
       },
     });
@@ -382,7 +387,7 @@ function registerApiPollingTests() {
     engine.provideDmsFrontendRuntime(app, runtime);
     const polling = ref(true);
     await settle();
-    app.runWithContext(() =>
+    await app.runWithContext(() =>
       useApiData("/api/_ai/status", {
         refreshInterval: () => (polling.value ? 20 : null),
       }),

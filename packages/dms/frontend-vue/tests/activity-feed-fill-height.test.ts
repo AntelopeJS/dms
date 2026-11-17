@@ -1,11 +1,12 @@
-import { createSSRApp, defineComponent, h, ref } from "vue";
+import { createSSRApp, defineComponent, h, ref, shallowRef } from "vue";
 import { renderToString } from "vue/server-renderer";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import ActivityFeed from "../layers/dms-ui/app/components/activity-feed/ActivityFeed.vue";
+import type { ApiAnswer } from "./helpers/api-data-runtime";
 import { chartRuntime } from "./helpers/charts-runtime";
 
 type FeedProps = InstanceType<typeof ActivityFeed>["$props"];
-const items = ref<FeedProps["items"]>([]);
+const items = shallowRef<ApiAnswer[]>([]);
 
 const Slot = defineComponent({
   props: { title: { type: String, default: undefined } },
@@ -27,7 +28,7 @@ async function render(props: FeedProps): Promise<string> {
       }),
   });
   for (const name of [
-    "DmsCard",
+    "DmsCardPanel",
     "UIcon",
     "USkeleton",
     "UButton",
@@ -50,7 +51,7 @@ beforeEach(() => {
     id: `e${index}`,
     title: `Entry ${index}`,
     date: new Date(Date.UTC(2026, 9, 9, 23 - index)).toISOString(),
-  }));
+  })) satisfies FeedProps["items"];
   vi.stubGlobal("useI18n", () => ({ locale: ref("en-GB"), t: String }));
 });
 

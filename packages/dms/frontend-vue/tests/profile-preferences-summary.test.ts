@@ -1,5 +1,14 @@
 /** @vitest-environment jsdom */
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+  type Mock,
+} from "vitest";
 import { createApp, defineComponent, h, nextTick, ref, type App } from "vue";
 import UIcon from "@nuxt/ui/runtime/vue/components/Icon.vue";
 import iconsPlugin from "@nuxt/ui/runtime/vue/plugins/icons.js";
@@ -16,7 +25,11 @@ import {
 } from "../layers/dms-layout/app/entries/composables/settings/profile/preferencesSummary";
 import type { NotificationSubject } from "../layers/dms-layout/app/entries/composables/notification/useNotificationCatalog";
 import { DEFAULT_ACCESSIBILITY_PREFERENCES } from "../layers/dms-ui/app/entries/utils/accessibilityPreferences";
-import { browserRuntime, stubApiData } from "./helpers/api-data-runtime";
+import {
+  browserRuntime,
+  stubApiData,
+  type ApiAnswer,
+} from "./helpers/api-data-runtime";
 import { installAuthSettingsRuntime } from "./helpers/auth-settings-runtime";
 import { useSiteLayout } from "../layers/dms-core/app/composables/page/useSiteLayout";
 import { useNotifications } from "../layers/dms-layout/app/composables/notification/useNotifications";
@@ -73,17 +86,20 @@ const t: SummaryTranslate = (key, params = {}, plural) => {
   );
 };
 
-const subject = (
-  id: string,
-  extra: Partial<NotificationSubject> = {},
-): NotificationSubject => ({
-  id,
-  labelKey: id,
-  category: { id: "core", labelKey: "core", icon: "i-ph-bell" },
-  ...extra,
-});
+const subject = (id: string, extra: { locked?: boolean } = {}) =>
+  ({
+    id,
+    labelKey: id,
+    category: { id: "core", labelKey: "core", icon: "i-ph-bell" },
+    ...extra,
+  }) satisfies NotificationSubject;
 
 describe("summary sentences", () => {
+  beforeAll(() => {
+    weekdayName("fr-FR", 0);
+    weekdayName("en-GB", 0);
+  });
+
   it("lists the roles and says who owns the workspace", () => {
     expect(
       buildAccessSummary(t, {
@@ -223,8 +239,9 @@ describe("access gating", () => {
 });
 
 const navPages = ref<{ fullId: string; to: string }[]>([]);
-let authFetch: ReturnType<typeof vi.fn>;
-let resolveAccess: (value: Parameters<typeof buildAccessSummary>[1]) => void;
+let authFetch: Mock<(url: string) => Promise<ApiAnswer>>;
+type ProfileAccess = Parameters<typeof buildAccessSummary>[1];
+let resolveAccess: (value: ApiAnswer) => void;
 let resolvePreferences: (value: Record<string, boolean>) => void;
 let feed: ReturnType<typeof useNotifications>;
 let theme: "dark" | "system" = "dark";
@@ -329,7 +346,7 @@ beforeEach(() => {
         categories: [{ id: "core", labelKey: "Core" }],
         subjects: [subject("a"), subject("b", { locked: true }), subject("c")],
       });
-    return new Promise((resolve) => {
+    return new Promise<ApiAnswer>((resolve) => {
       if (url.endsWith("/access")) resolveAccess = resolve;
       else resolvePreferences = resolve;
     });
@@ -383,7 +400,7 @@ describe("Preferences & access section", () => {
       roles: ["Admin"],
       workspaceOwner: true,
       platformOwner: false,
-    });
+    } satisfies ProfileAccess);
     await flush();
     expect(skeletonRows()).toBe(0);
     expect(rowTexts()).toEqual([
@@ -450,7 +467,11 @@ describe("Preferences & access section", () => {
     expect(buttons()).toEqual([]);
     expect(readsPreferences()).toBe(false);
 
-    resolveAccess({ roles: [], workspaceOwner: false, platformOwner: false });
+    resolveAccess({
+      roles: [],
+      workspaceOwner: false,
+      platformOwner: false,
+    } satisfies ProfileAccess);
     await flush();
     expect(rowTexts()[0]).toContain("No role in this workspace");
   });

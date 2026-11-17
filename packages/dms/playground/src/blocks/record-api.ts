@@ -1,9 +1,15 @@
-import { Controller, Get, Parameter } from "@antelopejs/interface-api";
+import {
+  Controller,
+  Get,
+  Parameter,
+  type QueryValue,
+} from "@antelopejs/interface-api";
 import type { ActivityFeedItem } from "@antelopejs/interface-dms/base/activity-feed";
 import type { BannerContent } from "@antelopejs/interface-dms/base/banner";
 import type { KeyValueListItem } from "@antelopejs/interface-dms/base/key-value-list";
 import type { StatGroupItem } from "@antelopejs/interface-dms/base/stat-group";
 import { notFound } from "./demo-errors";
+import { ownEntry } from "../own-entry";
 
 const DEMO_LATENCY_MS = 500;
 
@@ -76,12 +82,11 @@ const ORDERS: DemoOrder[] = [
   },
 ];
 
-// oxlint-disable-next-line anti-slop/no-known-value-widening -- Order status strings index ActivityFeedItem-owned tones with the existing fallback.
-const ORDER_TONES: Record<string, ActivityFeedItem["tone"]> = {
+const ORDER_TONES = {
   paid: "success",
   open: "warning",
   refunded: "neutral",
-};
+} satisfies Record<string, ActivityFeedItem["tone"]>;
 
 function later<T>(value: T): Promise<T> {
   return new Promise((resolve) =>
@@ -135,7 +140,7 @@ function orderEntry(order: DemoOrder): ActivityFeedItem {
   return {
     id: order.number,
     icon: "i-ph-shopping-bag",
-    tone: ORDER_TONES[order.status],
+    tone: ownEntry(ORDER_TONES, order.status),
     title: `Order ${order.number} · ${order.total}`,
     meta: [order.customer, order.status],
   };
@@ -172,7 +177,7 @@ export class BlocksOrdersApiController extends Controller(
   "/api/blocks/orders",
 ) {
   @Get("")
-  getOrders(@Parameter("status", "query") status?: string) {
+  getOrders(@Parameter("status", "query") status: QueryValue) {
     const orders = ORDERS.filter((order) => order.status === status);
     return later({ items: orders.map(orderEntry) });
   }

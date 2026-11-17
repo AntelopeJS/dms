@@ -1,3 +1,4 @@
+import { isFunction, isObject } from "#dms-core/app/utils/type-check";
 import { markPageRead } from "../build/composables/live/pageReadClock";
 
 /**
@@ -20,6 +21,10 @@ export const LIVE_BLOCK_REFRESH_EVENT = "DmsComponent.Block.LiveRefresh";
  */
 export interface PageBlocksRefreshDetail {
   waitUntil(work: Promise<unknown>): void;
+}
+
+function isRefreshDetail(detail: unknown): detail is PageBlocksRefreshDetail {
+  return detail !== null && isObject(detail) && isFunction(detail.waitUntil);
 }
 
 /** The watch functions every block can name (see interface-dms). */
@@ -56,9 +61,9 @@ export function waitForPageBlocksRefresh(
   event: Event,
   work: Promise<unknown>,
 ): void {
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Window listeners also receive ordinary or malformed events; retain the unchecked detail access and existing waitUntil behavior.
-  const detail = (event as CustomEvent<PageBlocksRefreshDetail | null>).detail;
-  detail?.waitUntil(work);
+  if (!(event instanceof CustomEvent)) return;
+  const detail: unknown = event.detail;
+  if (isRefreshDetail(detail)) detail.waitUntil(work);
 }
 
 /**

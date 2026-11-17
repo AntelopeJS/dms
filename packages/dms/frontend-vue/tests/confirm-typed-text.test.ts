@@ -62,9 +62,10 @@ const Input = defineComponent({
       h("input", {
         ref: inputRef,
         value: props.modelValue,
-        // SAFETY: This handler is attached to the input created here; dispatched input events target that HTMLInputElement.
-        onInput: (event: Event) =>
-          emit("update:modelValue", (event.target as HTMLInputElement).value),
+        onInput: (event: Event) => {
+          if (event.target instanceof HTMLInputElement)
+            emit("update:modelValue", event.target.value);
+        },
       });
   },
 });
@@ -75,9 +76,7 @@ async function flush(): Promise<void> {
   for (let tick = 0; tick < 4; tick++) await nextTick();
 }
 
-function mount(
-  props: Partial<InstanceType<typeof ConfirmModal>["$props"]>,
-): void {
+function mount(props: InstanceType<typeof ConfirmModal>["$props"]): void {
   app = createApp({
     render: () =>
       h(DialogRoot, null, () => h(ConfirmModal, { onClose: closed, ...props })),

@@ -5,6 +5,7 @@ import {
   MILLISECONDS_PER_DAY,
   MILLISECONDS_PER_HOUR,
   MILLISECONDS_PER_MINUTE,
+  MILLISECONDS_PER_SECOND,
 } from "@antelopejs/interface-dms/utils/internal/time";
 
 /**
@@ -56,19 +57,18 @@ export interface OAuthConfig {
 /** Where the "New sign-in" alert reads the country a sign-in came from. */
 export interface SignInCountryConfig {
   /**
-   * Request header a trusted reverse proxy fills with the client's ISO 3166-1
-   * alpha-2 country code, such as `CF-IPCountry` behind Cloudflare. Unset by
-   * default: any caller can write a header, so it is read only once named
-   * here, and the proxy must overwrite it on every request. Wins over the
-   * database lookup.
+   * Request header the reverse proxy fills with the client's ISO 3166-1
+   * alpha-2 country code. Defaults to `CF-IPCountry`, the header Cloudflare
+   * sets, when no `database` is configured; `false` stops reading one. Any caller can write a header, so the
+   * proxy must overwrite it on every request. Wins over the database lookup.
    */
-  header?: string;
+  header?: string | false;
   /**
-   * Path of a MaxMind-format country database (`.mmdb`) the client address is
-   * looked up in when the header gives nothing. Defaults to the DB-IP Country
-   * Lite database shipped with the package; `false` turns the lookup off.
+   * Path of a MaxMind-format country database (`.mmdb`), supplied by the
+   * operator, the client address is looked up in when the header gives
+   * nothing. Unset by default: the package ships no database.
    */
-  database?: string | false;
+  database?: string;
 }
 
 export interface AuthConfig {
@@ -181,10 +181,114 @@ export interface StoreConfig {
   catalogUrl?: string;
 }
 
+/**
+ * Public login defaults delivered in HTML and browser configuration.
+ * Use only intentionally public demo credentials, never deployment secrets.
+ */
+export interface LoginPrefillConfig {
+  email: string;
+  password: string;
+}
+
+/**
+ * How replicas share the default tenant's first provisioning. Replicas compare
+ * no clocks: a holder is judged stopped when its token stays unchanged for
+ * `staleAfterMs` of the observer's own time.
+ */
+export interface ProvisioningLeaseConfig {
+  /** How often the holder replaces its token. Well below `staleAfterMs`. */
+  renewEveryMs: number;
+  /** How long an unchanged token must be observed before a takeover. */
+  staleAfterMs: number;
+  /** How often a waiting replica reads the lease. */
+  pollEveryMs: number;
+}
+
+/**
+ * The MCP server a coding agent started in the project reaches through a
+ * stdio bridge: Claude Code launches it from the project's `.mcp.json`,
+ * Codex from a server its `config.toml` declares.
+ */
+export interface McpConfig {
+  /**
+   * Serves the MCP route and writes the bridge files. Defaults to the
+   * runtime's development mode (`ajs project dev`). `true` serves it in any
+   * mode, `false` turns it off in development too.
+   */
+  enabled?: boolean;
+  /**
+   * The tools a session may list and call. `safe` serves only the tools that
+   * read the project or edit it through the builder; `full`, the default, also
+   * serves the tools that change the project's configuration or delete a
+   * resource's data. The server enforces it, whatever the client allows.
+   */
+  access?: "safe" | "full";
+  /**
+   * Adds the `dms` server to the project's `.mcp.json` when the entry is
+   * missing. Defaults to `true`; `false` leaves the file alone.
+   */
+  mcpJson?: boolean;
+  /**
+   * Adds the `dms` server to the project's `.codex/config.toml` when no `dms`
+   * server is declared there. Defaults to `true`; `false` leaves the file alone.
+   */
+  codexConfig?: boolean;
+  /**
+   * The origin the bridge sends its requests and its per-start credential to,
+   * on the machine that runs the backend. Set it to
+   * `${@api.API_LOCAL_BASE_URL}`, the api module's same-host origin.
+   * When unset, the bridge uses `apiBaseUrl` if its host is loopback. Any
+   * other host is refused, so the credential never leaves the machine, and
+   * the bridge is not written.
+   */
+  backendUrl?: string;
+}
+
+/** Where the theme operations write the project's theme. */
+export interface BuilderThemeConfig {
+  /**
+   * Relative to `builder.projectRoot`, or absolute. When unset, the theme goes
+   * in the highest-priority frontend module registered from inside the
+   * project root.
+   */
+  layerPath?: string;
+}
+
+/**
+ * The builder engine, which edits the pages, blocks, resources and queries of
+ * the project's sources through `@antelopejs/interface-dms-builder`.
+ */
+export interface BuilderConfig {
+  /**
+   * Forces the builder on or off. Unset, it follows the project's development
+   * mode: on under `ajs project run` (with or without `-w`), off under
+   * `ajs project start`, which runs a build. `NODE_ENV` is not consulted:
+   * nothing sets it on the way to `ajs project start`. Turn it on in a running
+   * deployment only deliberately, since the builder rewrites TypeScript sources
+   * that exist only in a development checkout.
+   */
+  enabled?: boolean;
+  /**
+   * Absolute path to the app source root where page files live. A relative
+   * path resolves against the working directory, which is also the default.
+   */
+  projectRoot?: string;
+  theme?: BuilderThemeConfig;
+}
+
+/**
+ * The `htmlRender` block. Without `renderEndpoint`, `GenerateHtml` posts to
+ * the dashboard's `/api/html/render`, under `getClientBaseUrl()`.
+ */
+export type DmsHtmlRenderConfig = Omit<HtmlRenderConfig, "renderEndpoint"> &
+  Partial<Pick<HtmlRenderConfig, "renderEndpoint">>;
+
 export interface Config {
   auth?: AuthConfig;
-  htmlRender?: HtmlRenderConfig;
+  htmlRender?: DmsHtmlRenderConfig;
   homepage?: string;
+  /** Prefills the login form once without submitting or enabling keep-login. */
+  loginPrefill?: LoginPrefillConfig;
   apiBaseUrl?: string;
   clientBaseUrl?: string;
   realtime?: RealtimeConfig;
@@ -199,6 +303,9 @@ export interface Config {
    * `false` does not override development mode or the environment opt-in.
    */
   docsPreview?: boolean;
+  provisioningLease?: Partial<ProvisioningLeaseConfig>;
+  mcp?: McpConfig;
+  builder?: BuilderConfig;
 }
 
 const REFRESH_TOKEN_LIFETIME_DAYS = 30;
@@ -216,12 +323,13 @@ let globalAuthConfig: AuthConfig = {
 
 const SERVICE_TOKEN_LIFETIME_MINUTES = 5;
 
-let globalHtmlRenderConfig: HtmlRenderConfig = {
+let globalHtmlRenderConfig: DmsHtmlRenderConfig = {
   serviceSecret: "dev",
   serviceTokenLifetime:
     SERVICE_TOKEN_LIFETIME_MINUTES * MILLISECONDS_PER_MINUTE,
-  renderEndpoint: "http://localhost:3001/api/html/render",
 };
+
+const HTML_RENDER_PATH = "/api/html/render";
 
 const BYTES_IN_KILOBYTE = 1024;
 const KILOBYTES_IN_MEGABYTE = 1024;
@@ -253,7 +361,18 @@ export function getConfig(): Config {
   return globalConfig;
 }
 
-export function setDevClientBaseUrl(url: string): void {
+const DEFAULT_PROVISIONING_LEASE: ProvisioningLeaseConfig = {
+  renewEveryMs: 10 * MILLISECONDS_PER_SECOND,
+  staleAfterMs: MILLISECONDS_PER_MINUTE,
+  pollEveryMs: 5 * MILLISECONDS_PER_SECOND,
+};
+
+export function getProvisioningLeaseConfig(): ProvisioningLeaseConfig {
+  return { ...DEFAULT_PROVISIONING_LEASE, ...globalConfig.provisioningLease };
+}
+
+/** `undefined` drops the dev override, back to the configured origin. */
+export function setDevClientBaseUrl(url: string | undefined): void {
   devClientBaseUrl = url;
 }
 
@@ -282,12 +401,37 @@ export function isDocsPreviewEnabled(dev = false): boolean {
   );
 }
 
+export function getBuilderConfig(): BuilderConfig {
+  return globalConfig.builder ?? {};
+}
+
+/** Replaces the whole `builder` configuration; `undefined` clears it. */
+export function setBuilderConfig(config: BuilderConfig | undefined): void {
+  globalConfig = { ...globalConfig, builder: config };
+}
+
+/** Whether the builder engine is served, `dev` being the runtime's mode. */
+export function isBuilderEnabled(dev = false): boolean {
+  return globalConfig.builder?.enabled ?? dev;
+}
+
 export function getAuthConfig(): AuthConfig {
   return globalAuthConfig;
 }
 
-export function getHtmlRenderConfig(): HtmlRenderConfig {
+export function getHtmlRenderConfig(): DmsHtmlRenderConfig {
   return globalHtmlRenderConfig;
+}
+
+/**
+ * Where `GenerateHtml` posts: the configured `htmlRender.renderEndpoint`,
+ * else `/api/html/render` on the dashboard's current origin.
+ */
+export function getHtmlRenderEndpoint(): string | undefined {
+  const configured = globalHtmlRenderConfig.renderEndpoint;
+  if (configured) return configured;
+  const clientBaseUrl = getClientBaseUrl();
+  return clientBaseUrl && new URL(HTML_RENDER_PATH, clientBaseUrl).href;
 }
 
 export function getUploadsConfig(): UploadsConfig {

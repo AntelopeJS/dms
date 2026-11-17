@@ -2,7 +2,7 @@ import type {
   DataType,
   DataTypeFilterEditorValue,
 } from "#dms-core/app/composables/data-types/useDataType";
-import type { TableFilter } from "../../../components/table/Table.vue";
+import type { TableFilter } from "../../../components/table/TableRoot.vue";
 import { isString } from "#dms-core/app/utils/type-check";
 
 const LIST_SEPARATOR = ",";

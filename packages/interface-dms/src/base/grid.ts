@@ -2,7 +2,7 @@ import { ComponentBuilder } from "../component";
 import { z } from "zod";
 import { type BlockOptionsFor, RegisterBlockType, ui } from "./block-registry";
 
-const GRID_COMPONENT_NAME = "dms-grid";
+const GRID_COMPONENT_NAME = "dms-grid-block";
 const GRID_ROW_COMPONENT_NAME = "dms-grid-row";
 const GRID_DEFAULT_GAP = "1rem";
 const GRID_DEFAULT_MIN_COLUMN_WIDTH = "240px";
@@ -84,6 +84,8 @@ export const GridChildSchema = z.object({
  *     .child('col1', Card(...))
  *   )
  * ```
+ *
+ * @docsApi
  */
 export function Grid(options?: GridOptions): ComponentBuilder<GridOptions> {
   return new ComponentBuilder<GridOptions>(GRID_COMPONENT_NAME)
@@ -112,6 +114,8 @@ export function Grid(options?: GridOptions): ComponentBuilder<GridOptions> {
  *   .child('item1', Card(...))
  *   .child('item2', Card(...))
  * ```
+ *
+ * @docsApi
  */
 export function GridRow(): ComponentBuilder {
   return new ComponentBuilder<unknown>(GRID_ROW_COMPONENT_NAME).meta({

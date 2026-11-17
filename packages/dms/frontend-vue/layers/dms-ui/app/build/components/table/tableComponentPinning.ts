@@ -17,6 +17,8 @@ export function useTableComponentPinning<T>(
     const keepRight = left >= right && right <= budget;
     return { left: keepLeft, right: keepRight };
   });
+  const stickyLeft = computed(() => stickyPinnedSides.value.left);
+  const stickyRight = computed(() => stickyPinnedSides.value.right);
 
   const scrollFadeInsets = computed(() => {
     const sides = stickyPinnedSides.value;
@@ -30,8 +32,8 @@ export function useTableComponentPinning<T>(
 
   const getStickyPin = (column: Pick<Column<T>, "getIsPinned">) => {
     const pinned = column.getIsPinned();
-    if (pinned === "left" && stickyPinnedSides.value.left) return "left";
-    if (pinned === "right" && stickyPinnedSides.value.right) return "right";
+    if (pinned === "left" && stickyLeft.value) return "left";
+    if (pinned === "right" && stickyRight.value) return "right";
     return undefined;
   };
 

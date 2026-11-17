@@ -2,8 +2,22 @@ import { timingSafeEqual } from "node:crypto";
 import type { DmsServerEvent } from "#dms/server";
 import { privateSecret } from "../../../server/private-options";
 import { persistAccountSession } from "./accounts";
-import { type SessionTokens, sessionFrom } from "./session";
-import { isNumber, isString } from "../../dms-core/app/utils/type-check";
+import {
+  type LoginOutcome,
+  loginOutcome,
+  oauthAuthorization,
+} from "./backend-answers";
+import { sessionFrom } from "./session";
+import type {
+  NoHandoff,
+  NoWorkspaceHandoff,
+  TwoFactorHandoff,
+} from "../shared/oauth";
+import {
+  isNumber,
+  isObject,
+  isString,
+} from "../../dms-core/app/utils/type-check";
 
 const FLOW = "dms_oauth_flow";
 const HANDOFF = "dms_oauth_handoff";
@@ -33,22 +47,45 @@ interface OAuthFlow {
   invite: string;
 }
 
-interface OAuthResult extends SessionTokens {
-  requires_2fa?: boolean;
-  requires_tenant_assignment?: boolean;
-  two_factor_token?: string;
-  tenant_assignment_token?: string;
-  methods?: unknown;
+const attempts = new Map<string, RateWindow>();
+
+function isOAuthFlow(value: unknown): value is OAuthFlow {
+  return (
+    isObject(value) &&
+    value !== null &&
+    isString(value.state) &&
+    isNumber(value.expiresAt) &&
+    isString(value.redirect) &&
+    isString(value.language) &&
+    isString(value.invite)
+  );
 }
 
-const attempts = new Map<string, RateWindow>();
+function isTextList(value: unknown): value is string[] {
+  return Array.isArray(value) && value.every(isString);
+}
+
+function isOAuthHandoff(
+  value: unknown,
+): value is TwoFactorHandoff | NoWorkspaceHandoff {
+  if (!isObject(value) || value === null) return false;
+  if (value.kind === "2fa")
+    return isString(value.token) && isTextList(value.methods);
+  return (
+    value.kind === "no-workspace" &&
+    isString(value.token) &&
+    isString(value.provider)
+  );
+}
 
 function sweepAttempts(now: number) {
   for (const [key, window] of attempts)
     if (now - window.startedAt >= RATE_WINDOW_MS) attempts.delete(key);
-  while (attempts.size >= MAX_RATE_LIMIT_CLIENTS)
-    // SAFETY: The synchronous loop requires at least 10,000 entries in this Map<string, RateWindow>, so next() has a string key.
-    attempts.delete(attempts.keys().next().value as string);
+  while (attempts.size >= MAX_RATE_LIMIT_CLIENTS) {
+    const [oldest] = attempts.keys();
+    if (oldest === undefined) return;
+    attempts.delete(oldest);
+  }
 }
 
 /** Counts an attempt for `key`; false once over the limit of the window. */
@@ -95,13 +132,17 @@ function errorRedirect(key: string): Response {
   return redirect(`${SIGN_IN}?oauth_error=${encodeURIComponent(key)}`);
 }
 
-// oxlint-disable-next-line anti-slop/no-unknown-parameters -- Catch values have no shared owner schema; an Error-only parameter would exclude existing thrown payloads.
-function failureRedirect(error: unknown): Response {
-  const message = error instanceof Error ? error.message : "";
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- This unchecked status access preserves existing thrown-value handling, including a TypeError for nullish errors; no validated owner exists.
-  const status = (error as { status?: unknown }).status;
-  return errorRedirect(
-    isNumber(status) && message.startsWith(OAUTH_ERROR) ? message : FAILED,
+/** A refusal the backend answered for the flow, whose message is the key the sign-in page shows. */
+interface OAuthFailure extends Error {
+  status: number;
+}
+
+function isOAuthFailure(error: unknown): error is OAuthFailure {
+  return (
+    error instanceof Error &&
+    "status" in error &&
+    isNumber(error.status) &&
+    error.message.startsWith(OAUTH_ERROR)
   );
 }
 
@@ -125,12 +166,11 @@ export async function oauthStart(event: DmsServerEvent): Promise<Response> {
   )
     return errorRedirect(FAILED);
   try {
-    const result = await event.backend<{
-      state: string;
-      authorizeUrl: string;
-    }>(`/api/auth/oauth/${provider}/authorize-url`, {
-      headers: relayHeaders(event),
-    });
+    const result = oauthAuthorization.parse(
+      await event.backend(`/api/auth/oauth/${provider}/authorize-url`, {
+        headers: relayHeaders(event),
+      }),
+    );
     const query = event.url.searchParams;
     event.cookies.writeSealed(
       FLOW,
@@ -145,7 +185,7 @@ export async function oauthStart(event: DmsServerEvent): Promise<Response> {
     );
     return redirect(result.authorizeUrl);
   } catch (error) {
-    return failureRedirect(error);
+    return errorRedirect(isOAuthFailure(error) ? error.message : FAILED);
   }
 }
 
@@ -153,7 +193,6 @@ function sameState(
   left: OAuthFlow["state"],
   right: OAuthFlow["state"],
 ): boolean {
-  if (!isString(left) || !isString(right)) return false;
   const a = Buffer.from(left);
   const b = Buffer.from(right);
   return a.length === b.length && timingSafeEqual(a, b);
@@ -176,26 +215,30 @@ function validCallback(flow: OAuthFlow | undefined, query: URLSearchParams) {
 function storeOAuthResult(
   event: DmsServerEvent,
   provider: string,
-  result: OAuthResult,
+  outcome: LoginOutcome,
 ) {
   const handoff = { maxAge: HANDOFF_LIFETIME_S, path: FLOW_PATH };
-  if (result.requires_2fa)
+  if (outcome.kind === "2fa")
     event.cookies.writeSealed(
       HANDOFF,
-      { kind: "2fa", token: result.two_factor_token, methods: result.methods },
+      {
+        kind: "2fa",
+        token: outcome.answer.two_factor_token,
+        methods: outcome.answer.methods,
+      },
       handoff,
     );
-  else if (result.requires_tenant_assignment)
+  else if (outcome.kind === "tenant-assignment")
     event.cookies.writeSealed(
       HANDOFF,
       {
         kind: "no-workspace",
-        token: result.tenant_assignment_token,
+        token: outcome.answer.tenant_assignment_token,
         provider,
       },
       handoff,
     );
-  else persistAccountSession(event, sessionFrom(result));
+  else persistAccountSession(event, sessionFrom(outcome.tokens));
 }
 
 async function completeOAuth(
@@ -205,9 +248,8 @@ async function completeOAuth(
 ): Promise<Response> {
   const query = event.url.searchParams;
   try {
-    const result = await event.backend<OAuthResult>(
-      `/api/auth/oauth/${provider}/callback`,
-      {
+    const outcome = loginOutcome.parse(
+      await event.backend(`/api/auth/oauth/${provider}/callback`, {
         method: "POST",
         headers: relayHeaders(event),
         body: {
@@ -217,18 +259,16 @@ async function completeOAuth(
           language: flow.language || undefined,
           invite: flow.invite || undefined,
         },
-      },
+      }),
     );
-    storeOAuthResult(event, provider, result);
+    storeOAuthResult(event, provider, outcome);
     return redirect(
-      flow.redirect &&
-        !result.requires_2fa &&
-        !result.requires_tenant_assignment
+      flow.redirect && outcome.kind === "session"
         ? `${COMPLETE}?redirect=${encodeURIComponent(flow.redirect)}`
         : COMPLETE,
     );
   } catch (error) {
-    return failureRedirect(error);
+    return errorRedirect(isOAuthFailure(error) ? error.message : FAILED);
   }
 }
 
@@ -237,7 +277,7 @@ export async function oauthCallback(event: DmsServerEvent): Promise<Response> {
   const { provider } = event.params;
   if (!isValidOAuthProvider(provider) || rateLimited(event, "callback"))
     return errorRedirect(FAILED);
-  const flow = event.cookies.readSealed<OAuthFlow>(FLOW);
+  const flow = event.cookies.readSealed(FLOW, isOAuthFlow);
   event.cookies.clear(FLOW, { path: FLOW_PATH });
   const query = event.url.searchParams;
   if (query.has("error")) return errorRedirect("error.oauth.cancelled");
@@ -251,7 +291,8 @@ export async function oauthCallback(event: DmsServerEvent): Promise<Response> {
  * finish (a 2FA step, a workspace to pick), once.
  */
 export function oauthHandoff(event: DmsServerEvent) {
-  const handoff = event.cookies.readSealed(HANDOFF) ?? { kind: "none" };
+  const handoff: TwoFactorHandoff | NoWorkspaceHandoff | NoHandoff =
+    event.cookies.readSealed(HANDOFF, isOAuthHandoff) ?? { kind: "none" };
   event.cookies.clear(HANDOFF, { path: FLOW_PATH });
   return handoff;
 }

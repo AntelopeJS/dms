@@ -1,5 +1,6 @@
 import { computed, provide, reactive, toValue, watch } from "vue";
 import type { ZodErrorMap } from "zod";
+import { isObject } from "#dms-core/app/utils/type-check";
 import {
   formIssueMessage,
   REQUIRED_MESSAGE,
@@ -48,12 +49,10 @@ export function formComponentValidation(source: FormValidationSource) {
       "~standard": {
         version: 1 as const,
         vendor: "dms",
-        // oxlint-disable-next-line anti-slop/no-unknown-parameters -- Standard Schema accepts arbitrary inputs; the form validator retains its existing unchecked object adapter rather than rejecting or coercing malformed data.
-        validate: (value: unknown) =>
+        validate: (value: Parameters<typeof validateFormState>[1][string]) =>
           validateFormState(
             schema,
-            // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Standard Schema accepts arbitrary inputs; this unchecked adapter forwards them to the object-state validator unchanged.
-            value as Parameters<typeof validateFormState>[1],
+            isObject(value) && value !== null ? value : {},
             {
               fields: validationFields,
               requiredMessage: source.processApiMessage(REQUIRED_MESSAGE),
@@ -103,11 +102,9 @@ export function formComponentValidation(source: FormValidationSource) {
 }
 
 /** Clears validation when a field becomes disabled or hidden. */
-export function watchFormComponentFieldFlags<
-  T extends { clear: (name: string) => void },
->(
+export function watchFormComponentFieldFlags(
   fields: ReturnType<typeof useForm>["disabledFields"],
-  target: () => T | null | undefined,
+  target: () => { clear: (name: string) => void } | null | undefined,
 ): void {
   watch(fields, (next, previous) => {
     if (!next || !target()) return;

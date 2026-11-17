@@ -13,11 +13,11 @@ import {
   registerBlockUi,
 } from "./helpers/block-network-runtime";
 import { refreshPageBlocks } from "../layers/dms-ui/app/utils/blockRefresh";
+import type { JsonValue } from "../layers/dms-core/app/types/json";
 import type { ConfirmValues } from "../layers/dms-ui/app/composables/confirm/types";
 
 const requests: string[] = [];
-// oxlint-disable-next-line anti-slop/no-known-value-widening -- The transport fixture must retain arbitrary raw responses, including null, empty objects, and 204 undefined, for the banner parser.
-let answer: unknown = null;
+let answer: JsonValue | undefined = null;
 
 const { default: BannerBlock } = await import(
   "../layers/dms-ui/app/components/blocks/BannerBlock.vue"
@@ -84,7 +84,6 @@ function mountBanner(
 
 beforeEach(async () => {
   requests.length = 0;
-  // oxlint-disable-next-line anti-slop/no-known-value-widening -- Reset the raw transport payload; parsing belongs to BannerBlock, not this stub.
   answer = null;
   await installBlockNetwork(async (url: string) => {
     requests.push(url);
@@ -97,7 +96,6 @@ afterEach(() => {
 });
 
 it("draws the fetched props over the static options", async () => {
-  // oxlint-disable-next-line anti-slop/no-known-value-widening -- Feed a raw response to BannerBlock's parser rather than pre-validating it in the fixture.
   answer = { tone: "error", title: "Provider down" };
   const banner = mountBanner({ title: "Static", description: "Kept" });
   expect(banner.read()).toBeNull();
@@ -127,15 +125,13 @@ it("follows a page refresh, appearing and going away", async () => {
   await settle();
   expect(banner.read()).toBeNull();
 
-  // oxlint-disable-next-line anti-slop/no-known-value-widening -- Feed the next raw transport response to the banner parser on refresh.
   answer = { title: "Degraded" };
-  refreshPageBlocks();
+  await refreshPageBlocks();
   await settle();
   expect(banner.read()).toMatchObject({ text: "Degraded" });
 
-  // oxlint-disable-next-line anti-slop/no-known-value-widening -- A raw null response exercises removal, not a parsed banner contract.
   answer = null;
-  refreshPageBlocks();
+  await refreshPageBlocks();
   await settle();
   expect(banner.read()).toBeNull();
   expect(requests).toHaveLength(3);
@@ -167,7 +163,6 @@ it("runs a button target the route answers", async () => {
     target: { type: "api", url: "/api/replay", successMessage: "Replayed" },
     confirm: { title: "Replay the queue?" },
   };
-  // oxlint-disable-next-line anti-slop/no-known-value-widening -- Preserve serialized button data for BannerBlock to parse and execute.
   answer = { title: "Outage", actions: [replay] };
   const banner = mountBanner({});
   await settle();

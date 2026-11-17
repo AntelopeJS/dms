@@ -20,8 +20,9 @@ import {
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import CardsDisplay from "../layers/dms-ui/app/entries/components/table-view/CardsDisplay";
 import type { TableViewDisplayContext } from "../layers/dms-ui/app/composables/table-view/types/display";
+import { displayContext } from "./fixtures/displayContext";
 
-type Row = { _id: string; name: string };
+type Row = TableViewDisplayContext["items"][number];
 
 const rows: Row[] = [
   { _id: "t1", name: "Printer jam" },
@@ -35,7 +36,7 @@ const actionsColumn = (edited: string[]): ColumnDef<Row> => ({
       h(
         "button",
         {
-          "aria-label": `Actions for ${row.original.name}`,
+          "aria-label": `Actions for ${String(row.original.name)}`,
           onClick: (event: Event) => {
             event.stopPropagation();
             edited.push(row.id);
@@ -61,26 +62,23 @@ function createTable(columns: ColumnDef<Row>[]): Table<Row> {
   return useVueTable({
     data: rows,
     columns,
-    getRowId: (row) => row._id,
+    getRowId: (row) => String(row._id),
     getCoreRowModel: getCoreRowModel(),
   });
 }
 
 function createContext(table?: Table<Row>, componentName?: string) {
   const opened: Row[] = [];
-  // SAFETY: CardsDisplay uses only the capabilities supplied by this fixture; unrelated display operations are not exercised.
-  const context = reactive({
-    items: rows,
-    columns: [],
-    loading: false,
-    rowIdKey: "_id",
-    labelKey: "name",
-    options: componentName ? { card: { component: { componentName } } } : {},
-    pagination: { pageIndex: 0, pageSize: 10, total: 2 },
-    selection: { isSelected: () => false, toggle: () => {} },
-    actions: { canAdd: false, open: (item: Row) => opened.push(item) },
-    table,
-  }) as TableViewDisplayContext<Row>;
+  const context = reactive<TableViewDisplayContext>(
+    displayContext<Row>({
+      items: rows,
+      labelKey: "name",
+      options: componentName ? { card: { component: { componentName } } } : {},
+      pagination: { total: 2 },
+      actions: { open: (item) => opened.push(item) },
+      table,
+    }),
+  );
   return { context, opened };
 }
 
@@ -88,7 +86,7 @@ describe("the row actions of the cards display", () => {
   let app: App | undefined;
   let container: HTMLElement;
 
-  const mount = (context: TableViewDisplayContext<Row>) => {
+  const mount = (context: TableViewDisplayContext) => {
     app = createApp({ render: () => h(CardsDisplay, { context }) });
     app.component(
       "UCheckbox",

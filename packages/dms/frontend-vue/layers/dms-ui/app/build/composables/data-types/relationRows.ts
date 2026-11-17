@@ -29,9 +29,8 @@ interface RelationSourceOptions {
 export function relationSelectSource(
   options: Parameters<NonNullable<DataType["selectSource"]>>[0],
 ): DataTypeSelectSource | undefined {
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The plugin contract erases options; only searchUrl is checked below, not keyMapping or the whole asserted shape.
-  const opts = options as RelationSourceOptions | undefined;
-  if (!isString(opts?.searchUrl)) return undefined;
+  const opts: RelationSourceOptions = options ?? {};
+  if (!isString(opts.searchUrl)) return undefined;
   return { searchUrl: opts.searchUrl, keyMapping: opts.keyMapping };
 }
 

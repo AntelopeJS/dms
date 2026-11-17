@@ -1,4 +1,5 @@
 import { type DataType, getDataTypeId } from "../data-types";
+import { isObject, isString } from "../../utils/internal/type-check";
 
 export interface FileRef {
   key: string;
@@ -13,25 +14,23 @@ interface KeyedNode {
   key?: unknown;
 }
 
-type KeyExtractor = (
-  value: Parameters<typeof collectFileRefs>[1][string],
-) => string[];
+// oxlint-disable-next-line anti-slop/no-unknown-parameters -- Takes the value of one file or image column of the row a module passes to the published collectFileRefs: a key, an image object, lists and objects of them, or any other leaf it skips.
+type KeyExtractor = (value: unknown) => string[];
 
 const IMAGE_TYPE_ID = "image";
 const FILE_TYPE_ID = "file";
 
 const collectImageKeys: KeyExtractor = (value) => {
   const keys: string[] = [];
-  const visit = (node: Parameters<KeyExtractor>[0]): void => {
-    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- This is the field-value inspection boundary; parsing objects would reject previously ignored leaves.
-    if (!node || typeof node !== "object") return;
+  // oxlint-disable-next-line anti-slop/no-unknown-parameters -- Visits that column value node by node, so a node is a key, an image object, a list or object of them, or any other leaf it skips.
+  const visit = (node: unknown): void => {
+    if (!node || !isObject(node)) return;
     if (Array.isArray(node)) {
       node.forEach(visit);
       return;
     }
     const { key: candidate }: KeyedNode = node;
-    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Only string keys identify stored files; the enclosing object otherwise remains arbitrary application data.
-    if (typeof candidate === "string") {
+    if (isString(candidate)) {
       keys.push(candidate);
       return;
     }
@@ -43,30 +42,27 @@ const collectImageKeys: KeyExtractor = (value) => {
 
 const collectFileKeys: KeyExtractor = (value) => {
   const keys: string[] = [];
-  const visit = (node: Parameters<KeyExtractor>[0]): void => {
-    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- String leaves identify file keys in this legacy field representation.
-    if (typeof node === "string") {
+  // oxlint-disable-next-line anti-slop/no-unknown-parameters -- Visits that column value node by node, so a node is a key, an image object, a list or object of them, or any other leaf it skips.
+  const visit = (node: unknown): void => {
+    if (isString(node)) {
       keys.push(node);
       return;
     }
-    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Ignore unsupported leaves without changing accepted application field values.
-    if (!node || typeof node !== "object") return;
+    if (!node || !isObject(node)) return;
     (Array.isArray(node) ? node : Object.values(node)).forEach(visit);
   };
   visit(value);
   return keys;
 };
 
-// oxlint-disable-next-line anti-slop/no-known-value-widening -- Arbitrary registered type IDs use dynamic lookup, with unsupported IDs falling through; inferred literal keys would require an unchecked key assertion.
-const KEY_EXTRACTORS: Record<string, KeyExtractor> = {
-  [IMAGE_TYPE_ID]: collectImageKeys,
-  [FILE_TYPE_ID]: collectFileKeys,
-};
+const KEY_EXTRACTORS = new Map<string, KeyExtractor>([
+  [IMAGE_TYPE_ID, collectImageKeys],
+  [FILE_TYPE_ID, collectFileKeys],
+]);
 
 function resolveStorage(type: DataType): string | undefined {
   const options = type.options;
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- The published open options contract permits non-string storage values, which this helper ignores.
-  return typeof options?.storage === "string" ? options.storage : undefined;
+  return isString(options?.storage) ? options.storage : undefined;
 }
 
 function refIdentity(ref: FileRef): string {
@@ -76,7 +72,7 @@ function refIdentity(ref: FileRef): string {
 export function hasFileColumns(columns: Record<string, FileColumn>): boolean {
   return Object.values(columns).some((column) => {
     const typeId = getDataTypeId(column.type);
-    return typeId !== undefined && typeId in KEY_EXTRACTORS;
+    return typeId !== undefined && KEY_EXTRACTORS.has(typeId);
   });
 }
 
@@ -88,10 +84,12 @@ export function collectFileRefs(
   const refs: FileRef[] = [];
   for (const [field, column] of Object.entries(columns)) {
     const typeId = getDataTypeId(column.type);
-    const extractor = typeId ? KEY_EXTRACTORS[typeId] : undefined;
+    const extractor = typeId ? KEY_EXTRACTORS.get(typeId) : undefined;
     if (!extractor) continue;
     const storage = resolveStorage(column.type);
-    for (const key of extractor(row[field])) {
+    for (const key of extractor(
+      Object.hasOwn(row, field) ? row[field] : undefined,
+    )) {
       refs.push({ key, storage });
     }
   }
@@ -118,19 +116,16 @@ export function diffRemovedRefs(
 
 type KeyMapper = (key: string) => Promise<string>;
 type ScopedKeyMapper = (key: string, storage?: string) => Promise<string>;
-type ValueRemapper = (
-  value: Parameters<typeof remapRecordFileKeys>[1][string],
-  mapKey: KeyMapper,
-) => Promise<Parameters<typeof remapRecordFileKeys>[1][string]>;
+// oxlint-disable-next-line anti-slop/no-unknown-parameters, anti-slop/no-unknown-returns -- Takes and answers the value of one file or image column of the row a module passes to the published remapRecordFileKeys, keeping every leaf it does not remap.
+type ValueRemapper = (value: unknown, mapKey: KeyMapper) => Promise<unknown>;
 
-async function remapObjectValues(
-  // oxlint-disable-next-line anti-slop/no-object-parameters -- Object.entries walks arbitrary object values and remaps them without requiring a dictionary index signature.
-  value: object,
+async function remapEntries(
+  source: ReadonlyArray<readonly [string, unknown]>,
   mapKey: KeyMapper,
   remap: ValueRemapper,
-): Promise<Parameters<typeof remapRecordFileKeys>[1]> {
+) {
   const entries = await Promise.all(
-    Object.entries(value).map(
+    source.map(
       async ([key, item]) => [key, await remap(item, mapKey)] as const,
     ),
   );
@@ -138,35 +133,30 @@ async function remapObjectValues(
 }
 
 const remapImageValue: ValueRemapper = async (value, mapKey) => {
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Preserve unsupported application leaves instead of validating the whole image field.
-  if (!value || typeof value !== "object") return value;
+  if (!value || !isObject(value)) return value;
   if (Array.isArray(value)) {
     return Promise.all(value.map((item) => remapImageValue(item, mapKey)));
   }
   const { key: candidate }: KeyedNode = value;
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Only string keys are remapped; all other object members retain their existing traversal behavior.
-  if (typeof candidate === "string") {
+  if (isString(candidate)) {
     return { ...value, key: await mapKey(candidate) };
   }
-  return remapObjectValues(value, mapKey, remapImageValue);
+  return remapEntries(Object.entries(value), mapKey, remapImageValue);
 };
 
 const remapFileValue: ValueRemapper = async (value, mapKey) => {
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- String leaves are file keys in this field representation; other application leaves pass through.
-  if (typeof value === "string") return mapKey(value);
+  if (isString(value)) return mapKey(value);
   if (Array.isArray(value)) {
     return Promise.all(value.map((item) => remapFileValue(item, mapKey)));
   }
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Preserve unsupported application leaves without introducing validation or coercion.
-  if (!value || typeof value !== "object") return value;
-  return remapObjectValues(value, mapKey, remapFileValue);
+  if (!value || !isObject(value)) return value;
+  return remapEntries(Object.entries(value), mapKey, remapFileValue);
 };
 
-// oxlint-disable-next-line anti-slop/no-known-value-widening -- Arbitrary registered type IDs use dynamic lookup, with unsupported IDs falling through; inferred literal keys would require an unchecked key assertion.
-const VALUE_REMAPPERS: Record<string, ValueRemapper> = {
-  [IMAGE_TYPE_ID]: remapImageValue,
-  [FILE_TYPE_ID]: remapFileValue,
-};
+const VALUE_REMAPPERS = new Map<string, ValueRemapper>([
+  [IMAGE_TYPE_ID, remapImageValue],
+  [FILE_TYPE_ID, remapFileValue],
+]);
 
 export async function remapRecordFileKeys(
   columns: Record<string, FileColumn>,
@@ -178,8 +168,8 @@ export async function remapRecordFileKeys(
   const result = { ...record };
   for (const [field, column] of Object.entries(columns)) {
     const typeId = getDataTypeId(column.type);
-    const remap = typeId ? VALUE_REMAPPERS[typeId] : undefined;
-    if (!remap || !(field in record)) continue;
+    const remap = typeId ? VALUE_REMAPPERS.get(typeId) : undefined;
+    if (!remap || !Object.hasOwn(record, field)) continue;
     const storage = resolveStorage(column.type);
     result[field] = await remap(record[field], (key) => mapKey(key, storage));
   }

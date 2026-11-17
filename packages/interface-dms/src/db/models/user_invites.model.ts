@@ -2,6 +2,7 @@ import { BasicDataModel } from "@antelopejs/interface-database-decorators";
 import { normalizeEmail } from "../../auth/db/models/users.model";
 import { getRowInstance } from "../../utils/internal/row-instance";
 import {
+  type FreshInviteOutcome,
   USER_INVITES_TABLE_NAME,
   UserInvite,
 } from "../tables/user_invites.table";
@@ -28,6 +29,75 @@ export class UserInviteModel extends BasicDataModel(
       .default(undefined)
       .run()
       .then((res) => (res ? UserInviteModel.fromDatabase(res) : undefined));
+  }
+
+  /**
+   * Get an invite sent to the email other than the one with the given id
+   *
+   * @param email The email the invite was sent to
+   * @param exceptId The id of the invite to leave out
+   * @returns The invite or undefined if not found
+   */
+  getOtherByEmail(
+    email: string,
+    exceptId: string,
+  ): Promise<UserInvite | undefined> {
+    return this.table
+      .getAll(normalizeEmail(email), "email")
+      .filter((row) => row.key("_id").ne(exceptId))
+      .nth(0)
+      .default(undefined)
+      .run()
+      .then((res) => (res ? UserInviteModel.fromDatabase(res) : undefined));
+  }
+
+  /**
+   * Get every invite sent to the email
+   *
+   * @param email The email the invites were sent to
+   * @returns The stored invites of the email
+   */
+  async listByEmail(email: string): Promise<UserInvite[]> {
+    const rows = await this.table.getAll(normalizeEmail(email), "email").run();
+    return rows.flatMap((row) => UserInviteModel.fromDatabase(row) ?? []);
+  }
+
+  /**
+   * Whether the invite is stored and is the only invite sent to its email
+   *
+   * @param invite The invite to look for
+   * @returns True when the email's invites are exactly this one
+   */
+  async isOnlyInviteOfEmail(invite: UserInvite): Promise<boolean> {
+    const rows = await this.table
+      .getAll(normalizeEmail(invite.email), "email")
+      .run();
+    return rows.length === 1 && rows[0]?._id === invite._id;
+  }
+
+  /**
+   * Settles an invite created without a replacement as kept or withdrawn,
+   * unless it is settled already: the first outcome written stands.
+   *
+   * @param inviteId The invite to settle
+   * @param outcome The outcome to write
+   * @returns The invite's outcome after this call, or undefined when it is no longer stored
+   */
+  async settleFresh(
+    inviteId: string,
+    outcome: FreshInviteOutcome,
+  ): Promise<FreshInviteOutcome | undefined> {
+    const written = await this.table
+      .atomicMutation(inviteId, {
+        type: "update",
+        revisionField: "freshOutcome",
+        expectedRevision: { kind: "missing" },
+        nextRevision: outcome,
+        patch: {},
+      })
+      .run();
+    if (written === "applied") return outcome;
+    return (await this.get(inviteId))?.freshOutcome;
   }
 
   /**

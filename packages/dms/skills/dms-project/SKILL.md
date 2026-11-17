@@ -17,11 +17,15 @@ the **ajs-cli** skill; full walkthrough: `docs/02.building/01.project-setup.md`.
 
 ## Starting a new application
 
-Use [template-dms-demo](https://github.com/AntelopeJS/template-dms-demo) for the default
-CLI-owned backend and Nuxt dashboard. Follow `docs/01.getting-started/03.quickstart.md`
-through first-admin setup before adding pages. Use
+Use [template-dms](https://github.com/AntelopeJS/template-dms) for a new project: the DMS, the
+Builder and the AI assistant with no sample data, run with Docker Compose:
+`npx @antelopejs/core project init <dir> --template dms-starter` (needs Git on `PATH`).
+Follow `docs/01.getting-started/03.quickstart.md` through first-admin setup (the onboarding
+address with the setup token that the `dms` log prints) before adding pages. Use
+[template-dms-demo](https://github.com/AntelopeJS/template-dms-demo) (`--template dms-demo`)
+to explore Helio and every module; the tutorial in `docs/01.getting-started/04.tutorial.md` runs it. Use
 [template-dms-adonis](https://github.com/AntelopeJS/template-dms-adonis) only when
-AdonisJS must own the process (**embedded** mode, below; walkthrough:
+AdonisJS must own the process (`--template dms-adonis`; **embedded** mode, below; walkthrough:
 `docs/01.getting-started/07.adonisjs.md`). Evaluate these existing templates before proposing another.
 
 Preserve the package names declared by the template. Both templates ship `.claude/settings.json`, which makes Claude Code offer the
@@ -37,7 +41,8 @@ infrastructure it needs) and whose own `src/` is the `local` module. It provides
 its `package.json` has **no `antelopeJs.implements`** (that field marks a distributable module);
 deps are `@antelopejs/dms` + the interface libs, plus `@antelopejs/dms-frontend` (the
 `ajs dms` CLI) as a dependency — the template keeps it in `dependencies`; a devDependency also works
-since it is only a CLI. The frontend attaches at runtime with `AddFrontendModule`, and the DMS
+since it is only a CLI. The frontend attaches with `AddFrontendModule` and a `dmsFrontend`
+declaration in `package.json` (below), and the DMS
 **auto-registers its base dashboard layer** (shell, login, component vocabulary) — a pages-only
 project needs no `frontend-vue/` of its own.
 
@@ -133,13 +138,18 @@ export function stop(): void {}
 export function getConfig(): Config { return globalConfig; }
 ```
 
-Frontend wiring is the `AddFrontendModule` call alone — no DMS config entry. A **project** attaches the
-layer from `start()`; a **distributable module** attaches it in `construct` (see **dms-module**).
+Frontend wiring is the `AddFrontendModule` call plus `"dmsFrontend": "dist/frontend-module.js"` in
+the project's `package.json` — no DMS config entry. `ajs dms dev`, `build` and `start` read the project,
+not the backend's registrations, and leave out a frontend that is not declared:
+move the registration into a pure `export function frontendModule()` in `src/frontend-module.ts`
+(no runtime imports), call `AddFrontendModule(frontendModule())` from `start()`, and declare it. A
+**project** attaches the layer from `start()`; a **distributable module** attaches it in `construct`
+(see **dms-module**).
 Full layer authoring: `docs/02.building/08.frontend-layer.md`.
 
 ## What you register (delegates to the other skills)
 
-Pages and components → **dms-pages**; auth, permissions, tenants → **dms-auth**; backend services
+Pages and components → **antelopejs:dms-pages**; auth, permissions, tenants → **dms-auth**; backend services
 and custom Vue → the doc map in [REFERENCE.md](REFERENCE.md). Pages usually attach to a `Category`
 under the built-in `pagesCategory` (`RegisterModule` is for distributable modules). DB models use
 `@antelopejs/interface-database-decorators`; routes use `@antelopejs/interface-api`.
@@ -166,7 +176,7 @@ building or deploying the frontend server belong to the **dms-frontend** skill (
 
 ### Never from inside the DMS
 
-An agent running inside the DMS (the dms-ai assistant, whose sidecar the backend spawns, or any
+An agent running inside the DMS (the dms-assistant chat, whose sidecar the backend spawns, or any
 process these dev servers started) **leaves the servers running**: stopping the backend takes the
 agent down with it. It relies on hot reload and, when a change needs a full restart, asks the user
 to run it. The script refuses to stop a process tree that contains its calling shell.
@@ -198,7 +208,7 @@ DMS_BACK_DIR=<resolved-path> bash "<skill-base-dir>/scripts/dms-dev.sh" restart
 | `start` | Nothing is running (fresh shell, after `stop`). |
 | `stop` | Before walking away, before destructive operations, on session cleanup. |
 | `status` | The user asks whether the DMS is running. |
-| `back-log [N]` / `front-log [N]` | A boot fails: read the last N (default 60) lines of `/tmp/dms-back.log` / `/tmp/dms-front.log`. |
+| `back-log [N]` / `front-log [N]` | A boot fails: read the last N (default 60) lines of `<DMS_BACK_DIR>/.antelope/logs/back.log` / `front.log`. |
 
 The call returns once both servers print their ready line and reports the URLs they listen on; it
 fails fast when a server exits early, otherwise after 180 s per server (`DMS_DEV_TIMEOUT`). The
@@ -206,6 +216,13 @@ servers keep running detached. By default the script runs the project's `pnpm de
 `pnpm frontend:dev` scripts (a project convention that expands to the two commands above);
 override them with `DMS_BACK_CMD` / `DMS_FRONT_CMD`. It runs in bash on Linux and macOS, and in
 Git Bash, MSYS2 or Cygwin on Windows ([DEV-SERVERS.md](DEV-SERVERS.md#windows)).
+
+Several worktrees or repos run side by side when each call gets its own ports: prefix the script
+with `pnpm exec antelopejs-lease run --` where the project's tooling-configs has it. The script
+hands `DMS_BACK_PORT` / `DMS_FRONT_PORT` to the backend / frontend process as its `PORT`, and
+logs under the project's own `.antelope/logs/`. A backend whose config pins the api port still
+starts: it falls back to the next free port and the script reports that one
+([DEV-SERVERS.md](DEV-SERVERS.md#several-worktrees-side-by-side)).
 
 When you hand off for manual testing, run `restart` yourself, wait for both ready lines, then tell
 the user what to click. Boot failures, stale frontends, a refused credential (401), stop scope and

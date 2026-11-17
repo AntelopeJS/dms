@@ -45,7 +45,7 @@ function unregistered(
   return { children };
 }
 
-describe("[unit] pages/settings/users/permission-tree-nodes", () => {
+function registerNestingCases(): void {
   it("maps registered permissions to nested nodes", () => {
     const tree = {
       pages: registered("pages", {
@@ -118,7 +118,9 @@ describe("[unit] pages/settings/users/permission-tree-nodes", () => {
 
     expect(mapToLabelledNodes(tree)).to.deep.equal([]);
   });
+}
 
+function registerEveryMemberHoldsCases(): void {
   describe("under an entry every member holds", () => {
     const settings = {
       settings: registered(
@@ -208,7 +210,9 @@ describe("[unit] pages/settings/users/permission-tree-nodes", () => {
       ).to.deep.equal([]);
     });
   });
+}
 
+function registerCategoryCases(): void {
   describe("categories", () => {
     const publicOnly = {
       pages: registered("pages", {
@@ -244,4 +248,10 @@ describe("[unit] pages/settings/users/permission-tree-nodes", () => {
       ]);
     });
   });
+}
+
+describe("[unit] pages/settings/users/permission-tree-nodes", () => {
+  registerNestingCases();
+  registerEveryMemberHoldsCases();
+  registerCategoryCases();
 });

@@ -8,9 +8,17 @@ import {
   type Ref,
 } from "vue";
 import { afterEach, beforeEach, expect, vi } from "vitest";
+import { unusedApi } from "./fixtures/unusedApi";
 import { useActionTargets } from "../layers/dms-ui/app/entries/composables/actions/useActionTargets";
 import type { RowNavigationSource } from "../layers/dms-ui/app/entries/composables/actions/rowNavigation";
 import RowHeader from "../layers/dms-ui/app/entries/components/containers/row/RowHeader";
+import type { RowNavigation } from "../layers/dms-ui/app/types/row-navigation";
+import {
+  isBoolean,
+  isFunction,
+  isNumber,
+  isObject,
+} from "../layers/dms-core/app/utils/type-check";
 import type { CustomRowAction } from "../layers/dms-ui/app/types/row-action";
 import type {
   DrawerOptions,
@@ -118,8 +126,7 @@ function mountTargets(
     defineComponent({
       setup() {
         targets = useActionTargets({
-          // SAFETY: Drawer-only actions never invoke the API client; this callable sentinel preserves the unused dependency.
-          api: vi.fn() as never,
+          api: unusedApi(),
           pageId: "orders-page",
           componentId: "orders",
           handleApiError: vi.fn(),
@@ -139,9 +146,34 @@ function mountTargets(
 }
 
 const latest = (drawer: OpenedDrawer): DrawerOptions =>
-  Object.assign({}, drawer.options, ...drawer.patches);
-const headerOf = (drawer: OpenedDrawer) =>
-  latest(drawer).headerComponentOptions;
+  drawer.patches.reduce<DrawerOptions>(
+    (merged, patch) => ({ ...merged, ...patch }),
+    { ...drawer.options },
+  );
+
+const isRowNavigation = (value: unknown): value is RowNavigation =>
+  isObject(value) &&
+  isNumber(value.index) &&
+  isNumber(value.total) &&
+  isBoolean(value.hasPrev) &&
+  isBoolean(value.hasNext) &&
+  isFunction(value.prev) &&
+  isFunction(value.next);
+
+type DrawerHeader = NonNullable<DrawerOptions["headerComponentOptions"]> & {
+  navigation?: RowNavigation;
+};
+
+const headerOf = (drawer: OpenedDrawer): DrawerHeader | undefined => {
+  const header = latest(drawer).headerComponentOptions;
+  if (!header) return undefined;
+  return {
+    ...header,
+    navigation: isRowNavigation(header.navigation)
+      ? header.navigation
+      : undefined,
+  };
+};
 
 const press = (key: string) =>
   window.dispatchEvent(new KeyboardEvent("keydown", { key }));

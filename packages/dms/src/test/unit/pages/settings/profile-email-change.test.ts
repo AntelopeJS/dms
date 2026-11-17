@@ -1,7 +1,9 @@
 import { HTTPResult } from "@antelopejs/interface-api";
-import { expect } from "chai";
-import type { User, UserModel } from "@antelopejs/interface-dms/auth/db";
+import { GetModel } from "@antelopejs/interface-database-decorators";
+import { assert, expect } from "chai";
+import { type User, UserModel } from "@antelopejs/interface-dms/auth/db";
 import { assertEmailAvailable } from "../../../../pages/account";
+import { storedUserFixture } from "../../../helpers/user-fixture";
 
 const HTTP_CONFLICT = 409;
 const EMAIL_TAKEN = "error.email_already_used";
@@ -11,15 +13,23 @@ const OTHER_EMAIL = "holder@acme.dev";
 const FREE_EMAIL = "free@acme.dev";
 const OWN_EMAIL = "mine@acme.dev";
 
+class HoldingUserModel extends UserModel {
+  private readonly ids: ReadonlyMap<string, string>;
+
+  constructor(accounts: Record<string, string>) {
+    super(GetModel(UserModel).database);
+    this.ids = new Map(Object.entries(accounts));
+  }
+
+  override async getByEmail(lookup: string): Promise<User | undefined> {
+    const email = lookup.trim().toLowerCase();
+    const id = this.ids.get(email);
+    return id ? storedUserFixture({ _id: id, email }) : undefined;
+  }
+}
+
 function modelHolding(accounts: Record<string, string>): UserModel {
-  // SAFETY: assertEmailAvailable calls only getByEmail and reads only the returned _id; omitted model methods and user fields are never used.
-  return {
-    getByEmail: async (lookup: string) => {
-      const id = accounts[lookup.trim().toLowerCase()];
-      // SAFETY: The availability check compares only _id, so this lookup deliberately omits unrelated user fields.
-      return id ? ({ _id: id } as User) : undefined;
-    },
-  } as UserModel;
+  return new HoldingUserModel(accounts);
 }
 
 async function attempt(
@@ -42,11 +52,9 @@ describe("[unit] profile — e-mail change is refused for an address another acc
 
   it("refuses another account's address, whatever its casing", async () => {
     const result = await attempt(userModel, " Holder@ACME.dev ");
-    expect(result).to.be.instanceOf(HTTPResult);
-    // SAFETY: The preceding assertion fails unless result is an HTTPResult; Chai's assertion does not narrow the union for TypeScript.
-    const refusal = result as HTTPResult;
-    expect(refusal.getStatus()).to.equal(HTTP_CONFLICT);
-    expect(refusal.getBody()).to.equal(EMAIL_TAKEN);
+    assert.instanceOf(result, HTTPResult);
+    expect(result.getStatus()).to.equal(HTTP_CONFLICT);
+    expect(result.getBody()).to.equal(EMAIL_TAKEN);
   });
 
   it("accepts a free address, normalized", async () => {

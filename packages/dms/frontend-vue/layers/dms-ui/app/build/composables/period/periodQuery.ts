@@ -1,3 +1,4 @@
+import type { JsonValue } from "../../../../../dms-core/app/types/json";
 import {
   isString,
   isObject,
@@ -12,6 +13,7 @@ import {
   type PeriodRange,
 } from "#dms-core/app/composables/period/types";
 import type { PeriodQueryKeys } from "#dms-core/app/composables/period/periodLink";
+import type { ValidationRouteContext } from "#dms-core/app/utils/query-validation";
 import {
   readerClock,
   type WallTime,
@@ -46,8 +48,7 @@ export interface PeriodChoices {
 }
 
 /** A page URL query, or a selection kept in the preferences. */
-// oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- This is the decoding boundary for URL and persisted values, including malformed non-text entries.
-export type PeriodQuery = Record<string, unknown>;
+export type PeriodQuery = ValidationRouteContext["query"];
 
 /** A source the halves of a selection are read from, in order. */
 export interface PeriodSource {
@@ -68,9 +69,17 @@ const MONTH_OFFSET = 1;
 const DATE_PART_LENGTH = 2;
 const YEAR_PART_LENGTH = 4;
 
+function isList(value: unknown): value is unknown[] {
+  return Array.isArray(value);
+}
+
+function keyNames(keys: PeriodQueryKeys): string[] {
+  return Object.values<string>({ ...keys });
+}
+
 function readText(query: PeriodQuery, key: string): string | undefined {
-  const raw = query[key];
-  const value = Array.isArray(raw) ? raw[0] : raw;
+  const raw = Object.hasOwn(query, key) ? query[key] : undefined;
+  const value = isList(raw) ? raw[0] : raw;
   return isString(value) && value ? value : undefined;
 }
 
@@ -263,10 +272,10 @@ export function writePeriodQuery(
 ): Record<string, string> {
   const isCustom = selection.preset === CUSTOM_PRESET;
   const isCustomCompare = selection.comparison === CUSTOM_COMPARISON;
-  return Object.fromEntries([
+  const entries: Array<[string, string]> = [
     ...(isCustom
       ? rangeEntries(selection.customRange, keys.from, keys.to)
-      : [[keys.period, selection.preset]]),
+      : [[keys.period, selection.preset] satisfies [string, string]]),
     [keys.compare, selection.comparison],
     ...(isCustomCompare
       ? rangeEntries(
@@ -275,7 +284,8 @@ export function writePeriodQuery(
           keys.compareTo,
         )
       : []),
-  ]);
+  ];
+  return Object.fromEntries(entries);
 }
 
 /** Whether `query` already holds what `keys` would write for `selection`. */
@@ -285,9 +295,7 @@ export function isPeriodQueryCurrent(
   selection: PeriodSelection,
 ): boolean {
   const written = writePeriodQuery(selection, keys);
-  return Object.values(keys).every(
-    (key) => readText(query, key) === written[key],
-  );
+  return keyNames(keys).every((key) => readText(query, key) === written[key]);
 }
 
 /**
@@ -303,7 +311,7 @@ export function mergePeriodSearch(
 ): string {
   const params = new URLSearchParams(search);
   const written = writePeriodQuery(selection, keys);
-  for (const key of Object.values(keys)) {
+  for (const key of keyNames(keys)) {
     const value = written[key];
     if (value === undefined) params.delete(key);
     else params.set(key, value);
@@ -349,20 +357,54 @@ export function isRangeOffered(
   return choices.presets.includes(selection.preset);
 }
 
+function isStringRecord(value: unknown): value is Record<string, string> {
+  return (
+    isObject(value) && value !== null && Object.values(value).every(isString)
+  );
+}
+
+function isRememberedPeriods(
+  store: JsonValue | undefined,
+): store is RememberedPeriods {
+  return (
+    isObject(store) &&
+    store !== null &&
+    Object.values(store).every(isStringRecord)
+  );
+}
+
+/** The last choices `store` keeps, none when it holds something else. */
+function storedPeriods(store: JsonValue | undefined): RememberedPeriods {
+  return isRememberedPeriods(store) ? store : {};
+}
+
+/** The last choice `store` keeps under `key`, whatever its other entries hold. */
+export function storedPeriod(
+  store: JsonValue | undefined,
+  key: string,
+): Record<string, string> | undefined {
+  if (!isObject(store) || store === null || !Object.hasOwn(store, key)) {
+    return undefined;
+  }
+  const entry = store[key];
+  return isStringRecord(entry) ? entry : undefined;
+}
+
 /**
  * The last choices with `key`'s set to `query`, moved last as the most
  * recent, and only the `limit` most recent kept: the store lives in a
  * cookie, which must not grow with every page a user ever opened.
  */
 export function rememberPeriod(
-  // oxlint-disable-next-line anti-slop/no-unknown-parameters -- A malformed stored value is accepted here; only the outer object is required to retain its existing entries.
-  store: unknown,
+  store: JsonValue | undefined,
   key: string,
   query: Record<string, string>,
   limit = REMEMBERED_PERIODS_LIMIT,
 ): RememberedPeriods {
-  const entries = Object.entries(store && isObject(store) ? store : {}).filter(
-    ([entry]) => entry !== key,
-  );
-  return Object.fromEntries([...entries, [key, query]].slice(-limit));
+  const kept = storedPeriods(store);
+  const entries: Array<[string, Record<string, string>]> = Object.entries(
+    kept,
+  ).filter(([entry]) => entry !== key);
+  entries.push([key, query]);
+  return Object.fromEntries(entries.slice(-limit));
 }

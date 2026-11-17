@@ -1,9 +1,6 @@
 /** @internal */
 import assert from "node:assert";
-import {
-  type ControllerClass,
-  ControllerMeta,
-} from "@antelopejs/interface-api";
+import { ControllerMeta } from "@antelopejs/interface-api";
 import { GetMetadata } from "@antelopejs/interface-core";
 import type { MakeMethodAndPropertyDecorator } from "@antelopejs/interface-core/decorators";
 import {
@@ -20,6 +17,8 @@ import { adaptFieldValidationSchema } from "../../form-schema";
 import { ReadonlyBehaviorType } from "../../types";
 import type { ColumnOptions, TableViewMeta } from "../meta";
 import { serializeColumnDisplay } from "./column-display";
+import { decoratedClass } from "../../../utils/internal/decorated-class";
+import { isString } from "../../../utils/internal/type-check";
 
 type FieldDecoratorArguments = Parameters<
   Parameters<typeof MakeMethodAndPropertyDecorator>[0]
@@ -30,12 +29,10 @@ export function buildTableConfig(
   view: TableViewMeta,
   serialize: typeof serializeType,
 ) {
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The published target constructor type does not establish ControllerClass.location; registration is assumed rather than validated here.
-  const apimeta = GetMetadata(view.target as ControllerClass, ControllerMeta);
   const datameta = GetMetadata(view.target, DataAPIMeta);
 
   return {
-    location: apimeta.location,
+    location: GetMetadata(view.target, ControllerMeta).location,
     columns: Object.entries(view.columns)
       .sort((a, b) => (a[1].order ?? 0) - (b[1].order ?? 0))
       .map(([key, options]) => {
@@ -70,14 +67,20 @@ export function decorateColumn(
   options: ColumnOptions,
   meta: TableViewMeta,
 ) {
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The decorator accepts PropertyKey while the published column registry uses string keys; symbol and number inputs are not rejected or converted here.
-  meta.setColumn(key as string, options);
+  if (!isString(key)) {
+    throw new TypeError(
+      `A TableView column must be a member named by a string, not ${String(key)}`,
+    );
+  }
+  const columnKey = key;
+  meta.setColumn(columnKey, options);
 
   if (options.validate !== false) {
-    // oxlint-disable-next-line typescript/unbound-method -- This assertion checks method presence without calling it; getValidation is called through options.type below.
-    assert(options.type.getValidation, "Type has no getValidation method");
+    if (!options.type.getValidation) {
+      assert.fail("Type has no getValidation method");
+    }
 
-    const dataMeta = GetMetadata(target.constructor, DataAPIMeta);
+    const dataMeta = GetMetadata(decoratedClass(target), DataAPIMeta);
     const localizedFields = getModifiedFields(
       dataMeta.tableClass.prototype,
       LocalizationModifier,
@@ -89,11 +92,7 @@ export function decorateColumn(
       localized: isLocalized,
       required: false,
       fallbackLocale: isLocalized
-        ? LocalizationModifier.fallbackLocaleOf(
-            dataMeta.tableClass,
-            // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The published decorator's PropertyKey is passed to a string-only localization API without checking symbol or number inputs.
-            key as string,
-          )
+        ? LocalizationModifier.fallbackLocaleOf(dataMeta.tableClass, columnKey)
         : undefined,
     });
 
@@ -105,8 +104,7 @@ export function decorateColumn(
   }
 
   if (options.filterable) {
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Filter expects a string field name but the published decorator accepts PropertyKey; preserving the adapter leaves that key-kind assumption unchecked.
-    Filter(options.type.filter.bind(options.type))(target, key as string);
+    Filter(options.type.filter.bind(options.type))(target, columnKey);
   }
 
   if (options.type.decorateField) {

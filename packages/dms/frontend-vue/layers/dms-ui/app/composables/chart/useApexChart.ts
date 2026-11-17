@@ -16,7 +16,12 @@ import {
 import { APEX_TYPE_CONFIGS } from "./apexTypeConfigs";
 import { buildAnnotations } from "./apexAnnotations";
 import { buildPlotOptions, ringFitsSliceLabels } from "./apexPlotOptions";
-import { buildXAxis, buildYAxis } from "../../build/composables/chart/apexAxes";
+import {
+  buildXAxis,
+  buildYAxis,
+  thinsOwnXLabels,
+} from "../../build/composables/chart/apexAxes";
+import { thinnedCategoryFormatter } from "./apexCategoryLabels";
 import {
   applyHeatmapThemeMode,
   applyValueBasedColorScale,
@@ -28,7 +33,7 @@ import {
   toBucketSeries,
   type DatetimeBuckets,
 } from "./apexDatetimeBuckets";
-import { isReducedMotionActive } from "../../build/utils/accessibilityPreferences";
+import { isReducedMotionActive } from "../../utils/reducedMotion";
 import {
   buildDataLabels,
   dataLabelOffset,
@@ -134,14 +139,35 @@ function applyMixedSeriesDefs(
 }
 
 const RANGE_AREA_APEX_TYPE = "rangeArea";
+const FALLBACK_APEX_TYPE = "line";
+
+const DMS_APEX_TYPES = [
+  "line",
+  "area",
+  "rangeArea",
+  "bar",
+  "scatter",
+  "donut",
+  "pie",
+  "radar",
+  "radialBar",
+  "heatmap",
+  "candlestick",
+] as const satisfies ReadonlyArray<
+  NonNullable<NonNullable<ApexOptions["chart"]>["type"]>
+>;
+
+function isDmsApexType(
+  value: string,
+): value is (typeof DMS_APEX_TYPES)[number] {
+  return DMS_APEX_TYPES.some((type) => type === value);
+}
 
 function resolveApexType(
   input: UseApexChartInput,
 ): NonNullable<NonNullable<ApexOptions["chart"]>["type"]> {
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The public configuration accepts arbitrary chart strings; inference and ApexOptions reject that existing unchecked Apex boundary.
-  const baseType = APEX_TYPE_CONFIGS[input.type].apexType as NonNullable<
-    NonNullable<ApexOptions["chart"]>["type"]
-  >;
+  const configured = APEX_TYPE_CONFIGS[input.type].apexType;
+  const baseType = isDmsApexType(configured) ? configured : FALLBACK_APEX_TYPE;
   if (input.type !== "mixed") return baseType;
   const hasRangeBand = input.seriesDefs?.some(
     (def) => def.type === RANGE_AREA_APEX_TYPE,
@@ -271,22 +297,22 @@ function applyDatetimeBuckets(
   if (!buckets) return;
   const xaxis = options.xaxis;
   const { format: _datetimeFormat, ...labels } = xaxis.labels;
+  const bucketLabels = bucketAxisFormatter(buckets, input);
+  const bucketFormatter = thinsOwnXLabels(input, true)
+    ? thinnedCategoryFormatter(bucketLabels)
+    : bucketLabels;
   options.xaxis = {
     ...xaxis,
     type: "category",
-    labels: { ...labels, formatter: bucketAxisFormatter(buckets, input) },
+    labels: { ...labels, formatter: bucketFormatter },
   };
   const tooltip = options.tooltip;
+  const bucketTooltip = bucketTooltipFormatter(buckets, input);
   options.tooltip = {
     ...tooltip,
     x: {
-      // SAFETY: The public formatter stringifies its input before reading it, so Apex's numeric input follows the same conversion without widening the public callback contract.
-      formatter: bucketTooltipFormatter(buckets, input) as ReturnType<
-        typeof bucketTooltipFormatter
-      > &
-        NonNullable<
-          NonNullable<NonNullable<ApexOptions["tooltip"]>["x"]>["formatter"]
-        >,
+      formatter: (value: string | number | null | undefined) =>
+        bucketTooltip(String(value ?? "")),
     },
   };
 }

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
-import DmsBanner from "../banner/Banner.vue";
+import DmsNoticeBanner from "../banner/NoticeBanner.vue";
 import DmsBlockActions, {
   type BlockActionItem,
   type BlockButtonAction,
@@ -12,7 +12,6 @@ import {
   BANNER_TONE_ICONS,
   type BannerTone,
 } from "../../utils/bannerToneIcons";
-import type { CustomButton } from "../../composables/table-view/types/custom-button";
 import { useWatch } from "../../../../dms-core/app/composables/watch/useWatch";
 import { useComposedText } from "../../../../dms-core/app/composables/translation/useComposedText";
 import type { DefaultComponentProps } from "../../../../dms-core/app/types/component";
@@ -92,12 +91,14 @@ const { data } = useChartFetch<BannerContent | null>({
   watchSource: () => JSON.stringify(watchState.value),
 });
 
+const { presentError } = useApiErrorPresenter();
 const { handleCustomButton } = useActionTargets({
   api: useAuthFetch().$authFetch,
   componentId: props.componentId ?? FALLBACK_COMPONENT_ID,
   pageId: props.pageId ?? FALLBACK_PAGE_ID,
   refreshCallback: refreshPageBlocks,
-  handleApiError: (error, title) => useApiError(error, { title }),
+  handleApiError: (error, title) =>
+    presentError(error, { fallbackKey: title ?? "error.500.description" }),
 });
 
 const hasFetchedContent = computed(
@@ -153,13 +154,12 @@ function dismiss(): void {
 }
 
 function press(action: BlockButtonAction): void {
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Block buttons permit Nuxt UI variants wider than CustomButtonVariant; deriving either owner cannot prove the narrower variant, and this dispatcher forwards the original object unchanged.
-  handleCustomButton(action as CustomButton);
+  handleCustomButton({ ...action, variant: undefined });
 }
 </script>
 
 <template>
-  <DmsBanner
+  <DmsNoticeBanner
     v-if="isVisible"
     :title="banner.title ? processText(banner.title) : undefined"
     :description="
@@ -184,5 +184,5 @@ function press(action: BlockButtonAction): void {
         @press="press"
       />
     </template>
-  </DmsBanner>
+  </DmsNoticeBanner>
 </template>

@@ -1,4 +1,4 @@
-import { isNull, isObject } from "../../utils/internal/type-check";
+import { isNull, isObject, isString } from "../../utils/internal/type-check";
 
 /**
  * Error with a message property
@@ -11,7 +11,12 @@ export interface ErrorWithMessage {
  * Type guard to check if an error has a message
  */
 export function isErrorWithMessage(error: unknown): error is ErrorWithMessage {
-  return isObject(error) && !isNull(error) && "message" in error;
+  return (
+    isObject(error) &&
+    !isNull(error) &&
+    "message" in error &&
+    isString(error.message)
+  );
 }
 
 /**

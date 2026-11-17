@@ -39,7 +39,11 @@ export async function completeAdmittedInviteResolution(
   const model = GetModel(InviteResolutionsModel, resolution.tenantId);
   const current = await model.get(resolution._id);
   if (!current) throw new Error("Invite decision disappeared");
-  if (current.completed) return;
+  const invites = GetModel(UserInviteModel, current.tenantId);
+  if (current.completed) {
+    await invites.delete(current.invite._id);
+    return;
+  }
   requireExtensions(current);
   if (current.reason === "accepted") await deliverAcceptance(current);
   await ExecuteHooks(Hook.INVITE_DELETED, {
@@ -51,6 +55,6 @@ export async function completeAdmittedInviteResolution(
     deliveryId: current._id,
   });
   await ensureInviteReplacement(current);
-  await GetModel(UserInviteModel, current.tenantId).delete(current.invite._id);
+  await invites.delete(current.invite._id);
   await model.update(current._id, { completed: true });
 }

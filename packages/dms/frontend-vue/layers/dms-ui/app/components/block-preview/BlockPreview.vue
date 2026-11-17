@@ -2,6 +2,7 @@
 import { isString } from "../../../../dms-core/app/utils/type-check";
 import { markRaw, type Component } from "vue";
 import BlockPreviewIssue from "../../build/components/block-preview/BlockPreviewIssue.vue";
+import BlockPreviewSketch from "../../build/components/block-preview/BlockPreviewSketch.vue";
 import { useBlockPreviewEmbed } from "../../build/composables/block-preview/useBlockPreviewEmbed";
 import {
   collectPreviewIssues,
@@ -12,7 +13,13 @@ import {
   type PreviewResolvedNode,
   type PreviewTree,
 } from "../../build/utils/blockPreview";
+import {
+  FIXTURES_ONLY_QUERY,
+  FIXTURES_ONLY_VALUE,
+} from "../../build/utils/previewFixturesOnly";
 import { childComponentId } from "../../utils/componentId";
+
+const { resolveError } = useApiErrorPresenter();
 
 /**
  * Draws a tree of registered DMS blocks exactly as a page would.
@@ -68,7 +75,12 @@ function switchLocale(code: string): void {
 }
 
 const embed = props.embed
-  ? useBlockPreviewEmbed({ root, initialState, setLocale: switchLocale })
+  ? useBlockPreviewEmbed({
+      root,
+      initialState,
+      setLocale: switchLocale,
+      fixturesOnly: route.query[FIXTURES_ONLY_QUERY] === FIXTURES_ONLY_VALUE,
+    })
   : undefined;
 
 const fetchedBlockTypes = ref<PreviewBlockTypes>();
@@ -77,7 +89,7 @@ const tree = computed(() => (embed ? embed.tree.value : props.tree));
 const revision = computed(() => embed?.revision.value ?? 0);
 const isTransparent = computed(() => embed?.transparent.value ?? false);
 const isPadded = computed(
-  () => initialState?.padding ?? (props.embed || props.padding),
+  () => embed?.padding.value ?? (props.embed || props.padding),
 );
 
 const resolved = computed<PreviewResolvedNode[]>(() =>
@@ -86,21 +98,29 @@ const resolved = computed<PreviewResolvedNode[]>(() =>
     : [],
 );
 
+function componentFor(node: PreviewResolvedNode): Component | string {
+  if (node.issue) return markRaw(BlockPreviewIssue);
+  if (node.sketch) return markRaw(BlockPreviewSketch);
+  return resolveDmsComponent(node.componentName) ?? "div";
+}
+
+function optionsFor(node: PreviewResolvedNode) {
+  if (node.issue) return { issue: node.issue };
+  if (node.sketch) return { sketch: node.sketch };
+  return node.options;
+}
+
 function toPageComponent(node: PreviewResolvedNode): ResolvedComponentInfo {
-  const component: Component | string = node.issue
-    ? markRaw(BlockPreviewIssue)
-    : (resolveDmsComponent(node.componentName) ?? "div");
-  return {
+  const page: ResolvedComponentInfo = {
     id: node.id,
-    component,
+    component: componentFor(node),
     componentName: node.componentName,
-    options: node.issue ? { issue: node.issue } : node.options,
+    options: optionsFor(node),
     children: node.children.map(toPageComponent),
-    // oxlint-disable-next-line anti-slop/no-conditional-empty-object-spread -- Omit absent keys without replacing spread's own-property definition semantics with assignment.
-    ...(node.slot ? { slot: node.slot } : {}),
-    // oxlint-disable-next-line anti-slop/no-conditional-empty-object-spread -- Preserve omission, property order, and getter evaluation for unvalidated preview nodes.
-    ...(node.colSpan === undefined ? {} : { colSpan: node.colSpan }),
   };
+  if (node.slot) page.slot = node.slot;
+  if (node.colSpan !== undefined) page.colSpan = node.colSpan;
+  return page;
 }
 
 const components = computed(() => resolved.value.map(toPageComponent));
@@ -129,7 +149,10 @@ onMounted(async () => {
     fetchedBlockTypes.value =
       await $authFetch<PreviewBlockTypes>(BLOCK_TYPES_ENDPOINT);
   } catch (error: unknown) {
-    embed?.reportError(error instanceof Error ? error.message : String(error));
+    const notice = resolveError(error, {
+      fallbackKey: "dms.blocks.load_error_hint",
+    });
+    if (notice) embed?.reportError(notice.message);
   }
 });
 </script>
@@ -139,6 +162,7 @@ onMounted(async () => {
     ref="root"
     data-dms-block-preview
     :data-dms-preview-transparent="isTransparent || undefined"
+    :data-dms-inspecting="embed?.inspecting.value || undefined"
     :class="{ 'p-4 sm:p-6': isPadded }"
   >
     <UAlert
@@ -171,3 +195,18 @@ onMounted(async () => {
     </div>
   </div>
 </template>
+
+<style>
+[data-dms-inspecting] * {
+  cursor: pointer;
+}
+
+[data-dms-inspecting] iframe {
+  pointer-events: none;
+}
+
+[data-dms-inspecting] [data-dms-inspect-target] {
+  outline: 2px solid var(--ui-primary);
+  outline-offset: -2px;
+}
+</style>

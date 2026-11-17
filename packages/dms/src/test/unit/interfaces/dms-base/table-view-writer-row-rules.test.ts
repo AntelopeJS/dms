@@ -1,26 +1,22 @@
-import {
-  Controller,
-  HTTPResult,
-  type RequestContext,
-} from "@antelopejs/interface-api";
+import { Controller, type RequestContext } from "@antelopejs/interface-api";
 import { GetMetadata, ImplementInterface } from "@antelopejs/interface-core";
-import {
-  type DataControllerCallback,
-  DataController,
-} from "@antelopejs/interface-data-api";
+import { DataController } from "@antelopejs/interface-data-api";
 import {
   Access,
   AccessMode,
   ModelReference,
 } from "@antelopejs/interface-data-api/metadata";
+import { Schema } from "@antelopejs/interface-database";
 import {
   BasicDataModel,
   Field,
   Model,
+  RegisterSchema,
   RegisterTable,
   Table,
 } from "@antelopejs/interface-database-decorators";
 import { expect } from "chai";
+import { z } from "zod";
 import * as permissionsImpl from "../../../../implementations/dms/permissions";
 import * as tableViewImpl from "../../../../implementations/dms-base/table-view";
 import { applyArchiveFilter } from "../../../../implementations/dms-base/services";
@@ -41,6 +37,9 @@ import { createValidatedRoute } from "@antelopejs/interface-dms/base/table-view/
 import type { ComponentBuilder } from "@antelopejs/interface-dms/component";
 
 import { tableViewAccess } from "@antelopejs/interface-dms/base/table-view/internal/writer";
+import { httpRejectionOf } from "../../../helpers/http-rejection";
+import { requestContextFixture } from "../../../helpers/request-context";
+import { isObject } from "@antelopejs/interface-dms/utils/internal/type-check";
 
 const SCHEMA = "writer-row-rules-test";
 const TABLE = "tasks";
@@ -74,37 +73,25 @@ class SharedTaskAPI extends DataController(
   declare isArchived: boolean;
 }
 
-type Row = { _id: string; priority: string; isArchived?: boolean };
-
-function createTable(rows: Map<string, Row>) {
-  return {
-    getAll(ids: string[]) {
-      const found = ids
-        .map((id) => rows.get(id))
-        .filter((row): row is Row => !!row);
-      return Object.assign(Promise.resolve(found), {
-        delete: async () => {
-          for (const row of found) rows.delete(row._id);
-          return found.length;
-        },
-      });
-    },
-  };
-}
-
-function createRows(): Map<string, Row> {
-  return new Map<string, Row>([
-    ["low", { _id: "low", priority: "low", isArchived: false }],
-    ["high", { _id: "high", priority: "high", isArchived: false }],
-    ["archived", { _id: "archived", priority: "high", isArchived: true }],
-    ["legacy", { _id: "legacy", priority: "low" }],
-  ]);
-}
-const ALL_IDS = ["low", "high", "archived", "legacy"];
+const ALL_IDS = ["archived", "high", "legacy", "low"];
 
 const controller = new SharedTaskAPI();
 const meta = GetMetadata(SharedTaskAPI, TableViewMeta);
-let rows: Map<string, Row>;
+
+/** Replaces the stored tasks; `legacy` never had its archive field written. */
+async function useRows(): Promise<void> {
+  await controller.model.table.delete().run();
+  await controller.model.insert([
+    { _id: "low", priority: "low", isArchived: false },
+    { _id: "high", priority: "high", isArchived: false },
+    { _id: "archived", priority: "high", isArchived: true },
+    { _id: "legacy", priority: "low" },
+  ]);
+}
+
+async function storedIds(): Promise<string[]> {
+  return (await controller.model.getAll()).map((row) => row._id).sort();
+}
 
 const writer = TableView(SharedTaskAPI, {
   realtime: false,
@@ -120,12 +107,36 @@ const reader = TableView(SharedTaskAPI, {
 const remove = createValidatedRoute(
   {
     func: function (_ctx: RequestContext, params: { id: string[] }) {
-      return createTable(rows).getAll(params.id).delete();
+      return controller.model.table.getAll(params.id).delete().run();
     },
     args: [],
     method: "delete",
-  } satisfies DataControllerCallback,
+  },
   "delete",
+);
+
+const archive = createValidatedRoute(
+  {
+    func: (_ctx: RequestContext, ids: string[]) => ({
+      success: true,
+      archivedCount: ids.length,
+    }),
+    args: [],
+    method: "post",
+  },
+  "archive",
+);
+
+const restore = createValidatedRoute(
+  {
+    func: (_ctx: RequestContext, ids: string[]) => ({
+      success: true,
+      restoredCount: ids.length,
+    }),
+    args: [],
+    method: "post",
+  },
+  "restore",
 );
 
 const edit = createValidatedRoute(
@@ -133,38 +144,42 @@ const edit = createValidatedRoute(
     func: () => ({ edited: true }),
     args: [],
     method: "put",
-  } satisfies DataControllerCallback,
+  },
   "edit",
 );
 
-const REQUEST = {
-  url: new URL("http://localhost/api/writer-row-rules/delete"),
-};
+const REQUEST = requestContextFixture(
+  new URL("http://localhost/api/writer-row-rules/delete"),
+);
 
 function deleteRows(ids: string[]) {
   return remove.func.call(controller, REQUEST, { id: ids });
 }
 
-async function rejectionOf(
-  run: () => ReturnType<typeof edit.func>,
-): Promise<HTTPResult> {
-  try {
-    await run();
-  } catch (error: PromiseRejectedResult["reason"]) {
-    expect(error).to.be.instanceOf(HTTPResult);
-    return error;
-  }
-  throw new Error("expected a refusal");
+async function editRow(id: string): Promise<void> {
+  await edit.func.call(controller, REQUEST, { id });
+}
+
+function listContext(query: string): Parameters<typeof applyArchiveFilter>[1] {
+  return requestContextFixture(new URL(`http://localhost/list?${query}`));
 }
 
 function ruleOf(action: "archive" | "restore" | "delete" | "edit") {
   const config = meta.controllerRowActionRules?.[action];
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- The owner contract is a boolean-or-rule union; this branch extracts the rule variant and retains the existing missing-rule failure.
-  if (typeof config !== "object" || !config?.rule) {
+  if (!isObject(config) || !config?.rule) {
     throw new Error(`no ${action} rule`);
   }
   return config.rule;
 }
+
+const ServedOptions = z.object({
+  formComponents: z.object({
+    new: z.unknown(),
+    edit: z.unknown(),
+    view: z.unknown(),
+  }),
+  rowActions: z.object({ delete: z.unknown() }).optional(),
+});
 
 async function served(
   builder: ComponentBuilder<TableViewOptionsSerialized>,
@@ -173,14 +188,20 @@ async function served(
   const { options } = builder.serializeSync();
   const filter = builder.onFilterCallback;
   if (!filter || !options) throw new Error("table view without a filter");
-  return filter(new Set(["*"]), options, permissionId, {
-    tenantId: "writer-row-rules-tenant",
-    user: undefined,
-  });
+  return ServedOptions.parse(
+    await filter(new Set(["*"]), options, permissionId, {
+      tenantId: "writer-row-rules-tenant",
+      user: undefined,
+    }),
+  );
 }
 
 describe("[unit] TableView row rules are those of the controller's writing table view", () => {
-  before(() => {
+  before(async () => {
+    await RegisterSchema(SCHEMA);
+    const schema = Schema.get(SCHEMA);
+    if (!schema) throw new Error("Missing test schema");
+    controller.model = new TaskModel(schema.instance());
     ImplementInterface(permissionsInterface, permissionsImpl);
     ImplementInterface(
       { validateRowsAgainstRule },
@@ -190,11 +211,7 @@ describe("[unit] TableView row rules are those of the controller's writing table
     permissionMap.set(reader, KEY_READER);
   });
 
-  beforeEach(() => {
-    rows = createRows();
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The route exercises only getAll/delete; this in-memory table intentionally is not a complete TaskModel.
-    controller.model = { table: createTable(rows) } as never;
-  });
+  beforeEach(useRows);
 
   after(() => {
     for (const builder of [writer, reader]) permissionMap.delete(builder);
@@ -218,13 +235,24 @@ describe("[unit] TableView row rules are those of the controller's writing table
 
   it("enforces the archive-mode defaults server-side: only archived rows are deleted for good", async () => {
     expect(await deleteRows(ALL_IDS)).to.equal(1);
-    expect([...rows.keys()]).to.deep.equal(["low", "high", "legacy"]);
+    expect(await storedIds()).to.deep.equal(["high", "legacy", "low"]);
+  });
+
+  it("answers an empty result when no row passes a bulk action's rule", async () => {
+    expect(await deleteRows(["low", "high", "legacy"])).to.deep.equal({
+      deleted: 0,
+    });
+    expect(
+      await archive.func.call(controller, REQUEST, ["archived"]),
+    ).to.deep.equal({ success: true, archivedCount: 0 });
+    expect(await restore.func.call(controller, REQUEST, ["low"])).to.deep.equal(
+      { success: true, restoredCount: 0 },
+    );
+    expect(await storedIds()).to.deep.equal(ALL_IDS);
   });
 
   it("refuses an edit the writing table view's rule refuses", async () => {
-    const error = await rejectionOf(() =>
-      edit.func.call(controller, REQUEST, { id: "archived" }),
-    );
+    const error = await httpRejectionOf(editRow("archived"));
     expect(error.getStatus()).to.equal(HTTP_FORBIDDEN);
     expect(
       await edit.func.call(controller, REQUEST, { id: "low" }),
@@ -266,23 +294,21 @@ describe("[unit] TableView row rules are those of the controller's writing table
     it("lists such a row among the active ones", async () => {
       const filters = await applyArchiveFilter(
         controller,
-        // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Archive filtering reads only url; a full HTTP context would add unrelated behavior to this fixture.
-        { url: new URL("http://localhost/list?showArchived=false") } as never,
+        listContext("showArchived=false"),
         undefined,
         new Set(["*"]),
         {},
       );
 
-      expect(filters?.isArchived).to.deep.equal([true, "ne"]);
+      expect(filters?.isArchived).to.deep.equal(["true", "ne"]);
       const archived = await applyArchiveFilter(
         controller,
-        // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Archive filtering reads only url; a full HTTP context would add unrelated behavior to this fixture.
-        { url: new URL("http://localhost/list?showArchived=true") } as never,
+        listContext("showArchived=true"),
         undefined,
         new Set(["*"]),
         {},
       );
-      expect(archived?.isArchived).to.deep.equal([true, "eq"]);
+      expect(archived?.isArchived).to.deep.equal(["true", "eq"]);
     });
 
     it("lets such a row be archived and edited, not restored or deleted for good", () => {

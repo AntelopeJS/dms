@@ -10,11 +10,7 @@ import type {
   StoreModuleState,
   StoreOperationKind,
 } from "#dms-core/app/types/module-store";
-import {
-  type DisplayResolver,
-  compareDisplayNames,
-  moduleStatus,
-} from "./modules-catalog";
+import { type DisplayResolver, compareDisplayNames } from "./modules-catalog";
 
 /** A store module as the Modules page filters and draws it. */
 export type ModuleStoreEntry = StoreListingEntry & {
@@ -349,7 +345,7 @@ const STORE_STATE_PILLS: Partial<
 };
 
 const MODULE_STATUS_PILLS: Record<
-  ReturnType<typeof moduleStatus>,
+  ModuleCatalogEntry["status"],
   InstalledTileStatus
 > = {
   live: { tone: "success", labelKey: "modules.status.live" },
@@ -375,7 +371,7 @@ export function installedTileStatus(
   if (entry?.updateAvailable) {
     return { tone: "warning", labelKey: "modules.status.update" };
   }
-  return MODULE_STATUS_PILLS[moduleStatus(module)];
+  return MODULE_STATUS_PILLS[module.status];
 }
 
 /**
@@ -399,6 +395,8 @@ export function storeOnlyModules(
       hasAccess: true,
 
       landingSlug: "",
+      status: "live",
+      readout: [],
       catalogCategory: entry.catalogCategory,
       version:
         entry.installedVersion && PLAIN_VERSION.test(entry.installedVersion)

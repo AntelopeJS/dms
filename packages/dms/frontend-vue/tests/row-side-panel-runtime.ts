@@ -14,6 +14,7 @@ import {
   type Ref,
 } from "vue";
 import { afterEach, beforeEach, vi } from "vitest";
+import { unusedApi } from "./fixtures/unusedApi";
 import SidePanelHost from "../layers/dms-layout/app/entries/components/layout/SidePanelHost";
 import RowSidePanel from "../layers/dms-ui/app/entries/components/containers/RowSidePanel";
 import RecursiveComponent from "../layers/dms-ui/app/components/RecursiveComponent.vue";
@@ -29,30 +30,35 @@ const PANEL_COMPONENT = "RunPanel";
 const ROW_PANEL_COMPONENT = "DmsRowSidePanel";
 const DESKTOP_QUERY = "(min-width: 1024px)";
 
-interface Row {
+type Row = {
   _id: string;
   name: string;
-}
+};
 
 let sharedState: Map<string, Ref<unknown>>;
-let cookies: Map<string, Ref<unknown>>;
+type SidePanelCookie = Ref<ReturnType<typeof readSidePanelPreferences> | null>;
+
+let cookies: Map<string, SidePanelCookie>;
 let app: App | undefined;
 let panelMounts: number;
 let refreshes: number;
 
 function useDmsState<T>(key: string, init?: () => T): Ref<T> {
   if (!sharedState.has(key)) sharedState.set(key, ref(init?.()));
-  // SAFETY: Each state key is initialized and subsequently consumed with the same composable-owned type.
+  // SAFETY: The keys served here (the dms-permission-preview-session, -result, -loading and -failed states, dms:side-panel-drag-width and dms:side-panels) are each requested through useDmsState<T> with the one T their owning composable declares, so the ref stored under a key holds that T.
   return sharedState.get(key) as Ref<T>;
 }
 
-function useDmsCookie<T>(
+function useDmsCookie(
   name: string,
-  options: { default?: () => T } = {},
-): Ref<T> {
-  if (!cookies.has(name)) cookies.set(name, ref(options.default?.() ?? null));
-  // SAFETY: Each cookie name is read with the same owner type; null is the unset cookie value handled by its parser.
-  return cookies.get(name) as Ref<T>;
+  options: { default?: () => ReturnType<typeof readSidePanelPreferences> } = {},
+): SidePanelCookie {
+  let cookie = cookies.get(name);
+  if (!cookie) {
+    cookie = ref(options.default?.() ?? null);
+    cookies.set(name, cookie);
+  }
+  return cookie;
 }
 
 const openPanelId = () =>
@@ -75,7 +81,9 @@ const RunPanel = defineComponent({
         props.rowData?.name ?? "none",
         h("button", {
           "data-save": "",
-          onClick: () => props.onSuccessCallback?.(),
+          onClick: () => {
+            props.onSuccessCallback?.();
+          },
         }),
       ]);
   },
@@ -183,8 +191,7 @@ function mountPanel(
   const Table = defineComponent({
     setup() {
       targets = useActionTargets({
-        // SAFETY: Side-panel targets use no API transport or $fetch helper members in this mounted fixture.
-        api: vi.fn() as Parameters<typeof useActionTargets>[0]["api"],
+        api: unusedApi(),
         pageId: "requests-page",
         componentId: "requests",
         handleApiError: vi.fn(),

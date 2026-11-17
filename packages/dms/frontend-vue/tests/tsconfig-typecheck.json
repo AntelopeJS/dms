@@ -1,0 +1,6 @@
+{
+  "extends": [
+    "../../.frontend-vue-types/tsconfig.json",
+    "./tsconfig-options.json"
+  ]
+}

@@ -64,6 +64,7 @@ export async function assertFrontendSupports(
     packageName,
     release.version,
     context.projectPath,
+    "cached",
   );
   const running = runningFrontend(context.projectPath);
   if (!range || !running || supportsFrontend(range, running.version)) return;
@@ -92,6 +93,7 @@ export async function pickDependencies(
     release,
     implemented,
     context.projectPath,
+    "cached",
   );
   const picked = new Map<string, StoreDependencyChoice>();
   const unpicked: string[] = [];
@@ -125,7 +127,7 @@ export async function installDependency(
       `${key} is already in antelope.config.ts but does not run: start it from there`,
     );
   }
-  const release = await latestRelease(key, context.projectPath, true);
+  const release = await latestRelease(key, context.projectPath, "fresh");
   if (!release) {
     throw new Error(`The npm registry has no release of ${key}`);
   }

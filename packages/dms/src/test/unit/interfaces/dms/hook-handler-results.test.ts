@@ -7,6 +7,7 @@ import {
   UnregisterHook,
 } from "@antelopejs/interface-dms/hooks";
 import { expect } from "chai";
+import type { IsAssignable } from "../../../helpers/type-checks";
 
 type MemberAddedHandler = HookHandler<Hook.MEMBER_ADDED>;
 
@@ -56,9 +57,10 @@ describe("[unit] interfaces/dms/hooks — handler results", () => {
   });
 
   it("keeps checking the result of a hook that has one", () => {
-    const countRows = (): number => WRITTEN_ROWS;
-    // @ts-expect-error a tenant export contribution is not a number
-    const contributor: HookHandler<Hook.TENANT_DATA_EXPORT> = countRows;
-    expect(contributor).to.equal(countRows);
+    const answers: [
+      IsAssignable<() => number, HookHandler<Hook.TENANT_DATA_EXPORT>>,
+      IsAssignable<() => void, HookHandler<Hook.TENANT_DATA_EXPORT>>,
+    ] = [false, true];
+    expect(answers).to.deep.equal([false, true]);
   });
 });

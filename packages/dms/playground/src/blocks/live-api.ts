@@ -1,8 +1,16 @@
-import { Controller, Get, Parameter, Post } from "@antelopejs/interface-api";
+import {
+  Controller,
+  Get,
+  Parameter,
+  Post,
+  type QueryValue,
+} from "@antelopejs/interface-api";
 import type { ActivityFeedItem } from "@antelopejs/interface-dms/base/activity-feed";
 import type { StatGroupItem } from "@antelopejs/interface-dms/base/stat-group";
 import type { Tone } from "@antelopejs/interface-dms/base/types";
 import { PublishMessage } from "@antelopejs/interface-dms/realtime";
+import { ownEntry } from "../own-entry";
+import { queryText } from "../query-text";
 
 /** Published on each batch of requests the live page follows. */
 export const LIVE_DEMO_TOPIC = "blocks:live-demo";
@@ -13,13 +21,12 @@ const BATCH_SERVER_ERRORS = 2;
 const BURST_BATCHES = 3;
 const BURST_INTERVAL_MS = 1_500;
 const MAX_FEED_ENTRIES = 30;
-// oxlint-disable-next-line anti-slop/no-known-value-widening -- Arbitrary preset query strings require the existing indexed lookup and fallback.
-const PRESET_SCALES: Record<string, number> = {
+const PRESET_SCALES = {
   "last-hour": 1,
   "last-24h": 24,
   "last-7-days": 168,
   "last-30-days": 720,
-};
+} satisfies Record<string, number>;
 const HTTP_STATUSES = [200, 200, 201, 200, 404, 200, 500];
 const ROUTES = [
   "GET /api/orders",
@@ -97,14 +104,14 @@ async function publishBatch(): Promise<void> {
 
 function publishLater(delayMs: number): void {
   setTimeout(() => {
-    publishBatch().catch((error: PromiseRejectedResult["reason"]) => {
+    publishBatch().catch((error: unknown) => {
       console.warn("[playground] live batch failed", error);
     });
   }, delayMs);
 }
 
 function liveStats(preset: string | undefined): StatGroupItem[] {
-  const scale = PRESET_SCALES[preset ?? ""] ?? 1;
+  const scale = ownEntry(PRESET_SCALES, preset ?? "") ?? 1;
   return [
     {
       icon: "i-ph-arrows-left-right",
@@ -132,8 +139,8 @@ function liveStats(preset: string | undefined): StatGroupItem[] {
 /** Routes of the live mode demo: figures, a request log and the publishers. */
 export class BlocksLiveApiController extends Controller("/api/blocks/live") {
   @Get("stats")
-  getStats(@Parameter("preset", "query") preset?: string) {
-    return later({ items: liveStats(preset) });
+  getStats(@Parameter("preset", "query") preset: QueryValue) {
+    return later({ items: liveStats(queryText(preset)) });
   }
 
   @Get("requests")

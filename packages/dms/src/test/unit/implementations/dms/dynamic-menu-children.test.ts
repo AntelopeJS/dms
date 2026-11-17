@@ -18,18 +18,16 @@ import {
 import * as permissionsInterface from "@antelopejs/interface-dms/permissions";
 import * as permissionsResolverInterface from "@antelopejs/interface-dms/permissions-resolver";
 import * as tenantAccessInterface from "@antelopejs/interface-dms/tenant-access";
-import type { User } from "@antelopejs/interface-dms/auth/db";
 import { withPermissionAncestors } from "@antelopejs/interface-dms/internal/permission-ids";
 import {
   registerTestPage,
   stubPageAccessModels,
 } from "../../../helpers/page-access";
+import { userFixture } from "../../../helpers/user-fixture";
 
 const TENANT = "nested-menu-tenant";
-// SAFETY: Menu access reads only the user's id and optional owner flag.
-const MEMBER = { _id: "nested-menu-member" } as User;
-// SAFETY: Menu access reads only the user's id and owner flag.
-const OWNER = { _id: "nested-menu-owner", owner: true } as User;
+const MEMBER = userFixture({ _id: "nested-menu-member" });
+const OWNER = userFixture({ _id: "nested-menu-owner", owner: true });
 const PUBLIC_SLUG = "/nested-menu-public";
 const PRIVATE_SLUG = "/nested-menu-private";
 const PRIVATE_FULL_ID = "pages.nested-menu-private";
@@ -56,45 +54,50 @@ async function readMenu() {
   return payload.siteLayoutTree.children.pages?.children;
 }
 
-describe("[unit] dynamic menu children", () => {
-  const suiteCleanups: Array<() => void> = [];
-  const cleanups: Array<() => void> = [];
+const suiteCleanups: Array<() => void> = [];
 
-  before(async () => {
-    ImplementInterface(permissionsInterface, permissionsImpl);
-    ImplementInterface(permissionsResolverInterface, permissionsResolverImpl);
-    ImplementInterface(tenantAccessInterface, tenantAccessImpl);
-    ImplementInterface(pageInterfaceInternal, pageImplInternal);
-    for (const [id, publicAccess] of [
-      ["nested-menu-public", true],
-      ["nested-menu-private", false],
-    ] as const) {
-      suiteCleanups.push(
-        await registerTestPage(
-          PageController(id, {
-            displayName: id,
-            category: pagesCategory,
-            hidden: true,
-            publicAccess,
-          }),
-        ),
-      );
-    }
-  });
+const cleanups: Array<() => void> = [];
 
-  afterEach(() => {
-    for (const cleanup of cleanups.splice(0)) cleanup();
-  });
+function provide(items: DynamicMenuItem[]): void {
+  cleanups.push(RegisterDynamicMenuProvider(pagesCategory.fullId, () => items));
+}
 
-  after(() => {
-    for (const cleanup of suiteCleanups.splice(0)) cleanup();
-  });
-
-  function provide(items: DynamicMenuItem[]): void {
-    cleanups.push(
-      RegisterDynamicMenuProvider(pagesCategory.fullId, () => items),
+async function registerNestedMenuPages() {
+  ImplementInterface(permissionsInterface, permissionsImpl);
+  ImplementInterface(permissionsResolverInterface, permissionsResolverImpl);
+  ImplementInterface(tenantAccessInterface, tenantAccessImpl);
+  ImplementInterface(pageInterfaceInternal, pageImplInternal);
+  for (const [id, publicAccess] of [
+    ["nested-menu-public", true],
+    ["nested-menu-private", false],
+  ] as const) {
+    suiteCleanups.push(
+      await registerTestPage(
+        PageController(id, {
+          displayName: id,
+          category: pagesCategory,
+          hidden: true,
+          publicAccess,
+        }),
+      ),
     );
   }
+}
+
+function runCleanups() {
+  for (const cleanup of cleanups.splice(0)) cleanup();
+}
+
+function runSuiteCleanups() {
+  for (const cleanup of suiteCleanups.splice(0)) cleanup();
+}
+
+describe("[unit] dynamic menu children", () => {
+  before(registerNestedMenuPages);
+
+  afterEach(runCleanups);
+
+  after(runSuiteCleanups);
 
   it("admits children on their own target and permission, dropping refused subtrees", async () => {
     provide([
@@ -152,6 +155,14 @@ describe("[unit] dynamic menu children", () => {
       "pages.project.early.leaf",
     );
   });
+});
+
+describe("[unit] dynamic menu children, depth and previews", () => {
+  before(registerNestedMenuPages);
+
+  afterEach(runCleanups);
+
+  after(runSuiteCleanups);
 
   it("keeps level three as a leaf and drops level four rather than flattening it", async () => {
     provide([

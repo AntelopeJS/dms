@@ -15,9 +15,6 @@ import type {
  * @internal
  */
 export namespace internal {
-  export const SupportsIdempotency =
-    InterfaceFunction<() => Promise<boolean>>();
-
   export const RegisterNotificationCategory = new RegisteringProxy<
     (info: NotificationCategoryInfo) => void
   >();

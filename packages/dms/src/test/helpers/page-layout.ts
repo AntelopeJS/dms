@@ -1,14 +1,14 @@
-import { expect } from "chai";
-import type {
-  RoleModel,
-  TenantMemberModel,
-} from "@antelopejs/interface-dms/db";
+import { assert } from "chai";
+import { GetModel } from "@antelopejs/interface-database-decorators";
+import { DEFAULT_TENANT_ID } from "@antelopejs/interface-dms/constants";
+import { RoleModel, TenantMemberModel } from "@antelopejs/interface-dms/db";
 import {
   GetPageLayoutBySlug,
   type PageLayout,
 } from "@antelopejs/interface-dms/page";
-import { withPermissionAncestors } from "@antelopejs/interface-dms/internal/permission-ids";
 import type { User } from "@antelopejs/interface-dms/auth/db";
+import { stubPageAccessModels } from "./page-access";
+import { userFixture } from "./user-fixture";
 
 export interface LayoutCaller {
   user: User | undefined;
@@ -16,29 +16,80 @@ export interface LayoutCaller {
   roleModel: RoleModel;
 }
 
+function refuse(what: string): never {
+  throw new Error(`Anonymous layout access queried ${what}`);
+}
+
+class UnqueriedMemberModel extends TenantMemberModel {
+  override async get(): Promise<never> {
+    return refuse("memberships");
+  }
+
+  override async getBy(): Promise<never> {
+    return refuse("memberships");
+  }
+
+  override async getAll(): Promise<never> {
+    return refuse("memberships");
+  }
+
+  override async getByUser(): Promise<never> {
+    return refuse("memberships");
+  }
+
+  override async existsByUser(): Promise<never> {
+    return refuse("memberships");
+  }
+
+  override async listAll(): Promise<never> {
+    return refuse("memberships");
+  }
+
+  override async listOwners(): Promise<never> {
+    return refuse("memberships");
+  }
+
+  override async countOwnersExcluding(): Promise<never> {
+    return refuse("memberships");
+  }
+}
+
+class UnqueriedRoleModel extends RoleModel {
+  override async get(): Promise<never> {
+    return refuse("roles");
+  }
+
+  override async getBy(): Promise<never> {
+    return refuse("roles");
+  }
+
+  override async getAll(): Promise<never> {
+    return refuse("roles");
+  }
+
+  override async getByName(): Promise<never> {
+    return refuse("roles");
+  }
+}
+
+/**
+ * A caller with no user. Its real models reject every lookup method of the
+ * membership and role models, because anonymous layout access queries
+ * neither.
+ */
 export const ANONYMOUS: LayoutCaller = {
   user: undefined,
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Anonymous layout access does not query memberships; this empty model intentionally has no database behavior.
-  memberModel: {} as TenantMemberModel,
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Anonymous layout access does not query roles; this empty model intentionally has no database behavior.
-  roleModel: {} as RoleModel,
+  memberModel: new UnqueriedMemberModel(
+    GetModel(TenantMemberModel, DEFAULT_TENANT_ID).database,
+  ),
+  roleModel: new UnqueriedRoleModel(
+    GetModel(RoleModel, DEFAULT_TENANT_ID).database,
+  ),
 };
 
 export function grantedTo(permissions: string[]): LayoutCaller {
-  return {
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Permission lookup reads only the id; the fixture is not a complete persisted user.
-    user: { _id: "pe-user" } as User,
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion, anti-slop/no-chained-type-assertions -- Inference and Pick expose a partial member row; authorization only reads its role ids.
-    memberModel: {
-      getByUser: async () => ({ roleIds: ["pe-role"] }),
-    } as unknown as TenantMemberModel,
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion, anti-slop/no-chained-type-assertions -- Inference and Pick expose partial role rows; authorization only reads their permissions.
-    roleModel: {
-      getBy: async () => [
-        { permissions: withPermissionAncestors(permissions) },
-      ],
-    } as unknown as RoleModel,
-  };
+  const { memberModel, roleModel } = stubPageAccessModels(permissions);
+  return { user: userFixture({ _id: "pe-user" }), memberModel, roleModel };
 }
 
 export async function loadLayout(
@@ -46,11 +97,8 @@ export async function loadLayout(
   caller = ANONYMOUS,
 ): Promise<PageLayout> {
   const handler = GetPageLayoutBySlug(fullSlug);
-  expect(handler, `no layout handler registered for ${fullSlug}`).to.not.equal(
-    undefined,
-  );
-  // SAFETY: The preceding assertion throws unless the optional handler exists.
-  return (handler as NonNullable<typeof handler>)({
+  assert.isDefined(handler, `no layout handler registered for ${fullSlug}`);
+  return handler({
     user: caller.user,
     memberModel: caller.memberModel,
     roleModel: caller.roleModel,
@@ -70,11 +118,8 @@ export async function layoutChildIds(
   rootKey: string,
 ): Promise<string[]> {
   const handler = GetPageLayoutBySlug(fullSlug);
-  expect(handler, `no layout handler registered for ${fullSlug}`).to.not.equal(
-    undefined,
-  );
-  // SAFETY: The preceding assertion throws unless the optional handler exists.
-  const layout = await (handler as NonNullable<typeof handler>)({
+  assert.isDefined(handler, `no layout handler registered for ${fullSlug}`);
+  const layout = await handler({
     user: ANONYMOUS.user,
     memberModel: ANONYMOUS.memberModel,
     roleModel: ANONYMOUS.roleModel,

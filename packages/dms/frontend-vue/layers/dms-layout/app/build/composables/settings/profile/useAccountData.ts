@@ -12,7 +12,6 @@ import {
 } from "#dms-ui/app/composables/confirm/types";
 import { resolveFieldErrors } from "#dms-core/app/composables/useFieldErrors";
 import { REQUIRED_MESSAGE } from "#dms-core/app/composables/useFormValidation";
-import { useSecurityFormat } from "../security/useSecurityFormat";
 
 const PROFILE_ENDPOINT = pageRoutePath("/settings/user/profile");
 const EXPORT_ENDPOINT = `${PROFILE_ENDPOINT}/account-export`;
@@ -61,25 +60,15 @@ export function accountExportFilename(at: Date = new Date()): string {
 function useAccountDataContext() {
   const { $authFetch } = useAuthFetch();
   const { confirm } = useConfirm();
-  const { user, clear } = useDmsUserSession<User>();
+  const userSession = useDmsUserSession<User>();
   const { removeAccount } = useMultiAccount();
-  const { processI18n, processApiMessage } = useTranslation();
-  const { errorMessage, errorCode } = useSecurityFormat();
+  const { processApiMessage } = useTranslation();
+  const errorPresenter = useApiErrorPresenter();
   const toast = useToast();
   const { t } = useI18n();
 
   const isExporting = ref(false);
   const isCheckingDeletion = ref(false);
-
-  /** A message key the API answers with (`$…`), else a known error code. */
-  function describeError(
-    error: Parameters<typeof errorCode>[0],
-    fallbackKey: string,
-  ): string {
-    const code = errorCode(error);
-    if (code?.startsWith("$")) return processI18n(code);
-    return errorMessage(error, fallbackKey);
-  }
 
   async function exportData(): Promise<void> {
     isExporting.value = true;
@@ -97,10 +86,8 @@ function useAccountDataContext() {
         title: t(`${I18N}.export_done`),
       });
     } catch (error) {
-      toast.add({
-        color: "error",
-        icon: "i-ph-warning-circle",
-        title: describeError(error, `${I18N}.export_error`),
+      errorPresenter.presentError(error, {
+        fallbackKey: `${I18N}.export_error`,
       });
     } finally {
       isExporting.value = false;
@@ -108,8 +95,8 @@ function useAccountDataContext() {
   }
 
   async function signOutDeleted(): Promise<void> {
-    const userId = user.value?._id;
-    await clear().catch(() => undefined);
+    const userId = userSession.user.value?._id;
+    await userSession.clear().catch(() => undefined);
     if (userId) await removeAccount(userId).catch(() => undefined);
     toast.add({
       color: "success",
@@ -128,7 +115,7 @@ function useAccountDataContext() {
     t,
     isExporting,
     isCheckingDeletion,
-    describeError,
+    errorPresenter,
     exportData,
     signOutDeleted,
   };
@@ -260,11 +247,9 @@ export function useAccountData() {
   const {
     $authFetch,
     confirm,
-    processApiMessage,
-    toast,
+    errorPresenter,
     t,
     isCheckingDeletion,
-    describeError,
     signOutDeleted,
   } = context;
   const { impactList, passwordField, explainBlockers, passwordCheck } =
@@ -305,18 +290,19 @@ export function useAccountData() {
         },
       }).fields;
       if (fieldError?.field === "confirmation") {
-        throw new ConfirmTextError(processApiMessage(fieldError.message));
+        throw new ConfirmTextError(fieldError.message, { cause: error });
       }
       if (fieldError?.field === "password") {
-        passwordError.value = processApiMessage(fieldError.message);
+        passwordError.value = errorPresenter.resolveError(fieldError.message, {
+          fallbackKey: fieldError.fallbackKey ?? "dms.field_errors.invalid",
+          params: fieldError.params,
+        })?.message;
         await nextTick();
         passwordInput.value?.inputRef?.focus();
         return false;
       }
-      toast.add({
-        color: "error",
-        icon: "i-ph-warning-circle",
-        title: describeError(error, `${I18N}.delete_error`),
+      errorPresenter.presentError(error, {
+        fallbackKey: `${I18N}.delete_error`,
       });
       return false;
     }
@@ -353,10 +339,8 @@ export function useAccountData() {
     try {
       impact = await $authFetch<AccountDeletionImpact>(DELETION_ENDPOINT);
     } catch (error) {
-      toast.add({
-        color: "error",
-        icon: "i-ph-warning-circle",
-        title: describeError(error, `${I18N}.delete_error`),
+      errorPresenter.presentError(error, {
+        fallbackKey: `${I18N}.delete_error`,
       });
       return;
     } finally {

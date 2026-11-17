@@ -40,25 +40,18 @@
 </template>
 
 <script setup lang="ts">
-const props = defineProps({
-  color: {
-    // SAFETY: PropType only supplies Vue's static color union; the runtime constructor remains String.
-    type: String as PropType<
-      | "error"
-      | "primary"
-      | "secondary"
-      | "success"
-      | "info"
-      | "warning"
-      | "neutral"
-    >,
-    required: true,
-  },
-  score: Number,
-  strength: {
-    // SAFETY: PropType only supplies Vue's static requirement shape; the runtime constructor remains Array.
-    type: Array as PropType<{ met: boolean; text: string }[]>,
-    required: true,
-  },
-});
+interface PasswordStrengthProps {
+  color:
+    | "error"
+    | "primary"
+    | "secondary"
+    | "success"
+    | "info"
+    | "warning"
+    | "neutral";
+  score?: number;
+  strength: { met: boolean; text: string }[];
+}
+
+const props = defineProps<PasswordStrengthProps>();
 </script>

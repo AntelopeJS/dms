@@ -1,4 +1,4 @@
-import { WILDCARD_PERMISSION, pagesBySlug, runInBatches } from "../../../utils";
+import { pagesBySlug, runInBatches } from "../../../utils";
 import {
   type PreviewMenuNode,
   previewCacheKey,
@@ -50,7 +50,7 @@ export function buildPreviewAccessContext(
 ): RequestAccessContext {
   const preview: AccessContext = {
     permissions: previewPermissions,
-    isOwner: previewPermissions.has(WILDCARD_PERMISSION),
+    isOwner: false,
     isAuthenticated: true,
   };
   if (!real.gateDenied) {

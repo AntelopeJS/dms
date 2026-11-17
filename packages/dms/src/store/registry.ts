@@ -1,29 +1,25 @@
-import { execFile } from "node:child_process";
-import { promisify } from "node:util";
+import {
+  isObject,
+  isString,
+} from "@antelopejs/interface-dms/utils/internal/type-check";
+import { runPackageManager } from "../utils/package-manager/index";
+import { createLookupCache, type Freshness } from "./cache";
 import type { PackageRelease } from "./types";
 
-const execFileAsync = promisify(execFile);
-
-const RELEASE_TTL_MS = 60 * 60 * 1000;
-/** A failed lookup is retried sooner: the registry may only have blinked. */
-const FAILED_RELEASE_TTL_MS = 5 * 60 * 1000;
+const RELEASE_LIFETIMES = { found: 60 * 60 * 1000, failed: 5 * 60 * 1000 };
 const NPM_VIEW_TIMEOUT_MS = 30_000;
 const LATEST_TAG = "latest";
 export const INTERFACE_PACKAGE = "@antelopejs/interface-dms";
 
-interface NpmViewResult {
-  version?: string;
-  dependencies?: Record<string, string>;
-  antelopeJs?: { implements?: unknown };
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return isObject(value) && value !== null;
 }
 
-interface CachedRelease {
-  fetchedAt: number;
-  release: PackageRelease | undefined;
+function isStringRecord(value: unknown): value is Record<string, string> {
+  return isRecord(value) && Object.values(value).every(isString);
 }
 
-const releases = new Map<string, CachedRelease>();
-const pending = new Map<string, Promise<PackageRelease | undefined>>();
+const releases = createLookupCache<PackageRelease>(RELEASE_LIFETIMES);
 
 /**
  * `npm view <spec> <fields> --json`, run in the project so its npm
@@ -34,9 +30,10 @@ export async function npmView(
   spec: string,
   fields: readonly string[],
   projectPath: string,
-) {
+  // oxlint-disable-next-line anti-slop/no-unknown-returns -- Answers the JSON npm view --json prints for the fields asked, read as npm prints it, and each caller reads its own fields (the antelopejs#367 package.ts class).
+): Promise<unknown> {
   try {
-    const { stdout } = await execFileAsync(
+    const { stdout } = await runPackageManager(
       "npm",
       ["view", spec, ...fields, "--json"],
       { cwd: projectPath, timeout: NPM_VIEW_TIMEOUT_MS },
@@ -52,27 +49,26 @@ async function viewLatest(
   packageName: string,
   projectPath: string,
 ): Promise<PackageRelease | undefined> {
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The selected npm fields are historically trusted without schema validation; preserve malformed-registry behavior.
-  const view = (await npmView(
+  const view = await npmView(
     `${packageName}@${LATEST_TAG}`,
     ["version", "dependencies", "antelopeJs"],
     projectPath,
-  )) as NpmViewResult | undefined;
-  if (!view?.version) return undefined;
+  );
+  if (!isRecord(view) || !isString(view.version) || !view.version) {
+    return undefined;
+  }
+  const dependencies = isStringRecord(view.dependencies)
+    ? view.dependencies
+    : undefined;
+  const implemented = isRecord(view.antelopeJs)
+    ? view.antelopeJs.implements
+    : undefined;
   return {
     version: view.version,
-    interfaceRange: view.dependencies?.[INTERFACE_PACKAGE],
-    dependencies: view.dependencies ?? {},
-    implements: Array.isArray(view.antelopeJs?.implements)
-      ? view.antelopeJs.implements.map(String)
-      : [],
+    interfaceRange: dependencies?.[INTERFACE_PACKAGE],
+    dependencies: dependencies ?? {},
+    implements: Array.isArray(implemented) ? implemented.map(String) : [],
   };
-}
-
-function isFresh(cached: CachedRelease | undefined): boolean {
-  if (!cached) return false;
-  const ttl = cached.release ? RELEASE_TTL_MS : FAILED_RELEASE_TTL_MS;
-  return Date.now() - cached.fetchedAt < ttl;
 }
 
 /**
@@ -83,20 +79,9 @@ function isFresh(cached: CachedRelease | undefined): boolean {
 export function latestRelease(
   packageName: string,
   projectPath: string,
-  force = false,
+  freshness: Freshness,
 ): Promise<PackageRelease | undefined> {
-  const cached = releases.get(packageName);
-  if (!force && isFresh(cached)) {
-    return Promise.resolve(cached?.release);
-  }
-  const inFlight = pending.get(packageName);
-  if (inFlight) return inFlight;
-  const lookup = viewLatest(packageName, projectPath)
-    .then((release) => {
-      releases.set(packageName, { fetchedAt: Date.now(), release });
-      return release;
-    })
-    .finally(() => pending.delete(packageName));
-  pending.set(packageName, lookup);
-  return lookup;
+  return releases.get(packageName, () => viewLatest(packageName, projectPath), {
+    freshness,
+  });
 }

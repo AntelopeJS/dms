@@ -2,7 +2,7 @@ import { ComponentBuilder } from "../component";
 import { z } from "zod";
 import { type BlockOptionsFor, RegisterBlockType, ui } from "./block-registry";
 
-const PLACEHOLDER_COMPONENT_NAME = "dms-placeholder";
+const PLACEHOLDER_COMPONENT_NAME = "dms-placeholder-block";
 
 /**
  * Options for Placeholder component
@@ -62,6 +62,8 @@ export const PlaceholderSchema = z.object({
  * ```typescript
  * Placeholder({ label: 'Item 1', height: '200px' })
  * ```
+ *
+ * @docsApi
  */
 export function Placeholder(
   options?: PlaceholderOptions,

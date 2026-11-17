@@ -1,14 +1,20 @@
-import { Controller, Get, Parameter } from "@antelopejs/interface-api";
+import {
+  Controller,
+  Get,
+  Parameter,
+  type QueryValue,
+} from "@antelopejs/interface-api";
 import type { TopListItem } from "@antelopejs/interface-dms/base/top-list-card";
+import { ownEntry } from "../../own-entry";
+import { queryText } from "../../query-text";
 
 const MINUTE_MS = 60 * 1000;
 const SPARKLINE_LENGTH = 8;
-// oxlint-disable-next-line anti-slop/no-known-value-widening -- Arbitrary preset query strings require the existing indexed lookup and fallback.
-const PRESET_SLOWDOWN: Record<string, number> = {
+const PRESET_SLOWDOWN = {
   "this-month": 1,
   "last-month": 1.2,
   "this-quarter": 1.4,
-};
+} satisfies Record<string, number>;
 
 interface RouteTiming {
   route: string;
@@ -98,8 +104,8 @@ function pageItem(page: PageVisit): TopListItem {
 /** Rankings of the TopListCard demos. */
 export class TopListDemoApiController extends Controller("/api/dashboard/top") {
   @Get("routes")
-  getRoutes(@Parameter("preset", "query") preset?: string) {
-    const slowdown = PRESET_SLOWDOWN[preset ?? ""] ?? 1;
+  getRoutes(@Parameter("preset", "query") preset: QueryValue) {
+    const slowdown = ownEntry(PRESET_SLOWDOWN, queryText(preset) ?? "") ?? 1;
     return {
       items: ROUTE_TIMINGS.map((timing) => routeItem(timing, slowdown)),
     };

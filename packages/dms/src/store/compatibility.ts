@@ -1,25 +1,49 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { satisfies, validRange } from "semver";
+import { z } from "zod";
 import { INTERFACE_PACKAGE } from "./registry";
 import type { PackageRelease } from "./types";
 
 const PACKAGE_JSON = "package.json";
 const INTERFACE_ENTRY = `${INTERFACE_PACKAGE}/page`;
 
-interface PackageManifest {
-  name?: string;
-  version?: string;
-}
+const PackageManifestSchema = z
+  .object({
+    name: z.string().optional().catch(undefined),
+    version: z.string().optional().catch(undefined),
+  })
+  .catch({});
+
+type PackageManifest = z.infer<typeof PackageManifestSchema>;
 
 let interfaceVersion: string | undefined;
 
 function readManifest(folder: string): PackageManifest | undefined {
   try {
-    return JSON.parse(readFileSync(path.join(folder, PACKAGE_JSON), "utf-8"));
+    return PackageManifestSchema.parse(
+      JSON.parse(readFileSync(path.join(folder, PACKAGE_JSON), "utf-8")),
+    );
   } catch {
     return undefined;
   }
+}
+
+/**
+ * The version of the `@antelopejs/interface-dms` package that holds
+ * `startFolder`, found by walking up to the first `package.json` that names
+ * it with a string version.
+ */
+export function findInterfaceVersion(startFolder: string): string | undefined {
+  let folder = startFolder;
+  while (folder !== path.dirname(folder)) {
+    const manifest = readManifest(folder);
+    if (manifest?.name === INTERFACE_PACKAGE && manifest.version) {
+      return manifest.version;
+    }
+    folder = path.dirname(folder);
+  }
+  return undefined;
 }
 
 /**
@@ -29,16 +53,13 @@ function readManifest(folder: string): PackageManifest | undefined {
  */
 export function installedInterfaceVersion(): string {
   if (interfaceVersion) return interfaceVersion;
-  let folder = path.dirname(require.resolve(INTERFACE_ENTRY));
-  while (folder !== path.dirname(folder)) {
-    const manifest = readManifest(folder);
-    if (manifest?.name === INTERFACE_PACKAGE && manifest.version) {
-      interfaceVersion = manifest.version;
-      return interfaceVersion;
-    }
-    folder = path.dirname(folder);
+  const entryFolder = path.dirname(require.resolve(INTERFACE_ENTRY));
+  const found = findInterfaceVersion(entryFolder);
+  if (!found) {
+    throw new Error(`Cannot find the installed ${INTERFACE_PACKAGE} version`);
   }
-  throw new Error(`Cannot find the installed ${INTERFACE_PACKAGE} version`);
+  interfaceVersion = found;
+  return found;
 }
 
 /**

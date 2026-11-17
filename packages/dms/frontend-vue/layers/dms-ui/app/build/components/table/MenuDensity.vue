@@ -1,8 +1,9 @@
 <script setup lang="ts" generic="T extends Data">
+import { themeOverride } from "./tableComponentTheme";
 import { injectLocal } from "@vueuse/core";
 import { tv } from "tailwind-variants";
 import type { ShallowRef } from "vue";
-import type { Data, TableDensity, TableSharedData } from "./Table.vue";
+import type { Data, TableDensity, TableSharedData } from "./TableRoot.vue";
 
 const theme = tv({
   slots: {
@@ -39,10 +40,7 @@ const tableSharedData = computed(() => tableSharedDataRef?.value);
 
 const { t } = useI18n();
 
-// oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Module theme configuration is unchecked; retain its existing contract derived from this component's normalized theme.
-const appConfig = useDmsAppConfig() as ReturnType<typeof useDmsAppConfig> & {
-  ui: { tableMenuDensity: Partial<typeof theme> };
-};
+const appConfig = useDmsAppConfig();
 
 const activeDensity = computed(
   () => tableSharedData.value?.densityState.value ?? "default",
@@ -55,7 +53,7 @@ const selectDensity = (value: TableDensity) => {
 
 const uiTableMenuDensityVariant = tv({
   extend: tv(theme),
-  ...appConfig.ui?.tableMenuDensity,
+  ...themeOverride("tableMenuDensity"),
 });
 const uiTableMenuDensity = computed(() => uiTableMenuDensityVariant());
 </script>

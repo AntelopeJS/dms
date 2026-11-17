@@ -9,15 +9,14 @@ import {
 import { withPermissionAncestors } from "@antelopejs/interface-dms/internal/permission-ids";
 import { resolveCustomButtons } from "@antelopejs/interface-dms/base/table-view/internal/request-filter";
 import type { CustomButton } from "@antelopejs/interface-dms/base/types/custom-button";
+import { headerActionsOf } from "../../../helpers/serialized-options";
 
 const CONTEXT = { tenantId: "tenant", user: undefined };
 
 function actionsOf(
-  options: ReturnType<typeof DefaultLayout>["options"],
+  layout: Parameters<typeof headerActionsOf>[0],
 ): PageHeaderButtonSerialized[] {
-  // SAFETY: All callers pass DefaultLayout options, whose declared and served headerActions are serialized buttons; DefaultLayout erases its options generic.
-  return (options as { headerActions?: PageHeaderButtonSerialized[] })
-    .headerActions!;
+  return headerActionsOf(layout).headerActions;
 }
 
 describe("[unit] interfaces/dms-base/layouts — header buttons", () => {
@@ -51,7 +50,7 @@ describe("[unit] interfaces/dms-base/layouts — header buttons", () => {
       ],
     });
 
-    expect(actionsOf(layout.options)).to.deep.equal([
+    expect(actionsOf(layout)).to.deep.equal([
       {
         id: "new",
         label: "New invoice",
@@ -86,7 +85,7 @@ describe("[unit] interfaces/dms-base/layouts — header buttons", () => {
       headerActions: [{ id: "download-language", label: "Download", target }],
     });
 
-    expect(actionsOf(layout.options)).to.deep.equal([
+    expect(actionsOf(layout)).to.deep.equal([
       { id: "download-language", label: "Download", target },
     ]);
   });
@@ -102,7 +101,7 @@ describe("[unit] interfaces/dms-base/layouts — header buttons", () => {
         },
       ],
     });
-    expect(actionsOf(layout.options)[0]).to.deep.include({ order: 1 });
+    expect(actionsOf(layout)[0]).to.deep.include({ order: 1 });
   });
 
   it("keeps the full-width default next to the buttons", () => {
@@ -114,22 +113,23 @@ describe("[unit] interfaces/dms-base/layouts — header buttons", () => {
   });
 });
 
-describe("[unit] interfaces/dms/page — header buttons served per caller", () => {
-  const link = (id: string, permission?: string) => ({
-    id,
-    label: id,
-    target: { type: "page" as const, url: `/${id}` },
-    permission,
-  });
-  const layout = DefaultLayout({
-    headerActions: [
-      link("open"),
-      link("audit", "audit"),
-      link("export", "export"),
-      { ...link("ledger"), permissionId: "pages.ledger.view" },
-    ],
-  });
+const link = (id: string, permission?: string) => ({
+  id,
+  label: id,
+  target: { type: "page" as const, url: `/${id}` },
+  permission,
+});
 
+const layout = DefaultLayout({
+  headerActions: [
+    link("open"),
+    link("audit", "audit"),
+    link("export", "export"),
+    { ...link("ledger"), permissionId: "pages.ledger.view" },
+  ],
+});
+
+describe("[unit] interfaces/dms/page — header buttons served per caller", () => {
   it("leaves out the buttons whose permission the caller lacks, an action of the page by name", async () => {
     const filtered = await filterLayoutHeaderActions(
       layout,
@@ -144,13 +144,13 @@ describe("[unit] interfaces/dms/page — header buttons served per caller", () =
       "pages.billing",
     );
 
-    expect(
-      actionsOf(filtered!.options).map((action) => action.id),
-    ).to.deep.equal(["open", "export", "ledger"]);
-    expect(actionsOf(filtered!.options)[1]).to.not.have.property("permission");
-    expect(actionsOf(filtered!.options)[2]).to.not.have.property(
-      "permissionId",
-    );
+    expect(actionsOf(filtered).map((action) => action.id)).to.deep.equal([
+      "open",
+      "export",
+      "ledger",
+    ]);
+    expect(actionsOf(filtered)[1]).to.not.have.property("permission");
+    expect(actionsOf(filtered)[2]).to.not.have.property("permissionId");
   });
 
   it("refuses a button naming an action when the page has no permission id", async () => {
@@ -161,9 +161,9 @@ describe("[unit] interfaces/dms/page — header buttons served per caller", () =
       undefined,
     );
 
-    expect(
-      actionsOf(filtered!.options).map((action) => action.id),
-    ).to.deep.equal(["open"]);
+    expect(actionsOf(filtered).map((action) => action.id)).to.deep.equal([
+      "open",
+    ]);
   });
 
   it("disables a button its availability refuses, with the reason", async () => {
@@ -178,12 +178,12 @@ describe("[unit] interfaces/dms/page — header buttons served per caller", () =
     });
 
     const [invite] = actionsOf(
-      (await filterLayoutHeaderActions(
+      await filterLayoutHeaderActions(
         limited,
         async () => new Set(),
         CONTEXT,
         "pages.billing",
-      ))!.options,
+      ),
     );
 
     expect(invite).to.deep.include({
@@ -204,17 +204,15 @@ describe("[unit] interfaces/dms/page — header buttons served per caller", () =
         },
       ],
     });
-    // SAFETY: filterLayoutHeaderActions serves DefaultLayout headerActions and headerActionsQuery, but DefaultLayout's return type erases the options shape.
     const serve = async (query: Record<string, string>) =>
-      (await filterLayoutHeaderActions(
-        scoped,
-        async () => new Set(),
-        { ...CONTEXT, query },
-        "pages.lang",
-      ))!.options as {
-        headerActions: PageHeaderButtonSerialized[];
-        headerActionsQuery?: Record<string, string>;
-      };
+      headerActionsOf(
+        await filterLayoutHeaderActions(
+          scoped,
+          async () => new Set(),
+          { ...CONTEXT, query },
+          "pages.lang",
+        ),
+      );
 
     const readOnly = await serve({ workspace: "modules" });
     expect(readOnly.headerActions.map((action) => action.id)).to.deep.equal([
@@ -228,7 +226,9 @@ describe("[unit] interfaces/dms/page — header buttons served per caller", () =
     ]);
     expect(own.headerActions[1]).to.not.have.property("disabled");
   });
+});
 
+describe("[unit] interfaces/dms/page — header buttons served per caller, availability queries", () => {
   it("hands availability the page query, and says which query it served", async () => {
     const queue = DefaultLayout({
       headerActions: [
@@ -239,17 +239,15 @@ describe("[unit] interfaces/dms/page — header buttons served per caller", () =
         },
       ],
     });
-    // SAFETY: filterLayoutHeaderActions serves DefaultLayout headerActions and headerActionsQuery, but DefaultLayout's return type erases the options shape.
     const serve = async (query: Record<string, string>) =>
-      (await filterLayoutHeaderActions(
-        queue,
-        async () => new Set(),
-        { ...CONTEXT, query },
-        "pages.lang",
-      ))!.options as {
-        headerActions: PageHeaderButtonSerialized[];
-        headerActionsQuery?: Record<string, string>;
-      };
+      headerActionsOf(
+        await filterLayoutHeaderActions(
+          queue,
+          async () => new Set(),
+          { ...CONTEXT, query },
+          "pages.lang",
+        ),
+      );
 
     const german = await serve({ workspace: "web", locale: "de" });
     expect(german.headerActions[0]).to.not.have.property("disabled");
@@ -295,7 +293,7 @@ describe("[unit] interfaces/dms/page — header buttons served per caller", () =
       CONTEXT,
       "pages.billing",
     );
-    expect(actionsOf(layout.options)).to.have.length(4);
+    expect(actionsOf(layout)).to.have.length(4);
   });
 });
 
@@ -335,7 +333,7 @@ describe("[unit] interfaces/dms/page — a table's buttons placed in the header"
       components,
     );
 
-    expect(actionsOf(layout!.options)).to.deep.equal([
+    expect(actionsOf(layout)).to.deep.equal([
       { id: "header-0", label: "Docs", target: { type: "page", url: "/docs" } },
       {
         id: "table:invite",
@@ -386,7 +384,7 @@ describe("[unit] interfaces/dms/page — a table's buttons placed in the header"
     const layout = withComponentHeaderButtons(DefaultLayout(), nested);
 
     expect(
-      actionsOf(layout!.options).map(({ id, componentId, buttonId }) => ({
+      actionsOf(layout).map(({ id, componentId, buttonId }) => ({
         id,
         componentId,
         buttonId,

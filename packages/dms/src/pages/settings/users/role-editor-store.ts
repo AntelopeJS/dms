@@ -1,5 +1,8 @@
 import { HTTPResult } from "@antelopejs/interface-api";
-import type { AfterWrite } from "@antelopejs/interface-dms/base/types/guards";
+import type {
+  AfterWrite,
+  DeleteGuardArgs,
+} from "@antelopejs/interface-dms/base/types/guards";
 import { assert, assertValidation } from "@antelopejs/interface-api-util";
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import { UserModel } from "@antelopejs/interface-dms/auth/db";
@@ -10,7 +13,10 @@ import {
   UserInviteModel,
 } from "@antelopejs/interface-dms/db";
 import { withRequiredPermissions } from "@antelopejs/interface-dms/internal/permission-requirements";
-import { GetPermissions } from "@antelopejs/interface-dms/permissions";
+import {
+  GetPermissions,
+  HasPermission,
+} from "@antelopejs/interface-dms/permissions";
 import { changeTenantMembers } from "@antelopejs/interface-dms/tenant-members";
 import { describeMemberEdit } from "@antelopejs/interface-dms/internal/member-changes";
 import { DefaultDataTypes } from "@antelopejs/interface-dms/base/data-types/default-types";
@@ -24,29 +30,38 @@ import {
   GetMenuOrder,
   notifyMenuAccessChanged,
 } from "../../../implementations/dms/page";
-import { haveSameMembers } from "../../../utils";
+import { haveSameMembers, WILDCARD_PERMISSION } from "../../../utils";
 import { type RoleEditorInput, roleDeleteSchema } from "../../../validation";
 import {
   applyPermissionWarnings,
   resolvePermissionWarnings,
 } from "./permission-warnings";
 import {
-  collectPermissionIds,
   countRoleHolders,
+  invitesGrantingRole,
+  membersHoldingRole,
+  pendingInvitesGrantingRole,
+} from "../../../db";
+import {
+  collectPermissionIds,
   mapRoleEditorTree,
   orderRoleEditorTree,
   replaceRoleReference,
   type RoleEditorCapabilities,
+  type RoleHolders,
   type RoleEditorPermissionNode,
+  ROLE_MEMBER_PREVIEW_LIMIT,
   type RolesOverview,
   summarizeOwners,
   summarizeRoles,
 } from "./role-editor";
 
+const HTTP_FORBIDDEN = 403;
 const HTTP_NOT_FOUND = 404;
 const HTTP_CONFLICT = 409;
 const HTTP_INTERNAL_ERROR = 500;
 
+const UNGRANTABLE_MESSAGE = "$page.settings.roles.error.ungrantable";
 const ROLE_NOT_FOUND_MESSAGE = "$page.settings.roles.error.not_found";
 const NAME_TAKEN_MESSAGE = "$page.settings.roles.error.name_taken";
 const IN_USE_MESSAGE = "$page.settings.roles.error.in_use";
@@ -60,6 +75,27 @@ export const REASSIGN_FIELD = "reassignTo";
 export interface RoleEditorActor {
   tenantId: string;
   permissions: Set<string>;
+}
+
+/**
+ * Refuses a role that would hold `*`, which only the platform owner holds, or
+ * a permission of `permissions` that `actor` does not hold. `kept` are the
+ * permissions the role holds already: an edit may leave them in place.
+ */
+export async function assertGrantable(
+  actor: RoleEditorActor,
+  permissions: string[],
+  kept: string[] = [],
+): Promise<void> {
+  const added = permissions.filter((id) => !kept.includes(id));
+  const held = await Promise.all(
+    added.map((id) => HasPermission(actor.permissions, id)),
+  );
+  assert(
+    !permissions.includes(WILDCARD_PERMISSION) && held.every(Boolean),
+    HTTP_FORBIDDEN,
+    UNGRANTABLE_MESSAGE,
+  );
 }
 
 /**
@@ -80,10 +116,49 @@ export async function loadRoleEditorTree(): Promise<
   return applyPermissionWarnings(tree, resolvePermissionWarnings());
 }
 
+/**
+ * The ids of `permissionIds` that `actor` may grant, as `assertGrantable`
+ * decides; `null` when its effective permissions hold `*`, as the platform
+ * owner's do, since it may then grant every one.
+ */
+async function grantablePermissionIds(
+  actor: RoleEditorActor,
+  permissionIds: string[],
+): Promise<string[] | null> {
+  if (actor.permissions.has(WILDCARD_PERMISSION)) return null;
+  const held = await Promise.all(
+    permissionIds.map((id) => HasPermission(actor.permissions, id)),
+  );
+  return permissionIds.filter((_, index) => held[index]);
+}
+
 async function loadUserNames(userIds: string[]): Promise<Map<string, string>> {
   if (userIds.length === 0) return new Map();
   const users = await GetModel(UserModel).getBy("_id", ...new Set(userIds));
   return new Map(users.map((user) => [user._id, user.name]));
+}
+
+async function loadRoleHolders(
+  tenantId: string,
+  roleId: string,
+  now: Date,
+): Promise<RoleHolders> {
+  const members = GetModel(TenantMemberModel, tenantId);
+  const [memberCount, preview, inviteCount] = await Promise.all([
+    membersHoldingRole(members, roleId).count().run(),
+    membersHoldingRole(members, roleId)
+      .slice(0, ROLE_MEMBER_PREVIEW_LIMIT)
+      .pluck("userId")
+      .run(),
+    pendingInvitesGrantingRole(GetModel(UserInviteModel, tenantId), roleId, now)
+      .count()
+      .run(),
+  ]);
+  return {
+    memberCount,
+    previewUserIds: preview.map((member) => member.userId),
+    inviteCount,
+  };
 }
 
 /** The roles, the owners and what `actor` may change, for the roles page. */
@@ -91,27 +166,40 @@ export async function loadRolesOverview(
   actor: RoleEditorActor,
   capabilities: RoleEditorCapabilities,
 ): Promise<RolesOverview> {
-  const [roles, members, invites, tree] = await Promise.all([
+  const now = new Date();
+  const [roles, owners, tree] = await Promise.all([
     GetModel(RoleModel, actor.tenantId).getAll(),
-    GetModel(TenantMemberModel, actor.tenantId).listAll(),
-    GetModel(UserInviteModel, actor.tenantId).getAll(),
+    GetModel(TenantMemberModel, actor.tenantId).listOwners(),
     loadRoleEditorTree(),
   ]);
+  const ownerIds = owners.map((owner) => owner.userId);
+  const holders = new Map(
+    await Promise.all(
+      roles.map(async (role): Promise<[string, RoleHolders]> => [
+        role._id,
+        await loadRoleHolders(actor.tenantId, role._id, now),
+      ]),
+    ),
+  );
+  const previewed = [
+    ...ownerIds.slice(0, ROLE_MEMBER_PREVIEW_LIMIT),
+    ...[...holders.values()].flatMap((role) => role.previewUserIds),
+  ];
   const permissionIds = collectPermissionIds(tree);
-  const userNames = await loadUserNames(members.map((member) => member.userId));
+  const [userNames, grantable] = await Promise.all([
+    loadUserNames(previewed),
+    grantablePermissionIds(actor, permissionIds),
+  ]);
   return {
     roles: summarizeRoles({
       roles,
-      members,
-      invites,
+      holders,
       userNames,
       knownPermissionIds: new Set(permissionIds),
-      now: new Date(),
     }),
-    owners: summarizeOwners(members, userNames),
+    owners: summarizeOwners(ownerIds, userNames),
     totalPermissions: permissionIds.length,
-
-    grantable: null,
+    grantable,
     capabilities,
   };
 }
@@ -136,14 +224,16 @@ async function assertNameAvailable(
 }
 
 async function insertRole(
-  tenantId: string,
+  actor: RoleEditorActor,
   input: RoleEditorInput,
 ): Promise<string> {
+  const permissions = await withRequiredPermissions(input.permissions);
+  await assertGrantable(actor, permissions);
   const now = new Date();
-  const [roleId] = await GetModel(RoleModel, tenantId).insert({
+  const [roleId] = await GetModel(RoleModel, actor.tenantId).insert({
     name: input.name,
     description: input.description,
-    permissions: await withRequiredPermissions(input.permissions),
+    permissions,
     createdAt: now,
     updatedAt: now,
   });
@@ -157,7 +247,7 @@ export async function createRole(
   input: RoleEditorInput,
 ): Promise<string> {
   await assertNameAvailable(actor.tenantId, input.name);
-  return insertRole(actor.tenantId, input);
+  return insertRole(actor, input);
 }
 
 /** What saving a role changed. */
@@ -179,6 +269,7 @@ export async function updateRole(
   const role = await requireRole(actor.tenantId, roleId);
   await assertNameAvailable(actor.tenantId, input.name, roleId);
   const permissions = await withRequiredPermissions(input.permissions);
+  await assertGrantable(actor, permissions, role.permissions);
   const permissionsChanged = !haveSameMembers(
     role.permissions ?? [],
     permissions,
@@ -200,7 +291,7 @@ export async function duplicateRole(
   const role = await requireRole(actor.tenantId, roleId);
   await assertNameAvailable(actor.tenantId, name);
   const permissions = role.permissions ?? [];
-  return insertRole(actor.tenantId, {
+  return insertRole(actor, {
     name,
     description: role.description ?? "",
     permissions,
@@ -215,11 +306,12 @@ async function assertRoleUnused(
   tenantId: string,
   roleId: string,
 ): Promise<void> {
-  const [members, invites] = await Promise.all([
-    GetModel(TenantMemberModel, tenantId).listAll(),
-    GetModel(UserInviteModel, tenantId).getAll(),
-  ]);
-  const holders = countRoleHolders(roleId, members, invites, new Date());
+  const holders = await countRoleHolders(
+    GetModel(TenantMemberModel, tenantId),
+    GetModel(UserInviteModel, tenantId),
+    roleId,
+    new Date(),
+  );
   assert(holders === 0, HTTP_CONFLICT, IN_USE_MESSAGE);
 }
 
@@ -228,10 +320,13 @@ export async function listRoleHolderIds(
   tenantId: string,
   roleId: string,
 ): Promise<string[]> {
-  const members = await GetModel(TenantMemberModel, tenantId).listAll();
-  return members
-    .filter((member) => member.roleIds?.includes(roleId))
-    .map((member) => member.userId);
+  const holders = await membersHoldingRole(
+    GetModel(TenantMemberModel, tenantId),
+    roleId,
+  )
+    .pluck("userId")
+    .run();
+  return holders.map((holder) => holder.userId);
 }
 
 /** Moves the holders of `roleId` to `replacementId`; returns the members moved. */
@@ -243,10 +338,16 @@ async function moveRoleHolders(
   const memberModel = GetModel(TenantMemberModel, tenantId);
   const inviteModel = GetModel(UserInviteModel, tenantId);
   return changeTenantMembers(tenantId, async () => {
-    const [members, invites] = await Promise.all([
-      memberModel.listAll(),
-      inviteModel.getAll(),
+    const [memberRows, inviteRows] = await Promise.all([
+      membersHoldingRole(memberModel, roleId).run(),
+      invitesGrantingRole(inviteModel, roleId).run(),
     ]);
+    const members = memberRows.flatMap(
+      (row) => TenantMemberModel.fromDatabase(row) ?? [],
+    );
+    const invites = inviteRows.flatMap(
+      (row) => UserInviteModel.fromDatabase(row) ?? [],
+    );
     const memberMoves = members.flatMap((member) => {
       const roleIds = replaceRoleReference(
         member.roleIds ?? [],
@@ -288,12 +389,15 @@ export async function loadRoleDeleteConfirm(
   roleId: string,
 ): Promise<ConfirmDialogSerialized> {
   const role = await requireRole(tenantId, roleId);
-  const [roles, members, invites] = await Promise.all([
+  const [roles, holders] = await Promise.all([
     GetModel(RoleModel, tenantId).getAll(),
-    GetModel(TenantMemberModel, tenantId).listAll(),
-    GetModel(UserInviteModel, tenantId).getAll(),
+    countRoleHolders(
+      GetModel(TenantMemberModel, tenantId),
+      GetModel(UserInviteModel, tenantId),
+      roleId,
+      new Date(),
+    ),
   ]);
-  const holders = countRoleHolders(roleId, members, invites, new Date());
   const otherRoles = roles.filter((candidate) => candidate._id !== roleId);
   return serializeConfirmDialog({
     title: `${DELETE_I18N}.delete_title`,
@@ -335,8 +439,7 @@ export async function loadRoleDeleteConfirm(
 export async function prepareRoleDeletion(
   tenantId: string,
   roleIds: string[],
-  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Delete-dialog fields are unparsed until roleDeleteSchema runs below; no values means the distinct bare-delete contract.
-  values: Record<string, unknown> | undefined,
+  values: DeleteGuardArgs["values"],
 ): Promise<AfterWrite | undefined> {
   if (!values) {
     for (const roleId of roleIds) await assertRoleUnused(tenantId, roleId);

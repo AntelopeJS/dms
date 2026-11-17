@@ -23,7 +23,6 @@ export class SendableNotification {
    * unless `dedupe: false` (see {@link DeliveryOptions}).
    */
   async toUser(userId: string, options: SendOptions = {}): Promise<void> {
-    await this.requireIdempotencySupport(options);
     await internal.SendToUser(
       userId,
       this.data,
@@ -34,7 +33,6 @@ export class SendableNotification {
   }
 
   async toUsers(userIds: string[], options: SendOptions = {}): Promise<void> {
-    await this.requireIdempotencySupport(options);
     await internal.SendToUsers(
       userIds,
       this.data,
@@ -44,7 +42,7 @@ export class SendableNotification {
     );
   }
 
-  /** Explicit capability for durable outbox delivery; older DMS versions do not expose this method. */
+  /** Sends a durable event once per recipient under `idempotencyKey`, including after dismissal. */
   async toUsersIdempotently(
     userIds: string[],
     idempotencyKey: string,
@@ -58,24 +56,15 @@ export class SendableNotification {
     roleIds: string[],
     options: RoleSendOptions = {},
   ): Promise<void> {
-    await this.requireIdempotencySupport(options);
     await internal.SendToRoles(roleIds, this.data, options);
   }
 
   async broadcast(options: SendOptions = {}): Promise<void> {
-    await this.requireIdempotencySupport(options);
     await internal.SendToAll(
       this.data,
       options.readScope,
       options.idempotencyKey,
       deliveryOf(options),
     );
-  }
-
-  private async requireIdempotencySupport(options: SendOptions): Promise<void> {
-    if (options.idempotencyKey === undefined) return;
-    if ((await internal.SupportsIdempotency()) !== true) {
-      throw new Error("DMS idempotent notification delivery is unavailable");
-    }
   }
 }

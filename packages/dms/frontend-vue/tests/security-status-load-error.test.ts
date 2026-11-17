@@ -9,7 +9,6 @@ import {
   onMounted,
   ref,
   type App,
-  type PropType,
 } from "vue";
 import type DmsEmptyState from "../layers/dms-ui/app/components/empty-state/EmptyState.vue";
 import { browserRuntime, stubApiData } from "./helpers/api-data-runtime";
@@ -27,9 +26,10 @@ const EmptyState = defineComponent({
   props: {
     title: String,
     actions: {
-      // SAFETY: Vue validates Array at runtime; DmsEmptyState's caller supplies its declared actions prop.
-      type: Array as PropType<
-        NonNullable<InstanceType<typeof DmsEmptyState>["$props"]["actions"]>
+      type: Array<
+        NonNullable<
+          InstanceType<typeof DmsEmptyState>["$props"]["actions"]
+        >[number]
       >,
       default: () => [],
     },
@@ -99,10 +99,12 @@ it("says a failed summary failed, with a retry, instead of loading forever", asy
 
   authFetch.mockClear();
   host.querySelector("button")!.click();
-  await vi.waitFor(() =>
-    expect(authFetch).toHaveBeenCalledExactlyOnceWith(
+  await vi.waitFor(() => {
+    expect(authFetch).toHaveBeenCalledOnce();
+    expect(authFetch.mock.calls[0]).toHaveLength(2);
+    expect(authFetch.mock.calls[0]?.[0]).toBe(
       "/dms/pages/settings/user/security",
-      expect.objectContaining({ signal: expect.any(AbortSignal) }),
-    ),
-  );
+    );
+    expect(authFetch.mock.calls[0]?.[1]?.signal).toBeInstanceOf(AbortSignal);
+  });
 });

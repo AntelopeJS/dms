@@ -4,6 +4,7 @@ import {
   Parameter,
   Post,
   type RequestContext,
+  type QueryValue,
 } from "@antelopejs/interface-api";
 import {
   DataController,
@@ -34,6 +35,8 @@ import {
   TableViewRoutes,
 } from "@antelopejs/interface-dms/base/table-view";
 import { JobRun, JobRunModel, type JobRunStatus } from "./database";
+import { ownEntry } from "../../own-entry";
+import { queryText } from "../../query-text";
 
 /**
  * Published once a bulk re-run rewrote runs through its own route, which the
@@ -67,13 +70,12 @@ const HTTP_STATUS_BY_RUN: Record<JobRunStatus, number> = {
   failing: 502,
 };
 const HTTP_CLASS_SIZE = 100;
-// oxlint-disable-next-line anti-slop/no-known-value-widening -- HTTP classes are computed numbers, while the response contract owns only each tone value.
-const HTTP_TONE_BY_CLASS: Record<number, Tone> = {
+const HTTP_TONE_BY_CLASS = {
   2: "success",
   3: "info",
   4: "warning",
   5: "error",
-};
+} satisfies Record<number, Tone>;
 
 const NOTIFICATION_LOCALES = ["en", "fr", "de"] as const;
 const LOCALES_BY_RUN: Record<JobRunStatus, readonly string[]> = {
@@ -194,7 +196,7 @@ export class jobRunDataAPI extends DataController(
     const statusClass = Math.floor(
       HTTP_STATUS_BY_RUN[this.table.status] / HTTP_CLASS_SIZE,
     );
-    return HTTP_TONE_BY_CLASS[statusClass] ?? "neutral";
+    return ownEntry(HTTP_TONE_BY_CLASS, String(statusClass)) ?? "neutral";
   }
 
   @Listable(["status"])
@@ -313,10 +315,10 @@ export class jobRunDataAPI extends DataController(
   /** Makes the caller the run's owner, for the "Mine" view's `{{user.id}}`. */
   @Post("assign-to-me")
   async assignToMe(
-    @Parameter("id", "query") id: string,
+    @Parameter("id", "query") id: QueryValue,
     @AuthUser() user: User,
   ): Promise<{ ok: boolean }> {
-    await this.model.update(id, { ownerId: user._id });
+    await this.model.update(queryText(id) ?? "", { ownerId: user._id });
     return { ok: true };
   }
 }

@@ -1,7 +1,7 @@
 /** @internal */
+import { Context } from "@antelopejs/interface-api";
 import { UnregisterPermission } from "../../permissions";
-// oxlint-disable-next-line import/no-cycle -- The category proxies are used only when a page publishes, after metadata evaluation.
-import { internal, isInsideModule } from "../categories";
+import { internal, isOwnerOnly } from "../categories";
 import type { PageMetadata } from "../metadata";
 import type { PageInfo } from "../types";
 import {
@@ -9,11 +9,13 @@ import {
   RequestRouteParametersProperty,
 } from "./metadata-helpers";
 import type { PageRegistration } from "./page-registration";
+import { pageController } from "./page-controller";
 import {
   pageMetadataByFullId,
   permissionMap,
   stampPageRegistration,
 } from "./registry";
+import { prototypeOf } from "../../utils/internal/decorated-class";
 
 interface PublishContext {
   registration(): PageRegistration;
@@ -34,6 +36,7 @@ export function publish(
   pageInfo: PageInfo,
   context: PublishContext,
 ): void {
+  const controller = pageController(page.target);
   const previous = pageMetadataByFullId.get(pageInfo.fullId);
   pageMetadataByFullId.set(pageInfo.fullId, page);
   context.registration().track(() => {
@@ -47,15 +50,15 @@ export function publish(
     .registration()
     .track(() => internal.RegisterPage.unregister(pageInfo));
   context.configure(
-    isInsideModule(pageInfo),
+    isOwnerOnly(pageInfo),
     () =>
       pageInfo.noComponentPermissions === true || pageInfo.authOnly === true,
   );
   context.registerPermission(pageInfo);
-  permissionMap.set(page.target, context.permissionId());
+  permissionMap.set(controller, context.permissionId());
   context.registration().track(() => {
+    permissionMap.delete(controller);
     if (!context.ownsPermissions()) return;
-    permissionMap.delete(page.target);
     if (context.registeredPermission() && context.permissionId()) {
       UnregisterPermission(context.permissionId());
       context.clearRegisteredPermission();
@@ -63,8 +66,9 @@ export function publish(
   });
   context.ownProperties();
   context.auth(pageInfo);
-  RequestQueryProperty()(page.target.prototype, "pageQuery");
-  RequestRouteParametersProperty()(page.target.prototype, "pageParams");
+  RequestQueryProperty()(prototypeOf(controller), "pageQuery");
+  RequestRouteParametersProperty()(prototypeOf(controller), "pageParams");
+  Context()(prototypeOf(controller), "layoutRequest");
   context.route(pageInfo);
 }
 

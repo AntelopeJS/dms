@@ -5,7 +5,7 @@ import {
 import { HTTP_NOT_FOUND } from "../../../../dms-core/app/utils/http-status";
 import type { I18nTranslate } from "#dms-core/app/composables/translation/useTranslation";
 import type { BlockAction } from "../components/blocks/BlockActions.vue";
-import { userFacingText } from "../composables/confirm/actionError";
+import type { ApiErrorPresenter } from "#dms-core/app/composables/useApiErrorPresenter";
 import type { Tone } from "#dms-core/app/types/tone";
 
 /** Translation key of the not-found title, shared by blocks and guards. */
@@ -40,11 +40,9 @@ interface FetchFailure {
   data?: unknown;
 }
 
-/* oxlint-disable anti-slop/no-unsafe-dictionary-type -- This representation guard accepts arbitrary thrown and response values; FetchFailure cannot replace the open property lookup result. */
 const isObject = (
   value: Parameters<typeof isObjectType>[0],
 ): value is Record<string, unknown> => isObjectType(value) && value !== null;
-/* oxlint-enable anti-slop/no-unsafe-dictionary-type */
 
 const statusOf = (error: FetchFailure): number | undefined =>
   error.statusCode ?? error.status ?? error.response?.status;
@@ -76,11 +74,12 @@ export function readFetchNotFound(
 export function notFoundTexts(
   notFound: FetchNotFound | null | undefined,
   translate: I18nTranslate,
+  resolveError: ApiErrorPresenter["resolveError"],
 ) {
   return {
     title: translate(NOT_FOUND_TITLE_KEY, {}),
     description:
-      userFacingText(notFound?.message, translate) ??
-      translate(NOT_FOUND_HINT_KEY, {}),
+      resolveError(notFound?.message, { fallbackKey: NOT_FOUND_HINT_KEY })
+        ?.message ?? translate(NOT_FOUND_HINT_KEY, {}),
   };
 }

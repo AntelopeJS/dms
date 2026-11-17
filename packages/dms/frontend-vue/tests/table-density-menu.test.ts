@@ -14,12 +14,16 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import TableMenuDensity from "../layers/dms-ui/app/entries/components/table/MenuDensity";
 import TableMenuRoot from "../layers/dms-ui/app/entries/components/table/MenuRoot";
 
+/** The global name `@nuxt/icon` registers and the sources resolve. */
+
+type SharedDataStub = NonNullable<Parameters<typeof provide>[1]>;
+
 describe("table density menu", () => {
   let app: App | undefined;
 
-  const mount = <SharedData>(
+  const mount = (
     component: ReturnType<typeof defineComponent>,
-    sharedData: SharedData,
+    sharedData: SharedDataStub,
   ) => {
     const Host = defineComponent({
       setup() {

@@ -5,6 +5,7 @@
  * cache: whether the link keeps the page mounted (the watch) or remounts it
  * (a fresh instance binding to the cached entry of its key).
  */
+import { surfaceRejection } from "./surface-rejection";
 import {
   computed,
   createApp,
@@ -15,10 +16,12 @@ import {
 } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { DmsFrontendRuntime } from "#dms/frontend-module";
-import type { TableViewColumn } from "../layers/dms-ui/app/composables/table-view/types";
+import { fetchClient } from "./fixtures/fetchClient";
+import { tableViewColumn } from "./fixtures/tableViewColumn";
 
 const engine = await import("#dms/frontend-module");
 vi.stubGlobal("useDmsAsyncData", engine.useDmsAsyncData);
+vi.stubGlobal("useDmsState", engine.useDmsState);
 
 const { useTableRows } = await import(
   "../layers/dms-ui/app/entries/composables/table-view/useTableRows"
@@ -28,21 +31,17 @@ const { useTableCountsData, useTableListData } = await import(
 );
 
 const FETCH_URL = "/api/log/route?route={{query.route}}";
-// SAFETY: These row-source tests only consume column ids and accessor keys, not rendering or input metadata.
-const COLUMNS = [{ id: "path", accessorKey: "path" }] as TableViewColumn[];
+const COLUMNS = [tableViewColumn("path")];
 const TAB_QUERIES = [{ id: "get", query: { filter_method: "is:GET" } }];
 const ROUTE_VALUE = "GET /api/search?q=shoes&page=2";
 const ENCODED_URL =
   "/api/log/route?route=GET%20%2Fapi%2Fsearch%3Fq%3Dshoes%26page%3D2";
 
-type Api = Parameters<typeof useTableRows>[0]["api"];
-
 const requests: string[] = [];
-// SAFETY: The row-source test only calls the list endpoint; generic fetch helpers are not used by this fixture.
-const api = (async (url: string) => {
+const api = fetchClient(async (url: string) => {
   requests.push(url);
   return { results: [{ _id: "a", path: "/api/search" }], total: 1 };
-}) as Api;
+});
 
 let runtime: DmsFrontendRuntime;
 const mounted: App[] = [];
@@ -59,17 +58,21 @@ const SourceTable = defineComponent({
     });
     const archiveQuery = computed(() => ({}));
     const keys = { componentId: "requests", pageId: "sources", rows };
-    void useTableListData({
-      ...keys,
-      query: computed(() => ({ offset: 0, limit: 10 })),
-      archiveQuery,
-      isSelfManaged: computed(() => false),
-    });
-    void useTableCountsData({
-      ...keys,
-      queries: computed(() => TAB_QUERIES),
-      archiveQuery,
-    });
+    surfaceRejection(
+      useTableListData({
+        ...keys,
+        query: computed(() => ({ offset: 0, limit: 10 })),
+        archiveQuery,
+        isSelfManaged: computed(() => false),
+      }),
+    );
+    surfaceRejection(
+      useTableCountsData({
+        ...keys,
+        queries: computed(() => TAB_QUERIES),
+        archiveQuery,
+      }),
+    );
     return () => h("div");
   },
 });

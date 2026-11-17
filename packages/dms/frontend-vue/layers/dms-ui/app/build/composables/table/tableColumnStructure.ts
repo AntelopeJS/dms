@@ -1,4 +1,4 @@
-import type { Data, TableColumn } from "../../components/table/Table.vue";
+import type { Data, TableColumn } from "../../components/table/TableRoot.vue";
 import Button from "@nuxt/ui/components/Button.vue";
 import Checkbox from "@nuxt/ui/components/Checkbox.vue";
 import {
@@ -36,9 +36,8 @@ export const processColumn = <T extends Data>(
 ): TableColumn<T> => {
   const { isNumericColumn } = context;
 
-  if (!col.id && "accessorKey" in col) {
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- TanStack permits generic keyof T accessors but requires a string id. Inference and its owner types cannot prove this legacy assignment; coercion would change numeric-key behavior.
-    col.id = col.accessorKey as string;
+  if (!col.id && "accessorKey" in col && isString(col.accessorKey)) {
+    col.id = col.accessorKey;
   }
 
   if (!isString(col.header) || col.id === ACTIONS_COLUMN_ID) {

@@ -7,7 +7,7 @@ import {
   type TableCountState,
 } from "./utils/tableCounts";
 import { viewFilters } from "./utils/views";
-import { type TableViewItem } from "../../components/table/Views.vue";
+import { type TableViewItem } from "../../components/table/TableViews.vue";
 import { useTableCountsData } from "./useTableListData";
 import type { TableViewScope } from "./tableViewScope";
 
@@ -20,7 +20,7 @@ export function useTableViewCountsQuery<T extends Data>(
   const { queryParamHiddenFilters, routeParamHiddenFilters } = scope.urlFilters;
   const { activeTabFilters, resolvedTabs } = scope.tabs;
   const { effectiveColumnFilters, effectiveGlobalFilter } = scope.querySorting;
-  const { tableViewItems, activeViewId } = scope.views;
+  const { tableViewItems, activeViewId, viewChange } = scope.views;
   const { pinnedDefaultFilters } = scope.pinnedFilters;
   const scopeFilters = computed<TableFilter[]>(() => [
     ...queryParamHiddenFilters.value,
@@ -55,7 +55,8 @@ export function useTableViewCountsQuery<T extends Data>(
             filters: viewFilters(view, pinnedDefaultFilters),
             search: view.search,
           })),
-        activeViewId: activeViewId.value,
+        activeViewId:
+          viewChange.value === "diverged" ? undefined : activeViewId.value,
       }),
     ),
     COUNTS_DEBOUNCE_MS,
@@ -83,15 +84,26 @@ export function useTableViewCountsData<T extends Data>(
   const { liveHold } = scope.liveHold;
   const { tableViewItems, canSaveViews } = scope.views;
   const { props } = scope;
-  const { data: tabCountsData, refresh: refreshTabCounts } =
-    useTableCountsData<T>({
-      componentId,
-      pageId,
-      rows: tableRows,
-      queries: tabCountsQuery,
-      archiveQuery,
-      heldQuery: liveHold.heldQuery,
-    });
+  const tabCounts = useTableCountsData<T>({
+    componentId,
+    pageId,
+    rows: tableRows,
+    queries: tabCountsQuery,
+    archiveQuery,
+    heldQuery: liveHold.heldQuery,
+  });
+  const { data: tabCountsData, status: tabCountsStatus } = tabCounts;
+  const refreshTabCounts: typeof tabCounts.refresh = (...args) =>
+    tabCounts.refresh(...args);
+
+  /**
+   * The counters are still on their way: no answer yet, and no failure. A
+   * request that failed leaves `data` null as a pending one does, so it
+   * would draw the counters' skeleton for good.
+   */
+  const areCountsPending = computed(
+    () => tabCountsData.value == null && tabCountsStatus.value !== "error",
+  );
 
   const viewItems = computed<TableViewItem[]>(() =>
     tableViewItems.value.map((view) => ({
@@ -104,13 +116,20 @@ export function useTableViewCountsData<T extends Data>(
       count: view.count
         ? tabCountsData.value?.[`${VIEW_COUNT_ID_PREFIX}${view.id}`]
         : undefined,
-      countPending: !!view.count && tabCountsData.value == null,
+      countPending: !!view.count && areCountsPending.value,
     })),
   );
   const viewsLayout = props.views?.layout ?? "tabs";
   const hasViews =
     !!props.views && (props.views.items.length > 0 || canSaveViews);
-  return { refreshTabCounts, tabCountsData, viewItems, viewsLayout, hasViews };
+  return {
+    refreshTabCounts,
+    tabCountsData,
+    areCountsPending,
+    viewItems,
+    viewsLayout,
+    hasViews,
+  };
 }
 
 export function useTableViewLinkCounts<T extends Data>(

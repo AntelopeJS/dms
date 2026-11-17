@@ -1,7 +1,8 @@
 /** @internal */
 import type { ControllerClass } from "@antelopejs/interface-api";
+import { GetMetadata } from "@antelopejs/interface-core";
+import { DataAPIMeta } from "@antelopejs/interface-data-api/metadata";
 import type { FormBuilder } from "../../form-types";
-import type { RowActionRule } from "../../types/row-action";
 import { hasSearchableFields } from "../../internal/searchable";
 import type { TableViewMeta } from "../meta";
 import type { TableViewOptions, TableViewOptionsSerialized } from "../options";
@@ -12,9 +13,11 @@ import {
   serializeRowActions,
   serializeTableViewDisplays,
 } from "./factory-helpers";
+import { eraseRowType } from "./erase-row-type";
 import { serializeTableViewTabs } from "./tabs";
 import { serializeTableViewViews } from "./views";
 import { serializeEmptyStates, serializeFooter } from "./footer";
+import { readColumnValuesInForm, tableViewColumnValues } from "./column-values";
 
 interface SerializationState<T extends ControllerClass> {
   controller: T;
@@ -57,12 +60,36 @@ export function prepareTableViewSerialization<T extends ControllerClass>(
       declaredTabs,
       declaredViews,
       meta: state.meta,
+      hasNewEndpoint: !!GetMetadata(state.controller, DataAPIMeta).endpoints
+        .new,
     },
   };
 }
 
-/** @internal */
-export function serializeTableViewOptions<T extends ControllerClass>(
+/**
+ * The options a table view registers, and what its filter reads for each
+ * request: the declarations, and the columns its options read from the rows.
+ * The forms it opens as pages of their own read those columns too.
+ *
+ * @internal
+ */
+export function serializeTableView<T extends ControllerClass>(
+  prepared: ReturnType<typeof prepareTableViewSerialization<T>>,
+) {
+  const { serialization, declarations } = prepared;
+  const options = serializeTableViewOptions(serialization);
+  const columnValues = tableViewColumnValues(
+    serialization.controller,
+    options,
+    serialization.options.tabsFrom,
+  );
+  for (const form of Object.values(serialization.forms)) {
+    if (form && columnValues) readColumnValuesInForm(columnValues, form);
+  }
+  return { options, declarations: { ...declarations, columnValues } };
+}
+
+function serializeTableViewOptions<T extends ControllerClass>(
   state: SerializationState<T>,
 ): TableViewOptionsSerialized {
   const {
@@ -92,8 +119,7 @@ export function serializeTableViewOptions<T extends ControllerClass>(
     archiveMode: options.archiveMode,
     archivedCountLabel: options.archivedCountLabel,
     defaultSort: options.defaultSort,
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The published serialized table options erase the module row generic; pinned-row rule values are not validated during serialization.
-    pinnedRows: options.pinnedRows as RowActionRule | undefined,
+    pinnedRows: eraseRowType(options.pinnedRows),
     queryParamFilters: options.queryParamFilters,
     routeParamFilters: options.routeParamFilters,
     customButtons: serializedCustomButtons,

@@ -1,4 +1,4 @@
-import type { TableFilter } from "../../../components/table/Table.vue";
+import type { TableFilter } from "../../../components/table/TableRoot.vue";
 import type { TableCountRequest } from "../useTableListData";
 import { buildTableQuery, isFilterEffective } from "./tableQuery";
 
@@ -38,6 +38,10 @@ export interface TableCountState {
 export interface TableCountQueriesInput extends TableCountState {
   tabs: CountedTab[];
   views: CountedView[];
+  /**
+   * The view whose counter counts the rows listed: the open one, unless the
+   * table diverged from it, which leaves it counting its own rows.
+   */
   activeViewId?: string;
 }
 
@@ -108,6 +112,11 @@ export const navBadgeCount = (
   counts: Record<string, number> | null | undefined,
   tabId: string,
   isNarrowed: boolean,
-): number | undefined =>
-  counts?.[`${NAV_BADGE_COUNT_ID_PREFIX}${tabId}`] ??
-  (isNarrowed ? undefined : counts?.[tabId]);
+): number | undefined => {
+  const countOf = (id: string): number | undefined =>
+    counts && Object.hasOwn(counts, id) ? counts[id] : undefined;
+  return (
+    countOf(`${NAV_BADGE_COUNT_ID_PREFIX}${tabId}`) ??
+    (isNarrowed ? undefined : countOf(tabId))
+  );
+};

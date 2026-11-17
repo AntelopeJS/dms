@@ -21,7 +21,12 @@ import type { useWatch } from "#dms-core/app/composables/watch/useWatch";
 import type { useComponentEvent } from "#dms-core/app/composables/components/useComponentEvent";
 import { resolveFieldErrors } from "#dms-core/app/composables/useFieldErrors";
 import { isBlankValue } from "#dms-core/app/composables/useFormValidation";
-import { isObject, isString } from "#dms-core/app/utils/type-check";
+import {
+  isBoolean,
+  isNumber,
+  isObject,
+  isString,
+} from "#dms-core/app/utils/type-check";
 import { isPlainObject, sameFormValue } from "../unsaved-changes/formValue";
 import { createStartingValueTracker } from "./fieldValueRule";
 import {
@@ -32,6 +37,7 @@ import {
 } from "../../utils/urlVariables";
 
 type FormState = ReturnType<typeof useWatch>["state"]["value"];
+type StateValue = FormState[string];
 type ResetStateValues = Record<string, FormFieldValue | undefined>;
 
 const INTERNAL_STATE_KEYS = new Set([
@@ -40,11 +46,57 @@ const INTERNAL_STATE_KEYS = new Set([
   "requiredFields",
 ]);
 
-export function cloneFormValue(
-  value: FormFieldValue | undefined,
-): FormFieldValue | undefined {
+function isFormFieldValue(value: unknown): value is FormFieldValue {
+  if (value === null || isString(value) || isNumber(value)) return true;
+  if (isBoolean(value)) return true;
+  if (Array.isArray(value)) return value.every(isFormFieldValue);
+  return isPlainObject(value) && Object.values(value).every(isFormFieldValue);
+}
+
+function parseClonedValue(json: string): FormFieldValue {
+  const parsed: unknown = JSON.parse(json);
+  if (!isFormFieldValue(parsed)) {
+    throw new TypeError("A JSON clone is not a form field value");
+  }
+  return parsed;
+}
+
+export function cloneFormValue(value: StateValue): FormFieldValue | undefined {
   if (value === undefined) return undefined;
-  return JSON.parse(JSON.stringify(value));
+  return parseClonedValue(JSON.stringify(value));
+}
+
+/** The record a form loaded, cloned by value; what is not a plain record clones to none. */
+export function cloneRecordValues(record: FormData): FormData {
+  const cloned = parseClonedValue(JSON.stringify(record));
+  return isPlainObject(cloned) ? { ...cloned } : {};
+}
+
+/**
+ * Whether a form has nothing to draw: no entry, no section, no record to
+ * load, no heading and no action to offer.
+ */
+export function formIsEmpty(
+  props: Pick<
+    FormProps,
+    | "fields"
+    | "sections"
+    | "fetchUrl"
+    | "title"
+    | "description"
+    | "kind"
+    | "saveMode"
+    | "submitUrl"
+  >,
+): boolean {
+  return (
+    !props.fields?.length &&
+    !props.sections?.length &&
+    !props.fetchUrl &&
+    !props.title &&
+    !props.description &&
+    !formShowsActions(props, [])
+  );
 }
 
 /** Whether a form has somewhere to save and an editable field, or is an action. */
@@ -59,7 +111,7 @@ export function formShowsActions(
   );
 }
 
-export function computeResetState(state: FormState, initialValues: FormData) {
+export function computeResetState(state: FormState, initialValues: FormState) {
   const result: ResetStateValues = {};
   for (const key of Object.keys(state)) {
     if (INTERNAL_STATE_KEYS.has(key)) continue;
@@ -69,8 +121,11 @@ export function computeResetState(state: FormState, initialValues: FormData) {
 }
 
 export function snapshotFormState(state: FormState): FormData {
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Watch state is deliberately open to plugin values and undefined entries. Snapshotting clones them without validation, preserving the existing FormData API.
-  return computeResetState(state, state as FormData) as FormData;
+  const snapshot: FormData = {};
+  for (const [key, value] of Object.entries(computeResetState(state, state))) {
+    if (value !== undefined) snapshot[key] = value;
+  }
+  return snapshot;
 }
 
 export function flattenFields(items: FormFieldOrGroup[]): FormField[] {
@@ -91,7 +146,9 @@ export function createBaseValidationSchema(
       /\.strict\(\)$/,
       ".passthrough()",
     );
-    return new Function("z", `"use strict"; return (${zodCode})`)(z);
+    return zodObjectSchema.parse(
+      new Function("z", `"use strict"; return (${zodCode})`)(z),
+    );
   } catch {
     return z.object({});
   }
@@ -121,7 +178,6 @@ export function processBeforeStateMappers(
     if (!field.type || result[field.id] === undefined) continue;
     const dataType = getDataType(field.type);
     if (!dataType?.beforeStateMapper) continue;
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Plugin mappers return arbitrary values. Preserve them unchanged rather than imposing FormFieldValue validation at this existing unchecked boundary.
     result[field.id] = dataType.beforeStateMapper(
       result[field.id],
       field.component.options,
@@ -238,7 +294,6 @@ export function collectSubmitData(
     const initial = context.initialValues?.[field.id];
     if (context.onlyChanged && isSameValue(field, value, initial)) continue;
     if (!isClearedField(field, value)) {
-      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Submission intentionally passes arbitrary populated plugin values through; validating against FormFieldValue would change accepted payloads.
       fieldData[field.id] = submittedFieldValue(field, value) as FormFieldValue;
       continue;
     }
@@ -247,7 +302,6 @@ export function collectSubmitData(
     fieldData[field.id] = clearedFieldValue(initial);
   }
   return {
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Submit defaults are an open prop contract and are merged without validation, including malformed runtime values.
     ...(context.submitDefaults as FormData | undefined),
     ...fieldData,
   };
@@ -278,24 +332,36 @@ export function fieldValuesOfSubmitDefaults(
   if (!submitDefaults) return values;
   for (const { id } of fields) {
     if (id in submitDefaults) {
-      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The open submit-default prop is copied unchanged into fields, including values outside the nominal FormFieldValue union.
       values[id] = submitDefaults[id] as FormFieldValue;
     }
   }
   return values;
 }
 
+const zodTypeSchema = z.custom<z.ZodTypeAny>(
+  (value) => value instanceof z.ZodType,
+);
+const zodObjectSchema = z.custom<z.ZodObject<Record<string, z.ZodTypeAny>>>(
+  (value) => value instanceof z.ZodObject,
+);
+
+const parseZodType = (value: unknown): z.ZodTypeAny =>
+  zodTypeSchema.parse(value);
+
+const parseZodTypes = (value: unknown): z.ZodTypeAny[] =>
+  z.array(zodTypeSchema).parse(value);
+
 export function makeFieldSchemaRequired(schema: z.ZodTypeAny): z.ZodTypeAny {
   if (schema instanceof z.ZodOptional || schema instanceof z.ZodNullable)
-    return makeFieldSchemaRequired(schema.unwrap());
+    return makeFieldSchemaRequired(parseZodType(schema.unwrap()));
   if (schema instanceof z.ZodDefault)
-    return makeFieldSchemaRequired(schema.removeDefault());
+    return makeFieldSchemaRequired(parseZodType(schema.removeDefault()));
   if (schema instanceof z.ZodUnion) {
-    const nonNullOptions = schema.options.filter(
-      (option: z.ZodTypeAny) => !(option instanceof z.ZodNull),
+    const nonNullOptions = parseZodTypes(schema.options).filter(
+      (option) => !(option instanceof z.ZodNull),
     );
     if (nonNullOptions.length === 1)
-      return makeFieldSchemaRequired(nonNullOptions[0]);
+      return makeFieldSchemaRequired(nonNullOptions[0]!);
     return schema;
   }
   if (schema instanceof z.ZodString || schema instanceof z.ZodArray)
@@ -325,7 +391,7 @@ export function buildValidationSchema(
 }
 
 const ALWAYS_FILLED_FIELD_TYPES = new Set(["boolean"]);
-const ACCEPTANCE_COMPONENTS = new Set(["dms-checkbox"]);
+const ACCEPTANCE_COMPONENTS = new Set(["dms-input-checkbox"]);
 
 /** Whether a field is a required checkbox that only true fills. */
 export function isAcceptanceField(
@@ -386,7 +452,7 @@ export function watchFieldChanges(
 ): void {
   if (!componentId) return;
   const id = componentId;
-  const previousValuesJson: Record<string, string> = {};
+  const previousValuesJson = new Map<string, string>();
   const isInitial = createStartingValueTracker(isStartingValue);
   onMounted(() => {
     watch(() => state.value, sendChanges, { deep: true, immediate: true });
@@ -400,14 +466,14 @@ export function watchFieldChanges(
       } catch {
         newJson = String(newState[fieldId]);
       }
-      if (newJson !== previousValuesJson[fieldId]) {
+      if (newJson !== previousValuesJson.get(fieldId)) {
         sendComponentEvent(FormEvents.FIELD_CHANGE, id, {
           fieldId,
           value: newState[fieldId],
           formValues: newState,
           initial: isInitial(fieldId, newState[fieldId]),
         });
-        previousValuesJson[fieldId] = newJson;
+        previousValuesJson.set(fieldId, newJson);
       }
     }
   }

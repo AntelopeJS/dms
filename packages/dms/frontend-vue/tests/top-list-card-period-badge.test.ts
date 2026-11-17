@@ -33,7 +33,7 @@ async function render(beforeCard?: () => void): Promise<string> {
         });
     },
   });
-  app.component("DmsCard", Tagged("card"));
+  app.component("DmsCardPanel", Tagged("card"));
   app.component("UBadge", Tagged("badge"));
   app.component("USkeleton", Tagged("skeleton"));
   app.component("UIcon", Tagged("icon"));
@@ -51,14 +51,19 @@ afterEach(() => vi.unstubAllGlobals());
 describe("TopListCard period badge", () => {
   it("prints the preset of a selector set up before it", async () => {
     const html = await render(() => {
-      const state = { preset: "last_30_days" };
+      const state: PeriodState = {
+        preset: "last-30-days",
+        comparison: "none",
+        range: null,
+        compareRange: null,
+        key: "last-30-days",
+      };
       registerPeriodScope(
         "dashboard-period",
-        // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- This fixture deliberately supplies a legacy preset outside PeriodPreset and omits unused state fields.
-        computed(() => state as PeriodState),
+        computed(() => state),
       );
     });
-    expect(html).toContain("dms.period.presets.last_30_days");
+    expect(html).toContain("dms.period.presets.last-30-days");
     expect(html).not.toContain("data-skeleton");
   });
 

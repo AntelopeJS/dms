@@ -351,6 +351,8 @@ function registerCatalogActionTests() {
       icon: "i-ph-cube",
       hasAccess: true,
       landingSlug: "/modules/a/home",
+      status: "live" as const,
+      readout: [],
     };
     const pill = (overrides: Partial<StoreListingEntry>) =>
       installedTileStatus(module, listingEntry("a", overrides));

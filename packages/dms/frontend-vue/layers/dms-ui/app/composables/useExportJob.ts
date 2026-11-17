@@ -42,13 +42,15 @@ export interface UseExportJobLabels {
   retry: string;
 }
 
+type ExportFetchInit = NonNullable<
+  Parameters<ReturnType<typeof useAuthFetch>["$authFetch"]>[1]
+>;
+
 export interface RunExportJobOptions {
   startUrl: string;
   startMethod?: "GET" | "POST";
-  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Export endpoints own query values; the fetch owner's broader query type would widen this existing object contract.
-  startQuery?: Record<string, unknown>;
-  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Export endpoints own body values; the fetch owner's body type also admits non-object payloads excluded by this contract.
-  startBody?: Record<string, unknown>;
+  startQuery?: ExportFetchInit["query"];
+  startBody?: ExportFetchInit["body"];
   /** Function from jobId → URL. Defaults to `${startBase}/status/${jobId}`. */
   statusUrl?: (ticket: ExportJobTicket) => string;
   /** Function from jobId → URL. Defaults to `${startBase}/download/${jobId}`. */
@@ -94,7 +96,7 @@ function createExportToasts(
 ) {
   const toast = useToast();
   const { t } = useI18n();
-  const { processApiMessage } = useTranslation();
+  const presenter = useApiErrorPresenter();
   const { $authFetch } = useAuthFetch();
 
   function resolveLabels(
@@ -152,16 +154,15 @@ function createExportToasts(
 
   function buildRetryActions(
     opts: RunExportJobOptions,
-    labels: UseExportJobLabels,
     getCurrentToastId: () => string | number,
-  ): { label: string; onClick: () => void }[] | undefined {
+  ): ApiErrorAction[] | undefined {
     if (opts.retryable === false) return undefined;
     return [
       {
-        label: labels.retry,
-        onClick: () => {
+        labelKey: opts.labels?.retry ?? "dms.table.export.retry",
+        onSelect: async () => {
           toast.remove(getCurrentToastId());
-          void runJob(opts);
+          await runJob(opts);
         },
       },
     ];
@@ -170,39 +171,13 @@ function createExportToasts(
   function showFailure(
     toastId: string | number,
     opts: RunExportJobOptions,
-    labels: UseExportJobLabels,
-    error?: string,
-  ): string | number {
-    let newId: string | number = toastId;
-    newId = replaceProgressToast(toastId, {
-      color: Color.error,
-      icon: "i-ph-warning",
-      title: labels.errorTitle,
-      description: error ? processApiMessage(error) : labels.fallbackErrorTitle,
-      duration: EXPORT_TOAST_DURATION,
-      progress: true,
-      actions: buildRetryActions(opts, labels, () => newId),
+    cause: unknown,
+  ): void {
+    presenter.presentError(cause, {
+      fallbackKey: opts.labels?.errorTitle ?? "dms.table.export.error_title",
+      replaceToastId: toastId,
+      actions: buildRetryActions(opts, () => toastId),
     });
-    return newId;
-  }
-
-  function showError(
-    toastId: string | number,
-    opts: RunExportJobOptions,
-    labels: UseExportJobLabels,
-    error: Error,
-  ): string | number {
-    let newId: string | number = toastId;
-    newId = replaceProgressToast(toastId, {
-      color: Color.error,
-      icon: "i-ph-warning",
-      title: labels.fallbackErrorTitle,
-      description: processApiMessage(error.message),
-      duration: EXPORT_TOAST_DURATION,
-      progress: true,
-      actions: buildRetryActions(opts, labels, () => newId),
-    });
-    return newId;
   }
 
   return {
@@ -212,7 +187,6 @@ function createExportToasts(
     updateProgressToast,
     showSuccess,
     showFailure,
-    showError,
   };
 }
 
@@ -321,20 +295,28 @@ function createExportTransport(context: ReturnType<typeof createExportToasts>) {
   };
 }
 
+const isArrayBufferBacked = (
+  bytes: Uint8Array,
+): bytes is Uint8Array<ArrayBuffer> => bytes.buffer instanceof ArrayBuffer;
+
 async function readExportStream(
   stream: ReadableStream<Uint8Array>,
   totalBytes: number,
   onProgress: (progress: ProgressValue) => void,
 ): Promise<Blob> {
   const reader = stream.getReader();
-  const chunks: Uint8Array[] = [];
+  const chunks: Uint8Array<ArrayBuffer>[] = [];
   let receivedBytes = 0;
 
   onProgress(totalBytes > 0 ? 0 : null);
 
   let chunk = await reader.read();
   while (!chunk.done) {
-    chunks.push(chunk.value);
+    chunks.push(
+      isArrayBufferBacked(chunk.value)
+        ? chunk.value
+        : new Uint8Array(chunk.value),
+    );
     receivedBytes += chunk.value.length;
     if (totalBytes > 0) {
       onProgress(Math.floor((receivedBytes / totalBytes) * 100));
@@ -348,29 +330,13 @@ async function readExportStream(
     );
   }
 
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Reader chunks are not checked for SharedArrayBuffer backing; preserve Blob's existing rejection rather than copy or validate the bytes.
-  return new Blob(chunks as BlobPart[]);
-}
-
-function getErrorMessage(
-  error: Parameters<typeof apiErrorText>[0],
-): string | undefined {
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- These fields are not validated as strings; preserve optional property access, getter order, and truthy non-string forwarding for malformed errors.
-  const err = error as { data?: string; message?: string };
-  const data = err?.data;
-  const message = err?.message;
-  return data || message;
+  return new Blob(chunks);
 }
 
 export const useExportJob = () => {
   const context = createExportToasts((opts) => runJob(opts));
-  const {
-    resolveLabels,
-    createExportToast,
-    showSuccess,
-    showFailure,
-    showError,
-  } = context;
+  const { resolveLabels, createExportToast, showSuccess, showFailure } =
+    context;
   const {
     startJob,
     resolveStatusUrl,
@@ -404,10 +370,7 @@ export const useExportJob = () => {
       );
       showSuccess(exportToast.id, labels);
     } catch (error) {
-      const message = getErrorMessage(error);
-      if (message) showFailure(exportToast.id, opts, labels, message);
-      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Rejections are not checked as Error; retain showError's existing message access and failure behavior for malformed values.
-      else showError(exportToast.id, opts, labels, error as Error);
+      showFailure(exportToast.id, opts, error);
     }
   }
 

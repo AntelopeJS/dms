@@ -1,4 +1,3 @@
-/* oxlint-disable anti-slop/no-unsafe-dictionary-type -- Preview messages and arbitrary block options are the boundary being checked here. JSON-only owner types or strict schemas would reject currently accepted objects, inherited fields, and extra options. */
 /**
  * The block preview's contract: the tree a docs site or a chat hands
  * `DmsBlockPreview`, the `?state=` parameter carrying it, the `postMessage`
@@ -11,13 +10,21 @@ import {
   isObject,
   isString,
   isBoolean,
+  isNumber,
 } from "../../../../dms-core/app/utils/type-check";
+import {
+  isJsonWritable,
+  isWritableObject,
+  type JsonObject,
+  type JsonWritable,
+  type JsonWritableObject,
+} from "./json";
 export interface PreviewNode {
   /** Block registry type, e.g. `KpiCard`. Wins over `componentName`. */
   type?: string;
   /** Component a registered block type emits, e.g. `dms-kpi-card`. */
   componentName?: string;
-  options?: Record<string, unknown>;
+  options?: JsonWritableObject;
   children?: PreviewChildNode[];
 }
 
@@ -47,7 +54,7 @@ export interface PreviewState {
 export interface PreviewBlockType {
   componentName: string;
   /** Options the factory sets whatever its caller passes. */
-  fixedOptions?: Record<string, unknown>;
+  fixedOptions?: JsonObject;
   /** Takes a controller class: drawn only when built from a route instead. */
   needsController?: boolean;
 }
@@ -58,7 +65,25 @@ export type PreviewIssueKey =
   | "unknown_block"
   | "needs_backend"
   | "unsafe_url"
-  | "unsafe_method";
+  | "unsafe_method"
+  | "invalid_sketch";
+
+/** Node type of a sketch: static HTML of a part that is not a DMS block. */
+export const SKETCH_NODE_TYPE = "sketch";
+
+export const SKETCH_DEFAULT_HEIGHT_PX = 320;
+export const SKETCH_MIN_HEIGHT_PX = 80;
+export const SKETCH_MAX_HEIGHT_PX = 1200;
+export const SKETCH_CAPTION_MAX_LENGTH = 200;
+
+/** The options of a sketch node, as {@link resolvePreviewTree} reads them. */
+export interface PreviewSketch {
+  html: string;
+  css?: string;
+  /** Frame height in CSS pixels, within the sketch bounds. */
+  height: number;
+  caption?: string;
+}
 
 /** Why a node is drawn as an inline notice instead of its block. */
 export interface PreviewIssue {
@@ -73,63 +98,19 @@ export interface PreviewIssue {
 export interface PreviewResolvedNode {
   id: string;
   componentName?: string;
-  options: Record<string, unknown>;
+  options: JsonWritableObject;
   children: PreviewResolvedNode[];
   slot?: string;
   colSpan?: number;
   issue?: PreviewIssue;
+  /** Set on a sketch node, which has no component. */
+  sketch?: PreviewSketch;
 }
-
-export const PREVIEW_CHANNEL = "dms-preview";
 
 export const PREVIEW_THEMES: readonly PreviewTheme[] = ["light", "dark"];
 
-/** Parent → iframe: draw this tree. */
-export interface PreviewRenderMessage {
-  channel: typeof PREVIEW_CHANNEL;
-  type: "render";
-  tree: PreviewTree;
-  theme?: PreviewTheme;
-  locale?: string;
-  /** Paints no background; kept from the previous state when absent. */
-  transparent?: boolean;
-}
-
-/** Parent → iframe: switch the color mode. */
-export interface PreviewThemeMessage {
-  channel: typeof PREVIEW_CHANNEL;
-  type: "theme";
-  theme: PreviewTheme;
-}
-
-export type PreviewInboundMessage = PreviewRenderMessage | PreviewThemeMessage;
-
-/** Iframe → parent: mounted, ready for `render`. */
-export interface PreviewReadyMessage {
-  channel: typeof PREVIEW_CHANNEL;
-  type: "ready";
-}
-
-/** Iframe → parent: the content is now this tall, in CSS pixels. */
-export interface PreviewResizeMessage {
-  channel: typeof PREVIEW_CHANNEL;
-  type: "resize";
-  height: number;
-}
-
-/** Iframe → parent: something could not be drawn. */
-export interface PreviewErrorMessage {
-  channel: typeof PREVIEW_CHANNEL;
-  type: "error";
-  message: string;
-}
-
-export type PreviewOutboundMessage =
-  | PreviewReadyMessage
-  | PreviewResizeMessage
-  | PreviewErrorMessage;
-
-const ROOT_ID_PREFIX = "block-";
+/** What every layout path of a preview tree starts with: `block-<root index>`. */
+export const PREVIEW_ROOT_ID_PREFIX = "block-";
 const RELATIVE_PATH_PATTERN = /^\/(?![/\\])/;
 const SAFE_METHODS = new Set(["GET", "HEAD"]);
 const ROUTE_SOURCE_OPTION = "source";
@@ -145,41 +126,43 @@ function isOptionalString(value: Parameters<typeof isString>[0]): boolean {
   return value === undefined || isString(value);
 }
 
-function isPreviewNode(value: unknown): value is PreviewNode {
-  if (!isRecord(value)) return false;
+function isPreviewNode(
+  value: JsonWritable,
+): value is JsonWritableObject & PreviewNode {
+  if (!isWritableObject(value)) return false;
   if (!isOptionalString(value.type)) return false;
   if (!isOptionalString(value.componentName)) return false;
-  if (value.options !== undefined && !isRecord(value.options)) return false;
+  if (value.options !== undefined && !isWritableObject(value.options))
+    return false;
   if (value.children === undefined) return true;
   return Array.isArray(value.children) && value.children.every(isPreviewNode);
 }
 
-/** Whether `value` is a node or a list of nodes. */
-export function isPreviewTree(value: unknown): value is PreviewTree {
+function isTreeValue(value: JsonWritable): value is JsonWritable & PreviewTree {
   return Array.isArray(value)
     ? value.every(isPreviewNode)
     : isPreviewNode(value);
+}
+
+/** Whether `value` is JSON, and a node or a list of nodes. */
+export function isPreviewTree(value: unknown): value is PreviewTree {
+  return isJsonWritable(value) && isTreeValue(value);
 }
 
 export function isPreviewTheme(value: unknown): value is PreviewTheme {
   return PREVIEW_THEMES.some((theme) => theme === value);
 }
 
-function isOptionalBoolean(value: Parameters<typeof isBoolean>[0]): boolean {
-  return value === undefined || isBoolean(value);
-}
-
-function hasValidStateExtras(value: Record<string, unknown>): boolean {
-  if (value.theme !== undefined && !isPreviewTheme(value.theme)) return false;
-  if (!isOptionalString(value.locale)) return false;
-  return (
-    isOptionalBoolean(value.padding) && isOptionalBoolean(value.transparent)
-  );
-}
-
 function isPreviewState(value: unknown): value is PreviewState {
   return (
-    isRecord(value) && isPreviewTree(value.tree) && hasValidStateExtras(value)
+    isJsonWritable(value) &&
+    isWritableObject(value) &&
+    value.tree !== undefined &&
+    isTreeValue(value.tree) &&
+    (value.theme === undefined || isPreviewTheme(value.theme)) &&
+    (value.locale === undefined || isString(value.locale)) &&
+    (value.padding === undefined || isBoolean(value.padding)) &&
+    (value.transparent === undefined || isBoolean(value.transparent))
   );
 }
 
@@ -214,53 +197,6 @@ export function decodePreviewState(param: string): PreviewState | undefined {
   } catch {
     return undefined;
   }
-}
-
-const INBOUND_VALIDATORS: Record<
-  Extract<Parameters<typeof Object.hasOwn>[1], string>,
-  (data: Record<string, unknown>) => boolean
-> = {
-  render: (data) =>
-    isPreviewTree(data.tree) &&
-    (data.theme === undefined || isPreviewTheme(data.theme)) &&
-    isOptionalString(data.locale) &&
-    isOptionalBoolean(data.transparent),
-  theme: (data) => isPreviewTheme(data.theme),
-};
-
-/**
- * The preview message `data` is, or undefined for anything else posted to the
- * window (another channel, a malformed tree): the page ignores those.
- */
-export function parsePreviewMessage(
-  data: Parameters<typeof isRecord>[0],
-): PreviewInboundMessage | undefined {
-  if (!isRecord(data) || data.channel !== PREVIEW_CHANNEL) return undefined;
-  const isKnownType =
-    isString(data.type) && Object.hasOwn(INBOUND_VALIDATORS, data.type);
-  const validate = isKnownType
-    ? // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- This legacy lookup rereads an unchecked getter after the string and own-key checks; its value can change, so neither check proves this index is a known protocol name.
-      INBOUND_VALIDATORS[data.type as string]
-    : undefined;
-  if (!validate?.(data)) return undefined;
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- This legacy parser returns the original object unchecked. Repeated type reads can select an inherited validator such as toString, so successful dispatch does not prove the message union.
-  return data as PreviewInboundMessage & typeof data;
-}
-
-export function previewReadyMessage(): PreviewReadyMessage {
-  return { channel: PREVIEW_CHANNEL, type: "ready" };
-}
-
-export function previewResizeMessage(height: number): PreviewResizeMessage {
-  return {
-    channel: PREVIEW_CHANNEL,
-    type: "resize",
-    height: Math.ceil(height),
-  };
-}
-
-export function previewErrorMessage(message: string): PreviewErrorMessage {
-  return { channel: PREVIEW_CHANNEL, type: "error", message };
 }
 
 /**
@@ -364,19 +300,23 @@ function matchBlockType(
  * (`TableView.fromSource`): it reads `source.fetchUrl`, which a preview can
  * call like any other block's URL.
  */
-function readsRouteSource(options: Record<string, unknown>): boolean {
+function readsRouteSource(options: JsonWritableObject): boolean {
   const source = options[ROUTE_SOURCE_OPTION];
   return isRecord(source) && isString(source.fetchUrl);
 }
 
-/** Serialized resource fields may read the preview's immutable demo record. */
-function readsFixtureForm(
+/**
+ * Whether a resource form was serialized with its fields and the URL of the
+ * record it reads, and saves nowhere: drawn like a `Form`, its `fetchUrl`
+ * checked by {@link OPTION_RULES} like any other block's URL.
+ */
+function readsSerializedForm(
   blockType: PreviewBlockType,
-  options: Record<string, unknown>,
+  options: JsonWritableObject,
 ): boolean {
   return (
-    blockType.componentName === "dms-form" &&
-    options.fetchUrl === "/api/block-preview/fixtures/workspace" &&
+    blockType.componentName === "dms-form-block" &&
+    isString(options.fetchUrl) &&
     Array.isArray(options.fields) &&
     !options.submitUrl
   );
@@ -385,7 +325,7 @@ function readsFixtureForm(
 function issueFor(
   node: PreviewNode,
   match: MatchedBlockType | undefined,
-  options: Record<string, unknown>,
+  options: JsonWritableObject,
 ): PreviewIssue | undefined {
   if (!match) {
     return {
@@ -396,7 +336,7 @@ function issueFor(
   if (
     match.blockType.needsController &&
     !readsRouteSource(options) &&
-    !readsFixtureForm(match.blockType, options)
+    !readsSerializedForm(match.blockType, options)
   ) {
     return { key: "needs_backend", name: match.name };
   }
@@ -405,26 +345,67 @@ function issueFor(
     ? { key: refused.issue, name: match.name, value: refused.value }
     : undefined;
 }
-/* oxlint-enable anti-slop/no-unsafe-dictionary-type */
+
+function clampSketchHeight(height: JsonWritable | undefined): number {
+  if (!isNumber(height) || !Number.isFinite(height)) {
+    return SKETCH_DEFAULT_HEIGHT_PX;
+  }
+  return Math.min(
+    SKETCH_MAX_HEIGHT_PX,
+    Math.max(SKETCH_MIN_HEIGHT_PX, Math.round(height)),
+  );
+}
+
+/**
+ * The sketch a node's options describe, or undefined when they hold no `html`
+ * string. The other options are optional: a wrong type falls back to the
+ * default instead of refusing the sketch.
+ */
+function parseSketch(
+  options: JsonWritableObject | undefined,
+): PreviewSketch | undefined {
+  if (!options || !isString(options.html)) return undefined;
+  const sketch: PreviewSketch = {
+    html: options.html,
+    height: clampSketchHeight(options.height),
+  };
+  if (isString(options.css)) sketch.css = options.css;
+  if (isString(options.caption)) {
+    sketch.caption = options.caption.slice(0, SKETCH_CAPTION_MAX_LENGTH);
+  }
+  return sketch;
+}
+
+function resolveSketchNode(
+  node: PreviewNode,
+  resolved: PreviewResolvedNode,
+): PreviewResolvedNode {
+  const sketch = parseSketch(node.options);
+  if (sketch) resolved.sketch = sketch;
+  else resolved.issue = { key: "invalid_sketch", name: SKETCH_NODE_TYPE };
+  return resolved;
+}
 
 function resolveNode(
   node: PreviewChildNode,
   id: string,
   blockTypes: PreviewBlockTypes,
 ): PreviewResolvedNode {
+  const placement: PreviewResolvedNode = { id, options: {}, children: [] };
+  if (node.slot) placement.slot = node.slot;
+  if (node.colSpan !== undefined) placement.colSpan = node.colSpan;
+  if (node.type === SKETCH_NODE_TYPE) return resolveSketchNode(node, placement);
+
   const match = matchBlockType(node, blockTypes);
   const options = { ...node.options, ...match?.blockType.fixedOptions };
   const issue = issueFor(node, match, options);
-  const resolved: PreviewResolvedNode = {
-    id,
-    options: issue ? {} : options,
-    children: issue ? [] : resolveChildren(node.children, blockTypes),
+  if (issue) return { ...placement, issue };
+  return {
+    ...placement,
+    options,
+    children: resolveChildren(node.children, blockTypes),
+    componentName: match?.blockType.componentName,
   };
-  if (node.slot) resolved.slot = node.slot;
-  if (node.colSpan !== undefined) resolved.colSpan = node.colSpan;
-  if (issue) resolved.issue = issue;
-  else resolved.componentName = match?.blockType.componentName;
-  return resolved;
 }
 
 function resolveChildren(
@@ -448,7 +429,7 @@ export function resolvePreviewTree(
 ): PreviewResolvedNode[] {
   const roots = Array.isArray(tree) ? tree : [tree];
   return roots.map((root, index) =>
-    resolveNode(root, `${ROOT_ID_PREFIX}${index}`, blockTypes),
+    resolveNode(root, `${PREVIEW_ROOT_ID_PREFIX}${index}`, blockTypes),
   );
 }
 

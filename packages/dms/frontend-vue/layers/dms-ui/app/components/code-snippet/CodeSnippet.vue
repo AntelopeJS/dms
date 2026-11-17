@@ -54,11 +54,15 @@ const LINE_HEIGHT_PX = 19;
 
 const CODE_PADDING_PX = 16;
 
-const WRAP_CLASSES: Record<"false" | "true" | "anywhere", string> = {
+const WRAP_CLASSES = {
   false: "whitespace-pre",
   true: "break-words whitespace-pre-wrap",
   anywhere: "whitespace-pre-wrap [overflow-wrap:anywhere]",
 };
+
+function isWrapKey(key: string): key is keyof typeof WRAP_CLASSES {
+  return Object.hasOwn(WRAP_CLASSES, key);
+}
 
 const highlight = shallowRef<CodeHighlighter | null>(null);
 
@@ -71,10 +75,10 @@ const hasHead = computed(
     (!!props.title || props.copy || language.value !== PLAIN_CODE_LANGUAGE),
 );
 const hasFloatingCopy = computed(() => isHeadless.value && props.copy);
-const wrapClass = computed(
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Keep String coercion and direct lookup for malformed wrap props; a checked key guard would change those inputs.
-  () => WRAP_CLASSES[String(props.wrap) as keyof typeof WRAP_CLASSES],
-);
+const wrapClass = computed(() => {
+  const key = String(props.wrap);
+  return isWrapKey(key) ? WRAP_CLASSES[key] : undefined;
+});
 const tokens = computed<CodeToken[]>(() =>
   highlight.value ? highlight.value(props.code) : [{ text: props.code }],
 );

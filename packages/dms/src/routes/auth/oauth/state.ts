@@ -1,7 +1,9 @@
 import { randomBytes, timingSafeEqual } from "node:crypto";
 import { assert } from "@antelopejs/interface-api-util";
 import { sign, verify } from "jsonwebtoken";
+import { z } from "zod";
 import { getAuthConfig } from "../../../config";
+import { isJwtClaims } from "../../../utils";
 
 const HTTP_BAD_REQUEST = 400;
 const HTTP_INTERNAL_ERROR = 500;
@@ -14,11 +16,13 @@ const SECONDS_IN_MINUTE = 60;
 const STATE_LIFETIME_MINUTES = 10;
 const STATE_LIFETIME_SECONDS = STATE_LIFETIME_MINUTES * SECONDS_IN_MINUTE;
 
-interface OAuthStateClaims {
-  provider?: string;
-  nonce?: string;
-  purpose?: string;
-}
+const oauthStateClaims = z.object({
+  provider: z.string().optional(),
+  nonce: z.string().optional(),
+  purpose: z.string().optional(),
+});
+
+type OAuthStateClaims = z.infer<typeof oauthStateClaims>;
 
 const MILLISECONDS_IN_SECOND = 1000;
 const CONSUMED_NONCE_TTL_MS = STATE_LIFETIME_SECONDS * MILLISECONDS_IN_SECOND;
@@ -65,8 +69,10 @@ function isSameState(state: string, cookieState: string): boolean {
 
 function decodeState(state: string): OAuthStateClaims | undefined {
   try {
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- verify authenticates the token but its JwtPayload owner type cannot establish these optional claims; preserving the existing nonce acceptance precludes adding claim validation here.
-    return verify(state, getStateSecret()) as OAuthStateClaims;
+    const claims = verify(state, getStateSecret());
+    if (!isJwtClaims(claims)) return undefined;
+    const parsed = oauthStateClaims.safeParse(claims);
+    return parsed.success ? parsed.data : undefined;
   } catch {
     return undefined;
   }

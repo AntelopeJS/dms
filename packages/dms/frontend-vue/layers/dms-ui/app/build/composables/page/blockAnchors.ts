@@ -1,4 +1,4 @@
-import type { ComponentPublicInstance, VNode } from "vue";
+import { isVNode, type ComponentPublicInstance, type VNode } from "vue";
 
 const blocks = new Map<string, ComponentPublicInstance>();
 
@@ -28,8 +28,7 @@ function firstElementOf(vnode: VNode | null | undefined): Element | null {
   if (vnode.component) return firstElementOf(vnode.component.subTree);
   if (!Array.isArray(vnode.children)) return null;
   for (const child of vnode.children) {
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- VNode child representations can include scalars and arrays; retain the unchecked recursive projection and null fallback.
-    const element = firstElementOf(child as VNode);
+    const element = isVNode(child) ? firstElementOf(child) : null;
     if (element) return element;
   }
   return null;
@@ -44,4 +43,69 @@ function firstElementOf(vnode: VNode | null | undefined): Element | null {
 export function blockAnchorElement(anchor: string): Element | null {
   const instance = blocks.get(anchor);
   return instance ? firstElementOf(instance.$.subTree) : null;
+}
+
+function topElementsOf(vnode: VNode | null | undefined): Element[] {
+  if (!vnode) return [];
+  if (vnode.el instanceof Element) return [vnode.el];
+  if (vnode.component) return topElementsOf(vnode.component.subTree);
+  if (!Array.isArray(vnode.children)) return [];
+  return vnode.children.flatMap((child) =>
+    isVNode(child) ? topElementsOf(child) : [],
+  );
+}
+
+function elementsOfBlock(instance: ComponentPublicInstance): Element[] {
+  return instance instanceof Element
+    ? [instance]
+    : topElementsOf(instance.$.subTree);
+}
+
+/**
+ * Every top-level element the block drawn under `anchor` renders: more than
+ * one for a block whose template has several roots. Empty when no such block
+ * is on screen.
+ *
+ * @internal
+ */
+export function blockAnchorElements(anchor: string): Element[] {
+  const instance = blocks.get(anchor);
+  return instance ? elementsOfBlock(instance) : [];
+}
+
+/**
+ * The anchor of the innermost block whose elements hold `target`, `undefined`
+ * when none does. A child's anchor extends its parent's, so the longest
+ * anchor among the blocks holding `target` is the innermost one. Only the
+ * anchors starting with `prefix` count, when one is given: a block's own
+ * sub-blocks register anchors that are no node of the tree being inspected.
+ *
+ * @internal
+ */
+export function blockAnchorAt(
+  target: EventTarget | null,
+  prefix = "",
+): string | undefined {
+  if (!(target instanceof Node)) return undefined;
+  let innermost: string | undefined;
+  for (const [anchor, instance] of blocks) {
+    if (!anchor.startsWith(prefix)) continue;
+    const holdsTarget = elementsOfBlock(instance).some((element) =>
+      element.contains(target),
+    );
+    if (holdsTarget && anchor.length > (innermost?.length ?? -1)) {
+      innermost = anchor;
+    }
+  }
+  return innermost;
+}
+
+/**
+ * The anchor of every block on screen now, in the order they registered;
+ * only those starting with `prefix` when one is given.
+ *
+ * @internal
+ */
+export function blockAnchorPaths(prefix = ""): string[] {
+  return [...blocks.keys()].filter((anchor) => anchor.startsWith(prefix));
 }

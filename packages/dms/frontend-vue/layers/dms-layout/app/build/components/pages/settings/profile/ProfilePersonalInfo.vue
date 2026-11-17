@@ -44,6 +44,7 @@ const EMAIL_ANCHOR = "#email";
 
 const { t } = useI18n();
 const toast = useToast();
+const { presentError } = useApiErrorPresenter();
 const { $authFetch } = useAuthFetch();
 const { processApiMessage } = useTranslation();
 const { user, refresh: refreshSession } = useCurrentUser();
@@ -112,8 +113,8 @@ function pickFile(): void {
 }
 
 async function onFileChange(event: Event): Promise<void> {
-  // SAFETY: The template binds this change listener directly to the file input, which supplies the event target.
-  const input = event.target as HTMLInputElement;
+  const input = event.target;
+  if (!(input instanceof HTMLInputElement)) return;
   const file = input.files?.[0];
   input.value = "";
   if (!file) return;
@@ -130,10 +131,9 @@ async function onFileChange(event: Event): Promise<void> {
     }
     avatar.value = { key: result.key! };
     pickedAvatarUrl.value = URL.createObjectURL(file);
-  } catch {
-    toast.add({
-      title: t("page.settings.profile.avatar_error"),
-      color: "error",
+  } catch (error) {
+    presentError(error, {
+      fallbackKey: "page.settings.profile.avatar_error",
     });
   } finally {
     isUploading.value = false;
@@ -177,7 +177,7 @@ async function save(): Promise<void> {
 
 <template>
   <div>
-    <DmsCard
+    <DmsCardPanel
       as="form"
       :padded="false"
       class="overflow-clip"
@@ -292,8 +292,8 @@ async function save(): Promise<void> {
               {{ saved.email }}
             </span>
             <USkeleton
-              :aria-label="t('dms.a11y.loading')"
               v-if="!isProfileLoaded"
+              :aria-label="t('dms.a11y.loading')"
               aria-hidden="true"
               class="h-5 w-[74px] shrink-0 rounded-md"
             />
@@ -332,7 +332,7 @@ async function save(): Promise<void> {
           {{ t("page.settings.profile.credentials_hint") }}
         </span>
       </DmsFieldRow>
-    </DmsCard>
+    </DmsCardPanel>
 
     <DmsSaveBar
       :dirty="isDirty"

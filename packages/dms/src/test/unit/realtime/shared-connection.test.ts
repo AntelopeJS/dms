@@ -1,7 +1,7 @@
-import { EventEmitter } from "node:events";
-import type { RequestContext } from "@antelopejs/interface-api";
+import { HTTPResult } from "@antelopejs/interface-api";
 import type { User } from "@antelopejs/interface-dms/auth/db";
 import { expect } from "chai";
+import { z } from "zod";
 import {
   cancelScheduledBroadcast,
   DEV_RELOAD_TOPIC,
@@ -17,19 +17,36 @@ import {
   getSessionInfo,
 } from "../../../realtime";
 import { RealtimeController } from "../../../routes";
+import {
+  type RecordedSseStream,
+  recordedSseStream,
+} from "../../helpers/recorded-sse-stream";
+import { helloConnectionId, parseFrameData } from "../../helpers/sse-frames";
+import { userFixture } from "../../helpers/user-fixture";
 
-const USER = { _id: "shared-connection-user", email: "u@example.com" };
-const OTHER_USER = { _id: "shared-connection-other", email: "o@example.com" };
+const USER = userFixture({
+  _id: "shared-connection-user",
+  email: "u@example.com",
+});
+const OTHER_USER = userFixture({
+  _id: "shared-connection-other",
+  email: "o@example.com",
+});
 
-interface FakeStream {
-  ctx: RequestContext;
-  frames: string[];
-  isEnded: () => boolean;
-}
+type FakeStream = RecordedSseStream;
+
+const FrameData = z.object({
+  connectionId: z.string().optional(),
+  sessionId: z.string().optional(),
+  event: z.string().optional(),
+  topic: z.string().optional(),
+  type: z.string().optional(),
+  data: z.object({ type: z.string().optional() }).optional(),
+});
 
 interface Frame {
   event: string;
-  data: ReturnType<typeof JSON.parse>;
+  data: z.infer<typeof FrameData>;
 }
 
 interface SessionGreeting {
@@ -41,77 +58,42 @@ interface SessionGreeting {
 
 const BROADCAST_SETTLE_MS = 400;
 
-const createFakeStream = (): FakeStream => {
-  const frames: string[] = [];
-  let isEnded = false;
-  const writer = {
-    write: (frame: string) => {
-      frames.push(frame);
-      return true;
-    },
-    end: () => {
-      isEnded = true;
-    },
-  };
-  const rawRequest = Object.assign(new EventEmitter(), { headers: {} });
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The SSE context double supplies lifecycle events and a writer, not the complete HTTP context.
-  const ctx = {
-    rawRequest,
-    response: { addHeader: () => {}, getWriteStream: () => writer },
-  } as unknown as RequestContext;
-  return { ctx, frames, isEnded: () => isEnded };
-};
+const createFakeStream = (): FakeStream => recordedSseStream();
 
 const parseFrames = (stream: FakeStream): Frame[] =>
   stream.frames
     .filter((frame) => frame.startsWith("event: "))
-    .map((frame) => {
-      const [eventLine, dataLine] = frame.split("\n");
-      return {
-        event: eventLine!.slice("event: ".length),
-        data: JSON.parse(dataLine!.slice("data: ".length)),
-      };
-    });
+    .map((frame) => ({
+      event: frame.split("\n")[0]!.slice("event: ".length),
+      data: parseFrameData(FrameData, frame),
+    }));
 
 const controller = RealtimeController.prototype;
 
 const openConnection = async (stream: FakeStream): Promise<string> => {
-  await controller.connectionStream.call(
-    undefined,
-    stream.ctx,
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The realtime fixture supplies identity fields only, not a complete stored user instance.
-    USER as User,
-  );
-  const hello = parseFrames(stream).find((frame) => frame.event === "hello");
-  return hello!.data.connectionId;
+  await controller.connectionStream.call(undefined, stream.ctx, USER);
+  return helloConnectionId(stream.frames);
 };
 
 const openSession = (
   connectionId: string,
-  user: typeof USER = USER,
+  user: User = USER,
 ): Promise<SessionGreeting> =>
   controller.openSession.call(
     undefined,
     createFakeStream().ctx,
     connectionId,
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The realtime fixture supplies identity fields only, not a complete stored user instance.
-    user as User,
+    user,
   );
 
-const settle = () => new Promise((resolve) => setImmediate(resolve));
+const settle = () => new Promise<void>((resolve) => setImmediate(resolve));
 
 const sessionFramesOf = (stream: FakeStream, sessionId: string): Frame[] =>
   parseFrames(stream).filter(
     (frame) => frame.event === "session" && frame.data.sessionId === sessionId,
   );
 
-describe("[unit] realtime — shared connection", () => {
-  beforeEach(() => setRealtimeBroker(new InMemoryBroker()));
-  afterEach(async () => {
-    await stopRealtime();
-    setRealtimeBroker(new InMemoryBroker());
-  });
-
+function registerSessionLifecycleCases(): void {
   it("hosts a session per tab, each one's frames enveloped with its id", async () => {
     const stream = createFakeStream();
     const connectionId = await openConnection(stream);
@@ -119,7 +101,7 @@ describe("[unit] realtime — shared connection", () => {
     const second = await openSession(connectionId);
     expect(first.ok).to.equal(true);
     expect(first.sessionId).to.not.equal(second.sessionId);
-    expect(first.menuTopics).to.be.an("array").that.is.not.empty;
+    expect(first.menuTopics).to.be.an("array").that.has.length.above(0);
 
     await settle();
     await getRealtimeBroker().publish({
@@ -130,7 +112,7 @@ describe("[unit] realtime — shared connection", () => {
 
     for (const greeting of [first, second]) {
       const delivered = sessionFramesOf(stream, greeting.sessionId!).filter(
-        (frame) => frame.data.data.type === "notification:new",
+        (frame) => frame.data.data?.type === "notification:new",
       );
       expect(delivered).to.have.length(1);
       expect(delivered[0]!.data.event).to.equal(
@@ -149,8 +131,7 @@ describe("[unit] realtime — shared connection", () => {
       undefined,
       connectionId,
       first.sessionId!,
-      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The realtime fixture supplies identity fields only, not a complete stored user instance.
-      USER as User,
+      USER,
     );
 
     expect(ack.ok).to.equal(true);
@@ -189,8 +170,7 @@ describe("[unit] realtime — shared connection", () => {
       undefined,
       connectionId,
       greeting.sessionId!,
-      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The foreign-user fixture supplies identity fields only, not a complete stored user instance.
-      OTHER_USER as User,
+      OTHER_USER,
     );
 
     expect(ack.ok).to.equal(false);
@@ -206,14 +186,15 @@ describe("[unit] realtime — shared connection", () => {
       undefined,
       otherConnectionId,
       greeting.sessionId!,
-      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The realtime fixture supplies identity fields only, not a complete stored user instance.
-      USER as User,
+      USER,
     );
 
     expect(ack.ok).to.equal(false);
     expect(getSessionInfo(greeting.sessionId!)).to.not.equal(undefined);
   });
+}
 
+function registerConnectionCases(): void {
   it("ends every session on it when the browser drops the stream", async () => {
     const stream = createFakeStream();
     const connectionId = await openConnection(stream);
@@ -241,8 +222,9 @@ describe("[unit] realtime — shared connection", () => {
     let status: number | undefined;
     try {
       await openSession(connectionId, OTHER_USER);
-    } catch (error: PromiseRejectedResult["reason"]) {
-      status = error.status;
+    } catch (error) {
+      if (!(error instanceof HTTPResult)) throw error;
+      status = error.getStatus();
     }
     expect(status).to.equal(403);
   });
@@ -287,4 +269,15 @@ describe("[unit] realtime — shared connection", () => {
     expect(busy.isEnded()).to.equal(true);
     expect(getSessionInfo(greeting.sessionId!)).to.equal(undefined);
   });
+}
+
+describe("[unit] realtime — shared connection", () => {
+  beforeEach(() => setRealtimeBroker(new InMemoryBroker()));
+  afterEach(async () => {
+    await stopRealtime();
+    setRealtimeBroker(new InMemoryBroker());
+  });
+
+  registerSessionLifecycleCases();
+  registerConnectionCases();
 });

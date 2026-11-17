@@ -23,23 +23,23 @@ import {
   RegisterTable,
   Table,
 } from "@antelopejs/interface-database-decorators";
-import { expect } from "chai";
+import { assert, expect } from "chai";
 import { internal as tableViewImplInternal } from "../../../../implementations/dms-base/table-view";
 import * as tenantAccessImpl from "../../../../implementations/dms/tenant-access";
 import * as tenantAccess from "@antelopejs/interface-dms/tenant-access";
-import type { User } from "@antelopejs/interface-dms/auth/db";
 import { internal as tableViewInternal } from "@antelopejs/interface-dms/base/table-view";
 import { TableViewMeta } from "@antelopejs/interface-dms/base/table-view/meta";
 import { TableViewRoutes } from "@antelopejs/interface-dms/base/table-view/routes";
 import type { GetGuardArgs } from "@antelopejs/interface-dms/base/types/guards";
+import { requestContextFixture } from "../../../helpers/request-context";
+import { userFixture } from "../../../helpers/user-fixture";
 
 const SCHEMA = "get-guard-test";
 const TABLE = "documents";
 const NOT_FOUND = 404;
 const FORBIDDEN = 403;
-// oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Authorization consumes only this id; the fixture deliberately omits other persisted user columns.
-const USER = { _id: "get-guard-user" } as User;
-const ctx = { url: new URL("http://localhost/get") };
+const USER = userFixture({ _id: "get-guard-user" });
+const ctx = requestContextFixture(new URL("http://localhost/get"));
 const events: string[] = [];
 let denied = false;
 const gate: tenantAccess.TenantAccessGateInfo = {
@@ -92,7 +92,7 @@ async function guard(
     throw new HTTPResult(NOT_FOUND, "Not Found");
 }
 
-function get(id: string) {
+async function get(id: string) {
   return TableViewRoutes.Get.func.call(
     controller,
     ctx,
@@ -108,8 +108,8 @@ function get(id: string) {
 async function expectStatus(promise: Promise<unknown>, status: number) {
   try {
     await promise;
-  } catch (error: PromiseRejectedResult["reason"]) {
-    expect(error).to.be.instanceOf(HTTPResult);
+  } catch (error: unknown) {
+    assert.instanceOf(error, HTTPResult);
     expect(error.getStatus()).to.equal(status);
     return;
   }
@@ -150,7 +150,7 @@ describe("[unit] TableView Get guard", () => {
     events.length = 0;
     denied = false;
     meta.setControllerGuards({ get: guard });
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Parameters erases the query function's generic correlation; this wrapper forwards every argument and returns the original result unchanged.
+    // SAFETY: Parameters reads only the last of Query.Joined's two overloads, so the wrapper's own type names one; at runtime it forwards every argument to the original Joined and answers its result unchanged, so each call of either overload behaves as the original's.
     Query.Joined = ((...args: Parameters<typeof originalJoined>) => {
       events.push("load");
       return originalJoined(...args);

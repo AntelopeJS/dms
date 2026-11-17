@@ -1,6 +1,14 @@
 import { createSSRApp, defineComponent, h, nextTick, ref } from "vue";
 import { renderToString } from "vue/server-renderer";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+  type Mock,
+} from "vitest";
 import FormLoadError from "../layers/dms-ui/app/entries/components/form/FormLoadError";
 import {
   type FormLoadFailure,
@@ -14,12 +22,16 @@ const FORBIDDEN = Object.assign(new Error("Forbidden"), { statusCode: 403 });
 
 type Payload = typeof ROW;
 
+interface SpiedLoad extends FormLoadSource<Payload> {
+  refresh: Mock<() => Promise<void>>;
+}
+
 function loadOf(
   data: Payload | null,
   error: FormLoadSource<Payload>["error"]["value"],
   next?: { data: Payload; error: unknown },
-): FormLoadSource<Payload> {
-  const load: FormLoadSource<Payload> = {
+): SpiedLoad {
+  const load: SpiedLoad = {
     data: ref(data),
     error: ref(error),
     refresh: vi.fn(async () => {

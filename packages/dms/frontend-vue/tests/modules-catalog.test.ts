@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import type { ModuleHistoryEntry } from "../layers/dms-layout/app/composables/page/useModuleHistory";
 import type {
   ModuleCatalogEntry,
   ModuleWithAccess,
@@ -31,6 +32,8 @@ function entry(
     icon: "i-ph-cube",
     hasAccess: true,
     landingSlug: `/modules/${id}`,
+    status: "live",
+    readout: [],
     ...overrides,
   };
 }
@@ -44,7 +47,7 @@ const modules = [
 ];
 
 describe("summarizeModules", () => {
-  it("counts installed modules by status, missing status reading as live", () => {
+  it("counts installed modules by status", () => {
     expect(summarizeModules(modules)).toEqual({
       installed: 5,
       updates: 1,
@@ -203,54 +206,63 @@ describe("findModulePageMatch", () => {
 });
 
 describe("recentModules", () => {
-  const landingTree = (moduleId: string, slugs: string[]): SiteLayoutTree => {
-    const pages = slugs.map((fullSlug, index) => ({
-      id: `page-${index}`,
-      fullSlug,
-      layoutUrl: "/layout",
-      children: {},
-      childrenOrders: [],
-    }));
-    const root = {
-      id: moduleId,
-      fullSlug: `/modules/${moduleId}`,
+  const treeNode = (
+    id: string,
+    fullSlug: string,
+    extra: Partial<SiteLayoutTree> = {},
+  ): SiteLayoutTree => ({
+    id,
+    displayName: id,
+    fullId: id,
+    fullSlug,
+    children: {},
+    childrenOrders: [],
+    ...extra,
+  });
+  const moduleRoot = (moduleId: string, slugs: string[]): SiteLayoutTree => {
+    const pages = slugs.map((fullSlug, index) =>
+      treeNode(`page-${index}`, fullSlug, { layoutUrl: "/layout" }),
+    );
+    return treeNode(moduleId, `/modules/${moduleId}`, {
       isModuleRoot: true,
       children: Object.fromEntries(pages.map((page) => [page.id, page])),
       childrenOrders: pages.map((page) => page.id),
-    };
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- This deliberately sparse landing tree omits displayName and fullId because recentModules only reads slugs, children, ordering and module-root flags; it is not a complete SiteLayoutTree.
-    return {
-      id: "",
-      fullSlug: "/",
+    });
+  };
+  const landingTree = (
+    ...modules: [moduleId: string, slugs: string[]][]
+  ): SiteLayoutTree =>
+    treeNode("", "/", {
       children: {
-        modules: {
-          id: "modules",
-          fullSlug: "/modules",
-          children: { [moduleId]: root },
-          childrenOrders: [moduleId],
-        },
+        modules: treeNode("modules", "/modules", {
+          children: Object.fromEntries(
+            modules.map(([moduleId, slugs]) => [
+              moduleId,
+              moduleRoot(moduleId, slugs),
+            ]),
+          ),
+          childrenOrders: modules.map(([moduleId]) => moduleId),
+        }),
       },
       childrenOrders: ["modules"],
-    } as SiteLayoutTree;
-  };
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- This sparse module omits description because recentModules only reads its title, icon and access; it is not a complete ModuleWithAccess.
-  const cms = {
+    });
+  const cms: ModuleWithAccess = {
     id: "cms",
     title: "$cms.title",
     icon: "i-ph-article",
+    description: "",
     hasAccess: true,
-  } as ModuleWithAccess;
+  };
 
   it("opens a recent module on its landing page, not where it was left", () => {
-    const tree = landingTree("cms", [
-      "/modules/cms/pages",
-      "/modules/cms/media",
+    const tree = landingTree([
+      "cms",
+      ["/modules/cms/pages", "/modules/cms/media"],
     ]);
-    const recent = recentModules(
-      [{ moduleId: "cms", path: "/modules/cms/media", visitedAt: 1 }],
-      { cms },
-      tree,
-    );
+    const visits: ModuleHistoryEntry[] = [
+      { moduleId: "cms", path: "/modules/cms/media", visitedAt: 1 },
+    ];
+    const recent = recentModules(visits, { cms }, tree);
     expect(recent).toEqual([
       {
         moduleId: "cms",
@@ -262,17 +274,19 @@ describe("recentModules", () => {
   });
 
   it("lists the most recent first and leaves out modules the caller cannot open", () => {
-    const tree = landingTree("cms", ["/modules/cms/pages"]);
-    const crm = { ...cms, id: "crm", hasAccess: false };
-    const recent = recentModules(
-      [
-        { moduleId: "crm", path: "/modules/crm", visitedAt: 2 },
-        { moduleId: "cms", path: "/modules/cms/pages", visitedAt: 1 },
-        { moduleId: "gone", path: "/modules/gone", visitedAt: 3 },
-      ],
-      { cms, crm },
-      tree,
+    const tree = landingTree(
+      ["cms", ["/modules/cms/pages"]],
+      ["blog", ["/modules/blog/posts"]],
     );
-    expect(recent.map((module) => module.moduleId)).toEqual(["cms"]);
+    const blog = { ...cms, id: "blog" };
+    const crm = { ...cms, id: "crm", hasAccess: false };
+    const visits: ModuleHistoryEntry[] = [
+      { moduleId: "cms", path: "/modules/cms/pages", visitedAt: 1 },
+      { moduleId: "crm", path: "/modules/crm", visitedAt: 2 },
+      { moduleId: "blog", path: "/modules/blog/posts", visitedAt: 3 },
+      { moduleId: "gone", path: "/modules/gone", visitedAt: 4 },
+    ];
+    const recent = recentModules(visits, { cms, blog, crm }, tree);
+    expect(recent.map((module) => module.moduleId)).toEqual(["blog", "cms"]);
   });
 });

@@ -39,7 +39,7 @@ const OPEN_POLICY: OAuthPolicy = {
   linkByVerifiedEmail: true,
 };
 
-function expectRefusal<T>(run: () => T, expectedMessage: string): void {
+function expectRefusal(run: () => void, expectedMessage: string): void {
   try {
     run();
   } catch (error: unknown) {
@@ -51,7 +51,7 @@ function expectRefusal<T>(run: () => T, expectedMessage: string): void {
   expect.fail(`expected a refusal with "${expectedMessage}"`);
 }
 
-describe("[unit] oauth linking policy", () => {
+function registerLinkedAccountCases(): void {
   describe("an already linked provider account", () => {
     it("wins over every other rule, even an unverified e-mail", () => {
       const resolution = decideOAuthResolution(
@@ -153,7 +153,9 @@ describe("[unit] oauth linking policy", () => {
       );
     });
   });
+}
 
+function registerUnknownIdentityCases(): void {
   describe("an unknown identity", () => {
     it("creates an account when the instance opted into provider sign-up", () => {
       const resolution = decideOAuthResolution(
@@ -199,4 +201,9 @@ describe("[unit] oauth linking policy", () => {
       );
     });
   });
+}
+
+describe("[unit] oauth linking policy", () => {
+  registerLinkedAccountCases();
+  registerUnknownIdentityCases();
 });

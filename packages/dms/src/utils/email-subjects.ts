@@ -1,3 +1,5 @@
+import { ownValue } from "./own-value";
+
 const DEFAULT_LANGUAGE = "en";
 const LANGUAGE_CODE_LENGTH = 2;
 
@@ -10,8 +12,7 @@ export type BuiltInEmailSubject =
   | "emailChangeNotice"
   | "exportReady";
 
-// oxlint-disable-next-line anti-slop/no-known-value-widening -- User language tags are open-ended; missing languages intentionally fall back to English.
-const SUBJECTS: Record<string, Record<BuiltInEmailSubject, string>> = {
+const SUBJECTS = {
   en: {
     userValidation: "Verify Your Email",
     resetPassword: "Reset Your Password",
@@ -28,7 +29,7 @@ const SUBJECTS: Record<string, Record<BuiltInEmailSubject, string>> = {
     emailChangeNotice: "Votre adresse de connexion va changer",
     exportReady: "Votre export de données est prêt",
   },
-};
+} satisfies Record<string, Record<BuiltInEmailSubject, string>>;
 
 /**
  * The supported language a built-in email is written in: the two-letter code
@@ -44,5 +45,7 @@ export function builtInEmailSubject(
   email: BuiltInEmailSubject,
   language?: string,
 ): string {
-  return SUBJECTS[resolveEmailLanguage(language)][email];
+  const copy =
+    ownValue(SUBJECTS, resolveEmailLanguage(language)) ?? SUBJECTS.en;
+  return copy[email];
 }

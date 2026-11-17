@@ -11,6 +11,7 @@ import { pageArrivalKind } from "./utils/pageArrival";
 import { useTableLinkedVisit } from "./useTableLinkedVisit";
 import { readTableUrlTab } from "./useTableUrlTab";
 import type { TableViewScope } from "./tableViewScope";
+import { detach } from "../detach";
 
 export function useTableViewArrival<T extends Data>(
   scope: Pick<TableViewScope<T>, "configuration" | "props" | "deferred">,
@@ -93,11 +94,13 @@ export function useTableViewLinkedVisit<T extends Data>(
     canOpenView: (id) => tableViewItems.value.some((view) => view.id === id),
     canOpenTab: isOpenableTab,
     follow: (query) => {
-      void tablePreferences.followLink(() => {
-        openLinkedView(query);
-        const tab = readTableUrlTab(query, urlScope);
-        activeTabId.value = tab && isOpenableTab(tab) ? tab : ALL_TAB_ID;
-      });
+      detach(
+        tablePreferences.followLink(() => {
+          openLinkedView(query);
+          const tab = readTableUrlTab(query, urlScope);
+          activeTabId.value = tab && isOpenableTab(tab) ? tab : ALL_TAB_ID;
+        }),
+      );
     },
   });
 

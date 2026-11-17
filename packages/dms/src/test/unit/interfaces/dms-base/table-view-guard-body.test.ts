@@ -1,13 +1,16 @@
-import type { RequestContext } from "@antelopejs/interface-api";
+import { HTTPResult, type RequestContext } from "@antelopejs/interface-api";
 import { GetMetadata } from "@antelopejs/interface-core";
-import type { DataControllerCallback } from "@antelopejs/interface-data-api";
-import { Validation } from "@antelopejs/interface-data-api/components";
-import { createGuardedRoute } from "@antelopejs/interface-dms/base/table-view/internal/guards";
+import {
+  Parameters as DataParameters,
+  Validation,
+} from "@antelopejs/interface-data-api/components";
+import { createGuardedWriteRoute } from "@antelopejs/interface-dms/base/table-view/internal/guards";
+import { requestContextFixture } from "../../../helpers/request-context";
 import { TableViewMeta } from "@antelopejs/interface-dms/base/table-view/meta";
 import type { TableViewGuards } from "@antelopejs/interface-dms/base/types/guards";
 import { expect } from "chai";
 
-const ctx = {};
+const ctx = requestContextFixture();
 
 class AmendingController {}
 class PlainController {}
@@ -20,15 +23,13 @@ function withGuards(
 }
 
 /** A route reading its body the way `DefaultRoutes.New` and `Edit` do. */
-function writingRoute(
-  written: ReturnType<typeof Validation.ParseBody>[],
-): DataControllerCallback {
-  return createGuardedRoute(
+function writingRoute(written: ReturnType<typeof Validation.ParseBody>[]) {
+  return createGuardedWriteRoute(
     {
       func: async (
         _ctx: RequestContext,
-        _params: Parameters<DataControllerCallback["func"]>[1],
-        body: Buffer,
+        _params: DataParameters.NewParameters,
+        body: Validation.WrittenBody,
       ) => {
         written.push(Validation.ParseBody(body));
         return "written";
@@ -63,14 +64,14 @@ describe("[unit] interfaces/dms-base/table-view — guards amending the body", (
 
   it("hands the route its raw body untouched without a guard", async () => {
     withGuards(PlainController, {});
-    const seen: Buffer[] = [];
+    const seen: Validation.WrittenBody[] = [];
     const body = raw({ customer: "Acme" });
-    await createGuardedRoute(
+    await createGuardedWriteRoute(
       {
         func: async (
           _ctx: RequestContext,
-          _params: Parameters<DataControllerCallback["func"]>[1],
-          value: Buffer,
+          _params: DataParameters.NewParameters,
+          value: Validation.WrittenBody,
         ) => {
           seen.push(value);
         },
@@ -81,5 +82,44 @@ describe("[unit] interfaces/dms-base/table-view — guards amending the body", (
     ).func.call(new PlainController(), ctx, {}, body);
     expect(seen).to.deep.equal([body]);
     expect(seen[0]).to.equal(body);
+  });
+
+  it("refuses a body that is not a JSON object before the new guard runs", async () => {
+    const guarded: string[] = [];
+    withGuards(AmendingController, {
+      new: () => {
+        guarded.push("guard");
+      },
+    });
+    const refusal = await Promise.resolve(
+      writingRoute([]).func.call(
+        new AmendingController(),
+        ctx,
+        {},
+        Buffer.from("[1]"),
+      ),
+    ).then(
+      () => undefined,
+      (error: unknown) => error,
+    );
+    expect(refusal).to.be.instanceOf(HTTPResult);
+    expect(refusal instanceof HTTPResult && refusal.getStatus()).to.equal(400);
+    expect(guarded).to.deep.equal([]);
+  });
+
+  it("answers 400 for an empty body under a new guard", async () => {
+    withGuards(AmendingController, { new: () => undefined });
+    const refusal = await Promise.resolve(
+      writingRoute([]).func.call(
+        new AmendingController(),
+        ctx,
+        {},
+        Buffer.alloc(0),
+      ),
+    ).then(
+      () => undefined,
+      (error: unknown) => error,
+    );
+    expect(refusal instanceof HTTPResult && refusal.getStatus()).to.equal(400);
   });
 });

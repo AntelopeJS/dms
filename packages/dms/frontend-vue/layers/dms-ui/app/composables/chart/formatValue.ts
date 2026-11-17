@@ -73,7 +73,7 @@ function precisionOptions(
   };
 }
 
-/** Formats a chart value, preserving legacy defaults unless precision is supplied. */
+/** Formats a chart value with the format's default fraction digits unless precision is supplied. */
 export function formatValue(
   value: number,
   format: ValueFormat = "number",

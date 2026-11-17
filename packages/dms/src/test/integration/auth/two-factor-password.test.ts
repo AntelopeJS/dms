@@ -6,7 +6,7 @@ import {
   registerUser,
 } from "../../helpers/auth";
 import { resetDatabase } from "../../helpers/db";
-import { captureEmails } from "../../helpers/emails";
+import { captureEmailsInSuite } from "../../helpers/emails";
 import { pageRoutePath } from "@antelopejs/interface-dms/page";
 
 const TWO_FACTOR = pageRoutePath("/settings/user/security", "/two-factor");
@@ -27,7 +27,7 @@ describe("[integration] auth/adding a two-factor method", function () {
   let user: RegisteredUser;
   let client: AxiosInstance;
 
-  before(captureEmails);
+  captureEmailsInSuite();
 
   beforeEach(async () => {
     await resetDatabase();

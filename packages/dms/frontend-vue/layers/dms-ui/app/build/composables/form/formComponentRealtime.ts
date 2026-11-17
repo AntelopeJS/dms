@@ -1,4 +1,5 @@
 import { computed, onUnmounted, ref, watch } from "vue";
+import { isObject, isString } from "#dms-core/app/utils/type-check";
 import type { useForm } from "../../../composables/form/useForm";
 
 const REALTIME_PRESENCE_FLAG = "_presence=1";
@@ -15,6 +16,29 @@ interface RealtimeFormContext {
   presenceTopic: string;
   rowTopic: string;
 }
+
+interface RowEvent {
+  type: string;
+  payload?: { ids?: string[] | null } | null;
+  actorId?: string | null;
+}
+
+const isNullish = (value: unknown): value is null | undefined =>
+  value === undefined || value === null;
+
+const isRowEventPayload = (value: unknown): value is RowEvent["payload"] =>
+  isNullish(value) ||
+  (isObject(value) &&
+    (isNullish(value.ids) ||
+      (Array.isArray(value.ids) && value.ids.every(isString))));
+
+/** Whether a realtime event has the fields a row topic's events carry. */
+export const isRowEvent = (event: unknown): event is RowEvent =>
+  isObject(event) &&
+  event !== null &&
+  isString(event.type) &&
+  isRowEventPayload(event.payload) &&
+  (isNullish(event.actorId) || isString(event.actorId));
 
 interface FormRealtimeSource
   extends Pick<
@@ -98,15 +122,10 @@ export function formComponentRealtime(source: FormRealtimeSource) {
     (event) => {
       const ctx = realtimeContext.value;
       if (!ctx) return;
-      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- RealtimeTopicEvent owns an open payload, not a validated ids array; retain the original unchecked topic projection rather than rejecting malformed events.
-      const eventTyped = event as {
-        type: string;
-        payload?: { ids?: string[] };
-        actorId?: string;
-      };
-      if (eventTyped.type !== REALTIME_EVENT_UPDATED) return;
-      if (!eventTyped.payload?.ids?.includes(ctx.rowId)) return;
-      if (eventTyped.actorId === realtimeUser.value?._id) return;
+      if (!isRowEvent(event)) return;
+      if (event.type !== REALTIME_EVENT_UPDATED) return;
+      if (!event.payload?.ids?.includes(ctx.rowId)) return;
+      if (event.actorId === realtimeUser.value?._id) return;
       showConcurrentEditBanner.value = true;
     },
   );

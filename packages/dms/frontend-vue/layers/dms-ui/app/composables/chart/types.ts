@@ -101,6 +101,8 @@ export interface KpiCardResponse {
   delta?: number;
   previousValue?: number;
   sparkline?: number[];
+  /** Shown in place of the description and the comparison label when non-empty. */
+  caption?: string;
 }
 
 export interface TopListItem {
@@ -122,13 +124,23 @@ export interface TopListCardResponse {
   items: TopListItem[];
 }
 
+/** One measured group, as a data source of shape `series` answers it. */
+export interface ChartGroupPoint {
+  x: string | number;
+  y: number | null;
+}
+
+/**
+ * What a bare chart's data source answers: one point per group, the shape the
+ * block registry declares as `series`, or named series.
+ */
 export interface ChartResponse {
-  series: ChartSeries[];
+  series: ChartSeries[] | ChartGroupPoint[];
 }
 
 export type ValueFormat = "number" | "currency" | "percent" | "compact";
 
-/** Fixed fraction digits, or Intl defaults; omitted preserves legacy formatting. */
+/** Fixed fraction digits, or Intl defaults; omitted uses the format's default fraction digits. */
 export type ValuePrecision = number | "native";
 
 export type ComparisonStyle = "dashed" | "solid" | "dimmed";

@@ -13,6 +13,7 @@ import { useSidebarState } from "./sidebarState";
 import { useKeyboardPlatform } from "#dms-ui/app/composables/global/keyboardPlatform";
 import { useMediaQuery } from "@vueuse/core";
 import DmsSidebarUserMenu from "./SidebarUserMenu.vue";
+import { useInstalledModuleCount } from "../../../composables/page/useInstalledModules";
 
 const MODULES_PATH = "/modules";
 
@@ -58,8 +59,7 @@ watch(
 
 function closeOnLinkClick(event: MouseEvent): void {
   if (!sidebarOpen.value) return;
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- DOM target is typed EventTarget; keep the existing unchecked closest call, including throws for synthetic non-element targets, instead of adding a filtering guard.
-  if ((event.target as Element | null)?.closest("a[href]")) {
+  if (event.target instanceof Element && event.target.closest("a[href]")) {
     closeMobileSidebar();
   }
 }
@@ -205,14 +205,7 @@ watch(
   { immediate: true },
 );
 
-const moduleCount = computed(() => {
-  const modulesNode =
-    siteLayout.siteLayoutTree.value?.children[MODULES_TREE_KEY];
-  if (!modulesNode) return 0;
-  return modulesNode.childrenOrders.filter(
-    (childId) => modulesNode.children[childId]?.isModuleRoot,
-  ).length;
-});
+const moduleCount = useInstalledModuleCount();
 
 const footerItems = computed((): NavigationMenuItem[] => {
   const result: NavigationMenuItem[] = [];
@@ -260,9 +253,9 @@ const footerItems = computed((): NavigationMenuItem[] => {
   />
 
   <UDashboardSidebar
+    v-model:collapsed="sidebarCollapsed"
     data-dms-persistent-sidebar
     :open="false"
-    v-model:collapsed="sidebarCollapsed"
     :default-size="SIDEBAR_DEFAULT_WIDTH_PX"
     :min-size="SIDEBAR_MIN_WIDTH_PX"
     :max-size="SIDEBAR_MAX_WIDTH_PX"
@@ -297,7 +290,13 @@ const footerItems = computed((): NavigationMenuItem[] => {
           "
           :class="isRail(sidebarRail) ? 'size-7' : 'h-12 w-auto'"
           class="object-contain"
-          :alt="t('navigation.goToHomepage')"
+          :alt="
+            appConfig.branding?.logo?.alt
+              ? t('navigation.goToBrandHomepage', {
+                  name: appConfig.branding.logo.alt,
+                })
+              : t('navigation.goToHomepage')
+          "
         />
       </DmsLink>
     </template>

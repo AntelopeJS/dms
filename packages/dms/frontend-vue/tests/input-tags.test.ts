@@ -71,8 +71,8 @@ async function mountTags(
           id: "emails",
           ...props,
           modelValue: model.value,
-          "onUpdate:modelValue": (value: string[]) => {
-            model.value = value;
+          "onUpdate:modelValue": (value) => {
+            model.value = value ?? [];
           },
         });
     },

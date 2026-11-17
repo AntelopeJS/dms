@@ -7,6 +7,7 @@ import {
   Parameter,
   Post,
   type RequestContext,
+  type QueryValue,
 } from "@antelopejs/interface-api";
 import {
   DataController,
@@ -15,6 +16,7 @@ import {
 import type { ConfirmDialogSerialized } from "@antelopejs/interface-dms/base/table-view";
 import { taskDataAPI } from "../data-api";
 import { Task } from "../database";
+import { queryText } from "../../query-text";
 
 const HTTP_NOT_FOUND = 404;
 const HTTP_BAD_REQUEST = 400;
@@ -64,27 +66,32 @@ export class customRowActionsTaskDataAPI extends DataController(
   }
 
   @Post("complete")
-  async complete(@Parameter("id", "query") id: string) {
-    await this.model.update(id, { status: "completed", done: true });
+  async complete(@Parameter("id", "query") id: QueryValue) {
+    await this.model.update(queryText(id) ?? "", {
+      status: "completed",
+      done: true,
+    });
     return { ok: true };
   }
 
   @Post("cancel")
-  async cancel(@Parameter("id", "query") id: string) {
-    await this.model.update(id, { status: "cancelled" });
+  async cancel(@Parameter("id", "query") id: QueryValue) {
+    await this.model.update(queryText(id) ?? "", { status: "cancelled" });
     return { ok: true };
   }
 
   /** Answers a link the "Copy share link" action copies (`copy: "url"`). */
   @Post("share")
-  share(@Parameter("id", "query") id: string): TaskShare {
-    return { url: `${SHARE_BASE_URL}/${encodeURIComponent(id)}` };
+  share(@Parameter("id", "query") id: QueryValue): TaskShare {
+    return {
+      url: `${SHARE_BASE_URL}/${encodeURIComponent(queryText(id) ?? "")}`,
+    };
   }
 
   /** The file the "Download JSON" action saves. */
   @Get("export")
-  async exportTask(@Parameter("id", "query") id: string) {
-    return this.findTask(id);
+  async exportTask(@Parameter("id", "query") id: QueryValue) {
+    return this.findTask(queryText(id) ?? "");
   }
 
   /** The bulk "Set priority" drawer: the selected ids and the picked value. */
@@ -109,9 +116,9 @@ export class customRowActionsTaskDataAPI extends DataController(
    */
   @Get("removal-confirm")
   async removalConfirm(
-    @Parameter("id", "query") id: string,
+    @Parameter("id", "query") id: QueryValue,
   ): Promise<ConfirmDialogSerialized> {
-    const task = await this.findTask(id);
+    const task = await this.findTask(queryText(id) ?? "");
     if (task.status === "completed") {
       return {
         title: "This task cannot be deleted",

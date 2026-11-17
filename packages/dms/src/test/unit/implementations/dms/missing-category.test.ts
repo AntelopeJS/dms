@@ -17,28 +17,30 @@ import {
 import * as permissionsInterface from "@antelopejs/interface-dms/permissions";
 import * as permissionsResolverInterface from "@antelopejs/interface-dms/permissions-resolver";
 import * as tenantAccessInterface from "@antelopejs/interface-dms/tenant-access";
-import type { User } from "@antelopejs/interface-dms/auth/db";
 import { captureWarnings } from "../../../helpers/logging";
 import {
   registerTestCategory,
   registerTestPage,
   stubPageAccessModels,
 } from "../../../helpers/page-access";
+import { userFixture } from "../../../helpers/user-fixture";
 
 const TENANT = "missing-category-tenant";
-// SAFETY: Menu permission resolution consumes this id and the absent owner flag, not persisted-user methods.
-const MEMBER = { _id: "missing-category-member" } as User;
-const OWNER_PERMISSIONS = ["*"];
+const MEMBER = userFixture({ _id: "missing-category-member" });
+const OWNER = userFixture({ _id: "missing-category-owner", owner: true });
 const PLACEHOLDER_LABEL = "none";
 
 type SiteLayoutTree = Awaited<
   ReturnType<typeof buildSiteLayoutPayload>
 >["siteLayoutTree"];
 
-async function pagesLevel(permissions: string[]): Promise<SiteLayoutTree> {
+async function pagesLevel(
+  permissions: string[],
+  user = MEMBER,
+): Promise<SiteLayoutTree> {
   const { memberModel, roleModel } = stubPageAccessModels(permissions);
   const payload = await buildSiteLayoutPayload(
-    MEMBER,
+    user,
     memberModel,
     roleModel,
     TENANT,
@@ -62,13 +64,15 @@ function unregisteredCategory(id: string): CategoryInfo {
   };
 }
 
+function implementInterfaces() {
+  ImplementInterface(permissionsInterface, permissionsImpl);
+  ImplementInterface(permissionsResolverInterface, permissionsResolverImpl);
+  ImplementInterface(tenantAccessInterface, tenantAccessImpl);
+  ImplementInterface(pageInterfaceInternal, pageImplInternal);
+}
+
 describe("[unit] implementations/dms/page — entries of a missing category", () => {
-  before(() => {
-    ImplementInterface(permissionsInterface, permissionsImpl);
-    ImplementInterface(permissionsResolverInterface, permissionsResolverImpl);
-    ImplementInterface(tenantAccessInterface, tenantAccessImpl);
-    ImplementInterface(pageInterfaceInternal, pageImplInternal);
-  });
+  before(implementInterfaces);
 
   it("lists the pages of an unregistered label category at its parent's level", async () => {
     const reports = registerTestCategory("missing-reports", {
@@ -86,7 +90,7 @@ describe("[unit] implementations/dms/page — entries of a missing category", ()
 
     try {
       reports.cleanup();
-      const pages = await pagesLevel(OWNER_PERMISSIONS);
+      const pages = await pagesLevel([], OWNER);
 
       expect(pages.children["missing-reports"]).to.equal(undefined);
       expect(pages.children["missing-reports-sales"]?.fullId).to.equal(
@@ -121,7 +125,7 @@ describe("[unit] implementations/dms/page — entries of a missing category", ()
           category: unregisteredCategory("missing-ghost"),
         }),
       );
-      const pages = await pagesLevel(OWNER_PERMISSIONS);
+      const pages = await pagesLevel([], OWNER);
 
       expect(pages.children["missing-ghost"]).to.equal(undefined);
       expect(pages.children["missing-ghost-sales"]?.fullId).to.equal(
@@ -140,6 +144,10 @@ describe("[unit] implementations/dms/page — entries of a missing category", ()
     expect(reported).to.have.lengthOf(1);
     expect(reported[0]).to.include("pages.missing-ghost.missing-ghost-sales");
   });
+});
+
+describe("[unit] implementations/dms/page — entries of a missing category, registration order", () => {
+  before(implementInterfaces);
 
   it("does not warn about a category unregistered just before its pages", async () => {
     const reloaded = registerTestCategory("missing-reloaded", {
@@ -218,7 +226,7 @@ describe("[unit] implementations/dms/page — entries of a missing category", ()
           category: unregisteredCategory("missing-clash-parent"),
         }),
       );
-      const pages = await pagesLevel(OWNER_PERMISSIONS);
+      const pages = await pagesLevel([], OWNER);
 
       expect(pages.children["missing-clash"]?.displayName).to.equal(
         "Registered sibling",

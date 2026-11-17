@@ -24,7 +24,9 @@ export default defineDmsServer((server) => {
     "/api/_auth/session",
     session.refreshSessionRoute,
   );
-  server.registerRoute("DELETE", "/api/_auth/session", session.logoutRoute);
+  server.registerRoute("DELETE", "/api/_auth/session", session.logoutRoute, {
+    signOut: true,
+  });
   server.registerRoute(
     ["HEAD", "PUT", "PATCH", "OPTIONS"],
     "/api/_auth/session",

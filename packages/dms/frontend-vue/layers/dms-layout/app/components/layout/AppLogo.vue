@@ -7,5 +7,6 @@ const appConfig = useDmsAppConfig();
     v-if="appConfig.branding.logo"
     :light="appConfig.branding?.logo?.default.light"
     :dark="appConfig.branding?.logo?.default.dark"
+    :alt="appConfig.branding.logo.alt"
   />
 </template>

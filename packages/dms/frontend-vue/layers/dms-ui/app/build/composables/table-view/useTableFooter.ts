@@ -8,7 +8,7 @@ import type {
 import type {
   TableFooterLegendItem,
   TableFooterTexts,
-} from "../../components/table/Table.vue";
+} from "../../components/table/TableRoot.vue";
 import { useColumnValueRenderer } from "../data-types/useColumnValueRenderer";
 import type { TableCountQuery } from "./useTableRows";
 
@@ -51,7 +51,7 @@ export function useTableFooter(options: TableFooterOptions) {
     ids: summaries.map((summary) => summary.id),
   }));
 
-  const { data: values, refresh } = useApiData<Record<string, number>>(
+  const summaryData = useApiData<Record<string, number>>(
     `${options.dataKey}-summary`,
     ({ $authFetch, signal }) =>
       summaries.length === 0
@@ -63,6 +63,7 @@ export function useTableFooter(options: TableFooterOptions) {
 
     { lazy: true, watch: [summaryQuery], refreshOnPageRefresh: false },
   );
+  const { data: values } = summaryData;
 
   const formatSummary = (
     summary: TableViewFooterSummaryConfig,
@@ -111,6 +112,7 @@ export function useTableFooter(options: TableFooterOptions) {
 
   return {
     footer: resolved,
-    refreshSummaries: () => (summaries.length > 0 ? refresh() : undefined),
+    refreshSummaries: () =>
+      summaries.length > 0 ? summaryData.refresh() : undefined,
   };
 }

@@ -1,11 +1,10 @@
-import { type VNodeChild } from "vue";
 import type {
   DataType,
   DataTypeFormatter,
 } from "#dms-core/app/composables/data-types/useDataType";
 import { isObject } from "#dms-core/app/utils/type-check";
 import UIcon from "@nuxt/ui/runtime/vue/components/Icon.vue";
-import { readRowTone, type Row } from "./cellHelpers";
+import { childOf, readRowTone, type Row } from "./cellHelpers";
 import {
   dateFilterEditorValue,
   numberFilterEditorValue,
@@ -37,16 +36,18 @@ function renderBoolean(value: CellValue) {
   ]);
 }
 
+function dateBoundsOf(value: CellValue): [unknown, unknown] {
+  if (Array.isArray(value)) {
+    const pair: unknown[] = value;
+    return [pair[0], pair[1]];
+  }
+  const bounds: { start?: unknown; end?: unknown } = value ?? {};
+  return [bounds.start, bounds.end];
+}
+
 function formatDateBetween(value: CellValue, locale: string): string {
   const { t } = getAppTranslation();
-  const [rawStart, rawEnd] = Array.isArray(value)
-    ? value
-    : [
-        // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The open formatter value has no date-range schema; preserve optional start access on the original input.
-        (value as { start?: unknown })?.start,
-        // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The open formatter value has no date-range schema; preserve optional end access on the original input.
-        (value as { end?: unknown })?.end,
-      ];
+  const [rawStart, rawEnd] = dateBoundsOf(value);
   const start = formatDate(rawStart, locale) ?? t("dms.date.undefined");
   const end = formatDate(rawEnd, locale) ?? t("dms.date.undefined");
   return `${start} - ${end}`;
@@ -58,7 +59,7 @@ function formatAddress(value: CellValue): string {
   const { processI18n } = getAppTranslation();
   const addr = value;
   const countryName = addr.countryCode
-    ? processI18n(`$country.${addr.countryCode}`)
+    ? processI18n(`$country.${String(addr.countryCode)}`)
     : addr.countryCode;
   const number = [addr.houseNumber, addr.boxNumber].filter(Boolean).join("/");
   const street = [addr.streetName, number].filter(Boolean).join(" ");
@@ -92,15 +93,11 @@ function renderText(
   row?: Row,
 ): ReturnType<DataTypeFormatter> {
   if (value === "") return null;
-  const tone = readRowTone(
-    row,
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Text options have no runtime schema; toneField is read from the original plugin input.
-    (options as TextOptions | undefined)?.toneField,
-  );
+  const opts: TextOptions = options ?? {};
+  const tone = readRowTone(row, opts.toneField);
   if (!tone) return value;
 
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- A valid tone does not validate the row value as VNodeChild; preserve the existing unchecked Vue child.
-  return h("span", { class: DMS_TONE_TEXT[tone] }, [value as VNodeChild]);
+  return h("span", { class: DMS_TONE_TEXT[tone] }, [childOf(value)]);
 }
 
 export const registerPrimitiveTypes = (

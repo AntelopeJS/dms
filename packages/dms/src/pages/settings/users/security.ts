@@ -5,6 +5,7 @@ import {
   Parameter,
   Post,
 } from "@antelopejs/interface-api";
+import { assertValidation } from "@antelopejs/interface-api-util";
 import { Model } from "@antelopejs/interface-database-decorators";
 import { sanitizeUser } from "@antelopejs/interface-dms/auth";
 import {
@@ -39,6 +40,7 @@ import {
   startEmailSetup,
   startTotpSetup,
 } from "./two-factor-operations";
+import { authSchema, securitySchema } from "../../../validation";
 import { securityAttentionBadge } from "./security-attention";
 
 /**
@@ -93,32 +95,50 @@ export class SecuritySettingsController extends PageController("security", {
 
   @Post("/password")
   updatePassword(
-    @JSONBody() body: Parameters<typeof changePassword>[1],
+    @JSONBody() body: unknown,
     @Model(UserModel) userModel: UserModel,
     @Model(SessionModel) sessionModel: SessionModel,
     @Parameter("authorization", "header") authorization: string,
   ) {
-    return changePassword(this.user, body, {
-      userModel,
-      sessionModel,
-      authorization,
-    });
+    return changePassword(
+      this.user,
+      assertValidation(body, (value) =>
+        securitySchema.changePassword.parse(value),
+      ),
+      {
+        userModel,
+        sessionModel,
+        authorization,
+      },
+    );
   }
 
   @Post("/email")
   requestEmailChange(
-    @JSONBody() body: Parameters<typeof requestEmailChange>[1],
+    @JSONBody() body: unknown,
     @Model(UserModel) userModel: UserModel,
   ) {
-    return requestEmailChange(this.user, body, userModel);
+    return requestEmailChange(
+      this.user,
+      assertValidation(body, (value) =>
+        securitySchema.changeEmail.parse(value),
+      ),
+      userModel,
+    );
   }
 
   @Post("/email/confirm")
   async confirmEmailChange(
-    @JSONBody() body: Parameters<typeof confirmEmailChange>[1],
+    @JSONBody() body: unknown,
     @Model(UserModel) userModel: UserModel,
   ): Promise<Partial<User>> {
-    await confirmEmailChange(this.user, body, userModel);
+    await confirmEmailChange(
+      this.user,
+      assertValidation(body, (value) =>
+        securitySchema.confirmEmailChange.parse(value),
+      ),
+      userModel,
+    );
     return sanitizeUser(this.user);
   }
 
@@ -134,50 +154,84 @@ export class SecuritySettingsController extends PageController("security", {
 
   @Post("/two-factor/enable-totp")
   enableTotp(
-    @JSONBody() body: Parameters<typeof startTotpSetup>[1],
+    @JSONBody() body: unknown,
     @Model(UserModel) userModel: UserModel,
   ) {
-    return startTotpSetup(this.user, body, userModel);
+    return startTotpSetup(
+      this.user,
+      assertValidation(body ?? {}, (value) =>
+        securitySchema.addTwoFactorMethod.parse(value),
+      ),
+      userModel,
+    );
   }
 
   @Post("/two-factor/confirm-totp")
   confirmTotp(
-    @JSONBody() body: Parameters<typeof confirmTotpSetup>[1],
+    @JSONBody() body: unknown,
     @Model(UserModel) userModel: UserModel,
   ) {
-    return confirmTotpSetup(this.user, body, userModel);
+    return confirmTotpSetup(
+      this.user,
+      assertValidation(body, (value) => authSchema.confirmTotp.parse(value)),
+      userModel,
+    );
   }
 
   @Post("/two-factor/enable-email")
   enableEmail(
-    @JSONBody() body: Parameters<typeof startEmailSetup>[1],
+    @JSONBody() body: unknown,
     @Model(UserModel) userModel: UserModel,
   ) {
-    return startEmailSetup(this.user, body, userModel);
+    return startEmailSetup(
+      this.user,
+      assertValidation(body ?? {}, (value) =>
+        securitySchema.addTwoFactorMethod.parse(value),
+      ),
+      userModel,
+    );
   }
 
   @Post("/two-factor/confirm-email")
   confirmEmail(
-    @JSONBody() body: Parameters<typeof confirmEmailSetup>[1],
+    @JSONBody() body: unknown,
     @Model(UserModel) userModel: UserModel,
   ) {
-    return confirmEmailSetup(this.user, body, userModel);
+    return confirmEmailSetup(
+      this.user,
+      assertValidation(body, (value) =>
+        authSchema.confirmEmailMethod.parse(value),
+      ),
+      userModel,
+    );
   }
 
   @Post("/two-factor/disable")
   disableTwoFactor(
-    @JSONBody() body: Parameters<typeof disableTwoFactorMethod>[1],
+    @JSONBody() body: unknown,
     @Model(UserModel) userModel: UserModel,
   ) {
-    return disableTwoFactorMethod(this.user, body, userModel);
+    return disableTwoFactorMethod(
+      this.user,
+      assertValidation(body, (value) =>
+        authSchema.disableTwoFactor.parse(value),
+      ),
+      userModel,
+    );
   }
 
   @Post("/two-factor/regenerate-backup")
   regenerateBackupCodes(
-    @JSONBody() body: Parameters<typeof regenerateBackupCodes>[1],
+    @JSONBody() body: unknown,
     @Model(UserModel) userModel: UserModel,
   ) {
-    return regenerateBackupCodes(this.user, body, userModel);
+    return regenerateBackupCodes(
+      this.user,
+      assertValidation(body, (value) =>
+        authSchema.regenerateBackup.parse(value),
+      ),
+      userModel,
+    );
   }
 
   @Post("/two-factor/backup-codes-saved")

@@ -11,6 +11,11 @@ import {
   PhoneTypeOptions,
 } from "./options";
 
+/**
+ * The `email` data type.
+ *
+ * @docsApi
+ */
 @RegisterDataType("email")
 export class EmailType extends DataType {
   constructor(public readonly options: EmailTypeOptions = {}) {
@@ -39,6 +44,11 @@ export class EmailType extends DataType {
   }
 }
 
+/**
+ * The `color` data type.
+ *
+ * @docsApi
+ */
 @RegisterDataType("color")
 export class ColorType extends DataType {
   constructor(public readonly options: ColorTypeOptions = {}) {
@@ -65,6 +75,11 @@ export class ColorType extends DataType {
   }
 }
 
+/**
+ * The `password` data type.
+ *
+ * @docsApi
+ */
 @RegisterDataType("password")
 export class PasswordType extends DataType {
   constructor(public readonly options: PasswordTypeOptions = {}) {
@@ -91,6 +106,11 @@ export class PasswordType extends DataType {
   }
 }
 
+/**
+ * The `url` data type.
+ *
+ * @docsApi
+ */
 @RegisterDataType("url")
 export class UrlType extends DataType {
   constructor(public readonly options: UrlTypeOptions = {}) {
@@ -118,6 +138,11 @@ export class UrlType extends DataType {
   }
 }
 
+/**
+ * The `phone` data type.
+ *
+ * @docsApi
+ */
 @RegisterDataType("phone")
 export class PhoneType extends DataType {
   constructor(public readonly options: PhoneTypeOptions = {}) {

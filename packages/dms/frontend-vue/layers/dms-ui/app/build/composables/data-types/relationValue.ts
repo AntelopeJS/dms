@@ -5,7 +5,8 @@ import type {
 } from "#dms-core/app/composables/data-types/useDataType";
 import { isNumber, isObject, isString } from "#dms-core/app/utils/type-check";
 
-const DEFAULT_RELATION_VALUE_KEY = "_id";
+/** The key a related row is referenced by when `keyMapping.value` maps none. */
+export const DEFAULT_RELATION_VALUE_KEY = "_id";
 
 interface RelationKeyMapping {
   value?: string;
@@ -15,6 +16,10 @@ interface RelationValueOptions {
   multiple?: boolean;
   keyMapping?: RelationKeyMapping;
 }
+
+const relationOptionsOf = (
+  options: Parameters<BeforeStateMapper>[1],
+): RelationValueOptions => options ?? {};
 
 /**
  * The form state of a relation value: the id of each row it references, as
@@ -26,14 +31,14 @@ export function mapRelationBeforeState(
 ) {
   if (!value) return value;
 
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- BeforeStateMapper erases plugin options; relation options are consumed without validation so malformed inputs retain their existing behavior.
-  const opts = options as RelationValueOptions | undefined;
-  const valueKey = opts?.keyMapping?.value || DEFAULT_RELATION_VALUE_KEY;
+  const opts = relationOptionsOf(options);
+  const valueKey = opts.keyMapping?.value || DEFAULT_RELATION_VALUE_KEY;
 
   if (isString(value) || isNumber(value)) return value;
 
-  if (opts?.multiple && Array.isArray(value)) {
-    return value.map((item) =>
+  if (opts.multiple && Array.isArray(value)) {
+    const items: unknown[] = value;
+    return items.map((item) =>
       isObject(item) && item !== null ? item[valueKey] : item,
     );
   }
@@ -70,8 +75,7 @@ export function sameRelationValue(
   right: Parameters<DataTypeValueComparer>[1],
   options: Parameters<DataTypeValueComparer>[2],
 ): boolean {
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The comparer shares the mapper's erased options contract; this assertion does not validate multiple.
-  const isSet = !!(options as RelationValueOptions | undefined)?.multiple;
+  const isSet = !!relationOptionsOf(options).multiple;
   const comparable = (value: Parameters<DataTypeValueComparer>[0]) => {
     const ids = relationIds(value, options);
     return isSet ? ids.sort(compareIdText) : ids;

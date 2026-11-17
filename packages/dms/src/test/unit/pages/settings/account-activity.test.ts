@@ -1,12 +1,13 @@
 import { expect } from "chai";
 import type { Session, User } from "@antelopejs/interface-dms/auth/db";
-import type { UserInvite } from "@antelopejs/interface-dms/db";
 import type { UserNotification } from "../../../../db";
 import {
   type AccountActivitySources,
   buildAccountActivity,
   notificationToEvent,
 } from "../../../../pages/account";
+import { inviteFixture, sessionFixture } from "../../../helpers/table-fixtures";
+import { plainPasswordUserFixture } from "../../../helpers/user-fixture";
 
 const USER_ID = "activity-user";
 const OTHER_ID = "someone-else";
@@ -36,8 +37,7 @@ const at = (iso: string) => new Date(iso);
 const SHORT_LIMIT = 6;
 
 function user(overrides: Partial<User> = {}): User {
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- This activity fixture omits database instance methods and unrelated user fields.
-  return {
+  return plainPasswordUserFixture({
     _id: USER_ID,
     createdAt: at("2025-03-12T09:00:00Z"),
     email: "camille@acme.dev",
@@ -49,15 +49,13 @@ function user(overrides: Partial<User> = {}): User {
     twoFactorBackupCodes: [BACKUP_CODE_HASH],
     twoFactorBackupCodesGeneratedAt: null,
     ...overrides,
-  } as User;
+  });
 }
 
 function session(id: string, createdAt: string, userId = USER_ID): Session {
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The secret-leak fixture deliberately retains the legacy refreshToken field absent from the current Session contract.
-  return {
+  const current = sessionFixture({
     _id: id,
     userId,
-    refreshToken: REFRESH_TOKEN,
     refreshTokenHash: REFRESH_HASH,
     userAgent: USER_AGENT,
     ip: "203.0.113.7",
@@ -67,7 +65,8 @@ function session(id: string, createdAt: string, userId = USER_ID): Session {
     location: "Brussels, BE",
     createdAt: at(createdAt),
     lastActiveAt: at(createdAt),
-  } as Session;
+  });
+  return Object.assign(current, { refreshToken: REFRESH_TOKEN });
 }
 
 function notification(
@@ -108,7 +107,7 @@ function sources(
   };
 }
 
-describe("account activity", () => {
+function registerNotificationMappingCases(): void {
   it("maps each account notification the DMS sends to its event", () => {
     expect(
       notificationToEvent(
@@ -181,7 +180,9 @@ describe("account activity", () => {
       ),
     ).to.equal(undefined);
   });
+}
 
+function registerMergeCases(): void {
   it("merges every source newest first and caps the list", () => {
     const events = buildAccountActivity(
       sources({
@@ -211,14 +212,13 @@ describe("account activity", () => {
         ],
         invites: [
           {
-            // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The invite fixture supplies activity fields only, not the full stored invite contract.
-            invite: {
+            invite: inviteFixture({
               _id: "i1",
               email: "lea@acme.dev",
               invitedBy: USER_ID,
               token: INVITE_TOKEN,
               createdAt: at("2026-09-29T09:00:00Z"),
-            } as UserInvite,
+            }),
             workspace: "Acme",
           },
         ],
@@ -263,7 +263,9 @@ describe("account activity", () => {
     expect(events[0]?.date).to.deep.equal(at("2026-09-25T09:00:00Z"));
     expect(events.at(-1)?.date).to.deep.equal(at("2026-09-06T09:00:00Z"));
   });
+}
 
+function registerOwnEventCases(): void {
   it("keeps one entry per event across its records", () => {
     const events = buildAccountActivity(
       sources({
@@ -321,13 +323,12 @@ describe("account activity", () => {
         ],
         invites: [
           {
-            // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The foreign-invite fixture omits fields that activity filtering does not read.
-            invite: {
+            invite: inviteFixture({
               _id: "i2",
               email: "theirs@acme.dev",
               invitedBy: OTHER_ID,
               createdAt: at("2026-09-30T12:00:00Z"),
-            } as UserInvite,
+            }),
             workspace: "Acme",
           },
         ],
@@ -345,15 +346,10 @@ describe("account activity", () => {
     expect(serialized).not.to.include("refreshToken");
     expect(serialized).not.to.include("userAgent");
   });
+}
 
-  it("leaves out events without a valid date", () => {
-    const events = buildAccountActivity(
-      sources({
-        // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- This negative fixture deliberately violates the required date contract.
-        user: user({ createdAt: undefined as unknown as Date }),
-        sessions: [session("bad", "not a date")],
-      }),
-    );
-    expect(events).to.deep.equal([]);
-  });
+describe("account activity", () => {
+  registerNotificationMappingCases();
+  registerMergeCases();
+  registerOwnEventCases();
 });

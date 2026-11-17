@@ -1,7 +1,12 @@
 <script setup lang="ts" generic="T extends Data">
+import { themeOverride } from "./tableComponentTheme";
 import { tv } from "tailwind-variants";
-import type { Data } from "./Table.vue";
+import type { Data } from "./TableRoot.vue";
 import { useTableConfigClipboard } from "../../composables/table/useTableConfigClipboard";
+
+export interface MenuImportEmits {
+  (e: "navigate", view: string): void;
+}
 
 const theme = tv({
   slots: {
@@ -13,17 +18,8 @@ const theme = tv({
   },
 });
 
-interface Emits {
-  (e: "navigate", view: string): void;
-}
-
-const emits = defineEmits<Emits>();
+const emits = defineEmits<MenuImportEmits>();
 const { t } = useI18n();
-
-// oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Module theme configuration is unchecked; retain its existing contract derived from this component's normalized theme.
-const appConfig = useDmsAppConfig() as ReturnType<typeof useDmsAppConfig> & {
-  ui: { tableMenuImport: Partial<typeof theme> };
-};
 
 const { importConfig } = useTableConfigClipboard<T>();
 
@@ -37,7 +33,7 @@ const applyImport = () => {
 
 const uiTableMenuImportVariant = tv({
   extend: tv(theme),
-  ...appConfig.ui?.tableMenuImport,
+  ...themeOverride("tableMenuImport"),
 });
 const uiTableMenuImport = computed(() => uiTableMenuImportVariant());
 </script>

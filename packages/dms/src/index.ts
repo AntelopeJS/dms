@@ -1,15 +1,19 @@
 import { ImplementInterface } from "@antelopejs/interface-core";
 import { Logging } from "@antelopejs/interface-core/logging";
+import { Events } from "@antelopejs/interface-core/modules";
 import { GetRuntimeInfo } from "@antelopejs/interface-core/runtime";
 import { RegisterSchema } from "@antelopejs/interface-database-decorators";
 import {
   CORE_SCHEMA_NAME,
   TENANT_SCHEMA_NAME,
 } from "@antelopejs/interface-dms/constants";
-import "./db";
+import { announceSetupToken } from "./db";
 
-// oxlint-disable-next-line import/no-duplicates -- Initialize realtime before page and route side effects; the later named import supplies lifecycle functions without moving this initialization order.
-import "./realtime";
+import {
+  configureRealtime,
+  type RealtimeConfig,
+  stopRealtime,
+} from "./realtime";
 import "./implementations/dms-auth/email-templates";
 import "./pages";
 import "./routes";
@@ -24,12 +28,14 @@ import {
   registerAutomationNodes,
   unregisterAutomationNodes,
 } from "./automation";
+import { startBuilder } from "./builder";
 import {
   applyConfig,
   type Config,
   getConfig,
   getFrontendConfig,
   getHtmlRenderConfig,
+  isBuilderEnabled,
   isDocsPreviewEnabled,
 } from "./config";
 import {
@@ -56,16 +62,12 @@ import {
   cancelPendingMenuNotifications,
 } from "./implementations/dms/page";
 import {
-  configureRealtime,
-  type RealtimeConfig,
-  stopRealtime,
-} from "./realtime";
-import {
   cancelPendingExtensionReport,
   startPendingExtensionReport,
   stopPendingExtensionReport,
 } from "./page-extensions";
 import { registerDocsPreviewPage } from "./pages/public/preview";
+import { BUILDER_PAGES, startMockupEngine, stopMockupEngine } from "./mockup";
 import { deriveOAuthRelaySecret } from "./routes/oauth";
 import { frontendModule } from "./frontend-module";
 import {
@@ -83,11 +85,13 @@ export * from "./config";
 
 let cronTasks: ScheduledTask[] = [];
 let staleExportsSweep: Promise<void> = Promise.resolve();
+let defaultTenantProvisioning: Promise<void> | undefined;
+let provisioningWait = new AbortController();
 
 let globalRealtimeConfig: RealtimeConfig | undefined;
 
 export async function construct(config: Config): Promise<void> {
-  const { dev } = await GetRuntimeInfo();
+  const { dev, env } = await GetRuntimeInfo();
 
   applyConfig({
     ...config,
@@ -103,11 +107,20 @@ export async function construct(config: Config): Promise<void> {
   registerWorkspaceNotifications();
 
   await implementInterfaces();
+  await startBuilder(dev, env);
   await registerDmsFrontend(dev);
 
   if (isDocsPreviewEnabled(dev)) {
     registerDocsPreviewPage();
   }
+  if (dev) {
+    startMockupEngine(
+      undefined,
+      isBuilderEnabled(dev) ? BUILDER_PAGES : undefined,
+    );
+  }
+
+  await (await import("./mcp")).startMcp(dev);
 }
 
 async function setupFrontendBootstrap(dev: boolean): Promise<void> {
@@ -160,6 +173,10 @@ async function implementInterfaces(): Promise<void> {
   void ImplementInterface(
     await import("@antelopejs/interface-dms/tenant-access"),
     await import("./implementations/dms/tenant-access"),
+  );
+  void ImplementInterface(
+    await import("@antelopejs/interface-dms/connection-access"),
+    await import("./implementations/dms/connection-access"),
   );
   void ImplementInterface(
     await import("@antelopejs/interface-dms/utils/saas-mode"),
@@ -252,6 +269,17 @@ function cancelDeferredNotifications(): void {
 export function destroy(): void {
   cancelDeferredNotifications();
   closeDevReloadStreams();
+  stopMockupEngine();
+}
+
+function onModulesStarted(): void {
+  if (defaultTenantProvisioning) return;
+  provisioningWait = new AbortController();
+  defaultTenantProvisioning = provisionDefaultTenant(
+    provisioningWait.signal,
+  ).finally(() => {
+    defaultTenantProvisioning = undefined;
+  });
 }
 
 export async function start(): Promise<void> {
@@ -259,26 +287,29 @@ export async function start(): Promise<void> {
   await configureRealtime(globalRealtimeConfig);
   await RegisterSchema(CORE_SCHEMA_NAME);
   await RegisterSchema(TENANT_SCHEMA_NAME);
-  const defaultTenantCreated = await ensureDefaultTenantExists();
+  await ensureDefaultTenantExists();
+  await announceSetupToken();
   await registerExistingTenantInstances();
   await SettleHook(Hook.DATABASE_INITIALIZED);
 
-  if (defaultTenantCreated) await provisionDefaultTenant();
-
-  staleExportsSweep = runSweepStaleExports().catch((error) => {
+  staleExportsSweep = runSweepStaleExports().catch((error: unknown) => {
     Logging.Error(`Cron '${SWEEP_STALE_EXPORTS_CRON_NAME}' failed:`, error);
   });
   cronTasks = registerDmsCrons();
 
-  void runCleanupUserInvites().catch((error) => {
+  void runCleanupUserInvites().catch((error: unknown) => {
     Logging.Error(`Cron '${CLEANUP_USER_INVITES_CRON_NAME}' failed:`, error);
   });
   await registerAutomationNodes();
   await startModuleUpdateWatcher();
   startPendingExtensionReport();
+  Events.ModulesStarted.register(onModulesStarted);
 }
 
 export async function stop(): Promise<void> {
+  Events.ModulesStarted.unregister(onModulesStarted);
+  provisioningWait.abort();
+  await defaultTenantProvisioning;
   await staleExportsSweep;
   UnsettleHook(Hook.DATABASE_INITIALIZED);
   stopPendingExtensionReport();
@@ -298,5 +329,6 @@ export async function stop(): Promise<void> {
     await stopRealtime();
     cancelDeferredNotifications();
     closeDevReloadStreams();
+    stopMockupEngine();
   }
 }

@@ -20,6 +20,8 @@ import { storeInstallSchema, storeOperationSchema } from "../validation";
 const HTTP_FORBIDDEN = 403;
 const ERROR_UNAUTHORIZED = "error.unauthorized";
 
+type StoreOperationBody = ReturnType<typeof storeOperationSchema.parse>;
+
 /**
  * The module store, platform owners only: the listing, and one route per
  * operation. An operation answers once accepted, with the listing showing it
@@ -50,12 +52,8 @@ export class ModuleStoreController extends Controller("/dms/store") {
 
   private async run(
     kind: StoreOperationKind,
-    body: Parameters<typeof storeOperationSchema.parse>[0],
+    { id }: StoreOperationBody,
   ): Promise<StoreListing> {
-    await this.assertOwner();
-    const { id } = assertValidation(body, (value) =>
-      storeOperationSchema.parse(value),
-    );
     await startStoreOperation(kind, id);
     return buildStoreListing();
   }
@@ -67,9 +65,7 @@ export class ModuleStoreController extends Controller("/dms/store") {
   }
 
   @Post("/install")
-  async install(
-    @JSONBody() body: Parameters<typeof storeInstallSchema.parse>[0],
-  ): Promise<StoreListing> {
+  async install(@JSONBody() body: unknown): Promise<StoreListing> {
     await this.assertOwner();
     const { id, dependencies } = assertValidation(body, (value) =>
       storeInstallSchema.parse(value),
@@ -79,37 +75,47 @@ export class ModuleStoreController extends Controller("/dms/store") {
   }
 
   @Post("/update")
-  update(
-    @JSONBody() body: Parameters<typeof storeOperationSchema.parse>[0],
-  ): Promise<StoreListing> {
-    return this.run("update", body);
+  async update(@JSONBody() body: unknown): Promise<StoreListing> {
+    await this.assertOwner();
+    return this.run(
+      "update",
+      assertValidation(body, (value) => storeOperationSchema.parse(value)),
+    );
   }
 
   @Post("/enable")
-  enable(
-    @JSONBody() body: Parameters<typeof storeOperationSchema.parse>[0],
-  ): Promise<StoreListing> {
-    return this.run("enable", body);
+  async enable(@JSONBody() body: unknown): Promise<StoreListing> {
+    await this.assertOwner();
+    return this.run(
+      "enable",
+      assertValidation(body, (value) => storeOperationSchema.parse(value)),
+    );
   }
 
   @Post("/disable")
-  disable(
-    @JSONBody() body: Parameters<typeof storeOperationSchema.parse>[0],
-  ): Promise<StoreListing> {
-    return this.run("disable", body);
+  async disable(@JSONBody() body: unknown): Promise<StoreListing> {
+    await this.assertOwner();
+    return this.run(
+      "disable",
+      assertValidation(body, (value) => storeOperationSchema.parse(value)),
+    );
   }
 
   @Post("/uninstall")
-  uninstall(
-    @JSONBody() body: Parameters<typeof storeOperationSchema.parse>[0],
-  ): Promise<StoreListing> {
-    return this.run("uninstall", body);
+  async uninstall(@JSONBody() body: unknown): Promise<StoreListing> {
+    await this.assertOwner();
+    return this.run(
+      "uninstall",
+      assertValidation(body, (value) => storeOperationSchema.parse(value)),
+    );
   }
 
   @Post("/apply")
-  apply(
-    @JSONBody() body: Parameters<typeof storeOperationSchema.parse>[0],
-  ): Promise<StoreListing> {
-    return this.run("apply", body);
+  async apply(@JSONBody() body: unknown): Promise<StoreListing> {
+    await this.assertOwner();
+    return this.run(
+      "apply",
+      assertValidation(body, (value) => storeOperationSchema.parse(value)),
+    );
   }
 }

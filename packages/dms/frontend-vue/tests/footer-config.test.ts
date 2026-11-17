@@ -32,19 +32,23 @@ const SelectStub = defineComponent({
 
 async function mountFooter(): Promise<void> {
   const { default: Footer } = await import(
-    "../layers/dms-layout/app/entries/components/layout/Footer"
+    "../layers/dms-layout/app/entries/components/layout/LayoutFooter"
   );
   host = document.createElement("div");
   document.body.append(host);
   app = createApp(Footer);
-  app.component("DmsLink", {
-    props: ["to"],
-    setup:
-      (props: { to: string }, { slots }) =>
-      () =>
-        h("a", { href: props.to }, slots.default?.()),
-  });
+  app.component(
+    "DmsLink",
+    defineComponent({
+      props: { to: { type: String, required: true } },
+      setup:
+        (props, { slots }) =>
+        () =>
+          h("a", { href: props.to }, slots.default?.()),
+    }),
+  );
   app.component("USelect", SelectStub);
+  app.component("UIcon", () => h("span"));
   app.mount(host);
   await nextTick();
 }
@@ -106,6 +110,7 @@ describe("footer", () => {
     expect(linkTexts()).toEqual([
       "empty_layout.footer.documentation",
       "empty_layout.footer.website",
+      "empty_layout.footer.github_star",
     ]);
     expect(host.querySelector("[data-locale-switcher]")).not.toBeNull();
   });
@@ -124,7 +129,7 @@ describe("footer", () => {
     unregisterFooterLink("dms:website");
     unregisterFooterLink("never-registered");
     await mountFooter();
-    expect(linkTexts()).toEqual(["Status"]);
+    expect(linkTexts()).toEqual(["Status", "empty_layout.footer.github_star"]);
   });
 
   it("names the copyright holder, or drops it and the picker", async () => {
@@ -161,11 +166,24 @@ describe("footer", () => {
     expect(setLocale).not.toHaveBeenCalled();
   });
 
-  it("shows no GitHub star and asks nothing of GitHub", async () => {
+  it("shows one static GitHub star link and asks nothing of GitHub", async () => {
     await mountFooter();
     await nextTick();
-    expect(host.querySelector('a[href*="github.com"]')).toBeNull();
-    expect(host.textContent).not.toContain("github_star");
+    const links = host.querySelectorAll(
+      'a[href="https://github.com/AntelopeJS/dms"]',
+    );
+    expect(links).toHaveLength(1);
+    expect(links[0]?.textContent?.trim()).toBe(
+      "empty_layout.footer.github_star",
+    );
+    expect(links[0]?.getAttribute("aria-label")).toBe(
+      "empty_layout.footer.github_star_label",
+    );
+    expect(links[0]?.getAttribute("title")).toBe(
+      "empty_layout.footer.github_star_label",
+    );
+    expect(links[0]?.getAttribute("target")).toBe("_blank");
+    expect(links[0]?.getAttribute("rel")).toBe("noopener noreferrer");
     expect(fetch).not.toHaveBeenCalled();
   });
 });

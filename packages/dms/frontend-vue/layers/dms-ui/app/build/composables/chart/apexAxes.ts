@@ -15,7 +15,15 @@ import {
 const CROSSHAIR_DASH = 3;
 const HIGH_CONTRAST_YAXIS_TYPES: ChartType[] = ["radar"];
 const CATEGORY_YAXIS_TYPES: ChartType[] = ["heatmap"];
-const SELF_THINNED_XAXIS_TYPES: ChartType[] = ["heatmap"];
+const SELF_THINNED_XAXIS_TYPES: ChartType[] = [
+  "heatmap",
+  "line",
+  "area",
+  "rangeArea",
+  "column",
+  "bar",
+  "mixed",
+];
 
 type YAxis = NonNullable<Exclude<ApexOptions["yaxis"], unknown[]>>;
 type XAxis = NonNullable<ApexOptions["xaxis"]>;
@@ -42,11 +50,22 @@ export function buildYAxis(
   return yaxis;
 }
 
-function thinsOwnXLabels(input: UseApexChartInput): boolean {
+/**
+ * Whether the chart draws a category x-axis whose labels this module thins.
+ * A horizontal bar puts its categories on the other axis. `bucketed` marks a
+ * datetime series Apex draws as a category axis of bucket labels.
+ */
+export function thinsOwnXLabels(
+  input: UseApexChartInput,
+  bucketed = false,
+): boolean {
   const settings = input.xAxis;
+  const horizontalBar =
+    input.type === "bar" && input.orientation !== "vertical";
   return (
     SELF_THINNED_XAXIS_TYPES.includes(input.type) &&
-    (input.xaxisType ?? "category") === "category" &&
+    !horizontalBar &&
+    (bucketed || (input.xaxisType ?? "category") === "category") &&
     settings?.hideOverlappingLabels !== false &&
     settings?.tickAmount === undefined &&
     !settings?.rotate

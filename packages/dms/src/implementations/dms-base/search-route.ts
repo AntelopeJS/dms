@@ -1,13 +1,20 @@
+import { getTableViewMetaFor } from "@antelopejs/interface-dms/base/table-view/internal/meta";
 import type { RequestContext } from "@antelopejs/interface-api";
 import { assert } from "@antelopejs/interface-api-util";
 import { GetMetadata } from "@antelopejs/interface-core";
-import { GetDataControllerMeta } from "@antelopejs/interface-data-api";
+import {
+  type DataControllerInstance,
+  GetDataControllerMeta,
+} from "@antelopejs/interface-data-api";
 import {
   type Parameters,
   Query,
   Validation,
 } from "@antelopejs/interface-data-api/components";
-import type { DataAPIMeta } from "@antelopejs/interface-data-api/metadata";
+import type {
+  DataAPIMeta,
+  StoredRow,
+} from "@antelopejs/interface-data-api/metadata";
 import type {
   Stream,
   ValueProxy,
@@ -22,14 +29,12 @@ import {
 import { getRequestTenantId } from "@antelopejs/interface-dms/request-tenant";
 import type { User } from "@antelopejs/interface-dms/auth/db";
 import { SearchableMeta } from "@antelopejs/interface-dms/base";
-import {
-  DEFAULT_ROW_ID_FIELD,
-  TableViewMeta,
-} from "@antelopejs/interface-dms/base/table-view";
+import { DEFAULT_ROW_ID_FIELD } from "@antelopejs/interface-dms/base/table-view";
 import { resolveFilterTokens } from "./filter-tokens";
-import type { evaluateRowActionRule } from "../../utils";
-
-type SearchRow = globalThis.Parameters<typeof evaluateRowActionRule>[1];
+import {
+  isBoolean,
+  isString,
+} from "@antelopejs/interface-dms/utils/internal/type-check";
 
 const MIN_SEARCH_LENGTH = 2;
 const IDS_KEY = "ids";
@@ -42,7 +47,7 @@ interface SearchTarget {
   searchValue: string;
   context: RequestContext;
   meta: DataAPIMeta;
-  thisObj: any;
+  thisObj: DataControllerInstance;
 }
 
 type Condition = ValueProxyOrValue<boolean>;
@@ -63,13 +68,12 @@ function resolveSearchFilter(
   if (declared) {
     return declared;
   }
-  const columnType = GetMetadata(target.thisObj.constructor, TableViewMeta)
-    .columns[field]?.type;
+  const columnType = getTableViewMetaFor(target.thisObj).columns[field]?.type;
   return columnType?.filter.bind(columnType);
 }
 
 function applySearchFilter(
-  row: ValueProxy<SearchRow>,
+  row: ValueProxy<StoredRow>,
   field: string,
   compareMode: string,
   target: SearchTarget,
@@ -82,7 +86,7 @@ function applySearchFilter(
   }
 
   const contextWithThis = Object.assign({}, context, { this: thisObj });
-  const unlockedValue = Validation.UnlockRequest<SearchRow, string>(
+  const unlockedValue = Validation.UnlockRequest<StoredRow, string>(
     thisObj,
     meta,
     row,
@@ -93,32 +97,29 @@ function applySearchFilter(
     unlockedValue,
     field,
     searchValue,
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- SearchableMeta exposes arbitrary string modes while the filter owner accepts CompareMode; inference and Parameters<SearchFilter>[4] cannot establish that legacy registration invariant without rejecting modes.
-    compareMode as globalThis.Parameters<SearchFilter>[4],
+    compareMode,
     row,
   );
 }
 
 function either(a: Condition, b: Condition): Condition {
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Conditions combine literal booleans and database expression proxies; retain the literal short-circuit before calling proxy methods.
-  if (typeof a === "boolean") return a ? true : b;
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- The right condition also has a literal boolean branch rather than a query proxy.
-  if (typeof b === "boolean") return b ? true : a;
+  if (isBoolean(a)) return a ? true : b;
+  if (isBoolean(b)) return b ? true : a;
   return a.or(b);
 }
 
 function applyGlobalSearch(
-  query: Stream<SearchRow>,
+  query: Stream<StoredRow>,
   searchableFields: Record<string, string>,
   target: SearchTarget,
-): Stream<SearchRow> {
+): Stream<StoredRow> {
   const fieldEntries = Object.entries(searchableFields);
 
   if (fieldEntries.length === 0) {
     return query;
   }
 
-  return query.filter((row: ValueProxy<SearchRow>) =>
+  return query.filter((row: ValueProxy<StoredRow>) =>
     fieldEntries
       .map(([field, mode]) => applySearchFilter(row, field, mode, target))
       .reduce(either, false),
@@ -158,12 +159,12 @@ async function computeEffectivePermissions(
 }
 
 async function canViewArchived(
-  thisObj: any,
+  thisObj: DataControllerInstance,
   reqCtx: RequestContext,
   user: User | undefined,
   permissions: Set<string> | undefined,
 ): Promise<boolean> {
-  const tableViewMeta = GetMetadata(thisObj.constructor, TableViewMeta);
+  const tableViewMeta = getTableViewMetaFor(thisObj);
 
   const permissionIds = tableViewMeta.actionPermissionIds("viewArchived");
   if (permissionIds.length === 0) {
@@ -186,18 +187,17 @@ async function canViewArchived(
 export function archiveFilter(
   archived: boolean,
 ): NonNullable<Parameters.ListParameters["filters"]>[string] {
-  // oxlint-disable-next-line anti-slop/no-chained-type-assertions, anti-slop/require-safety-comment-for-type-assertion -- FilterValue's owner declares string but archive filters intentionally send boolean true; inference and indexed access retain the mismatch, and converting the value would change database comparisons.
-  return [true as unknown as string, archived ? "eq" : "ne"];
+  return ["true", archived ? "eq" : "ne"];
 }
 
 export async function applyArchiveFilter(
-  thisObj: any,
+  thisObj: DataControllerInstance,
   reqCtx: RequestContext,
   user: User | undefined,
   permissions: Set<string> | undefined,
   filters: Parameters.ListParameters["filters"],
 ): Promise<Parameters.ListParameters["filters"]> {
-  const tableViewMeta = GetMetadata(thisObj.constructor, TableViewMeta);
+  const tableViewMeta = getTableViewMetaFor(thisObj);
   const archiveField = tableViewMeta?.archiveField;
   if (!archiveField) {
     return filters;
@@ -220,8 +220,7 @@ export async function applyArchiveFilter(
     return { ...filters, [archiveField]: archiveFilter(false) };
   }
 
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- The request adapter owns searchParams.get; retain its existing string check and unchanged fallback for absent or malformed archive parameters.
-  if (typeof showArchived !== "string") {
+  if (!isString(showArchived)) {
     return filters;
   }
 
@@ -237,13 +236,13 @@ export async function applyArchiveFilter(
  * — else the table's row id key.
  */
 function resolveIdsField(
-  thisObj: any,
+  thisObj: DataControllerInstance,
   reqCtx: RequestContext,
   pluck: Set<string> | undefined,
 ): string {
   const requested = reqCtx.url.searchParams.get(ID_KEY_KEY);
   if (requested && pluck?.has(requested)) return requested;
-  const tableViewMeta = GetMetadata(thisObj.constructor, TableViewMeta);
+  const tableViewMeta = getTableViewMetaFor(thisObj);
   return tableViewMeta?.options?.rowIdKey || DEFAULT_ROW_ID_FIELD;
 }
 
@@ -254,26 +253,37 @@ function resolveIdsField(
  * still apply: it only narrows what the caller may already read.
  */
 function applyIdsRestriction(
-  query: Stream<SearchRow>,
+  query: Stream<StoredRow>,
   ids: string[],
   field: string,
-): Stream<SearchRow> {
-  return query.filter((row: ValueProxy<SearchRow>) =>
+): Stream<StoredRow> {
+  return query.filter((row: ValueProxy<StoredRow>) =>
     ids.map((id): Condition => row.key(field).eq(id)).reduce(either, false),
   );
 }
 
-export async function buildFilteredQuery(
-  thisObj: any,
+/** What a list request reads, its filters resolved, the archive view the user may see included. */
+export interface ListScope {
+  thisObj: DataControllerInstance;
+  reqCtx: RequestContext;
+  params: Parameters.ListParameters;
+  meta: DataAPIMeta;
+  model: ReturnType<typeof Query.GetModel>;
+  filters: Parameters.ListParameters["filters"];
+}
+
+/** The scope of a list request: the controller's model and the filters it resolves, archive view included. */
+export async function resolveListScope(
+  thisObj: DataControllerInstance,
   reqCtx: RequestContext,
   params: Parameters.ListParameters,
   user?: User,
   permissions?: Set<string>,
-) {
+): Promise<ListScope> {
   const meta = GetDataControllerMeta(thisObj);
   const model = Query.GetModel(thisObj, meta);
 
-  const filtersWithArchive = await applyArchiveFilter(
+  const filters = await applyArchiveFilter(
     thisObj,
     reqCtx,
     user,
@@ -283,7 +293,18 @@ export async function buildFilteredQuery(
       now: new Date(),
     }),
   );
+  return { thisObj, reqCtx, params, meta, model, filters };
+}
 
+/** The unrun queries of a list request: the rows its filters and search select, their count, and the joins left to its pages. */
+export function buildFilteredQuery({
+  thisObj,
+  reqCtx,
+  params,
+  meta,
+  model,
+  filters: filtersWithArchive,
+}: ListScope) {
   const sort: globalThis.Parameters<typeof Query.List>[4] = params?.sortKey
     ? [params.sortKey, params.sortDirection]
     : undefined;
@@ -301,7 +322,7 @@ export async function buildFilteredQuery(
   const searchValue = extractSearchParameter(reqCtx);
 
   if (searchValue) {
-    const searchableMeta = GetMetadata(thisObj.constructor, SearchableMeta);
+    const searchableMeta = GetMetadata(meta.target, SearchableMeta);
     const searchableFields = searchableMeta?.getSearchableFields() || {};
 
     if (Object.keys(searchableFields).length > 0) {
@@ -326,41 +347,33 @@ export async function buildFilteredQuery(
 }
 
 export async function countWithSearch(
-  thisObj: any,
+  thisObj: DataControllerInstance,
   reqCtx: RequestContext,
   params: Parameters.ListParameters,
   user?: User,
   permissions?: Set<string>,
 ): Promise<SearchCountResult> {
-  const { queryTotal } = await buildFilteredQuery(
-    thisObj,
-    reqCtx,
-    params,
-    user,
-    permissions,
+  const { queryTotal } = buildFilteredQuery(
+    await resolveListScope(thisObj, reqCtx, params, user, permissions),
   );
-  const total = await queryTotal;
+  const total = await queryTotal.run();
   return { total };
 }
 
 export async function listWithSearch(
-  thisObj: any,
+  thisObj: DataControllerInstance,
   reqCtx: RequestContext,
   params: Parameters.ListParameters,
   user?: User,
   permissions?: Set<string>,
 ): Promise<{
-  results: Awaited<ReturnType<typeof Query.ReadProperties>>[];
+  results: StoredRow[];
   total: number;
   offset: number;
   limit: number;
 }> {
-  const built = await buildFilteredQuery(
-    thisObj,
-    reqCtx,
-    params,
-    user,
-    permissions,
+  const built = buildFilteredQuery(
+    await resolveListScope(thisObj, reqCtx, params, user, permissions),
   );
   const { meta, model, deferredJoined, filters } = built;
   let { query, queryTotal } = built;
@@ -394,11 +407,15 @@ export async function listWithSearch(
     deferredJoined,
   });
 
-  const [dbResult, dbTotal] = await Promise.all([queryPaged, queryTotal]);
+  const [dbResult, dbTotal] = await Promise.all([
+    queryPaged.run(),
+    queryTotal.run(),
+  ]);
 
   const results = await Promise.all(
     dbResult.map((entry) => {
       const entryInstance = model.constructor.fromDatabase(entry);
+      assert(entryInstance, 500, "The database answered an empty row.");
       Validation.Unlock(thisObj, meta, entryInstance);
       return Query.ReadProperties(thisObj, meta, entryInstance);
     }),

@@ -32,12 +32,14 @@ function field(
 const HORIZONTAL_ROW = FORM_LAYOUT_CLASSES.horizontal.row;
 
 describe("isWideField", () => {
-  it.each(["dms-repeater", "dms-key-value", "dms-input-code", "dms-rich-text"])(
-    "takes the full width for %s",
-    (name) => {
-      expect(isWideField(field(name))).toBe(true);
-    },
-  );
+  it.each([
+    "dms-input-repeater",
+    "dms-key-value",
+    "dms-input-code",
+    "dms-rich-text",
+  ])("takes the full width for %s", (name) => {
+    expect(isWideField(field(name))).toBe(true);
+  });
 
   it.each(["array", "key_value", "code", "rich_text"])(
     "takes the full width for a read-only %s value",
@@ -47,29 +49,37 @@ describe("isWideField", () => {
   );
 
   it("takes the full width for several files or images, not one", () => {
-    expect(isWideField(field("dms-image", { multiple: true }))).toBe(true);
-    expect(isWideField(field("dms-file", { multiple: true }))).toBe(true);
-    expect(isWideField(field("dms-image"))).toBe(false);
-    expect(isWideField(field("dms-file", { multiple: false }))).toBe(false);
+    expect(isWideField(field("dms-input-image", { multiple: true }))).toBe(
+      true,
+    );
+    expect(isWideField(field("dms-input-file", { multiple: true }))).toBe(true);
+    expect(isWideField(field("dms-input-image"))).toBe(false);
+    expect(isWideField(field("dms-input-file", { multiple: false }))).toBe(
+      false,
+    );
   });
 
   it("takes the full width for a textarea taller than three rows", () => {
-    expect(isWideField(field("dms-textarea", { rows: 6 }))).toBe(true);
-    expect(isWideField(field("dms-textarea", { rows: 3 }))).toBe(false);
-    expect(isWideField(field("dms-textarea"))).toBe(false);
+    expect(isWideField(field("dms-input-textarea", { rows: 6 }))).toBe(true);
+    expect(isWideField(field("dms-input-textarea", { rows: 3 }))).toBe(false);
+    expect(isWideField(field("dms-input-textarea"))).toBe(false);
   });
 
-  it.each(["dms-input-text", "dms-select", "dms-relation", "dms-date-picker"])(
-    "keeps %s beside its label",
-    (name) => {
-      expect(isWideField(field(name, undefined, "string"))).toBe(false);
-    },
-  );
+  it.each([
+    "dms-input-text",
+    "dms-input-select",
+    "dms-input-relation",
+    "dms-date-picker",
+  ])("keeps %s beside its label", (name) => {
+    expect(isWideField(field(name, undefined, "string"))).toBe(false);
+  });
 });
 
 describe("entryRowLayout", () => {
   it("stacks the label above a wide field in a two-column form", () => {
-    expect(entryRowLayout(HORIZONTAL_ROW, [field("dms-repeater")])).toEqual({
+    expect(
+      entryRowLayout(HORIZONTAL_ROW, [field("dms-input-repeater")]),
+    ).toEqual({
       ...HORIZONTAL_ROW,
       layout: "stack",
     });
@@ -80,7 +90,7 @@ describe("entryRowLayout", () => {
 
   it("stacks a wide field in a drawer's dense rows too", () => {
     const row = CONTAINER_LAYOUT_CLASSES.horizontal.row;
-    expect(entryRowLayout(row, [field("dms-repeater")])).toEqual({
+    expect(entryRowLayout(row, [field("dms-input-repeater")])).toEqual({
       ...row,
       layout: "stack",
     });
@@ -104,6 +114,6 @@ describe("entryRowLayout", () => {
 
   it("leaves a vertical form's rows as they are", () => {
     const row = FORM_LAYOUT_CLASSES.vertical.row;
-    expect(entryRowLayout(row, [field("dms-repeater")])).toBe(row);
+    expect(entryRowLayout(row, [field("dms-input-repeater")])).toBe(row);
   });
 });

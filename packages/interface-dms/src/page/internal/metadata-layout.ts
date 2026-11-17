@@ -1,12 +1,12 @@
 /** @internal */
 import {
+  type ControllerClass,
   ControllerMeta,
   RegisterRoute,
   UnregisterRoute,
 } from "@antelopejs/interface-api";
 import { GetMetadata } from "@antelopejs/interface-core";
 import type { ComponentInfoSerialized } from "../../component";
-import type { PageMetadata } from "../metadata";
 import type {
   PageInfo,
   PageLayout,
@@ -18,6 +18,7 @@ import {
   type RouteCallbackContext,
 } from "./page-registration";
 import { pageLayoutHandlers } from "./registry";
+import { withLayoutRequest } from "./layout-request";
 
 /** @internal */
 export function hiddenComponentsFlag(
@@ -31,7 +32,7 @@ export function hiddenComponentsFlag(
 
 /** @internal */
 export function registerLayoutRoute(
-  target: () => PageMetadata["target"],
+  target: () => ControllerClass,
   pageInfo: PageInfo,
   registration: () => PageRegistration,
   resolvePageLayout: (request: PageLayoutRequest) => Promise<PageLayout>,
@@ -47,20 +48,22 @@ export function registerLayoutRoute(
   const routeId = RegisterRoute({
     location: pageInfo.layoutUrl,
     callback: async function (this: RouteCallbackContext) {
-      return resolvePageLayout({
-        user: this.user,
-        memberModel: this.memberModel,
-        roleModel: this.roleModel,
-        tenantId: this.tenantId,
-        query: this.pageQuery,
-        params: this.pageParams,
-      });
+      return withLayoutRequest(this.layoutRequest, () =>
+        resolvePageLayout({
+          user: this.user,
+          memberModel: this.memberModel,
+          roleModel: this.roleModel,
+          tenantId: this.tenantId,
+          query: this.pageQuery,
+          params: this.pageParams,
+        }),
+      );
     },
     method: "GET",
     mode: "handler",
     parameters: [],
     properties: apimeta.computed_props,
-    proto: target().prototype,
+    controller: target(),
   });
   registration().track(() => {
     if (pageLayoutHandlers.get(pageInfo.fullSlug) === handler) {

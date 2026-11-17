@@ -22,7 +22,7 @@ const SAMPLE_ARRAY_JSON = "[1,2,3]";
 const SAMPLE_NUMBER_JSON = "5";
 const SAMPLE_INVALID_JSON = "not json";
 
-describe("[unit] utils/type-check", () => {
+function registerBasicTypeCheckCases(): void {
   describe("isString", () => {
     it("returns true for a string", () => {
       expect(isString(SAMPLE_STRING)).to.equal(true);
@@ -90,7 +90,9 @@ describe("[unit] utils/type-check", () => {
       expect(isFunction({})).to.equal(false);
     });
   });
+}
 
+function registerSpecialTypeCheckCases(): void {
   describe("isBigint", () => {
     it("returns true for bigints", () => {
       expect(isBigint(SAMPLE_BIGINT)).to.equal(true);
@@ -155,6 +157,16 @@ describe("[unit] utils/type-check", () => {
         expect(isPrimitive(value), `value=${String(value)}`).to.equal(false);
       }
     });
+
+    /**
+     * Fails to compile when the predicate narrows to the typeof tag names
+     * ("string" | "number" | ...) instead of the primitive values themselves.
+     */
+    it("narrows a number to a number, not to a tag-name string", () => {
+      const format = (input: number | Date): string =>
+        isPrimitive(input) ? input.toFixed(1) : input.toISOString();
+      expect(format(SAMPLE_NUMBER)).to.equal("42.0");
+    });
   });
 
   describe("isJSON", () => {
@@ -176,4 +188,9 @@ describe("[unit] utils/type-check", () => {
       expect(isJSON(null)).to.equal(false);
     });
   });
+}
+
+describe("[unit] utils/type-check", () => {
+  registerBasicTypeCheckCases();
+  registerSpecialTypeCheckCases();
 });

@@ -6,6 +6,8 @@ import { useNotifications } from "../layers/dms-layout/app/composables/notificat
 import { useComponentEvent } from "../layers/dms-core/app/composables/components/useComponentEvent";
 import { browserRuntime, stubApiData } from "./helpers/api-data-runtime";
 import { installAuthSettingsRuntime } from "./helpers/auth-settings-runtime";
+import { requestRefusal } from "./helpers/api-error-runtime";
+import type { useOverlay } from "@nuxt/ui/composables/useOverlay";
 
 const BASE = "/dms/pages/settings/user/notifications";
 const authFetch = vi.fn(async (url: string) =>
@@ -14,7 +16,11 @@ const authFetch = vi.fn(async (url: string) =>
     : { counts: { all: 2, unread: 1 } },
 );
 const confirmOpen = vi.fn(async () => true);
-const createOverlay = vi.fn(() => ({ open: confirmOpen }));
+type OverlayCreateArgs = Parameters<ReturnType<typeof useOverlay>["create"]>;
+const createOverlay = vi.fn((..._args: OverlayCreateArgs) => ({
+  open: confirmOpen,
+}));
+const addToast = vi.fn(() => ({ id: "failure" }));
 let app: App;
 
 beforeEach(() => {
@@ -29,7 +35,7 @@ beforeEach(() => {
   vi.stubGlobal("useTranslation", () => ({
     processI18n: (text: string) => text,
   }));
-  vi.stubGlobal("useToast", () => ({ add: vi.fn() }));
+  vi.stubGlobal("useToast", () => ({ add: addToast }));
   vi.stubGlobal("useOverlay", () => ({ create: createOverlay }));
 });
 
@@ -61,7 +67,7 @@ function mount() {
     }),
   );
   app.component(
-    "DmsEyebrow",
+    "DmsEyebrowLabel",
     defineComponent({
       props: { label: String },
       setup: (props) => () => h("h3", props.label),
@@ -175,4 +181,23 @@ it("lists the feed again once per change the stream brings, not when the bell re
   await feed.handleRemoteUnread(["n2"], { all: 2, unread: 3 });
   await nextTick();
   expect(refresh).toHaveBeenCalledTimes(2);
+});
+
+it("refreshes a refused mark-read without a second local failure toast", async () => {
+  const { action, refresh, container } = mount();
+  authFetch.mockRejectedValueOnce(requestRefusal());
+  action(0, "mark_read");
+  await vi.waitFor(() => expect(refresh).toHaveBeenCalledOnce());
+  expect(addToast).toHaveBeenCalledExactlyOnceWith(
+    expect.objectContaining({
+      title: "error.read_only_demo",
+      color: "warning",
+    }),
+  );
+  expect(container.textContent).toContain("Deploy");
+  expect(
+    container.querySelector(
+      'button[aria-label="page.settings.notifications.mark_read"]',
+    ),
+  ).not.toBeNull();
 });

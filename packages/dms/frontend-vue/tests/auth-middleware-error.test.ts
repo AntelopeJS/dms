@@ -1,18 +1,16 @@
+/** @vitest-environment jsdom */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { createApp, shallowRef } from "vue";
+import { createI18n } from "vue-i18n";
+import { useToast } from "@nuxt/ui/composables/useToast";
+import type { DmsMiddleware, DmsRoute } from "#dms/frontend-module";
 
-type Middleware = (
-  to: typeof privateRoute,
-) => ReturnType<
-  typeof import("../layers/dms-auth/app/middleware/auth").default
->;
-
-// SAFETY: The initial value is null, a member of the nullable error state used by these fixtures.
-const pageError = { value: null as { statusCode: number } | null };
+const pageError = shallowRef<{ statusCode: number } | null>(null);
 const navigateDms = vi.fn();
 
 beforeEach(() => {
   vi.resetModules();
-  vi.stubGlobal("defineDmsMiddleware", (handler: Middleware) => handler);
+  vi.stubGlobal("defineDmsMiddleware", (handler: DmsMiddleware) => handler);
   vi.stubGlobal("useDmsError", () => pageError);
   vi.stubGlobal("abortDmsNavigation", () => false);
   vi.stubGlobal("navigateDms", navigateDms);
@@ -21,23 +19,27 @@ beforeEach(() => {
     findMatchingRoute: () => ({ metadata: {} }),
   }));
   vi.stubGlobal("useDmsUserSession", () => ({ loggedIn: { value: false } }));
+  vi.stubGlobal("usePermissions", () => ({ loadPermissions: vi.fn() }));
 });
 
 afterEach(() => {
   pageError.value = null;
   navigateDms.mockReset();
   vi.unstubAllGlobals();
+  vi.unstubAllEnvs();
+  vi.restoreAllMocks();
 });
 
-async function loadMiddleware(): Promise<Middleware> {
+async function loadMiddleware(): Promise<DmsMiddleware> {
   const module = await import("../layers/dms-auth/app/middleware/auth");
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion, anti-slop/no-chained-type-assertions -- The identity middleware stub accepts the partial route fixture used here. The router-owned signature requires unrelated normalized route fields and incompatible matched-record metadata; inference cannot model that deliberately incomplete test boundary.
-  return module.default as unknown as Middleware;
+  return module.default;
 }
 
-const privateRoute = {
+const privateRoute: DmsRoute = {
   path: "/projects/project",
   fullPath: "/projects/project",
+  query: {},
+  params: {},
   matched: [{}],
   meta: { auth: true },
 };
@@ -47,14 +49,90 @@ describe("auth middleware", () => {
     pageError.value = { statusCode: 404 };
     const middleware = await loadMiddleware();
 
-    await expect(middleware(privateRoute)).resolves.toBe(false);
+    await expect(middleware(privateRoute, privateRoute)).resolves.toBe(false);
+    expect(navigateDms).not.toHaveBeenCalled();
+  });
+
+  it("shows a failed permission load and still lets the signed-in user through", async () => {
+    const toast = { add: vi.fn(() => ({ id: "failure" })), remove: vi.fn() };
+    vi.stubGlobal("useToast", () => toast);
+    vi.stubGlobal("useDmsRuntimeConfig", () => ({ public: { dms: {} } }));
+    vi.stubGlobal("useDmsUserSession", () => ({
+      loggedIn: { value: true },
+      user: { value: { isValidated: true } },
+    }));
+    vi.stubGlobal("usePermissions", () => ({
+      loadPermissions: () => Promise.reject(new Error("unreachable")),
+    }));
+    const middleware = await loadMiddleware();
+
+    await expect(
+      middleware(privateRoute, privateRoute),
+    ).resolves.toBeUndefined();
+
+    expect(toast.add).toHaveBeenCalledTimes(1);
+    expect(toast.add).toHaveBeenCalledWith(
+      expect.objectContaining({ title: "error.500.description" }),
+    );
+    expect(navigateDms).not.toHaveBeenCalled();
+  });
+
+  it("resolves the toast inside the app context the engine runs the middleware in", async () => {
+    vi.stubGlobal("useToast", useToast);
+    vi.stubGlobal("useDmsState", () => ({ value: new WeakMap() }));
+    vi.stubGlobal("getPluginI18n", () => ({
+      i18n: createI18n({
+        legacy: false,
+        locale: "en",
+        messages: { en: { error: { "500": { description: "Try again" } } } },
+      }).global,
+    }));
+    vi.stubGlobal("useDmsRuntimeConfig", () => ({ public: { dms: {} } }));
+    vi.stubGlobal("useDmsUserSession", () => ({
+      loggedIn: { value: true },
+      user: { value: { isValidated: true } },
+    }));
+    vi.stubGlobal("usePermissions", () => ({
+      loadPermissions: () => Promise.reject(new Error("unreachable")),
+    }));
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const middleware = await loadMiddleware();
+
+    await createApp({}).runWithContext(() =>
+      middleware(privateRoute, privateRoute),
+    );
+
+    expect(warn).not.toHaveBeenCalledWith(
+      expect.stringContaining("inject() can only be used"),
+    );
+  });
+
+  it("lets the signed-in user through a failed permission load during SSR without a loaded catalog", async () => {
+    vi.stubEnv("SSR", true);
+    vi.stubGlobal("getPluginI18n", () => ({
+      i18n: createI18n({ legacy: false, locale: "en", messages: { en: {} } })
+        .global,
+    }));
+    vi.stubGlobal("useDmsRuntimeConfig", () => ({ public: { dms: {} } }));
+    vi.stubGlobal("useDmsUserSession", () => ({
+      loggedIn: { value: true },
+      user: { value: { isValidated: true } },
+    }));
+    vi.stubGlobal("usePermissions", () => ({
+      loadPermissions: () => Promise.reject(new Error("unreachable")),
+    }));
+    const middleware = await loadMiddleware();
+
+    await expect(
+      middleware(privateRoute, privateRoute),
+    ).resolves.toBeUndefined();
     expect(navigateDms).not.toHaveBeenCalled();
   });
 
   it("still sends a signed-out visitor to the login page", async () => {
     const middleware = await loadMiddleware();
 
-    await middleware(privateRoute);
+    await middleware(privateRoute, privateRoute);
 
     expect(navigateDms).toHaveBeenCalledWith({
       path: "/auth",

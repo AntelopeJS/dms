@@ -44,7 +44,7 @@ async function render(
         ...props,
       }),
   });
-  for (const name of ["DmsCard", "UBadge", "UIcon", "USkeleton"]) {
+  for (const name of ["DmsCardPanel", "UBadge", "UIcon", "USkeleton"]) {
     app.component(name, Slot);
   }
   app.component("UButton", Button);

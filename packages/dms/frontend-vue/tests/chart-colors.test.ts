@@ -22,13 +22,22 @@ const TOKENS: ChartColorValue[] = [
 ];
 let computedColor = LIGHT;
 const probe = { style: { backgroundColor: "" } };
+const canvasContext = {
+  fillStyle: "",
+  fillRect: vi.fn(),
+  getImageData: () => ({ data: [92, 76, 200, 255] }),
+};
+const canvas = { getContext: () => canvasContext };
 const appendChild = vi.fn();
 const removeChild = vi.fn();
+const createElement = vi.fn<(tag: string) => typeof probe | typeof canvas>(
+  () => probe,
+);
 
 function mockBrowser() {
   vi.stubGlobal("document", {
     body: { appendChild, removeChild },
-    createElement: vi.fn(() => probe),
+    createElement,
   });
   vi.stubGlobal("getComputedStyle", () => ({ backgroundColor: computedColor }));
 }
@@ -37,6 +46,7 @@ beforeEach(() => {
   computedColor = LIGHT;
   clearChartColorCache();
   vi.clearAllMocks();
+  canvasContext.fillStyle = "";
 });
 afterEach(() => vi.unstubAllGlobals());
 
@@ -178,21 +188,9 @@ function registerChartRenderingTests() {
   it("normalizes modern color spaces through an sRGB canvas", () => {
     mockBrowser();
     computedColor = "oklch(0.5 0.2 280)";
-    const context = {
-      fillStyle: "",
-      fillRect: vi.fn(),
-      getImageData: () => ({ data: [92, 76, 200, 255] }),
-    };
-    vi.mocked(document.createElement).mockReturnValueOnce(
-      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The DOM probe intentionally implements only the style member used by the color resolver. Inference cannot satisfy createElement's HTMLElement owner without unrelated DOM behavior.
-      probe as HTMLDivElement,
-    );
-    // oxlint-disable anti-slop/require-safety-comment-for-type-assertion, anti-slop/no-chained-type-assertions -- The canvas double intentionally implements only getContext and its consumed members. Inference and the full HTMLCanvasElement owner cannot describe its partial rendering context and plain pixel array without the existing unchecked boundary.
-    vi.mocked(document.createElement).mockReturnValueOnce({
-      getContext: () => context,
-    } as unknown as HTMLCanvasElement);
-    // oxlint-enable anti-slop/require-safety-comment-for-type-assertion, anti-slop/no-chained-type-assertions
+    createElement.mockReturnValueOnce(probe);
+    createElement.mockReturnValueOnce(canvas);
     expect(resolveChartColor("primary-500")).toBe("rgb(92, 76, 200)");
-    expect(context.fillStyle).toBe(computedColor);
+    expect(canvasContext.fillStyle).toBe(computedColor);
   });
 }

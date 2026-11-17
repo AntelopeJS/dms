@@ -16,8 +16,7 @@ import type {
   PageExtensionInfo,
   PageInfo,
 } from "./types";
-// oxlint-disable-next-line import/no-cycle -- Category creation registers through these proxies; resolveCategoryInfo is called only after module evaluation.
-import { resolveCategoryInfo } from "./internal/categories";
+import { resolveCategoryInfo } from "./internal/category-resolution";
 
 /**
  * A registration proxy that accepts a per-context view of its entries.
@@ -88,6 +87,15 @@ interface ModuleEntry {
   module?: string;
   category?: CategoryInfo | ControllerClass;
   isModuleRoot?: boolean;
+  ownerOnly?: boolean;
+}
+
+/**
+ * Whether only platform owners reach the entry: it sits inside a module, or it
+ * declares or inherits `ownerOnly`.
+ */
+export function isOwnerOnly(entry: ModuleEntry): boolean {
+  return entry.ownerOnly === true || isInsideModule(entry);
 }
 
 export function isInsideModule(entry: ModuleEntry): boolean {

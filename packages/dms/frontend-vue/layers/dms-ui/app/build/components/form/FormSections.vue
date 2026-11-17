@@ -177,9 +177,9 @@ onBeforeUnmount(() => {
           @select="scrollToSection"
         />
 
-        <DmsSection v-if="props.layout.lead.length">
+        <DmsSectionPanel v-if="props.layout.lead.length">
           <DmsFormEntries :entries="props.layout.lead" in-section />
-        </DmsSection>
+        </DmsSectionPanel>
 
         <div
           v-for="section in props.layout.sections"
@@ -189,9 +189,12 @@ onBeforeUnmount(() => {
           :data-section="section.id"
           class="mt-7 scroll-mt-14 first:mt-0"
         >
-          <DmsSection :title="section.label" :description="section.description">
+          <DmsSectionPanel
+            :title="section.label"
+            :description="section.description"
+          >
             <DmsFormEntries :entries="section.entries" in-section />
-          </DmsSection>
+          </DmsSectionPanel>
         </div>
 
         <slot />

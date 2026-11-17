@@ -78,7 +78,6 @@ const buildKvStore = (
   },
 });
 
-/* oxlint-disable anti-slop/no-runtime-typeof -- Redis dispatch historically validates only the routing strings; these checks must remain until the wire contract can be hardened separately. */
 const isRealtimeEvent = (value: unknown): value is RealtimeEvent =>
   !!value &&
   typeof value === "object" &&
@@ -86,13 +85,17 @@ const isRealtimeEvent = (value: unknown): value is RealtimeEvent =>
   typeof value.topic === "string" &&
   "type" in value &&
   typeof value.type === "string";
-/* oxlint-enable anti-slop/no-runtime-typeof */
 
 export class RedisBroker implements RealtimeBroker {
   private readonly local = new InMemoryBroker();
   private publisher?: RedisClient;
   private subscriber?: RedisClient;
   private initPromise?: Promise<void>;
+
+  /** @param resolveClient Answers the shared Redis client; defaults to the redis interface's. */
+  constructor(
+    private readonly resolveClient: () => Promise<RedisClient> = GetClient,
+  ) {}
 
   private async ensureInit(): Promise<void> {
     if (!this.initPromise) {
@@ -102,9 +105,20 @@ export class RedisBroker implements RealtimeBroker {
   }
 
   private async initialize(): Promise<void> {
-    const client = await GetClient();
+    const client = await this.resolveClient();
     this.publisher = client;
     this.subscriber = client.duplicate();
+    let connectionLost = false;
+    this.subscriber.on("error", (error: Error) => {
+      if (connectionLost) return;
+      connectionLost = true;
+      Logging.Warn("RedisBroker: subscriber connection lost", error);
+    });
+    this.subscriber.on("ready", () => {
+      if (!connectionLost) return;
+      connectionLost = false;
+      Logging.Info("RedisBroker: subscriber connection restored");
+    });
     this.subscriber.on("message", (_channel: string, message: string) =>
       this.dispatchMessage(message),
     );
@@ -113,7 +127,7 @@ export class RedisBroker implements RealtimeBroker {
 
   private dispatchMessage(message: string): void {
     try {
-      const event = JSON.parse(message);
+      const event: unknown = JSON.parse(message);
       if (!isRealtimeEvent(event)) return;
       fireAndForget(this.local.publish(event), "realtime event dispatch");
     } catch (error) {

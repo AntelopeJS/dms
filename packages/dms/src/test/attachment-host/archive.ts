@@ -36,6 +36,7 @@ const TABLE = "archive-notes";
 export class ArchiveNote extends Table {
   @Field("string") declare title: string;
   @Field(["string"]) declare labels?: string[];
+  @Field(["string"]) declare topics?: string[];
   @Field("boolean") declare isArchived?: boolean;
 }
 
@@ -71,6 +72,21 @@ export class ArchiveNoteController extends DataController(
   @Access(AccessMode.ReadWrite)
   declare labels: string[];
 
+  @Listable()
+  @Column({
+    name: "Topics",
+    type: new DefaultDataTypes.SelectType({
+      multiple: true,
+      items: [
+        { value: "grid", label: "Grid" },
+        { value: "solar", label: "Solar" },
+      ],
+    }),
+    filterable: true,
+  })
+  @Access(AccessMode.ReadWrite)
+  declare topics: string[];
+
   @ArchiveField()
   declare isArchived: boolean;
 }
@@ -83,5 +99,10 @@ export class ArchiveNotesPage extends RootPageController("archive-notes", {
     realtime: false,
     archiveMode: true,
     rowActions: { add: true },
+    guards: {
+      delete: () => undefined,
+      archive: () => undefined,
+      restore: () => undefined,
+    },
   });
 }

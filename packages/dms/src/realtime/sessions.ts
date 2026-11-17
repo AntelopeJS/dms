@@ -60,7 +60,7 @@ export function unregisterSession(sessionId: string): Map<string, Unsubscribe> {
   sessions.delete(sessionId);
   if (state)
     connections.get(state.info.connectionId)?.sessionIds.delete(sessionId);
-  return state?.subscriptions ?? new Map();
+  return state?.subscriptions ?? new Map<string, Unsubscribe>();
 }
 
 export function getSessionInfo(sessionId: string): SessionInfo | undefined {
@@ -97,6 +97,24 @@ export function unregisterConnection(connectionId: string): string[] {
   const state = connections.get(connectionId);
   connections.delete(connectionId);
   return state ? [...state.sessionIds] : [];
+}
+
+/** The `dms:navigate` event a leader tab routes to. */
+export interface NavigateEvent {
+  topic: "dms:navigate";
+  type: "navigate";
+  payload: { path: string };
+  ts: number;
+}
+
+/**
+ * Sends `event` on every connection of this instance as a `leader` event,
+ * which only the browser tab holding that connection acts on. Returns how
+ * many connections it reached.
+ */
+export function sendToLeaderTabs(event: NavigateEvent): number {
+  for (const state of connections.values()) state.info.send("leader", event);
+  return connections.size;
 }
 
 export function getConnectionInfo(

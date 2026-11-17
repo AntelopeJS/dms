@@ -1,8 +1,9 @@
+import { ownValue } from "./own-value";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { Readable } from "node:stream";
 import { assert } from "@antelopejs/interface-api-util";
+import type { StoredRow } from "@antelopejs/interface-data-api/metadata";
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import { Send } from "@antelopejs/interface-email";
 import {
@@ -19,6 +20,7 @@ import {
   RegisterHtmlTemplate,
 } from "@antelopejs/interface-dms/html-render";
 import { stringify } from "csv-stringify/sync";
+import { z } from "zod";
 import { getClientBaseUrl } from "../config";
 import { ExportJobModel } from "@antelopejs/interface-dms/db/internal/exportJobs.model";
 import type { ExportJob } from "@antelopejs/interface-dms/db/tables/exportJobs.table";
@@ -57,16 +59,8 @@ const EXPORT_TMP_PREFIX = "dms-export-";
 const EXPORT_STORAGE_PREFIX = "table-view-exports";
 const READ_URL_EXPIRES_IN_SEC = 60 * 60;
 
-const ARRAY_JOIN_SEPARATOR = ";";
 const FILENAME_ILLEGAL_CHARS = /[^a-zA-Z0-9._-]/g;
 const FILENAME_REPLACEMENT = "-";
-
-function castCsvValue(
-  value: Parameters<ExportWriter["appendRow"]>[1][string],
-): string {
-  if (Array.isArray(value)) return value.join(ARRAY_JOIN_SEPARATOR);
-  return String(value);
-}
 
 class CsvWriter implements ExportWriter {
   constructor(private readonly filePath: string) {}
@@ -76,16 +70,12 @@ class CsvWriter implements ExportWriter {
     fs.writeFileSync(this.filePath, `﻿${headerLine}`);
   }
 
-  appendRow(
-    headers: string[],
-    row: Parameters<ExportWriter["appendRow"]>[1],
-  ): void {
+  appendRow(headers: string[], row: StoredRow): void {
     const csvRowContent = stringify([row], {
       header: false,
       columns: headers,
       cast: {
         date: (value: Date) => value.toISOString(),
-        string: castCsvValue,
       },
     });
     fs.appendFileSync(this.filePath, csvRowContent);
@@ -102,13 +92,12 @@ const csvExporter: Exporter = {
   },
 };
 
-// oxlint-disable-next-line anti-slop/no-known-value-widening -- Format names are open HTTP inputs; missing registry keys retain the existing unknown-format error.
-const exporters: Record<string, Exporter> = {
+const exporters = {
   csv: csvExporter,
-};
+} satisfies Record<string, Exporter>;
 
 export function getExporter(format: string): Exporter {
-  const exporter = exporters[format];
+  const exporter = ownValue(exporters, format);
   assert(exporter, 400, `Unknown export format: ${format}`);
   return exporter;
 }
@@ -135,11 +124,41 @@ function buildDeliveryLink(exportRecord: ExportJob): string {
   return `${baseUrl}${exportRecord.deliveryPath}?${EXPORT_JOB_QUERY_PARAM}=${exportRecord._id}`;
 }
 
+const ExportJobFailureSchema = z
+  .object({ source: z.string(), error: z.string().catch("") })
+  .passthrough();
+
+const ExportJobResultSummarySchema = z
+  .object({
+    partial: z.boolean().catch(false),
+    failures: z.array(z.unknown()).catch([]),
+  })
+  .passthrough()
+  .transform(({ partial, failures, ...rest }) => ({
+    ...rest,
+    partial: partial || failures.length > 0,
+    failures: failures.flatMap((failure) => {
+      const parsed = ExportJobFailureSchema.safeParse(failure);
+      return parsed.success ? [parsed.data] : [];
+    }),
+  }));
+
+/**
+ * The summary `markAsCompleted` stored for the job, as the `generate` of its
+ * export returned it. A summary that names a failure reads as partial, even
+ * when its `partial` is missing or not a boolean; one that names none and
+ * omits `partial` reads as complete. Its `failures` keep each entry with a
+ * string `source`, an `error` that is not a string read as empty. `undefined`
+ * when the job stored none, or stored a value that is not an object.
+ */
 export function readJobResult(
   exportRecord: ExportJob,
 ): ExportJobResultSummary | undefined {
   if (!exportRecord.json_result) return undefined;
-  return JSON.parse(exportRecord.json_result);
+  const parsed = ExportJobResultSummarySchema.safeParse(
+    JSON.parse(exportRecord.json_result),
+  );
+  return parsed.success ? parsed.data : undefined;
 }
 
 function exportReadyEmailData(
@@ -188,14 +207,13 @@ const emailDeliverer: Deliverer = {
   },
 };
 
-// oxlint-disable-next-line anti-slop/no-known-value-widening -- Delivery names are open inputs; missing registry keys retain the existing unknown-delivery error.
-const deliverers: Record<string, Deliverer> = {
+const deliverers = {
   download: downloadDeliverer,
   email: emailDeliverer,
-};
+} satisfies Record<string, Deliverer>;
 
 export function getDeliverer(delivery: string): Deliverer {
-  const deliverer = deliverers[delivery];
+  const deliverer = ownValue(deliverers, delivery);
   assert(deliverer, 400, `Unknown export delivery: ${delivery}`);
   return deliverer;
 }
@@ -223,19 +241,11 @@ export async function uploadExportToStorage(
     path: `${EXPORT_STORAGE_PREFIX}/${tenantId}`,
   });
 
-  const fileStream = fs.createReadStream(localPath);
-  const response = await fetch(
-    presign.uploadUrl,
-    // SAFETY: The literal satisfies RequestInit plus Node's duplex option; the assertion hides only that extra property from fetch's DOM declaration.
-    {
-      method: "PUT",
-      headers: presign.headers,
-
-      // SAFETY: Node's web readable stream is accepted by fetch with duplex half despite differing Node and DOM stream declarations.
-      body: Readable.toWeb(fileStream) as BodyInit,
-      duplex: "half",
-    } satisfies RequestInit & { duplex: "half" } as RequestInit,
-  );
+  const response = await fetch(presign.uploadUrl, {
+    method: "PUT",
+    headers: presign.headers,
+    body: await fs.openAsBlob(localPath),
+  });
 
   if (!response.ok) {
     await response.body?.cancel().catch(() => undefined);

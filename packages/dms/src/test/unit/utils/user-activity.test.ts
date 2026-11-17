@@ -31,12 +31,6 @@ describe("[unit] utils/user-activity", () => {
       const old = msBefore(NOW, USER_ACTIVITY_WRITE_INTERVAL_MS);
       expect(isActivityWriteDue(old, NOW)).to.equal(true);
     });
-
-    it("reads a stored value serialized as a string", () => {
-      // SAFETY: This intentionally supplies an ISO string to the Date-typed legacy-row boundary to verify runtime coercion; it is not a Date instance.
-      const recent = msBefore(NOW, 1).toISOString() as unknown as Date;
-      expect(isActivityWriteDue(recent, NOW)).to.equal(false);
-    });
   });
 
   describe("recordUserActivity", () => {

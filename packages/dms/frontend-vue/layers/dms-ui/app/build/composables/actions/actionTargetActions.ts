@@ -24,6 +24,7 @@ import {
   type ComponentTargetContext,
 } from "./actionTargetContainers";
 import type { createSidePanelHandler } from "./actionTargetSidePanel";
+import { detach } from "../detach";
 
 function rowRun(
   action: CustomRowAction,
@@ -67,11 +68,13 @@ export function createCustomActions(
       });
       return;
     }
-    void handleActionTarget(
-      button.target,
-      button.label,
-      undefined,
-      button.confirm,
+    detach(
+      handleActionTarget(
+        button.target,
+        button.label,
+        undefined,
+        button.confirm,
+      ),
     );
   };
   const handleCustomRowAction = (action: CustomRowAction, rowData?: Data) => {
@@ -80,12 +83,14 @@ export function createCustomActions(
       rowData,
       rowIdOf,
     );
-    void handleActionTarget(target, action.label, row, confirm, {
-      deepLink: isDeepLinkAction(action),
-      textParams,
-      selection,
-      keepsRow: !!selection,
-    });
+    detach(
+      handleActionTarget(target, action.label, row, confirm, {
+        deepLink: isDeepLinkAction(action),
+        textParams,
+        selection,
+        keepsRow: !!selection,
+      }),
+    );
   };
   const handleBulkCustomAction = (
     action: CustomRowAction,
@@ -96,12 +101,14 @@ export function createCustomActions(
       action.confirm && isConfirmFrom(action.confirm)
         ? { from: withQuery(dropRowTokens(action.confirm.from), query) }
         : action.confirm;
-    void handleActionTarget(
-      targetWithSelection(action.target, query),
-      action.label,
-      { count: selection.count },
-      declared,
-      { selection },
+    detach(
+      handleActionTarget(
+        targetWithSelection(action.target, query),
+        action.label,
+        { count: selection.count },
+        declared,
+        { selection },
+      ),
     );
   };
   return { handleCustomButton, handleCustomRowAction, handleBulkCustomAction };

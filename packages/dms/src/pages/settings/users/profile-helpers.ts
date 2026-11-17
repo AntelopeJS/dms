@@ -13,9 +13,11 @@ import {
   type UserModel,
 } from "@antelopejs/interface-dms/auth/db";
 import { DefaultDataTypes } from "@antelopejs/interface-dms/base/data-types/default-types";
+import { isString } from "@antelopejs/interface-dms/utils/internal/type-check";
 import { generateKey } from "2fa";
 import { decode } from "jsonwebtoken";
 import randomstring from "randomstring";
+import { isJwtClaims } from "../../../utils";
 
 export const BACKUP_CODE_COUNT = 10;
 const BACKUP_CODE_LENGTH = 8;
@@ -79,10 +81,6 @@ export interface UpdateProfileInput {
   avatar?: AvatarValue;
 }
 
-interface AvatarBodyProbe {
-  avatar?: { key?: unknown };
-}
-
 export const HTTP_BAD_REQUEST = 400;
 const HTTP_CONFLICT = 409;
 
@@ -128,34 +126,6 @@ export function assertAvatarKeyAllowed(
     "error.invalid_avatar",
   );
 }
-
-/**
- * A client that saved once and submits again still holds the staged avatar key
- * while the file has already been promoted. Map that stale staged key back to
- * the stored key so the resubmission validates and stays a no-op.
- */
-/* oxlint-disable anti-slop/no-runtime-typeof -- This pre-schema adapter recognizes only resubmitted avatar keys and leaves all other input untouched for validation by the profile schema. */
-export function normalizeResubmittedAvatar(
-  // oxlint-disable-next-line anti-slop/no-unknown-parameters -- Raw profile values must reach the downstream profile schema after stale-key normalization.
-  body: unknown,
-  currentKey: string | undefined,
-) {
-  if (!currentKey || !body || typeof body !== "object") {
-    return body;
-  }
-  const { avatar }: AvatarBodyProbe = body;
-  if (!avatar || typeof avatar !== "object") {
-    return body;
-  }
-  if (typeof avatar.key !== "string" || !isStagedKey(avatar.key)) {
-    return body;
-  }
-  if (stripStagingPrefix(avatar.key) !== currentKey) {
-    return body;
-  }
-  return { ...body, avatar: { ...avatar, key: currentKey } };
-}
-/* oxlint-enable anti-slop/no-runtime-typeof */
 
 export function generateTotpSecret(): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -211,8 +181,12 @@ export interface SessionClaims {
 export function extractSessionClaims(authorization: string): SessionClaims {
   const token = authorization?.split(" ")[1];
   if (!token) return {};
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- This helper decodes without schema validation today; the route verifies authenticity, not the optional claims' types.
-  return (decode(token) as SessionClaims | null) ?? {};
+  const claims = decode(token);
+  if (!isJwtClaims(claims)) return {};
+  return {
+    sessionId: isString(claims.sessionId) ? claims.sessionId : undefined,
+    tenantId: isString(claims.tenantId) ? claims.tenantId : undefined,
+  };
 }
 
 export function extractSessionId(authorization: string): string | undefined {

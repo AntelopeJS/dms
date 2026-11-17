@@ -224,13 +224,11 @@ describe("resolveComposedText — fallbacks", () => {
   });
 
   it("keeps a type from a newer backend readable", () => {
-    expect(
-      write({
-        key: "saas.stats.mrr",
-        // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- This fixture deliberately sends a future backend variant outside ComposedTextParam. Neither inference nor the current owner union admits it; the assertion keeps the forward-compatibility test unparsed.
-        params: { amount: { type: "duration", value: 90 } as never },
-      }),
-    ).toBe("90 MRR");
+    const payload: unknown = JSON.parse(
+      '{"key":"saas.stats.mrr","params":{"amount":{"type":"duration","value":90}}}',
+    );
+    if (!isComposedText(payload)) throw new Error("not a composed text");
+    expect(write(payload)).toBe("90 MRR");
   });
 
   it("passes plain strings through, translates `$` keys, writes numbers", () => {

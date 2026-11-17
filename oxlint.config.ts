@@ -1,8 +1,46 @@
+import { existsSync, readdirSync, readFileSync, realpathSync } from "node:fs";
+import { join, sep } from "node:path";
 import {
   ANTELOPE_IGNORE_PATTERNS,
   antelopePreset,
 } from "@antelopejs/tooling-configs/oxc/lint";
 import { defineConfig } from "oxlint";
+
+const AGENT_SKILLS = realpathSync(join(import.meta.dirname, ".agents/skills"));
+const CLAUDE_SKILLS = join(import.meta.dirname, ".claude/skills");
+
+/**
+ * The `.claude/skills` links into `.agents/skills`. The lint already reads each
+ * target under `.agents`, so through the link it would report every finding twice.
+ */
+const CLAUDE_SKILL_LINKS = readdirSync(CLAUDE_SKILLS, { withFileTypes: true })
+  .filter((entry) => {
+    const link = join(CLAUDE_SKILLS, entry.name);
+    return (
+      entry.isSymbolicLink() &&
+      existsSync(link) &&
+      realpathSync(link).startsWith(AGENT_SKILLS + sep)
+    );
+  })
+  .flatMap((entry) => [
+    `.claude/skills/${entry.name}`,
+    `.claude/skills/${entry.name}/**`,
+  ]);
+
+const FRONTEND_VUE = "packages/dms/frontend-vue";
+const PENDING = join(import.meta.dirname, FRONTEND_VUE, ".oxlint-pending");
+
+/**
+ * The areas of the Vue layer the preset does not lint yet (ANT-2241): one file per
+ * area in `packages/dms/frontend-vue/.oxlint-pending`, each line a glob under the
+ * layer. The change that fixes an area's findings deletes its file.
+ */
+export const PENDING_FRONTEND_VUE = readdirSync(PENDING).flatMap((area) =>
+  readFileSync(join(PENDING, area), "utf8")
+    .split("\n")
+    .filter(Boolean)
+    .map((glob) => `${FRONTEND_VUE}/${glob}`),
+);
 
 /**
  * Reaching the runtime root from a leaf creates an evaluation cycle for
@@ -68,7 +106,8 @@ export default defineConfig({
   extends: [antelopePreset({ importSorting: false })],
   ignorePatterns: [
     ...ANTELOPE_IGNORE_PATTERNS,
-    "packages/dms/frontend-vue/**",
+    ...CLAUDE_SKILL_LINKS,
+    ...PENDING_FRONTEND_VUE,
     "packages/dms/playground/frontend-vue/app/plugins/app-widget-demo.ts",
     "packages/dms/playground/frontend-vue/app/plugins/command-palette-assistant-demo.client.ts",
     "packages/dms/playground/frontend-vue/app/plugins/command-palette-source-demo.client.ts",
@@ -113,31 +152,6 @@ export default defineConfig({
           "error",
           { paths: INTERFACE_ROOT_PATHS, patterns: INTERFACE_ROOT_PATTERNS },
         ],
-      },
-    },
-    {
-      files: ["packages/dms/playground/**"],
-      rules: {
-        "eslint/max-lines": "off",
-      },
-    },
-    {
-      files: [
-        "packages/dms/src/test/unit/**",
-        "packages/dms/src/test/integration/**",
-      ],
-      rules: {
-        "eslint/max-lines": "off",
-        "eslint/max-lines-per-function": "off",
-        "anti-slop/no-chained-type-assertions": "off",
-        "eslint/no-unused-expressions": "off",
-        "eslint/no-restricted-imports": "off",
-      },
-    },
-    {
-      files: ["packages/interface-dms/src/index.ts"],
-      rules: {
-        "eslint/no-restricted-imports": "off",
       },
     },
   ],

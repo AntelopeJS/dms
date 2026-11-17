@@ -1,11 +1,16 @@
 import { injectLocal } from "@vueuse/core";
-import { isObject } from "#dms-core/app/utils/type-check";
+import {
+  isBoolean,
+  isNumber,
+  isObject,
+  isString,
+} from "#dms-core/app/utils/type-check";
 import type { ShallowRef } from "vue";
 import type {
   Data,
   TableDensity,
   TableSharedData,
-} from "../../components/table/Table.vue";
+} from "../../components/table/TableRoot.vue";
 
 const CONFIG_VERSION = 1;
 const TOAST_DURATION_MS = 3000;
@@ -22,10 +27,67 @@ interface SerializedTableConfig {
   density?: TableDensity;
 }
 
-const isSerializedConfig = (value: unknown): value is SerializedTableConfig => {
-  if (!value || !isObject(value)) return false;
-  return value.v === CONFIG_VERSION;
-};
+const DENSITIES: readonly string[] = [
+  "default",
+  "compact",
+] satisfies TableDensity[];
+
+const isStringArray = (value: unknown): value is string[] =>
+  Array.isArray(value) && value.every(isString);
+
+const isFilterState = (
+  value: unknown,
+): value is SerializedTableConfig["filters"][number] =>
+  isObject(value) &&
+  value !== null &&
+  isString(value.accessorKey) &&
+  isString(value.mode) &&
+  (value.pinned === undefined || isBoolean(value.pinned));
+
+const isSortState = (
+  value: unknown,
+): value is SerializedTableConfig["sorting"][number] =>
+  isObject(value) &&
+  value !== null &&
+  isString(value.id) &&
+  isBoolean(value.desc);
+
+const isVisibilityState = (
+  value: unknown,
+): value is SerializedTableConfig["visibility"] =>
+  isObject(value) && value !== null && Object.values(value).every(isBoolean);
+
+const isPinningState = (
+  value: unknown,
+): value is SerializedTableConfig["pinning"] =>
+  isObject(value) &&
+  value !== null &&
+  (value.left === undefined || isStringArray(value.left)) &&
+  (value.right === undefined || isStringArray(value.right));
+
+const isPaginationState = (
+  value: unknown,
+): value is SerializedTableConfig["pagination"] =>
+  isObject(value) &&
+  value !== null &&
+  isNumber(value.pageIndex) &&
+  isNumber(value.pageSize);
+
+const isSerializedConfig = (value: unknown): value is SerializedTableConfig =>
+  isObject(value) &&
+  value !== null &&
+  value.v === CONFIG_VERSION &&
+  (value.search === undefined || isString(value.search)) &&
+  Array.isArray(value.filters) &&
+  value.filters.every(isFilterState) &&
+  isStringArray(value.order) &&
+  isVisibilityState(value.visibility) &&
+  isPinningState(value.pinning) &&
+  Array.isArray(value.sorting) &&
+  value.sorting.every(isSortState) &&
+  isPaginationState(value.pagination) &&
+  (value.density === undefined ||
+    (isString(value.density) && DENSITIES.includes(value.density)));
 
 const encodeConfig = (config: SerializedTableConfig): string => {
   const json = JSON.stringify(config);
@@ -39,7 +101,7 @@ const decodeConfig = (code: string): SerializedTableConfig => {
     typeof window === "undefined"
       ? trimmed
       : decodeURIComponent(escape(window.atob(trimmed)));
-  const parsed = JSON.parse(json);
+  const parsed: unknown = JSON.parse(json);
   if (!isSerializedConfig(parsed)) {
     throw new Error("invalid_config");
   }
@@ -51,6 +113,7 @@ export const useTableConfigClipboard = <T extends Data>() => {
     injectLocal<ShallowRef<TableSharedData<T>>>("tableSharedData");
   const toast = useToast();
   const { t } = useI18n();
+  const presenter = useApiErrorPresenter();
 
   const buildConfig = (): SerializedTableConfig | null => {
     const data = tableSharedData?.value;
@@ -97,11 +160,9 @@ export const useTableConfigClipboard = <T extends Data>() => {
         title: t("dms.table.export_config_copied"),
         duration: TOAST_DURATION_MS,
       });
-    } catch {
-      toast.add({
-        color: "error",
-        title: t("dms.table.export_config_failed"),
-        description: code,
+    } catch (error) {
+      presenter.presentError(error, {
+        fallbackKey: "dms.table.export_config_failed",
       });
     }
   };
@@ -117,11 +178,9 @@ export const useTableConfigClipboard = <T extends Data>() => {
         duration: TOAST_DURATION_MS,
       });
       return true;
-    } catch {
-      toast.add({
-        color: "error",
-        title: t("dms.table.import_config_invalid"),
-        duration: TOAST_DURATION_MS,
+    } catch (error) {
+      presenter.presentError(error, {
+        fallbackKey: "dms.table.import_config_invalid",
       });
       return false;
     }

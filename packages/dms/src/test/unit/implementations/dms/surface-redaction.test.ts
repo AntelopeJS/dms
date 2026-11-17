@@ -21,12 +21,14 @@ import {
   registerTestPage,
   stubPageAccessModels,
 } from "../../../helpers/page-access";
+import { userFixture } from "../../../helpers/user-fixture";
 
 const TENANT = "redaction-tenant";
 const SECRET_SLUG = "/redaction-secret";
 const SECRET_FULL_ID = "pages.redaction-secret";
 const SECRET_NAME = "Quarterly layoffs";
 const SECRET_DESCRIPTION = "Who goes and when";
+const PUBLIC_SLUG = "/redaction-public";
 const DYNAMIC_SLUG = "/redaction-dynamic/:id/view";
 const DYNAMIC_PATH = "/redaction-dynamic/record-1/view";
 const DYNAMIC_FULL_ID = "pages.redaction-dynamic";
@@ -42,15 +44,13 @@ const PAGE_ACCESS_SCENARIOS: PageAccessScenario[] = [
   { name: "anonymous", user: undefined, permissions: [], hasAccess: false },
   {
     name: "denied role",
-    // SAFETY: Redaction access reads this id and the absent owner flag, not persisted-user methods.
-    user: { _id: "redaction-member" } as User,
+    user: userFixture({ _id: "redaction-member" }),
     permissions: [],
     hasAccess: false,
   },
   {
     name: "authorized role",
-    // SAFETY: Redaction access reads this id and the absent owner flag, not persisted-user methods.
-    user: { _id: "redaction-member" } as User,
+    user: userFixture({ _id: "redaction-member" }),
     permissions: [SECRET_FULL_ID, DYNAMIC_FULL_ID],
     hasAccess: true,
   },
@@ -59,8 +59,7 @@ const PAGE_ACCESS_SCENARIOS: PageAccessScenario[] = [
 async function pageEntry(grantedPermissions: string[]) {
   const { memberModel, roleModel } = stubPageAccessModels(grantedPermissions);
   const payload = await buildSiteLayoutPayload(
-    // SAFETY: Redaction access reads this id and the absent owner flag, not persisted-user methods.
-    { _id: "redaction-member" } as User,
+    userFixture({ _id: "redaction-member" }),
     memberModel,
     roleModel,
     TENANT,
@@ -68,41 +67,59 @@ async function pageEntry(grantedPermissions: string[]) {
   return payload.siteLayout.pages[SECRET_SLUG];
 }
 
+const cleanups: Array<() => void> = [];
+
+async function registerSecretAndDynamicPages() {
+  ImplementInterface(permissionsInterface, permissionsImpl);
+  ImplementInterface(permissionsResolverInterface, permissionsResolverImpl);
+  ImplementInterface(tenantAccessInterface, tenantAccessImpl);
+  ImplementInterface(pageInterfaceInternal, pageImplInternal);
+
+  cleanups.push(
+    await registerTestPage(
+      PageController("redaction-secret", {
+        displayName: SECRET_NAME,
+        description: SECRET_DESCRIPTION,
+        icon: "i-ph-eye-slash",
+        category: pagesCategory,
+      }),
+    ),
+  );
+  cleanups.push(
+    await registerTestPage(
+      PageController("redaction-dynamic", {
+        displayName: "Dynamic fixture",
+        category: pagesCategory,
+        urlSlug: "redaction-dynamic/:id/view",
+      }),
+    ),
+  );
+}
+
+async function registerPublicPage() {
+  cleanups.push(
+    await registerTestPage(
+      PageController("redaction-public", {
+        displayName: "Public fixture",
+        category: pagesCategory,
+        publicAccess: true,
+      }),
+    ),
+  );
+}
+
+function runCleanups() {
+  for (const cleanup of cleanups.splice(0)) {
+    cleanup();
+  }
+}
+
 describe("[unit] implementations/dms/page — inaccessible surfaces are redacted", () => {
-  const cleanups: Array<() => void> = [];
+  before(registerSecretAndDynamicPages);
 
-  before(async () => {
-    ImplementInterface(permissionsInterface, permissionsImpl);
-    ImplementInterface(permissionsResolverInterface, permissionsResolverImpl);
-    ImplementInterface(tenantAccessInterface, tenantAccessImpl);
-    ImplementInterface(pageInterfaceInternal, pageImplInternal);
+  before(registerPublicPage);
 
-    cleanups.push(
-      await registerTestPage(
-        PageController("redaction-secret", {
-          displayName: SECRET_NAME,
-          description: SECRET_DESCRIPTION,
-          icon: "i-ph-eye-slash",
-          category: pagesCategory,
-        }),
-      ),
-    );
-    cleanups.push(
-      await registerTestPage(
-        PageController("redaction-dynamic", {
-          displayName: "Dynamic fixture",
-          category: pagesCategory,
-          urlSlug: "redaction-dynamic/:id/view",
-        }),
-      ),
-    );
-  });
-
-  after(() => {
-    for (const cleanup of cleanups.splice(0)) {
-      cleanup();
-    }
-  });
+  after(runCleanups);
 
   it("keeps what the caller may reach untouched", async () => {
     const entry = await pageEntry([SECRET_FULL_ID]);
@@ -116,8 +133,7 @@ describe("[unit] implementations/dms/page — inaccessible surfaces are redacted
     const { memberModel, roleModel } = stubPageAccessModels([SECRET_FULL_ID]);
     const payload = await buildPagePayload(
       SECRET_SLUG,
-      // SAFETY: Redaction access reads this id and the absent owner flag, not persisted-user methods.
-      { _id: "redaction-member" } as User,
+      userFixture({ _id: "redaction-member" }),
       memberModel,
       roleModel,
       TENANT,
@@ -135,8 +151,7 @@ describe("[unit] implementations/dms/page — inaccessible surfaces are redacted
     const { memberModel, roleModel } = stubPageAccessModels([SECRET_FULL_ID]);
     const payload = await buildPagePayload(
       SECRET_SLUG,
-      // SAFETY: Redaction access reads this id and the absent owner flag, not persisted-user methods.
-      { _id: "redaction-member" } as User,
+      userFixture({ _id: "redaction-member" }),
       memberModel,
       roleModel,
       TENANT,
@@ -184,13 +199,20 @@ describe("[unit] implementations/dms/page — inaccessible surfaces are redacted
       });
     }
   }
+});
+
+describe("[unit] implementations/dms/page — inaccessible surfaces are redacted, dynamic paths and visitors", () => {
+  before(registerSecretAndDynamicPages);
+
+  before(registerPublicPage);
+
+  after(runCleanups);
 
   it("resolves a concrete dynamic path against its registered pattern", async () => {
     const { memberModel, roleModel } = stubPageAccessModels([DYNAMIC_FULL_ID]);
     const payload = await buildPagePayload(
       DYNAMIC_PATH,
-      // SAFETY: Redaction access reads this id and the absent owner flag, not persisted-user methods.
-      { _id: "redaction-member" } as User,
+      userFixture({ _id: "redaction-member" }),
       memberModel,
       roleModel,
       TENANT,
@@ -220,8 +242,7 @@ describe("[unit] implementations/dms/page — inaccessible surfaces are redacted
   it("redacts the navigation tree the same way", async () => {
     const { memberModel, roleModel } = stubPageAccessModels([]);
     const payload = await buildSiteLayoutPayload(
-      // SAFETY: Redaction access reads this id and the absent owner flag, not persisted-user methods.
-      { _id: "redaction-member" } as User,
+      userFixture({ _id: "redaction-member" }),
       memberModel,
       roleModel,
       TENANT,
@@ -232,5 +253,52 @@ describe("[unit] implementations/dms/page — inaccessible surfaces are redacted
     expect(node?.hasAccess).to.equal(false);
     expect(node?.displayName).to.equal("");
     expect(node?.description).to.equal(undefined);
+  });
+
+  describe("for a visitor who is not signed in", () => {
+    async function anonymousLayout() {
+      const { memberModel, roleModel } = stubPageAccessModels([]);
+      return buildSiteLayoutPayload(undefined, memberModel, roleModel, TENANT);
+    }
+
+    it("lists the public pages and none of the others", async () => {
+      const { siteLayout } = await anonymousLayout();
+
+      expect(siteLayout.pages[PUBLIC_SLUG]?.hasAccess).to.equal(true);
+      expect(Object.keys(siteLayout.pages)).not.to.include(SECRET_SLUG);
+      expect(
+        Object.values(siteLayout.pages).every((page) => page.hasAccess),
+      ).to.equal(true);
+    });
+
+    it("leaves the entries it cannot open out of the tree and the modules", async () => {
+      const { siteLayoutTree, modules } = await anonymousLayout();
+
+      expect(siteLayoutTree.children.pages?.children).not.to.have.property(
+        "redaction-secret",
+      );
+      expect(siteLayoutTree.childrenOrders).to.deep.equal(
+        Object.keys(siteLayoutTree.children),
+      );
+      expect(
+        Object.values(modules).some((module) => !module.hasAccess),
+      ).to.equal(false);
+    });
+
+    it("still answers the visited private page with its redacted route", async () => {
+      const { memberModel, roleModel } = stubPageAccessModels([]);
+      const payload = await buildPagePayload(
+        SECRET_SLUG,
+        undefined,
+        memberModel,
+        roleModel,
+        TENANT,
+      );
+
+      expect(payload.route.fullSlug).to.equal(SECRET_SLUG);
+      expect(payload.route.hasAccess).to.equal(false);
+      expect(payload.route.displayName).to.equal("");
+      expect(payload.shared.siteLayout.pages).not.to.have.property(SECRET_SLUG);
+    });
   });
 });

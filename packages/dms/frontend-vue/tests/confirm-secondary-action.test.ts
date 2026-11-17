@@ -16,6 +16,10 @@ import { secondaryTargetRunner } from "../layers/dms-ui/app/entries/composables/
 import { downloadFilename } from "../layers/dms-ui/app/entries/utils/fileDownload";
 
 import { DialogRoot } from "reka-ui";
+import {
+  readOnlyFailure,
+  installReadOnlyRefusal,
+} from "./helpers/read-only-refusal";
 
 const i18n = createI18n({
   legacy: false,
@@ -142,37 +146,40 @@ describe("a confirmation's secondary target", () => {
   });
 });
 
+const Slots = defineComponent({
+  setup:
+    (_, { slots }) =>
+    () =>
+      h("div", [slots.header?.(), slots.body?.(), slots.footer?.()]),
+});
+const Button = defineComponent({
+  props: { label: String },
+  emits: ["click"],
+  setup:
+    (props, { emit }) =>
+    () =>
+      h("button", { onClick: () => emit("click") }, props.label),
+});
+const Alert = defineComponent({
+  props: { title: String },
+  setup: (props) => () => h("p", { "data-alert": "" }, props.title),
+});
+const Empty = defineComponent({ setup: () => () => null });
+
 describe("ConfirmModal secondary action", () => {
   let app: App | undefined;
   let host: HTMLDivElement;
   const closed = vi.fn();
 
-  const Slots = defineComponent({
-    setup:
-      (_, { slots }) =>
-      () =>
-        h("div", [slots.header?.(), slots.body?.(), slots.footer?.()]),
-  });
-  const Button = defineComponent({
-    props: { label: String },
-    emits: ["click"],
-    setup:
-      (props, { emit }) =>
-      () =>
-        h("button", { onClick: () => emit("click") }, props.label),
-  });
-  const Alert = defineComponent({
-    props: { title: String },
-    setup: (props) => () => h("p", { "data-alert": "" }, props.title),
-  });
-  const Empty = defineComponent({ setup: () => () => null });
-
   async function flush(): Promise<void> {
     for (let tick = 0; tick < 6; tick++) await nextTick();
   }
 
+  type ModalProps = InstanceType<typeof ConfirmModal>["$props"];
+
   function mount(
-    props: Partial<InstanceType<typeof ConfirmModal>["$props"]>,
+    props: Pick<ModalProps, "title"> &
+      Partial<Omit<ModalProps, "title" | "style">>,
   ): void {
     app = createApp({
       render: () =>
@@ -220,6 +227,25 @@ describe("ConfirmModal secondary action", () => {
     mount({ title: "Remove French?" });
     await flush();
     expect(host.querySelectorAll("button")).toHaveLength(3);
+  });
+
+  it("keeps a secondary refusal inline without a toast and allows retry", async () => {
+    const add = vi.fn();
+    vi.stubGlobal("useToast", () => ({ add }));
+    installReadOnlyRefusal();
+    const run = vi.fn().mockRejectedValue(readOnlyFailure());
+    mount({ title: "Remove?", secondaryAction: { label: "Download", run } });
+    await flush();
+    button("Download")!.click();
+    await flush();
+    button("Download")!.click();
+    await flush();
+    expect(run).toHaveBeenCalledTimes(2);
+    expect(closed).not.toHaveBeenCalled();
+    expect(host.querySelector("[data-alert]")?.textContent).toContain(
+      "error.read_only_demo",
+    );
+    expect(add).not.toHaveBeenCalled();
   });
 
   it("runs it and stays open, the action still to confirm", async () => {
