@@ -101,4 +101,21 @@ for (const layer of ["frontend-vue", "playground/frontend-vue"]) {
   }
 }
 
+const e2eTypes = readFileSync(join(root, "dist/bin/control/e2e.d.mts"), "utf8");
+for (const doc of [
+  "What a journey drives the run through",
+  "A browser tab of a journey",
+  "A check a journey records",
+]) {
+  assert.ok(
+    e2eTypes.includes(` * ${doc}\n`),
+    `dist/bin/control/e2e.d.mts must keep the TSDoc "${doc}"; emit it with TypeScript 6 tsc`,
+  );
+}
+assert.doesNotMatch(
+  readFileSync(join(root, "dist/bin/control/options.d.mts"), "utf8"),
+  /@typedef/,
+  "dist/bin/control/options.d.mts must not hold a raw @typedef comment",
+);
+
 process.stdout.write("Backend invariant checks passed.\n");
