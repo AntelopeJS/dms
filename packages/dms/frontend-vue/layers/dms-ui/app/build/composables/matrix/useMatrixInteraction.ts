@@ -35,7 +35,7 @@ export interface MatrixEditing extends MatrixCellAddress {
 }
 
 /** Where a committed edit moves the focus. */
-export type MatrixCommitMove = MatrixEnterMove | "next" | "previous";
+export type MatrixCommitMove = MatrixEnterMove | "up" | "next" | "previous";
 
 /** What the interaction needs from the grid around it. */
 export interface MatrixInteractionOptions {
@@ -214,6 +214,7 @@ function useMatrixEditing(
     MatrixCommitMove,
     (from: MatrixCellAddress) => MatrixCellAddress | null
   > = {
+    up: (from) => moveMatrixFocus(source.focusOrder(), from, "ArrowUp"),
     down: (from) => enterMoveTarget(source.focusOrder(), from, "down"),
     right: (from) => enterMoveTarget(source.focusOrder(), from, "right"),
     stay: (from) => from,

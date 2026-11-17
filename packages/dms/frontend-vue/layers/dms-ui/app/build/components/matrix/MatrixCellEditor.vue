@@ -15,6 +15,7 @@ import type {
   MatrixValue,
 } from "../../../types/matrix";
 import type { MatrixCommitMove } from "../../composables/matrix/useMatrixInteraction";
+import { editorArrowMove } from "../../composables/matrix/matrixNavigation";
 import {
   editorModelOf,
   isUnchangedModel,
@@ -31,8 +32,9 @@ import MatrixFieldInput from "./MatrixFieldInput.vue";
  * A cell edited in place: the DMS input of its kind over the cell. Enter
  * saves and moves (`enterMove`), Shift+Enter breaks a long text's line,
  * Ctrl+Enter saves and stays, Tab / Shift+Tab save and edit the next or
- * previous editable cell, Escape cancels, Ctrl+Shift+Enter carries the draft
- * to the cell's drawer. A click elsewhere saves; a draft the column refuses
+ * previous editable cell, ArrowUp / ArrowDown save and move a row up or down
+ * (never stepping a number) unless the input uses them, Escape cancels,
+ * Ctrl+Shift+Enter carries the draft to the cell's drawer. A click elsewhere saves; a draft the column refuses
  * says why under the cell and is dropped by a click elsewhere. The cell's
  * reference text (its placeholder: the base text, the inherited one) shows
  * above the input while it is typed.
@@ -145,6 +147,25 @@ const KEY_ACTIONS = new Map<string, KeyAction>([
   ["Tab", (event) => () => void commit(event.shiftKey ? "previous" : "next")],
 ]);
 
+/**
+ * Caught before the input sees it: a number input would step its value on
+ * ArrowUp / ArrowDown, where the grid moves between cells instead. The input
+ * loses the focus first, which is when a number input takes the text typed
+ * into it (as on Enter), so the arrow saves what was typed; a draft the
+ * column refuses gives the focus back to the input.
+ */
+function onArrowKey(event: KeyboardEvent): void {
+  if (event.isComposing || event.altKey || event.ctrlKey || event.metaKey)
+    return;
+  const move = editorArrowMove(kind.value, event.key);
+  if (!move) return;
+  event.preventDefault();
+  event.stopPropagation();
+  const input = event.target instanceof HTMLElement ? event.target : null;
+  input?.blur();
+  if (!commit(move)) input?.focus();
+}
+
 function onKeydown(event: KeyboardEvent): void {
   if (event.isComposing) return;
   const action = KEY_ACTIONS.get(event.key)?.(event);
@@ -198,6 +219,7 @@ onBeforeUnmount(unregister);
     class="relative z-20 w-full"
     data-matrix-editor
     :aria-label="props.label"
+    @keydown.capture="onArrowKey"
     @keydown="onKeydown"
     @click.stop
     @dblclick.stop

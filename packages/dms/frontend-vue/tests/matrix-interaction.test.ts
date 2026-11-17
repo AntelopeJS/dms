@@ -8,12 +8,14 @@
  */
 import { describe, expect, it, vi } from "vitest";
 import { ref } from "vue";
+import { editorArrowMove } from "../layers/dms-ui/app/entries/composables/matrix/matrixNavigation";
 import {
   jumpStepOf,
   useMatrixInteraction,
   type MatrixInteractionOptions,
 } from "../layers/dms-ui/app/entries/composables/matrix/useMatrixInteraction";
 import type {
+  MatrixCellKind,
   MatrixColumn,
   MatrixOptions,
   MatrixRow,
@@ -122,6 +124,29 @@ describe("focus and editing", () => {
     expect(calls.commit).toHaveBeenCalledWith(ROWS[0], COLUMNS[0], "Bella");
     expect(interaction.editing.value).toBeNull();
     expect(interaction.focus.value).toEqual(at("r2", "name"));
+  });
+
+  it("saves an edit on ArrowUp and moves up a row, as ArrowDown moves down (fails when an arrow in a number's editor steps its value instead of leaving the cell)", () => {
+    const { interaction, calls } = setup({ enterMove: "down" });
+    interaction.focusCell(at("r2", "qty"));
+    interaction.onKeydown(key("Enter"));
+    interaction.commitEdit(4, editorArrowMove("number", "ArrowUp") ?? "stay");
+    expect(calls.commit).toHaveBeenCalledWith(ROWS[1], COLUMNS[1], 4);
+    expect(interaction.focus.value).toEqual(at("r1", "qty"));
+    interaction.onKeydown(key("Enter"));
+    interaction.commitEdit(4, editorArrowMove("number", "ArrowDown") ?? "stay");
+    expect(interaction.focus.value).toEqual(at("r2", "qty"));
+  });
+
+  it("leaves the arrows to an input that uses them: a long text's lines, a list, a date (fails when the grid takes ArrowDown from an open list)", () => {
+    const kinds: MatrixCellKind[] = ["longText", "select", "date", "tags"];
+    expect(kinds.map((kind) => editorArrowMove(kind, "ArrowDown"))).toEqual([
+      null,
+      null,
+      null,
+      null,
+    ]);
+    expect(editorArrowMove("text", "ArrowLeft")).toBeNull();
   });
 
   it("starts editing with a typed character when typeToEdit is on", () => {

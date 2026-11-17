@@ -1,4 +1,4 @@
-import type { MatrixEnterMove } from "../../../types/matrix";
+import type { MatrixCellKind, MatrixEnterMove } from "../../../types/matrix";
 
 /** A cell of the grid, by its row and column ids. */
 export interface MatrixCellAddress {
@@ -204,6 +204,33 @@ export function enterMoveTarget(
   const key = ENTER_MOVES[enterMove];
   if (!key) return from;
   return moveMatrixFocus(focusOrder, from, key) ?? from;
+}
+
+/** The kinds whose own input takes the up and down arrows: lines, lists, pickers. */
+const ARROW_OWNING_KINDS: ReadonlySet<MatrixCellKind> = new Set([
+  "longText",
+  "select",
+  "date",
+  "datetime",
+  "tags",
+  "code",
+  "richText",
+  "address",
+]);
+
+/**
+ * Where ArrowUp or ArrowDown takes the editor of a cell of `kind`: the edit is
+ * saved and the focus moves one row up or down, as in a spreadsheet, so an
+ * arrow never steps a number's value. `null` for any other key, or a kind
+ * whose input uses those arrows itself.
+ */
+export function editorArrowMove(
+  kind: MatrixCellKind,
+  key: string,
+): "up" | "down" | null {
+  if (ARROW_OWNING_KINDS.has(kind)) return null;
+  if (key === "ArrowUp") return "up";
+  return key === "ArrowDown" ? "down" : null;
 }
 
 /** A printable character typed without a command modifier: it starts editing. */
