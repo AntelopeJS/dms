@@ -20,11 +20,11 @@ import {
   runCustomValidation,
   validateRequiredQueryParams,
 } from "../layers/dms-core/app/utils/query-validation";
+import { PAGE_FILL_HEIGHT_CLASSES } from "../layers/dms-layout/app/composables/layout/usePageFillHeight";
 import {
-  PAGE_FILL_HEIGHT_CLASSES,
   providePageFillHeight,
   usePageFillHeight,
-} from "../layers/dms-layout/app/composables/layout/usePageFillHeight";
+} from "../layers/dms-ui/app/composables/layout/usePageFillHeight";
 import type { PageValidation } from "../layers/dms-core/app/types/page";
 import { useRealDataEngine } from "./fixtures/dataEngine";
 

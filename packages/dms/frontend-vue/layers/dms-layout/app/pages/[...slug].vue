@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { withoutTrailingSlash } from "ufo";
+import { usePageFillHeight } from "#dms-ui/app/composables/layout/usePageFillHeight";
 import { holdPageHeaderActions } from "#dms-ui/app/composables/layout/usePageHeaderActions";
 import { useDevReloading } from "../build/composables/dev-reload/useDevReloadHolder";
 import { usePageLiveHost } from "#dms-ui/app/entries/composables/live/usePageLiveHost";
@@ -496,6 +497,7 @@ if (import.meta.env.DEV) {
         { 'dms-fresh-modified': freshComponentIds.has(component.id) },
         component.id === fillingComponentId && fillColumnClass,
       ]"
+      :data-dms-page-fill="component.id === fillingComponentId || undefined"
     >
       <DmsRecursiveComponent
         :component="component"

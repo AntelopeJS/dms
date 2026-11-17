@@ -7,6 +7,7 @@ import GithubStarPrompt from "./GithubStarPrompt.vue";
 import RolePreviewBar from "./RolePreviewBar.vue";
 import { useAppWidgets } from "../../../composables/useAppWidgets";
 import { useVisitNavBadges } from "../../composables/navigation/useVisitNavBadges";
+import { providePageFillHeight } from "#dms-ui/app/composables/layout/usePageFillHeight";
 import {
   sidePanelWidthStyle,
   useActiveSidePanel,
