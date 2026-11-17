@@ -117,7 +117,7 @@ async function requestEmailValidation() {
       color: "success",
     });
   } catch (error: unknown) {
-    showFormError(error, "page.validate.error_title");
+    await showFormError(error, "page.validate.error_title");
   } finally {
     isLoading.value = false;
   }

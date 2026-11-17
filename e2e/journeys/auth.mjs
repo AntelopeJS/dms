@@ -21,6 +21,18 @@ async function fillLoginForm(/** @type {Tab} */ tab, /** @type {string} */ email
   await tab.click({ role: "button", name: "Login", exact: true });
 }
 
+/**
+ * Sets a field's value with one `input` event, as a browser's autofill does,
+ * so no keystroke or validation message reads a translation first.
+ */
+async function autofill(/** @type {Tab} */ tab, /** @type {Parameters<Tab["locator"]>[0]} */ target, /** @type {string} */ value) {
+  await tab.locator(target).evaluate((field, text) => {
+    if (!(field instanceof HTMLInputElement)) throw new Error("autofill targets an input");
+    field.value = text;
+    field.dispatchEvent(new Event("input", { bubbles: true }));
+  }, value);
+}
+
 async function requestResetCode(/** @type {Ctx} */ ctx, /** @type {Tab} */ tab, /** @type {string} */ email) {
   await tab.goto("/auth/forgot");
   await tab.fill({ role: "textbox", name: "Email address" }, email);
@@ -87,6 +99,25 @@ export const journeys = [
       await ctx.verify("the API answers 401", [
         ctx.status(answer, 401),
         ctx.equal("error", answer.body, "error.invalid_credentials"),
+      ]);
+    },
+  },
+  {
+    id: "login-autofilled-wrong-password",
+    tag: "@smoke",
+    title: "a wrong password the browser filled in, sent with Enter right after a full load of /auth, shows the credentials error",
+    entryPoint: "/auth sign-in form",
+    async run(/** @type {Ctx} */ ctx) {
+      const admin = ctx.adminCredentials();
+      const tab = await ctx.tab("stranger");
+      await tab.goto("/auth");
+      await autofill(tab, { role: "textbox", name: "Email address" }, admin.email);
+      await autofill(tab, { role: "textbox", name: "Password", exact: true }, `${admin.password}x`);
+      await tab.press("Enter", { role: "textbox", name: "Password", exact: true });
+      await ctx.verify("the form says the credentials are wrong", [
+        tab.shows(/The provided credentials are incorrect/),
+        tab.visible({ role: "heading", name: "Server error" }, { hidden: true }),
+        tab.at(/^\/auth/),
       ]);
     },
   },
