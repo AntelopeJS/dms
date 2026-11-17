@@ -25,6 +25,7 @@ const loaderEntries = [
   "dms/uploads",
   "dms/guards",
   "dms-base/table-view",
+  "dms-base/distinct-values",
   "dms-base/export-jobs",
   "dms-base/tenant-export-archive",
   "dms/client-base-url",

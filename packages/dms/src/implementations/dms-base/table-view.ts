@@ -551,8 +551,6 @@ export const countWithSearch = countWithSearchFunc;
 
 export { summarizeWithSearch } from "./footer-summary";
 
-export { distinctWithSearch } from "./distinct-values";
-
 export { resolveBulkRowIds } from "./bulk-selection";
 
 export namespace internal {
