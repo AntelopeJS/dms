@@ -317,7 +317,7 @@ describe("the alert mark on every chip", () => {
   });
 });
 
-describe("round 1: focus, roving, short blocks, stacks, no resource", () => {
+describe("chip focus, the month tab stop, short blocks, stacks and the No resource column", () => {
   it("clears the focused event when focus leaves a chip, and follows a keyboard move", async () => {
     const ctx = contextFor({});
     const a = occurrence("a", "2026-10-26T09:00", "2026-10-26T10:00");
