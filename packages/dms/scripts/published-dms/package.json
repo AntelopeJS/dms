@@ -1,0 +1,8 @@
+{
+  "name": "published-dms",
+  "version": "0.0.0",
+  "private": true,
+  "antelopeJs": {
+    "test": "antelope.test.cjs"
+  }
+}
