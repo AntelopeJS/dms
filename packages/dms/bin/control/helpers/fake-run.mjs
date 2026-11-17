@@ -35,12 +35,19 @@ import { down } from "../stack.mjs";
 let runs = 0;
 const REGISTRY_WAIT_MS = 10_000;
 
-/** A backend that answers every request with its pid and the database it was started on, and reports both to the test's registry once it listens, with the \`ajs project\` command that started it and the module folder its configuration loads the module from (\`DMS_MODULE_ROOT\`, else none). The report stays open while the backend runs, so its end tells the registry the backend is gone. */
+/** A backend that answers every request with its pid and the database it was started on, and reports both to the test's registry once it listens, with the \`ajs project\` command that started it and the module folder its configuration loads the module from (\`DMS_MODULE_ROOT\`, else none). The report stays open while the backend runs, so its end tells the registry the backend is gone. Its frontend manifest gives its module's path only in development and to a caller with the run's bootstrap secret, as the DMS does. */
 const FAKE_BACKEND = `
 const http = require("node:http");
 const self = JSON.stringify({ pid: process.pid, database: process.env.MONGO_DATABASE });
+const development = process.argv.includes("dev");
 const server = http.createServer((request, response) => {
   response.setHeader("content-type", "application/json");
+  if (request.url.startsWith("/dms/frontend?")) {
+    const trusted = request.headers["x-dms-bootstrap"] === process.env.DMS_BOOTSTRAP_SECRET;
+    const module = { name: "fake", priority: 0, ...(development && trusted && { path: "/fake" }) };
+    response.end(JSON.stringify({ version: 1, modules: [module] }));
+    return;
+  }
   response.end(self);
 });
 server.listen(Number(process.env.PORT), "127.0.0.1", () => {
@@ -70,6 +77,8 @@ const PLAYGROUND_FILES = {
   "node_modules/@antelopejs/core/dist/core/cli/index.js": FAKE_BACKEND,
   "node_modules/@antelopejs/dms-frontend/package.json":
     '{"name":"@antelopejs/dms-frontend"}',
+  "node_modules/@antelopejs/dms-frontend/dist/module-set.js":
+    "exports.moduleSetFingerprint = (modules) => JSON.stringify(modules);",
   "node_modules/mongodb-memory-server-core/package.json":
     '{"name":"mongodb-memory-server-core","main":"index.js"}',
   "node_modules/mongodb-memory-server-core/index.js": "",
