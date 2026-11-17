@@ -18,10 +18,12 @@ Drive an isolated DMS (run from the repository, or pass --playground):
                        the frontend build of the same inputs comes from $XDG_CACHE_HOME/dms-control/frontend,
                        --no-build-cache runs ajs dms build as it is;
                        --dev-frontend serves the sources with ajs dms dev instead of a build,
-                       which shows the module UI a production frontend leaves out;
+                       which shows the module UI a production frontend leaves out, and implies
+                       --dev-backend, so the dashboard's module set does not change between backends;
                        --dev-backend runs every backend with ajs project dev instead of start,
                        which serves the routes only development serves; a journey's backend
-                       field overrides it for that journey)
+                       field overrides it for that journey, and a dev dashboard rebuilt for that
+                       backend's module set answers before the journey runs)
   doctor <run> [--verbose]          check the run is worth driving; print the failing checks
   onboard <run> [--platform-name <name>]
                        create the run's administrator through POST /api/onboarding/register

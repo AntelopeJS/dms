@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { runModes } from "./commands-stack.mjs";
 import { newRun } from "./helpers/fake-run.mjs";
 import { loadRun, saveRun } from "./run-state.mjs";
 import { cliPaths } from "./launch.mjs";
@@ -21,4 +22,19 @@ await test("a run in dev mode serves its dashboard with ajs dms dev on its web p
     "-p",
     "4321",
   ]);
+});
+
+await test("up --dev-frontend runs its backends with ajs project dev, as the dev dashboard expects, and a build dashboard keeps production unless --dev-backend", () => {
+  assert.deepEqual(
+    [
+      runModes({ "dev-frontend": true }),
+      runModes({}),
+      runModes({ "dev-backend": true }),
+    ],
+    [
+      { frontendMode: "dev", backendMode: "dev" },
+      { frontendMode: "build", backendMode: "production" },
+      { frontendMode: "build", backendMode: "dev" },
+    ],
+  );
 });

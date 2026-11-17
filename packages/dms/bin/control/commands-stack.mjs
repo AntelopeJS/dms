@@ -50,6 +50,24 @@ export async function targetOf(values, cwd) {
 }
 
 /**
+ * How `up` serves the dashboard and runs the backends: `--dev-frontend`
+ * serves it with `ajs dms dev` and runs the backends in development, as
+ * `--dev-backend` does, so the frontend module set the dashboard follows is
+ * the same on every backend that a journey does not pin to another mode.
+ *
+ * @param {Pick<Values, "dev-frontend" | "dev-backend">} values The options of `up`
+ * @returns {{ frontendMode: import("./run-state.mjs").FrontendMode, backendMode: import("./run-state.mjs").BackendMode }} The modes
+ */
+export function runModes(values) {
+  const devFrontend = values["dev-frontend"] === true;
+  return {
+    frontendMode: devFrontend ? "dev" : "build",
+    backendMode:
+      devFrontend || values["dev-backend"] === true ? "dev" : "production",
+  };
+}
+
+/**
  * Starts a run the way `up` does: with `prepare`, the skill's install and
  * build commands first, then the stack on the skill's playground and
  * renderer.
@@ -78,8 +96,7 @@ export async function startRun(values, cwd) {
       values["no-standby"] === true ||
       process.env.DMS_CONTROL_NO_STANDBY === "1",
     buildCache: !values["no-build-cache"],
-    frontendMode: values["dev-frontend"] ? "dev" : "build",
-    backendMode: values["dev-backend"] ? "dev" : "production",
+    ...runModes(values),
   });
   if (state.frontendBuild?.reason) {
     process.stderr.write(
