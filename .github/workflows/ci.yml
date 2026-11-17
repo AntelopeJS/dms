@@ -62,41 +62,20 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version-file: .nvmrc
+      - name: Pick the tier with the shared rule
+        id: pick
+        uses: AntelopeJS/.github/.github/actions/ci-tier@v2
       - name: Pick the tier from the event, the target branch and the draft flag
         id: tier
         env:
           EVENT: ${{ github.event_name }}
-          REF_NAME: ${{ github.ref_name }}
-          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
-          REPOSITORY: ${{ github.repository }}
-          BASE_REF: ${{ github.base_ref }}
-          HEAD_REF: ${{ github.head_ref }}
-          HEAD_REPOSITORY: ${{ github.event.pull_request.head.repo.full_name }}
-          DRAFT: ${{ github.event.pull_request.draft }}
+          TIER: ${{ steps.pick.outputs.tier }}
         run: |
+          tier="$TIER"
           dependents=false
-          case "$EVENT" in
-            pull_request)
-              if [[ "$BASE_REF" == "$DEFAULT_BRANCH" && "$HEAD_REPOSITORY" == "$REPOSITORY" && "$HEAD_REF" =~ ^(next|develop)$ ]]; then
-                tier=none
-                dependents=true
-              elif [[ "$DRAFT" == true ]]; then
-                tier=draft
-              elif [[ "$BASE_REF" == "$DEFAULT_BRANCH" ]]; then
-                tier=full
-              else
-                tier=fast
-              fi
-              ;;
-            push)
-              if [[ "$REF_NAME" == "$DEFAULT_BRANCH" ]]; then tier=none; else tier=full; fi
-              ;;
-            schedule)
-              tier=nightly
-              dependents=true
-              ;;
-            *) tier=full ;;
-          esac
+          if [[ "$EVENT" == schedule || ( "$EVENT" == pull_request && "$tier" == none ) ]]; then
+            dependents=true
+          fi
 
           test_base=""
           if [[ "$tier" == fast ]]; then
