@@ -131,7 +131,7 @@ export const GetPageStructure =
   InterfaceFunction<(ref: PageRef) => Promise<OpResult<PageStructure>>>();
 
 /**
- * Force reconcile against disk (e.g. after a vibe-mode excursion). Deduped:
+ * Force reconcile against disk (e.g. after a dms-assistant Code mode excursion). Deduped:
  * mtime-gated, scoped, and coalesced — safe to over-call.
  */
 export const RefreshSourceIndex =
