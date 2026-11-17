@@ -1,5 +1,35 @@
 # Changelog
 
+## v0.6.0
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/interface-dms-builder-v0.5.2...interface-dms-builder-v0.6.0)
+
+### 🩹 Fixes
+
+- **release:** Keep the dms README dependency table in step with interface-dms-builder releases ([#1123](https://github.com/AntelopeJS/dms/pull/1123))
+- **dms:** Judge a block's request targets inside the builder engine for agent calls ([#1090](https://github.com/AntelopeJS/dms/pull/1090))
+- **dms:** Emit the e2e types with TypeScript 6 to keep their TSDoc ([#1133](https://github.com/AntelopeJS/dms/pull/1133))
+
+### 💅 Refactors
+
+- **interface-dms-builder:** Remove the SampleDatabaseRows operation ([#1129](https://github.com/AntelopeJS/dms/pull/1129))
+
+### 📖 Documentation
+
+- Drop the reverted pull request pairs from the 16 November changelogs ([#1128](https://github.com/AntelopeJS/dms/pull/1128))
+
+### 📦 Build
+
+- Build and typecheck with TypeScript 7 through antelopejs-tsc ([#1132](https://github.com/AntelopeJS/dms/pull/1132))
+
+#### ⚠️ Breaking Changes
+
+- **interface-dms-builder:** Remove the SampleDatabaseRows operation ([#1129](https://github.com/AntelopeJS/dms/pull/1129))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli
+
 ## v0.5.2
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/interface-dms-builder-v0.5.1...interface-dms-builder-v0.5.2)
