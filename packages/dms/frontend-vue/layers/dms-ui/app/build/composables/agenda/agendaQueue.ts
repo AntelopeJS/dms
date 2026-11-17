@@ -1,0 +1,123 @@
+import { copyField, PATCH_FIELDS } from "./agendaPatchFields";
+import type {
+  AgendaChange,
+  AgendaEventPatch,
+  AgendaSaveResponse,
+} from "../../../types/full-agenda";
+import { mergePatch, type AgendaEdit } from "./agendaChanges";
+import { occurrenceKey } from "./agendaRecurrence";
+
+/** The id each local id of the written changes has on the route. */
+export function answeredIds(
+  written: AgendaChange[],
+  response: AgendaSaveResponse,
+): Map<string, string> {
+  const answered = response.events ?? [];
+  const ids = new Map<string, string>();
+  for (const change of written) {
+    if (change.tempId) {
+      const created = answered.find((event) => event.tempId === change.tempId);
+      if (created) ids.set(change.tempId, created.id);
+    }
+    if (change.scope !== "occurrence" || !change.id || !change.occurrence)
+      continue;
+    const others = answered.filter(
+      (event) => event.id !== change.id && !event.tempId,
+    );
+    if (others.length === 1)
+      ids.set(occurrenceKey(change.id, change.occurrence), others[0]!.id);
+  }
+  return ids;
+}
+
+/** The local id the event of a written change had: its `tempId`, or `<series>@<day>`. */
+function localIdOf(change: AgendaChange): string | undefined {
+  if (change.tempId) return change.tempId;
+  if (change.scope === "occurrence" && change.id && change.occurrence)
+    return occurrenceKey(change.id, change.occurrence);
+  return undefined;
+}
+
+/** Whether a change makes a new event (its key is a temporary id the route never knew). */
+export const makesNewEvent = (change: AgendaChange) =>
+  change.kind === "create" || change.kind === "schedule";
+
+/**
+ * The change queued behind a refused one, sent on its own: for the fields
+ * both set, it reads from what the route still stores (the refused
+ * change's `previous`), not from the refused place it was drawn over.
+ */
+export function afterRefused(
+  refused: AgendaChange,
+  queued: AgendaChange,
+): AgendaChange {
+  if (
+    refused.occurrence &&
+    queued.occurrence &&
+    refused.occurrence !== queued.occurrence
+  )
+    return queued;
+  const stored = refused.previous ?? {};
+  const patch = queued.patch ?? {};
+  const previous: AgendaEventPatch = { ...queued.previous };
+  let shares = false;
+  for (const key of PATCH_FIELDS)
+    if (Object.hasOwn(patch, key) && Object.hasOwn(stored, key)) {
+      copyField(previous, stored, key);
+      shares = true;
+    }
+  if (Object.hasOwn(patch, "data") && Object.hasOwn(stored, "data")) {
+    previous.data = stored.data;
+    shares = true;
+  }
+  return shares ? { ...queued, previous } : queued;
+}
+
+/**
+ * Whether the change queued behind a written create names an event the
+ * route answered no id for: it cannot be sent (the route never knew its
+ * temporary id).
+ */
+export function isUnaddressed(
+  edit: Pick<AgendaEdit, "change" | "queued">,
+  ids: Map<string, string>,
+): boolean {
+  const { queued, change } = edit;
+  if (!queued || !change.tempId) return false;
+  return queued.id === change.tempId && !ids.has(change.tempId);
+}
+
+/**
+ * The change queued behind a written one, addressed as the route now knows
+ * the event. An occurrence detached without an answered id is detached
+ * again from its series, with the fields of both changes: the route keeps
+ * the day and the times the user sees.
+ */
+export function readdressQueued(
+  edit: Pick<AgendaEdit, "change" | "queued">,
+  ids: Map<string, string>,
+): AgendaChange | undefined {
+  const { queued, change } = edit;
+  if (!queued) return undefined;
+  const localId = localIdOf(change);
+  if (!localId || queued.id !== localId) return queued;
+  const id = ids.get(localId);
+  if (id) return { ...queued, id };
+  if (change.scope !== "occurrence") return queued;
+  if (queued.kind === "delete" || queued.kind === "unschedule")
+    return {
+      ...queued,
+      id: change.id,
+      occurrence: change.occurrence,
+      scope: "occurrence",
+    };
+  return {
+    ...queued,
+    kind: "update",
+    id: change.id,
+    occurrence: change.occurrence,
+    scope: "occurrence",
+    patch: mergePatch(change.patch, queued.patch),
+    previous: change.previous,
+  };
+}
