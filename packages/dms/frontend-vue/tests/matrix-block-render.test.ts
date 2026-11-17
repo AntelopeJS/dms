@@ -243,3 +243,19 @@ it("reads its route with the page, filters and sort the URL keeps under its id",
   expect(html).toContain("Entrepôt");
   expect(html).toContain("dms.matrix.range");
 });
+
+it("draws the numbers of a currency column as amounts, in its cells and its total (fails when 40 euros read as a bare 40)", async () => {
+  const html = await render({
+    staticData: {
+      columns: [{ id: "open", label: "Open", kind: "number", currency: "EUR" }],
+      rows: [
+        { id: "o1", label: "Order 1", values: { open: 40 } },
+        { id: "o2", label: "Order 2", values: { open: 25.5 } },
+      ],
+    },
+    totals: { columns: true },
+  });
+  expect(html).toContain("€40.00");
+  expect(html).toContain("€25.50");
+  expect(html).toContain("€65.50");
+});

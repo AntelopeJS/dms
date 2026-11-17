@@ -21,6 +21,7 @@ import {
   valueText,
 } from "../../composables/matrix/matrixValues";
 import { matrixRenderColumn } from "../../composables/matrix/matrixRender";
+import { numberFormatOf } from "../../composables/matrix/matrixNumbers";
 
 /**
  * A cell's value as read: by its column's kind (a right-aligned figure, a
@@ -93,7 +94,7 @@ const DATETIME_FORMAT: Intl.DateTimeFormatOptions = {
 
 const numberText = computed(() =>
   isNumber(props.value)
-    ? new Intl.NumberFormat(locale.value).format(props.value)
+    ? numberFormatOf(locale.value, props.column).format(props.value)
     : valueText(props.value),
 );
 const dateTimeText = computed(() => {

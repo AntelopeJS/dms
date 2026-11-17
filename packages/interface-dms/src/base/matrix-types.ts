@@ -127,6 +127,12 @@ export interface MatrixColumn {
    * row's Total, no sum in the Total row. Numbers count by default.
    */
   excludeFromTotals?: boolean;
+  /**
+   * ISO 4217 code: a `number` column of amounts in that currency, drawn with
+   * its sign in the reader's language in its cells and its totals ("€65.00",
+   * "65,00 €"). The values stay plain numbers.
+   */
+  currency?: string;
   align?: "start" | "center" | "end";
   /**
    * A table view cell display drawing the value when it is not edited

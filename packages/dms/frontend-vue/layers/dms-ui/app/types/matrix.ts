@@ -83,6 +83,8 @@ export interface MatrixColumn {
   nullable?: boolean;
   required?: boolean;
   excludeFromTotals?: boolean;
+  /** ISO 4217 code: the column's numbers are amounts in that currency, drawn with its sign. */
+  currency?: string;
   align?: MatrixAlign;
   display?: ColumnDisplay;
   component?: string;

@@ -9,6 +9,7 @@ import {
 } from "../../composables/matrix/matrixLayout";
 import { isTotalledColumn } from "../../composables/matrix/matrixTotals";
 import { MATRIX_ALIGN_CLASSES } from "../../composables/matrix/matrixTones";
+import { numberFormatOf } from "../../composables/matrix/matrixNumbers";
 
 /**
  * The header row of a group: its label, description, badge and row count, a
@@ -42,7 +43,9 @@ const format = (value: number) =>
   new Intl.NumberFormat(locale.value).format(value);
 const subtotalOf = (column: MatrixColumn) =>
   isTotalledColumn(column) && subtotals.value
-    ? format(subtotals.value.columns[column.id] ?? 0)
+    ? numberFormatOf(locale.value, column).format(
+        subtotals.value.columns[column.id] ?? 0,
+      )
     : "";
 const alignClass = (column: MatrixColumn) =>
   MATRIX_ALIGN_CLASSES[columnAlign(column)];

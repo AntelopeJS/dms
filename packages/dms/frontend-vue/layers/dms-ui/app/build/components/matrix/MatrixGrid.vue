@@ -11,6 +11,7 @@ import {
 } from "../../composables/matrix/matrixLayout";
 import { isTotalledColumn } from "../../composables/matrix/matrixTotals";
 import { MATRIX_ALIGN_CLASSES } from "../../composables/matrix/matrixTones";
+import { numberFormatOf } from "../../composables/matrix/matrixNumbers";
 import { matrixFilterParams } from "../../composables/matrix/matrixQuery";
 import MatrixCell from "./MatrixCell.vue";
 import MatrixGroupHeader from "./MatrixGroupHeader.vue";
@@ -191,13 +192,13 @@ const isRefreshing = computed(
   () => matrix.source.isLoading.value && Boolean(matrix.source.data.value),
 );
 
-const format = (value: number) =>
-  new Intl.NumberFormat(locale.value).format(value);
+const format = (value: number, column?: MatrixColumn) =>
+  numberFormatOf(locale.value, column).format(value);
 const columnTotal = (column: MatrixColumn) =>
-  format(matrix.totals.value.columns[column.id] ?? 0);
+  format(matrix.totals.value.columns[column.id] ?? 0, column);
 const columnTarget = (column: MatrixColumn) => {
   const target = matrix.targets.value?.columns?.[column.id];
-  return target === undefined ? "" : format(target);
+  return target === undefined ? "" : format(target, column);
 };
 const alignClass = (column: MatrixColumn) =>
   MATRIX_ALIGN_CLASSES[columnAlign(column)];
