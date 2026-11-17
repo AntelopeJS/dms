@@ -30,12 +30,7 @@
 ### 💅 Refactors
 
 - **dms:** Remove the checks marked Drop in the tooling review ([#1077](https://github.com/AntelopeJS/dms/pull/1077))
-- **dms:** Fix the parked dms-ui anti-slop findings of the Vue layer ([#1088](https://github.com/AntelopeJS/dms/pull/1088))
-- **interface-dms-builder:** Remove the SampleDatabaseRows operation ([#1093](https://github.com/AntelopeJS/dms/pull/1093))
 - **dms:** Fix the local anti-slop findings of the dms-core layer ([#1100](https://github.com/AntelopeJS/dms/pull/1100))
-- **interface-dms-builder:** Restore the SampleDatabaseRows operation ([#1098](https://github.com/AntelopeJS/dms/pull/1098))
-- **dms:** Type the data-type contract and the form state it fills ([#1107](https://github.com/AntelopeJS/dms/pull/1107))
-- **dms:** Restore the Vue types that 0.20.7 publishes ([#1112](https://github.com/AntelopeJS/dms/pull/1112))
 
 ### 📦 Build
 
@@ -54,10 +49,6 @@
 ### 🤖 CI
 
 - Typecheck the dependent modules' frontends against the built Vue layer ([#1120](https://github.com/AntelopeJS/dms/pull/1120))
-
-#### ⚠️ Breaking Changes
-
-- **interface-dms-builder:** Remove the SampleDatabaseRows operation ([#1093](https://github.com/AntelopeJS/dms/pull/1093))
 
 ### ❤️ Contributors
 

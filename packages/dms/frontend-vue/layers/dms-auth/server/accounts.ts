@@ -18,6 +18,7 @@ import {
 const ACCOUNT_INDEX_COOKIE = "dms_account_index";
 const ACCOUNT_COOKIE_PREFIX = "dms_account_";
 const MAX_AGE_SECONDS = 60 * 60 * 24 * 30;
+const SENT_ACCOUNT_COOKIE = /^dms_account_([0-9a-f]{32})_[^=]*=/;
 const UUID =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -103,11 +104,33 @@ export function readAccounts(event: DmsServerEvent): AccountIndex {
   return event.cookies.readSealed(ACCOUNT_INDEX_COOKIE, isAccountIndex) ?? {};
 }
 
+/**
+ * The logical names of the account cookies the browser sent, whichever secret
+ * sealed them.
+ */
+function sentAccountCookies(event: DmsServerEvent): string[] {
+  return (event.request.headers.get("cookie") ?? "")
+    .split(";")
+    .flatMap((pair) => SENT_ACCOUNT_COOKIE.exec(pair.trim())?.[1] ?? [])
+    .map((key) => `${ACCOUNT_COOKIE_PREFIX}${key}`);
+}
+
+/**
+ * Writes the index, and clears every account cookie the browser sent that it
+ * does not list. A cookie a previous session secret sealed no longer opens,
+ * and `ajs dms dev` draws a new secret on each start: without the clearing,
+ * each sign-in after a restart added one to the request headers until the
+ * server refused them all with a 431.
+ */
 function writeAccountIndex(event: DmsServerEvent, accounts: AccountIndex) {
   const persistent = Object.values(accounts).some(isPersistent);
   event.cookies.writeSealed(ACCOUNT_INDEX_COOKIE, accounts, {
     maxAge: lifetime(persistent),
   });
+  const listed = new Set(Object.keys(accounts).map(accountCookieName));
+  for (const name of sentAccountCookies(event)) {
+    if (!listed.has(name)) event.cookies.clear(name);
+  }
 }
 
 export function readAccount(

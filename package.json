@@ -25,7 +25,7 @@
     "dev": "pnpm --dir packages/dms dev",
     "frontend:dev": "pnpm --dir packages/dms frontend:dev",
     "build": "pnpm --filter @antelopejs/dms build",
-    "typecheck": "pnpm --dir packages/interface-dms typecheck && pnpm --dir packages/interface-dms-builder typecheck && pnpm --dir packages/dms typecheck && pnpm --dir packages/dms/frontend-vue typecheck:tests && tsc --noEmit -p e2e",
+    "typecheck": "pnpm --dir packages/interface-dms typecheck && pnpm --dir packages/interface-dms-builder typecheck && pnpm --dir packages/dms typecheck && pnpm --dir packages/dms/frontend-vue typecheck:tests && antelopejs-tsc --noEmit -p e2e",
     "lint": "pnpm --dir packages/dms/playground run -s types:prepare && oxlint && node packages/dms/playground/checks/raw-sources.cjs && pnpm --dir packages/dms/playground run -s lint:client && pnpm run deps && pnpm --dir packages/dms/frontend-vue lint",
     "lint:fix": "oxlint --fix && pnpm --dir packages/dms/frontend-vue lint:fix",
     "format": "oxfmt . && pnpm --dir packages/dms/frontend-vue format",
