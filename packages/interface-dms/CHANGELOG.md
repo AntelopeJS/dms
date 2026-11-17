@@ -1,5 +1,22 @@
 # Changelog
 
+## v0.14.4
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/interface-v0.14.3...interface-v0.14.4)
+
+### 🩹 Fixes
+
+- **dms:** Draw no request-sending input from a fetched confirm dialog ([#1091](https://github.com/AntelopeJS/dms/pull/1091))
+- **dms:** Write column references instead of row values in mapped modules ([#1104](https://github.com/AntelopeJS/dms/pull/1104))
+
+### 📦 Build
+
+- Build and typecheck with TypeScript 7 through antelopejs-tsc ([#1132](https://github.com/AntelopeJS/dms/pull/1132))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli
+
 ## v0.14.3
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/interface-v0.14.2...interface-v0.14.3)
