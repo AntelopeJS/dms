@@ -2,6 +2,11 @@ import { randomBytes } from "node:crypto";
 import { existsSync, rmSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { layOutFrontendBuild } from "./build-cache.mjs";
+import {
+  awaitDashboard,
+  dashboardModulesFile,
+  recordDashboardModules,
+} from "./dashboard.mjs";
 import { existingBuildRoots } from "./build-inputs.mjs";
 import { describeFailure } from "./failure.mjs";
 import { checkoutOf } from "./git.mjs";
@@ -357,6 +362,7 @@ export async function startBackend(state, build, mode) {
   record(state, backend);
   await waitForBackend(backend);
   writeTarget(apiTargetFile(state.dir), backend.port);
+  await awaitDashboard(state);
 }
 
 /**
@@ -491,6 +497,7 @@ async function buildAndStart(state, useCache) {
     record(state, { ...frontend, port: state.webPort });
     await waitForOk(`${state.webUrl}/dms-preview`, frontend, READY_TIMEOUT_MS);
   });
+  await recordDashboardModules(state);
 }
 
 /**
@@ -566,6 +573,7 @@ export async function down(state) {
     state.baseRoot,
     state.cache,
     apiTargetFile(state.dir),
+    dashboardModulesFile(state.dir),
     backendsFolder(state.dir),
   ]) {
     if (folder && existsSync(folder)) {

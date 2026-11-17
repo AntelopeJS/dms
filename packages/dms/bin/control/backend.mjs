@@ -1,4 +1,5 @@
 import { buildChangedSince, missingBuildRoot } from "./build-inputs.mjs";
+import { awaitDashboard } from "./dashboard.mjs";
 import { apiTargetFile, readTarget, writeTarget } from "./forwarder.mjs";
 import { dropDatabase } from "./mongo.mjs";
 import { resolutionFolders } from "./launch.mjs";
@@ -225,5 +226,6 @@ export async function freshDatabase(
     previous,
     ...replaced.map((other) => other.database),
   ]);
+  await awaitDashboard(state);
   return database;
 }
