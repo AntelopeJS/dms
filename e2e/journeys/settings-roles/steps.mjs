@@ -22,7 +22,7 @@ export const SIGNED_IN = /^\/(?!auth)/;
 export const ON_INVITATIONS = new RegExp(`^${INVITATIONS}$`);
 export const EXPORT_PERMISSION = "playground.reports.export";
 export const PLAYGROUND_ONLY = ["settings", "settings.workspace", "settings.workspace.playground", "settings.workspace.playground.form"];
-export const TOTAL_PERMISSIONS = /1259/;
+export const TOTAL_PERMISSIONS = /1301/;
 export const LONG_NAME = "x".repeat(81);
 
 /**

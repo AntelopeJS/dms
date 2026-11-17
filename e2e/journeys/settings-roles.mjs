@@ -55,13 +55,13 @@ export const journeys = [
       await tab.fill({ role: "textbox", name: "Description" }, "Answers tickets");
       await ctx.verify("the editor shows the draft as unsaved with one permission", [
         tab.shows(/Not saved yet/),
-        tab.shows(/1 of 1259 selected/),
+        tab.shows(/1 of 1301 selected/),
         tab.visible({ role: "option", name: new RegExp(`^${name}`) }),
       ]);
       await tab.click({ role: "button", name: "Save changes" });
       await ctx.verify("the role is created", [
         tab.shows(/Role created/),
-        tab.shows(/1 of 1259 permissions/),
+        tab.shows(/1 of 1301 permissions/),
         tab.shows(/no member/),
       ]);
       await openRoles(tab);
@@ -73,7 +73,7 @@ export const journeys = [
       await ctx.verify("its name, description and permission are kept", [
         ctx.equal("name", await tab.value({ role: "textbox", name: "Role name*" }), name),
         ctx.equal("description", await tab.value({ role: "textbox", name: "Description" }), "Answers tickets"),
-        tab.shows(/1 of 1259 selected/),
+        tab.shows(/1 of 1301 selected/),
         tab.visible({ role: "checkbox", name: "Export reports", exact: true }),
       ]);
       const stored = await storedRoles(ctx, "list the roles");
