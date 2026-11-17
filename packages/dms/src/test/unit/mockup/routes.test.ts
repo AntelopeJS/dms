@@ -297,13 +297,19 @@ describe("[unit] mockup routes: events", () => {
   });
 });
 
+/** An `event:` line, then its frame up to the blank line that ends it. */
+const FIRST_EVENT_FRAME = /(^|\n)event: [^\n]*\n[\s\S]*?\n\n/;
+
 interface OpenEvents {
   request: ClientRequest;
   response: IncomingMessage;
   firstChunk: string;
 }
 
-/** Opens a mockup's event stream over HTTP as `token`'s user and reads its first frame. */
+/**
+ * Opens a mockup's event stream over HTTP as `token`'s user and reads it up to
+ * the end of its first event frame, however the frames split into chunks.
+ */
 function openEvents(name: string, token: string): Promise<OpenEvents> {
   return new Promise((resolve, reject) => {
     const request = get(
@@ -315,10 +321,15 @@ function openEvents(name: string, token: string): Promise<OpenEvents> {
         },
       },
       (response) => {
-        response.once("data", (chunk: Buffer) => {
+        let read = "";
+        const onData = (chunk: Buffer) => {
+          read += chunk.toString("utf8");
+          if (!FIRST_EVENT_FRAME.test(read)) return;
+          response.off("data", onData);
           response.pause();
-          resolve({ request, response, firstChunk: chunk.toString("utf8") });
-        });
+          resolve({ request, response, firstChunk: read });
+        };
+        response.on("data", onData);
       },
     );
     request.once("error", reject);
