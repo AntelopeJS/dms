@@ -123,6 +123,20 @@ describe("a stored account whose session the backend revoked", () => {
   });
 });
 
+describe("a sign-in after the frontend restarted with a new session secret", () => {
+  const fixture = createServerRoutesFixture();
+
+  it("drops the account cookies the old secret sealed, so restarts do not grow the cookie header", async () => {
+    const tab = new Browser(fixture.moduleRoutes.url);
+    for (const restart of ["a", "b", "c", "d"]) {
+      process.env.DMS_SESSION_SECRET = restart.repeat(32);
+      await tab.signIn("ada@example.test");
+    }
+    expect(tab.accounts()).toHaveLength(1);
+    expect(tab.indexed()).toEqual(tab.accounts());
+  });
+});
+
 describe("a sign-out with an expired access token", () => {
   const fixture = createServerRoutesFixture();
 
