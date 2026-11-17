@@ -33,22 +33,22 @@ export interface InlineEditColumn extends InlineEditControl {
   field: FormField;
 }
 
-const INLINE_EDIT_CONTROLS: Record<string, InlineEditControl> = {
-  inputtext: { commit: "type" },
-  inputemail: { commit: "type" },
-  inputphone: { commit: "type" },
-  inputnumber: { commit: "type" },
-  inputpercentage: { commit: "type" },
-  inputtime: { commit: "type" },
-  inputcolor: { commit: "type" },
-  select: { commit: "pick", opensPicker: "defaultOpen" },
-  datepicker: { commit: "pick", opensPicker: "click" },
-  segmentedselect: { commit: "pick" },
-  switch: { commit: "toggle" },
-  checkbox: { commit: "toggle" },
-};
+const INLINE_EDIT_CONTROLS = new Map<string, InlineEditControl>([
+  ["inputtext", { commit: "type" }],
+  ["inputemail", { commit: "type" }],
+  ["inputphone", { commit: "type" }],
+  ["inputnumber", { commit: "type" }],
+  ["inputpercentage", { commit: "type" }],
+  ["inputtime", { commit: "type" }],
+  ["inputcolor", { commit: "type" }],
+  ["inputselect", { commit: "pick", opensPicker: "defaultOpen" }],
+  ["datepicker", { commit: "pick", opensPicker: "click" }],
+  ["segmentedselect", { commit: "pick" }],
+  ["inputswitch", { commit: "toggle" }],
+  ["inputcheckbox", { commit: "toggle" }],
+]);
 
-const LIST_VALUE_OPTIONS = ["multiple", "range"];
+const LIST_VALUE_OPTIONS: ReadonlySet<string> = new Set(["multiple", "range"]);
 
 const DMS_COMPONENT_PREFIX = "dms";
 
@@ -80,18 +80,20 @@ export function inlineEditControl(
   if (field.disabled || field.readonly || field.localized) return undefined;
   const name = field.component?.componentName;
   if (!name) return undefined;
-  const control = INLINE_EDIT_CONTROLS[normalizeControlName(name)];
+  const control = INLINE_EDIT_CONTROLS.get(normalizeControlName(name));
   if (!control) return undefined;
-  const options = (field.component.options ?? {}) as Record<string, unknown>;
-  if (LIST_VALUE_OPTIONS.some((key) => !!options[key])) return undefined;
-  return control;
+  const isList = Object.entries(field.component.options ?? {}).some(
+    ([key, value]) => LIST_VALUE_OPTIONS.has(key) && !!value,
+  );
+  return isList ? undefined : control;
 }
 
 /** The ids `inlineEdit` restricts the edit to, or `undefined` for all. */
 function restrictedFieldIds(
   inlineEdit: boolean | TableViewInlineEditConfig,
 ): Set<string> | undefined {
-  if (typeof inlineEdit !== "object" || !inlineEdit.columns) return undefined;
+  if (inlineEdit === true || inlineEdit === false || !inlineEdit.columns)
+    return undefined;
   return new Set(inlineEdit.columns);
 }
 

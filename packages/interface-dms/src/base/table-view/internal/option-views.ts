@@ -3,6 +3,7 @@ import type { Tone } from "../../types/tone";
 import type { ButtonPermission } from "../../../component";
 import type { ColorValue } from "../../types";
 import type { ControllerClass } from "@antelopejs/interface-api";
+import type { TableViewInlineEditOptions } from "../inline-edit";
 
 /** The filter a tab applies on one column. */
 export interface TableViewTabFilter {
@@ -56,6 +57,17 @@ export type TableViewDensity = "default" | "compact";
  * checkbox) or one ending a text selection runs nothing.
  */
 export type TableViewRowClick = "single" | "double" | "none";
+
+/** The option of a table view that edits its cells in place. */
+export interface TableViewInlineEditOption {
+  /**
+   * Lets the user edit a row's simple values in the grid, one cell at a
+   * time, each saved at once. See {@link TableViewInlineEditOptions}.
+   * @example true
+   * @example { columns: ["price", "stock"], inputs: "always" }
+   */
+  inlineEdit?: boolean | TableViewInlineEditOptions;
+}
 
 /**
  * Everything a view sets on the table when it is opened. What a view leaves

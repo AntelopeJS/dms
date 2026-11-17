@@ -1,9 +1,10 @@
 <script setup lang="ts">
+import type { MatrixEditorModel, MatrixValue } from "../../../types/matrix";
 import {
   computed,
   onBeforeUnmount,
   onMounted,
-  ref,
+  shallowRef,
   useTemplateRef,
   watch,
 } from "vue";
@@ -35,7 +36,7 @@ interface MatrixCellDrawerProps {
   rowId: string;
   columnId: string;
   /** The draft the drawer opens with: a typed character, an inline draft. */
-  draft?: unknown;
+  draft?: MatrixEditorModel;
   hasDraft?: boolean;
   /** `draft` is already an editor model (the inline editor's). */
   isModel?: boolean;
@@ -90,15 +91,15 @@ const saveState = computed(() =>
 );
 const edit = computed(() => matrix.engine.editOf(props.rowId, props.columnId));
 /** What the save status says of an autosaved cell; nothing while idle. */
-const STATUS_STATES: Partial<Record<string, "saving" | "saved" | "error">> = {
-  saving: "saving",
-  saved: "saved",
-  error: "error",
-  conflict: "error",
-};
-const statusState = computed(() => STATUS_STATES[saveState.value]);
+const STATUS_STATES = new Map<string, "saving" | "saved" | "error">([
+  ["saving", "saving"],
+  ["saved", "saved"],
+  ["error", "error"],
+  ["conflict", "error"],
+]);
+const statusState = computed(() => STATUS_STATES.get(saveState.value));
 
-function initialModel(): unknown {
+function initialModel(): MatrixEditorModel {
   if (!column.value) return null;
   if (props.hasDraft && props.isModel) return props.draft;
   return editorModelOf(
@@ -107,7 +108,7 @@ function initialModel(): unknown {
   );
 }
 
-const model = ref<unknown>(initialModel());
+const model = shallowRef<MatrixEditorModel>(initialModel());
 const result = computed<EditorValueResult | null>(() =>
   column.value ? valueFromEditorModel(column.value, model.value) : null,
 );
@@ -138,7 +139,7 @@ const failure = computed(() =>
 );
 
 /** Puts a value in the grid: staged, or written now. */
-function apply(value: unknown): void {
+function apply(value: MatrixValue): void {
   if (!row.value || !gridColumn.value) return;
   matrix.commitValue(row.value, gridColumn.value, value);
 }

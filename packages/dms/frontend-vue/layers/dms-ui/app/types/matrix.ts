@@ -2,6 +2,21 @@ import type { BlockText } from "#dms-core/app/types/composed-text";
 import type { ActionTarget } from "../composables/table-view/types/action-target";
 import type { ColumnDisplay } from "../build/composables/data-types/useColumnValueRenderer";
 import type { Tone } from "#dms-core/app/types/tone";
+import type { JsonValue } from "#dms-core/app/types/json";
+import type { HttpMethod } from "#dms-core/app/types/http";
+
+/**
+ * A cell's value as the route answers it and a save sends it (the
+ * interface's `MatrixCellValue`): its column's `kind` says how to read it.
+ */
+export type MatrixValue = JsonValue;
+
+/**
+ * What a cell's input is bound to and emits (`editorModelOf`): a text, a
+ * number, the list of a tags input, nothing yet. `valueFromEditorModel`
+ * reads it back into a value the column takes.
+ */
+export type MatrixEditorModel = MatrixValue | undefined;
 
 /** What a cell holds, which picks the input that edits it and how it is drawn. */
 export type MatrixCellKind =
@@ -89,7 +104,7 @@ export interface MatrixCellState {
   placeholder?: BlockText;
   /** Overrides the column's `editIn` for this cell. */
   editIn?: MatrixEditIn;
-  previous?: unknown;
+  previous?: MatrixValue;
 }
 
 export interface MatrixRow {
@@ -97,7 +112,7 @@ export interface MatrixRow {
   label?: BlockText;
   description?: BlockText;
   group?: string;
-  values: Record<string, unknown>;
+  values: Record<string, MatrixValue>;
   cells?: Record<string, MatrixCellState>;
   readOnly?: boolean;
   tone?: MatrixTone;
@@ -143,8 +158,8 @@ export interface MatrixData {
 export interface MatrixChange {
   rowId: string;
   columnId: string;
-  value: unknown;
-  previous: unknown;
+  value: MatrixValue;
+  previous: MatrixValue | undefined;
 }
 
 export interface MatrixSaveRequest {
@@ -165,7 +180,7 @@ export interface MatrixCellError {
 export interface MatrixConflict {
   rowId: string;
   columnId: string;
-  current: unknown;
+  current: MatrixValue;
 }
 
 /**
@@ -189,7 +204,7 @@ export interface MatrixFillAction {
   label: BlockText;
   icon?: string;
   url: string;
-  method?: string;
+  method?: HttpMethod;
 }
 
 /** What a fill action's route answers: the cells to set, as edits. */
@@ -229,6 +244,16 @@ export interface MatrixRowHeader {
   numbers?: boolean;
 }
 
+/**
+ * The row drawer's own options, when `rowPanel` gives some rather than a
+ * bare switch.
+ */
+export function rowPanelOptionsOf(
+  rowPanel: MatrixOptions["rowPanel"],
+): MatrixRowPanel | undefined {
+  return rowPanel === true || rowPanel === false ? undefined : rowPanel;
+}
+
 export interface MatrixRowPanel {
   title?: BlockText;
   showJson?: boolean;
@@ -250,7 +275,7 @@ export interface MatrixRowAction {
 /** A row's value in `field` is one of `in`. */
 export interface MatrixFieldCondition {
   field: string;
-  in: readonly unknown[];
+  in: readonly MatrixValue[];
 }
 
 export interface MatrixTotals {
@@ -280,11 +305,11 @@ export interface MatrixOptions {
   title?: BlockText;
   description?: BlockText;
   fetchUrl?: string;
-  fetchUrlMethod?: string;
+  fetchUrlMethod?: HttpMethod;
   realtimeTopic?: string | string[];
   staticData?: MatrixData;
   saveUrl?: string;
-  saveUrlMethod?: string;
+  saveUrlMethod?: HttpMethod;
   columns?: MatrixColumn[];
   rowHeader?: MatrixRowHeader;
   editable?: boolean;

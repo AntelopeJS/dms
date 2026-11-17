@@ -1,13 +1,26 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref, useTemplateRef } from "vue";
+import {
+  computed,
+  onBeforeUnmount,
+  onMounted,
+  ref,
+  shallowRef,
+  useTemplateRef,
+} from "vue";
 import { onClickOutside } from "@vueuse/core";
-import type { MatrixColumn, MatrixEnterMove } from "../../../types/matrix";
+import type {
+  MatrixColumn,
+  MatrixEnterMove,
+  MatrixEditorModel,
+  MatrixValue,
+} from "../../../types/matrix";
 import type { MatrixCommitMove } from "../../composables/matrix/useMatrixInteraction";
 import {
   editorModelOf,
   isUnchangedModel,
   kindOf,
   valueFromEditorModel,
+  valueText,
 } from "../../composables/matrix/matrixValues";
 import { useMatrixInvalidText } from "../../composables/matrix/useMatrixInvalidText";
 import { useMatrixContext } from "../../composables/matrix/useMatrix";
@@ -27,9 +40,9 @@ import MatrixFieldInput from "./MatrixFieldInput.vue";
 interface MatrixCellEditorProps {
   column: MatrixColumn;
   /** The value the cell shows. */
-  value: unknown;
+  value: MatrixValue | undefined;
   /** A typed first character, replacing the value. */
-  draft?: unknown;
+  draft?: MatrixEditorModel;
   hasDraft?: boolean;
   /** Labels the input: "Row · Column". */
   label: string;
@@ -45,9 +58,9 @@ const props = withDefaults(defineProps<MatrixCellEditorProps>(), {
 });
 
 const emit = defineEmits<{
-  commit: [value: unknown, move: MatrixCommitMove];
+  commit: [value: MatrixValue, move: MatrixCommitMove];
   cancel: [];
-  openPanel: [model: unknown];
+  openPanel: [model: MatrixEditorModel];
 }>();
 
 const FOCUSABLE = "input, textarea, [contenteditable='true'], button";
@@ -65,12 +78,14 @@ const PICKED_KINDS = new Set(["select", "date"]);
 const wrapper = useTemplateRef<HTMLElement>("wrapper");
 const kind = computed(() => kindOf(props.column));
 const isTypedNumber = props.hasDraft && kindOf(props.column) === "number";
-const model = ref<unknown>(
+const model = shallowRef<MatrixEditorModel>(
   isTypedNumber
-    ? String(props.draft ?? "")
+    ? valueText(props.draft)
     : editorModelOf(props.column, props.hasDraft ? props.draft : props.value),
 );
-const invalidReason = ref<ReturnType<typeof valueFromEditorModel> | null>(null);
+const invalidReason = shallowRef<ReturnType<
+  typeof valueFromEditorModel
+> | null>(null);
 const isDone = ref(false);
 const invalidText = useMatrixInvalidText();
 const invalidMessage = computed(() =>
@@ -83,7 +98,7 @@ function commit(move: MatrixCommitMove): boolean {
   if (isDone.value) return true;
   if (isUnchangedModel(props.column, model.value, props.value)) {
     isDone.value = true;
-    emit("commit", props.value, move);
+    emit("commit", props.value ?? null, move);
     return true;
   }
   const result = valueFromEditorModel(props.column, model.value);
@@ -102,7 +117,7 @@ function cancel(): void {
   emit("cancel");
 }
 
-function onModel(next: unknown): void {
+function onModel(next: MatrixEditorModel): void {
   model.value = next;
   invalidReason.value = null;
   if (PICKED_KINDS.has(kind.value)) commit("stay");
@@ -124,15 +139,15 @@ const enterAction: KeyAction = (event) => {
   return () => void commit(props.enterMove);
 };
 
-const KEY_ACTIONS: Record<string, KeyAction> = {
-  Escape: () => cancel,
-  Enter: enterAction,
-  Tab: (event) => () => void commit(event.shiftKey ? "previous" : "next"),
-};
+const KEY_ACTIONS = new Map<string, KeyAction>([
+  ["Escape", () => cancel],
+  ["Enter", enterAction],
+  ["Tab", (event) => () => void commit(event.shiftKey ? "previous" : "next")],
+]);
 
 function onKeydown(event: KeyboardEvent): void {
   if (event.isComposing) return;
-  const action = KEY_ACTIONS[event.key]?.(event);
+  const action = KEY_ACTIONS.get(event.key)?.(event);
   if (!action) return;
   event.preventDefault();
   event.stopPropagation();

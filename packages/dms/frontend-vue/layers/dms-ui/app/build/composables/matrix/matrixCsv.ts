@@ -1,3 +1,5 @@
+import type { MatrixValue } from "../../../types/matrix";
+import { isNumber } from "#dms-core/app/utils/type-check";
 import { valueText } from "./matrixValues";
 
 const BYTE_ORDER_MARK = "﻿";
@@ -14,9 +16,9 @@ const ISO_DATE_LENGTH = 10;
  * One CSV cell: quoted, its quotes doubled, a text that looks like a formula
  * kept as text (a number, negative or not, stays a number).
  */
-export function csvCell(value: unknown): string {
+export function csvCell(value: MatrixValue | undefined): string {
   const text = valueText(value);
-  const isFormula = typeof value !== "number" && FORMULA_START.test(text);
+  const isFormula = !isNumber(value) && FORMULA_START.test(text);
   const safe = isFormula ? `${FORMULA_GUARD}${text}` : text;
   return `"${safe.replaceAll('"', '""')}"`;
 }
@@ -26,7 +28,10 @@ export function csvCell(value: unknown): string {
  * survive Excel), CRLF lines, a header line, and cells that look like
  * formulas kept as text.
  */
-export function matrixCsv(header: unknown[], lines: unknown[][]): string {
+export function matrixCsv(
+  header: readonly string[],
+  lines: readonly (readonly (MatrixValue | undefined)[])[],
+): string {
   const body = [header, ...lines].map((line) =>
     line.map(csvCell).join(SEPARATOR),
   );

@@ -48,7 +48,7 @@ export function useMatrixSelection(rows: () => MatrixRow[]): MatrixSelection {
     clear: () => selected.clear(),
     keepOnly: (ids) => {
       const kept = new Set(ids);
-      for (const id of [...selected]) {
+      for (const id of selected) {
         if (!kept.has(id)) selected.delete(id);
       }
     },

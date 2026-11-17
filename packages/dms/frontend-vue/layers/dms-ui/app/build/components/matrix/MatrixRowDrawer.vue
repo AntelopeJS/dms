@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, reactive, ref } from "vue";
-import type { MatrixColumn } from "../../../types/matrix";
+import type { MatrixColumn, MatrixEditorModel } from "../../../types/matrix";
+import { rowPanelOptionsOf } from "../../../types/matrix";
 import type { MatrixContext } from "../../composables/matrix/useMatrix";
 import {
   editingColumnOf,
@@ -40,9 +41,7 @@ const matrix = props.context;
 const row = computed(() => matrix.rows.rowById.value.get(props.rowId));
 const columns = computed(() => matrix.columns.columns.value);
 const showsJson = computed(
-  () =>
-    typeof matrix.options.rowPanel === "object" &&
-    matrix.options.rowPanel.showJson === true,
+  () => rowPanelOptionsOf(matrix.options.rowPanel)?.showJson === true,
 );
 const tab = ref<DrawerTab>("fields");
 const tabs = computed(() => [
@@ -51,7 +50,7 @@ const tabs = computed(() => [
 ]);
 
 /** The fields typed into and not committed yet, by column id. */
-const drafts = reactive<Record<string, unknown>>({});
+const drafts = reactive<Record<string, MatrixEditorModel>>({});
 const errors = reactive<Record<string, string>>({});
 
 const storedOf = (column: MatrixColumn) =>
@@ -121,13 +120,14 @@ function commit(column: MatrixColumn): void {
 
 /** A field left (not a move inside it, a stepper, a popover): its draft goes. */
 function onFocusOut(column: MatrixColumn, event: FocusEvent): void {
-  const field = event.currentTarget as HTMLElement | null;
-  const next = event.relatedTarget as Node | null;
-  if (field && next && field.contains(next)) return;
+  const field = event.currentTarget;
+  const next = event.relatedTarget;
+  if (field instanceof Node && next instanceof Node && field.contains(next))
+    return;
   commit(column);
 }
 
-function onModel(column: MatrixColumn, model: unknown): void {
+function onModel(column: MatrixColumn, model: MatrixEditorModel): void {
   drafts[column.id] = model;
   Reflect.deleteProperty(errors, column.id);
   if (PICKED_KINDS.has(kindOf(editingOf(column)))) commit(column);
@@ -165,7 +165,7 @@ function saveAll(): void {
 
 <template>
   <div v-if="row" class="flex w-full min-w-0 flex-1 flex-col gap-4">
-    <DmsSegmented
+    <DmsSegmentedControl
       v-if="showsJson"
       v-model="tab"
       :items="tabs"

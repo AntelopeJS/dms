@@ -21,6 +21,7 @@ import type {
   TableViewTabSerialized,
   TableViewViewsSerialized,
   TableViewRowClick,
+  TableViewInlineEditOption,
   TableViewColumnsOptions,
   TableViewTab,
   TableViewViewsOptions,
@@ -32,7 +33,6 @@ import type {
   TableViewCardOptions,
   TableViewDisplayOption,
 } from "./option-displays";
-import type { TableViewInlineEditOptions } from "../inline-edit";
 import type {
   TableViewFormPageUrls,
   FormContainer,
@@ -151,7 +151,7 @@ export interface TableViewLiveHoldOptions {
 export interface TableViewOptions<
   // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Published default accepts module-owned rows.
   T extends object = Record<string, unknown>,
-> {
+> extends TableViewInlineEditOption {
   caption?: string;
   /**
    * Row density the table opens with: "compact" gives 36px rows under a 32px
@@ -367,13 +367,6 @@ export interface TableViewOptions<
    * filter or a tab narrows the rows. Needs the `edit` action.
    */
   reorder?: TableViewReorderOptions;
-  /**
-   * Lets the user edit a row's simple values in the grid, one cell at a
-   * time, each saved at once. See {@link TableViewInlineEditOptions}.
-   * @example true
-   * @example { columns: ["price", "stock"], inputs: "always" }
-   */
-  inlineEdit?: boolean | TableViewInlineEditOptions;
   /**
    * Offers the `grouped` display: the grid's columns with a header row per
    * group of rows. A view may open in it (`display: "grouped"`).

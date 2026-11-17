@@ -1,6 +1,10 @@
 <script setup lang="ts">
 import { computed } from "vue";
-import type { MatrixColumn, MatrixRow } from "../../../types/matrix";
+import type {
+  MatrixColumn,
+  MatrixRow,
+  MatrixEditorModel,
+} from "../../../types/matrix";
 import { useMatrixContext } from "../../composables/matrix/useMatrix";
 import {
   cellBackground,
@@ -153,7 +157,7 @@ const cellStyle = computed(() => ({
 
 const enterMove = computed(() => matrix.options.enterMove ?? "down");
 
-function onEditorPanel(model: unknown): void {
+function onEditorPanel(model: MatrixEditorModel): void {
   interaction.editing.value = null;
   matrix.openCellDrawer(address.value, {
     ...address.value,

@@ -36,19 +36,19 @@ const TONE_DOTS: Record<MatrixTone, string> = {
 
 type IndexMove = (index: number, last: number) => number;
 
-const KEY_MOVES: Record<string, IndexMove> = {
-  ArrowRight: (index, last) => (index >= last ? 0 : index + 1),
-  ArrowDown: (index, last) => (index >= last ? 0 : index + 1),
-  ArrowLeft: (index, last) => (index <= 0 ? last : index - 1),
-  ArrowUp: (index, last) => (index <= 0 ? last : index - 1),
-  Home: () => 0,
-  End: (_index, last) => last,
-};
+const KEY_MOVES = new Map<string, IndexMove>([
+  ["ArrowRight", (index, last) => (index >= last ? 0 : index + 1)],
+  ["ArrowDown", (index, last) => (index >= last ? 0 : index + 1)],
+  ["ArrowLeft", (index, last) => (index <= 0 ? last : index - 1)],
+  ["ArrowUp", (index, last) => (index <= 0 ? last : index - 1)],
+  ["Home", () => 0],
+  ["End", (_index, last) => last],
+]);
 
 const buttons = ref<HTMLButtonElement[]>([]);
 
 function onKeydown(event: KeyboardEvent, index: number): void {
-  const move = KEY_MOVES[event.key];
+  const move = KEY_MOVES.get(event.key);
   if (!move) return;
   event.preventDefault();
   const next = move(index, props.items.length - 1);

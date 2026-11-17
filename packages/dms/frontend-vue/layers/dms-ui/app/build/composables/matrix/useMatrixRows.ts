@@ -111,7 +111,10 @@ function useKeptRows(
     () => new Set(keptRowIds(kept.value, answeredIds.value, options.view())),
   );
   const keptRows = computed(() =>
-    [...keptIds.value].map((id) => (kept.value.get(id) as MatrixKeptRow).row),
+    [...keptIds.value].flatMap((id) => {
+      const entry = kept.value.get(id);
+      return entry ? [entry.row] : [];
+    }),
   );
   const hideKept = () => {
     const next = new Map<string, MatrixKeptRow>();

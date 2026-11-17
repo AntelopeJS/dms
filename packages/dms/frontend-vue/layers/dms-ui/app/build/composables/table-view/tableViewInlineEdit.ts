@@ -1,4 +1,4 @@
-import { describeTableWriteError } from "./utils/writeError";
+import { tableWriteErrorOptions } from "./utils/writeError";
 import { useTableInlineEdit } from "./useTableInlineEdit";
 import type { TableViewScope } from "./tableViewScope";
 
@@ -12,7 +12,6 @@ export function useTableViewInlineEdit<T extends Data>(
     | "displaySelection"
     | "refresh"
     | "tabs"
-    | "sortRecovery"
     | "arrival"
     | "props"
   >,
@@ -31,10 +30,10 @@ export function useTableViewInlineEdit<T extends Data>(
   const { isRowActionEnabled } = scope.displaySelection;
   const { refreshCounts } = scope.refresh;
   const { t } = scope.tabs;
-  const { toast } = scope.sortRecovery;
   const { processI18n } = scope.arrival;
   const { props } = scope;
   const { getDataType } = useDataTypes();
+  const errorPresenter = useApiErrorPresenter();
   const inlineEditing = useTableInlineEdit<T>({
     inlineEdit: props.inlineEdit,
     editFields: formComponents.edit?.options?.fields,
@@ -51,17 +50,16 @@ export function useTableViewInlineEdit<T extends Data>(
     getRow: (id) => tableRows.getRow(id),
     onSaved: () => refreshCounts(),
     onError: (failure) =>
-      toast.add({
-        title: t("dms.table.inline_edit.error"),
-        description: describeTableWriteError(
+      errorPresenter.presentError(
+        failure,
+        tableWriteErrorOptions(
           failure,
           t,
           allColumns,
           processI18n,
+          "dms.table.inline_edit.error",
         ),
-        color: Color.error,
-        icon: "i-ph-warning-circle",
-      }),
+      ),
   });
   const inlineEditSlots = computed(() =>
     inlineEditing.columns.value.map(({ columnId }) => `${columnId}-cell`),

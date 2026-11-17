@@ -14,19 +14,16 @@ import type { TableInlineEdit } from "../../composables/table-view/useTableInlin
 import { processFieldI18n } from "../../utils/fieldOptionsI18n";
 import { whenFocusable } from "../../utils/whenFocusable";
 
-interface InlineEditCellProps {
+export interface InlineEditCellProps<T extends Data> {
   /** The cell, as the grid hands it to a `<column>-cell` slot. */
   cell: CellContext<T, unknown>;
   inlineEdit: TableInlineEdit<T>;
 }
 
-/** What the cell reads of its grid column's definition. */
-interface InlineEditColumnDef {
-  cellWrap?: boolean;
-  meta?: { label?: string };
-}
+/** A row's value in the cell, or what its input holds. */
+type CellValue = Parameters<TableInlineEdit<T>["setDraft"]>[0];
 
-const props = defineProps<InlineEditCellProps>();
+const props = defineProps<InlineEditCellProps<T>>();
 const { t } = useI18n();
 const { processI18n } = useTranslation();
 
@@ -55,9 +52,7 @@ const isInvalid = computed(() =>
 
 const isAlwaysInput = computed(() => props.inlineEdit.inputs === "always");
 
-const columnDef = computed(
-  () => props.cell.column.columnDef as InlineEditColumnDef,
-);
+const columnDef = computed(() => props.cell.column.columnDef);
 const textClass = computed(() =>
   columnDef.value.cellWrap
     ? "line-clamp-none whitespace-normal [overflow-wrap:anywhere]"
@@ -68,7 +63,7 @@ const shownCell = computed<CellContext<T, unknown>>(() => {
   const saving = props.inlineEdit.pendingOf(row.value, columnId.value);
   const target = column.value;
   if (!saving || !target) return props.cell;
-  const original = { ...row.value, [target.field.id]: saving.value } as T;
+  const original = { ...row.value, [target.field.id]: saving.value };
   return { ...props.cell, row: { ...props.cell.row, original } };
 });
 
@@ -86,12 +81,11 @@ const status = computed(() =>
 const control = computed(() =>
   resolveDmsComponent(column.value?.field.component.componentName),
 );
-const controlOptions = computed<Record<string, unknown>>(() => {
+const controlOptions = computed(() => {
   const target = column.value;
   if (!target) return {};
-  const options = {
-    ...(processFieldI18n(target.field, processI18n).component.options ?? {}),
-  } as Record<string, unknown>;
+  const options =
+    processFieldI18n(target.field, processI18n).component.options ?? {};
   if (target.commit === "toggle") {
     return Object.fromEntries(
       Object.entries(options).filter(([key]) => !TOGGLE_TEXT_OPTIONS.has(key)),
@@ -108,7 +102,7 @@ const invalidProps = computed(() =>
 
 const draft = computed({
   get: () => props.inlineEdit.draft.value,
-  set: (value: unknown) => props.inlineEdit.setDraft(value),
+  set: (value: CellValue) => props.inlineEdit.setDraft(value),
 });
 
 const editor = useTemplateRef<HTMLElement>("editor");
@@ -143,8 +137,9 @@ const focusControl = async (shouldOpenPicker: boolean) => {
 };
 
 const open = (event?: Event) => {
-  const target = event?.target as Element | null;
-  if (target?.closest?.(DISPLAY_CONTROL_SELECTOR)) return;
+  const target = event?.target;
+  if (target instanceof Element && target.closest(DISPLAY_CONTROL_SELECTOR))
+    return;
   if (props.inlineEdit.start(row.value, columnId.value)) {
     void nextTick(() => focusControl(true));
   }
@@ -156,7 +151,8 @@ const isWithinCell = (element: Element | null): boolean =>
     !!element.closest(POPOVER_SELECTOR));
 
 const handleFocusOut = (event: FocusEvent) => {
-  if (isWithinCell(event.relatedTarget as Element | null)) return;
+  const next = event.relatedTarget;
+  if (isWithinCell(next instanceof Element ? next : null)) return;
   setTimeout(() => void commit(), 0);
 };
 
@@ -174,23 +170,23 @@ const handleEditorKeydown = (event: KeyboardEvent) => {
   if (event.key !== "Enter" || column.value?.commit !== "type") return;
   event.preventDefault();
   shouldRefocusDisplay = true;
-  (event.target as HTMLElement | null)?.blur?.();
+  if (event.target instanceof HTMLElement) event.target.blur();
 };
 
 const handlePickerEscape = (event: KeyboardEvent) => {
   if (event.key !== "Escape") return;
-  const target = event.target as Element | null;
-  if (target?.closest?.(POPOVER_SELECTOR)) cancel();
+  const { target } = event;
+  if (target instanceof Element && target.closest(POPOVER_SELECTOR)) cancel();
 };
 
-const handleUpdate = (value: unknown) => {
+const handleUpdate = (value: CellValue) => {
   draft.value = value;
   if (column.value?.commit !== "pick") return;
   shouldRefocusDisplay = true;
   void commit();
 };
 
-const handleInput = (value: unknown) => {
+const handleInput = (value: CellValue) => {
   openOnFocus();
   handleUpdate(value);
 };
@@ -240,7 +236,7 @@ watch(isEditing, (editing, wasEditing) => {
   });
 });
 
-const toggle = (value: unknown) =>
+const toggle = (value: CellValue) =>
   props.inlineEdit.toggle(row.value, columnId.value, value);
 </script>
 

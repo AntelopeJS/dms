@@ -1,3 +1,4 @@
+/** @vitest-environment jsdom */
 /**
  * The Matrix grid's keyboard and pointer: the focus moved by the keys, edits
  * started by a click, Enter or a typed character, cells sent to their drawer,
@@ -54,11 +55,11 @@ function setup(
   const interaction = useMatrixInteraction({
     options,
     root: ref(null),
-    shape: () => ({
+    focusOrder: () => ({
       rowIds: shown.map((row) => row.id),
       columnIds: COLUMNS.map((column) => column.id),
     }),
-    allShape: () => ({
+    allFocusOrder: () => ({
       rowIds: ROWS.map((row) => row.id),
       columnIds: COLUMNS.map((column) => column.id),
     }),
@@ -80,28 +81,24 @@ function setup(
 }
 
 /** The element a key is pressed on: a cell, or a button inside the grid. */
-const CELL_TARGET = {
-  matches: (selector: string) => selector === "[data-matrix-cell]",
-};
-const BUTTON_TARGET = { matches: () => false };
+const CELL_TARGET = document.createElement("div");
+CELL_TARGET.dataset.matrixCell = "";
+const BUTTON_TARGET = document.createElement("button");
 
+/** A key pressed on `target`, its default watched. */
 function key(
   name: string,
   init: KeyboardEventInit = {},
-  target: object = CELL_TARGET,
+  target: Element = CELL_TARGET,
 ): KeyboardEvent {
-  return {
+  const event = new KeyboardEvent("keydown", {
     key: name,
     code: `Key${name.toUpperCase()}`,
-    shiftKey: false,
-    ctrlKey: false,
-    metaKey: false,
-    altKey: false,
-    defaultPrevented: false,
-    preventDefault: vi.fn(),
-    target,
+    cancelable: true,
     ...init,
-  } as unknown as KeyboardEvent;
+  });
+  target.dispatchEvent(event);
+  return event;
 }
 
 const at = (rowId: string, columnId: string) => ({ rowId, columnId });
@@ -239,7 +236,7 @@ describe("shortcuts", () => {
     expect(interaction.editing.value).toBeNull();
     expect(calls.rowPanel).not.toHaveBeenCalled();
     expect(interaction.focus.value).toEqual(at("r1", "name"));
-    expect(enter.preventDefault).not.toHaveBeenCalled();
+    expect(enter.defaultPrevented).toBe(false);
   });
 
   it("types into the cell with typeToEdit, and jumps with Alt+N", () => {
@@ -270,13 +267,7 @@ describe("shortcuts", () => {
 describe("jump keys", () => {
   it("reads N, Shift+N, or Alt+N with typeToEdit", () => {
     const press = (init: KeyboardEventInit) =>
-      ({
-        ctrlKey: false,
-        metaKey: false,
-        altKey: false,
-        shiftKey: false,
-        ...init,
-      }) as KeyboardEvent;
+      new KeyboardEvent("keydown", init);
     expect(jumpStepOf(press({ key: "n", code: "KeyN" }), false)).toBe(1);
     expect(
       jumpStepOf(press({ key: "N", code: "KeyN", shiftKey: true }), false),

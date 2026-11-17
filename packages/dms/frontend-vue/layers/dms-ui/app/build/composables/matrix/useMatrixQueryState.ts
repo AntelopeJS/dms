@@ -52,7 +52,7 @@ export function useMatrixQueryState(
   const keepsUrl = options.urlState !== false;
   const initial = keepsUrl
     ? readMatrixUrlState(
-        useDmsRoute().query as Record<string, string>,
+        useDmsRoute().query,
         componentId,
         defaults,
         facetIds,

@@ -7,12 +7,15 @@ import type {
   MatrixFillResponse,
   MatrixOptions,
   MatrixRow,
+  MatrixValue,
 } from "../../../types/matrix";
+import { HttpMethod } from "#dms-core/app/types/http";
 import { resolveUrlVariables } from "../../utils/urlVariables";
 import { downloadTextFile, matrixCsv, matrixCsvFileName } from "./matrixCsv";
 import type { MatrixSection } from "./matrixSections";
 import type { MatrixTotalsResult } from "./matrixTotals";
 import type { MatrixCommit } from "./matrixSaveEngine";
+import { valueText } from "./matrixValues";
 
 const CSV_TYPE = "text/csv;charset=utf-8";
 
@@ -26,7 +29,7 @@ export interface MatrixToolsOptions {
   visibleColumns: () => MatrixColumn[];
   /** Every column, hidden ones included. */
   allColumns: () => MatrixColumn[];
-  valueOf: (row: MatrixRow, columnId: string) => unknown;
+  valueOf: (row: MatrixRow, columnId: string) => MatrixValue | undefined;
   rowTitle: (row: MatrixRow) => string;
   totals: () => MatrixTotalsResult;
   commitMany: (changes: MatrixCommit[]) => void;
@@ -37,14 +40,17 @@ export interface MatrixToolsOptions {
   /** The checked rows of a `selectable` grid, posted to the fills. */
   selected: () => string[] | undefined;
   /** A select's value as its option reads. */
-  labelOfValue: (column: MatrixColumn, value: unknown) => string | undefined;
+  labelOfValue: (
+    column: MatrixColumn,
+    value: MatrixValue | undefined,
+  ) => string | undefined;
 }
 
 /** A row as shown: its values with the edits not written yet. */
 function shownRow(
   row: MatrixRow,
   columnIds: string[],
-  valueOf: (row: MatrixRow, columnId: string) => unknown,
+  valueOf: (row: MatrixRow, columnId: string) => MatrixValue | undefined,
 ): MatrixRow {
   const values = { ...row.values };
   for (const columnId of new Set([...Object.keys(values), ...columnIds])) {
@@ -63,19 +69,20 @@ export function useMatrixTools(tools: MatrixToolsOptions) {
   const { $authFetch } = useAuthFetch();
   const route = useDmsRoute();
   const { t } = useI18n();
+  const errorPresenter = useApiErrorPresenter();
   const runningFill = ref<string | null>(null);
 
   async function runFill(action: MatrixFillAction): Promise<void> {
     const columnIds = tools.allColumns().map((column) => column.id);
     const url = resolveUrlVariables(action.url, {
       routeParams: tools.routeParams(),
-      routeQuery: route.query as Record<string, unknown>,
+      routeQuery: route.query,
     });
     if (!url || runningFill.value) return;
     runningFill.value = action.id;
     try {
       const response = await $authFetch<MatrixFillResponse>(url, {
-        method: (action.method ?? "POST") as "POST",
+        method: action.method ?? HttpMethod.post,
         body: {
           rows: tools
             .rows()
@@ -85,7 +92,9 @@ export function useMatrixTools(tools: MatrixToolsOptions) {
       });
       applyFill(response?.changes ?? []);
     } catch (error) {
-      useApiError(error, { title: t("dms.matrix.fill_failed") });
+      errorPresenter.presentError(error, {
+        fallbackKey: "dms.matrix.fill_failed",
+      });
     } finally {
       runningFill.value = null;
     }
@@ -102,10 +111,13 @@ export function useMatrixTools(tools: MatrixToolsOptions) {
     if (commits.length) tools.commitMany(commits);
   }
 
-  function cellText(column: MatrixColumn, value: unknown): unknown {
+  function cellText(
+    column: MatrixColumn,
+    value: MatrixValue | undefined,
+  ): MatrixValue | undefined {
     if (Array.isArray(value))
       return value
-        .map((entry) => tools.labelOfValue(column, entry) ?? entry)
+        .map((entry) => tools.labelOfValue(column, entry) ?? valueText(entry))
         .join(", ");
     return tools.labelOfValue(column, value) ?? value;
   }

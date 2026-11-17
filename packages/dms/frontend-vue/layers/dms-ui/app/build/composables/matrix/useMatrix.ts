@@ -2,7 +2,6 @@ import {
   computed,
   inject,
   markRaw,
-  onMounted,
   provide,
   ref,
   watch,
@@ -12,30 +11,21 @@ import {
 } from "vue";
 import { useComposedText } from "#dms-core/app/composables/translation/useComposedText";
 import type { BlockText } from "#dms-core/app/types/composed-text";
+import { isBoolean } from "#dms-core/app/utils/type-check";
 import type {
   MatrixCellState,
+  MatrixChange,
   MatrixColumn,
   MatrixOptions,
   MatrixRow,
   MatrixRowAction,
-  MatrixSaveRequest,
-  MatrixSaveResponse,
   MatrixTargets,
+  MatrixValue,
 } from "../../../types/matrix";
-import { resolveUrlVariables } from "../../utils/urlVariables";
-import { resolveActionError } from "../confirm/actionError";
-import { useActionTargets } from "../actions/useActionTargets";
-import {
-  createMatrixSaveEngine,
-  type MatrixSaveEngine,
-} from "./matrixSaveEngine";
-import {
-  computeMatrixTotals,
-  matrixTargetMisses,
-  mergeMatrixTargets,
-  type MatrixTargetMisses,
-  type MatrixTotalsResult,
-} from "./matrixTotals";
+import { rowPanelOptionsOf } from "../../../types/matrix";
+import { detach } from "../detach";
+import type { MatrixSaveEngine } from "./matrixSaveEngine";
+import type { MatrixTargetMisses, MatrixTotalsResult } from "./matrixTotals";
 import { isEmptyValue, kindOf, valueText } from "./matrixValues";
 import type { MatrixRowGroup, MatrixSection } from "./matrixSections";
 import {
@@ -44,6 +34,10 @@ import {
 } from "./useMatrixColumns";
 import { useMatrixData, type MatrixDataSource } from "./useMatrixData";
 import { useMatrixDrawers } from "./useMatrixDrawers";
+import { useMatrixEngine } from "./useMatrixEngine";
+import { useMatrixCells } from "./useMatrixCells";
+import { useMatrixTargets } from "./useMatrixTargets";
+import { useMatrixRowLink } from "./useMatrixRowLink";
 import {
   useMatrixInteraction,
   type MatrixEditing,
@@ -60,11 +54,6 @@ import { acceptsColumnFilter } from "./matrixColumns";
 import { matrixFilterParams } from "./matrixQuery";
 import { useMatrixSaving } from "./useMatrixSaving";
 import { useMatrixSelection, type MatrixSelection } from "./useMatrixSelection";
-import {
-  matrixRowUrlKey,
-  readMatrixUrlRow,
-  writeMatrixUrlEntries,
-} from "./matrixUrlState";
 
 /** Everything the grid's parts read and call, provided by the block. */
 export interface MatrixContext {
@@ -93,12 +82,16 @@ export interface MatrixContext {
   isBlocked: ComputedRef<boolean>;
   targetMessage: ComputedRef<string | null>;
   rowTitle: (row: MatrixRow) => string;
-  valueOf: (row: MatrixRow, columnId: string) => unknown;
+  valueOf: (row: MatrixRow, columnId: string) => MatrixValue | undefined;
   cellState: (row: MatrixRow, columnId: string) => MatrixCellState;
   isEditable: (row: MatrixRow, column: MatrixColumn) => boolean;
   hasCellAction: (row: MatrixRow, column: MatrixColumn) => boolean;
   runCellAction: (row: MatrixRow, column: MatrixColumn) => void;
-  commitValue: (row: MatrixRow, column: MatrixColumn, value: unknown) => void;
+  commitValue: (
+    row: MatrixRow,
+    column: MatrixColumn,
+    value: MatrixValue,
+  ) => void;
   openRowPanel: (rowId: string) => void;
   openCellDrawer: (address: MatrixCellAddress, editing?: MatrixEditing) => void;
   hasRowPanel: ComputedRef<boolean>;
@@ -126,52 +119,44 @@ export interface MatrixSetup extends MatrixOptions {
   routeParams?: Record<string, string>;
 }
 
-/**
- * Posts a request to `saveUrl`, with the list query the rows are read with
- * (no paging), so the route can answer the `counts` of the filtered view.
- */
-function useSaveRequest(
+/** The group a row falls in on `grouping.groupByField`, by its value there. */
+function useRowGroups(
   options: MatrixOptions,
-  routeParams: () => Record<string, string> | undefined,
-  listQuery: () => Record<string, string>,
+  columns: MatrixColumnsControls,
+  text: (value: BlockText | undefined) => string,
 ) {
-  const conflicts = options.conflicts ?? "overwrite";
-  const { $authFetch } = useAuthFetch();
-  const route = useDmsRoute();
-  return async (
-    request: MatrixSaveRequest,
-  ): Promise<MatrixSaveResponse | null> => {
-    const url = resolveUrlVariables(options.saveUrl, {
-      routeParams: routeParams(),
-      routeQuery: route.query as Record<string, unknown>,
-    });
-    if (!url) throw new Error("dms.matrix.save_unresolved");
-    return $authFetch<MatrixSaveResponse>(url, {
-      method: (options.saveUrlMethod ?? "POST") as "POST",
-      body: { ...request, conflicts, query: listQuery() },
-    });
+  const { t } = useI18n();
+  return (row: MatrixRow): MatrixRowGroup | null => {
+    const field = options.grouping?.groupByField;
+    if (!field) return null;
+    const value = row.values[field];
+    if (isEmptyValue(value))
+      return { key: "", label: t("dms.matrix.group_none") };
+    const column = columns.columnById.value.get(field);
+    const label =
+      (column && optionLabel(column, value, text)) ??
+      (isBoolean(value)
+        ? t(value ? "dms.matrix.yes" : "dms.matrix.no")
+        : valueText(value));
+    return { key: valueText(value), label };
   };
 }
 
 /**
- * The Matrix block's state and behaviour, provided to its parts: rows read
- * from `fetchUrl` or `staticData` under the query (URL-kept), columns merged
- * and arranged, edits through the save engine (immediate or staged, review,
- * undo, conflicts, targets), totals, the keyboard, the drawers and tools.
+ * What the grid holds: rows read under the query, columns merged and
+ * arranged, edits through the save engine, totals and targets, and what
+ * each cell allows. `onSaved` is told each change a save wrote.
  */
-export function useMatrix(
+function useMatrixModel(
   props: MatrixSetup,
-  /** The state of the block's watch actions: a change reads the rows again. */
   watchKey: () => string,
-): MatrixContext {
+  onSaved: (changes: MatrixChange[]) => void,
+) {
   const options = props;
-  const { t } = useI18n();
   const { processText } = useComposedText();
-  const root = ref<HTMLElement | null>(null);
   const text = (value: BlockText | undefined) =>
     value === undefined || value === "" ? "" : processText(value);
   const routeParams = () => props.routeParams;
-
   const query = useMatrixQueryState(options, props.componentId);
   const source = useMatrixData({
     options,
@@ -188,39 +173,23 @@ export function useMatrix(
   const canEdit = computed(
     () => Boolean(options.saveUrl) && options.editable !== false,
   );
-
-  const targets = computed(() =>
-    mergeMatrixTargets(options.targets, source.data.value?.targets),
-  );
   let isBlockedNow = () => false;
-  const engine = createMatrixSaveEngine({
-    mode: () => options.saveMode ?? "immediate",
-    send: useSaveRequest(options, routeParams, () =>
-      matrixFilterParams(query.state.value),
-    ),
+  const engine = useMatrixEngine({
+    options,
+    routeParams,
+    listQuery: () => matrixFilterParams(query.state.value),
+    source,
+    labelOf: (columnId) => {
+      const column = columns.columnById.value.get(columnId);
+      return column ? text(column.label) : undefined;
+    },
     isBlocked: () => isBlockedNow(),
-    onResponse: (response) => source.applySaveResponse(response),
-    onWritten: (values) => source.patchValues(values),
-    onConflict: (conflict) =>
-      source.patchValues([
-        {
-          rowId: conflict.rowId,
-          columnId: conflict.columnId,
-          value: conflict.current,
-        },
-      ]),
-    onSaved: (changes) => saving.offerUndo(changes),
-    describeError: (error) =>
-      resolveActionError(error, t, (field) => {
-        const column = columns.columnById.value.get(field);
-        return column ? text(column.label) : undefined;
-      }),
+    onSaved,
   });
-
   const rows = useMatrixRows({
     data: source.data,
     grouping: () => options.grouping,
-    groupOf: (row) => fieldGroupOf(row),
+    groupOf: useRowGroups(options, columns, text),
     stateKey: `dms-matrix-folds:${props.pageId}:${props.componentId}`,
     keepEditedRows: () => options.keepEditedRows === true,
     view: () => ({
@@ -231,150 +200,28 @@ export function useMatrix(
     touched: engine.touchedRows,
     hasEdit: (rowId) => engine.edits.value.some((edit) => edit.rowId === rowId),
   });
-
   const valueOf = (row: MatrixRow, columnId: string) =>
     engine.valueOf(row.id, columnId, row.values[columnId]);
-
-  function fieldGroupOf(row: MatrixRow): MatrixRowGroup | null {
-    const field = options.grouping?.groupByField;
-    if (!field) return null;
-    const value = row.values[field];
-    if (isEmptyValue(value))
-      return { key: "", label: t("dms.matrix.group_none") };
-    const column = columns.columnById.value.get(field);
-    const label =
-      (column && optionLabel(column, value, text)) ??
-      (typeof value === "boolean"
-        ? t(value ? "dms.matrix.yes" : "dms.matrix.no")
-        : valueText(value));
-    return { key: valueText(value), label };
-  }
-  const sectionTotals = (section: MatrixSection) =>
-    computeMatrixTotals(section.rows, columns.columns.value, valueOf);
-  const totals = computed(() =>
-    computeMatrixTotals(rows.rows.value, columns.columns.value, valueOf),
-  );
-  const misses = computed(() =>
-    matrixTargetMisses(targets.value, totals.value),
-  );
-  const isBlocked = computed(
-    () => Boolean(targets.value?.blockSave) && misses.value.isMissed,
-  );
-  isBlockedNow = () => isBlocked.value;
-  const targetMessage = computed(() => {
-    if (!misses.value.isMissed) return null;
-    return targets.value?.message
-      ? text(targets.value.message)
-      : t("dms.matrix.target_missed");
+  const goals = useMatrixTargets({
+    options,
+    source,
+    rows,
+    columns,
+    valueOf,
+    text,
+    engine,
   });
-  watch(isBlocked, (blocked) => {
-    if (!blocked && engine.heldCount.value > 0) void engine.flush();
-  });
-
-  const cellState = (row: MatrixRow, columnId: string): MatrixCellState =>
-    row.cells?.[columnId] ?? {};
-  const isEditable = (row: MatrixRow, column: MatrixColumn) => {
-    if (!canEdit.value || column.editable === false || row.readOnly)
-      return false;
-    const state = cellState(row, column.id);
-    return !state.disabled && !state.readOnly;
-  };
-
-  const { handleCustomRowAction } = useActionTargets({
-    api: useAuthFetch().$authFetch,
+  isBlockedNow = () => goals.isBlocked.value;
+  const cells = useMatrixCells({
+    options,
     componentId: props.componentId,
     pageId: props.pageId,
-    refreshCallback: () => void source.refresh(),
-    handleApiError: (error, title) => useApiError(error, { title }),
-    rowIdKey: "id",
-  });
-  const runRowAction = (action: MatrixRowAction, row: MatrixRow) =>
-    handleCustomRowAction(
-      { label: text(action.label), icon: action.icon, target: action.target },
-      { ...row.values, id: row.id },
-    );
-  const hasCellAction = (row: MatrixRow, column: MatrixColumn) =>
-    Boolean(options.cellAction) &&
-    !cellState(row, column.id).disabled &&
-    !isEmptyValue(valueOf(row, column.id));
-  const runCellAction = (row: MatrixRow, column: MatrixColumn) => {
-    if (!options.cellAction) return;
-    handleCustomRowAction(
-      { label: text(column.label), target: options.cellAction },
-      {
-        ...row.values,
-        id: row.id,
-        column: column.id,
-        value: valueOf(row, column.id),
-      },
-    );
-  };
-
-  const commitValue = (row: MatrixRow, column: MatrixColumn, value: unknown) =>
-    void engine.commit({
-      rowId: row.id,
-      columnId: column.id,
-      value,
-      original: row.values[column.id],
-    });
-
-  const rowTitle = (row: MatrixRow) => (row.label ? text(row.label) : row.id);
-  const hasRowPanel = computed(() => Boolean(options.rowPanel));
-  const shape = (list: MatrixRow[]) => ({
-    rowIds: list.map((row) => row.id),
-    columnIds: columns.visible.value.map((column) => column.id),
-  });
-
-  let context: MatrixContext | null = null;
-  const drawers = useMatrixDrawers({
-    context: () => context,
-    componentId: props.componentId,
-    shownRows: () => rows.shown.value,
-    rowOf: (rowId) => rows.rowById.value.get(rowId),
-    columnOf: (columnId) => columns.columnById.value.get(columnId),
+    canEdit,
+    valueOf,
     text,
-    rowTitle,
-    panelTitle: () =>
-      typeof options.rowPanel === "object" ? options.rowPanel.title : undefined,
-    onClosed: (address) => {
-      if (address) interaction.focusCell(address);
-    },
-    onRowShown: (rowId) => {
-      if (isRowDeepLinked)
-        writeMatrixUrlEntries({ [matrixRowUrlKey(props.componentId)]: rowId });
-    },
+    engine,
+    refresh: () => source.refresh(),
   });
-
-  const isRowDeepLinked =
-    typeof options.rowPanel === "object" && options.rowPanel.deepLink === true;
-  let linkedRow = isRowDeepLinked
-    ? readMatrixUrlRow(
-        useDmsRoute().query as Record<string, string>,
-        props.componentId,
-      )
-    : undefined;
-  onMounted(() => {
-    if (!linkedRow) return;
-    watch(
-      [() => rows.rowById.value, () => source.isLoading.value],
-      ([byId, isLoading]) => {
-        if (!linkedRow) return;
-        const rowId = linkedRow;
-        if (byId.has(rowId)) {
-          linkedRow = undefined;
-          drawers.openRowPanel(rowId);
-          return;
-        }
-        if (isLoading || !source.data.value) return;
-        linkedRow = undefined;
-        writeMatrixUrlEntries({
-          [matrixRowUrlKey(props.componentId)]: undefined,
-        });
-      },
-      { immediate: true },
-    );
-  });
-
   watch(
     () => columns.columnById.value,
     (byId) => {
@@ -388,100 +235,152 @@ export function useMatrix(
       });
     },
   );
+  return {
+    options,
+    componentId: props.componentId,
+    pageId: props.pageId,
+    text,
+    routeParams,
+    query,
+    source,
+    columns,
+    rows,
+    engine,
+    canEdit,
+    valueOf,
+    ...goals,
+    ...cells,
+  };
+}
 
+type MatrixModel = ReturnType<typeof useMatrixModel>;
+
+/** The grid's drawers, the row kept in the URL, and its keyboard. */
+function useMatrixView(
+  model: MatrixModel,
+  root: Ref<HTMLElement | null>,
+  context: () => MatrixContext | null,
+) {
+  const { options, rows, columns, text } = model;
+  const rowTitle = (row: MatrixRow) => (row.label ? text(row.label) : row.id);
+  const focusOrderOf = (list: MatrixRow[]) => ({
+    rowIds: list.map((row) => row.id),
+    columnIds: columns.visible.value.map((column) => column.id),
+  });
+  const link = useMatrixRowLink({
+    componentId: model.componentId,
+    isDeepLinked: rowPanelOptionsOf(options.rowPanel)?.deepLink === true,
+    rowById: () => rows.rowById.value,
+    isLoading: () => model.source.isLoading.value,
+    hasData: () => Boolean(model.source.data.value),
+    openRowPanel: (rowId) => drawers.openRowPanel(rowId),
+  });
+  const drawers = useMatrixDrawers({
+    context,
+    componentId: model.componentId,
+    shownRows: () => rows.shown.value,
+    rowOf: (rowId) => rows.rowById.value.get(rowId),
+    columnOf: (columnId) => columns.columnById.value.get(columnId),
+    text,
+    rowTitle,
+    panelTitle: () => rowPanelOptionsOf(options.rowPanel)?.title,
+    onClosed: (address) => {
+      if (address) interaction.focusCell(address);
+    },
+    onRowShown: link.onRowShown,
+  });
   const interaction = useMatrixInteraction({
     options,
     root,
-    shape: () => shape(rows.shown.value),
-    allShape: () =>
-      shape(rows.sections.value.flatMap((section) => section.rows)),
+    focusOrder: () => focusOrderOf(rows.shown.value),
+    allFocusOrder: () =>
+      focusOrderOf(rows.sections.value.flatMap((section) => section.rows)),
     rowOf: (rowId) => rows.rowById.value.get(rowId),
     columnOf: (columnId) => columns.columnById.value.get(columnId),
-    valueOf,
-    isEditable,
-    hasCellAction,
-    runCellAction,
-    commitValue,
+    valueOf: model.valueOf,
+    isEditable: model.isEditable,
+    hasCellAction: model.hasCellAction,
+    runCellAction: model.runCellAction,
+    commitValue: model.commitValue,
     openCellDrawer: drawers.openCellDrawer,
     openRowPanel: drawers.openRowPanel,
-    hasRowPanel: () => hasRowPanel.value,
+    hasRowPanel: () => Boolean(options.rowPanel),
     expandGroupOf: rows.expandGroupOf,
-    cellEditIn: (row, columnId) => cellState(row, columnId).editIn,
+    cellEditIn: (row, columnId) => model.cellState(row, columnId).editIn,
   });
+  return { rowTitle, drawers, interaction };
+}
 
+/**
+ * The Matrix block's state and behaviour, provided to its parts: rows read
+ * from `fetchUrl` or `staticData` under the query (URL-kept), columns merged
+ * and arranged, edits through the save engine (immediate or staged, review,
+ * undo, conflicts, targets), totals, the keyboard, the drawers and tools.
+ */
+export function useMatrix(
+  props: MatrixSetup,
+  /** The state of the block's watch actions: a change reads the rows again. */
+  watchKey: () => string,
+): MatrixContext {
+  const model = useMatrixModel(props, watchKey, (changes) =>
+    saving.offerUndo(changes),
+  );
+  const { options, rows, columns, engine } = model;
+  const root = ref<HTMLElement | null>(null);
+  let context: MatrixContext | null = null;
+  const { rowTitle, drawers, interaction } = useMatrixView(
+    model,
+    root,
+    () => context,
+  );
   const entryCell = computed<MatrixCellAddress | null>(() => {
     const row = rows.shown.value[0];
     const column = columns.visible.value[0];
     return row && column ? { rowId: row.id, columnId: column.id } : null;
   });
-
   const saving = useMatrixSaving({
     options,
     engine,
-    isBlocked,
-    targetMessage,
+    isBlocked: model.isBlocked,
+    targetMessage: model.targetMessage,
     root,
     commitEditor: () => interaction.commitOpenEditor(),
-    context: () => context as MatrixContext,
+    context: () => context,
   });
   const selection = useMatrixSelection(() => rows.shown.value);
   watch(
     () => rows.shown.value.map((row) => row.id),
     (ids) => selection.keepOnly(ids),
   );
-
   const tools = useMatrixTools({
     options,
     componentId: props.componentId,
-    text,
-    routeParams,
+    text: model.text,
+    routeParams: model.routeParams,
     rows: () => rows.rows.value,
     sections: () => rows.sections.value,
     visibleColumns: () => columns.visible.value,
     allColumns: () => columns.columns.value,
-    valueOf,
+    valueOf: model.valueOf,
     rowTitle,
-    totals: () => totals.value,
-    commitMany: (changes) => void engine.commitMany(changes),
+    totals: () => model.totals.value,
+    commitMany: (changes) => detach(engine.commitMany(changes)),
     rowOf: (rowId) => rows.rowById.value.get(rowId),
     columnOf: (columnId) => columns.columnById.value.get(columnId),
-    isEditable,
+    isEditable: model.isEditable,
     selected: () => (options.selectable ? selection.ids.value : undefined),
-    labelOfValue: (column, value) => optionLabel(column, value, text),
+    labelOfValue: (column, value) => optionLabel(column, value, model.text),
   });
-
   context = markRaw({
-    options,
-    componentId: props.componentId,
-    pageId: props.pageId,
+    ...model,
     root,
-    text,
-    query,
-    source,
-    columns,
-    rows,
-    engine,
     interaction,
     entryCell,
-    canEdit,
-    totals,
-    sectionTotals,
-    targets,
-    misses,
-    isBlocked,
-    targetMessage,
     rowTitle,
-    valueOf,
-    cellState,
-    isEditable,
-    hasCellAction,
-    runCellAction,
-    commitValue,
     openRowPanel: drawers.openRowPanel,
     openCellDrawer: drawers.openCellDrawer,
-    hasRowPanel,
+    hasRowPanel: computed(() => Boolean(options.rowPanel)),
     selection,
-    runRowAction,
     requestSave: saving.requestSave,
     tools,
   });
@@ -492,7 +391,7 @@ export function useMatrix(
 /** A select's value as its option's label; anything else as written. */
 export function optionLabel(
   column: MatrixColumn,
-  value: unknown,
+  value: MatrixValue | undefined,
   text: (value: BlockText | undefined) => string,
 ): string | undefined {
   if (kindOf(column) !== "select" && kindOf(column) !== "tags")

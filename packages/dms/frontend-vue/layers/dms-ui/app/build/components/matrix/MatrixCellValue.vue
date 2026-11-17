@@ -4,12 +4,14 @@ import striptags from "striptags";
 import { resolveDmsComponent } from "../../../composables/resolveDmsComponent";
 import { useColumnValueRenderer } from "../../composables/data-types/useColumnValueRenderer";
 import { useComposedText } from "#dms-core/app/composables/translation/useComposedText";
+import { isNumber } from "#dms-core/app/utils/type-check";
 import type {
   MatrixCellKind,
   MatrixCellState,
   MatrixColumn,
   MatrixRow,
   MatrixSelectOption,
+  MatrixValue,
 } from "../../../types/matrix";
 import {
   isEmptyValue,
@@ -30,7 +32,7 @@ import { matrixRenderColumn } from "../../composables/matrix/matrixRender";
  */
 interface MatrixCellValueProps {
   column: MatrixColumn;
-  value: unknown;
+  value?: MatrixValue | undefined;
   row: MatrixRow;
   state?: MatrixCellState;
 }
@@ -63,7 +65,9 @@ const displayed = computed<VNodeChild | null>(() =>
     : null,
 );
 
-const optionOf = (value: unknown): MatrixSelectOption | undefined =>
+const optionOf = (
+  value: MatrixValue | undefined,
+): MatrixSelectOption | undefined =>
   props.column.options?.find((option) => option.value === value);
 
 /** A select's value, or each tag, as a pill in its option's tone. */
@@ -88,7 +92,7 @@ const DATETIME_FORMAT: Intl.DateTimeFormatOptions = {
 };
 
 const numberText = computed(() =>
-  typeof props.value === "number"
+  isNumber(props.value)
     ? new Intl.NumberFormat(locale.value).format(props.value)
     : valueText(props.value),
 );

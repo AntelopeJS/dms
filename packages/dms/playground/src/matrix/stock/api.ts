@@ -5,7 +5,9 @@ import {
   JSONBody,
   Parameter,
   Post,
+  type QueryValue,
 } from "@antelopejs/interface-api";
+import { queryText } from "../../query-text";
 import type { User } from "@antelopejs/interface-dms/auth/db";
 import type {
   MatrixCellState,
@@ -139,6 +141,10 @@ function rowBase(store: Store): Omit<MatrixRow, "values" | "cells"> {
 
 type CellTone = (store: Store, pairs: number) => MatrixCellState["tone"];
 
+/** The pairs of `size` a store holds, none when it holds no such size. */
+const quantityOf = (quantities: Record<string, number>, size: string) =>
+  Object.hasOwn(quantities, size) ? (quantities[size] ?? 0) : 0;
+
 function sizeCells(
   store: Store,
   quantities: Record<string, number>,
@@ -150,7 +156,7 @@ function sizeCells(
       cells[size] = { disabled: true };
       continue;
     }
-    const tone = toneOf(store, quantities[size] ?? 0);
+    const tone = toneOf(store, quantityOf(quantities, size));
     if (tone) cells[size] = { tone };
   }
   return cells;
@@ -163,7 +169,7 @@ function sizeValues(
   return Object.fromEntries(
     SIZES.map((size) => [
       size,
-      isInRange(store, size) ? (quantities[size] ?? 0) : null,
+      isInRange(store, size) ? quantityOf(quantities, size) : null,
     ]),
   );
 }
@@ -240,8 +246,8 @@ export class MatrixStockController extends Controller(MATRIX_STOCK_API) {
   declare user: User;
 
   @Get("rows")
-  list(@Parameter("view", "query") view?: string): MatrixData {
-    if (view === SALES_VIEW) {
+  list(@Parameter("view", "query") view: QueryValue): MatrixData {
+    if (queryText(view) === SALES_VIEW) {
       return {
         columns: [...sizeColumns(), ...SALES_ANNEX],
         rows: STORES.map(salesRow),
@@ -255,9 +261,11 @@ export class MatrixStockController extends Controller(MATRIX_STOCK_API) {
 
   @Get("order")
   orderForm(
-    @Parameter("store", "query") storeId = "",
-    @Parameter("size", "query") size = "",
+    @Parameter("store", "query") storeQuery: QueryValue,
+    @Parameter("size", "query") sizeQuery: QueryValue,
   ): OrderRequest {
+    const storeId = queryText(storeQuery) ?? "";
+    const size = queryText(sizeQuery) ?? "";
     const store = findStore(storeId);
     return {
       article: `${ARTICLE.label} — ${ARTICLE.code} (${ARTICLE.colour})`,
@@ -275,11 +283,12 @@ export class MatrixStockController extends Controller(MATRIX_STOCK_API) {
   @Post("order")
   order(
     @JSONBody() body: OrderRequest,
-    @Parameter("store", "query") storeId = "",
-    @Parameter("size", "query") sizeQuery = "",
+    @Parameter("store", "query") storeQuery: QueryValue,
+    @Parameter("size", "query") sizeQuery: QueryValue,
   ) {
+    const storeId = queryText(storeQuery) ?? "";
     const store = findStore(storeId);
-    const size = sizeQuery || body.size || "";
+    const size = queryText(sizeQuery) || body.size || "";
     if (!body.customer?.trim()) {
       throw refuse(
         HTTP_BAD_REQUEST,

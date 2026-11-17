@@ -172,7 +172,11 @@ function withMistake(key: string, language: Language, text: string): string {
   )
     return text;
   return text.replace(PLACEHOLDER, (placeholder, name: string) => {
-    const translated = TRANSLATED_PLACEHOLDERS[name]?.[language];
+    const texts = Object.hasOwn(TRANSLATED_PLACEHOLDERS, name)
+      ? TRANSLATED_PLACEHOLDERS[name]
+      : undefined;
+    const translated =
+      texts && Object.hasOwn(texts, language) ? texts[language] : undefined;
     return translated ? `{${translated}}` : placeholder;
   });
 }
@@ -299,7 +303,9 @@ export const OVERRIDDEN_KEYS = new Set<string>(
 );
 
 for (const entry of TRANSLATION_KEYS) {
-  const override = WORKSPACE_OVERRIDES[entry.key];
+  const override = Object.hasOwn(WORKSPACE_OVERRIDES, entry.key)
+    ? WORKSPACE_OVERRIDES[entry.key]
+    : undefined;
   if (override) entry.texts = { ...override };
 }
 

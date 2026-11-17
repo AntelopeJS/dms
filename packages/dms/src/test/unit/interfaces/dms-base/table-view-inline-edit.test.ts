@@ -20,9 +20,9 @@ import {
   TableView,
   TableViewSchema,
   type TableViewOptions,
-  type TableViewOptionsSerialized,
   TableViewRoutes,
 } from "@antelopejs/interface-dms/base/table-view";
+import { z } from "zod";
 import { withPermissionAncestors } from "@antelopejs/interface-dms/internal/permission-ids";
 
 /**
@@ -54,19 +54,29 @@ class InlineEditAPI extends DataController(
   declare price: number;
 }
 
+/** What the tests read of the options a caller is served. */
+const ServedOptions = z.object({
+  inlineEdit: z
+    .union([z.boolean(), z.object({ columns: z.array(z.string()) })])
+    .optional(),
+  formComponents: z.object({ edit: z.unknown().optional() }),
+});
+
 async function servedOptions(
   inlineEdit: TableViewOptions["inlineEdit"],
   permissions: string[],
-): Promise<TableViewOptionsSerialized> {
+) {
   const builder = TableView(InlineEditAPI, { realtime: false, inlineEdit });
   const { options } = builder.serializeSync();
   const filter = builder.onFilterCallback;
   if (!filter || !options) throw new Error("table view without a filter");
-  return filter(
-    new Set(withPermissionAncestors(permissions)),
-    options,
-    COMPONENT_PERMISSION_ID,
-    { tenantId: "inline-edit-tenant", user: undefined },
+  return ServedOptions.parse(
+    await filter(
+      new Set(withPermissionAncestors(permissions)),
+      options,
+      COMPONENT_PERMISSION_ID,
+      { tenantId: "inline-edit-tenant", user: undefined },
+    ),
   );
 }
 

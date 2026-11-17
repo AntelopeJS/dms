@@ -8,6 +8,7 @@ import {
   createMatrixSaveEngine,
   type MatrixSaveEngineOptions,
 } from "../layers/dms-ui/app/entries/composables/matrix/matrixSaveEngine";
+import { valueText } from "../layers/dms-ui/app/entries/composables/matrix/matrixValues";
 import type {
   MatrixSaveMode,
   MatrixSaveRequest,
@@ -38,7 +39,8 @@ function harness(
       return next;
     },
     isBlocked: () => blocked.value,
-    describeError: (error) => (error as Error).message,
+    describeError: (error) =>
+      error instanceof Error ? error.message : "failed",
     onSaved: (changes) => saved.push(changes),
     ...overrides,
   });
@@ -372,7 +374,9 @@ describe("fix round 1", () => {
       changes: [{ rowId: "k", columnId: "fr", value: "B", previous: "Z" }],
     });
   });
+});
 
+describe("fix round 1: one write per cell", () => {
   it("waits for a cell's write before sending its next value (6)", async () => {
     let release: (response: MatrixSaveResponse) => void = () => {};
     const requests: MatrixSaveRequest[] = [];
@@ -462,7 +466,7 @@ describe("fix round 2", () => {
     const engine = createMatrixSaveEngine({
       mode: () => "immediate",
       send: (request) => {
-        order.push(String(request.changes[0]!.value));
+        order.push(valueText(request.changes[0]?.value));
         return new Promise((resolve) => releases.push(() => resolve({})));
       },
       isBlocked: () => false,

@@ -9,6 +9,7 @@ import {
   moveColumnOrder,
   orderMatrixColumns,
   visibleMatrixColumns,
+  isMatrixColumnPreferences,
   type MatrixColumnPreferences,
 } from "./matrixColumns";
 
@@ -33,7 +34,8 @@ export interface MatrixColumnsControls {
 function readPreferences(key: string): MatrixColumnPreferences {
   try {
     const stored = window.localStorage.getItem(key);
-    return stored ? (JSON.parse(stored) as MatrixColumnPreferences) : {};
+    const parsed: unknown = stored ? JSON.parse(stored) : {};
+    return isMatrixColumnPreferences(parsed) ? parsed : {};
   } catch {
     return {};
   }

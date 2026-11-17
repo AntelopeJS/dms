@@ -90,8 +90,11 @@ function startResize(event: PointerEvent): void {
 
 function resizeByKey(event: KeyboardEvent): void {
   const STEP = 16;
-  const deltas: Record<string, number> = { ArrowLeft: -STEP, ArrowRight: STEP };
-  const delta = deltas[event.key];
+  const deltas = new Map([
+    ["ArrowLeft", -STEP],
+    ["ArrowRight", STEP],
+  ]);
+  const delta = deltas.get(event.key);
   if (delta === undefined) return;
   event.preventDefault();
   event.stopPropagation();
@@ -170,7 +173,7 @@ onBeforeUnmount(() => detach?.());
       {{ description }}
     </p>
     <span v-if="progress !== null" class="sr-only">{{ progressText }}</span>
-    <DmsMeter
+    <DmsMeterBar
       v-if="progress !== null"
       aria-hidden="true"
       :title="progressText"

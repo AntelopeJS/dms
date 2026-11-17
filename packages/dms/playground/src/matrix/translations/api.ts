@@ -6,8 +6,10 @@ import {
   JSONBody,
   Parameter,
   Post,
+  type QueryValue,
   type RequestContext,
 } from "@antelopejs/interface-api";
+import { queryText } from "../../query-text";
 import type { User } from "@antelopejs/interface-dms/auth/db";
 import {
   MATRIX_LONG_TEXT_LENGTH,
@@ -430,8 +432,8 @@ export class MatrixTranslationsController extends Controller(
 
   /** Row action: the English text copied into the languages still missing. */
   @Post("actions/copy-base")
-  copyBase(@Parameter("key", "query") key = "") {
-    const entry = findKey(key);
+  copyBase(@Parameter("key", "query") key: QueryValue) {
+    const entry = findKey(queryText(key) ?? "");
     const base = entry.texts[BASE_LANGUAGE] ?? "";
     const missing = LANGUAGES.filter((language) => isMissing(entry, language));
     if (!missing.length) return { message: "Nothing was missing." };
@@ -445,8 +447,8 @@ export class MatrixTranslationsController extends Controller(
    * are, so later module updates leave it alone.
    */
   @Post("actions/override")
-  override(@Parameter("key", "query") key = "") {
-    const entry = findKey(key);
+  override(@Parameter("key", "query") key: QueryValue) {
+    const entry = findKey(queryText(key) ?? "");
     if (OVERRIDDEN_KEYS.has(entry.key)) {
       throw new HTTPResult(
         HTTP_CONFLICT,
@@ -460,8 +462,8 @@ export class MatrixTranslationsController extends Controller(
 
   /** Row action: the module's texts put back, the key no longer overridden. */
   @Post("actions/revert")
-  revert(@Parameter("key", "query") key = "") {
-    const entry = findKey(key);
+  revert(@Parameter("key", "query") key: QueryValue) {
+    const entry = findKey(queryText(key) ?? "");
     if (!OVERRIDDEN_KEYS.has(entry.key)) {
       throw new HTTPResult(
         HTTP_CONFLICT,

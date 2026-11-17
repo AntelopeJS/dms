@@ -44,6 +44,7 @@ import {
   PURGED_REF,
   REQUEST_DOCUMENTS,
   REQUEST_LABELS,
+  type JsonValue,
   type RequestDocument,
   type RequestField,
 } from "./data";
@@ -83,60 +84,51 @@ const DOCUMENT_KEYS: (keyof RequestDocument)[] = [
   "notes",
 ];
 
-type ChangeValue = MatrixChange["value"];
+/** A JSON value, checked to its last nested one: a request's body. */
+const jsonValue: z.ZodType<JsonValue> = z.lazy(() =>
+  z.union([
+    z.string(),
+    z.number(),
+    z.boolean(),
+    z.null(),
+    z.array(jsonValue),
+    z.record(jsonValue),
+  ]),
+);
 
-/** Why a value does not fit its field, or `undefined` when it does. */
-type FieldCheck = (value: ChangeValue) => string | undefined;
+/** The value each writable field takes. */
+const FIELD_SCHEMAS = {
+  method: z.enum(HTTP_METHODS),
+  path: z.string().startsWith("/").max(MAX_PATH_LENGTH),
+  status: z.number().int().min(LOWEST_STATUS).max(HIGHEST_STATUS),
+  durationMs: z.number().finite().min(0).nullable(),
+  cached: z.boolean(),
+  receivedAt: z.string().refine((value) => !Number.isNaN(Date.parse(value))),
+  client: z.string().trim().min(1).nullable(),
+  headers: z.record(z.string()),
+  body: z.union([z.null(), z.array(jsonValue), z.record(jsonValue)]),
+  sql: z.string().trim().min(1),
+  labels: z.array(z.string().refine((label) => REQUEST_LABELS.includes(label))),
+  notes: z.string().max(MAX_NOTE_LENGTH).nullable(),
+} satisfies Record<RequestField, z.ZodType>;
 
-/** A field's value schema, and what a value it refuses is told. */
-const fieldCheck =
-  (schema: z.ZodType, message: string): FieldCheck =>
-  (value) =>
-    schema.safeParse(value).success ? undefined : message;
+/** A change to one writable field, parsed into the document's own types. */
+const FIELD_WRITE = z.object(FIELD_SCHEMAS).partial().strict();
 
-const FIELD_CHECKS: Record<RequestField, FieldCheck> = {
-  method: fieldCheck(
-    z.enum(HTTP_METHODS),
-    `Expected one of ${HTTP_METHODS.join(", ")}.`,
-  ),
-  path: fieldCheck(
-    z.string().startsWith("/").max(MAX_PATH_LENGTH),
-    "A path starts with /.",
-  ),
-  status: fieldCheck(
-    z.number().int().min(LOWEST_STATUS).max(HIGHEST_STATUS),
-    `An HTTP status is a whole number from ${LOWEST_STATUS} to ${HIGHEST_STATUS}.`,
-  ),
-  durationMs: fieldCheck(
-    z.number().finite().min(0).nullable(),
-    "A duration is a positive number of milliseconds, or null.",
-  ),
-  cached: fieldCheck(z.boolean(), "Expected true or false."),
-  receivedAt: fieldCheck(
-    z.string().refine((value) => !Number.isNaN(Date.parse(value))),
-    "Expected a date.",
-  ),
-  client: fieldCheck(
-    z.string().trim().min(1).nullable(),
-    "A client is a name, or null for an anonymous call.",
-  ),
-  headers: fieldCheck(
-    z.record(z.string()),
-    "Headers are names with text values.",
-  ),
-  body: fieldCheck(
-    z.union([z.null(), z.array(z.unknown()), z.record(z.unknown())]),
-    "A request body is an object, an array or null.",
-  ),
-  sql: fieldCheck(z.string().trim().min(1), "The statement cannot be empty."),
-  labels: fieldCheck(
-    z.array(z.string().refine((label) => REQUEST_LABELS.includes(label))),
-    `Labels are among ${REQUEST_LABELS.join(", ")}.`,
-  ),
-  notes: fieldCheck(
-    z.string().max(MAX_NOTE_LENGTH).nullable(),
-    `A note holds ${MAX_NOTE_LENGTH} characters at most.`,
-  ),
+/** What a value a field refuses is told. */
+const FIELD_MESSAGES: Record<RequestField, string> = {
+  method: `Expected one of ${HTTP_METHODS.join(", ")}.`,
+  path: "A path starts with /.",
+  status: `An HTTP status is a whole number from ${LOWEST_STATUS} to ${HIGHEST_STATUS}.`,
+  durationMs: "A duration is a positive number of milliseconds, or null.",
+  cached: "Expected true or false.",
+  receivedAt: "Expected a date.",
+  client: "A client is a name, or null for an anonymous call.",
+  headers: "Headers are names with text values.",
+  body: "A request body is an object, an array or null.",
+  sql: "The statement cannot be empty.",
+  labels: `Labels are among ${REQUEST_LABELS.join(", ")}.`,
+  notes: `A note holds ${MAX_NOTE_LENGTH} characters at most.`,
 };
 
 function isDocumentKey(columnId: string): columnId is keyof RequestDocument {
@@ -144,7 +136,7 @@ function isDocumentKey(columnId: string): columnId is keyof RequestDocument {
 }
 
 function isWritableField(columnId: string): columnId is RequestField {
-  return columnId in FIELD_CHECKS;
+  return Object.hasOwn(FIELD_SCHEMAS, columnId);
 }
 
 function statusClass(status: number): string {
@@ -240,11 +232,12 @@ function applyChange(
   if (!isWritableField(columnId)) {
     return { error: cellError(change, `${columnId} is read-only.`) };
   }
-  const problem = FIELD_CHECKS[columnId](change.value);
-  if (problem) return { error: cellError(change, problem) };
+  const written = FIELD_WRITE.safeParse({ [columnId]: change.value });
+  if (!written.success)
+    return { error: cellError(change, FIELD_MESSAGES[columnId]) };
   const conflict = conflictOf(request, change, stored[columnId]);
   if (conflict) return { conflict };
-  Object.assign(stored, { [columnId]: change.value });
+  Object.assign(stored, written.data);
   return {};
 }
 

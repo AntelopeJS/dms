@@ -2,7 +2,9 @@ import type {
   MatrixData,
   MatrixPagination,
   MatrixRow,
+  MatrixValue,
 } from "../../../types/matrix";
+import { isNumber, isString } from "#dms-core/app/utils/type-check";
 import { valueText } from "./matrixValues";
 
 export type MatrixSortDirection = "asc" | "desc";
@@ -81,9 +83,11 @@ export function columnFilterText(filter: MatrixColumnFilter): string {
 export function parseColumnFilter(text: string): MatrixColumnFilter | null {
   const separator = text.indexOf(FILTER_SEPARATOR);
   if (separator < 0) return null;
-  const mode = text.slice(0, separator) as MatrixColumnFilterMode;
+  const mode = MATRIX_COLUMN_FILTER_MODES.find(
+    (entry) => entry === text.slice(0, separator),
+  );
   const value = text.slice(separator + 1);
-  if (!MATRIX_COLUMN_FILTER_MODES.includes(mode) || !value) return null;
+  if (!mode || !value) return null;
   return { mode, value };
 }
 
@@ -98,22 +102,22 @@ export function columnOfFilterParam(param: string): string | null {
 export function matrixFilterParams(
   state: MatrixQueryState,
 ): Record<string, string> {
-  const params: Record<string, string> = {};
+  const params = new Map<string, string>();
   const search = state.search.trim();
-  if (search) params.search = search;
-  if (state.status) params.status = state.status;
+  if (search) params.set("search", search);
+  if (state.status) params.set("status", state.status);
   for (const [id, values] of Object.entries(state.facets)) {
-    if (values.length) params[facetParam(id)] = values.join(FACET_SEPARATOR);
+    if (values.length) params.set(facetParam(id), values.join(FACET_SEPARATOR));
   }
   for (const [columnId, filter] of Object.entries(state.filters)) {
     if (filter.value)
-      params[columnFilterParam(columnId)] = columnFilterText(filter);
+      params.set(columnFilterParam(columnId), columnFilterText(filter));
   }
   if (state.sort) {
-    params.sort = state.sort.columnId;
-    params.direction = state.sort.direction;
+    params.set("sort", state.sort.columnId);
+    params.set("direction", state.sort.direction);
   }
-  return params;
+  return Object.fromEntries(params);
 }
 
 /**
@@ -129,7 +133,11 @@ export function buildMatrixQuery(
   const params = matrixFilterParams(state);
   if (pagination === "none") return params;
   const start = offset ?? state.page * state.pageSize;
-  return { ...params, offset: String(start), limit: String(state.pageSize) };
+  return Object.fromEntries([
+    ...Object.entries(params),
+    ["offset", String(start)],
+    ["limit", String(state.pageSize)],
+  ]);
 }
 
 const SORT_CYCLE: Record<MatrixSortDirection, MatrixSortDirection | null> = {
@@ -200,7 +208,7 @@ export function clampPage(
 function rowMatches(row: MatrixRow, needle: string): boolean {
   const haystack = [
     row.id,
-    typeof row.label === "string" ? row.label : "",
+    isString(row.label) ? row.label : "",
     ...Object.values(row.values).map(valueText),
   ];
   return haystack.some((text) => text.toLowerCase().includes(needle));
@@ -226,9 +234,11 @@ function matchesFilters(
   );
 }
 
-function compareValues(left: unknown, right: unknown): number {
-  if (typeof left === "number" && typeof right === "number")
-    return left - right;
+function compareValues(
+  left: MatrixValue | undefined,
+  right: MatrixValue | undefined,
+): number {
+  if (isNumber(left) && isNumber(right)) return left - right;
   return valueText(left).localeCompare(valueText(right), undefined, {
     numeric: true,
   });

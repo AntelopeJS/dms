@@ -7,7 +7,7 @@ export interface MatrixCellAddress {
 }
 
 /** The rows and columns a focus moves through, in the order drawn. */
-export interface MatrixGridShape {
+export interface MatrixFocusOrder {
   rowIds: string[];
   columnIds: string[];
 }
@@ -22,59 +22,78 @@ interface GridPosition {
 
 type PositionMove = (
   position: GridPosition,
-  shape: MatrixGridShape,
+  focusOrder: MatrixFocusOrder,
   isCtrl: boolean,
 ) => GridPosition;
 
-const lastRow = (shape: MatrixGridShape) => shape.rowIds.length - 1;
-const lastColumn = (shape: MatrixGridShape) => shape.columnIds.length - 1;
+const lastRow = (focusOrder: MatrixFocusOrder) => focusOrder.rowIds.length - 1;
+const lastColumn = (focusOrder: MatrixFocusOrder) =>
+  focusOrder.columnIds.length - 1;
 
-const KEY_MOVES: Record<string, PositionMove> = {
-  ArrowUp: ({ row, column }, _shape, isCtrl) => ({
-    row: isCtrl ? 0 : row - 1,
-    column,
-  }),
-  ArrowDown: ({ row, column }, shape, isCtrl) => ({
-    row: isCtrl ? lastRow(shape) : row + 1,
-    column,
-  }),
-  ArrowLeft: ({ row, column }, _shape, isCtrl) => ({
-    row,
-    column: isCtrl ? 0 : column - 1,
-  }),
-  ArrowRight: ({ row, column }, shape, isCtrl) => ({
-    row,
-    column: isCtrl ? lastColumn(shape) : column + 1,
-  }),
-  Home: ({ row }, _shape, isCtrl) => ({ row: isCtrl ? 0 : row, column: 0 }),
-  End: ({ row }, shape, isCtrl) => ({
-    row: isCtrl ? lastRow(shape) : row,
-    column: lastColumn(shape),
-  }),
-  PageUp: ({ row, column }) => ({ row: row - PAGE_STEP, column }),
-  PageDown: ({ row, column }) => ({ row: row + PAGE_STEP, column }),
-};
+const KEY_MOVES = new Map<string, PositionMove>([
+  [
+    "ArrowUp",
+    ({ row, column }, _focusOrder, isCtrl) => ({
+      row: isCtrl ? 0 : row - 1,
+      column,
+    }),
+  ],
+  [
+    "ArrowDown",
+    ({ row, column }, focusOrder, isCtrl) => ({
+      row: isCtrl ? lastRow(focusOrder) : row + 1,
+      column,
+    }),
+  ],
+  [
+    "ArrowLeft",
+    ({ row, column }, _focusOrder, isCtrl) => ({
+      row,
+      column: isCtrl ? 0 : column - 1,
+    }),
+  ],
+  [
+    "ArrowRight",
+    ({ row, column }, focusOrder, isCtrl) => ({
+      row,
+      column: isCtrl ? lastColumn(focusOrder) : column + 1,
+    }),
+  ],
+  [
+    "Home",
+    ({ row }, _focusOrder, isCtrl) => ({ row: isCtrl ? 0 : row, column: 0 }),
+  ],
+  [
+    "End",
+    ({ row }, focusOrder, isCtrl) => ({
+      row: isCtrl ? lastRow(focusOrder) : row,
+      column: lastColumn(focusOrder),
+    }),
+  ],
+  ["PageUp", ({ row, column }) => ({ row: row - PAGE_STEP, column })],
+  ["PageDown", ({ row, column }) => ({ row: row + PAGE_STEP, column })],
+]);
 
 /** Whether a key moves the focus around the grid. */
 export function isMatrixMoveKey(key: string): boolean {
-  return key in KEY_MOVES;
+  return KEY_MOVES.has(key);
 }
 
 function positionOf(
-  shape: MatrixGridShape,
+  focusOrder: MatrixFocusOrder,
   address: MatrixCellAddress,
 ): GridPosition | null {
-  const row = shape.rowIds.indexOf(address.rowId);
-  const column = shape.columnIds.indexOf(address.columnId);
+  const row = focusOrder.rowIds.indexOf(address.rowId);
+  const column = focusOrder.columnIds.indexOf(address.columnId);
   return row < 0 || column < 0 ? null : { row, column };
 }
 
 function addressAt(
-  shape: MatrixGridShape,
+  focusOrder: MatrixFocusOrder,
   position: GridPosition,
 ): MatrixCellAddress | null {
-  const rowId = shape.rowIds[position.row];
-  const columnId = shape.columnIds[position.column];
+  const rowId = focusOrder.rowIds[position.row];
+  const columnId = focusOrder.columnIds[position.column];
   return rowId === undefined || columnId === undefined
     ? null
     : { rowId, columnId };
@@ -84,9 +103,9 @@ const clamp = (value: number, max: number) => Math.max(0, Math.min(max, value));
 
 /** The first cell of the grid, where a focus without a cell starts. */
 export function firstMatrixCell(
-  shape: MatrixGridShape,
+  focusOrder: MatrixFocusOrder,
 ): MatrixCellAddress | null {
-  return addressAt(shape, { row: 0, column: 0 });
+  return addressAt(focusOrder, { row: 0, column: 0 });
 }
 
 /**
@@ -96,38 +115,38 @@ export function firstMatrixCell(
  * nothing.
  */
 export function moveMatrixFocus(
-  shape: MatrixGridShape,
+  focusOrder: MatrixFocusOrder,
   from: MatrixCellAddress | null,
   key: string,
   isCtrl = false,
 ): MatrixCellAddress | null {
-  const move = KEY_MOVES[key];
+  const move = KEY_MOVES.get(key);
   if (!move) return null;
-  const start = from ? positionOf(shape, from) : null;
-  if (!start) return firstMatrixCell(shape);
-  const next = move(start, shape, isCtrl);
-  return addressAt(shape, {
-    row: clamp(next.row, lastRow(shape)),
-    column: clamp(next.column, lastColumn(shape)),
+  const start = from ? positionOf(focusOrder, from) : null;
+  if (!start) return firstMatrixCell(focusOrder);
+  const next = move(start, focusOrder, isCtrl);
+  return addressAt(focusOrder, {
+    row: clamp(next.row, lastRow(focusOrder)),
+    column: clamp(next.column, lastColumn(focusOrder)),
   });
 }
 
 /** Every cell after (or before, `step` -1) `from`, row by row, without wrapping. */
 function cellsFrom(
-  shape: MatrixGridShape,
+  focusOrder: MatrixFocusOrder,
   from: GridPosition,
   step: 1 | -1,
   wrap: boolean,
 ): MatrixCellAddress[] {
-  const width = shape.columnIds.length;
-  const count = shape.rowIds.length * width;
+  const width = focusOrder.columnIds.length;
+  const count = focusOrder.rowIds.length * width;
   const start = from.row * width + from.column;
   const cells: MatrixCellAddress[] = [];
   for (let offset = 1; offset < count; offset++) {
     const raw = start + step * offset;
     if (!wrap && (raw < 0 || raw >= count)) break;
     const index = ((raw % count) + count) % count;
-    const address = addressAt(shape, {
+    const address = addressAt(focusOrder, {
       row: Math.floor(index / width),
       column: index % width,
     });
@@ -143,25 +162,31 @@ function cellsFrom(
  * before the first cell (after the last, going back).
  */
 export function findMatrixCell(
-  shape: MatrixGridShape,
+  focusOrder: MatrixFocusOrder,
   from: MatrixCellAddress | null,
   step: 1 | -1,
   accepts: (address: MatrixCellAddress) => boolean,
   wrap = false,
 ): MatrixCellAddress | null {
-  if (!shape.rowIds.length || !shape.columnIds.length) return null;
-  const start = from ? positionOf(shape, from) : null;
+  if (!focusOrder.rowIds.length || !focusOrder.columnIds.length) return null;
+  const start = from ? positionOf(focusOrder, from) : null;
   if (!start) {
-    const edge = step === 1 ? firstMatrixCell(shape) : lastMatrixCell(shape);
+    const edge =
+      step === 1 ? firstMatrixCell(focusOrder) : lastMatrixCell(focusOrder);
     if (edge && accepts(edge)) return edge;
     if (!edge) return null;
-    return findMatrixCell(shape, edge, step, accepts, wrap);
+    return findMatrixCell(focusOrder, edge, step, accepts, wrap);
   }
-  return cellsFrom(shape, start, step, wrap).find(accepts) ?? null;
+  return cellsFrom(focusOrder, start, step, wrap).find(accepts) ?? null;
 }
 
-function lastMatrixCell(shape: MatrixGridShape): MatrixCellAddress | null {
-  return addressAt(shape, { row: lastRow(shape), column: lastColumn(shape) });
+function lastMatrixCell(
+  focusOrder: MatrixFocusOrder,
+): MatrixCellAddress | null {
+  return addressAt(focusOrder, {
+    row: lastRow(focusOrder),
+    column: lastColumn(focusOrder),
+  });
 }
 
 const ENTER_MOVES: Record<MatrixEnterMove, string | null> = {
@@ -172,13 +197,13 @@ const ENTER_MOVES: Record<MatrixEnterMove, string | null> = {
 
 /** Where Enter moves after saving a cell: down, right or nowhere. */
 export function enterMoveTarget(
-  shape: MatrixGridShape,
+  focusOrder: MatrixFocusOrder,
   from: MatrixCellAddress,
   enterMove: MatrixEnterMove,
 ): MatrixCellAddress {
   const key = ENTER_MOVES[enterMove];
   if (!key) return from;
-  return moveMatrixFocus(shape, from, key) ?? from;
+  return moveMatrixFocus(focusOrder, from, key) ?? from;
 }
 
 /** A printable character typed without a command modifier: it starts editing. */

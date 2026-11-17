@@ -2,11 +2,15 @@ import type {
   MatrixColumn,
   MatrixRow,
   MatrixTargets,
+  MatrixValue,
 } from "../../../types/matrix";
 import { kindOf, numericValue } from "./matrixValues";
 
 /** The value a cell shows: its edit's, else the row's. */
-export type MatrixCellValueOf = (row: MatrixRow, columnId: string) => unknown;
+export type MatrixCellValueOf = (
+  row: MatrixRow,
+  columnId: string,
+) => MatrixValue | undefined;
 
 /** The totals of a grid, from the values on screen (edits included). */
 export interface MatrixTotalsResult {
@@ -85,7 +89,9 @@ function missedKeys(
 ): Set<string> {
   return new Set(
     Object.entries(expected ?? {})
-      .filter(([id, target]) => differs(actual[id], target))
+      .filter(([id, target]) =>
+        differs(Object.hasOwn(actual, id) ? actual[id] : undefined, target),
+      )
       .map(([id]) => id),
   );
 }

@@ -9,7 +9,6 @@ import {
 import {
   useApiData,
   useApiPagedData,
-  type UseApiDataOptions,
 } from "#dms-core/app/composables/auth/useApiData";
 import { resolveUrlVariables } from "../../utils/urlVariables";
 import { useRefreshTriggers } from "../blocks/useRefreshTriggers";
@@ -187,7 +186,7 @@ function useResolvedUrl(
   return computed(() =>
     resolveUrlVariables(url, {
       routeParams: routeParams(),
-      routeQuery: route.query as Record<string, unknown>,
+      routeQuery: route.query,
     }),
   );
 }
@@ -211,7 +210,7 @@ function usePagedMatrixData(source: MatrixDataOptions): MatrixDataSource {
   const url = useResolvedUrl(options.fetchUrl, source.routeParams);
   const pagination = options.pagination ?? "none";
   const loaded = useApiData<MatrixData>(() => url.value ?? null, {
-    method: options.fetchUrlMethod as UseApiDataOptions<MatrixData>["method"],
+    method: options.fetchUrlMethod,
     query: () => buildMatrixQuery(query.value, pagination),
     lazy: true,
     refreshOnPageRefresh: false,
@@ -262,7 +261,7 @@ function useInfiniteMatrixData(source: MatrixDataOptions): MatrixDataSource {
     key,
     ({ $authFetch, cursor, signal }) =>
       $authFetch<MatrixData>(url.value ?? "", {
-        method: options.fetchUrlMethod as "GET",
+        method: options.fetchUrlMethod,
         query: buildMatrixQuery(query.value, "infinite", cursor ?? 0),
         signal,
       }),

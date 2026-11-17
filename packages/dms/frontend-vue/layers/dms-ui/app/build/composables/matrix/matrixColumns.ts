@@ -1,4 +1,10 @@
 import type { MatrixColumn } from "../../../types/matrix";
+import {
+  isBoolean,
+  isNumber,
+  isObject,
+  isString,
+} from "#dms-core/app/utils/type-check";
 
 export const MATRIX_MIN_COLUMN_WIDTH = 80;
 export const MATRIX_MAX_COLUMN_WIDTH = 640;
@@ -38,6 +44,31 @@ export interface MatrixColumnPreferences {
   hidden?: Record<string, boolean>;
   /** Widths dragged to, in pixels. */
   widths?: Record<string, number>;
+}
+
+const isRecordOf = <T>(
+  value: unknown,
+  isEntry: (entry: unknown) => entry is T,
+): value is Record<string, T> =>
+  isObject(value) &&
+  value !== null &&
+  !Array.isArray(value) &&
+  Object.values(value).every(isEntry);
+
+/**
+ * Preferences a device stored, checked to their last entry: an order of
+ * column ids, hidden flags and pixel widths by column id.
+ */
+export function isMatrixColumnPreferences(
+  value: unknown,
+): value is MatrixColumnPreferences {
+  if (!isObject(value) || value === null || Array.isArray(value)) return false;
+  const { order, hidden, widths } = value;
+  return (
+    (order === undefined || (Array.isArray(order) && order.every(isString))) &&
+    (hidden === undefined || isRecordOf(hidden, isBoolean)) &&
+    (widths === undefined || isRecordOf(widths, isNumber))
+  );
 }
 
 /** The columns in the order the user picked, the ones they never moved after. */

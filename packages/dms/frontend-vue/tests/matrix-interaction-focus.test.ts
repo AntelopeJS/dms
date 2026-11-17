@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * Where the keyboard lands when a click opens a Matrix cell's editor: in the
  * editor's input, not back on the cell the click focused.
@@ -24,8 +24,8 @@ function setup() {
   const interaction = useMatrixInteraction({
     options: {},
     root: ref(root),
-    shape: () => ({ rowIds: ["r1"], columnIds: ["qty"] }),
-    allShape: () => ({ rowIds: ["r1"], columnIds: ["qty"] }),
+    focusOrder: () => ({ rowIds: ["r1"], columnIds: ["qty"] }),
+    allFocusOrder: () => ({ rowIds: ["r1"], columnIds: ["qty"] }),
     rowOf: () => ROW,
     columnOf: () => COLUMN,
     valueOf: (row, columnId) => row.values[columnId],

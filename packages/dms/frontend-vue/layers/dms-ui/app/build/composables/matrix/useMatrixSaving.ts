@@ -5,6 +5,7 @@ import { useUnsavedChanges } from "../../../composables/unsaved-changes/useUnsav
 import { useConfirm } from "../../../composables/confirm/useConfirm";
 import MatrixReviewList from "../../components/matrix/MatrixReviewList.vue";
 import type { MatrixSaveEngine } from "./matrixSaveEngine";
+import { detach } from "../detach";
 import type { MatrixContext } from "./useMatrix";
 
 const MS_PER_SECOND = 1000;
@@ -20,7 +21,8 @@ export interface MatrixSavingOptions {
   root: Ref<HTMLElement | null>;
   /** Commits the cell being edited in place; whether one was open. */
   commitEditor: () => boolean;
-  context: () => MatrixContext;
+  /** The grid's context, once `useMatrix` has built it. */
+  context: () => MatrixContext | null;
 }
 
 /**
@@ -88,8 +90,8 @@ export function useMatrixSaving(saving: MatrixSavingOptions) {
         { count: engine.failedCount.value },
         engine.failedCount.value,
       ),
-      color: "error",
-      icon: "i-ph-warning-circle",
+      color: "warning",
+      icon: "i-ph-warning",
     });
   }
 
@@ -106,7 +108,8 @@ export function useMatrixSaving(saving: MatrixSavingOptions) {
   async function requestSave(): Promise<void> {
     if (!engine.count.value || engine.isSaving.value) return;
     if (isBlocked.value) return warnBlocked();
-    if (!options.review) return saveNow();
+    const context = saving.context();
+    if (!options.review || !context) return saveNow();
     const changes = engine.edits.value
       .filter((edit) => !edit.conflict)
       .map((edit) => ({ ...edit }));
@@ -125,7 +128,7 @@ export function useMatrixSaving(saving: MatrixSavingOptions) {
       cancelLabel: t("dms.matrix.review.back"),
       icon: "i-ph-list-checks",
       color: "primary",
-      body: () => h(MatrixReviewList, { changes, context: saving.context() }),
+      body: () => h(MatrixReviewList, { changes, context }),
       onConfirm: () => saveNow(),
     });
   }
@@ -144,7 +147,7 @@ export function useMatrixSaving(saving: MatrixSavingOptions) {
       const hadEditor = saving.commitEditor();
       if (!hadEditor && !engine.count.value) return;
       event.preventDefault();
-      void requestSave();
+      detach(requestSave());
     },
   );
 

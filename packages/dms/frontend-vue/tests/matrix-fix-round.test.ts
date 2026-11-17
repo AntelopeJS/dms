@@ -24,6 +24,7 @@ import {
   parseTextDraft,
   shownValueText,
   valueFromEditorModel,
+  valueText,
 } from "../layers/dms-ui/app/entries/composables/matrix/matrixValues";
 import {
   applyStaticQuery,
@@ -292,7 +293,7 @@ describe("cell display", () => {
         options: [{ value: "out", label: "$stock.out", icon: "i-ph-x" }],
         display: { type: "status_pill" },
       },
-      (text) => String(text).replace("$stock.out", "Rupture"),
+      (text) => (text === "$stock.out" ? "Rupture" : ""),
     );
     expect(column.display).toEqual({ type: "status_pill" });
     expect(column.type?.id).toBe("select");
@@ -309,7 +310,11 @@ describe("fix round 2", () => {
       const model = editorModelOf(datetime, stored);
       expect(isUnchangedModel(datetime, model, stored)).toBe(true);
       expect(
-        isUnchangedModel(datetime, String(model).replace(":30", ":31"), stored),
+        isUnchangedModel(
+          datetime,
+          valueText(model).replace(":30", ":31"),
+          stored,
+        ),
       ).toBe(false);
     }
     expect(isUnchangedModel(datetime, "", null)).toBe(true);

@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * A cell edited in place, as the grid renders it: a click opens its input
  * with the keyboard in it (the control's code loads lazily), the click does
@@ -16,13 +16,21 @@ import {
   watch,
   type App,
 } from "vue";
+import { createTable, getCoreRowModel } from "@tanstack/vue-table";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import InlineEditCell from "../layers/dms-ui/app/entries/components/table/InlineEditCell";
 import { useTableInlineEdit } from "../layers/dms-ui/app/entries/composables/table-view/useTableInlineEdit";
-import type { TableViewColumn } from "../layers/dms-ui/app/composables/table-view/types";
+import { fetchClient } from "./fixtures/fetchClient";
+import { tableViewColumn } from "./fixtures/tableViewColumn";
 
-type Row = Record<string, unknown>;
-type Api = Parameters<typeof useTableInlineEdit>[0]["api"];
+/** A listed row, as the grid hands it to its cells. */
+type Row = Parameters<
+  Parameters<typeof useTableInlineEdit>[0]["canEditRow"]
+>[0];
+
+/** What the edit route answers a save: nothing the cell reads. */
+type Reply = { ok?: true };
+type Answer = Promise<Reply>;
 
 const InputStub = defineComponent({
   inheritAttrs: false,
@@ -34,8 +42,11 @@ const InputStub = defineComponent({
       h("input", {
         id: props.id,
         value: props.modelValue ?? "",
-        onInput: (event: Event) =>
-          emit("update:modelValue", (event.target as HTMLInputElement).value),
+        onInput: (event: Event) => {
+          const { target } = event;
+          if (target instanceof HTMLInputElement)
+            emit("update:modelValue", target.value);
+        },
       }),
 });
 const LazyInput = defineAsyncComponent(
@@ -65,17 +76,39 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
+/** The name cell of `rows[index]`, as TanStack hands it to the column's slot. */
+function nameCell(rows: Row[], index: number) {
+  const table = createTable<Row>({
+    data: rows,
+    columns: [
+      {
+        id: "name",
+        accessorKey: "name",
+        cell: ({ row }) => row.original.name,
+        meta: { label: "Name" },
+      },
+    ],
+    getCoreRowModel: getCoreRowModel(),
+    state: {},
+    onStateChange: () => undefined,
+    renderFallbackValue: null,
+  });
+  const cell = table.getRowModel().rows[index]?.getAllCells()[0];
+  if (!cell) throw new Error(`no row ${index}`);
+  return cell.getContext();
+}
+
 function mountCell(
-  api: (...args: never[]) => Promise<unknown> = vi.fn(async () => ({})),
+  respond: (url: string) => Answer = async () => ({}),
   componentName = "dms-input-text",
   option: boolean | { inputs: "hover" | "always" } = true,
 ) {
-  const rows = ref([
-    { _id: "p1", name: "Desk" },
-    { _id: "p2", name: "Lamp" },
-  ]);
+  const api = fetchClient(respond);
   const data = ref({
-    results: rows.value as Row[],
+    results: [
+      { _id: "p1", name: "Desk" },
+      { _id: "p2", name: "Lamp" },
+    ],
     total: 1,
     offset: 0,
     limit: 10,
@@ -89,19 +122,12 @@ function mountCell(
         component: { componentName, options: {} },
       },
     ],
-    columns: [
-      {
-        id: "name",
-        accessorKey: "name",
-        header: "Name",
-        listable: true,
-      } as unknown as TableViewColumn,
-    ],
+    columns: [tableViewColumn("name", { header: "Name" })],
     data,
     rowIdKey: "_id",
     labelKey: "name",
     location: "/api/products",
-    api: api as unknown as Api,
+    api,
     getDataType: () => undefined,
     canEditRow: () => true,
     isEnabled: computed(() => true),
@@ -110,19 +136,7 @@ function mountCell(
     onError: () => {},
   });
   const onRowClick = vi.fn();
-  const cell = (index: number) => {
-    const original = data.value.results[index]!;
-    return {
-      row: { original },
-      column: {
-        id: "name",
-        columnDef: {
-          cell: () => String(original.name),
-          meta: { label: "Name" },
-        },
-      },
-    };
-  };
+  const cell = (index: number) => nameCell(data.value.results, index);
   host = document.createElement("div");
   document.body.append(host);
   app = createApp(() =>
@@ -132,7 +146,7 @@ function mountCell(
         h(
           "div",
           { "data-row": index, onClick: onRowClick, onDblclick: onRowClick },
-          [h(InlineEditCell as never, { cell: cell(index), inlineEdit })],
+          [h(InlineEditCell, { cell: cell(index), inlineEdit })],
         ),
       ),
     ),
@@ -148,7 +162,9 @@ const displayOf = (root: HTMLElement) =>
 async function openCell(root: HTMLElement): Promise<HTMLInputElement> {
   displayOf(root).click();
   await vi.waitFor(() => expect(document.activeElement?.tagName).toBe("INPUT"));
-  return document.activeElement as HTMLInputElement;
+  const input = document.activeElement;
+  if (!(input instanceof HTMLInputElement)) throw new Error("no input open");
+  return input;
 }
 
 it("opens on a click with the keyboard in its input, its text selected, without opening the row", async () => {
@@ -201,14 +217,14 @@ const rowOf = (root: HTMLElement, index: number) =>
   root.querySelector<HTMLElement>(`[data-row='${index}']`)!;
 
 it("announces a save still running in a cell the user left", async () => {
-  let finish: (value: unknown) => void = () => {};
-  const api = vi.fn(
-    () =>
+  let finish: (value: Reply) => void = () => {};
+  const respond = vi.fn(
+    (): Answer =>
       new Promise((resolve) => {
         finish = resolve;
       }),
   );
-  const { host } = mountCell(api);
+  const { host, api } = mountCell(respond);
   const input = await openCell(rowOf(host, 0));
   input.value = "Standing desk";
   input.dispatchEvent(new Event("input", { bubbles: true }));
@@ -223,7 +239,7 @@ it("announces a save still running in a cell the user left", async () => {
 });
 
 it("leaves the keyboard where the user went after a pick saves the cell", async () => {
-  const { host, api } = mountCell(undefined, "dms-select");
+  const { host, api } = mountCell(undefined, "dms-input-select");
   displayOf(rowOf(host, 0)).click();
   await vi.waitFor(() =>
     expect(rowOf(host, 0).querySelector("input")).not.toBe(null),
@@ -244,8 +260,8 @@ it("leaves the keyboard where the user went after a pick saves the cell", async 
 });
 
 describe("inputs drawn at rest", () => {
-  const mountInputs = (api?: (...args: never[]) => Promise<unknown>) =>
-    mountCell(api, "dms-input-text", { inputs: "always" });
+  const mountInputs = (respond?: (url: string) => Answer) =>
+    mountCell(respond, "dms-input-text", { inputs: "always" });
 
   async function inputOf(root: HTMLElement): Promise<HTMLInputElement> {
     await vi.waitFor(() => expect(root.querySelector("input")).not.toBe(null));

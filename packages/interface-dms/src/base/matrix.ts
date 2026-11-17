@@ -37,6 +37,19 @@ const DEFAULT_ICON = "i-ph-grid-nine";
  * records of a collection, the languages of a translation key, the sizes of
  * an article by store. `options` is optional so a page under construction may
  * write the bare call `Matrix()`.
+ *
+ * @example
+ * ```typescript
+ * Matrix({
+ *   title: "Stock by store",
+ *   fetchUrl: "/api/stock/grid",
+ *   saveUrl: "/api/stock/grid/save",
+ *   rowHeader: { label: "Store" },
+ *   totals: { rows: true, columns: true },
+ * })
+ * ```
+ *
+ * @docsApi
  */
 export function Matrix(
   options?: MatrixProps,

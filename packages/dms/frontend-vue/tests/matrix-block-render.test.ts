@@ -9,7 +9,10 @@ import { renderToString } from "vue/server-renderer";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { useRealDataEngine } from "./fixtures/dataEngine";
 import { stubBlockRuntime } from "./helpers/block-runtime";
-import type { MatrixData } from "../layers/dms-ui/app/types/matrix";
+import type {
+  MatrixData,
+  MatrixOptions,
+} from "../layers/dms-ui/app/types/matrix";
 
 const Slot = defineComponent({
   props: { label: { type: String, default: undefined } },
@@ -56,7 +59,7 @@ const STOCK: MatrixData = {
   ],
 };
 
-async function render(options: Record<string, unknown>): Promise<string> {
+async function render(options: Partial<MatrixOptions>): Promise<string> {
   const { default: MatrixBlock } = await import(
     "../layers/dms-ui/app/components/blocks/MatrixBlock.vue"
   );
@@ -81,9 +84,9 @@ async function render(options: Record<string, unknown>): Promise<string> {
     "UPopover",
     "UCheckbox",
     "DmsStatusPill",
-    "DmsMeter",
+    "DmsMeterBar",
     "DmsSectionHeader",
-    "DmsSegmented",
+    "DmsSegmentedControl",
     "DmsSaveBar",
   ]) {
     app.component(name, Slot);

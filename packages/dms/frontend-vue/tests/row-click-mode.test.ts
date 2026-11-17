@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * The table's `rowClick` mode: whether a pointer event dispatched on a row's
  * cell (or on its content) runs the row action, read while the event is on
@@ -8,7 +8,7 @@ import { describe, expect, it } from "vitest";
 import { isRowClickTrigger } from "../layers/dms-ui/app/entries/utils/rowClickTrigger";
 
 describe("row click mode", () => {
-  type Mode = "single" | "double" | undefined;
+  type Mode = "single" | "double" | "none" | undefined;
 
   const triggers = (
     mode: Mode,
@@ -23,7 +23,7 @@ describe("row click mode", () => {
     document.body.append(row);
     let result = false;
     row.addEventListener(type, (event) => {
-      result = isRowClickTrigger(mode, event as MouseEvent);
+      result = event instanceof MouseEvent && isRowClickTrigger(mode, event);
     });
     const target = cell.firstElementChild ?? cell;
     target.dispatchEvent(new MouseEvent(type, { bubbles: true, ...init }));

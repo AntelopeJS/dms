@@ -139,9 +139,13 @@ function facetValue(facet: MatrixFacet) {
   return facet.multiple ? values : values[0];
 }
 
-function setFacet(facet: MatrixFacet, value: unknown): void {
+/** The facet's select menu answers one value, or a list when `multiple`. */
+function setFacet(
+  facet: MatrixFacet,
+  value: string | string[] | undefined,
+): void {
   const values = Array.isArray(value) ? value : value ? [value] : [];
-  query.setFacet(facet.id, values.map(String));
+  query.setFacet(facet.id, values);
 }
 </script>
 

@@ -6,11 +6,12 @@ import MatrixCellDrawer from "../../components/matrix/MatrixCellDrawer.vue";
 import MatrixRowDrawer from "../../components/matrix/MatrixRowDrawer.vue";
 import type { MatrixCellAddress } from "./matrixNavigation";
 import type { MatrixEditing } from "./useMatrixInteraction";
+import { detach } from "../detach";
 
 /** What the drawers need of the grid. */
-export interface MatrixDrawersOptions {
+export interface MatrixDrawersOptions<Context> {
   /** Handed to the drawer bodies: they read and edit through it. */
-  context: () => unknown;
+  context: () => Context;
   componentId: string;
   shownRows: () => MatrixRow[];
   rowOf: (rowId: string) => MatrixRow | undefined;
@@ -30,7 +31,9 @@ const ROW_POSITION_KEY = "$dms.matrix.drawer.row_position";
  * The grid's drawers: one cell's editor alone (a JSON value, a long text),
  * and a whole row as a form, J and K stepping through the rows shown.
  */
-export function useMatrixDrawers(options: MatrixDrawersOptions) {
+export function useMatrixDrawers<Context>(
+  options: MatrixDrawersOptions<Context>,
+) {
   const { open } = useDrawer();
   let rowDrawer: DrawerInstance | null = null;
 
@@ -57,7 +60,7 @@ export function useMatrixDrawers(options: MatrixDrawersOptions) {
         isModel: editing?.isModel ?? false,
       },
     });
-    drawer.result.finally(() => options.onClosed(address));
+    detach(drawer.result.finally(() => options.onClosed(address)));
   }
 
   function navigationOf(index: number): RowNavigation {
@@ -111,11 +114,13 @@ export function useMatrixDrawers(options: MatrixDrawersOptions) {
       sizeKey: `dms-matrix-row-${options.componentId}`,
       ...rowDrawerOptions(row),
     });
-    rowDrawer.result.finally(() => {
-      rowDrawer = null;
-      options.onRowShown?.();
-      options.onClosed();
-    });
+    detach(
+      rowDrawer.result.finally(() => {
+        rowDrawer = null;
+        options.onRowShown?.();
+        options.onClosed();
+      }),
+    );
   }
 
   return { openCellDrawer, openRowPanel };

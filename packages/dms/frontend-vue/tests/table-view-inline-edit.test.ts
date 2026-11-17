@@ -2,14 +2,26 @@ import { computed, ref, watch } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useTableInlineEdit } from "../layers/dms-ui/app/entries/composables/table-view/useTableInlineEdit";
 import { resolveInlineEditColumns } from "../layers/dms-ui/app/entries/composables/table-view/utils/inlineEdit";
-import type { FormFieldOrGroup } from "../layers/dms-ui/app/composables/form/types/field";
 import type {
-  TableViewColumn,
-  TableViewListResponse,
-} from "../layers/dms-ui/app/composables/table-view/types";
+  FormField,
+  FormFieldOrGroup,
+} from "../layers/dms-ui/app/composables/form/types/field";
+import type { TableViewListResponse } from "../layers/dms-ui/app/composables/table-view/types";
+import { fetchClient } from "./fixtures/fetchClient";
+import { tableViewColumn } from "./fixtures/tableViewColumn";
 
-type Api = Parameters<typeof useTableInlineEdit>[0]["api"];
-type Row = Record<string, unknown>;
+type Row = {
+  _id: string;
+  name: string;
+  price: number;
+  active: boolean;
+  stock?: number;
+  locked?: boolean;
+};
+
+/** What the edit route answers a save: nothing the cell reads. */
+type Reply = { ok?: true };
+type Answer = Promise<Reply>;
 
 beforeEach(() => {
   vi.stubGlobal("ref", ref);
@@ -24,7 +36,7 @@ afterEach(() => {
 const field = (
   id: string,
   componentName: string,
-  extra: Record<string, unknown> = {},
+  extra: Partial<FormField> = {},
 ) => ({
   id,
   type: "string",
@@ -36,13 +48,16 @@ const EDIT_FIELDS: FormFieldOrGroup[] = [
   field("name", "dms-input-text", { required: true }),
   field("sku", "dms-input-text", { disabled: true }),
   field("price", "dms-input-number", { type: "price" }),
-  field("active", "dms-switch", { type: "boolean" }),
-  field("category", "dms-select", { type: "select" }),
+  field("active", "dms-input-switch", { type: "boolean" }),
+  field("category", "dms-input-select", { type: "select" }),
   field("launch", "dms-date-picker", { type: "date" }),
   field("notes", "dms-rich-text", { type: "rich_text" }),
   field("title", "dms-input-text", { localized: true }),
-  field("tags", "dms-select", {
-    component: { componentName: "dms-select", options: { multiple: true } },
+  field("tags", "dms-input-select", {
+    component: {
+      componentName: "dms-input-select",
+      options: { multiple: true },
+    },
   }),
   {
     id: "stock-group",
@@ -57,13 +72,7 @@ const EDIT_FIELDS: FormFieldOrGroup[] = [
 ];
 
 const column = (id: string, listable = true) =>
-  ({
-    id,
-    accessorKey: id,
-    header: id,
-    listable,
-    type: { id: "string" },
-  }) as unknown as TableViewColumn;
+  tableViewColumn(id, { listable }, "string");
 
 const COLUMNS = [
   "name",
@@ -111,48 +120,49 @@ describe("which cells the grid edits in place", () => {
   });
 });
 
+const rows = (): Row[] => [
+  { _id: "p1", name: "Desk", price: 120, active: true, stock: 4 },
+  { _id: "p2", name: "Lamp", price: 35, active: false, stock: 9 },
+  { _id: "p3", name: "Chair", price: 80, active: true, locked: true },
+];
+
+const setup = (respond: (url: string) => Answer = async () => ({})) => {
+  const api = fetchClient(respond);
+  const data = ref<TableViewListResponse<Row> | null>({
+    results: rows(),
+    total: 3,
+    offset: 0,
+    limit: 10,
+  });
+  const getRow = vi.fn(
+    async (id: string): Promise<Row | undefined> => ({
+      ...data.value!.results.find((row) => row._id === id)!,
+      price: 151,
+    }),
+  );
+  const onSaved = vi.fn();
+  const onError = vi.fn();
+  const edit = useTableInlineEdit<Row>({
+    inlineEdit: true,
+    editFields: EDIT_FIELDS,
+    columns: COLUMNS,
+    data,
+    rowIdKey: "_id",
+    labelKey: "name",
+    location: "/api/products",
+    api,
+    getDataType: () => undefined,
+    canEditRow: (row) => row.locked !== true,
+    isEnabled: computed(() => true),
+    getRow,
+    onSaved,
+    onError,
+  });
+  const row = (index: number) => data.value!.results[index]!;
+  return { edit, data, row, api, getRow, onSaved, onError };
+};
+
 describe("a cell edited in place", () => {
-  const rows = (): Row[] => [
-    { _id: "p1", name: "Desk", price: 120, active: true, stock: 4 },
-    { _id: "p2", name: "Lamp", price: 35, active: false, stock: 9 },
-    { _id: "p3", name: "Chair", price: 80, active: true, locked: true },
-  ];
-
-  const setup = (api = vi.fn(async () => ({}))) => {
-    const data = ref<TableViewListResponse<Row> | null>({
-      results: rows(),
-      total: 3,
-      offset: 0,
-      limit: 10,
-    });
-    const getRow = vi.fn(
-      async (id: string): Promise<Row | undefined> => ({
-        ...data.value!.results.find((row) => row._id === id)!,
-        price: 151,
-      }),
-    );
-    const onSaved = vi.fn();
-    const onError = vi.fn();
-    const edit = useTableInlineEdit<Row>({
-      inlineEdit: true,
-      editFields: EDIT_FIELDS,
-      columns: COLUMNS,
-      data,
-      rowIdKey: "_id",
-      labelKey: "name",
-      location: "/api/products",
-      api: api as unknown as Api,
-      getDataType: () => undefined,
-      canEditRow: (row) => row.locked !== true,
-      isEnabled: computed(() => true),
-      getRow,
-      onSaved,
-      onError,
-    });
-    const row = (index: number) => data.value!.results[index]!;
-    return { edit, data, row, api, getRow, onSaved, onError };
-  };
-
   it("sends nothing when the value did not change", async () => {
     const { edit, row, api } = setup();
     expect(edit.start(row(0), "price")).toBe(true);
@@ -193,7 +203,9 @@ describe("a cell edited in place", () => {
       body: { name: null },
     });
   });
+});
 
+describe("a value the edit route refuses", () => {
   it("keeps a refused value in its cell, marked invalid", async () => {
     const failure = Object.assign(new Error("refused"), { statusCode: 400 });
     const { edit, row, data, onError } = setup(
@@ -274,7 +286,9 @@ describe("a cell edited in place", () => {
     expect(edit.isEditing(row(0), "price")).toBe(false);
     expect(edit.isInvalid(row(0), "price")).toBe(false);
   });
+});
 
+describe("the cells around the one open", () => {
   it("saves the cell left when another one opens", async () => {
     const { edit, row, api } = setup();
     edit.start(row(0), "name");

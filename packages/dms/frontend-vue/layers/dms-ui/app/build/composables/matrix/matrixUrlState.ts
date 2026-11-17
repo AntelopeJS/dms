@@ -4,7 +4,6 @@ import {
   columnOfFilterParam,
   facetParam,
   parseColumnFilter,
-  type MatrixColumnFilter,
   type MatrixQueryState,
   type MatrixSortDirection,
 } from "./matrixQuery";
@@ -29,7 +28,8 @@ const URL_KEYS = {
 } as const;
 
 const FACET_SEPARATOR = ",";
-const SORT_DIRECTIONS: ReadonlySet<string> = new Set(["asc", "desc"]);
+const isSortDirection = (value: string): value is MatrixSortDirection =>
+  value === "asc" || value === "desc";
 
 /** The URL key of `key` for the grid `componentId`. */
 export function matrixUrlKey(componentId: string, key: string): string {
@@ -38,7 +38,12 @@ export function matrixUrlKey(componentId: string, key: string): string {
 
 type QueryValue = string | null | undefined | Array<string | null>;
 
-function firstValue(value: QueryValue): string | undefined {
+type UrlQuery = Readonly<Record<string, QueryValue>>;
+
+/** The first value the URL gives `key`, none for a key it does not hold. */
+function firstValue(query: UrlQuery, key: string): string | undefined {
+  if (!Object.hasOwn(query, key)) return undefined;
+  const value = query[key];
   const single = Array.isArray(value) ? value[0] : value;
   return single ?? undefined;
 }
@@ -54,7 +59,7 @@ function readPositiveInteger(value: string | undefined): number | undefined {
  * facets the grid offers: only their keys are read.
  */
 export function readMatrixUrlState(
-  query: Record<string, QueryValue>,
+  query: UrlQuery,
   componentId: string,
   defaults: MatrixQueryState,
   facetIds: string[],
@@ -62,12 +67,12 @@ export function readMatrixUrlState(
   acceptsFilter: (columnId: string) => boolean = () => true,
 ): MatrixQueryState {
   const read = (key: string) =>
-    firstValue(query[matrixUrlKey(componentId, key)]);
+    firstValue(query, matrixUrlKey(componentId, key));
   const page = readPositiveInteger(read(URL_KEYS.page));
   const pageSize = readPositiveInteger(read(URL_KEYS.pageSize));
   const sortColumn = read(URL_KEYS.sort);
   const direction = read(URL_KEYS.direction) ?? "asc";
-  const facets: Record<string, string[]> = { ...defaults.facets };
+  const facets = { ...defaults.facets };
   for (const id of facetIds) {
     const value = read(facetParam(id));
     if (value) facets[id] = value.split(FACET_SEPARATOR).filter(Boolean);
@@ -85,31 +90,28 @@ export function readMatrixUrlState(
     status: read(URL_KEYS.status) ?? defaults.status,
     facets,
     sort:
-      sortColumn && SORT_DIRECTIONS.has(direction)
-        ? {
-            columnId: sortColumn,
-            direction: direction as MatrixSortDirection,
-          }
+      sortColumn && isSortDirection(direction)
+        ? { columnId: sortColumn, direction }
         : defaults.sort,
   };
 }
 
 function readColumnFilters(
-  query: Record<string, QueryValue>,
+  query: UrlQuery,
   componentId: string,
-  defaults: Record<string, MatrixColumnFilter>,
+  defaults: MatrixQueryState["filters"],
   acceptsFilter: (columnId: string) => boolean,
-): Record<string, MatrixColumnFilter> {
+): MatrixQueryState["filters"] {
   const prefix = matrixUrlKey(componentId, "");
-  const filters = { ...defaults };
-  for (const [key, value] of Object.entries(query)) {
+  const filters = new Map(Object.entries(defaults));
+  for (const key of Object.keys(query)) {
     if (!key.startsWith(prefix)) continue;
     const columnId = columnOfFilterParam(key.slice(prefix.length));
-    const filter = parseColumnFilter(firstValue(value) ?? "");
+    const filter = parseColumnFilter(firstValue(query, key) ?? "");
     if (columnId && filter && acceptsFilter(columnId))
-      filters[columnId] = filter;
+      filters.set(columnId, filter);
   }
-  return filters;
+  return Object.fromEntries(filters);
 }
 
 /** The URL key of the row a grid's drawer has open. */
@@ -119,10 +121,10 @@ export function matrixRowUrlKey(componentId: string): string {
 
 /** The row the URL says the grid's drawer has open. */
 export function readMatrixUrlRow(
-  query: Record<string, QueryValue>,
+  query: UrlQuery,
   componentId: string,
 ): string | undefined {
-  return firstValue(query[matrixRowUrlKey(componentId)]) || undefined;
+  return firstValue(query, matrixRowUrlKey(componentId)) || undefined;
 }
 
 /**
@@ -136,36 +138,34 @@ export function matrixUrlEntries(
   defaults: MatrixQueryState,
   facetIds: string[],
   /** The filters of the state written before, to remove the ones gone. */
-  previousFilters?: Record<string, MatrixColumnFilter>,
+  previousFilters?: MatrixQueryState["filters"],
 ): Record<string, string | undefined> {
   const key = (name: string) => matrixUrlKey(componentId, name);
   const unlessDefault = <T>(value: T, fallback: T, text: string) =>
     value === fallback ? undefined : text;
-  const entries: Record<string, string | undefined> = {
-    [key(URL_KEYS.page)]: unlessDefault(
-      state.page,
-      defaults.page,
-      String(state.page + 1),
-    ),
-    [key(URL_KEYS.pageSize)]: unlessDefault(
-      state.pageSize,
-      defaults.pageSize,
-      String(state.pageSize),
-    ),
-    [key(URL_KEYS.search)]: state.search.trim() || undefined,
-    [key(URL_KEYS.status)]: unlessDefault(
-      state.status,
-      defaults.status,
-      state.status,
-    ),
-    [key(URL_KEYS.sort)]: state.sort?.columnId,
-    [key(URL_KEYS.direction)]: state.sort?.direction,
-  };
+  const entries = new Map<string, string | undefined>([
+    [
+      key(URL_KEYS.page),
+      unlessDefault(state.page, defaults.page, String(state.page + 1)),
+    ],
+    [
+      key(URL_KEYS.pageSize),
+      unlessDefault(state.pageSize, defaults.pageSize, String(state.pageSize)),
+    ],
+    [key(URL_KEYS.search), state.search.trim() || undefined],
+    [
+      key(URL_KEYS.status),
+      unlessDefault(state.status, defaults.status, state.status),
+    ],
+    [key(URL_KEYS.sort), state.sort?.columnId],
+    [key(URL_KEYS.direction), state.sort?.direction],
+  ]);
   for (const id of facetIds) {
     const values = state.facets[id] ?? [];
-    entries[key(facetParam(id))] = values.length
-      ? values.join(FACET_SEPARATOR)
-      : undefined;
+    entries.set(
+      key(facetParam(id)),
+      values.length ? values.join(FACET_SEPARATOR) : undefined,
+    );
   }
   const filtered = new Set([
     ...Object.keys(previousFilters ?? {}),
@@ -173,11 +173,12 @@ export function matrixUrlEntries(
   ]);
   for (const columnId of filtered) {
     const filter = state.filters[columnId];
-    entries[key(columnFilterParam(columnId))] = filter?.value
-      ? columnFilterText(filter)
-      : undefined;
+    entries.set(
+      key(columnFilterParam(columnId)),
+      filter?.value ? columnFilterText(filter) : undefined,
+    );
   }
-  return entries;
+  return Object.fromEntries(entries);
 }
 
 /**

@@ -1,8 +1,12 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { resolveDmsComponent } from "../../../composables/resolveDmsComponent";
-import type { MatrixCellKind, MatrixColumn } from "../../../types/matrix";
-import { kindOf } from "../../composables/matrix/matrixValues";
+import type {
+  MatrixCellKind,
+  MatrixColumn,
+  MatrixEditorModel,
+} from "../../../types/matrix";
+import { isMatrixValue, kindOf } from "../../composables/matrix/matrixValues";
 import { useComposedText } from "#dms-core/app/composables/translation/useComposedText";
 
 /**
@@ -12,7 +16,7 @@ import { useComposedText } from "#dms-core/app/composables/translation/useCompos
  */
 interface MatrixFieldInputProps {
   column: MatrixColumn;
-  modelValue: unknown;
+  modelValue: MatrixEditorModel;
   id?: string;
   disabled?: boolean;
   /** In a cell: one line, small; in a drawer: the field's full size. */
@@ -30,14 +34,35 @@ const props = withDefaults(defineProps<MatrixFieldInputProps>(), {
   asText: false,
 });
 
-const emit = defineEmits<{ "update:modelValue": [value: unknown] }>();
+const emit = defineEmits<{
+  "update:modelValue": [value: MatrixEditorModel];
+}>();
 
 const { processText } = useComposedText();
+
+/** An entry of a select, as the DMS select lists it. */
+interface FieldEditorItem {
+  label: string;
+  value: string;
+  icon?: string;
+}
+
+/** A prop the column hands its input: a bound, a size, a language, a list. */
+type FieldEditorOption =
+  | string
+  | number
+  | boolean
+  | undefined
+  | readonly string[]
+  | readonly FieldEditorItem[];
 
 /** An input of the DMS registry, and the options the column gives it. */
 interface FieldEditor {
   component: string;
-  options: (column: MatrixColumn, isCell: boolean) => Record<string, unknown>;
+  options: (
+    column: MatrixColumn,
+    isCell: boolean,
+  ) => Readonly<Record<string, FieldEditorOption>>;
 }
 
 const DRAWER_TEXT_ROWS = 4;
@@ -55,7 +80,7 @@ const selectItems = (column: MatrixColumn) =>
 const EDITORS: Record<MatrixCellKind, FieldEditor> = {
   text: { component: "dms-input-text", options: () => ({}) },
   longText: {
-    component: "dms-textarea",
+    component: "dms-input-textarea",
     options: (_column, isCell) => ({
       autoresize: true,
       rows: isCell ? 1 : DRAWER_TEXT_ROWS,
@@ -71,14 +96,14 @@ const EDITORS: Record<MatrixCellKind, FieldEditor> = {
       clamp: false,
     }),
   },
-  boolean: { component: "dms-switch", options: () => ({}) },
+  boolean: { component: "dms-input-switch", options: () => ({}) },
   date: { component: "dms-date-picker", options: () => ({}) },
   datetime: {
     component: "dms-input-text",
     options: () => ({ type: "datetime-local" }),
   },
   select: {
-    component: "dms-select",
+    component: "dms-input-select",
     options: (column) => ({ items: selectItems(column) }),
   },
   tags: {
@@ -123,6 +148,8 @@ const options = computed(() =>
     :highlight="props.invalid || undefined"
     class="w-full"
     v-bind="options"
-    @update:model-value="emit('update:modelValue', $event)"
+    @update:model-value="
+      emit('update:modelValue', isMatrixValue($event) ? $event : undefined)
+    "
   />
 </template>
