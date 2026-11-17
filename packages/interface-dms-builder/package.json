@@ -45,8 +45,8 @@
     "registry": "https://registry.npmjs.org/"
   },
   "scripts": {
-    "build": "rimraf dist && tsc",
-    "typecheck": "tsc --noEmit",
+    "build": "rimraf dist && antelopejs-tsc",
+    "typecheck": "antelopejs-tsc --noEmit",
     "release": "pnpm run typecheck && release-it",
     "prepack": "pnpm run build",
     "knip": "knip --dependencies",
@@ -54,6 +54,7 @@
   },
   "devDependencies": {
     "@antelopejs/interface-core": ">=0.5.1 <0.6.0",
+    "@antelopejs/tooling-configs": ">=0.8.0 <0.9.0",
     "@types/node": "^24.0.0",
     "knip": "^6.34.0",
     "release-it": "^19.2.4",
