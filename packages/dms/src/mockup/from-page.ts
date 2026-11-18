@@ -147,6 +147,9 @@ function routeIssue(route: string): SketchReason | undefined {
   return liveRouteSchema.safeParse(route).success ? undefined : "remote-route";
 }
 
+/** The key of the option a block reads its answer from. */
+const FETCH_KEY = "fetchUrl";
+
 function routeData(value: Json, c: Conversion): Routed<Json> {
   const object = objectIn(value);
   if (object) return routeObject(object, c);
@@ -160,7 +163,15 @@ function routeData(value: Json, c: Conversion): Routed<Json> {
   return { ok: true, value: entries };
 }
 
-function routeObject(value: JsonObject, c: Conversion): Routed<JsonObject> {
+/**
+ * `value` with each `*Url` option read through a fixture key: `fetchSample`
+ * as the sample of `fetchUrl`, null for any other route.
+ */
+function routeObject(
+  value: JsonObject,
+  c: Conversion,
+  fetchSample: Json = null,
+): Routed<JsonObject> {
   const result: JsonObject = {};
   for (const [key, entry] of Object.entries(value)) {
     const route = key.endsWith(ROUTE_KEY_SUFFIX)
@@ -169,7 +180,8 @@ function routeObject(value: JsonObject, c: Conversion): Routed<JsonObject> {
     if (route?.success) {
       const issue = routeIssue(route.data);
       if (issue) return { ok: false, reason: issue };
-      result[key] = `fixture:${keyFor(c, route.data, null, "fixture")}`;
+      const sample = key === FETCH_KEY ? fetchSample : null;
+      result[key] = `fixture:${keyFor(c, route.data, sample, "fixture")}`;
       continue;
     }
     const routed = routeData(entry, c);
@@ -260,7 +272,7 @@ function blockOf(
     else options[key] = value;
   }
   if (holdsSentinel(options)) return { ok: false, reason: "sentinel" };
-  const routed = routeObject(options, c);
+  const routed = routeObject(options, c, c.env.oracle.sampleOf(type));
   if (!routed.ok) return routed;
   const children = [...held, ...(block.children ?? [])].map((child) =>
     convertBlock(child, depth + 1, c),
@@ -359,8 +371,10 @@ function only<Value>(
 /**
  * The mockup page of a live page: one node per top-level block, children
  * under their parent, each block the compiler refuses drawn as a sketch.
- * Every option named `*Url` reads a fixture: `null` for a block's own route,
- * sample rows for a table, never the page's real data. `liveRoutes` maps each
+ * Every option named `*Url` reads a fixture, never the page's real data:
+ * sample rows for a table, a sample shaped as the block reads it for a
+ * block's `fetchUrl` (a KPI's value and sparkline, a chart's series, a
+ * list's items), `null` for any other route. `liveRoutes` maps each
  * to the route it stands for, which Real data reads.
  */
 export function convertPage(

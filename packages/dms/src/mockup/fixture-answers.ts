@@ -27,6 +27,8 @@ interface AnswerKey {
   expects: string;
   /** What is wrong with `value`, or undefined when the block reads it. */
   problem(value: Json): string | undefined;
+  /** A plausible value the block reads; the key is left out of a sample without one. */
+  sample?: Json;
 }
 
 /** What a block reads from its `fetchUrl`. */
@@ -37,6 +39,8 @@ interface BlockAnswer {
   problems(answer: Json): string[];
   /** The keys a built page shows only beside a `PeriodSelector`, which picks what they compare with. */
   periodKeys?: readonly string[];
+  /** A plausible answer the block reads, with no key of {@link periodKeys}. */
+  sample: Json;
 }
 
 const PREVIEW_LENGTH = 80;
@@ -54,11 +58,13 @@ function zodKey(
   schema: z.ZodTypeAny,
   expects: string,
   required = false,
+  sample?: Json,
 ): AnswerKey {
   return {
     key,
     required,
     expects,
+    ...(sample !== undefined && { sample }),
     problem: (value) =>
       schema.safeParse(value).success
         ? undefined
@@ -95,10 +101,12 @@ function optionKey(
     : undefined;
   const expects = schema ? written(schema) : "a value";
   const at = `/${option}`;
+  const sample = schema && required ? sampleOf(schema, key, 0) : undefined;
   return {
     key,
     required,
     expects,
+    ...(sample !== undefined && { sample }),
     problem(value) {
       const options = { [option]: value };
       const result = ValidateBlockOptions(descriptor.type, options);
@@ -146,12 +154,18 @@ function objectAnswer(keys: readonly AnswerKey[]): BlockAnswer {
         .map((key) => `the block reads no "${key}": it reads ${expects}`);
       return [...keyProblems(object.data), ...unread];
     },
+    sample: Object.fromEntries(
+      keys.flatMap(({ key, sample }) =>
+        sample === undefined ? [] : [[key, sample]],
+      ),
+    ),
   };
 }
 
 /** A form's record: any object. */
 const recordAnswer: BlockAnswer = {
   expects: "a record object",
+  sample: {},
   problems: (answer) =>
     jsonObjectSchema.safeParse(answer).success
       ? []
@@ -186,28 +200,40 @@ const seriesSchema = z.object({
 
 const SERIES = "[{ name, data: [{ x, y }] }]";
 
+const SAMPLE_DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+const SAMPLE_CURVE = [42, 51, 47, 63, 58, 71, 76];
+const SAMPLE_SERIES: Json = [
+  {
+    name: "Total",
+    data: SAMPLE_DAYS.map((x, index) => ({ x, y: SAMPLE_CURVE[index] ?? 0 })),
+  },
+];
+
 const seriesKey = zodKey(
   "series",
   z.union([z.array(seriesSchema), z.array(groupPointSchema)]),
   `${SERIES} or [{ x, y }]`,
   true,
+  SAMPLE_SERIES,
 );
 
-const numberKey = (key: string, required = false) =>
-  zodKey(key, z.number(), "a number", required);
+const numberKey = (key: string, required = false, sample?: number) =>
+  zodKey(key, z.number(), "a number", required, sample);
 
 /** A card's change and the figure it compares with, which its period's comparison computes. */
 const PERIOD_KEYS = ["delta", "previousValue"] as const;
 
 const kpiAnswer: BlockAnswer = {
   ...objectAnswer([
-    numberKey("value", true),
+    numberKey("value", true, 1284),
     numberKey("delta"),
     numberKey("previousValue"),
     zodKey(
       "sparkline",
       z.array(z.number()) satisfies z.ZodType<KpiCardData["sparkline"]>,
       "[number]",
+      false,
+      SAMPLE_CURVE,
     ),
     zodKey("caption", z.string(), "a string"),
   ]),
@@ -216,7 +242,7 @@ const kpiAnswer: BlockAnswer = {
 
 const chartCardAnswer: BlockAnswer = {
   ...objectAnswer([
-    numberKey("value"),
+    numberKey("value", false, 1284),
     numberKey("delta"),
     numberKey("previousValue"),
     seriesKey,
@@ -250,6 +276,9 @@ const listAnswer = (descriptor: BlockTypeDescriptor): BlockAnswer =>
 
 const METER_KEYS = ["value", "max", "segments", "hint", "valueLabel"] as const;
 
+/** A meter's sample: its value out of its maximum. */
+const METER_SAMPLE: JsonObject = { value: 64, max: 100 };
+
 /** What the blocks whose `fetchUrl` declares no answer read, by block type. */
 const ANSWERS_BY_TYPE = new Map<
   string,
@@ -266,10 +295,12 @@ const ANSWERS_BY_TYPE = new Map<
   ["ActivityFeed", listAnswer],
   [
     "Meter",
-    (descriptor) =>
-      objectAnswer(
+    (descriptor) => ({
+      ...objectAnswer(
         METER_KEYS.map((key) => optionKey(descriptor, key, key, false)),
       ),
+      sample: METER_SAMPLE,
+    }),
   ],
   ["Form", () => recordAnswer],
   ["ResourceForm", () => recordAnswer],
@@ -286,6 +317,82 @@ function answerOf(descriptor: BlockTypeDescriptor): BlockAnswer | undefined {
     ? descriptor.config.fetchUrl.ui?.responseShape
     : undefined;
   return source === undefined ? undefined : ANSWERS_BY_SOURCE.get(source);
+}
+
+const SAMPLE_ITEMS = 3;
+const MAX_SAMPLE_DEPTH = 4;
+const DATE_KEY = /date|time|At$/;
+const LABEL_KEY = /label|title|name/i;
+const SAMPLE_DAY_MS = 86_400_000;
+/** The day sample dates count back from, fixed so a conversion writes the same sample each time. */
+const SAMPLE_EPOCH = Date.UTC(2026, 0, 31);
+
+/** A plausible string for the property `key` of the item at `index`. */
+function sampleString(key: string, index: number): string {
+  if (DATE_KEY.test(key)) {
+    return new Date(SAMPLE_EPOCH - index * SAMPLE_DAY_MS).toISOString();
+  }
+  if (key === "icon") return "i-ph-circle";
+  if (key === "to" || key.endsWith("Url")) return "/";
+  return LABEL_KEY.test(key) ? `Item ${index + 1}` : `Sample ${index + 1}`;
+}
+
+/**
+ * A plausible value of option schema `schema`, as the property `key` of the
+ * item at `index` holds it: a list of three items, an object of its required
+ * properties, a union's first branch.
+ */
+function sampleOf(
+  schema: BlockOptionSchema,
+  key: string,
+  index: number,
+  depth = 0,
+): Json {
+  if (depth > MAX_SAMPLE_DEPTH) return null;
+  const choice = schema.enum?.[0];
+  if (choice !== undefined) return choice;
+  switch (schema.type) {
+    case "string":
+      return sampleString(key, index);
+    case "number":
+      return 120 - index * 35;
+    case "boolean":
+      return false;
+    case "array": {
+      const { items } = schema;
+      if (!items) return [];
+      return Array.from({ length: SAMPLE_ITEMS }, (_, at) =>
+        sampleOf(items, key, at, depth + 1),
+      );
+    }
+    case "object":
+      return Object.fromEntries(
+        Object.entries(schema.properties ?? {}).flatMap(([name, property]) =>
+          property.optional
+            ? []
+            : [[name, sampleOf(property, name, index, depth + 1)]],
+        ),
+      );
+    case "union": {
+      const branch = schema.oneOf?.[0];
+      return branch ? sampleOf(branch, key, index, depth + 1) : null;
+    }
+    case "record":
+      return {};
+    default:
+      return null;
+  }
+}
+
+/**
+ * A plausible answer of what block `descriptor` reads from its `fetchUrl`,
+ * shaped as {@link checkFixtureAnswer} checks it, or null for a block whose
+ * answer is not checked here or whose schema gives no sample it reads.
+ */
+export function sampleAnswer(descriptor: BlockTypeDescriptor): Json {
+  const reader = answerOf(descriptor);
+  if (!reader) return null;
+  return reader.problems(reader.sample).length === 0 ? reader.sample : null;
 }
 
 /** The warnings of a spec's fixtures, filled as its pages compile. */

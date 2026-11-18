@@ -8,11 +8,13 @@ import {
   checkFixtureAnswer,
   type FixtureAnswers,
   fixtureAnswers,
+  sampleAnswer,
 } from "./fixture-answers";
 import { withFieldInputs } from "./form-fields";
 import { formPageModeIssues } from "./form-page-modes";
 import { materializeFixtures } from "./generate";
 import type {
+  Json,
   JsonObject,
   MockupCategory,
   MockupIssue,
@@ -414,6 +416,8 @@ export interface NodeOracle {
    * each at a pointer relative to the node.
    */
   issuesOf(node: MockupNode, fixtures: JsonObject): MockupIssue[];
+  /** A plausible answer of what block type `type` reads from its `fetchUrl`, null when none is known. */
+  sampleOf(type: string): Json;
 }
 
 export function openOracle(name: MockupName, pageId: string): NodeOracle {
@@ -446,6 +450,10 @@ export function openOracle(name: MockupName, pageId: string): NodeOracle {
       };
       compileNode(node, "", `${ROOT_LAYOUT_PREFIX}0`, scope);
       return scope.issues;
+    },
+    sampleOf(type) {
+      const descriptor = catalog.byType.get(type);
+      return descriptor ? sampleAnswer(descriptor) : null;
     },
   };
 }
