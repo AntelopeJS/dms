@@ -1,5 +1,10 @@
+import {
+  getRegisteredRoutes,
+  UnregisterRoute,
+} from "@antelopejs/interface-api";
 import type { PageReader } from "./built-sync";
 import { defaultMockupsDir } from "./files";
+import { MOCKUP_API } from "./fixtures";
 import { registerMockupPage } from "./page";
 import {
   closeMockupStreams,
@@ -60,4 +65,19 @@ export function stopMockupEngine(): void {
   if (!engine) return;
   closeMockupStreams(engine);
   engine.store.close();
+}
+
+/**
+ * Stops the engine for good: it ends as {@link stopMockupEngine} stops it,
+ * its `/api/mockup` routes go, and {@link mockupEngineRunning} answers false
+ * until the next {@link startMockupEngine}.
+ */
+export function endMockupEngine(): void {
+  stopMockupEngine();
+  engine = undefined;
+  for (const route of getRegisteredRoutes()) {
+    if (route.location.startsWith(MOCKUP_API)) {
+      UnregisterRoute(Number(route.id));
+    }
+  }
 }

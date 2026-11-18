@@ -67,7 +67,12 @@ import {
   stopPendingExtensionReport,
 } from "./page-extensions";
 import { registerDocsPreviewPage } from "./pages/public/preview";
-import { BUILDER_PAGES, startMockupEngine, stopMockupEngine } from "./mockup";
+import {
+  BUILDER_PAGES,
+  endMockupEngine,
+  startMockupEngine,
+  stopMockupEngine,
+} from "./mockup";
 import { deriveOAuthRelaySecret } from "./routes/oauth";
 import { frontendModule } from "./frontend-module";
 import {
@@ -273,7 +278,7 @@ function cancelDeferredNotifications(): void {
 export function destroy(): void {
   cancelDeferredNotifications();
   closeDevReloadStreams();
-  stopMockupEngine();
+  endMockupEngine();
 }
 
 function onModulesStarted(): void {
