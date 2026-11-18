@@ -101,6 +101,8 @@ function installRuntime(): void {
   }));
   vi.stubGlobal("COMMAND_PALETTE_FUSE_OPTIONS", {});
   vi.stubGlobal("useCommandPaletteAssistant", useCommandPaletteAssistant);
+  vi.stubGlobal("defineShortcuts", vi.fn());
+  vi.stubGlobal("navigateDms", vi.fn());
   vi.stubGlobal("resolveDmsComponent", (name: string) =>
     name === ANSWER_COMPONENT ? EchoAnswer : undefined,
   );

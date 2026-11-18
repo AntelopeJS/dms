@@ -12,6 +12,16 @@ export const GLOBAL_META_K_METADATA: ShortcutMetadata = {
   component: GLOBAL_COMPONENT,
 };
 
+/** Opens the keyboard shortcuts page from anywhere outside a text field. */
+export const GLOBAL_QUESTION_MARK_METADATA: ShortcutMetadata = {
+  key: ["?"],
+  descriptionKey: "$dms.shortcuts.global.question_mark.description",
+  component: GLOBAL_COMPONENT,
+  condition: {
+    descriptionKey: "$dms.shortcuts.global.question_mark.condition",
+  },
+};
+
 /** Closes the topmost dialog, menu or the command palette. */
 export const GLOBAL_ESCAPE_METADATA: ShortcutMetadata = {
   key: ["$keyboard.escape"],
@@ -27,5 +37,6 @@ export const GLOBAL_SHORTCUTS_METADATA = [
   GLOBAL_META_K_METADATA,
   GLOBAL_SLASH_METADATA,
   GLOBAL_META_SLASH_METADATA,
+  GLOBAL_QUESTION_MARK_METADATA,
   GLOBAL_ESCAPE_METADATA,
 ];

@@ -61,6 +61,20 @@ function close(): void {
   isOpen.value = false;
 }
 
+/** The page "?" opens: the keyboard shortcuts, in the user's settings. */
+const SHORTCUTS_PAGE_PATH = "/settings/user/shortcuts";
+
+/**
+ * "?" outside a text field opens the shortcuts page. `defineShortcuts` keeps
+ * the key typed in an input, and reads "?" with or without Shift held (it is
+ * a shifted key on most layouts).
+ */
+defineShortcuts({
+  "?": () => {
+    void navigateDms(SHORTCUTS_PAGE_PATH);
+  },
+});
+
 /**
  * Set on `<html>` while the palette is mounted, which is while its ⌘ K /
  * Ctrl K shortcut listens. The palette renders nothing until opened and

@@ -521,6 +521,10 @@
           "description": "Aller à la recherche propre à la page",
           "condition": "Pages de paramètres qui ont leur propre recherche, comme celle-ci"
         },
+        "question_mark": {
+          "description": "Ouvrir la page des raccourcis clavier",
+          "condition": "En dehors d'un champ de texte"
+        },
         "escape": {
           "description": "Fermer les dialogues, les menus et la palette"
         }
