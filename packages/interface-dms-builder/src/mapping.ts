@@ -1,6 +1,6 @@
 import { InterfaceFunction } from "@antelopejs/interface-core";
 import type { CategoryRef, PageRef } from "./addressing";
-import type { ResourceRef } from "./resources";
+import type { CellDisplay, ColumnPresentation, ResourceRef } from "./resources";
 import type { OpResult } from "./results";
 import type { TableViewSettings } from "./table-view";
 
@@ -38,7 +38,7 @@ export interface TabsChoice {
 }
 
 /** One column of a mapped relation, as the integrator chose to show it. */
-export interface MappedField {
+export interface MappedField extends Omit<ColumnPresentation, "display"> {
   column: string;
   /** One of the column's `accepts`; the first when omitted. */
   declared?: string;
@@ -67,8 +67,12 @@ export interface MappedField {
    * alone, which proposes a price but no badge; a warning `display_not_proposed` says when no
    * profile or analysis was there. A kept or proposed display the column's declaration does not
    * suit is dropped, not refused. Null writes the column plain, over any display it had.
+   *
+   * A cell display of the TableView, `{ type, options }`, draws the cells instead, over a column
+   * written without a badge or a price. Left out, a column of a relation mapped before keeps the
+   * cell display its controller holds, as it keeps its other presentation options.
    */
-  display?: ColumnDisplay | null;
+  display?: ColumnDisplay | CellDisplay | null;
   /**
    * `"schema.name"` of another mapped relation this column refers to, by that relation's
    * single-column key: the column becomes a relation column showing the target's `label`.

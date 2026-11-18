@@ -45,6 +45,7 @@ const NO_BLOCK_OPTIONS = [
   "builder_delete_resource",
   "builder_add_field",
   "builder_configure_field",
+  "builder_configure_column_groups",
   "builder_remove_field",
   "builder_add_query",
   "builder_configure_query",

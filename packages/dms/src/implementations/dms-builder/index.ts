@@ -38,7 +38,8 @@ import type {
   EditableCategoryMeta,
   EditablePageMeta,
   EditableResourceMeta,
-  FieldAspects,
+  ColumnGroupsPatch,
+  FieldAspectsPatch,
   FieldPath,
   FieldSpec,
   MoveDest,
@@ -118,6 +119,7 @@ import {
   removeField,
 } from "./engine/resource-ops-delete";
 import { buildResourceStructure } from "./engine/resource-structure";
+import { configureColumnGroups } from "./engine/column-groups-write";
 import { getTheme, setTheme } from "./engine/theme";
 import { createThemeLayer } from "./engine/theme-scaffold";
 import {
@@ -394,10 +396,18 @@ export async function AddField(
 
 export async function ConfigureField(
   path: FieldPath,
-  patch: Partial<FieldAspects>,
+  patch: FieldAspectsPatch,
   opts?: MutationOpts,
 ): Promise<OpResult> {
   return configureField(path, patch, opts);
+}
+
+export async function ConfigureColumnGroups(
+  ref: ResourceRef,
+  groups: ColumnGroupsPatch,
+  opts?: MutationOpts,
+): Promise<OpResult> {
+  return configureColumnGroups(ref, groups, opts);
 }
 
 export async function RemoveField(
@@ -482,6 +492,7 @@ export const Operations = {
   ComposePage,
   ConfigureBlock,
   ConfigureCategory,
+  ConfigureColumnGroups,
   ConfigureField,
   ConfigureModule,
   ConfigurePage,

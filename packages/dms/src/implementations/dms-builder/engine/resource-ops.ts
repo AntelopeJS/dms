@@ -10,6 +10,7 @@ import type {
 } from "@antelopejs/interface-dms-builder";
 import { type ClassDeclaration, type Project, type SourceFile } from "ts-morph";
 import { isString } from "./scalar-guards";
+import { presentationRefusal } from "./column-presentation";
 import {
   barrelSpecifier,
   findNearestBarrel,
@@ -215,6 +216,12 @@ export function createResource(
     const reserved = reservedFieldError(field.name);
     if (reserved) {
       return reserved;
+    }
+    const refusal = presentationRefusal(field);
+    if (refusal) {
+      return invalidConfig<{ ref: ResourceRef; files: ResourceFiles }>(
+        `${field.name}: ${refusal}`,
+      );
     }
   }
   if (input.routes) {

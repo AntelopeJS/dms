@@ -13,6 +13,7 @@ import { displayIds } from "@antelopejs/interface-dms/base/table-view/internal/c
 import { TONES } from "@antelopejs/interface-dms/base/types/tone";
 import type { ColumnDisplay as MappedDisplay } from "@antelopejs/interface-dms-builder";
 import { z } from "zod";
+import { cellDisplayIssues } from "../implementations/dms-builder/engine/cell-displays";
 import { displayRefusal } from "../implementations/dms-builder/engine/column-display";
 import { displayValuesDataType } from "./display-values";
 import type { MockupIssue } from "./model";
@@ -45,7 +46,7 @@ export const COLUMN_DISPLAY_OPTION: BlockOptionSchema = {
   ...describeSchema(z.union([mappedDisplaySchema, cellDisplaySchema])),
   optional: true,
   description:
-    'How the cells draw the column: the builder\'s display of a mapped column, { kind: "badge", items: [{ value, label, tone }] } on a string or select column or { kind: "price", currency? } on a number or price column, else a cell display of the TableView, { type: "identity", options }.',
+    'How the cells draw the column: the builder\'s display of a mapped column, { kind: "badge", items: [{ value, label, tone }] } on a string or select column or { kind: "price", currency? } on a number or price column, else a cell display of the TableView, { type: "identity", options }, its options the ones its DefaultDisplays class takes, as builder_configure_field checks them.',
 };
 
 /** A column as a spec writes it: a `@Column`'s options and its display. */
@@ -170,12 +171,16 @@ function cellColumn(
   display: CellDisplay,
   pointer: string,
 ): BuiltColumn {
+  const issues = cellDisplayIssues(display);
   const Display = CELL_DISPLAYS.get(display.type);
-  if (!Display) {
-    return refused(
-      `${pointer}/display/type`,
-      `"${display.type}" is not a cell display of the DMS; it draws ${[...CELL_DISPLAYS.keys()].join(", ")}`,
-    );
+  if (issues.length > 0 || !Display) {
+    return {
+      ok: false,
+      issues: issues.map((issue) => ({
+        path: `${pointer}/display${issue.path}`,
+        message: issue.message,
+      })),
+    };
   }
   const built = withType(column, key, dataTypeOf(column.type), pointer);
   return built.ok

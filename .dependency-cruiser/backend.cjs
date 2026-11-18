@@ -55,6 +55,7 @@ const faces = new Map(
       "dms-auth/services",
       "dms-auth/email-templates",
       "dms-builder/engine/catalog-connection",
+      "dms-builder/engine/cell-displays",
       "dms-builder/engine/column-display",
       "dms-html-render/services",
       "dms-notifications/services",

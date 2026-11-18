@@ -10881,7 +10881,7 @@
                             ]
                           }
                         ],
-                        "description": "How the cells draw the column: the builder's display of a mapped column, { kind: \"badge\", items: [{ value, label, tone }] } on a string or select column or { kind: \"price\", currency? } on a number or price column, else a cell display of the TableView, { type: \"identity\", options }."
+                        "description": "How the cells draw the column: the builder's display of a mapped column, { kind: \"badge\", items: [{ value, label, tone }] } on a string or select column or { kind: \"price\", currency? } on a number or price column, else a cell display of the TableView, { type: \"identity\", options }, its options the ones its DefaultDisplays class takes, as builder_configure_field checks them."
                       },
                       "group": {
                         "type": "string",

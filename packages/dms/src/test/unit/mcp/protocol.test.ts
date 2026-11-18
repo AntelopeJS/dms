@@ -308,6 +308,8 @@ function servesTheRealTools(): void {
     expect(safe).to.include.members([
       "builder_add_block",
       "builder_compose_page",
+      "builder_configure_column_groups",
+      "builder_configure_field",
       "builder_map_resources",
       "database_describe",
       "navigate_to_page",

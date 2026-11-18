@@ -1,8 +1,12 @@
 import { isDeepStrictEqual } from "node:util";
 import path from "node:path";
-import type { ColumnDisplay } from "@antelopejs/interface-dms-builder";
+import type {
+  ColumnDisplay,
+  ColumnPresentation,
+} from "@antelopejs/interface-dms-builder";
 import { badgeTabs } from "@antelopejs/interface-dms/base/internal/column-badges";
 import { displayOfDataType } from "./column-display";
+import { presentationOf } from "./column-presentation";
 import { isString } from "./scalar-guards";
 import { isPlainObject } from "./value";
 import { TABLE_BLOCK } from "./map-resources-pages";
@@ -37,6 +41,8 @@ export function pageOf(
 export interface CurrentColumns {
   displays: Map<string, ColumnDisplay>;
   labels: Map<string, string>;
+  /** How the TableView presents each column: its cell display, group, width and help. */
+  presentations: Map<string, ColumnPresentation>;
 }
 
 /** The display of each column of a mapped relation's controller that has one, and every label. */
@@ -44,8 +50,10 @@ export function currentColumns(record: ResourceRecord): CurrentColumns {
   const structure = buildResourceStructure(record.ref);
   const displays = new Map<string, ColumnDisplay>();
   const labels = new Map<string, string>();
+  const presentations = new Map<string, ColumnPresentation>();
   for (const field of structure.ok ? structure.data.fields : []) {
     const name = propertyName(field.name);
+    presentations.set(name, presentationOf(field));
     if (field.label !== undefined) {
       labels.set(name, field.label);
     }
@@ -54,7 +62,7 @@ export function currentColumns(record: ResourceRecord): CurrentColumns {
       displays.set(name, display);
     }
   }
-  return { displays, labels };
+  return { displays, labels, presentations };
 }
 
 /**

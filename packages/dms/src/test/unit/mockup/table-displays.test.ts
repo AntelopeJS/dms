@@ -138,6 +138,31 @@ function buildsColumnDisplays(): void {
       /^"sparkles" is not a cell display of the DMS; it draws .*identity/,
     );
   });
+
+  it("refuses a cell display option its class does not take, at the option's pointer, as the builder does", () => {
+    const { issues } = compile(
+      tableOf({
+        fetchUrl: "fixture:orders",
+        columns: {
+          customer: {
+            type: "string",
+            display: { type: "two_line", options: { subField: 3 } },
+          },
+          id: {
+            type: "string",
+            display: { type: "mono", options: { colour: "red" } },
+          },
+        },
+      }),
+    );
+    const at = "/pages/0/tree/0/options/columns";
+
+    expect(issues.map((issue) => issue.path)).to.deep.equal([
+      `${at}/customer/display/options/subField`,
+      `${at}/id/display/options`,
+    ]);
+    expect(issues[1]?.message).to.match(/colour/);
+  });
 }
 
 const compiledTableSchema = z.object({

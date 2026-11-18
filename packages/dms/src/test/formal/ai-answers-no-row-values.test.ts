@@ -36,6 +36,7 @@ const TAKES_NO_FREE_FORM_VALUE: readonly string[] = [
   "builder_configure_table_view",
   "builder_delete_resource",
   "builder_remove_field",
+  "builder_configure_column_groups",
   "builder_remove_query",
   "builder_configure_project",
   "builder_map_resources",

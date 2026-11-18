@@ -2,6 +2,7 @@ import { setTimeout as delay } from "node:timers/promises";
 import {
   AnalyseDatabase,
   type AnalysisState,
+  type CellDisplay,
   type ColumnDisplay,
   ConfigureProject,
   GetAnalysis,
@@ -27,6 +28,7 @@ import {
   redactMapping,
 } from "../redact";
 import { opResult, refusalResult, redactedOpResult } from "./builder-shared";
+import { CELL_DISPLAY, COLUMN_PRESENTATION } from "./builder-resources";
 import { TABLE_VIEW_SETTINGS } from "./builder-table-view";
 
 const ANALYSIS_WAIT_MS = 60_000;
@@ -138,12 +140,14 @@ const MAPPED_FIELD = z.object({
             "ISO 4217 code of the amount (`USD`). Left out, the field is sent as if it left `display` out: it takes the display the relation's mapping holds or its analysis proposes, a price in the currency the column comment states, else in the one its relation's currency column holds, read from the rows when the page is served, and with neither it is written plain. Send a code to write a price neither holds; a relation with a currency column reads that column instead.",
           ),
       }),
+      CELL_DISPLAY,
     ])
     .nullable()
     .optional()
     .describe(
-      "How the column is drawn: a `badge` on a text column of few values, a `price` on an amount. The proposal's display when left out; `null` writes the column plain. A badge's values are never shown to you: send the badge back as the proposal or builder_mapping shows it, `{ kind: \"badge\", values: 3 }`.",
+      "How the column is drawn: a `badge` on a text column of few values, a `price` on an amount, or a cell display of the TableView `{ type, options }` over a column written without either. The proposal's display when left out, and on a relation mapped before the cell display its controller holds; `null` writes the column plain. A badge's values are never shown to you: send the badge back as the proposal or builder_mapping shows it, `{ kind: \"badge\", values: 3 }`.",
     ),
+  ...COLUMN_PRESENTATION,
 });
 
 const MAPPED_RESOURCE = z.object({
@@ -298,8 +302,11 @@ type SentResource = z.infer<typeof MAPPED_RESOURCE>;
  * A badge sent without its items, or a price without its currency, is the display the Builder
  * reads itself: left out.
  */
-function displayInput(display: SentDisplay): ColumnDisplay | null | undefined {
+function displayInput(
+  display: SentDisplay,
+): ColumnDisplay | CellDisplay | null | undefined {
   if (display === undefined || display === null) return display;
+  if (!("kind" in display)) return display;
   if (display.kind === "price") {
     return display.currency === undefined ? undefined : display;
   }
