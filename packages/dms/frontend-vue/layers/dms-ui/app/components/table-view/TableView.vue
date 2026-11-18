@@ -113,6 +113,7 @@ const {
   listLoadError,
   listNotFound,
   shownResults,
+  displayedRows,
   activeDisplayBlockedByError,
   viewItems,
   viewsLayout,
@@ -151,9 +152,9 @@ const {
 
 const blockAttributes = useBlockStateAttributes("TableView", () =>
   resolveBlockState({
-    loading: isListLoading.value,
+    loading: isListLoading.value || displayedRows.value === undefined,
     failed: Boolean(listLoadError.value || listNotFound.value),
-    hasContent: (shownResults.value?.length ?? 0) > 0,
+    hasContent: (displayedRows.value?.length ?? 0) > 0,
   }),
 );
 </script>

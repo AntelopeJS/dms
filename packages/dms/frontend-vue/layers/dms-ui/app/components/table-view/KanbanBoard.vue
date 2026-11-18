@@ -180,7 +180,13 @@ watch(
 const shownRows = computed(() =>
   boardColumns.value.flatMap((col) => cells.value[col.value]?.items ?? []),
 );
-watch(shownRows, (rows) => emit("rows-shown", rows), { immediate: true });
+watch(
+  [shownRows, isBoardLoading],
+  ([rows, loading]) => {
+    if (!loading) emit("rows-shown", rows);
+  },
+  { immediate: true },
+);
 
 const loadMore = async (col: KanbanColumnDef) => {
   const cell = cells.value[col.value];
