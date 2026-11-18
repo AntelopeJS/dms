@@ -116,6 +116,17 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
+it("requests an email keyboard without autocompleting the administrator's address", async () => {
+  const { default: InputEmail } = await import(
+    "../layers/dms-ui/app/components/form/components/InputEmail.vue"
+  );
+  await mountInField(InputEmail);
+
+  const input = host.querySelector("input")!;
+  expect(input.type).toBe("email");
+  expect(input.autocomplete).toBe("off");
+});
+
 it("marks the date picker trigger invalid and describes it by the error", async () => {
   const { default: DatePicker } = await import(
     "../layers/dms-ui/app/components/form/components/DatePicker.vue"
