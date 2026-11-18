@@ -4,6 +4,7 @@ import {
   MODULE_TAG_CLASS,
   type NotificationSourceTag,
   SOURCE_TAG_CLASS,
+  formatNotificationFullTime,
   resolveNotificationTone,
 } from "./notificationDisplay";
 
@@ -19,7 +20,7 @@ const emit = defineEmits<{
   toggleRead: [];
   delete: [];
 }>();
-const { t } = useI18n();
+const { t, locale } = useI18n();
 const { processI18n } = useTranslation();
 
 const isUnread = computed(() => !props.notification.isRead);
@@ -27,6 +28,9 @@ const iconWellTone = computed(() => {
   const tone = resolveNotificationTone(props.notification);
   return tone === "neutral" ? "muted" : tone;
 });
+const fullTime = computed(() =>
+  formatNotificationFullTime(props.notification.createdAt, locale.value),
+);
 const readToggleLabel = computed(() =>
   isUnread.value
     ? t("page.settings.notifications.mark_read")
@@ -71,7 +75,9 @@ const actionLabelUi = {
       }}
     </template>
     <template #meta>
-      <time :datetime="props.notification.createdAt">{{ props.time }}</time>
+      <time :datetime="props.notification.createdAt" :title="fullTime">{{
+        props.time
+      }}</time>
       <span
         v-if="props.source"
         :class="[SOURCE_TAG_CLASS, props.source.isModule && MODULE_TAG_CLASS]"
