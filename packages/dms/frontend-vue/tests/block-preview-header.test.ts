@@ -314,7 +314,7 @@ describe("the top bar a mockup draws", () => {
     expect(host.textContent).toContain("Orders");
   });
 
-  it("leaves everything to the eye but the button that opens the sidebar below the desktop width: out of the reader's way, out of the pointer's, out of the tab order (fails when a copied button acts)", async () => {
+  it("leaves everything to the eye but the buttons the sidebar needs: out of the reader's way, out of the pointer's, out of the tab order (fails when a copied button acts)", async () => {
     await mountTopBar();
     const live = [...host.querySelectorAll("button")].filter(
       (button) =>
@@ -323,6 +323,7 @@ describe("the top bar a mockup draws", () => {
     );
     expect(live.map((button) => button.getAttribute("aria-label"))).toEqual([
       "header.open_sidebar",
+      "header.collapse_sidebar",
     ]);
     for (const button of live) {
       expect(button.hasAttribute("data-dms-preview-navigation")).toBe(true);
@@ -337,13 +338,20 @@ describe("the top bar a mockup draws", () => {
     }
   });
 
-  it("offers no button that folds or unfolds the mockup's sidebar, which stays on its rail (fails when the top bar can unfold it)", async () => {
+  it("folds the mockup's sidebar to its rail and back, as the dashboard's header does (fails when the sidebar cannot be folded or unfolded from a mockup)", async () => {
     await mountTopBar();
+    const toggle = () =>
+      host.querySelector<HTMLButtonElement>(
+        'button[aria-label$="_sidebar"]:not([aria-label="header.open_sidebar"])',
+      );
 
-    expect(
-      host.querySelector(
-        'button[aria-label="header.collapse_sidebar"], button[aria-label="header.expand_sidebar"]',
-      ),
-    ).toBeNull();
+    toggle()?.click();
+    await nextTick();
+    expect(sidebarState.get("dms-sidebar-collapsed")?.value).toBe(true);
+    expect(toggle()?.getAttribute("aria-label")).toBe("header.expand_sidebar");
+
+    toggle()?.click();
+    await nextTick();
+    expect(sidebarState.get("dms-sidebar-collapsed")?.value).toBe(false);
   });
 });

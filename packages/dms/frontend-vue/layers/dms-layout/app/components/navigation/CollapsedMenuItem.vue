@@ -35,12 +35,6 @@ const theme = tv({
     isAccent: {
       true: { topLevelButton: "text-primary", link: "text-primary" },
     },
-    isSelected: {
-      true: {
-        topLevelButton: "bg-elevated text-highlighted",
-        link: "bg-elevated text-highlighted",
-      },
-    },
 
     previewState: {
       hidden: {
@@ -86,40 +80,10 @@ const props = withDefaults(defineProps<CollapsedMenuItemProps>(), {
   level: 0,
 });
 
-/**
- * An entry that acts through `onSelect` with no `to`, as a mockup's page rows
- * do: a button that selects it, carrying the entry's `aria-*` and `data-*`
- * fields as Nuxt UI's menu puts them on its link, and drawn selected while
- * `active`.
- */
-const isSelectable = computed(
-  () => props.item.to === undefined && props.item.onSelect !== undefined,
-);
-
-const selectableAttrs = computed(() =>
-  isSelectable.value
-    ? {
-        type: "button",
-        ...Object.fromEntries(
-          Object.entries(props.item).filter(
-            ([key]) => key.startsWith("aria-") || key.startsWith("data-"),
-          ),
-        ),
-        onClick: (event: Event) => props.item.onSelect?.(event),
-      }
-    : {},
-);
-
-const tag = computed(() => {
-  if (props.item.to) return DmsLink;
-  return isSelectable.value ? "button" : "div";
-});
-
 const ui = computed(() =>
   theme({
     isTopLevel: props.isTopLevel,
     isAccent: props.item.variant === "accent",
-    isSelected: isSelectable.value && props.item.active === true,
     previewState: props.item.lockReason ? undefined : props.item.previewState,
     locked: props.item.lockReason !== undefined,
   }),
@@ -159,9 +123,8 @@ const chevronClass = (isOpen: boolean) => {
       :content="{ side: 'right', sideOffset: 8 }"
     >
       <component
-        :is="tag"
+        :is="item.to ? DmsLink : 'div'"
         :to="item.to"
-        v-bind="selectableAttrs"
         :class="ui.topLevelButton()"
       >
         <UIcon v-if="item.icon" :name="item.icon" :class="ui.icon()" />
@@ -178,10 +141,9 @@ const chevronClass = (isOpen: boolean) => {
     </UTooltip>
 
     <component
-      :is="tag"
+      :is="item.to ? DmsLink : 'div'"
       v-else
       :to="item.to"
-      v-bind="selectableAttrs"
       :class="ui.link()"
       :style="{ paddingLeft }"
       :title="item.title"

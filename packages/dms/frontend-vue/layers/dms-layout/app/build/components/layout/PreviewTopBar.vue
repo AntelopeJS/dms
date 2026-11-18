@@ -7,11 +7,11 @@ import { useSidebarState } from "./sidebarState";
 /**
  * The dashboard's top bar as a mockup draws it above a page: the navbar of
  * `DashboardHeader` with static data, so the mockup looks as the page will.
- * Nothing in it acts and a reader of the page skips it, but the button that
- * opens the sidebar below the dashboard's desktop width. Above it, the
- * mockup's sidebar stays folded to its rail, so no button unfolds it. The
- * icons are those of the header actions of a development dashboard (Mockups,
- * Branding), then the quick actions and the bell.
+ * Nothing in it acts and a reader of the page skips it, but the buttons the
+ * sidebar needs: the one that opens it below the dashboard's desktop width,
+ * and the one that folds it to its rail above. The icons are those of the
+ * header actions of a development dashboard (Mockups, Branding), then the
+ * quick actions and the bell.
  */
 const props = defineProps<{ title: string }>();
 
@@ -25,7 +25,8 @@ const RIGHT_ICONS = [
 const ICON_UI = { leadingIcon: "size-[18px]" };
 
 const { t } = useI18n();
-const { open } = useSidebarState();
+const appConfig = useDmsAppConfig();
+const { open, collapsed } = useSidebarState();
 const navigationAttribute = { [PREVIEW_NAVIGATION_ATTRIBUTE]: "" };
 
 const breadcrumb = computed((): BreadcrumbItem[] => [
@@ -50,6 +51,29 @@ const breadcrumb = computed((): BreadcrumbItem[] => [
           "
           :ui="ICON_UI"
           @click="open = !open"
+        />
+        <UButton
+          v-bind="navigationAttribute"
+          class="hidden lg:flex"
+          :class="TOOLBAR_BUTTON_CLASS"
+          color="neutral"
+          variant="ghost"
+          :icon="
+            collapsed
+              ? appConfig.ui.icons.panelOpen
+              : appConfig.ui.icons.panelClose
+          "
+          :aria-label="
+            collapsed
+              ? t('header.expand_sidebar')
+              : t('header.collapse_sidebar')
+          "
+          :ui="ICON_UI"
+          @click="collapsed = !collapsed"
+        />
+        <span
+          aria-hidden="true"
+          class="mx-1.5 hidden h-[18px] w-px bg-(--ui-border) lg:block"
         />
       </template>
 
