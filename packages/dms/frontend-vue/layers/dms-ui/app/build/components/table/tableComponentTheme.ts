@@ -43,7 +43,6 @@ const theme = tv({
 
     scrollFrame: "relative",
 
-    scrollFade: "pointer-events-none absolute inset-y-0 z-30 w-3",
     tableRoot: "relative overflow-x-auto whitespace-nowrap",
     tableBase: "inline-block min-w-full align-middle",
     table: "text-default w-full min-w-full table-fixed text-left text-[13px]/5",
@@ -125,12 +124,12 @@ const theme = tv({
     },
     pinned: {
       left: {
-        headCell: `${HEADER_MATCH_BG} sticky z-10 shadow-[2px_0_0_0_rgba(0,0,0,0.06)]`,
-        rowCell: `${PANEL_MATCH_BG} ${ROW_SELECTED_CELL_BG} ${ROW_EXPANDED_CELL_BG} ${ROW_OPEN_CELL_BG} group-data-[presence=true]:bg-elevated sticky z-10 shadow-[2px_0_0_0_rgba(0,0,0,0.06)]`,
+        headCell: `${HEADER_MATCH_BG} sticky z-10`,
+        rowCell: `${PANEL_MATCH_BG} ${ROW_SELECTED_CELL_BG} ${ROW_EXPANDED_CELL_BG} ${ROW_OPEN_CELL_BG} group-data-[presence=true]:bg-elevated sticky z-10`,
       },
       right: {
-        headCell: `${HEADER_MATCH_BG} sticky z-10 shadow-[-2px_0_0_0_rgba(0,0,0,0.06)]`,
-        rowCell: `${PANEL_MATCH_BG} ${ROW_SELECTED_CELL_BG} ${ROW_EXPANDED_CELL_BG} ${ROW_OPEN_CELL_BG} group-data-[presence=true]:bg-elevated sticky z-10 shadow-[-2px_0_0_0_rgba(0,0,0,0.06)]`,
+        headCell: `${HEADER_MATCH_BG} sticky z-10`,
+        rowCell: `${PANEL_MATCH_BG} ${ROW_SELECTED_CELL_BG} ${ROW_EXPANDED_CELL_BG} ${ROW_OPEN_CELL_BG} group-data-[presence=true]:bg-elevated sticky z-10`,
       },
     },
 
@@ -152,14 +151,6 @@ const theme = tv({
     },
     scrolled: {
       true: "",
-    },
-    side: {
-      start: {
-        scrollFade: "shadow-[inset_12px_0_10px_-10px_rgb(0_0_0/0.28)]",
-      },
-      end: {
-        scrollFade: "shadow-[inset_-12px_0_10px_-10px_rgb(0_0_0/0.28)]",
-      },
     },
 
     archived: {

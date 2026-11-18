@@ -1,22 +1,12 @@
-import { computed, reactive, ref, useTemplateRef, watch } from "vue";
+import { computed, ref, useTemplateRef } from "vue";
 import { useElementSize } from "@vueuse/core";
-import {
-  horizontalScrollEdges,
-  type ScrollEdges,
-} from "../../composables/table/utils/scrollEdges";
 import type { Data, TableProps } from "./Table.types";
 
 export function useTableComponentScroll<T extends Data>(props: TableProps<T>) {
   const hasScrollArea = computed(() => !!props.maxHeight);
   const isScrolled = ref(false);
 
-  const scrollEdges = reactive<ScrollEdges>({ start: false, end: false });
-  const syncScrollEdges = () => {
-    const area = tableRootRef.value;
-    if (area) Object.assign(scrollEdges, horizontalScrollEdges(area));
-  };
   const onTableScroll = (event: Event) => {
-    syncScrollEdges();
     if (!hasScrollArea.value) return;
     const { target } = event;
     isScrolled.value = target instanceof Element && target.scrollTop > 0;
@@ -24,9 +14,6 @@ export function useTableComponentScroll<T extends Data>(props: TableProps<T>) {
 
   const tableRootRef = useTemplateRef<HTMLElement>("tableRoot");
   const { width: tableViewportWidth } = useElementSize(tableRootRef);
-  const tableBaseRef = useTemplateRef<HTMLElement>("tableBase");
-  const { width: tableContentWidth } = useElementSize(tableBaseRef);
-  watch([tableViewportWidth, tableContentWidth], syncScrollEdges);
 
   const tableHeadRef = useTemplateRef<HTMLElement>("tableHead");
   const { height: tableHeadHeight } = useElementSize(tableHeadRef, undefined, {
@@ -57,7 +44,6 @@ export function useTableComponentScroll<T extends Data>(props: TableProps<T>) {
   return {
     hasScrollArea,
     isScrolled,
-    scrollEdges,
     onTableScroll,
     tableRootRef,
     tableViewportWidth,

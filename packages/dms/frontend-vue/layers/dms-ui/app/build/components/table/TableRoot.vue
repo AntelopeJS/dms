@@ -135,7 +135,6 @@ const skeletonWidth = (rowIndex: number, columnIndex: number): string =>
 const {
   hasScrollArea,
   isScrolled,
-  scrollEdges,
   onTableScroll,
   tableRootRef,
   tableViewportWidth,
@@ -187,7 +186,6 @@ const reorderHandles = useReorderHandles({
 });
 
 const {
-  scrollFadeInsets,
   getPinnedLeftOffset,
   getPinnedRightOffset,
   getPinnedVariant,
@@ -567,7 +565,7 @@ defineShortcuts({
             <span :class="uiTable.loadingBarIndicator()" />
           </div>
 
-          <div ref="tableBase" :class="uiTable.tableBase()">
+          <div :class="uiTable.tableBase()">
             <table :class="uiTable.table()">
               <caption v-if="caption" :class="uiTable.tableCaption()">
                 {{ caption }}
@@ -642,20 +640,6 @@ defineShortcuts({
             </table>
           </div>
         </section>
-        <span
-          v-if="scrollEdges.start"
-          aria-hidden="true"
-          data-table-scroll-fade="start"
-          :class="uiTable.scrollFade({ side: 'start' })"
-          :style="{ insetInlineStart: `${scrollFadeInsets.start}px` }"
-        />
-        <span
-          v-if="scrollEdges.end"
-          aria-hidden="true"
-          data-table-scroll-fade="end"
-          :class="uiTable.scrollFade({ side: 'end' })"
-          :style="{ insetInlineEnd: `${scrollFadeInsets.end}px` }"
-        />
       </div>
 
       <TablePagination />
