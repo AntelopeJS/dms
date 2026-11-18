@@ -1,7 +1,9 @@
 import { resolve } from "node:path";
 import {
+  type CategorySummary,
   GetPageStructure,
   GetResourceStructure,
+  ListCategories,
   ListPages,
   type OpResult,
   type PageStructure,
@@ -18,17 +20,19 @@ import {
 } from "./from-page";
 import type {
   JsonObject,
+  MockupCategory,
   MockupIssue,
   MockupName,
   MockupSpec,
   MockupSpecPage,
 } from "./model";
-import { parseMockupName, specSchema } from "./model";
+import { pageIdSchema, parseMockupName, specSchema } from "./model";
 import { queued } from "./queue";
 import { readSpecSource, type SpecDigest, withSpecLock } from "./source";
 
 export interface LivePages {
   listPages(): Promise<readonly PageSummary[]>;
+  listCategories(): Promise<readonly CategorySummary[]>;
   pageStructure(ref: string): Promise<OpResult<PageStructure>>;
   resourceStructure(ref: string): Promise<OpResult<ResourceStructure>>;
 }
@@ -36,6 +40,7 @@ export interface LivePages {
 /** The project's pages, as the builder reads them. */
 export const BUILDER_PAGES: LivePages = {
   listPages: () => ListPages(),
+  listCategories: () => ListCategories(),
   pageStructure: (ref) => GetPageStructure(ref),
   resourceStructure: (ref) => GetResourceStructure(ref),
 };
@@ -265,6 +270,62 @@ function specWith(
     : { ...replaced.spec, pages };
 }
 
+/** The built-in section the mockup's default section stands for, in the app and in each module. */
+const DEFAULT_SECTION_ID = "pages";
+const FALLBACK_CATEGORY_ID = "section";
+
+/** A category id as a mockup spec takes it, from a builder category id. */
+function categoryIdOf(id: string): string {
+  const slug = id
+    .toLowerCase()
+    .replace(/[^a-z0-9-]+/g, "-")
+    .replace(/^-+/, "")
+    .slice(0, 64);
+  return pageIdSchema.safeParse(slug).success ? slug : FALLBACK_CATEGORY_ID;
+}
+
+/**
+ * The mockup category of the live page's sidebar section, none for the
+ * default Pages section, which a mockup draws for a page without category.
+ */
+async function sectionCategory(
+  structure: PageStructure,
+  pages: LivePages,
+): Promise<MockupCategory | undefined> {
+  const ref = structure.page.section;
+  if (ref === undefined) return undefined;
+  const section = (await pages.listCategories()).find(
+    (category) => category.ref === ref,
+  );
+  const id = ref.split(".").at(-1) ?? ref;
+  if (!section || id === DEFAULT_SECTION_ID) return undefined;
+  const category: MockupCategory = {
+    id: categoryIdOf(id),
+    title: section.displayName,
+  };
+  if (section.icon !== undefined) category.icon = section.icon;
+  return category;
+}
+
+/** `spec` with `page` filed under `category`, which joins the spec's categories unless one has its id. */
+function inCategory(
+  spec: MockupSpec,
+  pageId: string,
+  category: MockupCategory | undefined,
+): MockupSpec {
+  if (!category) return spec;
+  const categories = spec.categories ?? [];
+  return {
+    ...spec,
+    categories: categories.some(({ id }) => id === category.id)
+      ? categories
+      : [...categories, category],
+    pages: spec.pages.map((page) =>
+      page.id === pageId ? { ...page, category: category.id } : page,
+    ),
+  };
+}
+
 async function readStructure(
   target: LivePageTarget,
   pages: LivePages,
@@ -345,7 +406,11 @@ async function convertLivePage(
     oracle: openOracle(slot.name, pageId),
     resources,
   });
-  const spec = specWith(replaced, structure, converted.page);
+  const spec = inCategory(
+    specWith(replaced, structure, converted.page),
+    pageId,
+    await sectionCategory(structure, pages),
+  );
   const read = slot.kind === "linked" ? slot.digest : undefined;
   const written = await withSpecLock(mockupsDir, slot.name, async (write) => {
     const current = await readSpecSource(mockupsDir, slot.name);

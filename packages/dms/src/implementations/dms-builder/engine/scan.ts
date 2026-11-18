@@ -36,6 +36,11 @@ export interface CategoryRecord {
   importName?: string;
   importModule?: string;
   moduleId?: string;
+  /**
+   * Whether the sidebar shows it as a section, a header over its entries: a
+   * `label` at the top of the sidebar or of a module's.
+   */
+  section: boolean;
 }
 
 export const DMS_PAGE_MODULE = "@antelopejs/interface-dms/page";
@@ -70,6 +75,29 @@ const RESERVED_ROOTS = new Map([
 ]);
 
 const CATEGORY_FACTORIES = new Set(["Category", "RootCategory"]);
+
+/** The factory that writes a section at the top of the sidebar. */
+export const SECTION_FACTORY = "RootCategory";
+
+/**
+ * Whether a declared category is a section, as the sidebar draws it: a
+ * `label`, which `RootCategory` defaults to, at the top of the sidebar or
+ * directly under a module's root. A label nested deeper draws as an entry.
+ */
+function isSection(
+  factory: string,
+  opts: ObjectLiteralExpression,
+  parent: CategoryRecord | undefined,
+): boolean {
+  const type = getStringProperty(opts, "type");
+  const label =
+    type === "label" || (type === undefined && factory === SECTION_FACTORY);
+  return label && (parent === undefined || isModuleRoot(parent));
+}
+
+function isModuleRoot(category: CategoryRecord): boolean {
+  return category.parentRef === "modules" && category.moduleId !== undefined;
+}
 
 export function joinSlug(parentSlug: string, urlSlug: string): string {
   const raw = parentSlug ? `${parentSlug}/${urlSlug}` : `/${urlSlug}`;
@@ -175,6 +203,7 @@ class SourceScanner {
       displayName: readOption(arg, "title", isString) ?? id,
       parentRef: "modules",
       moduleId: id,
+      section: false,
     };
     this.categories.set(root.ref, root);
     this.moduleRoots.set(id, { root, def: this.buildModuleDefault(arg, root) });
@@ -196,6 +225,7 @@ class SourceScanner {
       displayName: readOption(defCat, "displayName", isString) ?? "pages",
       parentRef: root.ref,
       moduleId: root.moduleId,
+      section: true,
     };
     this.categories.set(def.ref, def);
     return def;
@@ -255,6 +285,7 @@ class SourceScanner {
       fullSlug: `/modules/${moduleId}`,
       displayName: moduleId,
       parentRef: "modules",
+      section: false,
     };
     this.categories.set(ref, record);
     return record;
@@ -291,6 +322,7 @@ class SourceScanner {
       displayName: reserved.id,
       importName: name,
       importModule: DMS_PAGE_MODULE,
+      section: reserved.id === "pages",
     };
     this.categories.set(record.ref, record);
     return record;
@@ -313,12 +345,12 @@ class SourceScanner {
     if (!id || !optsArg || !Node.isObjectLiteralExpression(optsArg)) {
       return undefined;
     }
-    return this.buildCategory(decl, id, optsArg);
+    return this.buildCategory(decl, { id, factory }, optsArg);
   }
 
   private buildCategory(
     decl: Node,
-    id: string,
+    { id, factory }: { id: string; factory: string },
     opts: ObjectLiteralExpression,
   ): CategoryRecord {
     const parentId = getIdentifierProperty(opts, "category");
@@ -334,6 +366,7 @@ class SourceScanner {
       parentRef: parent?.ref,
       importName: Node.isVariableDeclaration(decl) ? decl.getName() : undefined,
       importModule: decl.getSourceFile().getFilePath(),
+      section: isSection(factory, opts, parent),
     };
     this.byDecl.set(decl, record);
     this.categories.set(record.ref, record);

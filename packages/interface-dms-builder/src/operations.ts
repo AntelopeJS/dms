@@ -51,6 +51,12 @@ export interface CreateCategoryInput {
   order?: number;
   /** As `CreatePageInput.module`. */
   module?: string;
+  /**
+   * Writes a sidebar section (`RootCategory`): a header at the top of the
+   * sidebar, beside Pages, listing the pages created in it. Its ref is its
+   * name. A section takes no `parent`.
+   */
+  section?: boolean;
 }
 
 /** Input for `AddBlock`. */
@@ -170,7 +176,7 @@ export const ConfigureCategory =
     (
       ref: CategoryRef,
       patch: Partial<EditableCategoryMeta>,
-    ) => Promise<OpResult>
+    ) => Promise<OpResult<{ ref: CategoryRef }>>
   >();
 export const DeleteCategory =
   InterfaceFunction<(ref: CategoryRef) => Promise<OpResult>>();

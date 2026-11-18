@@ -210,7 +210,7 @@ export async function CreateCategory(
 export async function ConfigureCategory(
   ref: CategoryRef,
   patch: Partial<EditableCategoryMeta>,
-): Promise<OpResult> {
+): Promise<OpResult<{ ref: CategoryRef }>> {
   return configureCategory(ref, patch);
 }
 

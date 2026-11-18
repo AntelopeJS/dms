@@ -57,6 +57,25 @@ export function listCategoryRecords(): CategoryRecord[] {
   return Array.from(getSourceIndex().categories.values());
 }
 
+/**
+ * The sidebar section a category shows under: itself when it is one, else its
+ * nearest ancestor that is one. None for a category under no section, such
+ * as one under Settings.
+ */
+export function sectionOf(categoryRef: string): CategoryRecord | undefined {
+  const categories = getSourceIndex().categories;
+  const seen = new Set<string>();
+  let current = categories.get(categoryRef);
+  while (current && !current.section && !seen.has(current.ref)) {
+    seen.add(current.ref);
+    current =
+      current.parentRef === undefined
+        ? undefined
+        : categories.get(current.parentRef);
+  }
+  return current?.section ? current : undefined;
+}
+
 export function listPageSummaries(): PageSummary[] {
   return Array.from(getSourceIndex().pages.values()).map((page) => {
     const summary: PageSummary = {
@@ -69,6 +88,7 @@ export function listPageSummaries(): PageSummary[] {
       icon: page.icon,
       order: page.order,
       hidden: page.hidden,
+      section: sectionOf(page.categoryRef)?.ref,
     };
     const source = moduleOfFile(page.filepath);
     if (source && !source.isProject) {
@@ -85,5 +105,6 @@ export function listCategorySummaries(): CategorySummary[] {
     parent: category.parentRef,
     icon: category.icon,
     order: category.order,
+    section: category.section || undefined,
   }));
 }
