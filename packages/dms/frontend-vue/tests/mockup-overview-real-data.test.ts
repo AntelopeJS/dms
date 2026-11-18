@@ -20,6 +20,13 @@ const CONVERTED = mockupPage({
   livePage: { ref: "/orders" },
 });
 const HAND_MADE = mockupPage({ id: "made", title: "Made", tree: SAMPLE_TREE });
+const LIVE_REFERENCE = mockupPage({
+  id: "quotes",
+  title: "Quotes",
+  tree: [],
+  paths: {},
+  live: { ref: "/quotes" },
+});
 
 let viewer: MountedViewer;
 const { find, spyOn, sayFrom, measure, bootLive } = overviewDriver(
@@ -76,6 +83,21 @@ describe("the Overview board on real data", () => {
     );
     expect(frameSrc("live")).toBe(SAMPLE_SRC);
     expect(await drawnTree("live")).toEqual(SAMPLE_TREE);
+  });
+
+  it("draws a live reference page in the frame that allows live routes whatever the switch says, and the switch follows the converted pages alone (fails when a live reference lands in the fixtures-only frame)", async () => {
+    await openBoard([CONVERTED, LIVE_REFERENCE]);
+
+    expect(frameSrc("quotes")).toBe(REAL_SRC);
+    find("[data-dms-mockup-real-data]")?.click();
+    await flush();
+    await bootLive();
+
+    expect(find("[data-dms-mockup-real-data]")?.getAttribute("aria-checked")).toBe(
+      "false",
+    );
+    expect(frameSrc("live")).toBe(SAMPLE_SRC);
+    expect(frameSrc("quotes")).toBe(REAL_SRC);
   });
 
   it("has no Real data switch on a board without a live tree (fails when the switch shows for hand-made pages)", async () => {
