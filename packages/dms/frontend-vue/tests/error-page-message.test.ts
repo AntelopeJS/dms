@@ -17,17 +17,6 @@ import {
   HTTP_UNAUTHORIZED,
 } from "../layers/dms-core/app/utils/http-status";
 
-/** Stands for the shared copy button, whose own tests cover the clipboard and its check state. */
-vi.mock("../layers/dms-ui/app/components/copy/CopyButton.vue", async () => {
-  const { defineComponent, h } = await import("vue");
-  return {
-    default: defineComponent({
-      props: { value: { type: String, required: true } },
-      setup: (props) => () => h("button", { "data-copy-value": props.value }),
-    }),
-  };
-});
-
 const TECHNICAL_MESSAGE = "DMS backend request failed";
 
 /** The global name `@nuxt/icon` registers and the sources resolve. */
@@ -102,15 +91,39 @@ it.each([HTTP_NOT_FOUND, HTTP_FORBIDDEN])(
   },
 );
 
-function copyButton(): HTMLElement | null {
-  return host.querySelector("[data-copy-value]");
+function copyButton(): HTMLButtonElement | null {
+  return host.querySelector("button[aria-label^='dms.button.copy']");
 }
 
-it("offers a copy button whose value is the status code followed by the message", () => {
+/**
+ * jsdom has no `ClipboardItem`, so `@vueuse/core` falls back to copying through
+ * a selected textarea, which this records.
+ */
+function stubExecCommand() {
+  const copied: string[] = [];
+  Object.defineProperty(window.navigator, "clipboard", {
+    value: {},
+    configurable: true,
+  });
+  Object.defineProperty(document, "execCommand", {
+    value: vi.fn(() => {
+      copied.push(document.querySelector("textarea")?.value ?? "");
+      return true;
+    }),
+    configurable: true,
+  });
+  return copied;
+}
+
+it("copies the status code followed by the message", async () => {
+  const copied = stubExecCommand();
   mountError(500);
-  expect(copyButton()?.getAttribute("data-copy-value")).toBe(
-    `500 ${TECHNICAL_MESSAGE}`,
-  );
+  const button = copyButton();
+  expect(button?.getAttribute("aria-label")).toBe("dms.button.copy");
+
+  button?.click();
+  await vi.waitFor(() => expect(copied).toHaveLength(1));
+  expect(copied).toEqual([`500 ${TECHNICAL_MESSAGE}`]);
 });
 
 it.each([HTTP_NOT_FOUND, HTTP_FORBIDDEN])(
