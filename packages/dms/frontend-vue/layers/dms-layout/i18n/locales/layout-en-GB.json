@@ -591,8 +591,6 @@
         "scale_small_hint": "Compact · more data",
         "scale_normal_hint": "Default",
         "scale_large_hint": "Spacious · big screens",
-        "css_variables": "CSS variables",
-        "css_variables_description": "List of all UI CSS properties used in the design system",
         "system_hint": "Matches your OS setting",
         "light_hint": "Bright surfaces",
         "dark_hint": "Easy on the eyes",
@@ -600,29 +598,6 @@
         "sidebar_description": "You can also collapse it any time with the button next to the breadcrumb.",
         "sidebar_start_collapsed": "Start with the sidebar collapsed",
         "sidebar_start_collapsed_hint": "Shows icons only, with labels on hover. Handy on small laptop screens.",
-        "developer_title": "Developer",
-        "developer_description": "Design tokens used by the interface, for building modules that match it.",
-        "css_vars": {
-          "count": "{count} variables",
-          "filter_placeholder": "Filter variables",
-          "category_label": "Variable group",
-          "theme_hint": "Values for the current theme",
-          "copy": "Copy",
-          "copied": "Copied",
-          "showing": "Showing {shown} of {total}",
-          "export": "Export as CSS",
-          "no_results": "No variable matches this filter.",
-          "categories": {
-            "all": "All",
-            "colors": "Colors",
-            "text": "Text",
-            "background": "Background",
-            "border": "Border",
-            "radius": "Radius",
-            "shadow": "Shadow",
-            "other": "Other"
-          }
-        },
         "accessibility": {
           "title": "Accessibility",
           "description": "Calmer, crisper and easier-to-scan screens on this device. Density above scales the text.",
