@@ -184,7 +184,7 @@ const { t } = useI18n();
         </UButton>
       </MockupShortcutTip>
       <MockupShortcutTip
-        v-if="hasRealData && !isOverview"
+        v-if="hasRealData"
         :label="t('dms.mockup.real_data_hint')"
       >
         <USwitch

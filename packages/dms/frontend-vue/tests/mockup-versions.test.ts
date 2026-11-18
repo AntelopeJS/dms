@@ -526,3 +526,25 @@ describe("mockup version history: the comments of a version", () => {
     expect(find('[data-dms-mockup-pin="on-one"]')).toBeNull();
   });
 });
+
+describe("mockup version history: converted pages", () => {
+  it("draws a version's page converted from a live page on its live tree and the frame that allows live routes, as the current page is (fails when a version is always drawn on fixtures)", async () => {
+    const realTree = [{ type: "KpiCard", options: { fetchUrl: "/api/kpi" } }];
+    versionState = mockupState({
+      pages: [
+        mockupPage({
+          tree: [{ type: "KpiCard", options: { title: OLD_TITLE } }],
+          realTree,
+          livePage: { ref: "/orders" },
+        }),
+      ],
+    });
+    await mount();
+    await openHistory();
+    await preview(1);
+    await viewer.say({ type: "ready" });
+
+    expect(find("iframe")?.getAttribute("src")).toBe("/dms-preview");
+    expect(rendered(viewer.posted).at(-1)?.tree).toEqual(realTree);
+  });
+});

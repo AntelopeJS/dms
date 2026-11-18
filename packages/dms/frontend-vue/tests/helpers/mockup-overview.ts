@@ -5,7 +5,10 @@ import {
   type PreviewInboundMessage,
   type PreviewOutboundMessage,
 } from "../../layers/dms-ui/app/entries/utils/blockPreview";
-import type { MockupAnnotation } from "../../layers/dms-ui/app/entries/utils/mockup";
+import type {
+  MockupAnnotation,
+  MockupPageState,
+} from "../../layers/dms-ui/app/entries/utils/mockup";
 import {
   FakeEventSource,
   flush,
@@ -57,6 +60,7 @@ export async function mountOverviewViewer(
   count: number,
   notes: MockupAnnotation[] = [],
   query: Record<string, string> = { name: "demo", page: "p1" },
+  pages: MockupPageState[] = overviewPages(count),
 ): Promise<{ viewer: MountedViewer; runtime: MockupRuntime }> {
   sizeCallbacks.length = 0;
   const runtime = stubMockupRuntime({ notes, query });
@@ -67,7 +71,7 @@ export async function mountOverviewViewer(
     removeEventListener: () => undefined,
   }));
   const viewer = await mountViewer();
-  await viewer.publish("state", mockupState({ pages: overviewPages(count) }));
+  await viewer.publish("state", mockupState({ pages }));
   await viewer.say({ type: "ready" });
   return { viewer, runtime };
 }

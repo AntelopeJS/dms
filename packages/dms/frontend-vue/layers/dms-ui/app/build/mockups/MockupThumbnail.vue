@@ -11,23 +11,22 @@ import {
   type MockupState,
 } from "../utils/mockup";
 import {
-  FIXTURES_ONLY_QUERY,
-  FIXTURES_ONLY_VALUE,
-} from "../utils/previewFixturesOnly";
+  mockupDataTree,
+  mockupPreviewPath,
+  readsRealData,
+} from "../utils/mockupRealData";
 import { mockupNavigation } from "../utils/mockupFrame";
 import { currentSketchScheme } from "../utils/sketch";
 
 /**
  * A live, scaled-down drawing of the whole first page of a mockup: the real
- * `/dms-preview`, at desktop width and a 16:10 screen, shrunk to the card's
+ * `/dms-preview` (on live routes for a page converted from a live page), at desktop width and a 16:10 screen, shrunk to the card's
  * width. It reads the mockup and loads the frame once the thumbnail scrolls
  * into view, and leaves a quiet placeholder when the mockup cannot be read or
  * has no page to draw.
  */
 const props = defineProps<{ name: string }>();
 
-/** The preview on the mockup's fixtures, which refuses every live route. */
-const PREVIEW_PATH = `/dms-preview?${FIXTURES_ONLY_QUERY}=${FIXTURES_ONLY_VALUE}`;
 const SCREEN_HEIGHT_PX = (MOCKUP_WIDTHS.desktop * 10) / 16;
 
 const { t } = useI18n();
@@ -47,6 +46,10 @@ useResizeObserver(band, ([entry]) => {
 });
 
 const page = computed(() => state.value?.pages[0]);
+/** A page converted from a live page is drawn on its live routes, the others on fixtures that refuse them. */
+const previewPath = computed(() =>
+  mockupPreviewPath(readsRealData(page.value, undefined)),
+);
 const isUnavailable = computed(() => isLoaded.value && !page.value);
 const scale = computed(() => bandWidth.value / MOCKUP_WIDTHS.desktop);
 const stageStyle = computed(() => ({
@@ -71,7 +74,7 @@ function syncPreview(): void {
   if (!current) return;
   bridge.post(
     previewRenderMessage({
-      tree: current.tree,
+      tree: mockupDataTree(current, readsRealData(current, undefined)),
       theme: isPreviewTheme(current.options.theme)
         ? current.options.theme
         : currentSketchScheme(),
@@ -128,9 +131,10 @@ watch(isInView, (inView) => {
     >
       <iframe
         ref="frame"
+        :key="previewPath"
         class="bg-default block size-full border-0 transition-opacity duration-200 motion-reduce:transition-none"
         :class="isDrawn ? 'opacity-100' : 'opacity-0'"
-        :src="PREVIEW_PATH"
+        :src="previewPath"
         :title="t('dms.mockup.thumbnail_title', { name: props.name })"
         tabindex="-1"
         aria-hidden="true"

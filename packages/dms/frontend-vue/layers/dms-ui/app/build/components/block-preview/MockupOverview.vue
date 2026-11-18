@@ -11,13 +11,18 @@ import {
 import type { MockupOverview } from "../../composables/block-preview/useMockupOverview";
 import type { MockupPins } from "../../composables/block-preview/useMockupPins";
 import type { PreviewRect } from "../../utils/blockPreviewMessages";
-import type { MockupCategory, MockupPageState } from "../../utils/mockup";
+import type {
+  MockupCategory,
+  MockupDataMode,
+  MockupPageState,
+} from "../../utils/mockup";
 import { mockupPageIcon } from "../../utils/mockupFrame";
 import {
   OVERVIEW_FRAME_WIDTH,
   wheelPixels,
   wheelZoomFactor,
 } from "../../utils/mockupOverview";
+import { readsRealData } from "../../utils/mockupRealData";
 import { isFieldKey } from "../../utils/mockupShortcuts";
 import { overviewArrows, shownArrows } from "../../utils/mockupOverviewArrows";
 import MockupOverviewSlot from "./MockupOverviewSlot.vue";
@@ -49,6 +54,8 @@ const props = defineProps<{
   categories: readonly MockupCategory[];
   /** The mockup's title, which each preview's top bar shows when a page has none. */
   navigationTitle: string;
+  /** The developer's Real data choice, if any: each page draws by it. */
+  dataMode?: MockupDataMode;
 }>();
 
 const emit = defineEmits<{ open: [page: string] }>();
@@ -442,6 +449,7 @@ onBeforeUnmount(() => {
             :pages="pages"
             :categories="categories"
             :title="navigationTitle"
+            :real-data="readsRealData(slot.page, dataMode)"
             :height="slot.frame.rect.height"
             @report="overview.report"
             @booted="overview.booted(slot.index)"

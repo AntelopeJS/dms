@@ -101,8 +101,10 @@ const {
   isVirtual,
   close: closePage,
 } = useMockupViewerPages({ name: props.name, state, history, spec });
-const { hasRealData, realData, previewSrc } = useMockupRealData(
+const { choice, hasRealData, realData, previewSrc } = useMockupRealData(
   currentPage,
+  pages,
+  isOverview,
   props.initialData,
 );
 const { handoff, runs, handOff, build, resolveComments } =
@@ -363,6 +365,7 @@ const { showsLeft, showsInspector, gridClass } = useMockupGridLayout({
           :pages="pages"
           :categories="categories"
           :navigation-title="title"
+          :data-mode="choice"
           @open="openPage"
         />
         <MockupCanvasChrome

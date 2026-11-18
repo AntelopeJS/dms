@@ -13,14 +13,11 @@ import {
   OVERVIEW_FRAME_WIDTH,
   OVERVIEW_MIN_HEIGHT,
 } from "../../utils/mockupOverview";
-import {
-  FIXTURES_ONLY_QUERY,
-  FIXTURES_ONLY_VALUE,
-} from "../../utils/previewFixturesOnly";
+import { mockupDataTree, mockupPreviewPath } from "../../utils/mockupRealData";
 
 /**
  * One live frame of the Overview: the real `/dms-preview`, on the mockup's
- * fixtures, drawing `page` at the desktop width and its full height, at least
+ * fixtures or, for a page on real data, its live routes, drawing `page` at the desktop width and its full height, at least
  * a desktop window's. The iframe stays when `page` changes and redraws in
  * place, so the Overview moves a few iframes around instead of booting one
  * per page. It reports the page's height and where its blocks sit, for the
@@ -41,6 +38,8 @@ const props = defineProps<{
   categories: readonly MockupCategory[];
   /** The mockup's title, at the top of the sidebar. */
   title: string;
+  /** Whether `page` is drawn on its live routes, with its live tree. */
+  realData: boolean;
   /** The frame's height, in the page's own pixels. */
   height: number;
 }>();
@@ -50,7 +49,6 @@ const emit = defineEmits<{
   booted: [];
 }>();
 
-const PREVIEW_PATH = `/dms-preview?${FIXTURES_ONLY_QUERY}=${FIXTURES_ONLY_VALUE}`;
 const BOOT_TIMEOUT_MS = 15_000;
 
 const { t } = useI18n();
@@ -66,10 +64,16 @@ const navigation = computed(() =>
 );
 
 function sync(): void {
-  bridge.post(mockupPageRender(props.page, props.page.tree, navigation.value));
+  bridge.post(mockupPageRender(
+      props.page,
+      mockupDataTree(props.page, props.realData),
+      navigation.value,
+    ));
   bridge.post(previewInspectMessage(true));
   bridge.post(previewMinHeightMessage(OVERVIEW_MIN_HEIGHT));
 }
+
+const src = computed(() => mockupPreviewPath(props.realData));
 
 const fallback = useTimeoutFn(() => emit("booted"), BOOT_TIMEOUT_MS);
 
@@ -85,7 +89,7 @@ const bridge = usePreviewFrame({
     emit("report", props.page.id, { blocks, height: bridge.height.value }),
 });
 
-watch([() => props.page, navigation], sync);
+watch([() => props.page, () => props.realData, navigation], sync);
 watch(bridge.height, (height) => {
   if (height !== undefined) emit("report", props.page.id, { height });
 });
@@ -94,8 +98,9 @@ watch(bridge.height, (height) => {
 <template>
   <iframe
     ref="frame"
+    :key="src"
     class="bg-default pointer-events-none block rounded-md border-0 will-change-transform"
-    :src="PREVIEW_PATH"
+    :src="src"
     :style="{ width: `${OVERVIEW_FRAME_WIDTH}px`, height: `${height}px` }"
     :title="t('dms.mockup.thumbnail_title', { name: page.title })"
     tabindex="-1"
