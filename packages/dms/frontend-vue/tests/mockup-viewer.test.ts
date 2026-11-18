@@ -5,9 +5,6 @@ import {
   parseMockupState,
   specPointerFor,
 } from "../layers/dms-ui/app/entries/utils/mockup";
-import { FOLD_RAIL_WIDTH, mountFoldedRail } from "./helpers/side-rail";
-import { registerSidePanel } from "../layers/dms-ui/app/composables/useAppSidePanels";
-import { useSidePanel } from "../layers/dms-ui/app/composables/useSidePanel";
 import {
   FakeEventSource,
   flush,
@@ -434,41 +431,12 @@ describe("side panels of the viewer", () => {
     expect(shown()).toEqual({ left: true, right: false });
   });
 
-  it("keeps the docked side panel's width free and marks itself as a surface it docks beside (fails when the assistant's panel hides on /mockup)", async () => {
+  it("marks itself as a surface the side panel docks beside (fails when the assistant's panel hides on /mockup)", async () => {
     stubMockupRuntime();
-    registerSidePanel({ id: "assistant", component: "DmsAssistantPanel" });
     viewer = await mountViewer();
     const root = viewer.host.querySelector<HTMLElement>(
       "[data-dms-docks-side-panel]",
     );
     expect(root?.querySelector("[data-dms-mockup-viewer]")).not.toBeNull();
-    expect(root?.style.getPropertyValue("--dms-side-panel-width")).toBe("");
-
-    useSidePanel("assistant").open();
-    await flush();
-
-    expect(root?.style.getPropertyValue("--dms-side-panel-width")).toBe(
-      "440px",
-    );
-  });
-
-  it("keeps the folded rail's width free beside the inspector, from the moment the rail is drawn until it goes (fails when the rail covers the inspector)", async () => {
-    stubMockupRuntime();
-    viewer = await mountViewer();
-    const root = viewer.host.querySelector<HTMLElement>(
-      "[data-dms-docks-side-panel]",
-    );
-    expect(root?.style.getPropertyValue("--dms-side-rail-width")).toBe("");
-
-    const { remove } = mountFoldedRail();
-    await flush();
-    expect(root?.style.getPropertyValue("--dms-side-rail-width")).toBe(
-      `${FOLD_RAIL_WIDTH}px`,
-    );
-    expect(root?.className).toContain("pe-[var(--dms-side-rail-width,0px)]");
-
-    remove();
-    await flush();
-    expect(root?.style.getPropertyValue("--dms-side-rail-width")).toBe("");
   });
 });

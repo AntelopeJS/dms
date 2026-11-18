@@ -6,6 +6,7 @@ import {
   h,
   reactive,
   ref,
+  shallowRef,
   type App,
 } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -17,6 +18,7 @@ import MockupLayout from "../layers/dms-layout/app/custom-layouts/MockupLayout.v
 import DashboardSidebar from "../layers/dms-layout/app/entries/components/layout/DashboardSidebar";
 import { useSidebarState } from "../layers/dms-layout/app/entries/components/layout/sidebarState";
 import type { PreviewNavigation } from "../layers/dms-ui/app/entries/utils/blockPreview";
+import { FOLD_RAIL_WIDTH, mountFoldedRail } from "./helpers/side-rail";
 import {
   flush,
   registerMenu,
@@ -82,6 +84,8 @@ function stubSidebarRuntime() {
     useDmsAppConfig: () => ({}),
     useDmsRoute: () => reactive({ path: "/dms-preview", query: {} }),
     isDmsHydrating: () => false,
+    useDmsUserSession: () => ({ loggedIn: ref(true) }),
+    shallowRef,
     useDmsCookie: <T>(_key: string, options: { default: () => T }) =>
       ref(options.default()),
     useSiteLayout: () => ({
@@ -152,9 +156,9 @@ async function mountSidebar(props: {
     defineComponent({
       inheritAttrs: false,
       props: { persistent: { type: Boolean, default: true } },
-      setup: (groupProps, { slots }) => {
+      setup: (groupProps, { slots, attrs }) => {
         groupPersists = groupProps.persistent;
-        return () => h("div", slots.default?.());
+        return () => h("div", { ...attrs, "data-group": "" }, slots.default?.());
       },
     }),
   );
@@ -298,5 +302,27 @@ describe("the dashboard's sidebar around a mockup", () => {
     expect(groupPersists).toBe(false);
     expect(find("main [data-viewer]")).not.toBeNull();
     expect(find("main[data-dms-page-content]")).not.toBeNull();
+  });
+
+  it("stops its group short of the assistant's folded bar, from the moment the bar is drawn until it goes, so the bar and the docked panel stay above the viewer (fails when the workbench covers the assistant)", async () => {
+    stubSidebarRuntime();
+    await mountSidebar({ inMockupLayout: true });
+    const group = find("[data-group]");
+    expect(group?.hasAttribute("data-dms-docks-side-panel")).toBe(true);
+    expect(group?.style.getPropertyValue("--dms-side-rail-width")).toBe("");
+
+    const { remove } = mountFoldedRail();
+    await flush();
+    expect(group?.style.getPropertyValue("--dms-side-rail-width")).toBe(
+      `${FOLD_RAIL_WIDTH}px`,
+    );
+    expect(group?.className).toContain("end-[var(--dms-side-rail-width,0px)]");
+    expect(group?.className).toContain(
+      "lg:end-[calc(min(var(--dms-side-panel-width,0px),60vw)+var(--dms-side-rail-width,0px))]",
+    );
+
+    remove();
+    await flush();
+    expect(group?.style.getPropertyValue("--dms-side-rail-width")).toBe("");
   });
 });
