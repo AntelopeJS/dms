@@ -9,6 +9,7 @@
  * @typedef {{ _id: string, inviteCount?: number, memberCount?: number }} RoleOverviewRow
  * @typedef {{ id: string, state?: string }} StoreModule
  * @typedef {{ icon?: string, linkTo?: string, isRead?: boolean }} NotificationRow
+ * @typedef {{ id: string, values: Record<string, unknown> }} MatrixRow
  */
 
 /**
@@ -122,6 +123,14 @@ export function isRoleRow(value) {
  */
 export function isUserRow(value) {
   return hasId(value) && isRecord(value) && isString(own(value, "name")) && isString(own(value, "email"));
+}
+
+/**
+ * @param {unknown} value
+ * @returns {value is MatrixRow} Whether it is a row of a Matrix route's answer: an `id` and its `values` by column
+ */
+export function isMatrixRow(value) {
+  return isRecord(value) && isString(own(value, "id")) && isRecord(own(value, "values"));
 }
 
 /**

@@ -136,6 +136,7 @@ function serializeTableViewOptions<T extends ControllerClass>(
     pageSize: options.pageSize,
     pagination: options.pagination,
     reorder: options.reorder,
+    inlineEdit: options.inlineEdit,
     footer: serializeFooter(controller.name, meta, options.footer),
     emptyStates: serializeEmptyStates(options.emptyStates),
     displays: serializeTableViewDisplays(options),

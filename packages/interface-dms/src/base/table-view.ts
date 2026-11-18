@@ -40,6 +40,7 @@ export {
   validateRowsAgainstRule,
 } from "./table-view/data-functions";
 export * from "./table-view/column-display";
+export * from "./table-view/inline-edit";
 export { TableView } from "./table-view/factory";
 export { WritingTableViewConflictError } from "./table-view/writer";
 export {

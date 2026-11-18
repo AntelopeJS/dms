@@ -1,0 +1,155 @@
+<script setup lang="ts">
+import { computed } from "vue";
+import { resolveDmsComponent } from "../../../composables/resolveDmsComponent";
+import type {
+  MatrixCellKind,
+  MatrixColumn,
+  MatrixEditorModel,
+} from "../../../types/matrix";
+import { isMatrixValue, kindOf } from "../../composables/matrix/matrixValues";
+import { useComposedText } from "#dms-core/app/composables/translation/useComposedText";
+
+/**
+ * The DMS form input of a column's kind, as a `Form` draws the same field:
+ * text → InputText, longText → Textarea, number → InputNumber, json →
+ * InputCode in JSON... Bound to the editor model of `editorModelOf`.
+ */
+interface MatrixFieldInputProps {
+  column: MatrixColumn;
+  modelValue: MatrixEditorModel;
+  id?: string;
+  disabled?: boolean;
+  /** In a cell: one line, small; in a drawer: the field's full size. */
+  surface?: "cell" | "drawer";
+  invalid?: boolean;
+  /** Edited as a text whatever its kind (a number typed into a cell). */
+  asText?: boolean;
+}
+
+const props = withDefaults(defineProps<MatrixFieldInputProps>(), {
+  id: undefined,
+  disabled: false,
+  surface: "drawer",
+  invalid: false,
+  asText: false,
+});
+
+const emit = defineEmits<{
+  "update:modelValue": [value: MatrixEditorModel];
+}>();
+
+const { processText } = useComposedText();
+
+/** An entry of a select, as the DMS select lists it. */
+interface FieldEditorItem {
+  label: string;
+  value: string;
+  icon?: string;
+}
+
+/** A prop the column hands its input: a bound, a size, a language, a list. */
+type FieldEditorOption =
+  | string
+  | number
+  | boolean
+  | undefined
+  | readonly string[]
+  | readonly FieldEditorItem[];
+
+/** An input of the DMS registry, and the options the column gives it. */
+interface FieldEditor {
+  component: string;
+  options: (
+    column: MatrixColumn,
+    isCell: boolean,
+  ) => Readonly<Record<string, FieldEditorOption>>;
+}
+
+const DRAWER_TEXT_ROWS = 4;
+const MAX_TEXT_ROWS = 12;
+const CODE_MIN_LINES = 8;
+const PLAIN_TEXT_LANGUAGE = "text";
+
+const selectItems = (column: MatrixColumn) =>
+  (column.options ?? []).map((option) => ({
+    label: processText(option.label),
+    value: option.value,
+    icon: option.icon,
+  }));
+
+const EDITORS: Record<MatrixCellKind, FieldEditor> = {
+  text: { component: "dms-input-text", options: () => ({}) },
+  longText: {
+    component: "dms-input-textarea",
+    options: (_column, isCell) => ({
+      autoresize: true,
+      rows: isCell ? 1 : DRAWER_TEXT_ROWS,
+      maxrows: MAX_TEXT_ROWS,
+    }),
+  },
+  number: {
+    component: "dms-input-number",
+    options: (column) => ({
+      min: column.min,
+      max: column.max,
+      step: column.step ?? (column.integer ? 1 : undefined),
+      clamp: false,
+    }),
+  },
+  boolean: { component: "dms-input-switch", options: () => ({}) },
+  date: { component: "dms-date-picker", options: () => ({}) },
+  datetime: {
+    component: "dms-input-text",
+    options: () => ({ type: "datetime-local" }),
+  },
+  select: {
+    component: "dms-input-select",
+    options: (column) => ({ items: selectItems(column) }),
+  },
+  tags: {
+    component: "dms-input-tags",
+    options: (column) => ({
+      suggestions: (column.options ?? []).map((option) => option.value),
+    }),
+  },
+  json: {
+    component: "dms-input-code",
+    options: () => ({ language: "json", minLines: CODE_MIN_LINES }),
+  },
+  code: {
+    component: "dms-input-code",
+    options: (column) => ({
+      language: column.language ?? PLAIN_TEXT_LANGUAGE,
+      minLines: CODE_MIN_LINES,
+    }),
+  },
+  richText: { component: "dms-rich-text", options: () => ({}) },
+  address: { component: "dms-input-address", options: () => ({}) },
+};
+
+const editor = computed(() =>
+  props.asText ? EDITORS.text : EDITORS[kindOf(props.column)],
+);
+const component = computed(() => resolveDmsComponent(editor.value.component));
+const isCell = computed(() => props.surface === "cell");
+const options = computed(() =>
+  editor.value.options(props.column, isCell.value),
+);
+</script>
+
+<template>
+  <Component
+    :is="component"
+    :id="props.id"
+    :model-value="props.modelValue"
+    :disabled="props.disabled"
+    :size="isCell ? 'sm' : undefined"
+    :color="props.invalid ? 'error' : undefined"
+    :highlight="props.invalid || undefined"
+    class="w-full"
+    v-bind="options"
+    @update:model-value="
+      emit('update:modelValue', isMatrixValue($event) ? $event : undefined)
+    "
+  />
+</template>

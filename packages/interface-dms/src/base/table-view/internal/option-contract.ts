@@ -21,6 +21,7 @@ import type {
   TableViewTabSerialized,
   TableViewViewsSerialized,
   TableViewRowClick,
+  TableViewInlineEditOption,
   TableViewColumnsOptions,
   TableViewTab,
   TableViewViewsOptions,
@@ -150,7 +151,7 @@ export interface TableViewLiveHoldOptions {
 export interface TableViewOptions<
   // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Published default accepts module-owned rows.
   T extends object = Record<string, unknown>,
-> {
+> extends TableViewInlineEditOption {
   caption?: string;
   /**
    * Row density the table opens with: "compact" gives 36px rows under a 32px
@@ -164,8 +165,7 @@ export interface TableViewOptions<
    */
   maxHeight?: string;
   /**
-   * What runs the row's click action: a double-click by default, a single
-   * click with `"single"`. See {@link TableViewRowClick}.
+   * What runs the row's click action. See {@link TableViewRowClick}.
    * @example "single"
    */
   rowClick?: TableViewRowClick;

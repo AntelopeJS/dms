@@ -216,6 +216,14 @@ export interface TableViewReorderConfig {
   field: string;
 }
 
+/** Which cells the grid edits in place (backend `inlineEdit`). */
+export interface TableViewInlineEditConfig {
+  /** The columns edited in place, by field id; every eligible one else. */
+  columns?: string[];
+  /** `hover`: the value, framed while hovered; `always`: the input itself. */
+  inputs?: "hover" | "always";
+}
+
 /** What a source route handles itself (backend `capabilities`). */
 export interface TableViewSourceCapabilities {
   search?: boolean;
@@ -323,6 +331,8 @@ export interface TableViewConfig<T extends Data>
   source?: TableViewSourceConfig;
   /** Rows ordered by hand on a number column. */
   reorder?: TableViewReorderConfig;
+  /** Simple values edited in the grid, each saved at once. */
+  inlineEdit?: boolean | TableViewInlineEditConfig;
   /**
    * Row density while the user picked none in the ⋯ menu: `compact` gives
    * 36px rows under a 32px header band.

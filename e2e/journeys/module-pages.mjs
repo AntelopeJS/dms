@@ -1,6 +1,6 @@
 import { randomBytes } from "node:crypto";
 import { fieldOf, itemsOf, parseJson, textOf, toolText, withBridge } from "../mcp-bridge.mjs";
-import { isUserRow, listOf } from "../rows.mjs";
+import { isMatrixRow, isUserRow, listIn, listOf, numberIn } from "../rows.mjs";
 import { operation, rebuild } from "./builder.mjs";
 
 /**
@@ -11,6 +11,41 @@ import { operation, rebuild } from "./builder.mjs";
 
 const USERS = "/table-view/table-view-users";
 const USERS_API = "/api/user";
+const MATRIX_ALLOCATION = "/matrix/matrix-allocation";
+const MATRIX_CORRECTION_API = "/api/playground/matrix/allocation/correction/rows";
+const MATRIX_CORRECTION_GRID = { role: "grid", name: "Correction de stock (avant / après)" };
+const MATRIX_CELL = { role: "gridcell", name: "NE1 · 38", within: MATRIX_CORRECTION_GRID };
+
+/**
+ * The stock count of size 38 at Namur Esplanade the correction grid's route holds.
+ *
+ * @param {Ctx} ctx
+ * @param {string} label
+ * @returns {Promise<number | undefined>}
+ */
+async function countedAtNamur(ctx, label) {
+  const answer = await ctx.api(label, { method: "GET", path: MATRIX_CORRECTION_API });
+  const row = listIn(answer.body, "rows", isMatrixRow).find((entry) => entry.id === "NE1");
+  return row ? numberIn(row.values, "38") : undefined;
+}
+
+/**
+ * Whether the Matrix cell shows `text`, waiting for the grid to draw it.
+ *
+ * @param {Ctx} ctx
+ * @param {Tab} tab
+ * @param {string} text
+ */
+async function matrixCellShows(ctx, tab, text) {
+  const cell = tab.page
+    .getByRole("grid", { name: MATRIX_CORRECTION_GRID.name })
+    .getByRole("gridcell", { name: MATRIX_CELL.name });
+  const shown = await cell
+    .filter({ hasText: text })
+    .waitFor({ timeout: 15_000 })
+    .then(() => true, () => false);
+  return ctx.holds(`the cell reads ${text}`, shown, (await cell.innerText().catch(() => "")).trim());
+}
 
 async function signedIn(/** @type {Ctx} */ ctx, /** @type {string} */ label = "admin") {
   const tab = await ctx.tab("admin", label);
@@ -274,6 +309,24 @@ export const journeys = [
         ctx.equal("Rotate buttons the secret field's dialog drew", fieldRotations, 0),
         ctx.equal("requests to the owner-only route", sent, []),
       ]);
+    },
+  },
+  {
+    id: "matrix-cell-edit-persists",
+    title: "a Matrix cell typed with the keyboard is saved as it is left, and its value survives a reload and reads back from the route",
+    entryPoint: "/matrix/matrix-allocation > Correction de stock, a cell typed into",
+    async run(/** @type {Ctx} */ ctx) {
+      const tab = await signedIn(ctx);
+      const before = await countedAtNamur(ctx, "read the count before");
+      const typed = String((before ?? 4) + 3);
+      await tab.goto(MATRIX_ALLOCATION);
+      await tab.click(MATRIX_CELL);
+      for (const key of typed) await tab.press(key);
+      await tab.press("Enter");
+      await ctx.verify("the cell shows the value typed", [matrixCellShows(ctx, tab, typed)], { critical: true });
+      await tab.reload();
+      await ctx.verify("the value is still there after a reload", [matrixCellShows(ctx, tab, typed)]);
+      await ctx.verify("the route holds the value typed", [ctx.equal("NE1 size 38", await countedAtNamur(ctx, "read the count after"), Number(typed))]);
     },
   },
   {

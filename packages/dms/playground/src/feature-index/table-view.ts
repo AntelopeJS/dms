@@ -12,6 +12,7 @@ import {
   SOURCES,
   DATA_AND_TENANCY,
 } from "./table-view-displays";
+import { INLINE_EDIT } from "./table-view-inline-edit";
 
 export const TABLE_VIEW_FEATURES: PlaygroundFeature[] = [
   ...FORMS_AND_CONTAINERS,
@@ -23,4 +24,5 @@ export const TABLE_VIEW_FEATURES: PlaygroundFeature[] = [
   ...CELLS,
   ...SOURCES,
   ...DATA_AND_TENANCY,
+  ...INLINE_EDIT,
 ];
