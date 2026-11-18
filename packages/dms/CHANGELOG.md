@@ -1,5 +1,21 @@
 # Changelog
 
+## v0.21.2
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/v0.21.1...v0.21.2)
+
+### 🩹 Fixes
+
+- **dms:** Drop the shadow on the sticky columns of TableView ([#1148](https://github.com/AntelopeJS/dms/pull/1148))
+
+### 📖 Documentation
+
+- **dms:** Drop the stale scroll fade from the table docs and TSDoc ([#1149](https://github.com/AntelopeJS/dms/pull/1149))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli
+
 ## v0.21.1
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/v0.21.0...v0.21.1)
