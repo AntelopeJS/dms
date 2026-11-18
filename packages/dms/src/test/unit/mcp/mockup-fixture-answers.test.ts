@@ -205,6 +205,7 @@ describe("[unit] mockup fixture answers of a missing key, a patch and a clean sp
           stats: { items: [{ eyebrow: "Members", value: 8 }] },
           quota: { value: 40, max: 100 },
         },
+        { id: "period", type: "PeriodSelector" },
         {
           type: "KpiCard",
           options: { title: "Revenue", fetchUrl: "fixture:revenue" },
@@ -218,5 +219,91 @@ describe("[unit] mockup fixture answers of a missing key, a patch and a clean sp
     );
 
     expect(result).to.deep.equal({ ok: true, errors: [], warnings: [] });
+  });
+});
+
+describe("[unit] mockup fixture answers: a change figure on a page without a period", () => {
+  const revenue = {
+    type: "KpiCard",
+    options: { title: "Revenue", fetchUrl: "fixture:revenue" },
+  };
+
+  it("warns of a KpiCard delta: the built page shows no change without a PeriodSelector", async () => {
+    const result = await written(
+      page({ revenue: { value: 184320, delta: 8.6 } }, revenue),
+    );
+
+    expect(result.ok).to.equal(true);
+    expect(result.warnings).to.deep.equal([
+      {
+        path: "/pages/0/fixtures/revenue",
+        message:
+          'fixture "revenue" read by KpiCard at /pages/0/tree/0: delta needs a PeriodSelector on the page; the built page shows no change figure without one',
+      },
+    ]);
+  });
+
+  it("warns of a ChartCard's delta and previousValue together", async () => {
+    const result = await written(
+      page(
+        {
+          weekly: {
+            value: 12,
+            delta: 4.2,
+            previousValue: 11,
+            series: [{ x: "Web", y: 9 }],
+          },
+        },
+        chartCard("weekly"),
+      ),
+    );
+
+    expect(result.warnings).to.deep.equal([
+      {
+        path: "/pages/0/fixtures/weekly",
+        message:
+          'fixture "weekly" read by ChartCard at /pages/0/tree/0: delta and previousValue need a PeriodSelector on the page; the built page shows no change figure without one',
+      },
+    ]);
+  });
+
+  it("reads a delta without a warning on a page whose toolbar holds a PeriodSelector", async () => {
+    const result = await written(
+      page(
+        { revenue: { value: 184320, delta: 8.6, previousValue: 169720 } },
+        {
+          id: "toolbar",
+          type: "PageToolbar",
+          children: [{ id: "period", type: "PeriodSelector" }],
+        },
+        revenue,
+      ),
+    );
+
+    expect(result).to.deep.equal({ ok: true, errors: [], warnings: [] });
+  });
+
+  it("judges the page reading the fixture, not the page holding it", async () => {
+    const result = await written({
+      version: 1,
+      pages: [
+        {
+          id: "home",
+          title: "Home",
+          fixtures: { revenue: { value: 184320, delta: 8.6 } },
+          tree: [{ id: "period", type: "PeriodSelector" }, revenue],
+        },
+        {
+          id: "detail",
+          title: "Detail",
+          parent: "home",
+          tree: [revenue],
+        },
+      ],
+    });
+
+    expect(result.warnings.map(({ message }) => message)).to.deep.equal([
+      'fixture "revenue" read by KpiCard at /pages/1/tree/0: delta needs a PeriodSelector on the page; the built page shows no change figure without one',
+    ]);
   });
 });

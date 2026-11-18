@@ -35,6 +35,8 @@ interface BlockAnswer {
   expects: string;
   /** What is wrong with `answer`, one line each; none when the block reads it. */
   problems(answer: Json): string[];
+  /** The keys a built page shows only beside a `PeriodSelector`, which picks what they compare with. */
+  periodKeys?: readonly string[];
 }
 
 const PREVIEW_LENGTH = 80;
@@ -194,31 +196,40 @@ const seriesKey = zodKey(
 const numberKey = (key: string, required = false) =>
   zodKey(key, z.number(), "a number", required);
 
-const kpiAnswer = objectAnswer([
-  numberKey("value", true),
-  numberKey("delta"),
-  numberKey("previousValue"),
-  zodKey(
-    "sparkline",
-    z.array(z.number()) satisfies z.ZodType<KpiCardData["sparkline"]>,
-    "[number]",
-  ),
-  zodKey("caption", z.string(), "a string"),
-]);
+/** A card's change and the figure it compares with, which its period's comparison computes. */
+const PERIOD_KEYS = ["delta", "previousValue"] as const;
 
-const chartCardAnswer = objectAnswer([
-  numberKey("value"),
-  numberKey("delta"),
-  numberKey("previousValue"),
-  seriesKey,
-  zodKey(
-    "comparisonSeries",
-    z.array(seriesSchema) satisfies z.ZodType<
-      ChartCardData["comparisonSeries"]
-    >,
-    SERIES,
-  ),
-]);
+const kpiAnswer: BlockAnswer = {
+  ...objectAnswer([
+    numberKey("value", true),
+    numberKey("delta"),
+    numberKey("previousValue"),
+    zodKey(
+      "sparkline",
+      z.array(z.number()) satisfies z.ZodType<KpiCardData["sparkline"]>,
+      "[number]",
+    ),
+    zodKey("caption", z.string(), "a string"),
+  ]),
+  periodKeys: PERIOD_KEYS,
+};
+
+const chartCardAnswer: BlockAnswer = {
+  ...objectAnswer([
+    numberKey("value"),
+    numberKey("delta"),
+    numberKey("previousValue"),
+    seriesKey,
+    zodKey(
+      "comparisonSeries",
+      z.array(seriesSchema) satisfies z.ZodType<
+        ChartCardData["comparisonSeries"]
+      >,
+      SERIES,
+    ),
+  ]),
+  periodKeys: PERIOD_KEYS,
+};
 
 const chartAnswer = objectAnswer([seriesKey]);
 
@@ -282,25 +293,66 @@ export interface FixtureAnswers {
   warnings: MockupIssue[];
   /** The pointer of each page of the spec, keyed by id. */
   pagePointers: ReadonlyMap<string, string>;
+  /** The ids of the pages whose tree holds a `PeriodSelector`. */
+  periodPages: ReadonlySet<string>;
 }
 
-/** No warnings yet, for a spec of `pages`. */
+function holdsNode(
+  nodes: readonly MockupNode[],
+  is: (node: MockupNode) => boolean,
+): boolean {
+  return nodes.some((node) => is(node) || holdsNode(node.children ?? [], is));
+}
+
+/**
+ * No warnings yet, for a spec of `pages`. `isPeriodSelector` tells the
+ * `PeriodSelector` nodes of their trees, at any depth.
+ */
 export function fixtureAnswers(
-  pages: readonly { id: string }[],
+  pages: readonly { id: string; tree: readonly MockupNode[] }[],
+  isPeriodSelector: (node: MockupNode) => boolean,
 ): FixtureAnswers {
   return {
     warnings: [],
     pagePointers: new Map(
       pages.map((page, index) => [page.id, `/pages/${index}`]),
     ),
+    periodPages: new Set(
+      pages.flatMap((page) =>
+        holdsNode(page.tree, isPeriodSelector) ? [page.id] : [],
+      ),
+    ),
   };
+}
+
+/**
+ * The keys of `answer` block `reader` shows only beside a `PeriodSelector`,
+ * when the page reading it has none: the built page computes no change
+ * without a period to compare with, so it shows none.
+ */
+function periodProblems(
+  reader: BlockAnswer,
+  answer: Json,
+  hasPeriod: boolean,
+): string[] {
+  const object = jsonObjectSchema.safeParse(answer);
+  if (hasPeriod || !reader.periodKeys || !object.success) return [];
+  const present = reader.periodKeys.filter((key) =>
+    Object.hasOwn(object.data, key),
+  );
+  if (present.length === 0) return [];
+  const needs = present.length === 1 ? "needs" : "need";
+  return [
+    `${present.join(" and ")} ${needs} a PeriodSelector on the page; the built page shows no change figure without one`,
+  ];
 }
 
 /**
  * Warns, at the fixture, of each way block `descriptor` at `pointer` cannot
  * read the fixture `node`'s `fetchUrl` names, saying what it reads and what
- * it got. A key no page holds is already an issue, and a page compiled on
- * its live routes reads no fixture.
+ * it got, and of a change it reads on a page with no `PeriodSelector` to
+ * compute it. A key no page holds is already an issue, and a page compiled
+ * on its live routes reads no fixture.
  */
 export function checkFixtureAnswer(
   descriptor: BlockTypeDescriptor,
@@ -321,8 +373,16 @@ export function checkFixtureAnswer(
     page === undefined
       ? `${pointer}/options/fetchUrl`
       : `${page}${jsonPointer(["fixtures", key])}`;
+  const problems = [
+    ...reader.problems(answer),
+    ...periodProblems(
+      reader,
+      answer,
+      scope.answers.periodPages.has(scope.pageId),
+    ),
+  ];
   scope.answers.warnings.push(
-    ...reader.problems(answer).map((problem) => ({
+    ...problems.map((problem) => ({
       path,
       message: `fixture "${key}" read by ${descriptor.type} at ${pointer}: ${problem}`,
     })),

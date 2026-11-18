@@ -1,8 +1,5 @@
-import {
-  type BlockTypeDescriptor,
-  ListBlockTypes,
-} from "@antelopejs/interface-dms/base/block-types";
 import { stampedIdIssues } from "./anchor";
+import { type Catalog, descriptorOf, readCatalog } from "./block-catalog";
 import { CONTROLLER_BLOCKS } from "./controller-blocks";
 import { readOnlyConnectionIssues } from "./data-access";
 import type { AncestorFixtures, FixtureScope } from "./fixtures";
@@ -38,35 +35,6 @@ import {
   validateBlockOptions,
 } from "./validate";
 
-/** The registered block types, looked up as `DmsBlockPreview` does. */
-interface Catalog {
-  byType: Map<string, BlockTypeDescriptor>;
-  byComponent: Map<string, BlockTypeDescriptor>;
-}
-
-/** Same comparison as the preview's: case, separators and `dms` prefix aside. */
-function normalizeComponentName(name: string): string {
-  return name
-    .replace(/^dms[-_]?/i, "")
-    .replace(/[^a-z0-9]/gi, "")
-    .toLowerCase();
-}
-
-function readCatalog(): Catalog {
-  const descriptors = ListBlockTypes();
-  const byComponent = new Map<string, BlockTypeDescriptor>();
-  for (const descriptor of descriptors) {
-    const key = normalizeComponentName(descriptor.componentName);
-    if (!byComponent.has(key)) byComponent.set(key, descriptor);
-  }
-  return {
-    byType: new Map(
-      descriptors.map((descriptor) => [descriptor.type, descriptor]),
-    ),
-    byComponent,
-  };
-}
-
 /** The page a node is compiled on. */
 interface PageScope extends FixtureScope {
   catalog: Catalog;
@@ -82,15 +50,6 @@ type NodeCompiler = (pointer: string, layoutPath: string) => MockupNode;
  */
 interface NodeKind {
   resolve(node: MockupNode, scope: PageScope): NodeCompiler | undefined;
-}
-
-function descriptorOf(
-  node: MockupNode,
-  catalog: Catalog,
-): BlockTypeDescriptor | undefined {
-  if (node.type !== undefined) return catalog.byType.get(node.type);
-  if (node.componentName === undefined) return undefined;
-  return catalog.byComponent.get(normalizeComponentName(node.componentName));
 }
 
 function compileChildren(
@@ -482,7 +441,7 @@ export function openOracle(name: MockupName, pageId: string): NodeOracle {
         links: new Set(),
         generatedPages: [],
         ancestors: [],
-        answers: fixtureAnswers([]),
+        answers: fixtureAnswers([], () => false),
         paths: {},
       };
       compileNode(node, "", `${ROOT_LAYOUT_PREFIX}0`, scope);
@@ -521,14 +480,18 @@ export function compileSpec(
       materializeFixtures(name, page.id, page.fixtures ?? {}, now),
     ]),
   );
+  const catalog = readCatalog();
   const scope: SpecScope = {
-    catalog: readCatalog(),
+    catalog,
     issues: [],
     name,
     graph: pageGraph(spec.pages),
     fixtures,
     generated: [],
-    answers: fixtureAnswers(spec.pages),
+    answers: fixtureAnswers(
+      spec.pages,
+      (node) => descriptorOf(node, catalog)?.type === "PeriodSelector",
+    ),
   };
   const pages = spec.pages.map((page, index) =>
     compilePage(page, `/pages/${index}`, scope),
