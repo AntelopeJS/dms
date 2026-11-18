@@ -18,9 +18,9 @@ import {
   type CommandPaletteAssistant,
 } from "../layers/dms-layout/app/composables/useCommandPaletteAssistant";
 import DashboardSearch from "../layers/dms-layout/app/components/layout/DashboardSearch.vue";
-import { GLOBAL_SHORTCUTS_METADATA } from "../layers/dms-ui/app/build/composables/global/shortcuts";
-import enGB from "../layers/dms-ui/i18n/locales/ui-en-GB.json";
-import frFR from "../layers/dms-ui/i18n/locales/ui-fr-FR.json";
+import shortcutsRegistry from "../layers/dms-ui/app/config/shortcuts-registry";
+import enGB from "../layers/dms-ui/app/entries/i18n/locales/ui-en-GB.json";
+import frFR from "../layers/dms-ui/app/entries/i18n/locales/ui-fr-FR.json";
 import { PaletteStub } from "./fixtures/dashboard-search-stub";
 
 const SHORTCUTS_PAGE = "/settings/user/shortcuts";
@@ -123,9 +123,9 @@ describe("the ? shortcut", () => {
 });
 
 describe("the shortcuts page listing", () => {
-  const entry = GLOBAL_SHORTCUTS_METADATA.find((item) =>
-    item.key.includes("?"),
-  );
+  const entry = shortcutsRegistry
+    .find((group) => group.component === "Global")
+    ?.shortcuts.find((item) => item.key.includes("?"));
 
   it("lists ? under Global", () => {
     expect(entry?.key).toEqual(["?"]);
