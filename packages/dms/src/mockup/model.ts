@@ -159,6 +159,14 @@ const livePageSchema = z
 export type MockupLivePage = z.infer<typeof livePageSchema>;
 
 /**
+ * The live page a live reference page stands for, untouched: its route, as
+ * the dashboard serves it.
+ */
+const liveRefSchema = z.object({ ref: relativeRouteSchema }).strict();
+
+export type MockupLiveRef = z.infer<typeof liveRefSchema>;
+
+/**
  * A button right of a page's title: the look of a `PageHeaderButton` of
  * `DefaultLayout({ headerActions })`. Where it goes is code, so a mockup holds
  * none.
@@ -240,6 +248,7 @@ const pageSchema = z
     headerActions: z.array(headerActionSchema).optional(),
     options: pageOptionsSchema.optional(),
     livePage: livePageSchema.optional(),
+    live: liveRefSchema.optional(),
     liveRoutes: z.record(fixtureKeySchema, liveRouteSchema).optional(),
     fixtures: z.record(fixtureKeySchema, jsonSchema).optional(),
     custom: z.boolean().optional(),
@@ -304,6 +313,37 @@ function checkCustomPages(
           `${field} belongs to a custom page: set custom to true, or move it into a sketch block`,
         );
       }
+    }
+  });
+}
+
+/** The fields a live reference page holds: it stands for a live page, so it has no content of its own. */
+export const LIVE_PAGE_FIELDS: ReadonlySet<string> = new Set([
+  "id",
+  "title",
+  "icon",
+  "category",
+  "menu",
+  "live",
+  "tree",
+]);
+
+/** Reports, at the field, each field a live reference page holds beyond {@link LIVE_PAGE_FIELDS}, and a tree with blocks. */
+function checkLivePages(pages: readonly MockupSpecPage[], issue: Issue): void {
+  pages.forEach((page, index) => {
+    if (page.live === undefined) return;
+    if (page.tree.length > 0) {
+      issue(
+        ["pages", index, "tree"],
+        "a live reference page draws its live page: leave tree out or empty, or convert the page with mockup_from_page to edit it",
+      );
+    }
+    for (const [field, value] of Object.entries(page)) {
+      if (value === undefined || LIVE_PAGE_FIELDS.has(field)) continue;
+      issue(
+        ["pages", index, field],
+        `a live reference page holds only ${[...LIVE_PAGE_FIELDS].join(", ")}: convert the page with mockup_from_page to edit it`,
+      );
     }
   });
 }
@@ -403,6 +443,7 @@ export const specSchema = z
       context.addIssue({ code: z.ZodIssueCode.custom, path, message });
     checkParents(spec.pages, issue);
     checkCustomPages(spec.pages, issue);
+    checkLivePages(spec.pages, issue);
     const categories = new Set<string>();
     spec.categories?.forEach((category, index) => {
       if (categories.has(category.id)) {
@@ -491,6 +532,8 @@ export interface MockupPageState {
    */
   realTree?: MockupNode[];
   livePage?: Pick<MockupLivePage, "ref">;
+  /** The live page a live reference page stands for: the viewer draws that page itself, read-only. */
+  live?: MockupLiveRef;
   /** The spec pointer of each node, keyed by its `DmsBlockPreview` layout path. */
   paths: Record<string, string>;
 }

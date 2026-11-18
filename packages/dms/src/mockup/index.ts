@@ -19,6 +19,7 @@ export * from "./apply-plan";
 export * from "./apply-to-page";
 export * from "./compile";
 export * from "./files";
+export * from "./from-app";
 export * from "./from-page";
 export * from "./from-page-sketch";
 export * from "./history";

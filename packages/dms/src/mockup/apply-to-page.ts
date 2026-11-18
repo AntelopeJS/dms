@@ -116,6 +116,12 @@ async function readLinked(
   if (!page) {
     return failure("not_found", `the mockup ${name} has no page ${pageId}`);
   }
+  if (page.live) {
+    return failure(
+      "not_linked",
+      `the page ${pageId} is a live reference to ${page.live.ref}: it stands for that page untouched, so there is nothing to build`,
+    );
+  }
   const { livePage } = page;
   if (!livePage) {
     return failure(

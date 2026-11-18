@@ -189,6 +189,24 @@ const COMPONENT_NODE: JsonObject = {
   },
 };
 
+/** A live reference page's `live`: the live page it stands for. */
+const LIVE_REF: JsonObject = {
+  type: "object",
+  required: ["ref"],
+  additionalProperties: false,
+  description:
+    "Makes the page a live reference: it stands for a live page of the app, untouched, and the viewer draws that page itself, read-only, with real data. Such a page holds only id, title, icon, category, menu and live. mockup_from_app writes one per page of the app's menu, in menu order; to change one, write a converted page in its place (mockup_from_app pages), which holds livePage instead. The build leaves it as it is.",
+  properties: {
+    ref: {
+      type: "string",
+      pattern: RELATIVE_ROUTE_PATTERN.source,
+      maxLength: MAX_RELATIVE_ROUTE,
+      description:
+        'The live page\'s route, as builder_list_pages lists its ref, e.g. "/orders".',
+    },
+  },
+};
+
 const HEADER_ACTION: JsonObject = {
   type: "object",
   required: ["label"],
@@ -352,6 +370,7 @@ function pageDefinition(): JsonObject {
           },
         },
       },
+      live: LIVE_REF,
       liveRoutes: {
         type: "object",
         propertyNames: { pattern: KEY_PATTERN.source },
