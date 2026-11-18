@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import ChartCard from "../layers/dms-ui/app/components/chart/ChartCard.vue";
 import Chart from "../layers/dms-ui/app/components/chart/ChartBlock.vue";
 import type { ChartType } from "../layers/dms-ui/app/composables/chart/types";
+import type { ApiAnswer } from "./helpers/api-data-runtime";
 import { chartRuntime } from "./helpers/charts-runtime";
 
 const CARD_SERIES = [
@@ -46,7 +47,7 @@ const SLOT_COMPONENTS = [
 
 async function renderNested(
   type: ChartType,
-  series: ReadonlyArray<object> = CARD_SERIES,
+  series: ApiAnswer = CARD_SERIES,
 ) {
   const app = createSSRApp({
     render: () =>
