@@ -28,6 +28,7 @@
       "search_open": "Ouvrir la recherche",
       "options_title": "Options de la table",
       "filters_title": "Filtres",
+      "remove_filter": "Supprimer le filtre",
       "columns_title": "Colonnes",
       "sort_title": "Trier",
       "page_size_title": "Taille des pages",
