@@ -10,7 +10,7 @@ import { useSidebarState } from "./sidebarState";
  * Nothing in it acts and a reader of the page skips it, but the buttons the
  * sidebar needs: the one that opens it below the dashboard's desktop width,
  * and the one that folds it to its rail above. The icons are those of the
- * header actions of a development dashboard (Mockups, Branding), then the
+ * header actions of a development dashboard (Mockups), then the
  * quick actions and the bell.
  */
 const props = defineProps<{ title: string }>();
@@ -18,7 +18,6 @@ const props = defineProps<{ title: string }>();
 const STAR_ICON = "i-ph-star-light";
 const RIGHT_ICONS = [
   "i-ph-frame-corners-light",
-  "i-ph-paint-brush-light",
   "i-ph-lightning-light",
   "i-ph-bell-light",
 ];

@@ -4,7 +4,7 @@ import {
   SetTheme,
 } from "@antelopejs/interface-dms-builder";
 import { z } from "zod";
-import { themeDraftSchema } from "../../branding";
+import { themeDraftSchema } from "./theme-schemas";
 import { defineTool } from "../tool";
 import { withEscalationNote, opResult } from "./builder-shared";
 

@@ -158,7 +158,7 @@ function readThemeSources(layer: ThemeLayer): ThemeSources | OpResult<never> {
 
 /**
  * Without a theme layer, returns `not_found` with the path `CreateThemeLayer`
- * would create, so the editor can offer to create it.
+ * would create, so a caller can offer to create it.
  */
 async function openThemeLayer(): Promise<ThemeSources | OpResult<never>> {
   const layer = await resolveThemeLayer();
@@ -331,7 +331,7 @@ function draftIssues(
 
 /**
  * One warning per SVG file that had active content, not one per slot: the
- * simple editor puts one file in every slot. It names the mode of the file's
+ * same file can fill every slot. It names the mode of the file's
  * first upload only.
  */
 function sanitizedWarnings(stagedLogos: StagedLogo[]): OpWarning[] {

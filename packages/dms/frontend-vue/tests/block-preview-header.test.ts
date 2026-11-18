@@ -331,7 +331,7 @@ describe("the top bar a mockup draws", () => {
     const inert = [...host.querySelectorAll("button")].filter(
       (button) => !live.includes(button),
     );
-    expect(inert.length).toBeGreaterThan(4);
+    expect(inert.length).toBeGreaterThan(3);
     for (const button of inert) {
       const wrapper = button.closest("[aria-hidden=true]") ?? button;
       expect(wrapper.getAttribute("aria-hidden")).toBe("true");

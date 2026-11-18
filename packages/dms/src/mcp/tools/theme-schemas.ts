@@ -60,9 +60,3 @@ export const themeDraftSchema = z.object({
       "Logo files sent with the save, each for one slot in one mode. Of two for one slot and mode, only the last is written.",
     ),
 });
-
-/** The body of `PUT /api/branding/theme`. */
-export const saveThemeBodySchema = z.object({
-  draft: themeDraftSchema,
-  expectedVersion: z.string().optional(),
-});
