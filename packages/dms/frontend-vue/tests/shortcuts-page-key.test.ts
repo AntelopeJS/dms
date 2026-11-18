@@ -13,7 +13,10 @@ import {
   type Ref,
 } from "vue";
 import { defineShortcuts } from "@nuxt/ui/runtime/composables/defineShortcuts.js";
-import { useCommandPaletteAssistant } from "../layers/dms-layout/app/composables/useCommandPaletteAssistant";
+import {
+  useCommandPaletteAssistant,
+  type CommandPaletteAssistant,
+} from "../layers/dms-layout/app/composables/useCommandPaletteAssistant";
 import DashboardSearch from "../layers/dms-layout/app/components/layout/DashboardSearch.vue";
 import { GLOBAL_SHORTCUTS_METADATA } from "../layers/dms-ui/app/build/composables/global/shortcuts";
 import enGB from "../layers/dms-ui/i18n/locales/ui-en-GB.json";
@@ -23,7 +26,9 @@ import { PaletteStub } from "./fixtures/dashboard-search-stub";
 const SHORTCUTS_PAGE = "/settings/user/shortcuts";
 
 const navigateDms = vi.fn();
-let state: Map<string, Ref<unknown>>;
+type StoredState = Array<Partial<CommandPaletteAssistant>>;
+
+let state: Map<string, Ref<StoredState>>;
 let app: App;
 let host: HTMLDivElement;
 
@@ -39,7 +44,7 @@ function installRuntime(): void {
   vi.stubGlobal("useI18n", () => ({ t: (key: string) => key }));
   vi.stubGlobal("useDmsAppConfig", () => ({ ui: { icons: {} } }));
   vi.stubGlobal("useCommandPaletteGroups", () => ({ groups: ref([]) }));
-  vi.stubGlobal("useDmsState", (key: string, initial: () => unknown) => {
+  vi.stubGlobal("useDmsState", (key: string, initial: () => StoredState) => {
     if (!state.has(key)) state.set(key, ref(initial()));
     return state.get(key);
   });
@@ -131,17 +136,14 @@ describe("the shortcuts page listing", () => {
     ["en-GB", enGB],
     ["fr-FR", frFR],
   ])("describes it in %s", (_locale, messages) => {
-    const global = messages.dms.shortcuts.global as Record<
-      string,
-      { description?: string; condition?: string }
-    >;
+    const { question_mark: questionMark } = messages.dms.shortcuts.global;
     expect(entry?.descriptionKey).toBe(
       "$dms.shortcuts.global.question_mark.description",
     );
     expect(entry?.condition?.descriptionKey).toBe(
       "$dms.shortcuts.global.question_mark.condition",
     );
-    expect(global.question_mark?.description).toBeTruthy();
-    expect(global.question_mark?.condition).toBeTruthy();
+    expect(questionMark.description).toBeTruthy();
+    expect(questionMark.condition).toBeTruthy();
   });
 });
