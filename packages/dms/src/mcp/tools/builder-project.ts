@@ -404,6 +404,34 @@ async function startOrRead(
   });
 }
 
+/**
+ * What to pass instead of an incomplete call: the modules bound to the connection named, or every
+ * catalog connection with the modules bound to each.
+ */
+async function missingInputRefusal(connection: string | undefined) {
+  const { boundModuleIds, boundModulesSentence, listCatalogConnections } =
+    await import("../../implementations/dms-builder/engine");
+  const ask =
+    "Pass `connection` and `module` to start an analysis, or `job` to read a running one.";
+  if (connection !== undefined) {
+    const bound = boundModulesSentence(connection);
+    return refusalResult(
+      "invalid_input",
+      `${ask} ${bound.charAt(0).toUpperCase()}${bound.slice(1)}.`,
+    );
+  }
+  const connections = listCatalogConnections().map((id) => {
+    const bound = boundModuleIds(id);
+    return `${id} (${bound.length === 0 ? "no module bound yet" : bound.join(", ")})`;
+  });
+  return refusalResult(
+    "invalid_input",
+    connections.length === 0
+      ? `${ask} The project has no catalog connection yet.`
+      : `${ask} The connections, with the modules bound to each: ${connections.join("; ")}.`,
+  );
+}
+
 const analyseDatabase = defineTool({
   name: "builder_analyse_database",
   title: "Analyse database",
@@ -413,12 +441,7 @@ const analyseDatabase = defineTool({
   input: AnalyseDatabaseInputSchema,
   async run(args) {
     let answer = await startOrRead(args);
-    if (answer === undefined) {
-      return refusalResult(
-        "invalid_input",
-        "Pass `connection` and `module` to start an analysis, or `job` to read a running one.",
-      );
-    }
+    if (answer === undefined) return missingInputRefusal(args.connection);
     const deadline = Date.now() + ANALYSIS_WAIT_MS;
     while (
       answer.ok &&
