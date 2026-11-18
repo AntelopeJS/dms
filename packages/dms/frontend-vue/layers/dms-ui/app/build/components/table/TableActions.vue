@@ -480,6 +480,7 @@ const uiTableActions = computed(() => uiTableActionsVariant());
         >
           <UButton
             icon="i-ph-arrows-down-up"
+            :aria-label="t('dms.table.sort_title')"
             color="neutral"
             variant="ghost"
             size="sm"
@@ -516,6 +517,7 @@ const uiTableActions = computed(() => uiTableActionsVariant());
         <UButton
           id="table-menu"
           :icon="appConfig.ui.icons.ellipsis"
+          :aria-label="t('dms.table.options_title')"
           color="neutral"
           variant="ghost"
           size="sm"

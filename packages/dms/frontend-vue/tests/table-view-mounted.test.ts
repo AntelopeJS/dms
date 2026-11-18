@@ -295,6 +295,35 @@ it("reapplies sorting capability when switching away from a display and back", a
   expect(queries.at(-1)?.sortKey).toBe("name");
 });
 
+it("names the sort and menu buttons of the toolbar", async () => {
+  const host = await mount({
+    columns: [
+      {
+        id: "name",
+        accessorKey: "name",
+        header: "Name",
+        listable: true,
+        enableSorting: true,
+        type: {
+          id: "string",
+          compareModes: [],
+          filterComponents: {},
+          inputComponent: { componentName: "Input" },
+        },
+      },
+    ],
+  });
+  await settleTable();
+  expect(
+    host
+      .querySelector("#sorting-trigger [aria-label]")
+      ?.getAttribute("aria-label"),
+  ).toBe("dms.table.sort_title");
+  expect(host.querySelector("#table-menu")?.getAttribute("aria-label")).toBe(
+    "dms.table.options_title",
+  );
+});
+
 async function saveArrival(display = "table") {
   total = 100;
   const host = await mount(arrivalConfig);

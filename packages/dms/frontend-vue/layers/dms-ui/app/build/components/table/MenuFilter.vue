@@ -281,6 +281,7 @@ const formatFilterValue = (filter: TableFilter): string => {
 
         <UButton
           :icon="appConfig.ui.icons.close"
+          :aria-label="t('dms.table.remove_filter')"
           variant="ghost"
           color="neutral"
           size="xs"
