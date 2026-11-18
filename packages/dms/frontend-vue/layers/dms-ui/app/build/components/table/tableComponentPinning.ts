@@ -20,16 +20,6 @@ export function useTableComponentPinning<T>(
   const stickyLeft = computed(() => stickyPinnedSides.value.left);
   const stickyRight = computed(() => stickyPinnedSides.value.right);
 
-  const scrollFadeInsets = computed(() => {
-    const sides = stickyPinnedSides.value;
-    return {
-      start:
-        (sides.left ? getTable().getLeftTotalSize() : 0) +
-        (hasPresenceRail.value ? PRESENCE_RAIL_WIDTH : 0),
-      end: sides.right ? getTable().getRightTotalSize() : 0,
-    };
-  });
-
   const getStickyPin = (column: Pick<Column<T>, "getIsPinned">) => {
     const pinned = column.getIsPinned();
     if (pinned === "left" && stickyLeft.value) return "left";
@@ -84,7 +74,6 @@ export function useTableComponentPinning<T>(
   };
 
   return {
-    scrollFadeInsets,
     getPinnedLeftOffset,
     getPinnedRightOffset,
     getPinnedVariant,
