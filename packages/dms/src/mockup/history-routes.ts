@@ -26,6 +26,7 @@ import {
   type MockupVersion,
   type MockupVersionSummary,
   readVersion,
+  versionStamp,
 } from "./history";
 import type {
   Json,
@@ -132,10 +133,36 @@ function readingVersion(
   }));
 }
 
-/** The mockup a version was recorded for, compiled as the viewer draws it. */
-function stateOf(name: MockupName, version: MockupVersion): MockupState {
+/** How many compiled versions the routes keep, the least recently read dropped first. */
+const COMPILED_VERSIONS = 8;
+
+/** A version, compiled once for its answer and for every fixture its blocks read. */
+interface CompiledVersion {
+  version: MockupVersion;
+  /** The mockup the version was recorded for, as the viewer draws it. */
+  state: MockupState;
+  /** Each page's fixtures, keyed by page id. */
+  fixtures: Map<string, JsonObject>;
+}
+
+/** A compiled version, and the stamp of the file it was compiled from. */
+interface CachedVersion {
+  stamp: string;
+  compiled: Promise<CompiledVersion | undefined>;
+}
+
+function compileVersion(
+  name: MockupName,
+  version: MockupVersion,
+): CompiledVersion {
   const read = parseSpec(JSON.stringify(version.spec));
-  if (!read.ok) return { name, revision: 0, pages: [], issues: read.issues };
+  if (!read.ok) {
+    return {
+      version,
+      state: { name, revision: 0, pages: [], issues: read.issues },
+      fixtures: new Map(),
+    };
+  }
   const compiled = compileSpec(name, read.spec);
   const state: MockupState = {
     name,
@@ -148,7 +175,53 @@ function stateOf(name: MockupName, version: MockupVersion): MockupState {
     state.categories = compiled.categories;
   }
   if (compiled.sidebar !== undefined) state.sidebar = compiled.sidebar;
-  return state;
+  return { version, state, fixtures: compiled.fixtures };
+}
+
+/**
+ * Reads a version of a mockup compiled, compiling it once while its file
+ * stays the same: a stored version does not change, but a write folded into
+ * the newest one replaces its file, and a deleted mockup takes its files
+ * along. It keeps the {@link COMPILED_VERSIONS} versions read last.
+ */
+function compiledVersions(mockupsDir: string) {
+  const cache = new Map<string, CachedVersion>();
+
+  async function readCompiled(
+    name: MockupName,
+    seq: number,
+  ): Promise<CompiledVersion | undefined> {
+    const version = await readVersion(mockupsDir, name, seq);
+    return version && compileVersion(name, version);
+  }
+
+  async function compiledOf(
+    rawName: string,
+    rawSeq: string,
+  ): Promise<CompiledVersion> {
+    const name = nameOf(rawName);
+    const seq = seqOf(rawSeq);
+    const key = `${name}/${seq}`;
+    const stamp = await versionStamp(mockupsDir, name, seq);
+    const cached = cache.get(key);
+    cache.delete(key);
+    if (stamp === undefined) throw notFound("version");
+    const entry =
+      cached?.stamp === stamp
+        ? cached
+        : { stamp, compiled: readCompiled(name, seq) };
+    cache.set(key, entry);
+    for (const old of [...cache.keys()].slice(0, -COMPILED_VERSIONS)) {
+      cache.delete(old);
+    }
+    const compiled = await entry.compiled.catch((error: unknown) => {
+      if (cache.get(key) === entry) cache.delete(key);
+      throw error;
+    });
+    if (!compiled) throw notFound("version");
+    return compiled;
+  }
+  return compiledOf;
 }
 
 /**
@@ -158,6 +231,8 @@ function stateOf(name: MockupName, version: MockupVersion): MockupState {
  * owners only, like the rest of the mockup API.
  */
 export function registerHistoryRoutes(mockupsDir: string) {
+  const compiledOf = compiledVersions(mockupsDir);
+
   async function versionOf(rawName: string, rawSeq: string) {
     const name = nameOf(rawName);
     const version = await readVersion(mockupsDir, name, seqOf(rawSeq));
@@ -171,13 +246,10 @@ export function registerHistoryRoutes(mockupsDir: string) {
     rawPage: string,
     rawKey: string,
   ): Promise<Json> {
-    const { name, version } = await versionOf(rawName, rawSeq);
+    const compiled = await compiledOf(rawName, rawSeq);
     const page = checkParam(pageIdSchema, rawPage, "page");
     const key = checkParam(fixtureKeySchema, rawKey, "fixture");
-    const read = parseSpec(JSON.stringify(version.spec));
-    const fixtures = read.ok
-      ? compileSpec(name, read.spec).fixtures.get(page)
-      : undefined;
+    const fixtures = compiled.fixtures.get(page);
     if (!fixtures || !Object.hasOwn(fixtures, key)) throw notFound("fixture");
     return fixtures[key];
   }
@@ -211,7 +283,7 @@ export function registerHistoryRoutes(mockupsDir: string) {
       @Parameter("seq") rawSeq: string,
     ): Promise<MockupVersionAnswer> {
       await this.assertOwner();
-      const { name, version } = await versionOf(rawName, rawSeq);
+      const { version, state } = await compiledOf(rawName, rawSeq);
       const { seq, at, by, summary, spec } = version;
       return {
         seq,
@@ -219,9 +291,10 @@ export function registerHistoryRoutes(mockupsDir: string) {
         by,
         summary,
         spec,
-        state: stateOf(name, version),
+        state,
         annotations:
-          (await listVersionAnnotations(name, seq, spec, mockupsDir)) ?? [],
+          (await listVersionAnnotations(state.name, seq, spec, mockupsDir)) ??
+          [],
       };
     }
 

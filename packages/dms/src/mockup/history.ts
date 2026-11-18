@@ -1,4 +1,4 @@
-import { mkdir, readdir, readFile, rename, rm } from "node:fs/promises";
+import { mkdir, readdir, readFile, rename, rm, stat } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { isDeepStrictEqual } from "node:util";
 import { Logging } from "@antelopejs/interface-core/logging";
@@ -220,6 +220,26 @@ export function readVersion(
   seq: number,
 ): Promise<MockupVersion | undefined> {
   return readAt(historyDirectory(mockupsDir, name), seq);
+}
+
+/**
+ * What tells the file of version `seq` of `name` apart from any other write
+ * of it, or undefined when there is none: every write replaces the file.
+ */
+export async function versionStamp(
+  mockupsDir: string,
+  name: MockupName,
+  seq: number,
+): Promise<string | undefined> {
+  try {
+    const { ino, mtimeMs, size } = await stat(
+      versionPath(historyDirectory(mockupsDir, name), seq),
+    );
+    return `${ino}:${mtimeMs}:${size}`;
+  } catch (error) {
+    if (parseFsError(error).code === MISSING_FILE) return undefined;
+    throw error;
+  }
 }
 
 /** The number of the newest version of `name`, or undefined when it has none. */
