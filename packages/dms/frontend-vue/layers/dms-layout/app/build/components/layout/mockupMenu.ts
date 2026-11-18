@@ -5,6 +5,7 @@ import type {
   PreviewNavigationCategory,
   PreviewNavigationItem,
   PreviewNavigationSection,
+  PreviewPageStatus,
 } from "#dms-ui/app/entries/utils/blockPreview";
 import { DEFAULT_PAGE_ICON } from "../../../utils/dms-icons";
 
@@ -41,6 +42,8 @@ export interface MockupMenuPage {
   index: number;
   /** Whether it is the section's last page. */
   isLast: boolean;
+  /** What the page is beside the live app, in a whole-platform mockup. */
+  status?: PreviewPageStatus;
 }
 
 export type MockupMenuEntry = MockupMenuSection | MockupMenuPage;
@@ -190,6 +193,9 @@ function pageItem(
  * while editing, when every category is listed, and the default section gets
  * a header too once there are categories to drag its pages from or an app
  * section it joins.
+ *
+ * A whole-platform mockup (`wholeApp`) already lists every page of the app:
+ * its sidebar is its own menu alone, none of the app's entries merged in.
  */
 export function mockupMenu(
   navigation: PreviewNavigation,
@@ -201,7 +207,9 @@ export function mockupMenu(
     (section) => section.category !== undefined,
   );
   const entries = new Map<string, MockupMenuEntry>();
-  const appGroups = dimmedMenu(shownAppGroups(existing, navigation.sections));
+  const appGroups = navigation.wholeApp
+    ? []
+    : dimmedMenu(shownAppGroups(existing, navigation.sections));
   const taken = new Set<number>();
   const ownGroups: NavigationMenuItem[][] = [];
   navigation.sections.forEach((section, index) => {
@@ -238,6 +246,7 @@ export function mockupMenu(
         section: index,
         index: at,
         isLast: at === section.items.length - 1,
+        ...(item.status && { status: item.status }),
       });
       group.push(
         pageItem(id, item, item.id === navigation.active, options.select),

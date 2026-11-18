@@ -9,8 +9,9 @@ import {
  * Whether the page on screen reads its live routes, and the preview frame's
  * document for it. A page converted from a live page reads them unless the
  * developer turns Real data off; any other page reads its fixtures alone, on
- * a document that refuses every live route. Switching Real data replaces the
- * frame, so no tree is drawn in the document of the other mode. On the
+ * a document that refuses every live route. A live reference page draws its
+ * live page, always on a document that reads it. Switching Real data replaces
+ * the frame, so no tree is drawn in the document of the other mode. On the
  * Overview the switch covers every page of the board, which draws each by the
  * same rule through `choice`.
  */
@@ -32,7 +33,11 @@ export function useMockupRealData(
     shown.value.some((page) => page.realTree !== undefined),
   );
   const realData = computed({
-    get: () => shown.value.some((page) => readsRealData(page, choice.value)),
+    get: () =>
+      shown.value.some(
+        (page) =>
+          page.realTree !== undefined && readsRealData(page, choice.value),
+      ),
     set: (isOn: boolean) => {
       choice.value = isOn ? "real" : "sample";
     },

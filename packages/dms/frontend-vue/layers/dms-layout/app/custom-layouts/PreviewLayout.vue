@@ -42,6 +42,7 @@ const frameAttribute = { [PREVIEW_FRAME_ATTRIBUTE]: "" };
       <PreviewTopBar
         v-if="previewNavigation"
         :title="previewHeader?.title ?? previewNavigation.title ?? ''"
+        :status="previewHeader?.status"
       />
       <slot />
     </main>

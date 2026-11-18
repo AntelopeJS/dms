@@ -1,5 +1,6 @@
 import type { Ref } from "vue";
 import type { MockupPageState } from "../../utils/mockup";
+import { isWholeAppMockup, pagesToBuild } from "../../utils/mockupFrame";
 import { blockName, nodeLabel } from "../../utils/mockupOutline";
 import { layoutPathOf, nodeAt } from "../../utils/mockupSpec";
 import type { MockupSpecDocument } from "../../utils/mockupSpec";
@@ -13,6 +14,8 @@ interface ViewerHandoffOptions {
   title: () => string;
   spec: Readonly<Ref<MockupSpecDocument | undefined>>;
   currentPage: Readonly<Ref<MockupPageState | undefined>>;
+  /** Every page of the mockup, in the spec's order. */
+  pages: Readonly<Ref<readonly MockupPageState[]>>;
   catalog: MockupCatalog;
   isOverview: Readonly<Ref<boolean>>;
 }
@@ -21,7 +24,8 @@ interface ViewerHandoffOptions {
  * What the viewer asks of the DMS assistant: build the mockup, or the live
  * page a converted page names, resolve the open comments of the page on
  * screen or of every page, and write a block's custom zone. Each is a
- * request to the handoff, and the runs follow the assistant's answers.
+ * request to the handoff, and the runs follow the assistant's answers. A
+ * whole-platform mockup's build names its edited and new pages alone.
  */
 export function useMockupViewerHandoff(options: ViewerHandoffOptions) {
   const { t } = useI18n();
@@ -38,6 +42,13 @@ export function useMockupViewerHandoff(options: ViewerHandoffOptions) {
             });
       if (request.source === "resolve-comments") {
         return t("dms.mockup.prompt_resolve_comments", { name });
+      }
+      const built = pagesToBuild(options.pages.value);
+      if (built) {
+        return t("dms.mockup.prompt_build_pages", {
+          name,
+          pages: built.join(", "),
+        });
       }
       return request.target
         ? t("dms.mockup.prompt_build_page", {
@@ -82,7 +93,9 @@ export function useMockupViewerHandoff(options: ViewerHandoffOptions) {
       if (request) handoff.request(request);
     },
     build(): void {
-      const livePage = options.currentPage.value?.livePage;
+      const livePage = isWholeAppMockup(options.pages.value)
+        ? undefined
+        : options.currentPage.value?.livePage;
       handoff.request({
         source: "build",
         ...(livePage && { target: { pageRef: livePage.ref } }),

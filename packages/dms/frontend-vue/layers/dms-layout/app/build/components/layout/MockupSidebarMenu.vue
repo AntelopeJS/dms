@@ -7,6 +7,7 @@ import {
 } from "#dms-ui/app/entries/composables/block-preview/previewNavigation";
 import { useMockupSectionEditing } from "#dms-ui/app/entries/composables/block-preview/useMockupSectionEditing";
 import type { PreviewNavigation } from "#dms-ui/app/entries/utils/blockPreview";
+import MockupPageStatusBadge from "./MockupPageStatusBadge.vue";
 import {
   mockupMenu,
   type MockupMenuPage,
@@ -16,7 +17,8 @@ import {
 /**
  * The sidebar's menu around a mockup: the app's own entries dimmed, then the
  * mockup's sections, a section titled as an app's listed in it, all drawn by
- * the dashboard's own menu (see `mockupMenu`). Picking a
+ * the dashboard's own menu (see `mockupMenu`). A whole-platform mockup's is
+ * its own menu alone, each page badged Live, Edited or New. Picking a
  * page tells the embedding page, which draws it. While the navigation is
  * `editable`, the sections are edited in place, as in the viewer's page
  * list, and each change is handed to the embedding page, which writes the
@@ -197,6 +199,11 @@ function holdDrop(event: DragEvent): void {
             <span data-slot="linkLabel" :class="ui.linkLabel()">
               {{ item.label }}
             </span>
+            <MockupPageStatusBadge
+              v-if="entry.status && !collapsed"
+              :status="entry.status"
+              class="ms-auto"
+            />
             <span
               v-if="
                 entry.isLast && isPageDropAt(entry.section, entry.index + 1)

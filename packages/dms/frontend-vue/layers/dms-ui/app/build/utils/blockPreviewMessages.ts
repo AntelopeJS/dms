@@ -17,6 +17,14 @@ import {
 } from "./blockPreview";
 import type { MockupSectionEdit } from "./mockupSections";
 import { parseSectionEdit } from "./mockupSectionEdits";
+export type { PreviewFont, PreviewRect } from "./previewGeometry";
+import {
+  parseFont,
+  parseRect,
+  type PreviewFont,
+  type PreviewRect,
+} from "./previewGeometry";
+import { isPageStatus, type PreviewPageStatus } from "./previewPageStatus";
 
 /**
  * The `postMessage` protocol between `/dms-preview` and the page embedding
@@ -33,6 +41,8 @@ export interface PreviewNavigationItem {
   icon?: string;
   /** The route of the live page it was converted from, whose own entry the sidebar then leaves out. */
   livePage?: string;
+  /** What the page is beside the live app, badged on its entry; set in a whole-platform mockup only. */
+  status?: PreviewPageStatus;
 }
 
 /** A category of the sidebar: the header its entries are listed under. */
@@ -60,6 +70,11 @@ export interface PreviewNavigation {
   editable?: boolean;
   /** Sketches drawn below the sidebar's own widgets. */
   widgets?: PreviewSidebarWidget[];
+  /**
+   * The mockup stands for the whole platform: the sidebar is its own menu,
+   * with none of the app's entries merged in.
+   */
+  wholeApp?: boolean;
 }
 
 /** A sketch the sidebar draws among its widgets, `caption` over it. */
@@ -100,25 +115,8 @@ export interface PreviewHeader {
   icon?: string;
   description?: string;
   actions?: PreviewHeaderAction[];
-}
-
-/** A box in the preview's document, in CSS pixels from its top-left corner. */
-export interface PreviewRect {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-}
-
-/** How a text is drawn, so an input laid over it reads the same. */
-export interface PreviewFont {
-  family: string;
-  size: string;
-  weight: string;
-  lineHeight: string;
-  letterSpacing: string;
-  color: string;
-  align: string;
+  /** What the page is beside the live app, badged in the top bar; set in a whole-platform mockup only. */
+  status?: PreviewPageStatus;
 }
 
 /** Parent → iframe: draw this tree. */
@@ -138,6 +136,8 @@ export interface PreviewRenderMessage {
   header?: PreviewHeader;
   /** The route parameters the blocks fill `{{params.X}}` with, as a page's route gives them; none when absent. */
   params?: Record<string, string>;
+  /** Draws the live page at this route, read-only, in place of the tree; none when absent. */
+  live?: string;
 }
 
 /** Parent → iframe: switch the color mode. */
@@ -298,7 +298,8 @@ function isNavigationItem(value: unknown): value is PreviewNavigationItem {
     isString(value.id) &&
     isString(value.label) &&
     isOptionalString(value.icon) &&
-    isOptionalString(value.livePage)
+    isOptionalString(value.livePage) &&
+    (value.status === undefined || isPageStatus(value.status))
   );
 }
 
@@ -345,6 +346,7 @@ export function isPreviewNavigation(
     isOptionalString(value.title) &&
     isOptionalString(value.active) &&
     (value.editable === undefined || isBoolean(value.editable)) &&
+    (value.wholeApp === undefined || isBoolean(value.wholeApp)) &&
     Array.isArray(value.sections) &&
     value.sections.every(isNavigationSection) &&
     (value.widgets === undefined ||
@@ -369,39 +371,10 @@ export function isPreviewHeader(value: unknown): value is PreviewHeader {
     isString(value.title) &&
     isOptionalString(value.icon) &&
     isOptionalString(value.description) &&
+    (value.status === undefined || isPageStatus(value.status)) &&
     (value.actions === undefined ||
       (Array.isArray(value.actions) && value.actions.every(isHeaderAction)))
   );
-}
-
-function isFiniteNumber(value: JsonValue | undefined): value is number {
-  return isNumber(value) && Number.isFinite(value);
-}
-
-function parseRect(value: JsonValue | undefined): PreviewRect | undefined {
-  if (!isObjectValue(value)) return undefined;
-  const { x, y, width, height } = value;
-  return isFiniteNumber(x) &&
-    isFiniteNumber(y) &&
-    isFiniteNumber(width) &&
-    isFiniteNumber(height)
-    ? { x, y, width, height }
-    : undefined;
-}
-
-function parseFont(value: JsonValue | undefined): PreviewFont | undefined {
-  if (!isObjectValue(value)) return undefined;
-  const { family, size, weight, lineHeight, letterSpacing, color, align } =
-    value;
-  return isString(family) &&
-    isString(size) &&
-    isString(weight) &&
-    isString(lineHeight) &&
-    isString(letterSpacing) &&
-    isString(color) &&
-    isString(align)
-    ? { family, size, weight, lineHeight, letterSpacing, color, align }
-    : undefined;
 }
 
 function parseBlockRect(
@@ -434,6 +407,7 @@ function isRenderMessage(
     (value.padding === undefined || isBoolean(value.padding)) &&
     (value.navigation === undefined || isPreviewNavigation(value.navigation)) &&
     (value.header === undefined || isPreviewHeader(value.header)) &&
+    isOptionalString(value.live) &&
     (value.params === undefined ||
       (isRecord(value.params) && Object.values(value.params).every(isString)))
   );

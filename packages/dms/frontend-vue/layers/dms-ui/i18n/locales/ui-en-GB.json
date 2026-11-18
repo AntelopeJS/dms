@@ -1000,6 +1000,16 @@
       "copy": "Copy",
       "copied": "Copied",
       "close": "Close",
+      "page_status": {
+        "live": "Live",
+        "live_hint": "The live page, untouched: shown with its real data, read-only",
+        "edited": "Edited",
+        "edited_hint": "A live page this mockup changes",
+        "new": "New",
+        "new_hint": "A page this mockup adds"
+      },
+      "live_page_title": "Live page {path}",
+      "prompt_build_pages": "Build mockup {name} with the dms-mockup-build skill: build only the pages {pages}. Every other page is a live reference page: leave it as it is.",
       "section_default": "Pages",
       "section_new": "New section",
       "section_name": "Section name",

@@ -1000,6 +1000,16 @@
       "copy": "Copier",
       "copied": "Copié",
       "close": "Fermer",
+      "page_status": {
+        "live": "En ligne",
+        "live_hint": "La page en ligne, inchangée : affichée avec ses vraies données, en lecture seule",
+        "edited": "Modifiée",
+        "edited_hint": "Une page en ligne que cette maquette modifie",
+        "new": "Nouvelle",
+        "new_hint": "Une page que cette maquette ajoute"
+      },
+      "live_page_title": "Page en ligne {path}",
+      "prompt_build_pages": "Construire la maquette {name} avec le skill dms-mockup-build : construire seulement les pages {pages}. Toutes les autres pages sont des références à des pages en ligne : les laisser telles quelles.",
       "section_default": "Pages",
       "section_new": "Nouvelle section",
       "section_name": "Nom de la section",

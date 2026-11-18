@@ -113,6 +113,7 @@ const { handoff, runs, handOff, build, resolveComments } =
     title: () => title.value,
     spec,
     currentPage,
+    pages,
     catalog,
     isOverview,
   });

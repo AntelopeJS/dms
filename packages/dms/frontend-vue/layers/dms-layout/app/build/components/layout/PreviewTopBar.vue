@@ -2,6 +2,8 @@
 import type { BreadcrumbItem } from "@nuxt/ui";
 import { PREVIEW_NAVIGATION_ATTRIBUTE } from "#dms-ui/app/entries/composables/block-preview/previewNavigation";
 import { HOME_ICON, TOOLBAR_BUTTON_CLASS } from "./dashboardNavbar";
+import type { PreviewPageStatus } from "#dms-ui/app/entries/utils/blockPreview";
+import MockupPageStatusBadge from "./MockupPageStatusBadge.vue";
 import { useSidebarState } from "./sidebarState";
 
 /**
@@ -13,7 +15,11 @@ import { useSidebarState } from "./sidebarState";
  * header actions of a development dashboard (Mockups), then the
  * quick actions and the bell.
  */
-const props = defineProps<{ title: string }>();
+const props = defineProps<{
+  title: string;
+  /** What the page is beside the live app, badged after its title. */
+  status?: PreviewPageStatus;
+}>();
 
 const STAR_ICON = "i-ph-star-light";
 const RIGHT_ICONS = [
@@ -87,6 +93,7 @@ const breadcrumb = computed((): BreadcrumbItem[] => [
               <span class="text-dimmed text-xs">/</span>
             </template>
           </UBreadcrumb>
+          <MockupPageStatusBadge v-if="status" :status="status" class="ms-2" />
           <UButton
             :icon="STAR_ICON"
             variant="ghost"
