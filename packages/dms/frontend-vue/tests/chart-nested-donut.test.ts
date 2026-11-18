@@ -44,7 +44,10 @@ const SLOT_COMPONENTS = [
   "UBadge",
 ];
 
-async function renderNested(type: ChartType) {
+async function renderNested(
+  type: ChartType,
+  series: ReadonlyArray<object> = CARD_SERIES,
+) {
   const app = createSSRApp({
     render: () =>
       h(
@@ -60,7 +63,7 @@ async function renderNested(type: ChartType) {
   });
   for (const name of SLOT_COMPONENTS) app.component(name, Slot);
   app.component("DmsApexChartHost", PlotProbe);
-  await chartRuntime(app, { value: 8, series: CARD_SERIES });
+  await chartRuntime(app, { value: 8, series });
   await renderToString(app);
   return renderToString(app);
 }
@@ -83,4 +86,16 @@ describe("circular chart nested in a ChartCard", () => {
       expect(html).toContain(`class="series">[3,5]`);
     },
   );
+
+  it("draws an answer of one point per group as slices, as a bare chart does (fails when the card shows no data for it)", async () => {
+    const html = await renderNested("donut", [
+      { x: "Web", y: 928 },
+      { x: "Mobile app", y: 354 },
+    ]);
+    expect(html).not.toContain("dms.chart.no_data");
+    expect(html).toContain(
+      'class="labels">[&quot;Web&quot;,&quot;Mobile app&quot;]',
+    );
+    expect(html).toContain(`class="series">[928,354]`);
+  });
 });
