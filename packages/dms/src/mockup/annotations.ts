@@ -30,12 +30,16 @@ import type {
   MockupName,
   MockupSpec,
 } from "./model";
-import { annotationIdSchema, jsonPointer, pageIdSchema } from "./model";
+import {
+  annotationIdSchema,
+  jsonPointer,
+  pageIdSchema,
+  specValueAt,
+} from "./model";
 import { SKETCH_STATE_PATTERN } from "./sketch";
 import {
   readSpecSource,
   readSpecText,
-  specValueAt,
   type SpecStamper,
   withSpecLock,
 } from "./source";

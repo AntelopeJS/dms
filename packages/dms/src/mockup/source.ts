@@ -24,7 +24,7 @@ import type {
   MockupName,
   MockupSpec,
 } from "./model";
-import { jsonObjectSchema } from "./model";
+import { isJsonObject, jsonObjectSchema, specValueAt } from "./model";
 
 const JSON_INDENT = 2;
 const FIRST_INDENT = /^[ \t]+(?=\S)/m;
@@ -44,10 +44,14 @@ export interface SpecSource {
   digest: SpecDigest;
 }
 
-/** What a write answers: the issues that refused it, or the new digest. */
+/**
+ * What a write answers: the issues that refused it, or the new digest, and
+ * either way the warnings of a spec that compiled: what it likely does not
+ * show as meant, which never refuses a write.
+ */
 export type SpecWriteResult =
-  | { ok: true; digest: SpecDigest }
-  | { ok: false; errors: MockupIssue[] };
+  | { ok: true; digest: SpecDigest; warnings: MockupIssue[] }
+  | { ok: false; errors: MockupIssue[]; warnings: MockupIssue[] };
 
 function digestOf(text: string): SpecDigest {
   return createHash("sha256")
@@ -219,11 +223,14 @@ function laidOutAs(text: string, spec: Json): string {
 function writeNow(mockupsDir: string, name: MockupName): SpecWriter {
   return async (spec, meta) => {
     const read = parseSpec(JSON.stringify(spec));
-    const issues = read.ok ? compileSpec(name, read.spec).issues : read.issues;
+    const { issues, warnings } = read.ok
+      ? compileSpec(name, read.spec)
+      : { issues: read.issues, warnings: [] };
     if (issues.length) {
       return {
         ok: false,
         errors: issues.map(({ path, message }) => ({ path, message })),
+        warnings,
       };
     }
     const text = `${JSON.stringify(spec, null, JSON_INDENT)}${LF}`;
@@ -242,25 +249,8 @@ function writeNow(mockupsDir: string, name: MockupName): SpecWriter {
         meta,
       ),
     );
-    return { ok: true, digest };
+    return { ok: true, digest, warnings };
   };
-}
-
-function isJsonObject(value: Json | undefined): value is JsonObject {
-  return value instanceof Object && !Array.isArray(value);
-}
-
-/** The value at JSON pointer `pointer` of `value`, or undefined when it names none. */
-export function specValueAt(value: Json, pointer: string): Json | undefined {
-  return pointer
-    .split("/")
-    .slice(1)
-    .reduce<Json | undefined>((at, segment) => {
-      if (Array.isArray(at)) return at[Number(segment)];
-      return isJsonObject(at) && Object.hasOwn(at, segment)
-        ? at[segment]
-        : undefined;
-    }, value);
 }
 
 function setNow(mockupsDir: string, name: MockupName): SpecSetter {

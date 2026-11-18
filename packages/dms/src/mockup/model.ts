@@ -525,6 +525,24 @@ export interface MockupState {
   issues: MockupIssue[];
 }
 
+/** Whether `value` is a JSON object: neither an array nor a scalar. */
+export function isJsonObject(value: Json | undefined): value is JsonObject {
+  return value instanceof Object && !Array.isArray(value);
+}
+
+/** The value at JSON pointer `pointer` of `value`, or undefined when it names none. */
+export function specValueAt(value: Json, pointer: string): Json | undefined {
+  return pointer
+    .split("/")
+    .slice(1)
+    .reduce<Json | undefined>((at, segment) => {
+      if (Array.isArray(at)) return at[Number(segment)];
+      return isJsonObject(at) && Object.hasOwn(at, segment)
+        ? at[segment]
+        : undefined;
+    }, value);
+}
+
 /** RFC 6901: the root is the empty string, `~` and `/` are escaped. */
 export function jsonPointer(path: ReadonlyArray<string | number>): string {
   return path

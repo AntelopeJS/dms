@@ -179,9 +179,22 @@ export function checkFixture(
 }
 
 /**
- * The route a `fixture:<key>` option reads: an ancestor's rows read on a page
- * with a route answer the one row its parameter names, the first of them
- * being the row the page shows while no link names one.
+ * The rows of `source` when the page reads them one row at a time: an
+ * ancestor's rows read on a page with a route answer the one row its
+ * parameter names, the first of them while no link names one.
+ */
+export function rowsReadOneByOne(
+  scope: FixtureScope,
+  source: FixtureSource,
+): JsonObject[] | undefined {
+  return source.pageId !== scope.pageId && scope.route
+    ? parseRows(source.value)
+    : undefined;
+}
+
+/**
+ * The route a `fixture:<key>` option reads: the fixture's, or the one row
+ * {@link rowsReadOneByOne} names.
  */
 function fixtureRoute(
   scope: FixtureScope,
@@ -189,10 +202,7 @@ function fixtureRoute(
   pointer: string,
 ): string {
   const source = checkFixture(scope, key, pointer);
-  const rows =
-    source && source.pageId !== scope.pageId && scope.route
-      ? parseRows(source.value)
-      : undefined;
+  const rows = source && rowsReadOneByOne(scope, source);
   if (!source || !rows || !scope.route) return dataUrl(scope, key, "fixture");
   scope.route.sample ??= rowIdOf(rows[0]);
   return recordUrl(scope.name, source.pageId, key, scope.route.param);

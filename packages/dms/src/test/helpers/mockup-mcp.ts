@@ -29,10 +29,15 @@ export function spec(...tree: JsonValue[]): JsonValue {
   return { version: 1, pages: [{ id: "home", title: "Home", tree }] };
 }
 
+const issuesSchema = z.array(
+  z.object({ path: z.string(), message: z.string() }),
+);
+
 /** What `mockup_write_spec` and `mockup_patch_spec` answer. */
 export const writeAnswerSchema = z.object({
   ok: z.boolean(),
-  errors: z.array(z.object({ path: z.string(), message: z.string() })),
+  errors: issuesSchema,
+  warnings: issuesSchema,
 });
 
 /** The tool the MCP server serves under `name`. */

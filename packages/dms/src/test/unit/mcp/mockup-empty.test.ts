@@ -22,7 +22,7 @@ describe("[unit] mockup MCP tools: a mockup with no page", () => {
       writeAnswerSchema,
     );
 
-    expect(result).to.deep.equal({ ok: true, errors: [] });
+    expect(result).to.deep.equal({ ok: true, errors: [], warnings: [] });
     expect(JSON.parse(await workspace.specBytes())).to.deep.equal({
       version: 1,
       title: "Soon",
@@ -48,7 +48,7 @@ describe("[unit] mockup MCP tools: a mockup with no page", () => {
       writeAnswerSchema,
     );
 
-    expect(result).to.deep.equal({ ok: true, errors: [] });
+    expect(result).to.deep.equal({ ok: true, errors: [], warnings: [] });
     expect(JSON.parse(await workspace.specBytes())).to.have.nested.property(
       "pages[0].id",
       "home",

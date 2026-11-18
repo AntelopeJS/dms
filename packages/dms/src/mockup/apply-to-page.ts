@@ -20,13 +20,12 @@ import type {
   MockupName,
   MockupSpecPage,
 } from "./model";
-import { specSchema, zodIssues } from "./model";
+import { specSchema, specValueAt, zodIssues } from "./model";
 import { queued } from "./queue";
 import {
   parseSpecObject,
   readSpecSource,
   readSpecText,
-  specValueAt,
   withSpecLock,
 } from "./source";
 

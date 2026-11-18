@@ -2,6 +2,7 @@ import type { JsonValue } from "@antelopejs/interface-dms/json";
 import { z } from "zod";
 import {
   MAX_SUMMARY_LENGTH,
+  type MockupIssue,
   mockupWriteGroupSchema,
   type MockupName,
   parseMockupName,
@@ -79,14 +80,13 @@ export function withMockup(
   );
 }
 
-/** Answers `{ ok, errors }` for a write's outcome. */
+/** Answers `{ ok, errors, warnings }` for a write's outcome. */
 export function reportWrite(written: SpecWriteResult): McpToolResult {
-  if (written.ok) return jsonResult({ ok: true, errors: [] });
-  const errors = written.errors.map(({ path, message }) => ({
-    path,
-    message,
-  }));
-  return jsonResult({ ok: false, errors });
+  const issues = (list: readonly MockupIssue[]) =>
+    list.map(({ path, message }) => ({ path, message }));
+  const warnings = issues(written.warnings);
+  if (written.ok) return jsonResult({ ok: true, errors: [], warnings });
+  return jsonResult({ ok: false, errors: issues(written.errors), warnings });
 }
 
 /**

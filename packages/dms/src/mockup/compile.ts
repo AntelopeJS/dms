@@ -7,6 +7,11 @@ import { CONTROLLER_BLOCKS } from "./controller-blocks";
 import { readOnlyConnectionIssues } from "./data-access";
 import type { AncestorFixtures, FixtureScope } from "./fixtures";
 import { rewriteObject } from "./fixtures";
+import {
+  checkFixtureAnswer,
+  type FixtureAnswers,
+  fixtureAnswers,
+} from "./fixture-answers";
 import { withFieldInputs } from "./form-fields";
 import { formPageModeIssues } from "./form-page-modes";
 import { materializeFixtures } from "./generate";
@@ -66,6 +71,7 @@ function readCatalog(): Catalog {
 interface PageScope extends FixtureScope {
   catalog: Catalog;
   paths: Record<string, string>;
+  answers: FixtureAnswers;
 }
 
 type NodeCompiler = (pointer: string, layoutPath: string) => MockupNode;
@@ -239,6 +245,8 @@ function compileNode(
   scope: PageScope,
 ): MockupNode {
   scope.paths[layoutPath] = pointer;
+  const descriptor = descriptorOf(node, scope.catalog);
+  if (descriptor) checkFixtureAnswer(descriptor, node, pointer, scope);
   for (const kind of NODE_KINDS) {
     const compile = kind.resolve(node, scope);
     if (compile) return drawnOn(compile(pointer, layoutPath), scope);
@@ -334,7 +342,7 @@ function ancestorsOf(id: string, graph: PageGraph): string[] {
 }
 
 /** What a page is compiled against: its mockup, the spec's pages and the fixtures of each. */
-interface SpecScope extends Pick<PageScope, "catalog" | "issues"> {
+interface SpecScope extends Pick<PageScope, "catalog" | "issues" | "answers"> {
   name: MockupName;
   graph: PageGraph;
   fixtures: ReadonlyMap<string, JsonObject>;
@@ -362,6 +370,7 @@ function scopeOf(
     links: new Set(),
     generatedPages: [],
     ancestors,
+    answers: spec.answers,
     ...(param !== undefined && { route: { param } }),
     paths: {},
   };
@@ -473,6 +482,7 @@ export function openOracle(name: MockupName, pageId: string): NodeOracle {
         links: new Set(),
         generatedPages: [],
         ancestors: [],
+        answers: fixtureAnswers([]),
         paths: {},
       };
       compileNode(node, "", `${ROOT_LAYOUT_PREFIX}0`, scope);
@@ -490,6 +500,8 @@ export interface CompiledSpec {
   /** Each page's fixtures, keyed by page id. */
   fixtures: Map<string, JsonObject>;
   issues: MockupIssue[];
+  /** What the spec likely does not show as meant; the viewer draws it anyway. */
+  warnings: MockupIssue[];
 }
 
 /**
@@ -516,6 +528,7 @@ export function compileSpec(
     graph: pageGraph(spec.pages),
     fixtures,
     generated: [],
+    answers: fixtureAnswers(spec.pages),
   };
   const pages = spec.pages.map((page, index) =>
     compilePage(page, `/pages/${index}`, scope),
@@ -537,6 +550,7 @@ export function compileSpec(
       ...readOnlyConnectionIssues(spec),
       ...stampedIdIssues(spec),
     ],
+    warnings: scope.answers.warnings,
   };
 }
 

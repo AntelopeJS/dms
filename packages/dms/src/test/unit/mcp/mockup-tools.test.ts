@@ -232,7 +232,7 @@ function writesOrRefusesSpecs(): void {
     );
     const text = await workspace.specBytes();
 
-    expect(result).to.deep.equal({ ok: true, errors: [] });
+    expect(result).to.deep.equal({ ok: true, errors: [], warnings: [] });
     expect(text).to.equal(`${JSON.stringify(valid, null, 2)}\n`);
     expect(parseSpec(text)).to.have.property("ok", true);
     expect(await readdir(join(workspace.mockups(), NAME))).to.deep.equal([
@@ -363,6 +363,7 @@ function refusesMalformedSpecs(): void {
           message: `the spec nests deeper than ${MAX_JSON_DEPTH} levels`,
         },
       ],
+      warnings: [],
     });
     expect(await workspace.specBytes()).to.equal(before);
   });
