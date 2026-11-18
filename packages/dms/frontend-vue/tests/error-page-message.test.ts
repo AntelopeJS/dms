@@ -17,6 +17,17 @@ import {
   HTTP_UNAUTHORIZED,
 } from "../layers/dms-core/app/utils/http-status";
 
+/** Stands for the shared copy button, whose own tests cover the clipboard and its check state. */
+vi.mock("../layers/dms-ui/app/components/copy/CopyButton.vue", async () => {
+  const { defineComponent, h } = await import("vue");
+  return {
+    default: defineComponent({
+      props: { value: { type: String, required: true } },
+      setup: (props) => () => h("button", { "data-copy-value": props.value }),
+    }),
+  };
+});
+
 const TECHNICAL_MESSAGE = "DMS backend request failed";
 
 /** The global name `@nuxt/icon` registers and the sources resolve. */
@@ -88,6 +99,25 @@ it.each([HTTP_NOT_FOUND, HTTP_FORBIDDEN])(
     const text = mountError(statusCode);
     expect(text).toContain(`error.${statusCode}.description`);
     expect(text).not.toContain(TECHNICAL_MESSAGE);
+  },
+);
+
+function copyButton(): HTMLElement | null {
+  return host.querySelector("[data-copy-value]");
+}
+
+it("offers a copy button whose value is the status code followed by the message", () => {
+  mountError(500);
+  expect(copyButton()?.getAttribute("data-copy-value")).toBe(
+    `500 ${TECHNICAL_MESSAGE}`,
+  );
+});
+
+it.each([HTTP_NOT_FOUND, HTTP_FORBIDDEN])(
+  "offers no copy button on the %i card",
+  (statusCode) => {
+    mountError(statusCode);
+    expect(copyButton()).toBeNull();
   },
 );
 
