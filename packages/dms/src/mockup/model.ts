@@ -19,16 +19,14 @@ export interface JsonObject {
 }
 
 /** Decodes any JSON value into {@link Json}. */
-export const jsonSchema: z.ZodType<Json> = z.lazy(() =>
-  z.union([
-    z.string(),
-    z.number(),
-    z.boolean(),
-    z.null(),
-    z.array(jsonSchema),
-    z.record(jsonSchema),
-  ]),
-);
+export const jsonSchema: z.ZodType<Json> = z.union([
+  z.string(),
+  z.number(),
+  z.boolean(),
+  z.null(),
+  z.array(z.lazy(() => jsonSchema)),
+  z.record(z.lazy(() => jsonSchema)),
+]);
 
 /** Decodes a JSON object. */
 export const jsonObjectSchema: z.ZodType<JsonObject> = z.record(jsonSchema);
@@ -85,19 +83,17 @@ export interface MockupNode {
   colSpan?: number;
 }
 
-const nodeSchema: z.ZodType<MockupNode> = z.lazy(() =>
-  z
-    .object({
-      type: z.string().optional(),
-      componentName: z.string().optional(),
-      options: jsonObjectSchema.optional(),
-      children: z.array(nodeSchema).optional(),
-      id: z.string().optional(),
-      slot: z.string().optional(),
-      colSpan: z.number().optional(),
-    })
-    .strict(),
-);
+const nodeSchema: z.ZodType<MockupNode> = z
+  .object({
+    type: z.string().optional(),
+    componentName: z.string().optional(),
+    options: jsonObjectSchema.optional(),
+    children: z.array(z.lazy(() => nodeSchema)).optional(),
+    id: z.string().optional(),
+    slot: z.string().optional(),
+    colSpan: z.number().optional(),
+  })
+  .strict();
 
 const pageOptionsSchema = z
   .object({

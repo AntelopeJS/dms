@@ -53,12 +53,17 @@ export interface BlockTree {
   >;
 }
 
-const nodeViewSchema: z.ZodType<TreeNode, z.ZodTypeDef, unknown> = z.lazy(() =>
-  z.object({
-    id: z.string().optional().catch(undefined),
-    children: z.array(nodeViewSchema.optional().catch(undefined)).catch([]),
-  }),
-);
+const nodeViewSchema: z.ZodType<TreeNode, z.ZodTypeDef, unknown> = z.object({
+  id: z.string().optional().catch(undefined),
+  children: z
+    .array(
+      z
+        .lazy(() => nodeViewSchema)
+        .optional()
+        .catch(undefined),
+    )
+    .catch([]),
+});
 
 const treeViewSchema = z.object({
   pages: z
