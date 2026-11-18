@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { DmsErrorData } from "#dms/frontend-module";
+import DmsCopyButton from "#dms-ui/app/components/copy/CopyButton.vue";
 import StageCard, {
   type StageCardTone,
 } from "./build/components/layout/StageCard.vue";
@@ -126,12 +127,15 @@ onMounted(() => {
       :description="description"
       :icon-class="isRecovering ? 'animate-spin' : undefined"
     >
-      <p
+      <div
         v-if="!isRecovering && visibleErrorMessage"
-        class="border-default text-muted mt-4 rounded-md border bg-(--dms-bg-muted) px-3 py-2 font-mono text-xs break-words"
+        class="border-default mt-4 flex items-start gap-2 rounded-md border bg-(--dms-bg-muted) px-3 py-2"
       >
-        {{ visibleErrorMessage }}
-      </p>
+        <p class="text-muted min-w-0 flex-1 font-mono text-xs break-words">
+          {{ visibleErrorMessage }}
+        </p>
+        <DmsCopyButton :value="`${statusCode} ${visibleErrorMessage}`" />
+      </div>
 
       <div v-if="!isRecovering" class="mt-[22px] grid gap-2 sm:grid-cols-2">
         <UButton
