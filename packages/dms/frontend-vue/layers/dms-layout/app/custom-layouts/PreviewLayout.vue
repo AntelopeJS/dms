@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import DashboardSidebar from "../build/components/layout/DashboardSidebar.vue";
 import PreviewTopBar from "../build/components/layout/PreviewTopBar.vue";
-import { useSidebarState } from "../build/components/layout/sidebarState";
 import {
   PREVIEW_FRAME_ATTRIBUTE,
   previewHeader,
@@ -13,16 +12,14 @@ import {
  * sizes the iframe to them and a capture crops to them. A mockup's `render`
  * adds the dashboard's own sidebar, listing its pages, and the top bar over
  * the page. The frame grows with its content, and keeps the sidebar's size
- * to itself, never in the dashboard's storage. A mockup's sidebar starts
- * open whatever the dashboard's starts as, so its pages show.
+ * to itself, never in the dashboard's storage. A mockup's sidebar stays
+ * folded to its rail whatever the dashboard's starts as.
  */
 defineOptions({
   inheritAttrs: false,
 });
 
 const FRAME_CLASS = "static inset-auto items-stretch overflow-visible";
-
-useSidebarState().collapsed.value = false;
 
 const frameAttribute = { [PREVIEW_FRAME_ATTRIBUTE]: "" };
 </script>

@@ -14,7 +14,7 @@ import { useKeyboardPlatform } from "#dms-ui/app/composables/global/keyboardPlat
 import { useMediaQuery } from "@vueuse/core";
 import DmsSidebarUserMenu from "./SidebarUserMenu.vue";
 import MockupSidebarMenu from "./MockupSidebarMenu.vue";
-import BlockPreviewSketch from "#dms-ui/app/entries/components/block-preview/BlockPreviewSketch";
+import MockupSidebarWidget from "./MockupSidebarWidget.vue";
 import { dimmedMenu } from "./mockupMenu";
 import { useInstalledModuleCount } from "../../../composables/page/useInstalledModules";
 import type { PreviewNavigation } from "#dms-ui/app/entries/utils/blockPreview";
@@ -25,7 +25,9 @@ import { PREVIEW_NAVIGATION_ATTRIBUTE } from "#dms-ui/app/entries/composables/bl
  * menu and the account. Given a mockup's `navigation`, it draws the mockup's
  * sections among the app's own entries, which are dimmed and not reachable,
  * and the mockup's widget sketches below the app's widgets; everything else
- * is drawn as in the dashboard and acts on nothing.
+ * is drawn as in the dashboard and acts on nothing. A mockup's sidebar stays
+ * folded to its rail whatever the dashboard's collapsed state says, and
+ * nothing unfolds it.
  */
 const props = defineProps<{ navigation?: PreviewNavigation }>();
 
@@ -92,6 +94,13 @@ const siteLayout = useSiteLayout();
 const favoritePages = useFavoritePages();
 
 const isMockup = computed(() => props.navigation !== undefined);
+
+const isCollapsed = computed({
+  get: () => isMockup.value || sidebarCollapsed.value,
+  set: (collapsed: boolean) => {
+    if (!isMockup.value) sidebarCollapsed.value = collapsed;
+  },
+});
 
 if (!isMockup.value) {
   favoritePages.cleanupInvalidFavorites((path) =>
@@ -286,7 +295,7 @@ const footerItems = computed((): NavigationMenuItem[] => {
   />
 
   <UDashboardSidebar
-    v-model:collapsed="sidebarCollapsed"
+    v-model:collapsed="isCollapsed"
     data-dms-persistent-sidebar
     v-bind="mockupAttrs"
     :open="false"
@@ -388,15 +397,12 @@ const footerItems = computed((): NavigationMenuItem[] => {
         :collapsed="isRail(sidebarRail)"
       />
 
-      <template v-if="!isRail(sidebarRail)">
-        <div
-          v-for="widget in navigation?.widgets"
-          :key="widget.id"
-          :data-dms-preview-sidebar-widget="widget.id"
-        >
-          <BlockPreviewSketch :sketch="widget" />
-        </div>
-      </template>
+      <MockupSidebarWidget
+        v-for="widget in navigation?.widgets"
+        :key="widget.id"
+        :widget="widget"
+        :collapsed="isRail(sidebarRail)"
+      />
 
       <DmsNavigationMenu
         v-if="shownFavoriteItems.length > 0"
