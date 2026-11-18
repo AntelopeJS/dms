@@ -8,6 +8,7 @@ export * from "./catalog-inference";
 export * from "./compose-page";
 export * from "./configure-target";
 export * from "./connection-access-config";
+export * from "./connection-access-switch";
 export * from "./connection-targets";
 export * from "./database-access";
 export * from "./database-check";

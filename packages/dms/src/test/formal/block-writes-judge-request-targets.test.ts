@@ -51,6 +51,7 @@ const NO_BLOCK_OPTIONS = [
   "builder_remove_query",
   "builder_configure_project",
   "builder_map_resources",
+  "builder_set_connection_access",
   "builder_set_theme",
   "builder_create_theme_layer",
   "mockup_resolve_annotation",

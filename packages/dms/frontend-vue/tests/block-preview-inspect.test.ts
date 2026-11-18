@@ -16,6 +16,7 @@ import {
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   parsePreviewMessage,
+  parsePreviewOutboundMessage,
   PREVIEW_CHANNEL,
   type PreviewBlockTypes,
 } from "../layers/dms-ui/app/entries/utils/blockPreview";
@@ -36,6 +37,7 @@ interface SentMessage {
   channel: string;
   type: string;
   path?: string;
+  button?: number;
 }
 
 const parentWindow = { postMessage: vi.fn<(message: SentMessage) => void>() };
@@ -181,6 +183,51 @@ describe("inspect messages", () => {
     for (const enabled of ["yes", 1, null, undefined]) {
       expect(parse(enabled)).toBeUndefined();
     }
+  });
+});
+
+describe("a press in the preview", () => {
+  const presses = () =>
+    parentWindow.postMessage.mock.calls
+      .map(([message]) => message)
+      .filter((message) => message.type === "press");
+
+  function pressOn(element: Element, button: number): void {
+    element.dispatchEvent(
+      new PointerEvent("pointerdown", { button, bubbles: true }),
+    );
+  }
+
+  it("is posted to the parent with its button, inspecting or not, since the parent never sees it (fails when a press in the frame goes unreported)", async () => {
+    await mountPreview();
+    pressOn(probes()[0], 0);
+    inspect(true);
+    pressOn(probes()[1], 1);
+
+    expect(presses()).toEqual([
+      { channel: PREVIEW_CHANNEL, type: "press", button: 0 },
+      { channel: PREVIEW_CHANNEL, type: "press", button: 1 },
+    ]);
+  });
+
+  it("is read by the parent only with a whole button number", () => {
+    const parse = (button: JsonValue) =>
+      parsePreviewOutboundMessage({
+        channel: PREVIEW_CHANNEL,
+        type: "press",
+        button,
+      });
+    expect(parse(2)).toEqual({
+      channel: PREVIEW_CHANNEL,
+      type: "press",
+      button: 2,
+    });
+    for (const button of [0.5, "0", null]) {
+      expect(parse(button)).toBeUndefined();
+    }
+    expect(
+      parsePreviewOutboundMessage({ channel: PREVIEW_CHANNEL, type: "press" }),
+    ).toBeUndefined();
   });
 });
 

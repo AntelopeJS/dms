@@ -175,6 +175,8 @@ const NO_BUILT_IN_ACTIONS = {
   duplicate: false,
   details: false,
   copyLink: false,
+  archive: false,
+  restore: false,
 } as const;
 
 const byOrder = (

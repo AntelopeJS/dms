@@ -102,6 +102,13 @@ describe("Sketch size", () => {
     expect(issuePaths({ html, css })).to.deep.equal([]);
   });
 
+  it("keeps a sketch 3000 pixels tall and refuses one a pixel taller, at its height (fails on the old 1200 cap)", () => {
+    expect([
+      issuePaths({ html: "<p>x</p>", height: 3000 }),
+      issuePaths({ html: "<p>x</p>", height: 3001 }),
+    ]).to.deep.equal([[], ["/pages/0/tree/0/options/height"]]);
+  });
+
   it("refuses an html or css one character over the size cap, at that field", () => {
     const overCap = "x".repeat(SKETCH_MAX_SOURCE + 1);
 

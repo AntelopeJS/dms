@@ -1,54 +1,66 @@
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed, ref, shallowRef } from "vue";
 import type { TableViewDisplayContext } from "../../composables/table-view/types";
 import DmsTableEmpty from "../components/table/TableEmpty.vue";
 import DmsTablePagination from "../components/table/TablePagination.vue";
+import MockupPromptModal from "../components/block-preview/MockupPromptModal.vue";
+import { parseMockupSummary, type MockupSummary } from "../utils/mockup";
+import { dispatchMockupAssistantPrompt } from "../utils/mockupHandoff";
+import MockupCard from "./MockupCard.vue";
 import {
-  parseMockupSummary,
-  type MockupSource,
-  type MockupSummary,
-} from "../utils/mockup";
-import MockupThumbnail from "./MockupThumbnail.vue";
+  deleteMockup,
+  duplicateMockup,
+  type MockupRenameRequest,
+  renameMockup,
+} from "./manage";
+import MockupRenameModal from "./MockupRenameModal.vue";
 import { resyncFromPage } from "./resync";
 
 /**
- * The display of the Mockups page: one card per mockup, with a thumbnail of
- * its first page, its status, where it came from and the open comments. The
- * whole card opens the mockup's viewer, and a built mockup lists the real
- * pages it made, each a link of its own.
+ * The display of the Mockups page: a "New mockup" card first, then one card
+ * per mockup. A card opens the mockup's viewer and has a menu to rename, copy
+ * or delete it. The new mockup card hands the AI assistant a starter request,
+ * and shows it to copy when no assistant takes it.
  */
 const props = defineProps<{ context: TableViewDisplayContext }>();
 
 const SKELETON_COUNT = 3;
 const VIEWER_PATH = "/mockup";
-const META_SEPARATOR = " · ";
-const SOURCE_KEYS: Record<MockupSource, string> = {
-  chat: "dms.mockup.source_chat",
-  "claude-code": "dms.mockup.source_claude_code",
-  codex: "dms.mockup.source_codex",
-};
+const STARTER_ELLIPSIS = " …";
 
 const { t } = useI18n();
 const { $authFetch } = useAuthFetch();
 const { presentError } = useApiErrorPresenter();
+const { confirm } = useConfirm();
+const toast = useToast();
 const router = useDmsRouter();
 
 /** The path of the page being turned back into its mockup, while it is. */
 const resyncing = ref<string>();
+const renaming = shallowRef<MockupSummary>();
+const isRenaming = ref(false);
+/** The request no assistant claimed, shown for the developer to copy. */
+const unclaimed = shallowRef<string>();
 
-function isOutOfSync(mockup: MockupSummary): boolean {
-  return (
-    mockup.status === "built" && mockup.builtPages.some((page) => page.changed)
-  );
+const mockups = computed(() =>
+  props.context.items.flatMap((row) => parseMockupSummary(row) ?? []),
+);
+
+function labelOf(mockup: MockupSummary): string {
+  return mockup.title || mockup.name;
 }
 
-function statusOf(mockup: MockupSummary) {
-  if (isOutOfSync(mockup)) {
-    return { label: t("dms.mockup.status_out_of_sync"), color: "warning" };
-  }
-  return mockup.status === "built"
-    ? { label: t("dms.mockup.status_built"), color: "success" }
-    : { label: t("dms.mockup.status_draft"), color: "neutral" };
+function newMockup(): void {
+  const prompt = t("dms.mockup.new_prompt");
+  const isClaimed = dispatchMockupAssistantPrompt({
+    prompt,
+    source: "new-mockup",
+  });
+  if (!isClaimed) unclaimed.value = `${prompt.trimEnd()}${STARTER_ELLIPSIS}`;
+}
+
+function open(mockup: MockupSummary): void {
+  void router.push(`${VIEWER_PATH}?name=${encodeURIComponent(mockup.name)}`);
 }
 
 async function resync(mockup: string, path: string): Promise<void> {
@@ -62,33 +74,47 @@ async function resync(mockup: string, path: string): Promise<void> {
   }
 }
 
-const mockups = computed(() =>
-  props.context.items.flatMap((row) => parseMockupSummary(row) ?? []),
-);
-
-function viewerLink(name: string): string {
-  return `${VIEWER_PATH}?name=${encodeURIComponent(name)}`;
+async function rename(change: MockupRenameRequest): Promise<void> {
+  const target = renaming.value;
+  if (!target) return;
+  isRenaming.value = true;
+  try {
+    await renameMockup($authFetch, target.name, change);
+    renaming.value = undefined;
+    await props.context.refresh();
+  } catch (error) {
+    presentError(error, { fallbackKey: "dms.mockup.rename_failed" });
+  } finally {
+    isRenaming.value = false;
+  }
 }
 
-function metaLine(mockup: MockupSummary): string {
-  const parts = [
-    t("dms.mockup.card_pages", { count: mockup.pages }, mockup.pages),
-  ];
-  if (mockup.source) {
-    parts.push(
-      t("dms.mockup.card_source", { source: t(SOURCE_KEYS[mockup.source]) }),
-    );
+async function duplicate(mockup: MockupSummary): Promise<void> {
+  try {
+    const name = await duplicateMockup($authFetch, mockup.name);
+    toast.add({
+      color: "success",
+      title: t("dms.mockup.duplicated", { name }),
+    });
+    await props.context.refresh();
+  } catch (error) {
+    presentError(error, { fallbackKey: "dms.mockup.duplicate_failed" });
   }
-  if (mockup.openComments > 0) {
-    parts.push(
-      t(
-        "dms.mockup.card_comments",
-        { count: mockup.openComments },
-        mockup.openComments,
-      ),
-    );
-  }
-  return parts.join(META_SEPARATOR);
+}
+
+async function remove(mockup: MockupSummary): Promise<void> {
+  const isConfirmed = await confirm({
+    title: t("dms.mockup.delete_title", { name: labelOf(mockup) }),
+    description: t("dms.mockup.delete_description"),
+    icon: "i-lucide-trash-2",
+    color: "error",
+    confirmIcon: "i-lucide-trash-2",
+    confirmLabel: t("dms.mockup.remove"),
+    cancelLabel: t("dms.mockup.cancel"),
+    initialFocus: "cancel",
+    onConfirm: () => deleteMockup($authFetch, mockup.name),
+  });
+  if (isConfirmed) await props.context.refresh();
 }
 </script>
 
@@ -104,7 +130,7 @@ function metaLine(mockup: MockupSummary): string {
         :key="index"
         class="ring-default overflow-hidden rounded-lg ring-1"
       >
-        <USkeleton class="h-[84px] rounded-none" />
+        <USkeleton class="aspect-[16/10] rounded-none" />
         <div class="space-y-2 p-3.5">
           <USkeleton class="h-4 w-2/3" />
           <USkeleton class="h-3 w-1/2" />
@@ -112,77 +138,67 @@ function metaLine(mockup: MockupSummary): string {
       </li>
     </ul>
 
-    <DmsTableEmpty v-else-if="!mockups.length" :can-add-row="false" />
+    <div
+      v-else-if="!mockups.length"
+      class="flex flex-col items-center gap-4 p-4"
+    >
+      <DmsTableEmpty :can-add-row="false" />
+      <UButton
+        icon="i-lucide-plus"
+        size="md"
+        data-dms-mockup-new
+        @click="newMockup"
+      >
+        {{ t("dms.mockup.new_title") }}
+      </UButton>
+    </div>
 
     <ul
       v-else
       class="grid grid-cols-1 gap-4 p-4 sm:grid-cols-2 xl:grid-cols-3"
       data-dms-mockup-cards
     >
-      <li
+      <li class="flex">
+        <button
+          type="button"
+          class="border-accented text-muted hover:border-primary hover:text-highlighted focus-visible:outline-primary flex min-h-56 w-full flex-col items-center justify-center gap-3 rounded-lg border border-dashed p-6 text-center transition-colors focus-visible:outline-2 focus-visible:outline-offset-2"
+          data-dms-mockup-new
+          @click="newMockup"
+        >
+          <span
+            class="bg-elevated ring-default grid size-10 place-items-center rounded-full ring-1"
+          >
+            <UIcon name="i-lucide-plus" class="size-5" />
+          </span>
+          <span class="space-y-1">
+            <span class="text-highlighted block text-sm font-semibold">
+              {{ t("dms.mockup.new_title") }}
+            </span>
+            <span class="block max-w-[28ch] text-xs">
+              {{ t("dms.mockup.new_hint") }}
+            </span>
+          </span>
+        </button>
+      </li>
+      <MockupCard
         v-for="mockup in mockups"
         :key="mockup.name"
-        class="bg-default ring-default hover:ring-accented focus-within:ring-primary relative flex flex-col overflow-hidden rounded-lg ring-1 transition-shadow"
-        :data-dms-mockup-card="mockup.name"
-      >
-        <MockupThumbnail :name="mockup.name" />
-        <div class="flex flex-1 flex-col gap-1.5 p-3.5">
-          <div class="flex items-center gap-2">
-            <h3 class="min-w-0 flex-1 truncate text-sm font-semibold">
-              <DmsLink
-                :to="viewerLink(mockup.name)"
-                class="text-highlighted outline-none after:absolute after:inset-0"
-                data-dms-mockup-open
-              >
-                {{ mockup.title || mockup.name }}
-              </DmsLink>
-            </h3>
-            <UBadge
-              :color="statusOf(mockup).color"
-              variant="subtle"
-              size="sm"
-              data-dms-mockup-status
-            >
-              {{ statusOf(mockup).label }}
-            </UBadge>
-          </div>
-          <p class="text-muted text-xs" data-dms-mockup-meta>
-            {{ metaLine(mockup) }}
-          </p>
-          <ul
-            v-if="mockup.status === 'built'"
-            class="flex flex-wrap gap-x-3 gap-y-1 pt-1"
-            :aria-label="t('dms.mockup.built_pages')"
-          >
-            <li
-              v-for="page in mockup.builtPages"
-              :key="page.path"
-              class="flex items-center gap-1"
-            >
-              <DmsLink
-                :to="page.path"
-                class="text-primary relative text-xs hover:underline"
-                data-dms-mockup-page
-              >
-                {{ page.title }}
-              </DmsLink>
-              <button
-                v-if="page.changed && page.pageId"
-                type="button"
-                class="text-warning relative text-xs hover:underline disabled:opacity-50"
-                :disabled="resyncing !== undefined"
-                :title="t('dms.mockup.resync_hint')"
-                data-dms-mockup-resync
-                @click="resync(mockup.name, page.path)"
-              >
-                {{ t("dms.mockup.resync") }}
-              </button>
-            </li>
-          </ul>
-        </div>
-      </li>
+        :mockup="mockup"
+        :resyncing="resyncing"
+        @open="open(mockup)"
+        @rename="renaming = mockup"
+        @duplicate="duplicate(mockup)"
+        @delete="remove(mockup)"
+        @resync="(path) => resync(mockup.name, path)"
+      />
     </ul>
 
     <DmsTablePagination />
+    <MockupRenameModal
+      v-model:mockup="renaming"
+      :saving="isRenaming"
+      @submit="rename"
+    />
+    <MockupPromptModal v-model:prompt="unclaimed" />
   </div>
 </template>

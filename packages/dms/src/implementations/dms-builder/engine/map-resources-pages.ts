@@ -10,6 +10,7 @@ import type {
 } from "@antelopejs/interface-dms-builder";
 import { getStringProperty } from "./literals";
 import type { MappingPlan, PlannedResource } from "./map-resources-plan";
+import { buildPageBlocks } from "./block-tree";
 import { addBlock, configureBlock } from "./ops";
 import { configurePage, createPage } from "./ops-blocks";
 import { MAPPED_PAGE_ORDER } from "./planned-page";
@@ -17,7 +18,11 @@ import { configureTableView } from "./table-view-settings";
 import { createCategory } from "./ops-categories";
 import { deletePage } from "./page-delete";
 import { joinSlug } from "./scan";
-import { findCategoryRecord, findPageRecord } from "./source-index";
+import {
+  findCategoryRecord,
+  findPageRecord,
+  listPageRecords,
+} from "./source-index";
 
 /** The name of the TableView block a mapped relation's page holds. */
 export const TABLE_BLOCK = "table";
@@ -180,20 +185,82 @@ function pageRefOf(category: string, resource: PlannedResource): string {
 }
 
 /**
- * What the new choices change in the page's own options. A title written any other way than the
- * builder's, a constant or a call, is the page's own and left as it is; an icon and a description
- * change only when sent; the order is sent, else the default of a page that has none.
+ * The page each mapped table lives on, by the resource its TableView is bound to. A page a person
+ * moved into another category is found here, whatever its route has become.
+ */
+function tablePagesByResource(): Map<string, string> {
+  const pages = new Map<string, string>();
+  for (const page of listPageRecords()) {
+    for (const block of buildPageBlocks(page)) {
+      if (
+        block.name === TABLE_BLOCK &&
+        block.type === "TableView" &&
+        block.controller !== undefined &&
+        !pages.has(block.controller)
+      ) {
+        pages.set(block.controller, page.ref);
+      }
+    }
+  }
+  return pages;
+}
+
+/**
+ * The page each relation already has: the one at its default place in the connection's category,
+ * else the one its table is bound to anywhere in the menu. Relations without one are absent.
+ */
+function existingPages(
+  category: string,
+  resources: PlannedResource[],
+): Map<PlannedResource, string> {
+  const existing = new Map<PlannedResource, string>();
+  let bound: Map<string, string> | undefined;
+  for (const resource of resources) {
+    const ref = pageRefOf(category, resource);
+    if (findPageRecord(ref)) {
+      existing.set(resource, ref);
+      continue;
+    }
+    bound ??= tablePagesByResource();
+    const moved = bound.get(resource.ref);
+    if (moved !== undefined) {
+      existing.set(resource, moved);
+    }
+  }
+  return existing;
+}
+
+/** The title a page holds as a literal; a title written any other way than the builder's, a constant or a call, reads as none. */
+function currentTitle(ref: string): string | undefined {
+  const options = findPageRecord(ref)?.optionsNode;
+  return options && getStringProperty(options, "displayName");
+}
+
+/**
+ * What the new choices change in the page's own options. A category sent moves the page. A title
+ * changes only when sent, and a title written any other way than the builder's is the page's own
+ * and left as it is; an icon and a description change only when sent; the order is sent, else the
+ * default of a page that has none.
  */
 function pagePatch(
   ref: string,
   resource: PlannedResource,
 ): Partial<EditablePageMeta> {
   const record = findPageRecord(ref);
-  const options = record?.optionsNode;
-  const title = options && getStringProperty(options, "displayName");
+  const title = currentTitle(ref);
   const patch: Partial<EditablePageMeta> = {};
-  if (title !== undefined && title !== resource.displayName) {
-    patch.displayName = resource.displayName;
+  if (
+    resource.page.category !== undefined &&
+    resource.page.category !== record?.categoryRef
+  ) {
+    patch.category = resource.page.category;
+  }
+  if (
+    resource.title !== undefined &&
+    title !== undefined &&
+    title !== resource.title
+  ) {
+    patch.displayName = resource.title;
   }
   if (resource.page.icon !== undefined && resource.page.icon !== record?.icon) {
     patch.icon = resource.page.icon;
@@ -214,13 +281,25 @@ function pagePatch(
 }
 
 /**
- * A remapped TableView keeps its page, with the caption and label the new choices give its table
- * and, when they change it, the title, icon, description and order. Its tabs follow the choices
+ * A remapped TableView keeps its page, wherever the menu has it, with the label the new choices
+ * give its table and, when they change it, the category, title, icon, description and order. The
+ * caption is the page's title: the one sent, else the one the page holds. Its tabs follow the choices
  * when they set tabs, over the tabs it listed, or turn the ones the mapping wrote off; tabs left
  * out keep the page's.
  */
-function updatePage(ref: string, resource: PlannedResource): OpResult<string> {
-  const patch = tableConfig(resource);
+function updatePage(
+  current: string,
+  resource: PlannedResource,
+): OpResult<string> {
+  let ref = current;
+  const kept = currentTitle(ref);
+  const patch = tableConfig({
+    ...resource,
+    displayName:
+      resource.title ??
+      (kept?.trim() ? kept : undefined) ??
+      resource.displayName,
+  });
   if (resource.tabs || resource.clearTabs) {
     patch.tabs = undefined;
   }
@@ -237,11 +316,13 @@ function updatePage(ref: string, resource: PlannedResource): OpResult<string> {
   if (Object.keys(meta).length > 0) {
     const renamed = configurePage(ref, meta);
     if (renamed.ok) {
+      ref = renamed.data.ref;
       changes.push(...renamed.changes);
+      warnings.push(...(renamed.warnings ?? []));
     } else {
       warnings.push({
         code: "page_not_written",
-        message: `${resource.relation}: the page's title, icon, description and order stay as they were: ${errorText(renamed.error)}`,
+        message: `${resource.relation}: the page's category, title, icon, description and order stay as they were: ${errorText(renamed.error)}`,
       });
     }
   }
@@ -251,28 +332,17 @@ function updatePage(ref: string, resource: PlannedResource): OpResult<string> {
   return written(ref, changes, warnings);
 }
 
-/** The page a relation has though its choices no longer call for one. */
-function pageToRemove(
-  category: string,
-  resource: PlannedResource,
-): string | undefined {
-  if (resource.tableView) {
-    return undefined;
-  }
-  const ref = pageRefOf(category, resource);
-  return findPageRecord(ref) ? ref : undefined;
-}
-
 /** The pages `writePages` removes for this plan: those of relations that lost their TableView. */
 export function pagesToRemove(
   input: MapResourcesInput,
   plan: MappingPlan,
 ): string[] {
-  const category = `pages.${input.connection}`;
-  return plan.resources.flatMap((resource) => {
-    const ref = pageToRemove(category, resource);
-    return ref === undefined ? [] : [ref];
-  });
+  const lost = plan.resources.filter((resource) => !resource.tableView);
+  if (lost.length === 0) {
+    return [];
+  }
+  const existing = existingPages(`pages.${input.connection}`, lost);
+  return lost.flatMap((resource) => existing.get(resource) ?? []);
 }
 
 /** The page a relation's choices call for: created, updated, or removed when it lost its TableView. */
@@ -280,19 +350,19 @@ function syncPage(
   input: MapResourcesInput,
   category: string,
   resource: PlannedResource,
+  existing: string | undefined,
 ): OpResult<string | undefined> {
   if (!resource.tableView) {
-    const stale = pageToRemove(category, resource);
-    if (stale === undefined) {
+    if (existing === undefined) {
       return { ok: true, data: undefined, changes: [] };
     }
-    const removed = deletePage(stale);
+    const removed = deletePage(existing);
     return removed.ok ? { ...removed, data: undefined } : removed;
   }
-  const ref = pageRefOf(category, resource);
-  return findPageRecord(ref)
-    ? updatePage(ref, resource)
-    : addPage(input, category, resource);
+  if (existing !== undefined) {
+    return updatePage(existing, resource);
+  }
+  return addPage(input, resource.page.category ?? category, resource);
 }
 
 export function writePages(
@@ -302,22 +372,31 @@ export function writePages(
 ): PagesWritten {
   const written: PagesWritten = { changes: [], warnings: [] };
   const category = `pages.${input.connection}`;
-  const needsCategory = plan.resources.some((resource) => resource.tableView);
+  const existing = existingPages(category, plan.resources);
+  const needsCategory = plan.resources.some(
+    (resource) =>
+      resource.tableView &&
+      resource.page.category === undefined &&
+      !existing.has(resource),
+  );
   if (!needsCategory && !findCategoryRecord(category)) {
-    return written;
+    if (!plan.resources.some((resource) => resource.tableView)) {
+      return written;
+    }
+  } else {
+    const ensured = ensureCategory(input);
+    if (!ensured.ok) {
+      written.warnings.push({
+        code: "page_not_written",
+        message: JSON.stringify(ensured.error),
+      });
+      return written;
+    }
+    written.changes.push(...ensured.changes);
+    written.category = ensured.data;
   }
-  const ensured = ensureCategory(input);
-  if (!ensured.ok) {
-    written.warnings.push({
-      code: "page_not_written",
-      message: JSON.stringify(ensured.error),
-    });
-    return written;
-  }
-  written.changes.push(...ensured.changes);
-  written.category = ensured.data;
   for (const resource of plan.resources) {
-    const page = syncPage(input, ensured.data, resource);
+    const page = syncPage(input, category, resource, existing.get(resource));
     if (!page.ok) {
       written.warnings.push({
         code: "page_not_written",

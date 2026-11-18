@@ -5,7 +5,9 @@ import {
   mockupArgument,
   saveSpec,
   specArgument,
+  summaryArgument,
   withMockup,
+  writeGroupArgument,
 } from "./mockup-support";
 
 /** `mockup_write_spec`: replaces a mockup's whole spec once it validates. */
@@ -15,13 +17,19 @@ export const mockupWriteSpecTool = defineTool({
   description:
     "Writes mockups/<mockup>/spec.json, the whole spec, creating the mockup when it is new. The spec is checked first exactly as the /mockup page checks it: nothing is written unless it has zero errors, and a refused write leaves the existing file untouched. Answers { ok, errors: [{ path, message }] } where path is a JSON pointer into your spec ('' is the whole file). On ok: false, fix each error at its pointer and call again. On ok: true the dev-only /mockup page re-renders by itself; then call mockup_annotations to read what the reviewer left. To change a few nodes of an existing spec, prefer mockup_patch_spec. A block's id anchors the reviewer notes on it, so keep it when you move or rewrite the block.",
   effect: "builder",
-  input: z.object({ mockup: mockupArgument, spec: specArgument }),
-  run: ({ mockup, spec }, _sessionId, client) =>
+  input: z.object({
+    mockup: mockupArgument,
+    spec: specArgument,
+    summary: summaryArgument,
+    writeGroup: writeGroupArgument,
+  }),
+  run: ({ mockup, spec, summary, writeGroup }, _sessionId, client) =>
     withMockup(mockup, (name) =>
       saveSpec(
         defaultMockupsDir(),
         name,
         client === "chat" ? { ...spec, source: "chat" } : spec,
+        { summary, group: writeGroup },
       ),
     ),
 });

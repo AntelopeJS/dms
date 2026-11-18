@@ -67,17 +67,32 @@ function describesAnnotationsTool(): void {
       });
       const first = await createAnnotation(
         MOCKUP,
-        { page: "home", path: "/pages/0/tree/0", text: "one" },
+        {
+          page: "home",
+          path: "/pages/0/tree/0",
+          text: "one",
+          offset: { x: 0, y: 0 },
+        },
         dir,
       );
       const second = await createAnnotation(
         MOCKUP,
-        { page: "home", path: "/pages/0/tree/0", text: "two" },
+        {
+          page: "home",
+          path: "/pages/0/tree/0",
+          text: "two",
+          offset: { x: 0, y: 0 },
+        },
         dir,
       );
       await createAnnotation(
         MOCKUP,
-        { page: "other", path: "/pages/1/tree/0", text: "three" },
+        {
+          page: "other",
+          path: "/pages/1/tree/0",
+          text: "three",
+          offset: { x: 0, y: 0 },
+        },
         dir,
       );
       await updateAnnotation(
@@ -131,12 +146,22 @@ function describesResolveAnnotationTool(): void {
       });
       const created = await createAnnotation(
         MOCKUP,
-        { page: "home", path: "/pages/0/tree/0", text: "tighten" },
+        {
+          page: "home",
+          path: "/pages/0/tree/0",
+          text: "tighten",
+          offset: { x: 0, y: 0 },
+        },
         workspace.mockups(),
       );
       await createAnnotation(
         MOCKUP,
-        { page: "home", path: "/pages/0/tree/1", text: "keep open" },
+        {
+          page: "home",
+          path: "/pages/0/tree/1",
+          text: "keep open",
+          offset: { x: 0, y: 0 },
+        },
         workspace.mockups(),
       );
       return created.kind === "created" ? created.annotation.id : "";

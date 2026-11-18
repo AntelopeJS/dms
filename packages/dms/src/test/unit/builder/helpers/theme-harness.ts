@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import type { LogoUpload, ThemeDraft } from "@antelopejs/interface-dms-builder";
+import { z } from "zod";
 import { setBuilderConfig } from "../../../../config";
 import { createFixture, type Fixture } from "../harness";
 
@@ -48,12 +49,43 @@ export function createThemeFixture(
 ): Fixture {
   const app = createFixture();
   root = app.root;
+  writeProjectManifest({ main: "dist/index.js" });
   if (options.withLayer !== false) {
     setBuilderConfig({ projectRoot: app.root, theme: { layerPath: LAYER } });
     writeLayerFile("dms.frontend.ts", ENTRY_SOURCE);
     writeLayerFile("app/app.config.ts", options.appConfig ?? APP_CONFIG_SOURCE);
   }
   return app;
+}
+
+const projectManifestSchema = z.object({
+  name: z.string(),
+  version: z.string(),
+  private: z.boolean(),
+  main: z.string().optional(),
+  scripts: z.record(z.string(), z.string()).optional(),
+  dmsFrontend: z.string().optional(),
+});
+
+type ProjectManifest = z.infer<typeof projectManifestSchema>;
+
+/** The fixture project's own `package.json`, which names its compiled entry and declares its frontend module. */
+export function writeProjectManifest(
+  manifest: Partial<ProjectManifest> = {},
+): void {
+  fs.writeFileSync(
+    path.join(root, "package.json"),
+    `${JSON.stringify({ name: "shop", version: "0.0.1", private: true, ...manifest }, null, 2)}\n`,
+  );
+}
+
+/** The text of the fixture project's `package.json`. */
+export function readProjectManifestText(): string {
+  return fs.readFileSync(path.join(root, "package.json"), "utf8");
+}
+
+export function readProjectManifest(): ProjectManifest {
+  return projectManifestSchema.parse(JSON.parse(readProjectManifestText()));
 }
 
 /** A path inside the layer of the fixture last created. */

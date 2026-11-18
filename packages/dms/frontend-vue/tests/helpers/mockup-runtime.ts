@@ -6,14 +6,18 @@ import {
   onBeforeUnmount,
   onMounted,
   provide,
+  reactive,
   ref,
   shallowRef,
   useTemplateRef,
   watch,
   type App,
   type FunctionalComponent,
+  type ShallowRef,
+  type VNode,
 } from "vue";
 import { vi } from "vitest";
+import type { JsonValue } from "../../layers/dms-core/app/types/json";
 import type { Toast } from "@nuxt/ui/composables/useToast";
 import type {
   ApiErrorPresenter,
@@ -58,7 +62,7 @@ export class FakeEventSource {
   }
 }
 
-const UButton: FunctionalComponent = (_props, { slots, attrs }) =>
+export const UButton: FunctionalComponent = (_props, { slots, attrs }) =>
   h("button", { type: "button", ...attrs }, slots.default?.());
 
 const UBadge: FunctionalComponent = (_props, { slots, attrs }) =>
@@ -83,13 +87,19 @@ const UTextarea: FunctionalComponent<
 UTextarea.props = ["modelValue"];
 UTextarea.emits = ["update:modelValue"];
 
-const UInput: FunctionalComponent<
+/** Stands in for Nuxt UI's input: one with `autofocus` takes the focus once drawn, as the real one does. */
+export const UInput: FunctionalComponent<
   { modelValue?: string },
   ["update:modelValue"]
 > = (props, { emit, attrs }) =>
   h("input", {
     ...attrs,
     value: props.modelValue,
+    onVnodeMounted: (vnode: VNode) => {
+      if (attrs.autofocus !== undefined && vnode.el instanceof HTMLElement) {
+        vnode.el.focus();
+      }
+    },
     onInput: (event: Event) => {
       if (event.target instanceof HTMLInputElement) {
         emit("update:modelValue", event.target.value);
@@ -148,7 +158,66 @@ const UModal: FunctionalComponent<{ open?: boolean; title?: string }> = (
     : null;
 UModal.props = ["open", "title"];
 
-const UIcon: FunctionalComponent = () => h("span");
+/** Stands in for Nuxt UI's tooltip: it draws its trigger and records the text and the key badges it would show. */
+const UTooltip: FunctionalComponent<{ text?: string; kbds?: string[] }> = (
+  props,
+  { slots },
+) =>
+  h(
+    "span",
+    {
+      "data-tooltip": props.text ?? "",
+      "data-tooltip-kbds": JSON.stringify(props.kbds ?? []),
+    },
+    slots.default?.(),
+  );
+UTooltip.props = ["text", "kbds"];
+
+/**
+ * Stands in for Nuxt UI's dropdown menu: it draws its trigger and each item as
+ * a button. An item picked runs its action, then closes the menu as Reka does:
+ * the content's `onCloseAutoFocus` may keep the focus where it is, else the
+ * trigger takes it back.
+ */
+export const UDropdownMenu: FunctionalComponent<{
+  items?: Array<{ label?: string; onSelect?: () => void }>;
+  content?: { onCloseAutoFocus?: (event: Event) => void };
+}> = (props, { slots }) =>
+  h("div", [
+    slots.default?.(),
+    ...(props.items ?? []).map((item) =>
+      h(
+        "button",
+        {
+          type: "button",
+          "data-menu-item": item.label,
+          onClick: async (event: Event) => {
+            const trigger =
+              event.currentTarget instanceof Element
+                ? event.currentTarget.parentElement?.firstElementChild
+                : undefined;
+            item.onSelect?.();
+            await nextTick();
+            const close = new Event("closeAutoFocus", { cancelable: true });
+            props.content?.onCloseAutoFocus?.(close);
+            if (!close.defaultPrevented && trigger instanceof HTMLElement) {
+              trigger.focus();
+            }
+          },
+        },
+        item.label,
+      ),
+    ),
+  ]);
+UDropdownMenu.props = ["items", "content"];
+
+/** Stands in for Nuxt UI's key badge. */
+const UKbd: FunctionalComponent<{ value?: string }> = (props) =>
+  h("kbd", props.value);
+UKbd.props = ["value"];
+
+export const UIcon: FunctionalComponent = (_props, { attrs }) =>
+  h("span", attrs);
 
 /** A spec whose one page draws the tree {@link mockupPage} compiles. */
 export function mockupSpec(): MockupSpecDocument {
@@ -192,6 +261,8 @@ export function annotation(
 ): MockupAnnotation {
   return {
     id: "a1",
+    anchor: { block: "b-revenue1", steps: [] },
+    offset: { x: 0.5, y: 0.5 },
     page: "orders",
     path: "/pages/0/tree/0",
     text: "Tighten the spacing",
@@ -201,11 +272,45 @@ export function annotation(
   };
 }
 
+/** What the fake backend serves for a pin put at `place`, the place's page and path as its location, and its sketch state. */
+function placed(
+  note: MockupAnnotation,
+  place: Pick<MockupAnnotation, "page" | "path" | "offset" | "state">,
+): MockupAnnotation {
+  const { path: _path, state: _state, ...rest } = note;
+  return {
+    ...rest,
+    page: place.page,
+    offset: place.offset,
+    anchor: place.path ? note.anchor : { page: place.page ?? "" },
+    ...(place.path !== undefined && { path: place.path }),
+    ...(place.state !== undefined && { state: place.state }),
+  };
+}
+
+/** One ref per key, made with `init` on first use and shared by every later caller, as the DMS state and cookies are. */
+function sharedRefs(): (
+  key: string,
+  init: () => JsonValue,
+) => ShallowRef<JsonValue> {
+  const refs = new Map<string, ShallowRef<JsonValue>>();
+  return (key, init) => {
+    const found = refs.get(key);
+    if (found) return found;
+    const made = shallowRef<JsonValue>(init());
+    refs.set(key, made);
+    return made;
+  };
+}
+
 interface RuntimeOptions {
+  /** The viewer's URL query: by default the first page of {@link mockupSpec} open, not the Overview. */
   query?: Record<string, string>;
   mockups?: Array<{ name: string; title?: string; pages: number }>;
   spec?: MockupSpecDocument;
   blocks?: MockupBlockType[];
+  /** The notes the fake backend starts with. */
+  notes?: MockupAnnotation[];
 }
 
 /** What the viewer raised: a toast it added, or a failure it presented. */
@@ -219,6 +324,50 @@ export interface MockupRuntime {
   file: { spec: MockupSpecDocument; version: number };
   /** The toasts the viewer raised. */
   toasts: RaisedToast[];
+  /** The viewer's route, which the router's pushes move, as Inertia moves the page's URL. */
+  route: { path: string; query: Record<string, string> };
+  /** The queries the viewer pushed, oldest first: each one an entry of the browser's history. */
+  pushes: Record<string, string>[];
+}
+
+/** A request the viewer sends the fake backend. */
+interface FakeRequest {
+  method?: string;
+  body?: Record<string, string> & {
+    spec?: MockupSpecDocument;
+    offset?: MockupAnnotation["offset"];
+    place?: Pick<MockupAnnotation, "page" | "path" | "offset" | "state">;
+  };
+}
+
+/** What the fake backend answers on the annotation routes, keeping `notes` as the real one keeps the file. */
+function answerAnnotations(
+  notes: MockupAnnotation[],
+  url: string,
+  init: FakeRequest | undefined,
+) {
+  if (init?.method === "POST" && init.body) {
+    const { text, ...place } = init.body;
+    const created = placed(annotation({ id: "new", text }), {
+      ...place,
+      offset: place.offset ?? { x: 0, y: 0 },
+    });
+    notes.push(created);
+    return created;
+  }
+  const id = decodeURIComponent(url.split("/").at(-1) ?? "");
+  const index = notes.findIndex((entry) => entry.id === id);
+  if (init?.method === "DELETE") {
+    notes.splice(index, 1);
+    return { id };
+  }
+  if (init?.method === "PATCH" && init.body) {
+    const { place, ...change } = init.body;
+    const found = { ...notes[index], ...change };
+    notes[index] = place ? placed(found, place) : found;
+    return notes[index];
+  }
+  return { annotations: notes };
 }
 
 const SPEC_URL = "/api/mockup/demo/spec";
@@ -227,48 +376,30 @@ const CATALOG_URL = "/api/mockup/schema/blocks";
 /** Stubs what the viewer reads from the dashboard and the browser. */
 export function stubMockupRuntime(options: RuntimeOptions = {}): MockupRuntime {
   FakeEventSource.instances = [];
-  const notes: MockupAnnotation[] = [];
+  const notes: MockupAnnotation[] = [...(options.notes ?? [])];
   const toasts: RaisedToast[] = [];
   const file = { spec: options.spec ?? mockupSpec(), version: 1 };
-  const authFetch = vi.fn(
-    async (
-      url: string,
-      init?: {
-        method?: string;
-        body?: Record<string, string> & { spec?: MockupSpecDocument };
-      },
-    ) => {
-      if (url === "/api/mockup") {
-        const results = (options.mockups ?? []).map((mockup) => ({
-          ...mockup,
-          openComments: 0,
-          updatedAt: "2026-11-13T10:00:00.000Z",
-          status: "draft",
-        }));
-        return { results, total: results.length };
-      }
-      if (url === CATALOG_URL) return { blocks: options.blocks ?? [] };
-      if (url === SPEC_URL && init?.method === "PUT" && init.body?.spec) {
-        file.spec = structuredClone(init.body.spec);
-        file.version += 1;
-        return { ok: true, digest: `d${file.version}` };
-      }
-      if (url === SPEC_URL) {
-        return { spec: structuredClone(file.spec), digest: `d${file.version}` };
-      }
-      if (init?.method === "POST") {
-        const created = annotation({ ...init.body, id: "new" });
-        notes.push(created);
-        return created;
-      }
-      if (init?.method === "PATCH") {
-        const id = decodeURIComponent(url.split("/").at(-1) ?? "");
-        const found = notes.find((entry) => entry.id === id);
-        return { ...found, ...init.body };
-      }
-      return { annotations: notes };
-    },
-  );
+  const authFetch = vi.fn(async (url: string, init?: FakeRequest) => {
+    if (url === "/api/mockup") {
+      const results = (options.mockups ?? []).map((mockup) => ({
+        ...mockup,
+        openComments: 0,
+        updatedAt: "2026-11-13T10:00:00.000Z",
+        status: "draft",
+      }));
+      return { results, total: results.length };
+    }
+    if (url === CATALOG_URL) return { blocks: options.blocks ?? [] };
+    if (url === SPEC_URL && init?.method === "PUT" && init.body?.spec) {
+      file.spec = structuredClone(init.body.spec);
+      file.version += 1;
+      return { ok: true, digest: `d${file.version}` };
+    }
+    if (url === SPEC_URL) {
+      return { spec: structuredClone(file.spec), digest: `d${file.version}` };
+    }
+    return answerAnnotations(notes, url, init);
+  });
   for (const [name, value] of Object.entries({
     computed,
     onBeforeUnmount,
@@ -286,9 +417,18 @@ export function stubMockupRuntime(options: RuntimeOptions = {}): MockupRuntime {
     t: (key: string, params?: Record<string, number>) =>
       params ? `${key} ${Object.values(params).join(",")}` : key,
   }));
-  vi.stubGlobal("useDmsRoute", () => ({
+  const route = reactive({
     path: "/mockup",
-    query: options.query ?? { name: "demo" },
+    query: options.query ?? { name: "demo", page: "orders" },
+  });
+  const pushes: Record<string, string>[] = [];
+  vi.stubGlobal("useDmsRoute", () => route);
+  vi.stubGlobal("useDmsRouter", () => ({
+    push: async (to: { query?: Record<string, string> }) => {
+      if (!to.query) return;
+      pushes.push(to.query);
+      route.query = to.query;
+    },
   }));
   vi.stubGlobal("useDmsRuntimeConfig", () => ({
     public: { dms: { baseURL: "http://backend/" } },
@@ -300,7 +440,18 @@ export function stubMockupRuntime(options: RuntimeOptions = {}): MockupRuntime {
   vi.stubGlobal("useToast", () => ({
     add: (toast: Toast) => toasts.push(toast),
   }));
-  return { authFetch, notes, file, toasts };
+  const shared = sharedRefs();
+  vi.stubGlobal("useDmsState", (key: string, init: () => JsonValue) =>
+    shared(`state:${key}`, init),
+  );
+  vi.stubGlobal(
+    "useDmsCookie",
+    (key: string, options?: { default?: () => JsonValue }) =>
+      shared(`cookie:${key}`, options?.default ?? (() => null)),
+  );
+  vi.stubGlobal("useDmsUserSession", () => ({ loggedIn: ref(true) }));
+  vi.stubGlobal("isDmsHydrating", () => false);
+  return { authFetch, notes, file, toasts, route, pushes };
 }
 
 type WithoutChannel<Message> = Message extends unknown
@@ -346,6 +497,9 @@ export async function mountViewer(): Promise<MountedViewer> {
   app.component("USelect", USelect);
   app.component("UModal", UModal);
   app.component("UIcon", UIcon);
+  app.component("UTooltip", UTooltip);
+  app.component("UKbd", UKbd);
+  app.component("UDropdownMenu", UDropdownMenu);
   app.mount(host);
   await flush();
   const posted: PreviewInboundMessage[] = [];

@@ -64,6 +64,9 @@ export interface PlannedResource {
   tableView: boolean;
   routes?: ResourceRoute[];
   label?: string;
+  /** The title the call sends, which wins on a new page and on a remap. Absent, a remap keeps the page's title. */
+  title?: string;
+  /** The title a new page takes: the one sent, else the relation's name, humanized. */
   displayName: string;
   /** The page's own options and the table options the mapping sets. */
   page: PlannedPage;

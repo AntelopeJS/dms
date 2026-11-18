@@ -1,6 +1,11 @@
 import { z } from "zod";
 import { listPreviewBlockTypes } from "../../pages/public/preview";
-import { sketchRefusals } from "../../mockup/sketch";
+import {
+  SKETCH_DEFAULT_HEIGHT,
+  SKETCH_MAX_HEIGHT,
+  SKETCH_MIN_HEIGHT,
+  sketchRefusals,
+} from "../../mockup/sketch";
 import { JsonObjectSchema } from "../json";
 import { defineTool, type McpToolResult, textResult } from "../tool";
 
@@ -15,9 +20,6 @@ const MAX_CAPTION_CHARS = 200;
 const MAX_URL_CHARS = 2_048;
 const BYTES_PER_KIBIBYTE = 1024;
 const MAX_JSON_BYTES = 64 * BYTES_PER_KIBIBYTE;
-const SKETCH_MIN_HEIGHT_PX = 80;
-const SKETCH_DEFAULT_HEIGHT_PX = 320;
-const SKETCH_MAX_HEIGHT_PX = 1_200;
 
 const SAME_ORIGIN_PATH = /^\/(?![/\\])/;
 const REMOTE_URL = /^https?:\/\//i;
@@ -99,11 +101,11 @@ const PreviewSketchSchema = z
     height: z
       .number()
       .int()
-      .min(SKETCH_MIN_HEIGHT_PX)
-      .max(SKETCH_MAX_HEIGHT_PX)
+      .min(SKETCH_MIN_HEIGHT)
+      .max(SKETCH_MAX_HEIGHT)
       .optional()
       .describe(
-        `Frame height in pixels; the sketch scrolls past it. Default ${SKETCH_DEFAULT_HEIGHT_PX}.`,
+        `Frame height in pixels; the sketch scrolls past it. Default ${SKETCH_DEFAULT_HEIGHT}.`,
       ),
   })
   .describe(

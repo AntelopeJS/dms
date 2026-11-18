@@ -6,8 +6,10 @@
  */
 import { afterEach, describe, expect, it } from "vitest";
 import {
+  editOf,
   previewStyle,
   readDmsTokens,
+  setCustomAccent,
   type DmsTokens,
 } from "../layers/dms-layout/app/entries/branding/model";
 
@@ -164,5 +166,23 @@ describe("previewStyle", () => {
         dmsColors: { primary: "dms" },
       })["--ui-color-primary-500"],
     ).toBe("var(--color-dms-500)");
+  });
+
+  it("paints a custom accent live, in both modes, through the brand shades in the draft", () => {
+    const draft = setCustomAccent(
+      editOf({ theme: NO_THEME, version: "v1", layer: "/project" }),
+      "#3b82f6",
+    ).draft;
+    for (const mode of ["light", "dark"] as const) {
+      const style = previewStyle({
+        tokens: TOKENS,
+        draft,
+        mode,
+        dmsColors: { primary: "dms" },
+      });
+      expect(style["--ui-color-primary-500"]).toBe("var(--color-brand-500)");
+      expect(style["--ui-color-primary-950"]).toBe("var(--color-brand-950)");
+      expect(style["--color-brand-500"]).toBe("#3b82f6");
+    }
   });
 });

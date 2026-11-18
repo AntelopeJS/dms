@@ -7,6 +7,7 @@ import {
   type SidePanelWidthBounds,
   useAppSidePanels,
 } from "../../../composables/useAppSidePanels";
+import { SIDE_RAIL_WIDTH_VARIABLE, useSideRailWidth } from "./useSideRailWidth";
 
 /**
  * Set to the panel's width in px by the panel itself and by the dashboard
@@ -190,4 +191,28 @@ export function useActiveSidePanel(): ActiveSidePanel {
     return storedSidePanelWidth(current, panel.value.id, bounds.value);
   });
   return { panel, bounds, width };
+}
+
+/**
+ * The attributes of a surface that keeps room free on its right for what
+ * the DMS draws there: the open side panel's width, from `lg`, and the width
+ * of a module's folded rail, at any size. Both reach `roomClass` as the
+ * variables {@link SIDE_PANEL_WIDTH_VARIABLE} and {@link SIDE_RAIL_WIDTH_VARIABLE}.
+ * It is empty while there is neither, so the surface keeps its own layout.
+ *
+ * @internal
+ */
+export function useSidePanelRoom(
+  roomClass: string,
+): ComputedRef<{ class?: string; style?: Record<string, string> }> {
+  const { panel, width } = useActiveSidePanel();
+  const railWidth = useSideRailWidth();
+  return computed(() => {
+    const hasRail = railWidth.value > 0;
+    if (!panel.value && !hasRail) return {};
+    const style: Record<string, string> = {};
+    if (panel.value) Object.assign(style, sidePanelWidthStyle(width.value));
+    if (hasRail) style[SIDE_RAIL_WIDTH_VARIABLE] = `${railWidth.value}px`;
+    return { class: roomClass, style };
+  });
 }

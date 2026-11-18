@@ -27,6 +27,7 @@ import type {
   QueryPreview,
 } from "@antelopejs/interface-dms-builder";
 import { z } from "zod";
+import type { AnalysisSummary } from "./analysis-summary";
 
 /** The categories of a few-valued column: how many rows each holds, never the value. */
 export interface CategoryCounts {
@@ -283,6 +284,7 @@ export function redactPreview(
 /** The data of each builder operation an MCP tool answers redacted. */
 export type RedactedData =
   | RedactedAnalysis
+  | AnalysisSummary
   | RedactedMappedRelation[]
   | RedactedQueryPreview
   | MapResourcesResult;

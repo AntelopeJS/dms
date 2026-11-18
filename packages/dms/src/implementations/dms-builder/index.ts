@@ -284,8 +284,9 @@ export async function GetMapping(
  *
  * The owner path for a connection's access: owner-authenticated routes grant `read-write` through
  * it, dms-database's `PUT /api/database/connections/<id>/access` and dms-assistant's
- * `POST /database/project`. Agents reach it only through the MCP tool `builder_configure_project`,
- * which refuses a step that raises an access before it calls this.
+ * `POST /database/project`. Agents reach it through the MCP tool `builder_configure_project`,
+ * which refuses a step that raises an access before it calls this, and through
+ * `builder_set_connection_access`, which writes one access once the person confirmed it.
  */
 export async function ConfigureProject(
   steps: ProjectConfigStep[],
@@ -303,8 +304,9 @@ export async function ConfigureProject(
  *
  * The owner path for a connection's access: owner-authenticated routes grant `read-write` through
  * it, dms-database's `PUT /api/database/connections/<id>/access` and dms-assistant's
- * `POST /database/project`. Agents reach it only through the MCP tool `builder_configure_project`,
- * which refuses a step that raises an access before it calls this.
+ * `POST /database/project`. Agents reach it through the MCP tool `builder_configure_project`,
+ * which refuses a step that raises an access before it calls this, and through
+ * `builder_set_connection_access`, which writes one access once the person confirmed it.
  */
 export async function AddModule(
   id: string,
@@ -319,8 +321,9 @@ export async function AddModule(
  *
  * The owner path for a connection's access: owner-authenticated routes grant `read-write` through
  * it, dms-database's `PUT /api/database/connections/<id>/access` and dms-assistant's
- * `POST /database/project`. Agents reach it only through the MCP tool `builder_configure_project`,
- * which refuses a step that raises an access before it calls this.
+ * `POST /database/project`. Agents reach it through the MCP tool `builder_configure_project`,
+ * which refuses a step that raises an access before it calls this, and through
+ * `builder_set_connection_access`, which writes one access once the person confirmed it.
  */
 export async function ConfigureModule(
   id: string,
@@ -335,8 +338,9 @@ export async function ConfigureModule(
  *
  * The owner path for a connection's access: owner-authenticated routes grant `read-write` through
  * it, dms-database's `PUT /api/database/connections/<id>/access` and dms-assistant's
- * `POST /database/project`. Agents reach it only through the MCP tool `builder_configure_project`,
- * which refuses a step that raises an access before it calls this.
+ * `POST /database/project`. Agents reach it through the MCP tool `builder_configure_project`,
+ * which refuses a step that raises an access before it calls this, and through
+ * `builder_set_connection_access`, which writes one access once the person confirmed it.
  */
 export async function CreateLocalModule(
   id: string,

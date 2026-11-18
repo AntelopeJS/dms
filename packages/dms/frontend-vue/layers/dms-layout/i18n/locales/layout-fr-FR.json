@@ -1,12 +1,4 @@
 {
-  "editAsMockup": {
-    "label": "Modifier en maquette",
-    "stale": "Cette page a changé depuis la création de sa maquette",
-    "staleDescription": "La maquette garde vos modifications. Convertissez à nouveau pour repartir de la page telle qu’elle est maintenant.",
-    "convertAgain": "Convertir à nouveau",
-    "failed": "Cette page n’a pas pu être ouverte en maquette.",
-    "conflict": "La maquette a changé pendant la conversion. Rouvrez-la pour voir la dernière version."
-  },
   "navigation": {
     "goToHomepage": "Aller à la page d'accueil",
     "goToBrandHomepage": "{name}, aller à la page d'accueil"
@@ -1099,7 +1091,14 @@
       "title": "Abandonner vos modifications ?",
       "description": "L'éditeur revient à ce que contiennent les fichiers du thème."
     },
+    "reset_default": "Réinitialiser par défaut",
+    "reset_confirm": {
+      "title": "Réinitialiser le thème par défaut du DMS ?",
+      "description": "L'accent, les couleurs, les arrière-plans, les coins, la police et les logos reviennent au look du DMS dans l'éditeur. Rien n'est écrit avant l'enregistrement. Enregistrer retire vos personnalisations de theme.css et de app.config.ts, et supprime les fichiers de logo et de police que l'éditeur a écrits. Les logos ajoutés à la main restent sur le disque, sans être référencés. Abandonner annule la réinitialisation."
+    },
     "saved": "Thème enregistré",
+    "saved_not_live": "Enregistré, mais pas encore actif",
+    "not_live_description": "Les fichiers du thème sont écrits, mais le frontend ne charge pas cette couche : déclarez-la avec Réparer dans le bandeau ci-dessus.",
     "svg_sanitized": "Des scripts et des références externes ont été retirés d'un logo SVG.",
     "section": {
       "accent": "Accent",
@@ -1114,7 +1113,10 @@
     },
     "accent": {
       "more": "Plus de palettes",
-      "palette": "Palette {name}"
+      "palette": "Palette {name}",
+      "custom": "Couleur personnalisée",
+      "hex": "Couleur hexadécimale",
+      "hex_problem": "Saisissez une couleur comme #3b82f6."
     },
     "background": {
       "canvas": "Page",
@@ -1194,8 +1196,7 @@
       "variable_name": "--nom-de-variable",
       "add": "Ajouter",
       "remove": "Retirer {name}",
-      "dms_palette": "Par défaut du DMS",
-      "reset_all": "Revenir aux valeurs du DMS"
+      "dms_palette": "Par défaut du DMS"
     },
     "role": {
       "primary": "Accent",
@@ -1217,7 +1218,13 @@
       "no_layer_title": "Ce projet n'a pas encore de couche de thème",
       "no_layer_description": "Le thème s'écrit dans une couche frontend : {ref}",
       "create_layer": "Créer la couche de thème",
-      "layer_created": "Couche créée dans {path}. Redémarrez le serveur de développement pour qu'il la serve, puis rechargez cette page.",
+      "layer_created": "Couche créée dans {path} et déclarée dans package.json. Redémarrez le serveur de développement pour qu'il la serve, puis rechargez cette page.",
+      "undeclared": "Le thème est enregistré mais n'atteint jamais le tableau de bord",
+      "undeclared_description": "Le projet enregistre sa couche frontend sans la déclarer comme dmsFrontend dans package.json, donc le frontend l'ignore. Réparer déplace l'enregistrement dans un module frontend et le déclare.",
+      "repair_layer": "Réparer",
+      "repair_refused": "La couche n'a pas pu être réparée",
+      "repaired": "Couche déclarée",
+      "repaired_description": "Redémarrez le serveur de développement (ajs dms dev) pour qu'il serve la couche, puis rechargez cette page.",
       "refused": "Le thème ne peut pas être lu",
       "save_refused": "Enregistrement refusé",
       "invalid": "Certaines valeurs ne peuvent pas être enregistrées",
@@ -1243,6 +1250,10 @@
   "mockups": {
     "header": {
       "open": "Maquettes"
+    },
+    "created": {
+      "title": "Maquette « {title} » créée",
+      "open": "Ouvrir"
     }
   }
 }

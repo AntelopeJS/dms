@@ -421,6 +421,7 @@ function validatesTablesAndPageIds(): void {
           {
             type: "TableView",
             options: {
+              caption: "Rows",
               fetchUrl: "fixture:rows",
               columns: { name: { type: "no-such-type" } },
             },
@@ -428,6 +429,7 @@ function validatesTablesAndPageIds(): void {
           {
             type: "TableView",
             options: {
+              caption: "Rows",
               fetchUrl: "fixture:rows",
               columns: { name: { type: "string" } },
               labelKey: "missing",

@@ -88,7 +88,10 @@ export interface MappedResource {
   className?: string;
   /** The column relation columns pointing here show, and the TableView's `labelKey`. */
   label?: string;
-  /** The page's title and the TableView's caption; the relation's name, humanized, when omitted. */
+  /**
+   * The page's title and the TableView's caption. Left out or blank, a new page takes the relation's
+   * name, humanized, and a page mapped before keeps its title.
+   */
   title?: string;
   /**
    * The icon the menu shows beside the page, an icon name such as `i-ph-shopping-cart`. Left out,
@@ -105,6 +108,17 @@ export interface MappedResource {
    * order below 100 to be sure of it.
    */
   order?: number;
+  /**
+   * The category of the menu the page is written in: the id of a category made with
+   * `CreateCategory` in the same `module` the tables are mapped into, since a module can only use
+   * its own declarations. A category that does not exist, or that another module declares,
+   * refuses the relation, naming it.
+   *
+   * Left out, a new page goes in the connection's category and a page mapped before stays where
+   * it is, in whatever category it was moved to. Sent on a page mapped before, the page moves to
+   * the category, which changes its route.
+   */
+  category?: CategoryRef;
   /**
    * Displays, views and footer figures written to the page's TableView by the same checks as
    * `ConfigureTableView`: a refused choice is a warning `page_not_written` and the page keeps

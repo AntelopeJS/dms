@@ -1,11 +1,13 @@
 <script setup lang="ts">
 /**
  * One side panel (see `useAppSidePanels`), fixed on the right of the window.
- * From `lg` it is docked: every dashboard frame keeps that width free on its
- * right, so the page shrinks next to it, and a resize handle sits on its inner
- * edge. Below `lg` the same element is a sheet over the page, above a
- * backdrop: the switch is CSS only, so crossing the breakpoint never remounts
- * the panel's component.
+ * From `lg` it is docked: every surface that keeps that width free on its
+ * right, a dashboard frame or the mockup page, marks itself with
+ * `data-dms-docks-side-panel`, so the page shrinks next to it, and a resize
+ * handle sits on its inner edge. Below `lg` the same element is a sheet over
+ * the page, above a backdrop: the switch is CSS only, so crossing the
+ * breakpoint never remounts the panel's component. A page with no such
+ * surface, such as the bare preview a mockup draws in, shows no panel.
  */
 import { useMediaQuery } from "@vueuse/core";
 import type { SidePanel } from "#dms-ui/app/composables/useAppSidePanels";
@@ -20,7 +22,7 @@ interface Props {
 const props = defineProps<Props>();
 
 const HOST_CLASS =
-  "contents [body:not(:has([data-dms-persistent-shell]))_&]:hidden";
+  "contents [body:not(:has([data-dms-docks-side-panel]))_&]:hidden";
 const DESKTOP_QUERY = "(min-width: 1024px)";
 const ESCAPE_KEY = "Escape";
 const PANEL_DOM_ID_PREFIX = "dms-side-panel-";

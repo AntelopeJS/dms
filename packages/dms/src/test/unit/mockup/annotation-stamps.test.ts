@@ -10,6 +10,7 @@ import {
 } from "../../../mockup";
 import {
   annotate,
+  blockAnchorOf,
   MOCKUP,
   put,
   served,
@@ -85,10 +86,10 @@ describe("[unit] mockup annotation stamps: spec.json", () => {
     const note = await served(id);
     const after = await workspace.specBytes();
 
-    expect(note.anchor?.block).to.match(STAMPED_ID);
+    expect(blockAnchorOf(note).block).to.match(STAMPED_ID);
     expect(note.path).to.equal("/pages/0/tree/1");
     expect(after).to.contain("NoSuchBlock");
-    expect(after).to.contain(note.anchor?.block);
+    expect(after).to.contain(blockAnchorOf(note).block);
   });
 
   it("answers why when the spec does not parse, and stamps nothing (fails when the note is created on a spec that cannot take an id)", async () => {
@@ -97,7 +98,12 @@ describe("[unit] mockup annotation stamps: spec.json", () => {
 
     const created = await createAnnotation(
       MOCKUP,
-      { page: "home", path: "/pages/0/tree/0", text: "x" },
+      {
+        page: "home",
+        path: "/pages/0/tree/0",
+        text: "x",
+        offset: { x: 0, y: 0 },
+      },
       defaultMockupsDir(),
     );
 
@@ -129,7 +135,9 @@ describe("[unit] mockup annotation stamps: spec.json", () => {
         Array.from({ length: CONCURRENT_NOTES }, (_, index) => pathOf(index)),
       ),
     );
-    expect(new Set(notes.map((note) => note.anchor?.block)).size).to.equal(2);
+    expect(
+      new Set(notes.map((note) => blockAnchorOf(note).block)).size,
+    ).to.equal(2);
   });
 });
 

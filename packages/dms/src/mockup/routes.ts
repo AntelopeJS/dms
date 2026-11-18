@@ -2,11 +2,13 @@ import type { PassThrough } from "node:stream";
 import {
   Context,
   Controller,
+  Delete,
   Get,
   HTTPResult,
   JSONBody,
   Parameter,
   Post,
+  Put,
   type RequestContext,
   Route,
   WriteStream,
@@ -14,32 +16,43 @@ import {
 import { ListBlockTypes } from "@antelopejs/interface-dms/base/block-types";
 import type { z } from "zod";
 import {
-  type AnnotationCreation,
   annotationDraftSchema,
   annotationPatchSchema,
   createAnnotation,
+  deleteAnnotation,
   listAnnotations,
   type MockupAnnotation,
+  type PlacementRefusal,
   updateAnnotation,
 } from "./annotations";
 import {
+  findRow,
   listRows,
   MOCKUP_API,
   parseRows,
   parseRowsQuery,
   type RowsPage,
 } from "./fixtures";
+import { readExampleSpec } from "./example";
 import { buildMockupSchema } from "./json-schema";
 import type { Json, JsonObject, MockupName, MockupState } from "./model";
 import { MockupOwnerController } from "./owner-controller";
 import {
   annotationIdSchema,
   fixtureKeySchema,
+  jsonObjectSchema,
   pageIdSchema,
   parseMockupName,
 } from "./model";
 import { registerFromPageRoute } from "./from-page-routes";
-import type { MockupEvent, MockupStore, MockupSummary } from "./store";
+import { registerHistoryRoutes } from "./history-routes";
+import type {
+  MockupCreated,
+  MockupEvent,
+  MockupStore,
+  MockupSummary,
+} from "./store";
+import { registerManageRoutes } from "./manage-routes";
 import { registerSpecRoutes } from "./source-routes";
 
 const HTTP_BAD_REQUEST = 400;
@@ -49,6 +62,9 @@ const SSE_CONTENT_TYPE = "text/event-stream";
 const SSE_RECONNECT_MS = 1000;
 const SSE_HELLO = `retry: ${SSE_RECONNECT_MS}\n: connected\n\n`;
 
+/** The bulk routes a table in archive mode sends its rows to. */
+const ARCHIVE_CHANGES: ReadonlySet<string> = new Set(["archive", "restore"]);
+
 /** The mockup files and the event streams open on them. */
 export interface MockupEngine {
   store: MockupStore;
@@ -57,6 +73,17 @@ export interface MockupEngine {
 
 function notFound(what: string): HTTPResult {
   return new HTTPResult(HTTP_NOT_FOUND, { message: `${what} not found` });
+}
+
+/** The row of `rows` that `?id=` names, read at `?key=` when the query gives one. */
+function rowOf(
+  rows: readonly JsonObject[],
+  query: URLSearchParams,
+): JsonObject | undefined {
+  const id = query.get("id");
+  return id === null
+    ? undefined
+    : findRow(rows, id, query.get("key") ?? undefined);
 }
 
 /** Refuses any name that is not a mockup directory name, before any path is built. */
@@ -76,8 +103,39 @@ function checkParam(
   return parsed.data;
 }
 
+/** The fixture `rawKey` of the page `rawPage` of the mockup `rawName`, or a 404 naming what is missing. */
+async function readFixture(
+  store: MockupStore,
+  rawName: string,
+  rawPage: string,
+  rawKey: string,
+): Promise<Json> {
+  const name = nameOf(rawName);
+  const page = checkParam(pageIdSchema, rawPage, "page");
+  const key = checkParam(fixtureKeySchema, rawKey, "fixture");
+  const fixture = await store.fixture(name, page, key);
+  if (fixture === undefined) throw notFound("fixture");
+  return fixture;
+}
+
+/** The rows of a fixture, or a 404 when it is not an array of row objects. */
+async function readRows(
+  store: MockupStore,
+  rawName: string,
+  rawPage: string,
+  rawKey: string,
+): Promise<JsonObject[]> {
+  const rows = parseRows(await readFixture(store, rawName, rawPage, rawKey));
+  if (!rows) throw notFound("array of rows");
+  return rows;
+}
+
 function formatEvent(event: MockupEvent): string {
   return `event: ${event.event}\ndata: ${JSON.stringify(event.data)}\n\n`;
+}
+
+function formatCreated(created: MockupCreated): string {
+  return `event: created\ndata: ${JSON.stringify(created)}\n\n`;
 }
 
 function write(out: PassThrough, payload: string): void {
@@ -96,18 +154,8 @@ function write(out: PassThrough, payload: string): void {
 export function registerMockupRoutes(engine: MockupEngine) {
   const { store } = engine;
 
-  async function fixtureOf(
-    rawName: string,
-    rawPage: string,
-    rawKey: string,
-  ): Promise<Json> {
-    const name = nameOf(rawName);
-    const page = checkParam(pageIdSchema, rawPage, "page");
-    const key = checkParam(fixtureKeySchema, rawKey, "fixture");
-    const fixture = await store.fixture(name, page, key);
-    if (fixture === undefined) throw notFound("fixture");
-    return fixture;
-  }
+  const fixtureOf = (rawName: string, rawPage: string, rawKey: string) =>
+    readFixture(store, rawName, rawPage, rawKey);
 
   class MockupController extends Controller(MOCKUP_API, MockupOwnerController) {
     @Get("/")
@@ -121,6 +169,14 @@ export function registerMockupRoutes(engine: MockupEngine) {
     async schema(): Promise<JsonObject> {
       await this.assertOwner();
       return buildMockupSchema(ListBlockTypes());
+    }
+
+    @Get("example")
+    async example(): Promise<JsonObject> {
+      await this.assertOwner();
+      const spec = await readExampleSpec();
+      if (!spec) throw notFound("example");
+      return spec;
     }
 
     @Get(":name")
@@ -191,20 +247,83 @@ export function registerMockupRoutes(engine: MockupEngine) {
       if (!rows) throw notFound("array of rows");
       return listRows(rows, parseRowsQuery(context.url.searchParams));
     }
+
+    /** The rows where a data controller's list route stands, which a kanban board reads. */
+    @Get(":name/pages/:page/fixtures/:key/rows/list")
+    async rowsList(
+      @Parameter("name") rawName: string,
+      @Parameter("page") rawPage: string,
+      @Parameter("key") rawKey: string,
+      @Context() context: RequestContext,
+    ): Promise<RowsPage> {
+      return this.rows(rawName, rawPage, rawKey, context);
+    }
   }
+  registerCreatedRoute(engine);
   registerAnnotationRoutes(store);
+  registerRecordRoutes(store);
   registerSpecRoutes(store.mockupsDir);
+  registerHistoryRoutes(store.mockupsDir);
+  registerManageRoutes(store.mockupsDir);
   registerFromPageRoute(store.mockupsDir);
   return MockupController;
 }
 
-/** The refusal a creation that made no annotation answers with. */
+/**
+ * The stream of created mockups, `GET /api/mockup/events/created`: a
+ * `created` event, `{ name, title? }`, for each mockup whose spec did not
+ * exist before. The mockups there already, and the changes to a mockup, send
+ * nothing. Its first frame comes once the mockups there are known, so a
+ * mockup made after it is always sent.
+ */
+function registerCreatedRoute(engine: MockupEngine) {
+  const { store } = engine;
+  class MockupCreatedController extends Controller(
+    MOCKUP_API,
+    MockupOwnerController,
+  ) {
+    @Get("events/created")
+    async createdEvents(
+      @WriteStream(SSE_CONTENT_TYPE) out: PassThrough,
+      @Context() context: RequestContext,
+    ): Promise<void> {
+      await this.assertOwner();
+      let unsubscribe: (() => void) | undefined;
+      let open = !context.rawRequest.socket.destroyed;
+      const drop = () => {
+        if (!open) return;
+        open = false;
+        engine.streams.delete(out);
+        unsubscribe?.();
+        out.end();
+      };
+      context.rawRequest.once("close", drop);
+      out.on("close", drop);
+      out.on("error", drop);
+      if (!open) {
+        out.end();
+        return;
+      }
+      engine.streams.add(out);
+      unsubscribe = await store.subscribeCreated((created) =>
+        write(out, formatCreated(created)),
+      );
+      if (!open) unsubscribe();
+      else write(out, SSE_HELLO);
+    }
+  }
+  return MockupCreatedController;
+}
+
+/** The refusal a creation or an update that changed no annotation answers with. */
 function refusal(
-  created: Exclude<AnnotationCreation, { kind: "created" }>,
+  refused: PlacementRefusal | { kind: "no_mockup" } | { kind: "no_annotation" },
 ): HTTPResult {
-  switch (created.kind) {
+  switch (refused.kind) {
     case "no_mockup":
       return notFound("mockup");
+    case "no_annotation":
+      return notFound("annotation");
     case "no_node":
       return notFound("node at this page and path");
     case "ambiguous":
@@ -216,12 +335,86 @@ function refusal(
       return new HTTPResult(HTTP_CONFLICT, {
         message:
           "spec.json is not a valid spec, so the note's block cannot get an id",
-        errors: created.errors.map(({ path, message }) => ({ path, message })),
+        errors: refused.errors.map(({ path, message }) => ({ path, message })),
       });
   }
 }
 
 /** The annotation routes over the mockups of `store`. */
+/**
+ * The routes a sub-page and a table's forms reach a fixture's rows through:
+ * one row by id, as a record and where a data controller's `get` route
+ * stands, the saves of the add and edit forms, which answer the row and
+ * keep nothing, and the archive and restore of a table in archive mode.
+ */
+function registerRecordRoutes(store: MockupStore) {
+  class MockupRecordController extends Controller(
+    MOCKUP_API,
+    MockupOwnerController,
+  ) {
+    /** The row of a fixture's rows whose `_id`, else `id`, is `?id=`: what a sub-page with a route shows. */
+    @Get(":name/pages/:page/fixtures/:key/record")
+    async record(
+      @Parameter("name") rawName: string,
+      @Parameter("page") rawPage: string,
+      @Parameter("key") rawKey: string,
+      @Context() context: RequestContext,
+    ): Promise<JsonObject> {
+      await this.assertOwner();
+      const rows = await readRows(store, rawName, rawPage, rawKey);
+      const row = rowOf(rows, context.url.searchParams);
+      if (!row) throw notFound("row");
+      return row;
+    }
+
+    /** The row a table's details view reads, `<rows>/get?id=`, where a data controller's `get` route stands: the row the record route answers. */
+    @Get(":name/pages/:page/fixtures/:key/rows/get")
+    async get(
+      @Parameter("name") rawName: string,
+      @Parameter("page") rawPage: string,
+      @Parameter("key") rawKey: string,
+      @Context() context: RequestContext,
+    ): Promise<JsonObject> {
+      return this.record(rawName, rawPage, rawKey, context);
+    }
+
+    /** Where a table's add and edit forms save: it answers the row `?id=` names, if any, with the changes it was sent, and keeps nothing. */
+    @Put(":name/pages/:page/fixtures/:key/rows")
+    async save(
+      @Parameter("name") rawName: string,
+      @Parameter("page") rawPage: string,
+      @Parameter("key") rawKey: string,
+      @Context() context: RequestContext,
+      @JSONBody() body: unknown,
+    ): Promise<JsonObject> {
+      await this.assertOwner();
+      const rows = await readRows(store, rawName, rawPage, rawKey);
+      const sent = jsonObjectSchema.safeParse(body);
+      if (!sent.success) {
+        throw new HTTPResult(HTTP_BAD_REQUEST, {
+          message: "a row is a JSON object",
+        });
+      }
+      return { ...rowOf(rows, context.url.searchParams), ...sent.data };
+    }
+
+    /** Where a table in archive mode archives and restores rows, `<rows>/archive` and `<rows>/restore`: it answers that every row went, and keeps nothing. */
+    @Put(":name/pages/:page/fixtures/:key/rows/:change")
+    async archive(
+      @Parameter("name") rawName: string,
+      @Parameter("page") rawPage: string,
+      @Parameter("key") rawKey: string,
+      @Parameter("change") change: string,
+    ): Promise<JsonObject> {
+      await this.assertOwner();
+      if (!ARCHIVE_CHANGES.has(change)) throw notFound("route");
+      await readRows(store, rawName, rawPage, rawKey);
+      return {};
+    }
+  }
+  return MockupRecordController;
+}
+
 function registerAnnotationRoutes(store: MockupStore) {
   const { mockupsDir } = store;
   class MockupAnnotationController extends Controller(
@@ -278,8 +471,23 @@ function registerAnnotationRoutes(store: MockupStore) {
         patch.data,
         mockupsDir,
       );
-      if (!updated) throw notFound("annotation");
-      return updated;
+      if (updated.kind !== "updated") throw refusal(updated);
+      return updated.annotation;
+    }
+
+    @Delete(":name/annotations/:id")
+    async remove(
+      @Parameter("name") rawName: string,
+      @Parameter("id") rawId: string,
+    ): Promise<{ id: string }> {
+      await this.assertOwner();
+      const name = nameOf(rawName);
+      const id = annotationIdSchema.safeParse(rawId);
+      if (!id.success) throw notFound("annotation");
+      if (!(await deleteAnnotation(name, id.data, mockupsDir))) {
+        throw notFound("annotation");
+      }
+      return { id: id.data };
     }
   }
   return MockupAnnotationController;

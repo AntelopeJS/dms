@@ -55,8 +55,19 @@ export interface SetThemeDraft extends ThemeDraft {
   uploads: LogoUpload[];
 }
 
+/**
+ * Whether the frontend loader finds the layer: it reads a project's frontend
+ * modules from the `dmsFrontend` field of its `package.json`, so a layer the
+ * backend registers without it is never served.
+ */
+export interface ThemeLayerDeclaration {
+  declared: boolean;
+  manifest: string;
+}
+
 export interface ThemeStructure extends ThemeDraft {
   layer: ThemeLayer;
+  declaration: ThemeLayerDeclaration;
   version: string;
 }
 

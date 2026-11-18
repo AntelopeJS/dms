@@ -33,6 +33,7 @@ import {
   withUploads,
 } from "./theme-assets";
 import { reachableStrings } from "./theme-config-imports";
+import { layerDeclaration } from "./theme-declaration";
 import { isString } from "./scalar-guards";
 import { themeDraftIssues } from "./theme-draft";
 import { importStylesheet, importsStylesheet } from "./theme-entry";
@@ -205,6 +206,7 @@ export async function getTheme(): Promise<OpResult<ThemeStructure>> {
     ok: true,
     data: {
       layer: sources.layer,
+      declaration: layerDeclaration(sources.layer),
       variables,
       colors: readColors(sources.appConfig),
       logos: readLogos(sources.appConfig),

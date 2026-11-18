@@ -183,6 +183,12 @@ function registerPlugins(sdk: Parameters<DmsFrontendModule["setup"]>[0]): void {
       ),
       clientOnly,
     );
+    sdk.registerPlugin(
+      lazyPlugin(
+        () => import("./layers/dms-layout/app/entries/mockups/created-toast"),
+      ),
+      clientOnly,
+    );
     sdk.registerComponent(
       "MockupCards",
       lazyComponent(
@@ -201,13 +207,6 @@ function registerPlugins(sdk: Parameters<DmsFrontendModule["setup"]>[0]): void {
       lazyComponent(
         () => import("./layers/dms-layout/app/entries/branding/BrandingEditor"),
       ),
-    );
-
-    sdk.registerPlugin(
-      lazyPlugin(
-        () => import("./layers/dms-layout/app/entries/mockup/header-action"),
-      ),
-      clientOnly,
     );
   }
 

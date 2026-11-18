@@ -50,10 +50,15 @@ describe("[unit] the node the Add tab starts each block as", () => {
 
   async function written(tree: JsonObject[], fixtures: JsonObject) {
     if (!NAME) throw new Error("starters is a valid mockup name");
-    return writeSpec(directory, NAME, {
-      version: 1,
-      pages: [{ id: "home", title: "Home", fixtures, tree }],
-    });
+    return writeSpec(
+      directory,
+      NAME,
+      {
+        version: 1,
+        pages: [{ id: "home", title: "Home", fixtures, tree }],
+      },
+      { by: "ai" },
+    );
   }
 
   it("starts from the catalog the registered blocks describe (fails when a descriptor changed and the starters were not regenerated)", () => {

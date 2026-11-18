@@ -12,7 +12,7 @@ const getTheme = defineTool({
   name: "builder_get_theme",
   title: "Get theme",
   description: withEscalationNote(
-    "Reads the project's theme back from its frontend layer: the CSS custom properties it overrides (`variables.shared`, `.light`, `.dark`), the palette of each Nuxt UI color role (`colors`: primary, success, warning, error, info), the public path of each logo slot per mode (`logos`: default, collapsed, email, favicon), the files they live in, whether the layer's entry imports the stylesheet, and a `version` to pass back as builder_set_theme's `expectedVersion`. Only string literals are read back: a palette or logo path the app config holds as code reads as no override. A project without a layer of its own answers `not_found`, its `ref` naming where builder_create_theme_layer would create it; a stylesheet holding rules the builder does not write answers `unsupported`.",
+    "Reads the project's theme back from its frontend layer: the CSS custom properties it overrides (`variables.shared`, `.light`, `.dark`), the palette of each Nuxt UI color role (`colors`: primary, success, warning, error, info), the public path of each logo slot per mode (`logos`: default, collapsed, email, favicon), the files they live in, whether the layer's entry imports the stylesheet, whether the frontend loader finds the layer (`declaration.declared`: when false a saved theme never reaches the dashboard, and builder_create_theme_layer repairs it), and a `version` to pass back as builder_set_theme's `expectedVersion`. Only string literals are read back: a palette or logo path the app config holds as code reads as no override. A project without a layer of its own answers `not_found`, its `ref` naming where builder_create_theme_layer would create it; a stylesheet holding rules the builder does not write answers `unsupported`.",
   ),
   effect: "read",
   input: z.object({}),
@@ -45,7 +45,7 @@ const createThemeLayer = defineTool({
   name: "builder_create_theme_layer",
   title: "Create theme layer",
   description: withEscalationNote(
-    "Creates the frontend layer a theme is written to, for a project without one (builder_get_theme answers `not_found`): `frontend-vue/` at the project root, with a `package.json` and an entry importing the stylesheet, registered from the project's `start()` above the DMS. A project that already has a layer gets it back unchanged, and nothing is written. The backend reloads with the registration; the frontend dev server serves the layer once restarted.",
+    "Creates the frontend layer a theme is written to, for a project without one (builder_get_theme answers `not_found`): `frontend-vue/` at the project root, with a `package.json` and an entry importing the stylesheet, and the project's frontend module that declares it: `src/frontend-module.ts`, named as `dmsFrontend` in the project's `package.json` for the frontend loader, and registered from the project's `start()` above the DMS. A project that has a layer which is not declared (builder_get_theme answers `declaration.declared: false`) gets it declared; a declared layer is returned unchanged, and nothing is written. The backend reloads with the registration; the frontend dev server serves the layer once restarted.",
   ),
   effect: "builder",
   input: z.object({}),

@@ -14,6 +14,7 @@ import {
   type PreviewOutboundMessage,
   type PreviewTextMessage,
 } from "../../utils/blockPreviewMessages";
+import type { MockupSectionEdit } from "../../utils/mockupSections";
 
 interface PreviewFrameOptions {
   frame: Readonly<ShallowRef<HTMLIFrameElement | null>>;
@@ -21,12 +22,18 @@ interface PreviewFrameOptions {
   onReady: () => void;
   /** A block of the preview was picked, by its layout path. */
   onSelect: (path: string) => void;
+  /** The preview's page header was picked: the page itself. */
+  onSelectPage?: () => void;
   /** Where each block now sits, while inspecting. */
   onLayout?: (blocks: PreviewBlockRect[]) => void;
   /** A text of a block was double-clicked, while inspecting. */
   onText?: (text: PreviewTextMessage) => void;
-  /** An entry of the preview's sidebar was picked, by its id. */
-  onNavigate?: (id: string) => void;
+  /** An entry of the preview's sidebar, or a link to a page of the mockup, was picked: the page's id, and the row a link from a row passes. */
+  onNavigate?: (id: string, record?: string) => void;
+  /** Escape was pressed in the preview, and nothing of its page took it. */
+  onEscape?: () => void;
+  /** The preview's sidebar changed its sections. */
+  onSectionEdit?: (edit: MockupSectionEdit) => void;
 }
 
 /** The embedding side of `/dms-preview`'s `postMessage` protocol. */
@@ -42,7 +49,9 @@ export interface PreviewFrame {
  * Talks to the preview iframe: posts it messages once it said `ready`, and
  * follows what it reports back. Only the frame's own window is listened to.
  * A new frame element is a new document, so nothing is posted to it before
- * it says `ready` in turn.
+ * it says `ready` in turn. A press in the preview is replayed as a
+ * `pointerdown` on the frame element, so the page's own listeners see it as
+ * a press on the frame.
  */
 export function usePreviewFrame(options: PreviewFrameOptions): PreviewFrame {
   const height = ref<number>();
@@ -63,6 +72,7 @@ export function usePreviewFrame(options: PreviewFrameOptions): PreviewFrame {
     select: (message) => {
       if (message.type === "select") options.onSelect(message.path);
     },
+    "select-page": () => options.onSelectPage?.(),
     layout: (message) => {
       if (message.type === "layout") options.onLayout?.(message.blocks);
     },
@@ -70,7 +80,20 @@ export function usePreviewFrame(options: PreviewFrameOptions): PreviewFrame {
       if (message.type === "text") options.onText?.(message);
     },
     navigate: (message) => {
-      if (message.type === "navigate") options.onNavigate?.(message.id);
+      if (message.type === "navigate") {
+        options.onNavigate?.(message.id, message.record);
+      }
+    },
+    escape: () => options.onEscape?.(),
+    "section-edit": (message) => {
+      if (message.type === "section-edit")
+        options.onSectionEdit?.(message.edit);
+    },
+    press: (message) => {
+      if (message.type !== "press") return;
+      options.frame.value?.dispatchEvent(
+        new PointerEvent("pointerdown", { button: message.button }),
+      );
     },
   };
 

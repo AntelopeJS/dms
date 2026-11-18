@@ -16,13 +16,18 @@ export * from "./compile";
 export * from "./files";
 export * from "./from-page";
 export * from "./from-page-sketch";
+export * from "./history";
+export * from "./history-routes";
 export * from "./json-schema";
+export * from "./manage";
 export * from "./live-page";
 export * from "./model";
 export * from "./routes";
+export * from "./sample-rows";
 export * from "./source";
 export * from "./source-routes";
 export * from "./store";
+export * from "./table-title";
 
 let engine: MockupEngine | undefined;
 

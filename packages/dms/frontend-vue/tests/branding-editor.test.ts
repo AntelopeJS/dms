@@ -22,10 +22,25 @@ import { isNull, isObject } from "../layers/dms-core/app/utils/type-check";
 
 const THEME_URL = "/api/branding/theme";
 
-function files(version: string, colors: Record<string, string> = {}) {
+function noVariables(): Record<string, string> {
+  return {};
+}
+
+const MANIFEST = "/project/package.json";
+
+function files(
+  version: string,
+  colors: Record<string, string> = {},
+  declared = true,
+) {
   return {
     layer: { name: "project", sourcePath: "/project/frontend-vue" },
-    variables: { shared: {}, light: {}, dark: {} },
+    declaration: { declared, manifest: MANIFEST },
+    variables: {
+      shared: noVariables(),
+      light: noVariables(),
+      dark: noVariables(),
+    },
     colors,
     logos: {},
     version,
@@ -116,6 +131,93 @@ describe("Save", () => {
   });
 });
 
+describe("a layer the frontend loader does not find", () => {
+  const LAYER_URL = "/api/branding/theme/layer";
+  const addToast = vi.fn();
+
+  beforeEach(() => {
+    addToast.mockClear();
+    vi.stubGlobal("useToast", () => ({ add: addToast }));
+  });
+
+  it("says so on open, and Repair declares the layer and asks for a restart", async () => {
+    let declared = false;
+    const { host, calls } = await openEditor((call) => {
+      if (call.url === LAYER_URL) {
+        declared = true;
+        return ok({ name: "project", sourcePath: "/project/frontend-vue" });
+      }
+      return ok(files("v1", {}, declared));
+    });
+    expect(host.querySelector("[data-undeclared]")).not.toBeNull();
+    expect(host.querySelector("[data-repaired]")).toBeNull();
+
+    buttonNamed(host, "Repair").click();
+    await settle();
+
+    expect(calls.filter((call) => call.url === LAYER_URL)).toHaveLength(1);
+    expect(calls.filter((call) => call.method === "POST")[0]?.method).toBe(
+      "POST",
+    );
+    expect(host.querySelector("[data-undeclared]")).toBeNull();
+    expect(host.querySelector("[data-repaired]")?.textContent).toContain(
+      "Restart the dev server",
+    );
+  });
+
+  it("warns after a save that the theme is not live, instead of reporting success", async () => {
+    const { host } = await openEditor((call) =>
+      call.method === "PUT"
+        ? ok({ version: "v2" })
+        : ok(files("v1", {}, false)),
+    );
+    buttonNamed(host, "Palette violet").click();
+    await settle();
+
+    buttonNamed(host, "Save").click();
+    await settle();
+
+    expect(addToast).toHaveBeenCalledOnce();
+    expect(addToast.mock.calls[0]?.[0]).toMatchObject({
+      title: "Saved, but not live yet",
+      color: "warning",
+    });
+  });
+
+  it("reports a plain success once the layer is declared", async () => {
+    const { host } = await openEditor((call) =>
+      call.method === "PUT" ? ok({ version: "v2" }) : ok(files("v1")),
+    );
+    expect(host.querySelector("[data-undeclared]")).toBeNull();
+    buttonNamed(host, "Palette violet").click();
+    await settle();
+
+    buttonNamed(host, "Save").click();
+    await settle();
+
+    expect(addToast.mock.calls[0]?.[0]).toMatchObject({
+      title: "Theme saved",
+      color: "success",
+    });
+  });
+
+  it("shows the builder's refusal of a repair it cannot make, and keeps the banner", async () => {
+    const { host } = await openEditor((call) =>
+      call.url === LAYER_URL
+        ? {
+            ok: false,
+            error: { code: "unsupported", detail: "no main" },
+          }
+        : ok(files("v1", {}, false)),
+    );
+    buttonNamed(host, "Repair").click();
+    await settle();
+    expect(host.querySelector("[data-undeclared]")).not.toBeNull();
+    expect(host.textContent).toContain("The layer could not be repaired");
+    expect(host.textContent).toContain("no main");
+  });
+});
+
 describe("Discard", () => {
   it("puts the theme files' values back after the confirmation", async () => {
     const { host, confirm } = await openEditor(() => ok(files("v1")));
@@ -131,6 +233,92 @@ describe("Discard", () => {
     expect(buttonNamed(host, "Palette dms").getAttribute("aria-pressed")).toBe(
       "true",
     );
+  });
+});
+
+describe("Reset to default", () => {
+  const overridden = (): ReturnType<typeof files> => ({
+    ...files("v1", { primary: "violet", error: "rose" }),
+    variables: { shared: { "--ui-radius": "0.5rem" }, light: {}, dark: {} },
+  });
+
+  it("is disabled while the theme holds no override", async () => {
+    const { host, confirm } = await openEditor(() => ok(files("v1")));
+    const reset = buttonNamed(host, "Reset to default");
+    expect(reset.disabled).toBe(true);
+
+    reset.click();
+    await settle();
+
+    expect(confirm).not.toHaveBeenCalled();
+    expect(changeCountText(host)).toBe("No changes");
+  });
+
+  it("asks first, and a refusal changes nothing", async () => {
+    const { host, confirm } = await openEditor(() => ok(overridden()));
+    confirm.mockResolvedValueOnce(false);
+
+    buttonNamed(host, "Reset to default").click();
+    await settle();
+
+    expect(confirm).toHaveBeenCalledOnce();
+    expect(confirm.mock.calls[0]?.[0]).toMatchObject({
+      title: "Reset the theme to the DMS default?",
+    });
+    expect(changeCountText(host)).toBe("No changes");
+    expect(
+      buttonNamed(host, "Palette violet").getAttribute("aria-pressed"),
+    ).toBe("true");
+  });
+
+  it("puts every default in the draft, counts it, and Save sends no override", async () => {
+    let onDisk = overridden();
+    const { host, calls } = await openEditor((call) => {
+      if (call.method === "PUT") {
+        onDisk = files("v2");
+        return ok({ version: "v2" });
+      }
+      return ok(onDisk);
+    });
+
+    buttonNamed(host, "Reset to default").click();
+    await settle();
+
+    expect(changeCountText(host)).toBe("3 changes");
+    expect(buttonNamed(host, "Palette dms").getAttribute("aria-pressed")).toBe(
+      "true",
+    );
+    expect(buttonNamed(host, "Reset to default").disabled).toBe(true);
+
+    buttonNamed(host, "Save").click();
+    await settle();
+
+    expect(puts(calls)[0]?.body).toEqual({
+      expectedVersion: "v1",
+      draft: {
+        variables: { shared: {}, light: {}, dark: {} },
+        colors: {},
+        logos: {},
+        uploads: [],
+      },
+    });
+    expect(changeCountText(host)).toBe("No changes");
+  });
+
+  it("is undone by Discard", async () => {
+    const { host, calls } = await openEditor(() => ok(overridden()));
+    buttonNamed(host, "Reset to default").click();
+    await settle();
+
+    buttonNamed(host, "Discard").click();
+    await settle();
+
+    expect(changeCountText(host)).toBe("No changes");
+    expect(
+      buttonNamed(host, "Palette violet").getAttribute("aria-pressed"),
+    ).toBe("true");
+    expect(buttonNamed(host, "Reset to default").disabled).toBe(false);
+    expect(puts(calls)).toHaveLength(0);
   });
 });
 

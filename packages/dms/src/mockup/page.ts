@@ -39,6 +39,7 @@ export class MockupPage extends PageController(
 
 export const MOCKUP_CARDS_DISPLAY_ID = "dms:mockup-cards";
 const TEXTS = "$dms.mockup";
+const MOCKUPS_ICON = "i-lucide-layout-template";
 
 /**
  * `/mockups`: every mockup of the project as a card, from `GET /api/mockup`.
@@ -49,8 +50,9 @@ export class MockupsPage extends PageController(
   "mockups",
   {
     displayName: "Mockups",
+    description: `${TEXTS}.mockups_description`,
     urlSlug: "mockups",
-    icon: "i-ph-frame-corners-light",
+    icon: MOCKUPS_ICON,
     hidden: true,
     ownerOnly: true,
     noComponentPermissions: true,
@@ -96,7 +98,7 @@ export class MockupsPage extends PageController(
       firstRun: {
         title: `${TEXTS}.empty_title`,
         description: `${TEXTS}.empty_description`,
-        icon: "i-ph-frame-corners-light",
+        icon: MOCKUPS_ICON,
       },
     },
   });

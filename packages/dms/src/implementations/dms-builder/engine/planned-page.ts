@@ -12,6 +12,8 @@ export const MAPPED_PAGE_ORDER = 100;
 
 /** What a mapping sets on a table's page beyond its title: the menu entry and the table's options. */
 export interface PlannedPage {
+  /** The category the page is written in, or moved to; left out, the connection's for a new page and where it is for one mapped before. */
+  category?: string;
   icon?: string;
   description?: string;
   /** Left out, a new page takes {@link MAPPED_PAGE_ORDER} and a page mapped before keeps its own. */
@@ -21,6 +23,7 @@ export interface PlannedPage {
 
 export function plannedPage(resource: MappedResource): PlannedPage {
   return {
+    category: resource.category,
     icon: resource.icon,
     description: resource.description,
     order: resource.order,

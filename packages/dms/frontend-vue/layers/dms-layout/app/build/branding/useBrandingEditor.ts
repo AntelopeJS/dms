@@ -28,6 +28,7 @@ import {
   type BrandingLoad,
   type EditorMode,
   type LogoPlacement,
+  type SavedTheme,
   type ThemeEdit,
 } from "./model";
 import { isMailable, rasterizeForEmail } from "./raster";
@@ -35,6 +36,7 @@ import type {
   ThemeRefusal,
   LogoSlot,
   OpWarning,
+  ThemeLayerDeclaration,
   ThemeMode,
 } from "./theme-types";
 import { draftIssues, type DraftIssue } from "./values";
@@ -43,10 +45,15 @@ import { draftIssues, type DraftIssue } from "./values";
 export type SaveNotice =
   | { kind: "stale" }
   | { kind: "refused"; error: ThemeRefusal }
+  | { kind: "repair_refused"; error: ThemeRefusal }
   | { kind: "invalid"; issues: DraftIssue[] };
 
+/**
+ * `declared` is false when the files were written but the frontend loader
+ * does not load the layer, so the dashboard never shows them.
+ */
 export type SaveOutcome =
-  | { ok: true; warnings: OpWarning[] }
+  | { ok: true; warnings: OpWarning[]; declared: boolean }
   | { ok: false; notice: SaveNotice };
 
 /** How long the device copy waits for the edits to settle. */
@@ -59,6 +66,10 @@ export interface BrandingEditor {
   mode: Ref<EditorMode>;
   previewMode: Ref<ThemeMode>;
   notice: ShallowRef<SaveNotice | null>;
+  /** Whether the frontend loader finds the layer, as the last read said; unknown until one. */
+  declaration: ShallowRef<ThemeLayerDeclaration | null>;
+  /** Set once the editor declared the layer: the dev server serves it after a restart. */
+  isRepaired: Ref<boolean>;
   isSaving: Ref<boolean>;
   /** Why the last logo picked was refused, as an i18n key. */
   logoProblem: Ref<string | null>;
@@ -72,6 +83,7 @@ export interface BrandingEditor {
   reload: () => Promise<void>;
   discard: () => void;
   createLayer: () => Promise<void>;
+  repairLayer: () => Promise<void>;
 }
 
 async function base64Of(file: Blob): Promise<string> {
@@ -108,6 +120,38 @@ async function placementsOf(
     const logo = logoFor(target.slot);
     return logo ? [{ ...target, logo }] : [];
   });
+}
+
+function refusedLoad(error: ThemeRefusal): BrandingLoad {
+  return error.code === "not_found"
+    ? { status: "no-layer", ref: error.ref, created: null }
+    : { status: "refused", error };
+}
+
+/** The saved theme, with the draft this device kept for its layer on top. */
+async function openedEdit(saved: SavedTheme): Promise<ThemeEdit> {
+  const stored = storedDraft(saved.layer);
+  return stored ? await restoreDraft(stored, saved) : editOf(saved);
+}
+
+interface PickedLogos {
+  /** An i18n key for what the editor tells the viewer, or null when the file went everywhere. */
+  problem: string | null;
+  placements: LogoPlacement[];
+}
+
+async function pickedLogos(
+  targets: Omit<LogoPlacement, "logo">[],
+  file: File,
+): Promise<PickedLogos> {
+  const refusal = logoRefusal(file);
+  if (refusal) return { problem: refusal, placements: [] };
+  const placements = await placementsOf(targets, file);
+  return {
+    problem:
+      placements.length < targets.length ? "branding.logo.not_drawable" : null,
+    placements,
+  };
 }
 
 function viewerMode(): ThemeMode {
@@ -153,6 +197,43 @@ function syncDeviceDraft(
   });
 }
 
+interface LayerActionsContext {
+  api: BrandingApi;
+  load: ShallowRef<BrandingLoad>;
+  notice: ShallowRef<SaveNotice | null>;
+  isRepaired: Ref<boolean>;
+  reload: () => Promise<void>;
+  refuse: (error: ThemeRefusal) => void;
+}
+
+/**
+ * The two ways the project gets a layer the frontend loads: creating the one
+ * it lacks, and declaring the one it registers without declaring it.
+ */
+function layerActions(
+  context: LayerActionsContext,
+): Pick<BrandingEditor, "createLayer" | "repairLayer"> {
+  const { api, load, notice, isRepaired, reload, refuse } = context;
+  return {
+    async createLayer(): Promise<void> {
+      const current = load.value;
+      if (current.status !== "no-layer") return;
+      const result = await api.createLayer();
+      if (!result.ok) return refuse(result.error);
+      load.value = { ...current, created: result.data };
+    },
+    async repairLayer(): Promise<void> {
+      const result = await api.createLayer();
+      if (!result.ok) {
+        notice.value = { kind: "repair_refused", error: result.error };
+        return;
+      }
+      isRepaired.value = true;
+      await reload();
+    },
+  };
+}
+
 /**
  * The Branding editor's state and actions. The state is one {@link BrandingLoad};
  * every edit goes through the pure functions of `model.ts`.
@@ -162,6 +243,8 @@ export function useBrandingEditor(api: BrandingApi): BrandingEditor {
   const mode = ref<EditorMode>("simple");
   const previewMode = ref<ThemeMode>(viewerMode());
   const notice = shallowRef<SaveNotice | null>(null);
+  const declaration = shallowRef<ThemeLayerDeclaration | null>(null);
+  const isRepaired = ref(false);
   const isSaving = ref(false);
   const logoProblem = ref<string | null>(null);
 
@@ -179,32 +262,25 @@ export function useBrandingEditor(api: BrandingApi): BrandingEditor {
   }
 
   function refuse(error: ThemeRefusal): void {
-    load.value =
-      error.code === "not_found"
-        ? { status: "no-layer", ref: error.ref, created: null }
-        : { status: "refused", error };
+    load.value = refusedLoad(error);
   }
 
   async function open(): Promise<void> {
     load.value = { status: "loading" };
     const result = await api.readTheme();
     if (!result.ok) return refuse(result.error);
-    const saved = savedThemeOf(result.data);
-    const stored = storedDraft(saved.layer);
-    setEdit(stored ? await restoreDraft(stored, saved) : editOf(saved));
+    declaration.value = result.data.declaration;
+    setEdit(await openedEdit(savedThemeOf(result.data)));
   }
 
   async function pickLogo(
     targets: Omit<LogoPlacement, "logo">[],
     file: File,
   ): Promise<void> {
-    const refusal = logoRefusal(file);
-    logoProblem.value = refusal ?? null;
-    if (refusal) return;
-    const placements = await placementsOf(targets, file);
-    update((current) => placeLogos(current, placements));
-    if (placements.length < targets.length) {
-      logoProblem.value = "branding.logo.not_drawable";
+    const picked = await pickedLogos(targets, file);
+    logoProblem.value = picked.problem;
+    if (picked.placements.length > 0) {
+      update((current) => placeLogos(current, picked.placements));
     }
   }
 
@@ -233,10 +309,17 @@ export function useBrandingEditor(api: BrandingApi): BrandingEditor {
       const reread = await api.readTheme();
       if (!reread.ok) {
         refuse(reread.error);
-      } else if (edit.value) {
-        setEdit(settleSave(edit.value, sent, savedThemeOf(reread.data)));
+      } else {
+        declaration.value = reread.data.declaration;
+        if (edit.value) {
+          setEdit(settleSave(edit.value, sent, savedThemeOf(reread.data)));
+        }
       }
-      return { ok: true, warnings: result.warnings ?? [] };
+      return {
+        ok: true,
+        warnings: result.warnings ?? [],
+        declared: declaration.value?.declared ?? true,
+      };
     } finally {
       isSaving.value = false;
     }
@@ -246,6 +329,7 @@ export function useBrandingEditor(api: BrandingApi): BrandingEditor {
     const result = await api.readTheme();
     if (!result.ok) return refuse(result.error);
     notice.value = null;
+    declaration.value = result.data.declaration;
     update((current) => rebaseEdit(current, savedThemeOf(result.data)));
   }
 
@@ -254,13 +338,14 @@ export function useBrandingEditor(api: BrandingApi): BrandingEditor {
     update(discardEdit);
   }
 
-  async function createLayer(): Promise<void> {
-    const current = load.value;
-    if (current.status !== "no-layer") return;
-    const result = await api.createLayer();
-    if (!result.ok) return refuse(result.error);
-    load.value = { ...current, created: result.data };
-  }
+  const { createLayer, repairLayer } = layerActions({
+    api,
+    load,
+    notice,
+    isRepaired,
+    reload,
+    refuse,
+  });
 
   syncDeviceDraft(load, edit);
 
@@ -271,6 +356,8 @@ export function useBrandingEditor(api: BrandingApi): BrandingEditor {
     mode,
     previewMode,
     notice,
+    declaration,
+    isRepaired,
     isSaving,
     logoProblem,
     open,
@@ -280,5 +367,6 @@ export function useBrandingEditor(api: BrandingApi): BrandingEditor {
     reload,
     discard,
     createLayer,
+    repairLayer,
   };
 }

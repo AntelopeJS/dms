@@ -33,6 +33,23 @@ import { liveOptionsOf, metaOf } from "./apply-options";
 import type { NodeOracle } from "./compile";
 import type { MockupNode, MockupSpecPage } from "./model";
 
+/**
+ * The page fields the mockup changed from the live page's own: its display
+ * name, its icon and its description. A field the mockup dropped is cleared.
+ */
+function pageMetaPatch(
+  page: MockupSpecPage,
+  reconverted: MockupSpecPage,
+): PageDraft["page"] {
+  const patch: NonNullable<PageDraft["page"]> = {};
+  if (page.title !== reconverted.title) patch.displayName = page.title;
+  if (page.icon !== reconverted.icon) patch.icon = page.icon;
+  if (page.description !== reconverted.description) {
+    patch.description = page.description;
+  }
+  return Object.keys(patch).length ? patch : undefined;
+}
+
 /** The draft a mockup page writes to its live page, what it leaves to build by hand, and the ids it gives nodes that had none. */
 export interface ApplyPlan {
   draft: PageDraft;
@@ -50,6 +67,10 @@ export interface PlanContext {
 export type DraftSummary = {
   /** The page's display name, present only when the draft writes it. */
   displayName?: string;
+  /** The page's icon, present only when the draft writes it; empty when it clears it. */
+  icon?: string;
+  /** The page's description, present only when the draft writes it; empty when it clears it. */
+  description?: string;
   preserved: string[];
   written: string[];
   added: string[];
@@ -350,10 +371,14 @@ export function planApply(
   namePlaces(p, page.tree, "root");
   settle(p);
   const blocks = emitList(p, page.tree, pointer, "root");
-  const draft: PageDraft =
-    page.title === reconverted.title
-      ? { blocks }
-      : { page: { displayName: page.title }, blocks };
+  const meta = pageMetaPatch(page, reconverted);
+  const draft: PageDraft = meta ? { page: meta, blocks } : { blocks };
+  if (page.headerActions?.length) {
+    p.wiring.push({
+      pointer: `${context.pointer}/headerActions`,
+      reason: "header-actions",
+    });
+  }
   return { draft, wiring: p.wiring, stamps: p.stamps };
 }
 
@@ -398,6 +423,12 @@ export function summarize(
   };
   if (draft.page?.displayName !== undefined) {
     summary.displayName = draft.page.displayName;
+  }
+  if (draft.page && "icon" in draft.page) {
+    summary.icon = draft.page.icon ?? "";
+  }
+  if (draft.page && "description" in draft.page) {
+    summary.description = draft.page.description ?? "";
   }
   summarizeList(
     draft.blocks,

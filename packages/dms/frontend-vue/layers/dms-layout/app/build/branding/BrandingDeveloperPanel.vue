@@ -12,13 +12,7 @@ import {
 } from "./catalog";
 import { slotFileName } from "./logo-tiles";
 import { LOGO_SLOTS } from "./logos";
-import {
-  removeLogos,
-  resetToDms,
-  resetVariable,
-  setColor,
-  setVariable,
-} from "./model";
+import { removeLogos, resetVariable, setColor, setVariable } from "./model";
 import type { DmsTokens } from "./preview-style";
 import {
   THEME_MODES,
@@ -252,15 +246,5 @@ const modeLabel = (mode: ThemeMode) => t(`branding.developer.${mode}`);
         </template>
       </div>
     </section>
-
-    <UButton
-      color="neutral"
-      variant="outline"
-      icon="i-ph-arrow-counter-clockwise-light"
-      class="self-start"
-      @click="props.editor.update(resetToDms)"
-    >
-      {{ t("branding.developer.reset_all") }}
-    </UButton>
   </div>
 </template>

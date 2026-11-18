@@ -27,7 +27,7 @@ const ACCESS_PATH = /(^|\.)config\.externalConnections(\.|$)/;
 const UNREADABLE = "unreadable";
 
 function grantRefusal(subject: string): string {
-  return `refused to ${subject}: an agent never raises a connection's access. A person grants it: the Read & write switch at the top of the Database module's Data browser (dms-database's \`PUT /api/database/connections/<id>/access\`), or the assistant's connect step (dms-assistant's \`POST /database/project\`).`;
+  return `refused to ${subject}: builder_configure_project never raises a connection's access. Ask the person whether the dashboard may change rows in that database; only once they agree, call builder_set_connection_access, which checks the database account may write. A person can also grant it: the Read & write switch at the top of the Database module's Data browser (dms-database's \`PUT /api/database/connections/<id>/access\`), or the assistant's connect step (dms-assistant's \`POST /database/project\`).`;
 }
 
 /** The values an access may be written as; anything else is refused. */
@@ -384,7 +384,8 @@ function readByTemplate(
  * there, let a variable supply it, rebind a variable `envOverrides` maps to it, or write or bind a
  * key a `${key}` template reads, which may make an access. Keeping,
  * lowering or removing an access passes, so a step may restate the connections it does not
- * change. Every MCP tool that writes project or module configuration calls this first; the
+ * change. Every MCP tool that writes project or module configuration calls this first, except
+ * `builder_set_connection_access`, which writes one access only once the person confirmed it; the
  * builder interface does not, since owner-authenticated routes grant through it.
  */
 export function raisedAccessRefusal(

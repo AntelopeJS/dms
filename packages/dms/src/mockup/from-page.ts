@@ -23,6 +23,8 @@ export interface ConvertEnv {
   readonly oracle: NodeOracle;
   /** The structure of each resource a block of the page is bound to, by ref. */
   readonly resources: ReadonlyMap<string, ResourceStructure>;
+  /** The time the sample rows' dates count back from, in milliseconds since the epoch; now when absent. */
+  readonly now?: number;
 }
 
 /** A block of the live page drawn as a Custom sketch, and why. */
@@ -204,7 +206,12 @@ function tableOf(block: BlockNode, c: Conversion): Routed<MockupNode> {
   const routed = routeObject(picked, c);
   if (!routed.ok) return routed;
   const fields = listedFields(resource);
-  const key = keyFor(c, listRoute, sampleRows(fields), "rows");
+  const key = keyFor(
+    c,
+    listRoute,
+    sampleRows(fields, c.env.now ?? Date.now()),
+    "rows",
+  );
   const columns = Object.fromEntries(
     fields.map((field): [string, JsonObject] => [
       field.field,
@@ -373,6 +380,10 @@ export function convertPage(
   const page: MockupSpecPage = {
     id: pageId,
     title: structure.page.displayName,
+    ...(structure.page.icon && { icon: structure.page.icon }),
+    ...(structure.page.description && {
+      description: structure.page.description,
+    }),
     livePage: { ref: structure.page.ref, version: structure.version },
     ...(read.size && {
       liveRoutes: only(c.liveRoutes, read),

@@ -110,7 +110,7 @@ export function registerSpecRoutes(mockupsDir: string) {
             });
           }
         }
-        return write(spec);
+        return write(spec, { by: "you" });
       });
     }
   }

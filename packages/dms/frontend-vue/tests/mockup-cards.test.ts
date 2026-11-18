@@ -1,137 +1,38 @@
 /** @vitest-environment jsdom */
-import "./helpers/table-runtime";
-import { createApp, defineComponent, h, nextTick, type App } from "vue";
-import { createI18n } from "vue-i18n";
-import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import en from "../layers/dms-ui/app/entries/i18n/locales/ui-en-GB.json";
-import { scrollAllIntoView, stubObservers } from "./helpers/fake-observers";
-
-const { default: MockupCards } = await import(
-  "../layers/dms-ui/app/entries/mockups/MockupCards"
-);
-
-const i18n = createI18n({
-  legacy: false,
-  locale: "en",
-  messages: { en },
-});
-
-const UPDATED = "2026-11-13T10:00:00.000Z";
-
-const built = {
-  name: "bike-rental",
-  title: "Bike rental",
-  pages: 3,
-  openComments: 0,
-  source: "claude-code",
-  updatedAt: UPDATED,
-  status: "built",
-  builtAt: UPDATED,
-  builtPages: [
-    { path: "/bikes", title: "Bikes", changed: false },
-    { path: "/bikes/new", title: "/bikes/new", changed: false },
-  ],
-};
-
-const draft = {
-  name: "stations-map",
-  pages: 1,
-  openComments: 2,
-  source: "chat",
-  updatedAt: UPDATED,
-  status: "draft",
-};
-
-const bare = {
-  name: "staff-planning",
-  title: "Staff planning",
-  pages: 2,
-  openComments: 0,
-  updatedAt: UPDATED,
-  status: "draft",
-};
-
-const DmsLink = defineComponent({
-  props: { to: String },
-  setup:
-    (props, { slots, attrs }) =>
-    () =>
-      h("a", { ...attrs, href: props.to }, slots.default?.()),
-});
-
-const UBadge = defineComponent({
-  props: { color: String },
-  setup:
-    (props, { slots, attrs }) =>
-    () =>
-      h("span", { ...attrs, "data-color": props.color }, slots.default?.()),
-});
-
-let app: App | undefined;
-let host: HTMLElement;
-
-interface Reply {
-  pages?: unknown[];
-  url?: string;
-  stale?: boolean;
-  digest?: string;
-}
-
-const authFetch =
-  vi.fn<(url: string, options?: { body?: unknown }) => Promise<Reply>>();
-const navigateTo = vi.fn();
-
-beforeEach(() => {
-  stubObservers();
-  authFetch.mockReset();
-  authFetch.mockResolvedValue({ pages: [] });
-  vi.stubGlobal("useI18n", () => i18n.global);
-  vi.stubGlobal("useAuthFetch", () => ({ $authFetch: authFetch }));
-  vi.stubGlobal("useApiErrorPresenter", () => ({ presentError: vi.fn() }));
-  navigateTo.mockReset();
-  vi.stubGlobal("useDmsRouter", () => ({ push: navigateTo }));
-});
-
-afterEach(() => {
-  app?.unmount();
-  host.remove();
-  app = undefined;
-  vi.unstubAllGlobals();
-});
-
-async function mountCards(
-  items: unknown[],
-  context: { firstPageLoading?: boolean } = {},
-): Promise<HTMLElement> {
-  host = document.createElement("div");
-  document.body.append(host);
-  app = createApp(MockupCards, {
-    context: { items, firstPageLoading: false, ...context },
-  });
-  app.component("DmsLink", DmsLink);
-  app.component("UBadge", UBadge);
-  app.component("USkeleton", defineComponent({ setup: () => () => h("i") }));
-  app.component("UIcon", defineComponent({ setup: () => () => h("i") }));
-  app.mount(host);
-  await nextTick();
-  return host;
-}
-
-const card = (root: HTMLElement, name: string) => {
-  const found = root.querySelector(`[data-dms-mockup-card="${name}"]`);
-  if (!(found instanceof HTMLElement)) throw new Error(`no card for ${name}`);
-  return found;
-};
-
-const text = (root: ParentNode, selector: string) =>
-  root.querySelector(selector)?.textContent?.replace(/\s+/g, " ").trim();
+import { nextTick } from "vue";
+import { expect, it, vi } from "vitest";
+import { scrollAllIntoView } from "./helpers/fake-observers";
+import {
+  authFetch,
+  built,
+  card,
+  draft,
+  bare,
+  en,
+  mountCards,
+  navigateTo,
+  partial,
+  text,
+  UPDATED,
+  unmountCards,
+} from "./helpers/mockup-cards-runtime";
 
 /**
- * Fails an implementation that derives the status from the page count or the
- * source instead of the row's `status`, or that colours Draft like Built.
+ * Fails an implementation that derives the status from the source instead of
+ * the row's `status`, counts the pages a build left out as built, or colours
+ * Draft like Built.
  */
-it("badges a built mockup Built in the success colour and a draft Draft in the neutral one", async () => {
-  const root = await mountCards([built, draft, bare]);
+it("badges a draft Draft, a mockup built into only some pages with its progress, and a fully built one Built", async () => {
+  const root = await mountCards([built, draft, bare, partial]);
+
+  expect(
+    text(card(root, "bike-partial"), "[data-dms-mockup-status]"),
+  ).toBe("2 of 5 pages built");
+  expect(
+    card(root, "bike-partial")
+      .querySelector("[data-dms-mockup-status]")
+      ?.getAttribute("data-color"),
+  ).toBe("info");
 
   expect(text(card(root, "staff-planning"), "[data-dms-mockup-status]")).toBe(
     "Draft",
@@ -160,22 +61,54 @@ it("badges a built mockup Built in the success colour and a draft Draft in the n
 });
 
 /**
- * Fails an implementation that prints every part even when absent ("0 open
- * comments", "from undefined"), forgets to pluralise "1 page", or reads the
- * comment count from the wrong field.
+ * Fails an implementation that prints every part even when absent ("from
+ * undefined"), or forgets to pluralise "1 page".
  */
 it("writes the meta line from the parts a mockup has, pluralised", async () => {
   const root = await mountCards([built, draft, bare]);
 
   expect(text(card(root, "bike-rental"), "[data-dms-mockup-meta]")).toBe(
-    "3 pages · from Claude Code",
+    "2 pages · from Claude Code",
   );
   expect(text(card(root, "stations-map"), "[data-dms-mockup-meta]")).toBe(
-    "1 page · from the chat · 2 open comments",
+    "1 page · from the chat",
   );
   expect(text(card(root, "staff-planning"), "[data-dms-mockup-meta]")).toBe(
     "2 pages",
   );
+});
+
+/**
+ * Fails an implementation that badges a count of zero ("0 open comments"),
+ * reads the count from the wrong field, or forgets to pluralise it.
+ */
+it("badges the open comments of a mockup that has some, pluralised, and none for one that has none", async () => {
+  const single = { ...draft, name: "one-note", openComments: 1 };
+  const root = await mountCards([built, draft, single]);
+
+  expect(text(card(root, "stations-map"), "[data-dms-mockup-comments]")).toBe(
+    "2 open comments",
+  );
+  expect(text(card(root, "one-note"), "[data-dms-mockup-comments]")).toBe(
+    "1 open comment",
+  );
+  expect(
+    card(root, "bike-rental").querySelector("[data-dms-mockup-comments]"),
+  ).toBeNull();
+});
+
+/**
+ * Fails an implementation that words the age from another field than the
+ * spec's last change, or leaves the machine-readable time out.
+ */
+it("says when a mockup last changed, relative to now, with its exact time", async () => {
+  const root = await mountCards([built]);
+
+  const updated = card(root, "bike-rental").querySelector(
+    "[data-dms-mockup-updated]",
+  );
+  expect(updated?.textContent).toBe("Updated 2h ago");
+  expect(updated?.getAttribute("datetime")).toBe(UPDATED);
 });
 
 /**
@@ -191,6 +124,20 @@ it("titles a card with its title, or its name when it has none", async () => {
   expect(text(card(root, "stations-map"), "[data-dms-mockup-open]")).toBe(
     "stations-map",
   );
+});
+
+/**
+ * Fails an implementation that opens a mockup on one of its pages: a card
+ * opens the viewer on the mockup's Overview, which a URL without `?page=` is.
+ */
+it("opens the mockup on its Overview, its link naming no page", async () => {
+  const root = await mountCards([built, draft]);
+
+  expect(
+    card(root, "bike-rental")
+      ?.querySelector("[data-dms-mockup-open]")
+      ?.getAttribute("href"),
+  ).toBe("/mockup?name=bike-rental");
 });
 
 /**
@@ -263,8 +210,7 @@ it("shows a skeleton while the first answer is on its way, and the empty state o
   const loading = await mountCards([], { firstPageLoading: true });
   expect(loading.textContent).not.toContain(en.dms.table.empty_title);
   expect(loading.querySelectorAll("li").length).toBeGreaterThan(0);
-  app?.unmount();
-  host.remove();
+  unmountCards();
 
   const empty = await mountCards([]);
   expect(empty.textContent).toContain(en.dms.table.empty_title);

@@ -37,6 +37,7 @@ const faces = new Map(
     routes: ["oauth", "oauth-config", "authentication"],
     mcp: [
       "access",
+      "analysis-summary",
       "bridge",
       "confirmation-gate",
       "log-buffer",
@@ -54,6 +55,7 @@ const faces = new Map(
       "dms-auth/services",
       "dms-auth/email-templates",
       "dms-builder/engine/catalog-connection",
+      "dms-builder/engine/column-display",
       "dms-html-render/services",
       "dms-notifications/services",
     ],

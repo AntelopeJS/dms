@@ -10,6 +10,13 @@ import {
   SPEC_FILE,
   writeAtomically,
 } from "./files";
+import {
+  amendNewest,
+  keepingHistory,
+  type RecordOptions,
+  recordDiskText,
+  recordVersion,
+} from "./history";
 import type {
   Json,
   JsonObject,
@@ -85,8 +92,23 @@ export async function readSpecSource(
   return { spec: parseSpecObject(text), digest: digestOf(text) };
 }
 
-/** Writes `spec` as {@link writeSpec} does, inside {@link withSpecLock}. */
-export type SpecWriter = (spec: Json | MockupSpec) => Promise<SpecWriteResult>;
+/**
+ * Who a write is for the mockup's history: its author, and optionally the
+ * summary that replaces the automatic one.
+ */
+export type SpecWriteMeta = Pick<
+  RecordOptions,
+  "by" | "summary" | "sealed" | "group"
+>;
+
+/**
+ * Writes `spec` as {@link writeSpec} does, inside {@link withSpecLock}. A
+ * write that lands is recorded in the mockup's history as `meta` says.
+ */
+export type SpecWriter = (
+  spec: Json | MockupSpec,
+  meta: SpecWriteMeta,
+) => Promise<SpecWriteResult>;
 
 /**
  * Writes `text`, the `spec.json` read inside {@link withSpecLock}, with each
@@ -195,7 +217,7 @@ function laidOutAs(text: string, spec: Json): string {
 }
 
 function writeNow(mockupsDir: string, name: MockupName): SpecWriter {
-  return async (spec) => {
+  return async (spec, meta) => {
     const read = parseSpec(JSON.stringify(spec));
     const issues = read.ok ? compileSpec(name, read.spec).issues : read.issues;
     if (issues.length) {
@@ -205,7 +227,22 @@ function writeNow(mockupsDir: string, name: MockupName): SpecWriter {
       };
     }
     const text = `${JSON.stringify(spec, null, JSON_INDENT)}${LF}`;
-    return { ok: true, digest: await persist(mockupsDir, name, text) };
+    const previous = await readSpecText(mockupsDir, name);
+    if (previous !== undefined) {
+      await keepingHistory(name, () =>
+        recordDiskText(mockupsDir, name, previous),
+      );
+    }
+    const digest = await persist(mockupsDir, name, text);
+    await keepingHistory(name, () =>
+      recordVersion(
+        mockupsDir,
+        name,
+        jsonObjectSchema.parse(JSON.parse(text)),
+        meta,
+      ),
+    );
+    return { ok: true, digest };
   };
 }
 
@@ -229,6 +266,7 @@ export function specValueAt(value: Json, pointer: string): Json | undefined {
 function setNow(mockupsDir: string, name: MockupName): SpecSetter {
   return async (text, values) => {
     const spec = jsonObjectSchema.parse(JSON.parse(text));
+    const before = structuredClone(spec);
     for (const { path, key, value } of values) {
       const object = specValueAt(spec, path);
       if (!isJsonObject(object)) {
@@ -237,19 +275,24 @@ function setNow(mockupsDir: string, name: MockupName): SpecSetter {
       object[key] = value;
     }
     await persist(mockupsDir, name, laidOutAs(text, spec));
+    await keepingHistory(name, () =>
+      amendNewest(mockupsDir, name, before, spec),
+    );
   };
 }
 
 /**
  * Checks `spec` as the watcher does (`parseSpec` on its JSON text, then
  * `compileSpec`) and writes `mockups/<name>/spec.json` only when nothing is
- * wrong. A refused spec leaves the file as it was. Writes to one mockup run
- * one after the other.
+ * wrong. A refused spec leaves the file as it was. A spec written is recorded
+ * in the mockup's history as `meta` says. Writes to one mockup run one after
+ * the other.
  */
 export function writeSpec(
   mockupsDir: string,
   name: MockupName,
   spec: Json | MockupSpec,
+  meta: SpecWriteMeta,
 ): Promise<SpecWriteResult> {
-  return withSpecLock(mockupsDir, name, (write) => write(spec));
+  return withSpecLock(mockupsDir, name, (write) => write(spec, meta));
 }

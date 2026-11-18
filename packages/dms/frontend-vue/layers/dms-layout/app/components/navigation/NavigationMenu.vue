@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useSlots } from "vue";
 import type { NavigationMenuItem } from "@nuxt/ui";
 import { MENU_STATUS_CHIP_COLORS } from "#dms-core/app/utils/menu";
 import { isNumber, isString } from "#dms-core/app/utils/type-check";
@@ -27,6 +28,18 @@ const props = withDefaults(defineProps<Props>(), {
 const emit = defineEmits<{
   "update:modelValue": [value: string[]];
 }>();
+
+const LEADING_SLOT = "item-leading";
+
+const slots = useSlots();
+
+/**
+ * The caller's slots, handed on to the Nuxt UI menu: an entry whose `slot`
+ * names one is drawn by it, the way `UNavigationMenu` documents.
+ */
+const forwardedSlots = computed(() =>
+  Object.keys(slots).filter((name) => name !== LEADING_SLOT),
+);
 
 const controlled = computed(() => Array.isArray(props.modelValue));
 
@@ -300,6 +313,9 @@ function onStateChange(id: string, open: boolean): void {
     :highlight="orientation === 'vertical'"
     value-key="id"
   >
+    <template v-for="name in forwardedSlots" :key="name" #[name]="scope">
+      <slot :name="name" v-bind="scope" />
+    </template>
     <template #item-leading="{ item, active, ui }">
       <DmsAccordionItemSync
         v-if="

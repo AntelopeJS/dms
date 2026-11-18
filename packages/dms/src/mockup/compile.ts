@@ -4,21 +4,29 @@ import {
 } from "@antelopejs/interface-dms/base/block-types";
 import { stampedIdIssues } from "./anchor";
 import { CONTROLLER_BLOCKS } from "./controller-blocks";
-import type { FixtureScope } from "./fixtures";
+import { readOnlyConnectionIssues } from "./data-access";
+import type { AncestorFixtures, FixtureScope } from "./fixtures";
 import { rewriteObject } from "./fixtures";
 import { withFieldInputs } from "./form-fields";
+import { formPageModeIssues } from "./form-page-modes";
+import { materializeFixtures } from "./generate";
 import type {
   JsonObject,
+  MockupCategory,
   MockupIssue,
   MockupName,
   MockupNode,
   MockupPageState,
   MockupSpec,
   MockupSpecPage,
+  MockupState,
 } from "./model";
-import { specSchema, zodIssues } from "./model";
+import { CUSTOM_PAGE_FIELDS, specSchema, zodIssues } from "./model";
+import { type LinkedPage, sketchLinks } from "./page-links";
 import { confineToFixtures } from "./sample-routes";
-import { compileSketch, SKETCH_TYPE } from "./sketch";
+import { compileSidebar } from "./sidebar";
+import { compileSketch, compileSketchPage, SKETCH_TYPE } from "./sketch";
+import { tableCaptionIssues } from "./table-title";
 import {
   componentOptionsOf,
   validateBlockChildren,
@@ -114,7 +122,8 @@ function withOptions(
 const sketchKind: NodeKind = {
   resolve: (node, scope) =>
     node.type === SKETCH_TYPE
-      ? (pointer) => compileSketch(node, pointer, scope.issues)
+      ? (pointer) =>
+          compileSketch(node, pointer, scope.issues, sketchLinks(scope))
       : undefined,
 };
 
@@ -284,34 +293,131 @@ function compileTree(
   );
 }
 
+/** A custom page's tree: the one sketch its fields draw, which no spec node holds, so it has no layout path. */
+function compileCustomPage(
+  page: MockupSpecPage,
+  pointer: string,
+  scope: PageScope,
+): MockupNode[] {
+  const fields: JsonObject = {};
+  for (const field of CUSTOM_PAGE_FIELDS) {
+    const value = page[field];
+    if (value !== undefined) fields[field] = value;
+  }
+  return [compileSketchPage(fields, pointer, scope.issues, sketchLinks(scope))];
+}
+
+/** The spec's pages as links and sub-pages see them: each one's parent and route parameter. */
+type PageGraph = ReadonlyMap<string, LinkedPage>;
+
+function pageGraph(pages: readonly MockupSpecPage[]): PageGraph {
+  return new Map(
+    pages.map((page) => [
+      page.id,
+      {
+        ...(page.parent !== undefined && { parent: page.parent }),
+        ...(page.route !== undefined && { param: page.route.slice(1) }),
+      },
+    ]),
+  );
+}
+
+/** The pages above `id`, nearest first, each once: a loop of parents, which the spec reports, ends the walk. */
+function ancestorsOf(id: string, graph: PageGraph): string[] {
+  const found: string[] = [];
+  for (let at = graph.get(id)?.parent; at !== undefined;) {
+    if (at === id || found.includes(at) || !graph.has(at)) break;
+    found.push(at);
+    at = graph.get(at)?.parent;
+  }
+  return found;
+}
+
+/** What a page is compiled against: its mockup, the spec's pages and the fixtures of each. */
+interface SpecScope extends Pick<PageScope, "catalog" | "issues"> {
+  name: MockupName;
+  graph: PageGraph;
+  fixtures: ReadonlyMap<string, JsonObject>;
+  /** The generated form pages the compiled pages' tables open, filled as each page compiles. */
+  generated: MockupPageState[];
+}
+
+/** The scope of `page`'s nodes: its fixtures, its ancestors' and its links. */
+function scopeOf(
+  page: MockupSpecPage,
+  spec: SpecScope,
+  issues: PageScope["issues"],
+): PageScope {
+  const ancestors: AncestorFixtures[] = ancestorsOf(page.id, spec.graph).map(
+    (id) => ({ id, fixtures: spec.fixtures.get(id) ?? {} }),
+  );
+  const param = spec.graph.get(page.id)?.param;
+  return {
+    catalog: spec.catalog,
+    issues,
+    name: spec.name,
+    pageId: page.id,
+    fixtures: spec.fixtures.get(page.id) ?? {},
+    pages: spec.graph,
+    links: new Set(),
+    generatedPages: [],
+    ancestors,
+    ...(param !== undefined && { route: { param } }),
+    paths: {},
+  };
+}
+
 /**
  * The page's tree on its fixtures, and on its live routes when it has some.
  * The issues are the fixture side's alone: both sides share every node.
  */
 function compilePage(
-  name: MockupName,
   page: MockupSpecPage,
   pointer: string,
-  scope: Pick<PageScope, "catalog" | "issues">,
+  spec: SpecScope,
 ): MockupPageState {
-  const onPage = { name, pageId: page.id, fixtures: page.fixtures ?? {} };
-  const pageScope: PageScope = { ...scope, ...onPage, paths: {} };
+  const pageScope = scopeOf(page, spec, spec.issues);
+  const isCustom = page.custom === true;
+  const tree = isCustom
+    ? compileCustomPage(page, pointer, pageScope)
+    : compileTree(page, pointer, pageScope);
   const state: MockupPageState = {
     id: page.id,
     title: page.title,
     options: page.options ?? {},
-    tree: compileTree(page, pointer, pageScope),
+    links: [...spec.graph.keys()].filter((id) => pageScope.links.has(id)),
+    tree,
     paths: pageScope.paths,
   };
-  if (page.liveRoutes) {
-    state.realTree = compileTree(page, pointer, {
-      catalog: scope.catalog,
-      ...onPage,
-      issues: [],
+  spec.generated.push(
+    ...pageScope.generatedPages.map((generated): MockupPageState => ({
+      id: generated.id,
+      title: generated.title,
+      description: generated.description,
+      options: page.options ?? {},
+      links: [],
+      tree: generated.tree,
       paths: {},
+      menu: false,
+      generated: true,
+      parent: page.id,
+      ...(generated.route && { route: generated.route }),
+    })),
+  );
+  if (page.liveRoutes && !isCustom) {
+    state.realTree = compileTree(page, pointer, {
+      ...scopeOf(page, spec, []),
       routes: page.liveRoutes,
     });
   }
+  if (pageScope.route) state.route = pageScope.route;
+  if (page.menu === false) state.menu = false;
+  if (isCustom) state.custom = true;
+  if (page.parent !== undefined) state.parent = page.parent;
+  if (page.category !== undefined) state.category = page.category;
+  if (page.icon !== undefined) state.icon = page.icon;
+  if (page.description !== undefined) state.description = page.description;
+  if (page.headerActions) state.headerActions = page.headerActions;
   if (page.livePage) state.livePage = { ref: page.livePage.ref };
   return state;
 }
@@ -363,6 +469,10 @@ export function openOracle(name: MockupName, pageId: string): NodeOracle {
         name,
         pageId,
         fixtures,
+        pages: new Map([[pageId, {}]]),
+        links: new Set(),
+        generatedPages: [],
+        ancestors: [],
         paths: {},
       };
       compileNode(node, "", `${ROOT_LAYOUT_PREFIX}0`, scope);
@@ -374,6 +484,8 @@ export function openOracle(name: MockupName, pageId: string): NodeOracle {
 /** A spec compiled for the viewer. */
 export interface CompiledSpec {
   title?: string;
+  categories?: MockupCategory[];
+  sidebar?: MockupState["sidebar"];
   pages: MockupPageState[];
   /** Each page's fixtures, keyed by page id. */
   fixtures: Map<string, JsonObject>;
@@ -383,21 +495,48 @@ export interface CompiledSpec {
 /**
  * Compiles a parsed spec against the block types registered now. Lenient: a
  * node whose options break its schema, or whose type is unknown, is still
- * emitted, and its issues are listed.
+ * emitted, and its issues are listed. `now` anchors the dates a `$generate`
+ * fixture makes up: the last 30 days before it.
  */
-export function compileSpec(name: MockupName, spec: MockupSpec): CompiledSpec {
-  const scope: Pick<PageScope, "catalog" | "issues"> = {
+export function compileSpec(
+  name: MockupName,
+  spec: MockupSpec,
+  now: number = Date.now(),
+): CompiledSpec {
+  const fixtures = new Map(
+    spec.pages.map((page) => [
+      page.id,
+      materializeFixtures(name, page.id, page.fixtures ?? {}, now),
+    ]),
+  );
+  const scope: SpecScope = {
     catalog: readCatalog(),
     issues: [],
+    name,
+    graph: pageGraph(spec.pages),
+    fixtures,
+    generated: [],
   };
   const pages = spec.pages.map((page, index) =>
-    compilePage(name, page, `/pages/${index}`, scope),
+    compilePage(page, `/pages/${index}`, scope),
   );
+  pages.push(...scope.generated);
   return {
     title: spec.title,
+    categories: spec.categories,
+    ...(spec.sidebar &&
+      spec.sidebar.widgets.length > 0 && {
+        sidebar: compileSidebar(spec.sidebar, scope.issues),
+      }),
     pages,
-    fixtures: new Map(spec.pages.map((page) => [page.id, page.fixtures ?? {}])),
-    issues: [...scope.issues, ...stampedIdIssues(spec)],
+    fixtures,
+    issues: [
+      ...scope.issues,
+      ...tableCaptionIssues(spec),
+      ...formPageModeIssues(spec),
+      ...readOnlyConnectionIssues(spec),
+      ...stampedIdIssues(spec),
+    ],
   };
 }
 

@@ -1,12 +1,4 @@
 {
-  "editAsMockup": {
-    "label": "Edit as mockup",
-    "stale": "This page changed since its mockup was made",
-    "staleDescription": "The mockup keeps your edits. Convert again to start over from the page as it is now.",
-    "convertAgain": "Convert again",
-    "failed": "This page could not be opened as a mockup.",
-    "conflict": "The mockup changed while converting. Open it again to see the latest version."
-  },
   "navigation": {
     "goToHomepage": "Go to homepage",
     "goToBrandHomepage": "{name}, go to homepage"
@@ -1099,7 +1091,14 @@
       "title": "Discard your changes?",
       "description": "The editor goes back to what the theme files hold."
     },
+    "reset_default": "Reset to default",
+    "reset_confirm": {
+      "title": "Reset the theme to the DMS default?",
+      "description": "Accent, colors, backgrounds, corners, font and logos go back to the DMS look in the editor. Nothing is written until you save. Saving removes your overrides from theme.css and app.config.ts, and deletes the logo and font files the editor wrote. Logos you added by hand stay on disk, unreferenced. Discard cancels the reset."
+    },
     "saved": "Theme saved",
+    "saved_not_live": "Saved, but not live yet",
+    "not_live_description": "The theme files were written, but the frontend does not load this layer: declare it with Repair in the banner above.",
     "svg_sanitized": "Scripts and external references were removed from an SVG logo.",
     "section": {
       "accent": "Accent",
@@ -1114,7 +1113,10 @@
     },
     "accent": {
       "more": "More palettes",
-      "palette": "Palette {name}"
+      "palette": "Palette {name}",
+      "custom": "Custom color",
+      "hex": "Hex color",
+      "hex_problem": "Type a color such as #3b82f6."
     },
     "background": {
       "canvas": "Canvas",
@@ -1194,8 +1196,7 @@
       "variable_name": "--variable-name",
       "add": "Add",
       "remove": "Remove {name}",
-      "dms_palette": "DMS default",
-      "reset_all": "Reset to DMS defaults"
+      "dms_palette": "DMS default"
     },
     "role": {
       "primary": "Accent",
@@ -1217,7 +1218,13 @@
       "no_layer_title": "This project has no theme layer yet",
       "no_layer_description": "The theme is written to a frontend layer: {ref}",
       "create_layer": "Create theme layer",
-      "layer_created": "Layer created in {path}. Restart the dev server so it serves the layer, then reload this page.",
+      "layer_created": "Layer created in {path} and declared in package.json. Restart the dev server so it serves the layer, then reload this page.",
+      "undeclared": "The theme is saved but never reaches the dashboard",
+      "undeclared_description": "The project registers its frontend layer but does not declare it as dmsFrontend in package.json, so the frontend leaves the layer out. Repair moves the registration into a frontend module and declares it.",
+      "repair_layer": "Repair",
+      "repair_refused": "The layer could not be repaired",
+      "repaired": "Layer declared",
+      "repaired_description": "Restart the dev server (ajs dms dev) so it serves the layer, then reload this page.",
       "refused": "The theme cannot be read",
       "save_refused": "Save refused",
       "invalid": "Some values cannot be saved",
@@ -1243,6 +1250,10 @@
   "mockups": {
     "header": {
       "open": "Mockups"
+    },
+    "created": {
+      "title": "Mockup \"{title}\" created",
+      "open": "Open"
     }
   }
 }

@@ -56,10 +56,31 @@ describe("[unit] the tools that read a connected database answer no value of a r
     const analysed = await valueFree("builder_analyse_database", {
       connection: CONNECTION,
       module: MODULE,
+      detail: [ORDERS],
     });
     expect(analysed).to.include('"status":"done"');
     expect(analysed).to.include('{"kind":"badge","values":3}');
     expect(analysed).to.include('{"kind":"price"}');
+  });
+
+  it("answers the analysis compactly by default, and a named relation in full on request", async () => {
+    const compact = await valueFree("builder_analyse_database", {
+      connection: CONNECTION,
+      module: MODULE,
+    });
+    const named = await valueFree("builder_analyse_database", {
+      connection: CONNECTION,
+      module: MODULE,
+      detail: [ORDERS, "erp.missing"],
+    });
+
+    expect(compact).to.include('"screen":"stats"');
+    expect(compact).to.include('"display":"badge"');
+    expect(compact).to.not.include('"rule"');
+    expect(compact).to.not.include('"detail"');
+    expect(named).to.include('"rule"');
+    expect(named).to.include('"unknown":["erp.missing"]');
+    expect(named.length).to.be.greaterThan(compact.length);
   });
 
   it("writes the badge, the currency and the tabs as references to their columns, and no value of a row in the module", async () => {

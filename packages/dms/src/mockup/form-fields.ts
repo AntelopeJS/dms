@@ -101,3 +101,36 @@ export function withFieldInputs(
     }),
   };
 }
+
+/** `entry` read-only: a field disabled and not required, a group's fields with it. */
+function readOnly(entry: Json): Json {
+  const parsed = jsonObjectSchema.safeParse(entry);
+  if (!parsed.success) return entry;
+  const field = parsed.data;
+  const group = entriesSchema.safeParse(field.fields);
+  if (group.success) return { ...field, fields: group.data.map(readOnly) };
+  const { required: _required, ...rest } = field;
+  return { ...rest, disabled: true };
+}
+
+/**
+ * The options of a form drawn read-only, as the real `ResourceForm` draws a
+ * row in `view` mode: every field of `fields` and of each section disabled
+ * and not required.
+ */
+export function readOnlyForm(options: JsonObject): JsonObject {
+  const fields = entriesSchema.safeParse(options.fields);
+  const sections = sectionsSchema.safeParse(options.sections);
+  return {
+    ...options,
+    ...(fields.success && { fields: fields.data.map(readOnly) }),
+    ...(sections.success && {
+      sections: sections.data.map((section) => {
+        const held = entriesSchema.safeParse(section.fields);
+        return held.success
+          ? { ...section, fields: held.data.map(readOnly) }
+          : section;
+      }),
+    }),
+  };
+}

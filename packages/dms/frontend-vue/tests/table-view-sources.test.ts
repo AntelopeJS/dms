@@ -58,12 +58,12 @@ function registerTableSourceQueryTests() {
       offset: 10,
       limit: 10,
     });
-    expect(
-      sourceRouteQuery(
-        { ...query, showArchived: false },
-        { filter: true, search: true, sort: true, paginate: true },
-      ),
-    ).not.toHaveProperty("showArchived");
+  });
+
+  it("sends the archive toggle's side, which only a table in archive mode sends, such as a mockup's (fails when showArchived is dropped)", () => {
+    expect(sourceRouteQuery({ search: "x", showArchived: true }, {})).toEqual({
+      showArchived: true,
+    });
   });
 
   it("searches, sorts and pages in the browser what the route left to it", () => {

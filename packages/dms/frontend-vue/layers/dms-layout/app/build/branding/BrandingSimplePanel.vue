@@ -5,12 +5,14 @@ import BrandingLogoTile from "./BrandingLogoTile.vue";
 import BrandingPaletteSwatches from "./BrandingPaletteSwatches.vue";
 import { BACKGROUND_TOKENS, CORNER_PRESETS, FONT_VARIABLE } from "./catalog";
 import { DMS_FONT_FAMILY, fontStack, themeFontOf, THEME_FONTS } from "./fonts";
+import { customAccentOf } from "./accent";
 import { simpleTiles, type LogoTarget } from "./logo-tiles";
 import {
   activeCorners,
   removeLogos,
   setColor,
   setCorners,
+  setCustomAccent,
   setFont,
   setVariable,
 } from "./model";
@@ -29,6 +31,9 @@ const edit = computed(() => props.editor.edit.value);
 const accent = computed(
   () => edit.value?.draft.colors.primary ?? props.dmsColors.primary,
 );
+const customAccent = computed(() =>
+  edit.value ? customAccentOf(edit.value.draft) : undefined,
+);
 const corners = computed(() =>
   edit.value ? activeCorners(edit.value.draft)?.id : undefined,
 );
@@ -46,6 +51,10 @@ const tiles = computed(() => (edit.value ? simpleTiles(edit.value) : []));
 function pickAccent(palette: string): void {
   const value = palette === props.dmsColors.primary ? undefined : palette;
   props.editor.update((current) => setColor(current, "primary", value));
+}
+
+function pickCustomAccent(color: string): void {
+  props.editor.update((current) => setCustomAccent(current, color));
 }
 
 function pickFont(family: string): void {
@@ -76,7 +85,12 @@ const TILE_HINTS = {
   <div v-if="edit" class="flex flex-col gap-5">
     <section class="flex flex-col gap-2">
       <DmsEyebrowLabel :label="t('branding.section.accent')" />
-      <BrandingPaletteSwatches :selected="accent" @select="pickAccent" />
+      <BrandingPaletteSwatches
+        :selected="accent"
+        :custom-color="customAccent"
+        @select="pickAccent"
+        @custom="pickCustomAccent"
+      />
     </section>
 
     <section class="flex flex-col gap-2.5">

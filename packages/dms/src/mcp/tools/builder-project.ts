@@ -12,12 +12,20 @@ import {
   type MappedResource,
   type OpResult,
   PreviewMapResources,
+  type ProjectConfigResult,
 } from "@antelopejs/interface-dms-builder";
+import type { ConnectionAccess } from "@antelopejs/interface-dms/connection-access";
 import { z } from "zod";
 import { JsonObjectSchema } from "../json";
 import { repeatConfirmation } from "../confirmation-gate";
 import { defineTool, type McpToolResult, textResult } from "../tool";
-import { redactAnalysis, redactMapping } from "../redact";
+import { summariseAnalysis } from "../analysis-summary";
+import {
+  type RedactedData,
+  redactAnalysis,
+  redactedResult,
+  redactMapping,
+} from "../redact";
 import { opResult, refusalResult, redactedOpResult } from "./builder-shared";
 import { TABLE_VIEW_SETTINGS } from "./builder-table-view";
 
@@ -150,7 +158,15 @@ const MAPPED_RESOURCE = z.object({
   title: z
     .string()
     .optional()
-    .describe("The page's title; the relation's name, humanized, by default."),
+    .describe(
+      "The page's title and the table's caption. Left out or blank, a new page takes the relation's name, humanized, and a page mapped before keeps its title.",
+    ),
+  category: z
+    .string()
+    .optional()
+    .describe(
+      "The id of a category made with builder_create_category, with this call's `module`: the page is written in it. A category that does not exist, or that another module declares, refuses this relation, naming it. Left out, a new page goes in the connection's category and a page mapped before stays where it is, even moved to another category: it is found by its table, not by its route. Sent on a page mapped before, it moves the page there, and its route changes.",
+    ),
   tableView: z
     .boolean()
     .describe("False for a stats-only relation; forced false without a key."),
@@ -198,11 +214,36 @@ const BOUND_MODULE = z
   .string()
   .describe("The project module bound to the connection's database.");
 
+/** What the project lets the dashboard do on a connection, read from its configuration now. */
+async function currentAccess(connection: string): Promise<ConnectionAccess> {
+  const { connectionAccess, withConnectionAccess } =
+    await import("../../implementations/dms-builder/engine");
+  return withConnectionAccess(() => connectionAccess(connection).access);
+}
+
+/**
+ * An answer about one connection as the AI reads it, `redact` applied to its data, with `access`
+ * beside it once it succeeded.
+ */
+async function answerWithAccess<T>(
+  answer: OpResult<T>,
+  connection: string | undefined,
+  redact: (data: T) => RedactedData | ProjectConfigResult,
+): Promise<McpToolResult> {
+  const shown = redactedResult(answer, redact);
+  if (!answer.ok || connection === undefined) {
+    return textResult(JSON.stringify(shown), !answer.ok);
+  }
+  return textResult(
+    JSON.stringify({ ...shown, access: await currentAccess(connection) }),
+  );
+}
+
 const configureProject = defineTool({
   name: "builder_configure_project",
   title: "Configure project",
   description:
-    "Edits antelope.config.ts in one step: adds modules (AddModule), merges into existing ones (ConfigureModule: config, importOverrides pins and connections, exportPriority, env variable names) and scaffolds local modules (CreateLocalModule). To connect a database, plan the batch from database_project: its driver package and range, a tables module pinned to the driver, the catalog connection on `self`, and the pins it names. Every step is validated before anything is written, and a refused step writes nothing. The user always approves the change, shown as a diff. A restart is needed before new modules load. It never raises an external connection's access: a step that sets `config.externalConnections.<id>.access` to `read-write` where the module's entry in antelope.config.ts does not already hold the literal string `read-write`, to anything else but `read`, supplies it from a variable, or rebinds a variable `envOverrides` maps to it, is refused. Keeping, lowering or removing an access works, so restate the connections you do not change. A person grants writes in the Database module's Data browser or the assistant's connect step. A database driver's connection target is never written as a value: a step that writes anything at an option of a driver's config that names a server or an account (its `url`, or a host, port, socket, user or password among the client options it passes on) is refused; map the variable instead, with `env: { url: \"<VARIABLE>\" }`.",
+    "Edits antelope.config.ts in one step: adds modules (AddModule), merges into existing ones (ConfigureModule: config, importOverrides pins and connections, exportPriority, env variable names) and scaffolds local modules (CreateLocalModule). To connect a database, plan the batch from database_project: its driver package and range, a tables module pinned to the driver, the catalog connection on `self`, the dms-database step registering the connection with `config.externalConnections.<id>.access` set to `read`, and the pins it names. Before you connect one, ask the person whether the dashboard may only read that database or also change its rows: write `read` either way, and if they chose read & write, call builder_set_connection_access once the restarted project lists the connection in database_connections. Every step is validated before anything is written, and a refused step writes nothing. The user always approves the change, shown as a diff. A restart is needed before new modules load. It never raises an external connection's access: a step that sets `config.externalConnections.<id>.access` to `read-write` where the module's entry in antelope.config.ts does not already hold the literal string `read-write`, to anything else but `read`, supplies it from a variable, or rebinds a variable `envOverrides` maps to it, is refused. Keeping, lowering or removing an access works, so restate the connections you do not change. Raise one with builder_set_connection_access, once the person agrees; a person also grants writes in the Database module's Data browser or the assistant's connect step. A database driver's connection target is never written as a value: a step that writes anything at an option of a driver's config that names a server or an account (its `url`, or a host, port, socket, user or password among the client options it passes on) is refused; map the variable instead, with `env: { url: \"<VARIABLE>\" }`.",
   effect: "project",
   input: z.object({ steps: z.array(STEP).min(1) }),
   async run({ steps }, sessionId) {
@@ -287,7 +328,7 @@ const mapResources = defineTool({
   name: "builder_map_resources",
   title: "Map resources",
   description:
-    "Maps relations of a connected database into a project module bound to it (created with builder_configure_project): table classes and models with the database's names verbatim, DataAPI controllers and one TableView page per relation that has a key. Only your choices are sent: the Builder reads the relations' descriptions from its own catalog connection and checks every choice against them. A relation mapped before is rewritten from the new choices, its page created, kept or removed; a mapping that would remove a page asks the person first, listing it, and a denial writes nothing, and a page that appeared after the person approved is never removed: that write is refused, so call again to ask. `excluded` records relations decided against, so the next analysis does not propose them. A connection is read-only unless the dms-database entry of antelope.config.ts sets `config.externalConnections.<id>.access` to `read-write`: on a read-only one, a `writable: true` resource with a TableView is refused, and so are a ResourceForm that creates or edits its rows and a block over a table that still serves write routes. Only a person changes the access. A relation the database account may not insert, update or delete in is mapped read-only even when asked `writable: true`, with a `relation_read_only` warning. Answers the files it wrote, without their diffs, and `leftOut`: columns a TableView cannot show, with why.",
+    "Maps relations of a connected database into a project module bound to it (created with builder_configure_project): table classes and models with the database's names verbatim, DataAPI controllers and one TableView page per relation that has a key. Only your choices are sent: the Builder reads the relations' descriptions from its own catalog connection and checks every choice against them. A relation mapped before is rewritten from the new choices, its page created, kept or removed; a page you moved into a category with builder_configure_page is found by its table and updated where it is, never written again outside its category; a mapping that would remove a page asks the person first, listing it, and a denial writes nothing, and a page that appeared after the person approved is never removed: that write is refused, so call again to ask. `excluded` records relations decided against, so the next analysis does not propose them. A connection is read-only unless the dms-database entry of antelope.config.ts sets `config.externalConnections.<id>.access` to `read-write`: on a read-only one, a `writable: true` resource with a TableView is refused, and so are a ResourceForm that creates or edits its rows and a block over a table that still serves write routes. builder_set_connection_access changes it, once the person agrees. A relation the database account may not insert, update or delete in is mapped read-only even when asked `writable: true`, with a `relation_read_only` warning. Answers the files it wrote, without their diffs, and `leftOut`: columns a TableView cannot show, with why.",
   effect: "builder",
   input: MAP_RESOURCES_INPUT,
   async run(sent, sessionId) {
@@ -339,6 +380,12 @@ const AnalyseDatabaseInputSchema = z.object({
     .string()
     .optional()
     .describe("A running analysis's `id`, to read on instead of starting one."),
+  detail: z
+    .array(z.string())
+    .optional()
+    .describe(
+      'Relations (`"schema.name"`) to answer in full, beside the compact list of them all: every choice with its rule, each column\'s profile and the open items of those relations.',
+    ),
 });
 
 type AnalyseDatabaseArgs = z.infer<typeof AnalyseDatabaseInputSchema>;
@@ -361,7 +408,7 @@ const analyseDatabase = defineTool({
   name: "builder_analyse_database",
   title: "Analyse database",
   description:
-    "Runs the Builder's analysis of a connected database: it reads the catalog and the profiles and proposes a mapping by fixed rules, writing nothing. Answers the proposal: resources in the shape builder_map_resources takes, each choice with its rule and `kind` (`fact` from the catalog, or `default`, a judgement to check), the relations excluded and why, and `open`: what the rules could not decide, each with its options. It carries the database's shape, never a value from its rows: a field's `profile` holds traits, nulls, distinct and the rows of each category, a badge `{ kind: \"badge\", values }` says how many values it draws, and a price names no currency; builder_map_resources reads the values itself. Profiling is slow: when the analysis is still running after a minute this answers its progress and `job`; call again with that `job` to read on. A call without `job` answers the last finished proposal again, profiling nothing, while the module's mapping, the schemas and the database's catalog are unchanged.",
+    "Runs the Builder's analysis of a connected database: it reads the catalog and the profiles and proposes a mapping by fixed rules, writing nothing. Answers the proposal compactly: per relation its title, screen (`table`, `status`, `tabs` or `stats`), rows when known, label column, columns with native type, relation, display and where each is used, and the columns left out; then the relations excluded and why, and `open`: what the rules could not decide, each with its option titles. A full proposal of a large database does not fit an agent's context, so name the relations you need in full in `detail`: it adds them in the shape builder_map_resources takes, each choice with its rule and `kind` (`fact` from the catalog, or `default`, a judgement to check), each column's `profile`, and their open items. It carries the database's shape, never a value from its rows: a field's `profile` holds traits, nulls, distinct and the rows of each category, a badge `{ kind: \"badge\", values }` says how many values it draws, and a price names no currency; builder_map_resources reads the values itself. Profiling is slow: when the analysis is still running after a minute this answers its progress and `job`; call again with that `job` to read on. A call without `job` answers the last finished proposal again, profiling nothing, while the module's mapping, the schemas and the database's catalog are unchanged. The answer's `access` is what the project lets the dashboard do on the connection now, `read` or `read-write`, and each resource's `writes` what the database account may insert, update and delete in it: on a `read` connection, propose no write action and map every resource `writable: false`.",
   effect: "read",
   input: AnalyseDatabaseInputSchema,
   async run(args) {
@@ -381,7 +428,11 @@ const analyseDatabase = defineTool({
       await delay(ANALYSIS_POLL_MS);
       answer = await GetAnalysis(answer.data.id);
     }
-    return redactedOpResult(answer, redactAnalysis);
+    return answerWithAccess(
+      answer,
+      answer.ok ? answer.data.connection : undefined,
+      (state) => summariseAnalysis(redactAnalysis(state), args.detail),
+    );
   },
 });
 
@@ -389,13 +440,58 @@ const mapping = defineTool({
   name: "builder_mapping",
   title: "Builder mapping",
   description:
-    "The relations a module maps for a connection, read back from its code as their current choices, in the proposal's shape (every rule `mapped`), with `included`: the columns the module declares. A badge shows how many values it draws, not the values, and a price no currency. Read it before mapping a relation again with builder_map_resources, so you send its current choices with only what you change.",
+    "The relations a module maps for a connection, read back from its code as their current choices, in the proposal's shape (every rule `mapped`), with `included`: the columns the module declares. A badge shows how many values it draws, not the values, and a price no currency. Read it before mapping a relation again with builder_map_resources, so you send its current choices with only what you change. The answer's `access` is what the project lets the dashboard do on the connection now, `read` or `read-write`, and each resource's `writes` what the database account may insert, update and delete in it.",
   effect: "read",
   input: z.object({ connection: CONNECTION, module: BOUND_MODULE }),
   run: async ({ connection, module }) =>
-    redactedOpResult(await GetMapping(connection, module), (relations) =>
-      relations.map(redactMapping),
+    answerWithAccess(
+      await GetMapping(connection, module),
+      connection,
+      (relations) => relations.map(redactMapping),
     ),
+});
+
+const setConnectionAccess = defineTool({
+  name: "builder_set_connection_access",
+  title: "Set connection access",
+  description:
+    "Changes what the dashboard may do on an external database: `read` shows its rows only, `read-write` lets the pages the builder maps add, edit and delete them. It writes `config.externalConnections.<connection>.access` on the dms-database entry of antelope.config.ts, as the Read & write switch of the Database module's Data browser does. Call it only after the person explicitly agreed in this conversation to let the dashboard change rows in their database, never on your own initiative: it changes what the dashboard can write to their database. `read-write` is refused while the database account may insert, update or delete rows in no table, or when its catalog does not answer. The first call writes nothing and answers the planned change: show it to the person, and repeat the same call to run it. Answers the files it wrote and `access`, what the project now lets the dashboard do on the connection; the running backend reads it after its restart, which `ajs project dev` starts on its own. Then map tables again with `writable: true`; a table the account may not write stays read-only.",
+  effect: "project",
+  input: z.object({
+    connection: CONNECTION,
+    access: z
+      .enum(["read", "read-write"])
+      .describe(
+        "`read`, the default of every connection, or `read-write`, which the person chose.",
+      ),
+  }),
+  async run({ connection, access }, sessionId) {
+    const { connectionAccessSwitch } =
+      await import("../../implementations/dms-builder/engine");
+    const planned = await connectionAccessSwitch(connection, access);
+    if (!planned.ok) return refusalResult(planned.code, planned.reason);
+    const steps = [planned.step];
+    const dryRun = await ConfigureProject(steps, { dryRun: true });
+    if (!dryRun.ok) return opResult(dryRun);
+    const write = async () =>
+      answerWithAccess(
+        await ConfigureProject(steps),
+        connection,
+        (data) => data,
+      );
+    if (dryRun.changes.length === 0) return write();
+    const plannedChanges = dryRun.changes.map(({ path, kind, diff }) => ({
+      path,
+      kind,
+      diff,
+    }));
+    return repeatConfirmation.run(
+      sessionId,
+      "builder_set_connection_access",
+      { connection, access, plannedChanges },
+      write,
+    );
+  },
 });
 
 export const BUILDER_PROJECT_TOOLS = [
@@ -403,4 +499,5 @@ export const BUILDER_PROJECT_TOOLS = [
   mapResources,
   analyseDatabase,
   mapping,
+  setConnectionAccess,
 ];

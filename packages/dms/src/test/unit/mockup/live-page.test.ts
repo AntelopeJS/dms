@@ -82,7 +82,7 @@ describe("[unit] mockup of a live page, opened twice", () => {
       outcome: "created",
       mockup: "books",
       page: "books",
-      url: "/mockup?name=books&page=books&mode=edit",
+      url: "/mockup?name=books&page=books",
       sketches: [{ path: "/books#custom", reason: "custom-component" }],
       liveRoutes: ["api-books-revenue"],
     });

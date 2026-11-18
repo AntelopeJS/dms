@@ -247,7 +247,7 @@ function gatesToolsByAccess(): void {
 }
 
 function servesTheRealTools(): void {
-  it("serves the builder tools under safe access and keeps the project configuration and resource deletion out", async () => {
+  it("serves the builder tools under safe access and keeps the project configuration, connection access and resource deletion out", async () => {
     const safe = await listed("safe", MCP_TOOLS);
     const full = await listed("full", MCP_TOOLS);
     expect(safe).to.include.members([
@@ -259,14 +259,16 @@ function servesTheRealTools(): void {
     ]);
     expect(safe).to.not.include.members([
       "builder_configure_project",
+      "builder_set_connection_access",
       "builder_delete_resource",
     ]);
     expect(full).to.include.members([
       ...safe,
       "builder_configure_project",
+      "builder_set_connection_access",
       "builder_delete_resource",
     ]);
-    expect(full).to.have.lengthOf(safe.length + 2);
+    expect(full).to.have.lengthOf(safe.length + 3);
   });
 
   it("serves the theme tools under safe access, since they edit through the builder", async () => {

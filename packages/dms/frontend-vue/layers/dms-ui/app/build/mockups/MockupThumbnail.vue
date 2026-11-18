@@ -3,10 +3,7 @@ import { computed, ref, shallowRef, useTemplateRef, watch } from "vue";
 import { useElementVisibility, useResizeObserver } from "@vueuse/core";
 import { usePreviewFrame } from "../composables/block-preview/usePreviewFrame";
 import { isPreviewTheme } from "../utils/blockPreview";
-import {
-  previewRenderMessage,
-  type PreviewNavigation,
-} from "../utils/blockPreviewMessages";
+import { previewRenderMessage } from "../utils/blockPreviewMessages";
 import {
   MOCKUP_WIDTHS,
   mockupEndpoint,
@@ -17,20 +14,21 @@ import {
   FIXTURES_ONLY_QUERY,
   FIXTURES_ONLY_VALUE,
 } from "../utils/previewFixturesOnly";
+import { mockupNavigation } from "../utils/mockupFrame";
 import { currentSketchScheme } from "../utils/sketch";
 
 /**
- * A live, scaled-down drawing of the first page of a mockup: the real
- * `/dms-preview`, at desktop width, shrunk to the band. It reads the mockup
- * and loads the frame once the band scrolls into view, and leaves a quiet
- * placeholder when the mockup cannot be read or has no page to draw.
+ * A live, scaled-down drawing of the whole first page of a mockup: the real
+ * `/dms-preview`, at desktop width and a 16:10 screen, shrunk to the card's
+ * width. It reads the mockup and loads the frame once the thumbnail scrolls
+ * into view, and leaves a quiet placeholder when the mockup cannot be read or
+ * has no page to draw.
  */
 const props = defineProps<{ name: string }>();
 
 /** The preview on the mockup's fixtures, which refuses every live route. */
 const PREVIEW_PATH = `/dms-preview?${FIXTURES_ONLY_QUERY}=${FIXTURES_ONLY_VALUE}`;
-const BAND_HEIGHT_PX = 84;
-const HOME_ICON = "i-ph-house-light";
+const SCREEN_HEIGHT_PX = (MOCKUP_WIDTHS.desktop * 10) / 16;
 
 const { t } = useI18n();
 const { $authFetch } = useAuthFetch();
@@ -39,6 +37,7 @@ const band = useTemplateRef<HTMLElement>("band");
 const frame = useTemplateRef<HTMLIFrameElement>("frame");
 const hasBeenSeen = ref(false);
 const isLoaded = ref(false);
+const isDrawn = ref(false);
 const state = shallowRef<MockupState>();
 const bandWidth = ref(0);
 
@@ -52,20 +51,18 @@ const isUnavailable = computed(() => isLoaded.value && !page.value);
 const scale = computed(() => bandWidth.value / MOCKUP_WIDTHS.desktop);
 const stageStyle = computed(() => ({
   width: `${MOCKUP_WIDTHS.desktop}px`,
-  height: `${BAND_HEIGHT_PX / scale.value}px`,
+  height: `${SCREEN_HEIGHT_PX}px`,
   transform: `scale(${scale.value})`,
   transformOrigin: "top left",
 }));
 
-const navigation = computed(
-  (): PreviewNavigation => ({
+const navigation = computed(() =>
+  mockupNavigation({
     title: state.value?.title || props.name,
-    items: (state.value?.pages ?? []).map((entry, index) => ({
-      id: entry.id,
-      label: entry.title,
-      icon: index === 0 ? HOME_ICON : undefined,
-    })),
+    categories: state.value?.categories ?? [],
+    pages: state.value?.pages ?? [],
     active: page.value?.id,
+    widgets: state.value?.sidebar?.widgets,
   }),
 );
 
@@ -83,6 +80,7 @@ function syncPreview(): void {
       navigation: navigation.value,
     }),
   );
+  isDrawn.value = true;
 }
 
 const bridge = usePreviewFrame({
@@ -112,15 +110,14 @@ watch(isInView, (inView) => {
 <template>
   <div
     ref="band"
-    class="bg-muted relative overflow-hidden"
-    :style="{ height: `${BAND_HEIGHT_PX}px` }"
+    class="bg-muted border-default relative aspect-[16/10] overflow-hidden border-b"
     aria-hidden="true"
     data-dms-mockup-thumbnail
   >
     <div v-if="isUnavailable" class="grid h-full place-items-center">
       <UIcon
-        name="i-ph-frame-corners-light"
-        class="text-dimmed size-6"
+        name="i-lucide-layout-template"
+        class="text-dimmed size-8"
         data-dms-mockup-thumbnail-placeholder
       />
     </div>
@@ -131,7 +128,8 @@ watch(isInView, (inView) => {
     >
       <iframe
         ref="frame"
-        class="bg-default block size-full border-0"
+        class="bg-default block size-full border-0 transition-opacity duration-200 motion-reduce:transition-none"
+        :class="isDrawn ? 'opacity-100' : 'opacity-0'"
         :src="PREVIEW_PATH"
         :title="t('dms.mockup.thumbnail_title', { name: props.name })"
         tabindex="-1"

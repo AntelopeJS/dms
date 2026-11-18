@@ -6,7 +6,13 @@ import { expect } from "chai";
 import { z } from "zod";
 import type { McpTool } from "../../mcp/tool";
 import { MCP_TOOLS } from "../../mcp/tools";
-import { defaultMockupsDir, MISSING_FILE, parseFsError } from "../../mockup";
+import {
+  defaultMockupsDir,
+  MISSING_FILE,
+  mockupNameSchema,
+  parseFsError,
+  removeHistory,
+} from "../../mockup";
 
 const NAME_BYTES = 4;
 
@@ -83,6 +89,7 @@ export interface Workspace {
 
 async function clear(): Promise<void> {
   await rm(join(defaultMockupsDir(), NAME), { recursive: true, force: true });
+  await removeHistory(defaultMockupsDir(), mockupNameSchema.parse(NAME));
   if ((await listing(defaultMockupsDir())).length === 0) {
     await rmdir(defaultMockupsDir()).catch((error: unknown) => {
       if (parseFsError(error).code !== MISSING_FILE) throw error;

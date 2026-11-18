@@ -6,16 +6,23 @@
 import { describe, expect, it } from "vitest";
 import {
   changeCount,
+  customAccentOf,
   editOf,
+  isAtDefaults,
+  isBrandVariable,
   placeLogos,
   rebaseTheme,
   resetToDms,
   settleSave,
+  setColor,
+  setCustomAccent,
+  setFont,
   setVariable,
   simpleLogoSlots,
   toSetThemeDraft,
   type PendingLogo,
   type SavedTheme,
+  type ThemeEdit,
 } from "../layers/dms-layout/app/entries/branding/model";
 
 type Theme = SavedTheme["theme"];
@@ -180,6 +187,63 @@ describe("resetToDms", () => {
     expect(reset.pendingLogos).toEqual({});
     expect(changeCount(reset)).toBe(2);
   });
+
+  it("puts back the accent, the radius, the font, the backgrounds and the brand palette", () => {
+    const start = [
+      (edit: ThemeEdit) => setCustomAccent(edit, "#e11d48"),
+      (edit: ThemeEdit) => setColor(edit, "error", "rose"),
+      (edit: ThemeEdit) => setVariable(edit, "shared", "--ui-radius", "0.5rem"),
+      (edit: ThemeEdit) => setFont(edit, "Georgia, serif"),
+      (edit: ThemeEdit) => setVariable(edit, "light", "--ui-bg", "#fafafa"),
+      (edit: ThemeEdit) => setVariable(edit, "dark", "--ui-bg", "#111111"),
+    ].reduce((edit, change) => change(edit), editOf(saved()));
+    expect(isAtDefaults(start)).toBe(false);
+
+    const reset = resetToDms(start);
+
+    expect(customAccentOf(reset.draft)).toBeUndefined();
+    expect(reset.draft.colors).toEqual({});
+    expect(reset.draft.variables).toEqual({ shared: {}, light: {}, dark: {} });
+    expect(changeCount(reset)).toBe(0);
+    expect(isAtDefaults(reset)).toBe(true);
+  });
+});
+
+describe("isAtDefaults", () => {
+  it("holds for a theme with no override, whatever the files held", () => {
+    expect(isAtDefaults(editOf(saved()))).toBe(true);
+    const overridden = editOf(
+      saved({
+        colors: { primary: "violet" },
+        logos: { default: { light: "/a.svg" } },
+      }),
+    );
+    expect(isAtDefaults(overridden)).toBe(false);
+    expect(isAtDefaults(resetToDms(overridden))).toBe(true);
+  });
+
+  it.each([
+    [
+      "a variable",
+      {
+        variables: { shared: { "--ui-radius": "0" }, light: {}, dark: {} },
+      },
+    ],
+    ["a palette", { colors: { success: "emerald" } }],
+    ["a logo path", { logos: { favicon: { dark: "/f.png" } } }],
+  ] satisfies [string, Partial<Theme>][])(
+    "does not hold with %s still set",
+    (_, partial) => {
+      expect(isAtDefaults(editOf(saved(partial)))).toBe(false);
+    },
+  );
+
+  it("does not hold with a logo picked and not yet saved", () => {
+    const picked = placeLogos(editOf(saved()), [
+      { slot: "default", mode: "light", logo: LOGO },
+    ]);
+    expect(isAtDefaults(picked)).toBe(false);
+  });
 });
 
 describe("settleSave", () => {
@@ -235,5 +299,93 @@ describe("the module's value refusals, checked before Save", () => {
     expect(logoRefusal({ name: "a.png", type: "image/png", size: 0 })).toBe(
       "branding.logo.empty",
     );
+  });
+});
+
+describe("the custom accent", () => {
+  const brandNames = (edit: ReturnType<typeof editOf>) =>
+    Object.keys(edit.draft.variables.shared).filter(isBrandVariable);
+
+  it("sets the brand palette as the primary, its 11 shades in the shared set", () => {
+    const edit = setCustomAccent(editOf(saved()), "#3b82f6");
+    expect(edit.draft.colors.primary).toBe("brand");
+    expect(brandNames(edit)).toHaveLength(11);
+    expect(edit.draft.variables.shared["--color-brand-500"]).toBe("#3b82f6");
+    expect(edit.draft.variables.light).toEqual({});
+    expect(customAccentOf(edit.draft)).toBe("#3b82f6");
+  });
+
+  it("counts as one change, and one again for another color, whatever the shades", () => {
+    const first = setCustomAccent(editOf(saved()), "#3b82f6");
+    expect(changeCount(first)).toBe(1);
+    const second = setCustomAccent(first, "#e11d48");
+    expect(changeCount(second)).toBe(1);
+    expect(changeCount(setCustomAccent(second, "#3b82f6"))).toBe(1);
+  });
+
+  it("counts no change for the color the files already hold", () => {
+    const held = setCustomAccent(editOf(saved()), "#3b82f6").draft;
+    const reopened = editOf(saved(held));
+    expect(changeCount(reopened)).toBe(0);
+    expect(changeCount(setCustomAccent(reopened, "#e11d48"))).toBe(1);
+    expect(
+      changeCount(
+        setCustomAccent(setCustomAccent(reopened, "#e11d48"), "#3b82f6"),
+      ),
+    ).toBe(0);
+  });
+
+  it("goes back to a preset by removing the brand shades and keeping other variables", () => {
+    const withRadius = setVariable(
+      setCustomAccent(editOf(saved()), "#3b82f6"),
+      "shared",
+      "--ui-radius",
+      "0.5rem",
+    );
+    const preset = setColor(withRadius, "primary", "violet");
+    expect(preset.draft.colors.primary).toBe("violet");
+    expect(brandNames(preset)).toEqual([]);
+    expect(preset.draft.variables.shared["--ui-radius"]).toBe("0.5rem");
+    expect(customAccentOf(preset.draft)).toBeUndefined();
+  });
+
+  it("goes back to the DMS palette the same way", () => {
+    const dms = setColor(
+      setCustomAccent(editOf(saved()), "#3b82f6"),
+      "primary",
+      undefined,
+    );
+    expect(dms.draft.colors).toEqual({});
+    expect(brandNames(dms)).toEqual([]);
+    expect(changeCount(dms)).toBe(0);
+  });
+
+  it("counts the return from a saved custom accent to a preset as one change", () => {
+    const held = setCustomAccent(editOf(saved()), "#3b82f6").draft;
+    const preset = setColor(editOf(saved(held)), "primary", "violet");
+    expect(changeCount(preset)).toBe(1);
+  });
+
+  it("keeps the brand shades when another role changes palette", () => {
+    const edit = setColor(
+      setCustomAccent(editOf(saved()), "#3b82f6"),
+      "success",
+      "lime",
+    );
+    expect(brandNames(edit)).toHaveLength(11);
+    expect(edit.draft.colors).toEqual({ primary: "brand", success: "lime" });
+  });
+
+  it("ignores a value that is not a hex color", () => {
+    const start = editOf(saved());
+    expect(setCustomAccent(start, "violet")).toBe(start);
+  });
+
+  it("sends the primary and the shades in the body of Save", () => {
+    const body = toSetThemeDraft(setCustomAccent(editOf(saved()), "#3b82f6"));
+    expect(body.colors).toEqual({ primary: "brand" });
+    expect(
+      Object.keys(body.variables.shared).filter(isBrandVariable),
+    ).toHaveLength(11);
   });
 });

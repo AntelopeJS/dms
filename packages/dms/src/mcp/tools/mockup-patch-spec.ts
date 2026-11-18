@@ -3,7 +3,13 @@ import { defaultMockupsDir, readSpecText, withSpecLock } from "../../mockup";
 import { type JsonObject, JsonObjectSchema } from "../json";
 import { defineTool, textResult } from "../tool";
 import { applyPatch, patchOperationSchema } from "./json-patch";
-import { mockupArgument, reportWrite, withMockup } from "./mockup-support";
+import {
+  mockupArgument,
+  reportWrite,
+  summaryArgument,
+  withMockup,
+  writeGroupArgument,
+} from "./mockup-support";
 
 const POINTER = z
   .string()
@@ -44,8 +50,10 @@ export const mockupPatchSpecTool = defineTool({
   input: z.object({
     mockup: mockupArgument,
     patch: z.array(operationInput).min(1),
+    summary: summaryArgument,
+    writeGroup: writeGroupArgument,
   }),
-  run: ({ mockup, patch: requested }) =>
+  run: ({ mockup, patch: requested, summary, writeGroup }) =>
     withMockup(mockup, async (name) => {
       const parsed = z.array(patchOperationSchema).safeParse(requested);
       if (!parsed.success) {
@@ -82,7 +90,13 @@ export const mockupPatchSpecTool = defineTool({
             true,
           );
         }
-        return reportWrite(await write(patched.document));
+        return reportWrite(
+          await write(patched.document, {
+            by: "ai",
+            summary,
+            group: writeGroup,
+          }),
+        );
       });
     }),
 });

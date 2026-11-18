@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { ref } from "vue";
+import type { MockupCategory } from "../../utils/mockup";
 import type { MockupBlockType } from "../../utils/mockupCatalog";
 import type { MockupEdit } from "../../utils/mockupEdit";
+import type { MockupSectionEdit } from "../../utils/mockupSections";
 import type { MockupOutlineRow } from "../../utils/mockupOutline";
 import type { MockupSpecPage } from "../../utils/mockupSpec";
 import MockupBlockCatalog from "./MockupBlockCatalog.vue";
@@ -10,22 +12,27 @@ import MockupPagesList from "./MockupPagesList.vue";
 
 type PanelTab = "add" | "layers" | "pages";
 
-/** Edit mode's left panel: the block catalog, the page's layers, the pages. */
+/**
+ * Edit mode's left panel: the block catalog, the page's layers, the pages. A
+ * click on a block of the catalog arms it for a click on the page.
+ */
 defineProps<{
   blocks: readonly MockupBlockType[];
   hasCatalogFailed: boolean;
   rows: readonly MockupOutlineRow[];
   selection: string | undefined;
   pages: readonly MockupSpecPage[];
+  categories: readonly MockupCategory[];
   currentPage: string | undefined;
 }>();
 const emit = defineEmits<{
-  add: [type: string];
+  arm: [type: string];
   dragStart: [type: string];
   dragEnd: [];
   select: [pointer: string];
   open: [page: string];
   edit: [edit: MockupEdit];
+  section: [edit: MockupSectionEdit];
 }>();
 
 const TABS: readonly PanelTab[] = ["add", "layers", "pages"];
@@ -68,7 +75,7 @@ const tab = ref<PanelTab>("add");
         <MockupBlockCatalog
           :blocks="blocks"
           draggable
-          @pick="emit('add', $event)"
+          @pick="emit('arm', $event)"
           @drag-start="emit('dragStart', $event)"
           @drag-end="emit('dragEnd')"
         />
@@ -82,9 +89,11 @@ const tab = ref<PanelTab>("add");
       <MockupPagesList
         v-else
         :pages="pages"
+        :categories="categories"
         :current="currentPage"
         @open="emit('open', $event)"
         @edit="emit('edit', $event)"
+        @section="emit('section', $event)"
       />
     </div>
   </aside>

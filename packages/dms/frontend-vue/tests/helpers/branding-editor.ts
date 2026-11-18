@@ -21,7 +21,7 @@ export interface BrandingCall {
 /** What a fake `/api/branding` route answers: its data, or a refusal such as a stale version. */
 export type BrandingAnswer =
   | { ok: true; data: JsonValue }
-  | { ok: false; error: { code: string; ref: string; currentVersion: string } };
+  | { ok: false; error: { code: string; [detail: string]: string } };
 
 type Answer = (call: BrandingCall) => BrandingAnswer;
 
@@ -126,11 +126,14 @@ export async function settle(): Promise<void> {
 
 export async function mountEditor(
   editor: Component,
+  options: { stubs?: Record<string, Component> } = {},
 ): Promise<{ app: App; host: HTMLElement }> {
   const host = document.createElement("div");
   document.body.append(host);
   const app = createApp(editor);
-  Object.entries(STUBS).forEach(([name, stub]) => app.component(name, stub));
+  Object.entries({ ...STUBS, ...options.stubs }).forEach(([name, stub]) =>
+    app.component(name, stub),
+  );
   app.mount(host);
   await settle();
   return { app, host };

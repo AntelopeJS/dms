@@ -119,6 +119,19 @@ const formContainerPagesSchema = <Page extends z.ZodTypeAny>(page: Page) =>
 const formContainerSchema = z.discriminatedUnion("type", [
   z.object({
     type: z.literal("drawer"),
+    direction: ui(
+      z
+        .enum(["bottom", "right"])
+        .optional()
+        .describe(
+          "The edge the drawer slides in from: bottom (the default) or right, a side sheet.",
+        ),
+      {
+        label: "Direction",
+        widget: "segmented",
+        valueLabels: { bottom: "Bottom", right: "Right" },
+      },
+    ),
     pages: formContainerPagesSchema(formContainerPageTextsSchema),
   }),
   z.object({

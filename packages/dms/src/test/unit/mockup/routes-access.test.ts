@@ -5,12 +5,21 @@ import { DEFAULT_TENANT_ID } from "@antelopejs/interface-dms/constants";
 import { RoleModel } from "@antelopejs/interface-dms/db";
 import type { AxiosInstance } from "axios";
 import { expect } from "chai";
+import { z } from "zod";
 import { authorizedClient, registerUser } from "../../helpers/auth";
 import { createClient } from "../../helpers/http";
 import { MOCKUP_API, serveMockupRoutes } from "../../helpers/mockup-routes";
 
+const listedNames = z.object({
+  results: z.array(z.object({ name: z.string() })),
+});
 const ANNOTATIONS = `${MOCKUP_API}/desk/annotations`;
-const NOTE = { page: "home", path: "/pages/0/tree/0", text: "Not mine" };
+const NOTE = {
+  page: "home",
+  path: "/pages/0/tree/0",
+  offset: { x: 0.5, y: 0.5 },
+  text: "Not mine",
+};
 
 const SPEC = JSON.stringify({
   version: 1,
@@ -30,6 +39,7 @@ const ROUTE_ARGUMENTS = new Map([
   ["page", "home"],
   ["key", "orders"],
   ["id", "a1"],
+  ["seq", "1"],
 ]);
 
 interface RegisteredRoute {
@@ -99,6 +109,18 @@ describe("[unit] mockup routes: platform owners only", () => {
     expect(mockupRoutes().length).to.be.greaterThan(0);
   });
 
+  it("covers the routes that rename, duplicate and delete a mockup", () => {
+    const labels = mockupRoutes().map(
+      ({ method, location }) => `${method.toUpperCase()} ${location}`,
+    );
+
+    expect(labels).to.include.members([
+      `PATCH ${MOCKUP_API}/:name`,
+      `POST ${MOCKUP_API}/:name/duplicate`,
+      `DELETE ${MOCKUP_API}/:name`,
+    ]);
+  });
+
   it("answers 401 on every route to a caller with no session", async () => {
     expect(await answersOf(anonymous)).to.deep.equal(everyRouteAnswering(401));
   });
@@ -117,6 +139,21 @@ describe("[unit] mockup routes: platform owners only", () => {
     );
 
     expect(await answersOf(holder)).to.deep.equal(everyRouteAnswering(403));
+  });
+
+  it("renames, copies and deletes nothing for a refused caller", async () => {
+    const { owner } = served();
+    for (const caller of [anonymous, member]) {
+      await caller.patch(`${MOCKUP_API}/desk`, { name: "moved" });
+      await caller.post(`${MOCKUP_API}/desk/duplicate`, {});
+      await caller.delete(`${MOCKUP_API}/desk`);
+    }
+
+    const listed = await owner.get(MOCKUP_API);
+
+    expect(
+      listedNames.parse(listed.data).results.map(({ name }) => name),
+    ).to.deep.equal(["desk"]);
   });
 
   it("writes no annotation for a refused caller, and writes the owner's", async () => {

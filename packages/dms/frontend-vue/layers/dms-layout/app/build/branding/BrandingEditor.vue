@@ -7,7 +7,7 @@ import BrandingSimplePanel from "./BrandingSimplePanel.vue";
 import { useBrandingApi } from "./api";
 import { errorDetail } from "./errors";
 import { declareCatalogFonts } from "./fonts";
-import type { EditorMode } from "./model";
+import { isAtDefaults, resetToDms, type EditorMode } from "./model";
 import { previewStyle, readDmsTokens, type DmsTokens } from "./preview-style";
 import { THEME_MODES, type ThemeMode } from "./theme-types";
 import { useBrandingEditor } from "./useBrandingEditor";
@@ -16,7 +16,18 @@ const { t } = useI18n();
 const toast = useToast();
 const { confirm } = useConfirm();
 const editor = useBrandingEditor(useBrandingApi());
-const { load, edit, changes, notice, isSaving, mode, previewMode } = editor;
+const {
+  load,
+  edit,
+  changes,
+  notice,
+  declaration,
+  isRepaired,
+  isSaving,
+  mode,
+  previewMode,
+} = editor;
+const isUndeclared = computed(() => declaration.value?.declared === false);
 
 const defaults = computed(() => useDmsAppConfig().branding?.defaults);
 const dmsColors = computed<Partial<Record<string, string>>>(
@@ -113,6 +124,14 @@ function setPreviewMode(value: string | number | undefined): void {
 async function save(): Promise<void> {
   const outcome = await editor.save();
   if (!outcome?.ok) return;
+  if (!outcome.declared) {
+    toast.add({
+      title: t("branding.saved_not_live"),
+      description: t("branding.not_live_description"),
+      color: "warning",
+    });
+    return;
+  }
   const sanitized = outcome.warnings.some(
     (warning) => warning.code === "svg_sanitized",
   );
@@ -134,23 +153,43 @@ async function discard(): Promise<void> {
   if (isConfirmed) editor.discard();
 }
 
+const isAtDefault = computed(() =>
+  edit.value ? isAtDefaults(edit.value) : true,
+);
+
+async function resetToDefault(): Promise<void> {
+  if (isAtDefault.value) return;
+  const isConfirmed = await confirm({
+    title: t("branding.reset_confirm.title"),
+    description: t("branding.reset_confirm.description"),
+    confirmLabel: t("branding.reset_default"),
+    color: "error",
+  });
+  if (isConfirmed) editor.update(resetToDms);
+}
+
 const noticeBanner = computed(() => {
   const current = notice.value;
   if (!current || current.kind === "stale") return undefined;
-  return current.kind === "invalid"
-    ? {
-        title: t("branding.state.invalid"),
-        description: current.issues
-          .map(
-            (issue) =>
-              `${issue.pointer} ${t(`branding.problem.${issue.problem}`)}`,
-          )
-          .join("\n"),
-      }
-    : {
-        title: t("branding.state.save_refused"),
-        description: errorDetail(current.error),
-      };
+  if (current.kind === "invalid") {
+    return {
+      title: t("branding.state.invalid"),
+      description: current.issues
+        .map(
+          (issue) =>
+            `${issue.pointer} ${t(`branding.problem.${issue.problem}`)}`,
+        )
+        .join("\n"),
+    };
+  }
+  return {
+    title: t(
+      current.kind === "repair_refused"
+        ? "branding.state.repair_refused"
+        : "branding.state.save_refused",
+    ),
+    description: errorDetail(current.error),
+  };
 });
 </script>
 
@@ -184,6 +223,17 @@ const noticeBanner = computed(() => {
         >
           {{ t("branding.changes", { count: changes }, changes) }}
         </UBadge>
+        <UButton
+          data-reset-default
+          color="neutral"
+          variant="ghost"
+          size="sm"
+          icon="i-ph-arrow-counter-clockwise-light"
+          :disabled="isAtDefault || isSaving"
+          @click="resetToDefault"
+        >
+          {{ t("branding.reset_default") }}
+        </UButton>
         <UButton
           data-discard
           color="neutral"
@@ -245,6 +295,36 @@ const noticeBanner = computed(() => {
     </div>
 
     <template v-else>
+      <div
+        v-if="isUndeclared"
+        class="border-default border-b px-4 py-2"
+        data-undeclared
+      >
+        <DmsNoticeBanner
+          tone="warning"
+          size="sm"
+          :title="t('branding.state.undeclared')"
+          :description="t('branding.state.undeclared_description')"
+        >
+          <template #actions>
+            <UButton data-repair-layer size="sm" @click="editor.repairLayer">
+              {{ t("branding.state.repair_layer") }}
+            </UButton>
+          </template>
+        </DmsNoticeBanner>
+      </div>
+      <div
+        v-else-if="isRepaired"
+        class="border-default border-b px-4 py-2"
+        data-repaired
+      >
+        <DmsNoticeBanner
+          tone="info"
+          size="sm"
+          :title="t('branding.state.repaired')"
+          :description="t('branding.state.repaired_description')"
+        />
+      </div>
       <div
         v-if="notice?.kind === 'stale'"
         class="border-default border-b px-4 py-2"

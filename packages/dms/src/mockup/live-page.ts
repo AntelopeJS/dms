@@ -143,7 +143,7 @@ export function resolvePageRef(
 }
 
 function mockupUrl(name: MockupName, page: string): string {
-  const query = new URLSearchParams({ name, page, mode: "edit" });
+  const query = new URLSearchParams({ name, page });
   return `/mockup?${query.toString()}`;
 }
 
@@ -349,7 +349,7 @@ async function convertLivePage(
   const read = slot.kind === "linked" ? slot.digest : undefined;
   const written = await withSpecLock(mockupsDir, slot.name, async (write) => {
     const current = await readSpecSource(mockupsDir, slot.name);
-    return current?.digest === read ? write(spec) : undefined;
+    return current?.digest === read ? write(spec, { by: "you" }) : undefined;
   });
   if (!written) {
     return failure("conflict", "spec.json changed since it was read");

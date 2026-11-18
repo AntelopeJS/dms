@@ -1,4 +1,10 @@
 import {
+  brandPalette,
+  brandVariables,
+  CUSTOM_PALETTE,
+  isBrandVariable,
+} from "./accent";
+import {
   CARD_RADIUS_VARIABLE,
   CORNER_PRESETS,
   FONT_VARIABLE,
@@ -26,6 +32,7 @@ import type {
   ThemeMode,
   ThemeStructure,
   ThemeVariableSetName,
+  ThemeVariables,
   ThemeVariableSets,
 } from "./theme-types";
 import { THEME_MODES, VARIABLE_SET_NAMES } from "./theme-types";
@@ -100,19 +107,50 @@ function logoSlotsOf(...themes: ThemeDraft[]): LogoSlot[] {
   return [...new Set([...LOGO_SLOTS, ...named])];
 }
 
+function ownKeys(values: Values, include: (key: string) => boolean): Values {
+  return Object.fromEntries(
+    Object.entries(values).filter(([key]) => include(key)),
+  );
+}
+
+/** Whether the custom accent differs: the primary palette, or a shade of the brand palette. */
+function accentChanged(draft: ThemeDraft, saved: ThemeDraft): boolean {
+  return (
+    ownValue(draft.colors, "primary") !== ownValue(saved.colors, "primary") ||
+    VARIABLE_SET_NAMES.some(
+      (set) =>
+        differingKeys(
+          ownKeys(draft.variables[set], isBrandVariable),
+          ownKeys(saved.variables[set], isBrandVariable),
+        ).length > 0,
+    )
+  );
+}
+
+const isOtherVariable = (name: string) => !isBrandVariable(name);
+
 /**
  * The changes the bar counts: each value set, changed or removed, per set;
- * each palette; each logo slot per mode, picked, reset or repointed.
+ * each palette; the accent once, whatever shades it moves; each logo slot per
+ * mode, picked, reset or repointed.
  */
 export function changeCount(edit: ThemeEdit): number {
   const { draft } = edit;
   const saved = edit.saved.theme;
   const variables = VARIABLE_SET_NAMES.reduce(
     (count, set) =>
-      count + differingKeys(draft.variables[set], saved.variables[set]).length,
+      count +
+      differingKeys(
+        ownKeys(draft.variables[set], isOtherVariable),
+        ownKeys(saved.variables[set], isOtherVariable),
+      ).length,
     0,
   );
-  const colors = differingKeys(draft.colors, saved.colors).length;
+  const colors =
+    differingKeys(
+      ownKeys(draft.colors, (role) => role !== "primary"),
+      ownKeys(saved.colors, (role) => role !== "primary"),
+    ).length + Number(accentChanged(draft, saved));
   const logos = logoSlotsOf(draft, saved).reduce(
     (count, slot) =>
       count +
@@ -264,6 +302,21 @@ export function resetToDms(edit: ThemeEdit): ThemeEdit {
   return { saved: edit.saved, draft: emptyTheme(), pendingLogos: {} };
 }
 
+/** Whether the draft holds no override and no picked logo: the DMS default, whatever the files hold. */
+export function isAtDefaults(edit: ThemeEdit): boolean {
+  const { draft } = edit;
+  return (
+    VARIABLE_SET_NAMES.every(
+      (set) => Object.keys(draft.variables[set]).length === 0,
+    ) &&
+    Object.keys(draft.colors).length === 0 &&
+    logoSlotsOf(draft).every((slot) =>
+      THEME_MODES.every((mode) => draft.logos[slot]?.[mode] === undefined),
+    ) &&
+    pendingEntries(edit.pendingLogos).length === 0
+  );
+}
+
 export function discardEdit(edit: ThemeEdit): ThemeEdit {
   return editOf(edit.saved);
 }
@@ -295,6 +348,24 @@ export function resetVariable(edit: ThemeEdit, name: string): ThemeEdit {
   );
 }
 
+function withoutBrandVariables(
+  variables: ThemeVariableSets,
+): ThemeVariableSets {
+  const strip = (values: ThemeVariables) =>
+    Object.fromEntries(
+      Object.entries(values).filter(([name]) => !isBrandVariable(name)),
+    );
+  return {
+    shared: strip(variables.shared),
+    light: strip(variables.light),
+    dark: strip(variables.dark),
+  };
+}
+
+/**
+ * A role's palette; none puts the DMS's back. A primary palette other than the
+ * brand one also removes the brand shades, which nothing would use.
+ */
 export function setColor(
   edit: ThemeEdit,
   role: ThemeColorRole,
@@ -302,7 +373,33 @@ export function setColor(
 ): ThemeEdit {
   const { [role]: _previous, ...others } = edit.draft.colors;
   const colors = palette ? { ...others, [role]: palette } : others;
-  return withDraft(edit, { ...edit.draft, colors });
+  const keepsBrand = role !== "primary" || palette === CUSTOM_PALETTE;
+  return withDraft(edit, {
+    ...edit.draft,
+    colors,
+    variables: keepsBrand
+      ? edit.draft.variables
+      : withoutBrandVariables(edit.draft.variables),
+  });
+}
+
+/**
+ * Any color as the primary: its 11 shades become the brand palette's
+ * variables, and the primary palette points at it. A value that is not a hex
+ * color changes nothing.
+ */
+export function setCustomAccent(edit: ThemeEdit, color: string): ThemeEdit {
+  const palette = brandPalette(color);
+  if (!palette) return edit;
+  const variables = withoutBrandVariables(edit.draft.variables);
+  return withDraft(edit, {
+    ...edit.draft,
+    colors: { ...edit.draft.colors, primary: CUSTOM_PALETTE },
+    variables: {
+      ...variables,
+      shared: { ...variables.shared, ...brandVariables(palette) },
+    },
+  });
 }
 
 /** The controls' and the cards' radius together; `null` puts back the DMS's. */

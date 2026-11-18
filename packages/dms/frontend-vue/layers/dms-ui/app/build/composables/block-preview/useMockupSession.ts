@@ -13,7 +13,7 @@ import {
   upsertAnnotation,
   type MockupAnnotation,
   type MockupAnnotationDraft,
-  type MockupAnnotationStatus,
+  type MockupAnnotationPatch,
   type MockupState,
 } from "../../utils/mockup";
 import { openMockupStream, type MockupStream } from "../../utils/mockupStream";
@@ -39,10 +39,9 @@ export interface MockupSession {
   /** Whether the last annotation request failed. */
   hasRequestFailed: Ref<boolean>;
   addAnnotation: (draft: MockupAnnotationDraft) => Promise<void>;
-  setAnnotationStatus: (
-    id: string,
-    status: MockupAnnotationStatus,
-  ) => Promise<void>;
+  /** Changes a note's status or text, or moves its pin. */
+  updateAnnotation: (id: string, patch: MockupAnnotationPatch) => Promise<void>;
+  deleteAnnotation: (id: string) => Promise<void>;
 }
 
 /**
@@ -80,6 +79,20 @@ export function useMockupSession(options: MockupSessionOptions): MockupSession {
     }
   }
 
+  async function deleteAnnotation(id: string): Promise<void> {
+    hasRequestFailed.value = false;
+    try {
+      await options.authFetch(noteEndpoint(id), { method: "DELETE" });
+      annotations.value = annotations.value.filter((note) => note.id !== id);
+    } catch {
+      hasRequestFailed.value = true;
+    }
+  }
+
+  function noteEndpoint(id: string): string {
+    return `${annotationsEndpoint}/${encodeURIComponent(id)}`;
+  }
+
   onMounted(() => {
     stream = openMockupStream(
       `${options.baseURL}${mockupEndpoint(options.name, "/events")}`,
@@ -106,10 +119,8 @@ export function useMockupSession(options: MockupSessionOptions): MockupSession {
     hasRequestFailed,
     addAnnotation: (draft) =>
       sendAnnotation(annotationsEndpoint, { method: "POST", body: draft }),
-    setAnnotationStatus: (id, status) =>
-      sendAnnotation(`${annotationsEndpoint}/${encodeURIComponent(id)}`, {
-        method: "PATCH",
-        body: { status },
-      }),
+    updateAnnotation: (id, patch) =>
+      sendAnnotation(noteEndpoint(id), { method: "PATCH", body: patch }),
+    deleteAnnotation,
   };
 }
