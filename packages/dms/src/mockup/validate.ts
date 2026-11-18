@@ -3,6 +3,7 @@ import {
   type BlockTypeDescriptor,
   ValidateBlockOptions,
 } from "@antelopejs/interface-dms/base/block-types";
+import { DEFAULT_PERIOD_SCOPE } from "@antelopejs/interface-dms/base/period-selector";
 import { z } from "zod";
 import type { Json, JsonObject, MockupIssue, MockupNode } from "./model";
 import { jsonObjectSchema, jsonSchema } from "./model";
@@ -171,9 +172,27 @@ const formSections: PreviewAdapter = {
   },
 };
 
+const PERIOD_SELECTOR_TYPE = "PeriodSelector";
+
+/**
+ * A `PeriodSelector` publishes its period under its `id`, which its factory
+ * defaults to {@link DEFAULT_PERIOD_SCOPE}: the scope the page's cards name.
+ * A spec that leaves it out gets the same id, so those cards read a period.
+ */
+const periodScopeId: PreviewAdapter = {
+  applies: (descriptor) => descriptor.type === PERIOD_SELECTOR_TYPE,
+  toComponentOptions: (options) =>
+    Object.hasOwn(options, "id")
+      ? options
+      : { ...options, id: DEFAULT_PERIOD_SCOPE },
+  toFactoryInput: (_descriptor, options) => options,
+  describe: (config) => config,
+};
+
 const PREVIEW_ADAPTERS: readonly PreviewAdapter[] = [
   blockChildren,
   formSections,
+  periodScopeId,
 ];
 
 function adaptersOf(descriptor: BlockTypeDescriptor): PreviewAdapter[] {
