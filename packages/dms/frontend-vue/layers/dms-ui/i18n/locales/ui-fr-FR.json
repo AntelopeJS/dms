@@ -1018,9 +1018,7 @@
       "shortcut_group_preview": "Aperçu",
       "shortcut_preview": "Activer ou quitter l’aperçu",
       "shortcut_close_preview": "Quitter l’aperçu",
-      "page_hidden": "Absente du menu latéral",
-      "overview_links": "Liens entre les pages",
-      "overview_links_hint": "Afficher tous les liens entre les pages"
+      "page_hidden": "Absente du menu latéral"
     },
     "drawer": {
       "resize": "Redimensionner le tiroir"

@@ -1,6 +1,4 @@
-import { z } from "zod";
 import type { PreviewRect } from "./blockPreviewMessages";
-import type { PreviewNode } from "./blockPreview";
 import type { MockupPageState } from "./mockup";
 import type { OverviewFrame } from "./mockupOverview";
 
@@ -18,8 +16,6 @@ export interface OverviewArrow {
   /** `link` when either page links to the other, drawn solid; `parent` when `from` is only the parent of `to`, drawn dashed. */
   kind: OverviewArrowKind;
   isTwoWay: boolean;
-  /** One of the pages is a form of a table: the arrow shows only with one of them in focus, or all of them. */
-  isForm: boolean;
   path: string;
 }
 
@@ -36,9 +32,6 @@ const ANCHOR_OFFSET = 80;
  * titles of a row sit above it, which an arc there would cross.
  */
 const ARC = { base: 80, perWidth: 0.1, most: 200 } as const;
-
-const FORM_KEYS = ["new", "edit", "details"] as const;
-const PAGE_PREFIX = "page:";
 
 const middleOf = (rect: PreviewRect) => rect.x + rect.width / 2;
 
@@ -63,43 +56,6 @@ function arrowPath(from: PreviewRect, to: PreviewRect, offset: number): string {
   return `M ${x1} ${y1} C ${x1} ${y1 + bend} ${x2} ${y2 - bend} ${x2} ${y2}`;
 }
 
-const formEntrySchema = z.object({ urlSlug: z.string().optional() });
-
-/** The part of a table's `formContainer` that names its form pages. */
-const formContainerSchema = z.object({
-  pages: z.object({
-    new: formEntrySchema.optional(),
-    edit: formEntrySchema.optional(),
-    details: formEntrySchema.optional(),
-  }),
-});
-
-function formTargetsOf(node: PreviewNode): string[] {
-  if (node.type !== "TableView") return [];
-  const container = formContainerSchema.safeParse(node.options?.formContainer);
-  if (!container.success) return [];
-  return FORM_KEYS.flatMap((key) => {
-    const slug = container.data.pages[key]?.urlSlug;
-    return slug?.startsWith(PAGE_PREFIX)
-      ? [slug.slice(PAGE_PREFIX.length)]
-      : [];
-  });
-}
-
-function formTargetsUnder(nodes: readonly PreviewNode[]): string[] {
-  return nodes.flatMap((node) => [
-    ...formTargetsOf(node),
-    ...formTargetsUnder(node.children ?? []),
-  ]);
-}
-
-/** The pages some table opens as its new, edit or details form: `formContainer.pages.new`, `.edit` or `.details` of a `TableView`. */
-export function formPageIds(
-  pages: readonly Pick<MockupPageState, "tree">[],
-): Set<string> {
-  return new Set(pages.flatMap((page) => formTargetsUnder(page.tree)));
-}
-
 /** What the arrows of a pair of pages hold: which way each link goes, and whether one page is the other's parent. */
 interface Pair {
   first: string;
@@ -117,10 +73,9 @@ interface Pair {
  */
 export function overviewArrows(
   frames: readonly OverviewFrame[],
-  pages: readonly Pick<MockupPageState, "id" | "links" | "parent" | "tree">[],
+  pages: readonly Pick<MockupPageState, "id" | "links" | "parent">[],
 ): OverviewArrow[] {
   const rects = new Map(frames.map((frame) => [frame.id, frame.rect]));
-  const forms = formPageIds(pages);
   const pairs = new Map<string, Pair>();
   const pairOf = (a: string, b: string): Pair | undefined => {
     if (a === b || !rects.has(a) || !rects.has(b)) return undefined;
@@ -164,7 +119,6 @@ export function overviewArrows(
         to,
         kind: isLink ? "link" : "parent",
         isTwoWay: pair.firstLinksSecond && pair.secondLinksFirst,
-        isForm: forms.has(from) || forms.has(to),
         path: arrowPath(a, b, ANCHOR_OFFSET),
       } satisfies OverviewArrow,
     ];
@@ -172,17 +126,35 @@ export function overviewArrows(
 }
 
 /**
- * The arrows the Overview shows: those of the page in focus, hovered or picked,
- * or every arrow while `showsAll` is on.
+ * How the Overview draws an arrow: `focused` when it touches the page in
+ * focus, hovered or picked, `dimmed` when another page is in focus, else
+ * `plain`.
+ */
+export type OverviewArrowEmphasis = "plain" | "focused" | "dimmed";
+
+/** An arrow of the Overview with its emphasis. */
+export interface ShownArrow extends OverviewArrow {
+  emphasis: OverviewArrowEmphasis;
+}
+
+/**
+ * Every arrow of the Overview, each with its emphasis for the page in
+ * `focus`, the focused ones last so they are drawn over the others.
  */
 export function shownArrows(
   arrows: readonly OverviewArrow[],
   focus: string | undefined,
-  showsAll: boolean,
-): OverviewArrow[] {
-  return arrows.filter(
-    (arrow) =>
-      showsAll ||
-      (focus !== undefined && (arrow.from === focus || arrow.to === focus)),
-  );
+): ShownArrow[] {
+  const emphasisOf = (arrow: OverviewArrow): OverviewArrowEmphasis => {
+    if (focus === undefined) return "plain";
+    return arrow.from === focus || arrow.to === focus ? "focused" : "dimmed";
+  };
+  const shown = arrows.map((arrow) => ({
+    ...arrow,
+    emphasis: emphasisOf(arrow),
+  }));
+  return [
+    ...shown.filter((arrow) => arrow.emphasis !== "focused"),
+    ...shown.filter((arrow) => arrow.emphasis === "focused"),
+  ];
 }

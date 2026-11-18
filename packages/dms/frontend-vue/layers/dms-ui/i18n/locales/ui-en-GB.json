@@ -1018,9 +1018,7 @@
       "shortcut_group_preview": "Preview",
       "shortcut_preview": "Turn Preview on or off",
       "shortcut_close_preview": "Leave Preview",
-      "page_hidden": "Hidden from the sidebar",
-      "overview_links": "Links between pages",
-      "overview_links_hint": "Show every link between pages"
+      "page_hidden": "Hidden from the sidebar"
     },
     "drawer": {
       "resize": "Resize the drawer"

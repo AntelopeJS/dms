@@ -36,10 +36,10 @@ import MockupShortcutTip from "./MockupShortcutTip.vue";
  * which opens its page, as a double-click on it or Enter on it focused do.
  * One arrow joins two pages that link: solid, with a head at each end when
  * they link both ways, and dashed from a parent to a sub-page it does not
- * link to. The arrows of a table's new, edit and details pages show only
- * with one of their two pages hovered or picked, or all of them while the
- * links toggle is on. They are laid out once per layout, in the frames' own
- * pixels, so a pan or a zoom moves them with the frames.
+ * link to. Every arrow shows at all times. While a page is hovered or picked,
+ * its arrows are drawn stronger and over the others, which dim. They are laid
+ * out once per layout, in the frames' own pixels, so a pan or a zoom moves
+ * them with the frames.
  */
 const props = defineProps<{
   overview: MockupOverview;
@@ -69,7 +69,6 @@ const viewport = useTemplateRef<HTMLElement>("viewport");
 const isSpaceHeld = ref(false);
 const hovered = ref<string>();
 const picked = ref<string>();
-const showsAllLinks = ref(false);
 const markerId = useId();
 const panning = ref<{ pointerId: number; x: number; y: number }>();
 
@@ -133,10 +132,10 @@ const arrows = computed(() =>
   overviewArrows(props.overview.frames.value, props.pages),
 );
 const shown = computed(() =>
-  shownArrows(arrows.value, hovered.value ?? picked.value, showsAllLinks.value),
+  shownArrows(arrows.value, hovered.value ?? picked.value),
 );
 
-/** A frame focused with Tab is panned into view, and picked: its arrows show. */
+/** A frame focused with Tab is panned into view, and picked: its arrows stand out. */
 function focusFrame(id: string): void {
   props.overview.reveal(id);
   picked.value = id;
@@ -425,7 +424,7 @@ onBeforeUnmount(() => {
           :data-dms-mockup-overview-arrow="`${arrow.from}>${arrow.to}`"
           :data-kind="arrow.kind"
           :data-two-way="arrow.isTwoWay || undefined"
-          :data-form="arrow.isForm || undefined"
+          :data-emphasis="arrow.emphasis"
         />
       </svg>
       <div
@@ -491,18 +490,6 @@ onBeforeUnmount(() => {
           @click="overview.step(1)"
         />
       </MockupShortcutTip>
-      <MockupShortcutTip :label="t('dms.mockup.overview_links_hint')">
-        <UButton
-          size="xs"
-          color="neutral"
-          :variant="showsAllLinks ? 'soft' : 'ghost'"
-          icon="i-ph-flow-arrow"
-          :aria-label="t('dms.mockup.overview_links')"
-          :aria-pressed="showsAllLinks"
-          data-dms-mockup-overview-links
-          @click="showsAllLinks = !showsAllLinks"
-        />
-      </MockupShortcutTip>
       <MockupShortcutTip
         :label="t('dms.mockup.overview_fit')"
         shortcut="fit_all"
@@ -534,6 +521,14 @@ onBeforeUnmount(() => {
 .dms-overview-arrow {
   fill: none;
   stroke-width: calc(var(--dms-line) * 2);
+}
+
+.dms-overview-arrow[data-emphasis="focused"] {
+  stroke-width: calc(var(--dms-line) * 3);
+}
+
+.dms-overview-arrow[data-emphasis="dimmed"] {
+  opacity: 0.35;
 }
 
 .dms-overview-arrow-link {

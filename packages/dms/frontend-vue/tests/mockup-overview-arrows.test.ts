@@ -1,7 +1,6 @@
 /** @vitest-environment jsdom */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
-  formPageIds,
   overviewArrows,
   shownArrows,
 } from "../layers/dms-ui/app/entries/utils/mockupOverviewArrows";
@@ -29,8 +28,8 @@ describe("Overview arrows", () => {
 
   it("draws one arrow for a pair of pages, solid with a head at each end when they link both ways, though the sub-page is also under its parent (fails when a pair draws an arrow per link and per parent)", () => {
     const arrows = overviewArrows(frames, [
-      { id: "orders", links: ["order", "orders", "gone"], tree: [] },
-      { id: "order", parent: "orders", links: ["orders"], tree: [] },
+      { id: "orders", links: ["order", "orders", "gone"] },
+      { id: "order", parent: "orders", links: ["orders"] },
     ]);
 
     expect(ends(arrows)).toEqual(["link<>orders>order"]);
@@ -38,12 +37,12 @@ describe("Overview arrows", () => {
 
   it("draws a link one way from the page that links, even when the other is its parent, and a parent alone dashed from the parent to its sub-page (fails when the direction follows the parent or the dash is lost)", () => {
     const arrows = overviewArrows(frames, [
-      { id: "orders", tree: [] },
-      { id: "order", parent: "orders", links: ["orders"], tree: [] },
+      { id: "orders" },
+      { id: "order", parent: "orders", links: ["orders"] },
     ]);
     const nested = overviewArrows(frames, [
-      { id: "orders", tree: [] },
-      { id: "order", parent: "orders", tree: [] },
+      { id: "orders" },
+      { id: "order", parent: "orders" },
     ]);
 
     expect(ends(arrows)).toEqual(["link:order>orders"]);
@@ -59,9 +58,9 @@ describe("Overview arrows", () => {
         { id: "d", rect: rect(2000, 1200) },
       ],
       [
-        { id: "a", links: ["b", "c"], tree: [] },
-        { id: "d", links: ["c"], tree: [] },
-        { id: "c", links: ["d"], tree: [] },
+        { id: "a", links: ["b", "c"] },
+        { id: "d", links: ["c"] },
+        { id: "c", links: ["d"] },
       ],
     );
 
@@ -70,30 +69,7 @@ describe("Overview arrows", () => {
     expect(both?.from).toBe("d");
   });
 
-  it("reads the pages a table opens as its new, edit and details forms from its formContainer, wherever the table sits", () => {
-    const table = (pages: Record<string, { urlSlug: string }>) => ({
-      type: "TableView",
-      options: { formContainer: { type: "page", pages } },
-    });
-    const forms = formPageIds([
-      {
-        tree: [
-          { type: "Card", children: [table({ new: { urlSlug: "page:add" } })] },
-          table({
-            edit: { urlSlug: "page:change" },
-            details: { urlSlug: "page:view" },
-            ignored: { urlSlug: "page:other" },
-          }),
-          table({ new: { urlSlug: "elsewhere" } }),
-          { type: "Form", options: { formContainer: { pages: { new: {} } } } },
-        ],
-      },
-    ]);
-
-    expect([...forms].sort()).toEqual(["add", "change", "view"]);
-  });
-
-  it("shows only the arrows of the page in focus, or every arrow while the toggle is on", () => {
+  it("keeps every arrow, plain at rest, and the arrows of the page in focus focused and drawn last while the others dim (fails when an arrow is hidden or a focus emphasises the wrong arrows)", () => {
     const arrows = overviewArrows(
       [
         { id: "a", rect: rect(0, 0) },
@@ -101,29 +77,35 @@ describe("Overview arrows", () => {
         { id: "form", rect: rect(4000, 0) },
       ],
       [
-        {
-          id: "a",
-          links: ["b", "form"],
-          tree: [
-            {
-              type: "TableView",
-              options: {
-                formContainer: { pages: { new: { urlSlug: "page:form" } } },
-              },
-            },
-          ],
-        },
-        { id: "b", links: ["form"], tree: [] },
+        { id: "a", links: ["b", "form"] },
+        { id: "b", links: ["form"] },
       ],
     );
-    const shown = (focus: string | undefined, all: boolean) =>
-      shownArrows(arrows, focus, all).map(({ from, to }) => `${from}>${to}`);
+    const shown = (focus: string | undefined) =>
+      shownArrows(arrows, focus).map(
+        ({ from, to, emphasis }) => `${emphasis}:${from}>${to}`,
+      );
 
-    expect(shown(undefined, false)).toEqual([]);
-    expect(shown("c", false)).toEqual([]);
-    expect(shown("form", false)).toEqual(["a>form", "b>form"]);
-    expect(shown("b", false)).toEqual(["a>b", "b>form"]);
-    expect(shown(undefined, true)).toEqual(["a>b", "a>form", "b>form"]);
+    expect(shown(undefined)).toEqual([
+      "plain:a>b",
+      "plain:a>form",
+      "plain:b>form",
+    ]);
+    expect(shown("c")).toEqual([
+      "dimmed:a>b",
+      "dimmed:a>form",
+      "dimmed:b>form",
+    ]);
+    expect(shown("form")).toEqual([
+      "dimmed:a>b",
+      "focused:a>form",
+      "focused:b>form",
+    ]);
+    expect(shown("b")).toEqual([
+      "dimmed:a>form",
+      "focused:a>b",
+      "focused:b>form",
+    ]);
   });
 });
 
@@ -187,29 +169,35 @@ describe("Overview arrows in the viewer", () => {
         []),
     ].map(
       (path) =>
-        `${path.getAttribute("data-kind")}:${path.getAttribute("data-dms-mockup-overview-arrow")}`,
+        `${path.getAttribute("data-emphasis")}:${path.getAttribute("data-kind")}:${path.getAttribute("data-dms-mockup-overview-arrow")}`,
     );
   const frame = (id: string) =>
     viewer?.host.querySelector<HTMLElement>(
       `[data-dms-mockup-overview-frame="${id}"]`,
     );
 
-  it("draws no arrow at rest, the arrows of a page while it is hovered or picked, and every arrow while the links toggle is on (fails when an arrow shows at rest or never does)", async () => {
-    expect(drawn()).toEqual([]);
+  it("draws every arrow at rest, and brings out a hovered or picked page's arrows while the others dim (fails when an arrow is hidden at rest or a focus hides one)", async () => {
+    expect(drawn()).toEqual([
+      "plain:link:orders>order",
+      "plain:link:report>orders",
+    ]);
+    expect(
+      viewer?.host.querySelector("[data-dms-mockup-overview-links]"),
+    ).toBeNull();
 
     frame("order")?.dispatchEvent(new PointerEvent("pointerenter"));
     await flush();
-    expect(drawn()).toEqual(["link:orders>order"]);
+    expect(drawn()).toEqual([
+      "dimmed:link:report>orders",
+      "focused:link:orders>order",
+    ]);
 
     frame("order")?.dispatchEvent(new PointerEvent("pointerleave"));
     frame("report")?.click();
     await flush();
-    expect(drawn()).toEqual(["link:report>orders"]);
-
-    viewer?.host
-      .querySelector<HTMLElement>("[data-dms-mockup-overview-links]")
-      ?.click();
-    await flush();
-    expect(drawn()).toEqual(["link:orders>order", "link:report>orders"]);
+    expect(drawn()).toEqual([
+      "dimmed:link:orders>order",
+      "focused:link:report>orders",
+    ]);
   });
 });
