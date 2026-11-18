@@ -10,7 +10,7 @@ import {
   pagesCategory,
   RegisterPage,
 } from "@antelopejs/interface-dms/page";
-import { PREVIEW_LAYOUT } from "../pages/public/preview";
+import { MOCKUP_LAYOUT } from "../pages/public/preview";
 import { MOCKUP_API } from "./fixtures";
 
 const { DateType, NumberType, StringType } = DefaultDataTypes;
@@ -32,7 +32,7 @@ export class MockupPage extends PageController(
 
     live: {},
   },
-  PREVIEW_LAYOUT,
+  MOCKUP_LAYOUT,
 ) {
   static content = CustomComponent("DmsMockupViewer");
 }

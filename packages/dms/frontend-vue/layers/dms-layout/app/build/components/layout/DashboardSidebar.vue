@@ -25,9 +25,15 @@ import { PREVIEW_NAVIGATION_ATTRIBUTE } from "#dms-ui/app/entries/composables/bl
  * menu and the account. Given a mockup's `navigation`, it draws the mockup's
  * sections among the app's own entries, which are dimmed and not reachable,
  * and the mockup's widget sketches below the app's widgets; everything else
- * is drawn as in the dashboard and acts on nothing.
+ * is drawn as in the dashboard and acts on nothing. With `lockedCollapsed` it
+ * is the real sidebar fixed to its icon rail: no fold control, the size and
+ * the mobile menu ignored, and the dashboard's persisted collapsed state read
+ * and written by no one.
  */
-const props = defineProps<{ navigation?: PreviewNavigation }>();
+const props = defineProps<{
+  navigation?: PreviewNavigation;
+  lockedCollapsed?: boolean;
+}>();
 
 const MODULES_PATH = "/modules";
 
@@ -51,7 +57,20 @@ const { t } = useI18n();
 const appConfig = useDmsAppConfig();
 const { processI18n } = useTranslation();
 const route = useDmsRoute();
-const { open: sidebarOpen, collapsed: sidebarCollapsed } = useSidebarState();
+const { open: dashboardOpen, collapsed: dashboardCollapsed } =
+  useSidebarState();
+const sidebarOpen = computed({
+  get: () => dashboardOpen.value && !props.lockedCollapsed,
+  set: (open) => {
+    dashboardOpen.value = open;
+  },
+});
+const sidebarCollapsed = computed({
+  get: () => props.lockedCollapsed || dashboardCollapsed.value,
+  set: (collapsed) => {
+    if (!props.lockedCollapsed) dashboardCollapsed.value = collapsed;
+  },
+});
 const { formatShortcut } = useKeyboardPlatform();
 
 const searchShortcutHint = computed(() => formatShortcut(SEARCH_SHORTCUT_KEYS));
@@ -80,7 +99,8 @@ function closeOnLinkClick(event: MouseEvent): void {
   }
 }
 
-const isRail = (collapsed: boolean): boolean => collapsed && !sidebarOpen.value;
+const isRail = (collapsed: boolean): boolean =>
+  props.lockedCollapsed || (collapsed && !sidebarOpen.value);
 
 onMounted(() => window.addEventListener("keydown", closeMobileSidebar));
 onBeforeUnmount(() =>
@@ -297,7 +317,7 @@ const footerItems = computed((): NavigationMenuItem[] => {
     :toggle="false"
     :ui="isMockup ? MOCKUP_SIDEBAR_UI : SIDEBAR_UI"
     collapsible
-    :resizable="!isMockup"
+    :resizable="!isMockup && !lockedCollapsed"
     class="bg-(--dms-bg-sidebar)"
     :class="{
       'fixed inset-y-0 start-0 z-50 flex w-[280px] max-w-[85vw] shadow-xl':

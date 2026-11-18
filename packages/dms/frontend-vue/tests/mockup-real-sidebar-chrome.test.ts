@@ -13,7 +13,9 @@ import {
   applyMenuRouteState,
   translateMenuItems,
 } from "../layers/dms-core/app/utils/menu";
+import MockupLayout from "../layers/dms-layout/app/custom-layouts/MockupLayout.vue";
 import DashboardSidebar from "../layers/dms-layout/app/entries/components/layout/DashboardSidebar";
+import { useSidebarState } from "../layers/dms-layout/app/entries/components/layout/sidebarState";
 import type { PreviewNavigation } from "../layers/dms-ui/app/entries/utils/blockPreview";
 import {
   flush,
@@ -24,6 +26,9 @@ import {
 
 let app: App | undefined;
 let host: HTMLDivElement;
+let sidebarModel = { collapsed: false, resizable: false };
+let groupPersists = true;
+let collapse: (collapsed: boolean) => void = () => {};
 
 beforeEach(() => {
   stubMenuRuntime();
@@ -132,20 +137,47 @@ const find = (selector: string) => host.querySelector<HTMLElement>(selector);
 
 async function mountSidebar(props: {
   navigation?: PreviewNavigation;
+  lockedCollapsed?: boolean;
+  inMockupLayout?: boolean;
 }): Promise<void> {
-  app = createApp({ render: () => h(DashboardSidebar, props) });
+  app = createApp({
+    render: () =>
+      props.inMockupLayout
+        ? h(MockupLayout, null, () => h("p", { "data-viewer": "" }, "Viewer"))
+        : h(DashboardSidebar, props),
+  });
   registerMenu(app);
+  app.component(
+    "UDashboardGroup",
+    defineComponent({
+      inheritAttrs: false,
+      props: { persistent: { type: Boolean, default: true } },
+      setup: (groupProps, { slots }) => {
+        groupPersists = groupProps.persistent;
+        return () => h("div", slots.default?.());
+      },
+    }),
+  );
   app.component(
     "UDashboardSidebar",
     defineComponent({
-      setup:
-        (_, { slots, attrs }) =>
-        () =>
-          h("aside", attrs, [
+      inheritAttrs: false,
+      props: { collapsed: Boolean, resizable: Boolean },
+      emits: ["update:collapsed"],
+      setup: (modelProps, { slots, attrs, emit }) => {
+        collapse = (collapsed) => emit("update:collapsed", collapsed);
+        return () => {
+          sidebarModel = {
+            collapsed: modelProps.collapsed,
+            resizable: modelProps.resizable,
+          };
+          return h("aside", attrs, [
             slots.header?.({ collapsed: false }),
             slots.default?.({ collapsed: false }),
             slots.footer?.({ collapsed: false }),
-          ]),
+          ]);
+        };
+      },
     }),
   );
   app.component("DmsLink", PassThrough("a"));
@@ -223,5 +255,48 @@ describe("the dashboard's sidebar around a mockup", () => {
     expect(find("[data-widget]")?.closest("[inert]")).toBeNull();
     expect(find("[data-search]")).not.toBeNull();
     expect(readApiData).toHaveBeenCalled();
+  });
+
+  it("locks the real sidebar to its rail on the mockup workbench, whatever the dashboard's own state, and never writes that state (fails when a toggle or the persisted state moves it, or the rail grows its labels)", async () => {
+    stubSidebarRuntime();
+    const dashboard = useSidebarState();
+    dashboard.collapsed.value = false;
+    dashboard.open.value = true;
+    await mountSidebar({ lockedCollapsed: true });
+
+    expect(sidebarModel).toEqual({ collapsed: true, resizable: false });
+    collapse(false);
+    await flush();
+    expect(sidebarModel.collapsed).toBe(true);
+    expect(dashboard.collapsed.value).toBe(false);
+    expect(find("button.fixed")).toBeNull();
+    expect(find("aside")?.className).not.toContain("fixed");
+    expect(find("[data-search]")).not.toBeNull();
+    expect(host.querySelector("[inert]")).toBeNull();
+    expect(host.textContent).not.toContain("Live orders");
+  });
+
+  it("folds and unfolds the dashboard's own sidebar as before (fails when the lock leaks into the dashboard)", async () => {
+    stubSidebarRuntime();
+    const dashboard = useSidebarState();
+    dashboard.collapsed.value = false;
+    dashboard.open.value = false;
+    await mountSidebar({});
+
+    expect(sidebarModel.collapsed).toBe(false);
+    collapse(true);
+    await flush();
+    expect(dashboard.collapsed.value).toBe(true);
+    expect(sidebarModel.collapsed).toBe(true);
+  });
+
+  it("is what the mockup workbench's layout draws beside the viewer, in a group that keeps no size of its own (fails when the layout leaves the sidebar unlocked or out, or the group persists sizes)", async () => {
+    stubSidebarRuntime();
+    await mountSidebar({ inMockupLayout: true });
+
+    expect(sidebarModel.collapsed).toBe(true);
+    expect(groupPersists).toBe(false);
+    expect(find("main [data-viewer]")).not.toBeNull();
+    expect(find("main[data-dms-page-content]")).not.toBeNull();
   });
 });
