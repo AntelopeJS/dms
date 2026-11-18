@@ -10,7 +10,9 @@ import {
   type RequestContext,
 } from "@antelopejs/interface-api";
 import type { JsonValue } from "@antelopejs/interface-dms/json";
+import { narrowedAccess } from "./access";
 import {
+  MCP_CLIENT_ACCESS_HEADER,
   MCP_CLIENT_HEADER,
   MCP_SESSION_HEADER,
   McpClientSchema,
@@ -98,6 +100,8 @@ export class McpController extends Controller(CONTROLLER_LOCATION) {
     @Parameter("authorization", "header") authorization: string | undefined,
     @Parameter(MCP_SESSION_HEADER, "header") sessionId: string | undefined,
     @Parameter(MCP_CLIENT_HEADER, "header") client: string | undefined,
+    @Parameter(MCP_CLIENT_ACCESS_HEADER, "header")
+    requestedAccess: string | undefined,
   ): Promise<HTTPResult> {
     if (!isDirectLocalCall(ctx.rawRequest)) {
       return new HTTPResult(HTTP_FORBIDDEN, { error: "forbidden" });
@@ -111,7 +115,10 @@ export class McpController extends Controller(CONTROLLER_LOCATION) {
       return new HTTPResult(HTTP_BAD_REQUEST, PARSE_ERROR);
     }
     const answer = await answerMcpMessage(
-      current.session,
+      {
+        ...current.session,
+        access: narrowedAccess(current.session.access, requestedAccess),
+      },
       message,
       sessionId,
       McpClientSchema.safeParse(client).data,
