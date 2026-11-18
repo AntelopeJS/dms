@@ -10,5 +10,11 @@ const forwarded = useForwardPropsEmits(props, emits);
 </script>
 
 <template>
-  <UInput v-bind="forwarded" leading leading-icon="i-ph-envelope" />
+  <UInput
+    v-bind="forwarded"
+    type="email"
+    autocomplete="off"
+    leading
+    leading-icon="i-ph-envelope"
+  />
 </template>
