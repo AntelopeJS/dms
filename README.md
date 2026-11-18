@@ -8,7 +8,13 @@
 Paste your PostgreSQL, MySQL, MariaDB, MongoDB or RethinkDB connection string.<br>
 One run of your coding agent later, you have the admin pages and dashboards, as TypeScript in your repo.
 
-[Live demo](https://dms-demo.antelopejs.com) · [Quick start](#quick-start) · [Docs](https://dms.antelopejs.com/docs) · [Agent skills](https://github.com/AntelopeJS/agent-skills) · [Discord](https://discord.gg/g4pFt6eXqu)
+[Quick start](#quick-start) · [Live demo](https://dms-demo.antelopejs.com) · [Docs](https://dms.antelopejs.com/docs) · [Discord](https://discord.gg/g4pFt6eXqu)
+
+```bash
+npx @antelopejs/core project init demo --template dms-connect-demo
+```
+
+Then `cd demo && docker compose up` starts AntelopeJS DMS and a sample coffee shop in PostgreSQL.
 
 <img data-illustration alt="GitHub stars" src="https://img.shields.io/github/stars/AntelopeJS/dms?style=for-the-badge&labelColor=000000&color=000000&logo=github"> <a href="https://www.npmjs.com/package/@antelopejs/dms"><img data-illustration alt="npm" src="https://img.shields.io/npm/v/@antelopejs/dms?style=for-the-badge&labelColor=000000&color=000000"></a> <a href="./LICENSE"><img data-illustration alt="License" src="https://img.shields.io/npm/l/@antelopejs/dms?style=for-the-badge&labelColor=000000&color=000000"></a> <a href="https://discord.gg/g4pFt6eXqu"><img data-illustration alt="Discord" src="https://img.shields.io/badge/Discord-18181B?logo=discord&style=for-the-badge&color=000000"></a> <a href="https://dms.antelopejs.com/docs"><img data-illustration alt="Documentation" src="https://img.shields.io/badge/Docs-18181B?style=for-the-badge&color=000000"></a>
 
@@ -20,8 +26,8 @@ One run of your coding agent later, you have the admin pages and dashboards, as 
 
 We ran it on the connect demo, a sample coffee shop on PostgreSQL.
 
-1. Paste the connection string into the Builder and press **Connect**.
-2. Press **Let the assistant finish**. It runs Claude Code or Codex on your own account.
+1. In the assistant's popup, choose **Start from an existing database**, paste the connection string and press **Connect and analyse**.
+2. Choose **Generate a first mockup**. The assistant runs Claude Code or Codex on your own account.
 3. Approve its plan. We approved it as written and changed nothing after that.
 
 | What     | Result                                                     |
@@ -62,7 +68,7 @@ With AntelopeJS DMS those pieces exist, and the agent picks blocks and fills in 
 
 - The agent skills ship inside the npm packages and teach it the API of the version you run.
 - Every block option has a type, so a wrong option fails the build.
-- Through the Builder, nothing is written unless the whole project still compiles.
+- Through the builder tools, nothing is written unless the whole project still compiles.
 
 ## What you get
 
@@ -93,14 +99,14 @@ npx @antelopejs/core project init demo --template dms-connect-demo
 cd demo && docker compose up
 ```
 
-**Start your own project.** Same DMS, no sample data. Connect your database from the Builder, or build the tables from nothing.
+**Start your own project.** Same DMS, no sample data. Connect your database from the assistant's popup, or build the tables from nothing.
 
 ```bash
 npx @antelopejs/core project init my-app --template dms-starter
 cd my-app && docker compose up
 ```
 
-Open the onboarding link the `dms` service prints, create the admin account, then open the Builder's **Database** tab and press **Connect**.
+Open the onboarding link the `dms` service prints and create the admin account. In the assistant's popup, connect Claude Code or Codex, choose **Start from an existing database** and press **Connect and analyse**.
 
 <details>
 <summary><b>Step by step, other databases, and existing AntelopeJS projects</b></summary>
@@ -122,21 +128,13 @@ It also needs an API module, a database module and an authentication module. The
 
 </details>
 
-## Three ways to build
+## Two ways to build
 
 Mix them on the same project. The assistant is a development tool and does not run in production.
 
-### Click in the Builder
-
-Press <kbd>Ctrl</kbd>+<kbd>B</kbd> on any page. Add a table, its fields and its routes, or a block on a page. The Builder writes the TypeScript and saves only if the whole project still compiles.
-
-<img data-illustration src="./docs/media/builder.gif" width="100%" alt="Ctrl B opens the Builder on a dashboard. A TableView block is added, the project is typechecked, and its line appears in dashboard/page.ts.">
-
-<img src="./docs/media/builder-new-table.gif" width="100%" data-illustration alt="The Builder's Tables tab creates a suppliers table, then shows its fields grid with ticks for Shown, Search, Sort, Filter, In export and Required, and the field types.">
-
 ### Ask the assistant
 
-Press <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>K</kbd> in the dashboard and describe what you want. With the Builder installed, chats start in Safe mode, which changes pages, tables and queries through the Builder only. Code mode can also edit any file and run commands.
+Press <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>K</kbd> in the dashboard and describe what you want. Chats start in Safe mode, which changes pages, tables and queries through the builder tools only, and writes nothing unless the whole project still compiles. Code mode can also edit any file and run commands.
 
 <img src="./docs/media/ai-from-scratch.gif" width="100%" data-illustration alt="In Safe mode, the assistant chat builds a Roasting batches table and a page with a tab per roast level, and the page then lists sample batches.">
 
@@ -248,7 +246,7 @@ The core keeps to pages, data, sign-in and roles. The rest installs into the sam
 ## Built for
 
 - **Developers and CTOs** with a product on PostgreSQL, MySQL, MariaDB, MongoDB or RethinkDB who need a back office and dashboards without building them by hand.
-- **Founders and ops people** who'd rather click than code. Once a developer has installed it, the Builder and the assistant do the rest.
+- **Founders and ops people** who'd rather click than code. Once a developer has installed it, the assistant does the rest.
 
 [How it compares to other admin tools](https://dms.antelopejs.com/compare)
 
@@ -278,7 +276,7 @@ No. With `NODE_ENV=production` the assistant starts no agent, and the route your
 <details>
 <summary><b>Can it change my data?</b></summary>
 
-Generated pages are read-only until you switch on **Rows can be edited** for a table. The connection can still do whatever its database account allows, so a SELECT-only account is a good start.
+Generated pages are read-only until you ask the assistant to make a table editable. The connection can still do whatever its database account allows, so a SELECT-only account is a good start.
 
 </details>
 

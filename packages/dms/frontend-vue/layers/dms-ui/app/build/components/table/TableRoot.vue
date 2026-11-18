@@ -135,7 +135,6 @@ const skeletonWidth = (rowIndex: number, columnIndex: number): string =>
 const {
   hasScrollArea,
   isScrolled,
-  scrollEdges,
   onTableScroll,
   tableRootRef,
   tableViewportWidth,
@@ -187,7 +186,6 @@ const reorderHandles = useReorderHandles({
 });
 
 const {
-  scrollFadeInsets,
   getPinnedLeftOffset,
   getPinnedRightOffset,
   getPinnedVariant,
@@ -419,9 +417,9 @@ const bodyContext = computed<TableBodyContext<T>>(() => ({
 }));
 
 /**
- * The rows, rendered outside this component's own render: the header, the
- * scroll fades and the measured widths re-render the table, and the rows
- * follow only when their context changes.
+ * The rows, rendered outside this component's own render: the header and the
+ * measured widths re-render the table, and the rows follow only when their
+ * context changes.
  */
 const TableBodyOutlet = () =>
   h(TableBody<T>, { context: bodyContext.value }, slots);
@@ -567,7 +565,7 @@ defineShortcuts({
             <span :class="uiTable.loadingBarIndicator()" />
           </div>
 
-          <div ref="tableBase" :class="uiTable.tableBase()">
+          <div :class="uiTable.tableBase()">
             <table :class="uiTable.table()">
               <caption v-if="caption" :class="uiTable.tableCaption()">
                 {{ caption }}
@@ -642,20 +640,6 @@ defineShortcuts({
             </table>
           </div>
         </section>
-        <span
-          v-if="scrollEdges.start"
-          aria-hidden="true"
-          data-table-scroll-fade="start"
-          :class="uiTable.scrollFade({ side: 'start' })"
-          :style="{ insetInlineStart: `${scrollFadeInsets.start}px` }"
-        />
-        <span
-          v-if="scrollEdges.end"
-          aria-hidden="true"
-          data-table-scroll-fade="end"
-          :class="uiTable.scrollFade({ side: 'end' })"
-          :style="{ insetInlineEnd: `${scrollFadeInsets.end}px` }"
-        />
       </div>
 
       <TablePagination />
