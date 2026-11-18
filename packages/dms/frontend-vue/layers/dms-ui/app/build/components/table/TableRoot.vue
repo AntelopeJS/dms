@@ -417,9 +417,9 @@ const bodyContext = computed<TableBodyContext<T>>(() => ({
 }));
 
 /**
- * The rows, rendered outside this component's own render: the header, the
- * scroll fades and the measured widths re-render the table, and the rows
- * follow only when their context changes.
+ * The rows, rendered outside this component's own render: the header and the
+ * measured widths re-render the table, and the rows follow only when their
+ * context changes.
  */
 const TableBodyOutlet = () =>
   h(TableBody<T>, { context: bodyContext.value }, slots);
