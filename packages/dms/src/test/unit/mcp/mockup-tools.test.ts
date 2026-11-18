@@ -437,12 +437,13 @@ function describesSafeMode(): void {
       expect(listed.result.tools.map((tool) => tool.name)).to.include.members([
         "mockup_annotations",
         "mockup_resolve_annotation",
+        "mockup_read_spec",
         "mockup_write_spec",
         "mockup_patch_spec",
       ]);
     });
 
-    it("keeps the effects the descriptions promise: annotations read, the rest builder", () => {
+    it("keeps the effects the descriptions promise: annotations and read_spec read, the rest builder", () => {
       const effects = Object.fromEntries(
         MCP_TOOLS.filter((tool) => tool.name.startsWith("mockup_")).map(
           (tool) => [tool.name, tool.effect],
@@ -452,6 +453,7 @@ function describesSafeMode(): void {
       expect(effects).to.deep.equal({
         mockup_annotations: "read",
         mockup_resolve_annotation: "builder",
+        mockup_read_spec: "read",
         mockup_write_spec: "builder",
         mockup_patch_spec: "builder",
         mockup_from_page: "builder",

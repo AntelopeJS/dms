@@ -993,7 +993,7 @@
       "prompt_custom_zone": "Dans la maquette {mockup}, page « {page} » : modifier la zone personnalisée « {label} ».",
       "prompt_build": "Construire la maquette {name} avec le skill dms-mockup-build.",
       "prompt_build_page": "Construire la maquette {name} dans la page existante {ref} avec le skill dms-mockup-build. Mettre à jour cette page, ne pas en créer une nouvelle.",
-      "prompt_resolve_comments": "Résoudre les commentaires ouverts de la maquette {name} : les lister avec mockup_annotations (status open), appliquer chacun à la spec avec mockup_patch_spec, puis le marquer résolu avec mockup_resolve_annotation.",
+      "prompt_resolve_comments": "Résoudre les commentaires ouverts de la maquette {name} : les lister avec mockup_annotations (status open), lire uniquement les parties de la spec dont vous avez besoin avec mockup_read_spec (un path tel que le pointer d'une note), appliquer chacun à la spec avec mockup_patch_spec, puis le marquer résolu avec mockup_resolve_annotation.",
       "prompt_mockup_titled": "« {title} » ({name})",
       "real_data": "Données réelles",
       "real_data_hint": "Lire les données réelles des routes de la page dont cette maquette est issue, au lieu de ses données d’exemple.",

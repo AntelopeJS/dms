@@ -993,7 +993,7 @@
       "prompt_custom_zone": "In mockup {mockup}, page \"{page}\": change the custom zone \"{label}\".",
       "prompt_build": "Build mockup {name} with the dms-mockup-build skill.",
       "prompt_build_page": "Build mockup {name} into the existing page {ref} with the dms-mockup-build skill. Update that page; do not create a new one.",
-      "prompt_resolve_comments": "Resolve the open comments of mockup {name}: list them with mockup_annotations (status open), apply each one to the spec with mockup_patch_spec, then mark it resolved with mockup_resolve_annotation.",
+      "prompt_resolve_comments": "Resolve the open comments of mockup {name}: list them with mockup_annotations (status open), read only the parts of the spec you need with mockup_read_spec (a path such as the pointer of a note), apply each one to the spec with mockup_patch_spec, then mark it resolved with mockup_resolve_annotation.",
       "prompt_mockup_titled": "\"{title}\" ({name})",
       "real_data": "Real data",
       "real_data_hint": "Read live data from the routes of the page this mockup was made from, instead of its sample fixtures.",
