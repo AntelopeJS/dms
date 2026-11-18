@@ -133,8 +133,9 @@ const {
   draftCalendar,
   draftCompareCalendar,
   selectCalendarRange,
-  updateStart,
-  updateEnd,
+  fieldCalendar,
+  typeDay,
+  leaveField,
   segmentedPreset,
   onSegmentedClick,
 } = usePeriodSelectorInteraction(props, period, draft, isCustomEnabled);
@@ -309,33 +310,33 @@ const segmentedItems = usePeriodSelectorSegments(
             <div
               class="grid grid-cols-1 gap-2 min-[22rem]:grid-cols-2 md:grid-cols-[1fr_1fr_1.25fr]"
             >
-              <label class="grid gap-1">
+              <label class="grid gap-1" @focusout="leaveField">
                 <span :class="FIELD_LABEL_CLASS">
                   {{ $t("dms.period.popover.start", "Start") }}
                 </span>
                 <UInputDate
-                  :model-value="draftCalendar.start"
+                  :model-value="fieldCalendar.start"
                   :locale="locale"
                   :disabled="!isCustomEnabled"
                   size="sm"
                   class="w-full"
                   :ui="{ base: 'font-mono text-xs' }"
-                  @update:model-value="updateStart"
+                  @update:model-value="typeDay('start', $event)"
                 />
               </label>
-              <label class="grid gap-1">
+              <label class="grid gap-1" @focusout="leaveField">
                 <span :class="FIELD_LABEL_CLASS">
                   {{ $t("dms.period.popover.end", "End") }}
                 </span>
                 <UInputDate
-                  :model-value="draftCalendar.end"
+                  :model-value="fieldCalendar.end"
                   :locale="locale"
                   :disabled="!isCustomEnabled"
                   :highlight="!!pendingStart"
                   size="sm"
                   class="w-full"
                   :ui="{ base: 'font-mono text-xs' }"
-                  @update:model-value="updateEnd"
+                  @update:model-value="typeDay('end', $event)"
                 />
               </label>
               <label
