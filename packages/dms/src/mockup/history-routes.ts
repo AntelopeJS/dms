@@ -31,10 +31,16 @@ import type {
   Json,
   JsonObject,
   MockupName,
+  MockupNode,
   MockupPageState,
   MockupState,
 } from "./model";
-import { fixtureKeySchema, pageIdSchema, parseMockupName } from "./model";
+import {
+  fixtureKeySchema,
+  jsonObjectSchema,
+  pageIdSchema,
+  parseMockupName,
+} from "./model";
 import { MockupOwnerController } from "./owner-controller";
 import { readSpecText, type SpecWriteResult, withSpecLock } from "./source";
 
@@ -93,8 +99,8 @@ function checkParam(
 
 /**
  * The pages of a compiled spec with every fixture URL read from the version
- * `seq` instead of from the mockup as it is now. The URLs are the only place
- * the prefix appears, and it holds no character JSON escapes.
+ * `seq` instead of from the mockup as it is now. The URLs sit in the options
+ * of the nodes of `tree` and `realTree`, the only place the prefix appears.
  */
 function readingVersion(
   pages: MockupPageState[],
@@ -103,10 +109,27 @@ function readingVersion(
 ): MockupPageState[] {
   const live = `${MOCKUP_API}/${name}/pages/`;
   const own = `${MOCKUP_API}/${name}/history/${seq}/pages/`;
-  // SAFETY: the pages are plain JSON, and replacing text inside their strings keeps every key and shape.
-  return JSON.parse(
-    JSON.stringify(pages).replaceAll(live, own),
-  ) as MockupPageState[];
+  const value = (entry: Json): Json => {
+    if (Array.isArray(entry)) return entry.map(value);
+    const object = jsonObjectSchema.safeParse(entry);
+    if (object.success) return fields(object.data);
+    const text = z.string().safeParse(entry);
+    return text.success ? text.data.replaceAll(live, own) : entry;
+  };
+  const fields = (object: JsonObject): JsonObject =>
+    Object.fromEntries(
+      Object.entries(object).map(([key, entry]) => [key, value(entry)]),
+    );
+  const node = (entry: MockupNode): MockupNode => ({
+    ...entry,
+    ...(entry.options && { options: fields(entry.options) }),
+    ...(entry.children && { children: entry.children.map(node) }),
+  });
+  return pages.map((page) => ({
+    ...page,
+    tree: page.tree.map(node),
+    ...(page.realTree && { realTree: page.realTree.map(node) }),
+  }));
 }
 
 /** The mockup a version was recorded for, compiled as the viewer draws it. */

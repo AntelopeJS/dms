@@ -6,7 +6,7 @@ import {
   h,
   nextTick,
   type App,
-  type PropType,
+  type FunctionalComponent,
 } from "vue";
 import { createI18n } from "vue-i18n";
 import { afterEach, beforeEach, vi } from "vitest";
@@ -86,46 +86,42 @@ const UBadge = defineComponent({
 });
 
 /** Draws what `UDropdownMenu` would, flat: every item of every group a button. */
-const UDropdownMenu = defineComponent({
-  props: {
-    items: {
-      // SAFETY: Vue's runtime prop type is a plain Array; the menu groups are what the card passes.
-      type: Array as PropType<MenuItem[][]>,
-      default: () => [],
-    },
-  },
-  setup: (props, { slots }) => () =>
-    h("div", [
-      slots.default?.(),
-      h(
-        "ul",
-        props.items.flat().map((item) =>
-          h("li", [
-            h(
-              "button",
-              {
-                type: "button",
-                "data-menu-item": item.label,
-                onClick: item.onSelect,
-              },
-              item.label,
-            ),
-          ]),
-        ),
+const UDropdownMenu: FunctionalComponent<{ items?: MenuItem[][] }> = (
+  props,
+  { slots },
+) =>
+  h("div", [
+    slots.default?.(),
+    h(
+      "ul",
+      (props.items ?? []).flat().map((item) =>
+        h("li", [
+          h(
+            "button",
+            {
+              type: "button",
+              "data-menu-item": item.label,
+              onClick: item.onSelect,
+            },
+            item.label,
+          ),
+        ]),
       ),
-    ]),
-});
+    ),
+  ]);
 
 /** Draws a modal's body and footer while it is open. */
 const UModal = defineComponent({
   props: { open: Boolean, title: String },
-  setup: (props, { slots }) => () =>
-    props.open
-      ? h("div", { "data-modal": props.title }, [
-          slots.body?.(),
-          slots.footer?.(),
-        ])
-      : null,
+  setup:
+    (props, { slots }) =>
+    () =>
+      props.open
+        ? h("div", { "data-modal": props.title }, [
+            slots.body?.(),
+            slots.footer?.(),
+          ])
+        : null,
 });
 
 const UButton = defineComponent({
@@ -143,22 +139,26 @@ const UButton = defineComponent({
 const UInput = defineComponent({
   props: { modelValue: String },
   emits: ["update:modelValue"],
-  setup: (props, { emit, attrs }) => () =>
-    h("input", {
-      ...attrs,
-      value: props.modelValue,
-      onInput: (event: Event) => {
-        if (event.target instanceof HTMLInputElement) {
-          emit("update:modelValue", event.target.value);
-        }
-      },
-    }),
+  setup:
+    (props, { emit, attrs }) =>
+    () =>
+      h("input", {
+        ...attrs,
+        value: props.modelValue,
+        onInput: (event: Event) => {
+          if (event.target instanceof HTMLInputElement) {
+            emit("update:modelValue", event.target.value);
+          }
+        },
+      }),
 });
 
 const UFormField = defineComponent({
   props: { error: [String, Boolean] },
-  setup: (props, { slots }) => () =>
-    h("div", [slots.default?.(), props.error ? h("p", props.error) : null]),
+  setup:
+    (props, { slots }) =>
+    () =>
+      h("div", [slots.default?.(), props.error ? h("p", props.error) : null]),
 });
 
 interface MenuItem {
