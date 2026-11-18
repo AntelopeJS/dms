@@ -105,6 +105,8 @@ export function stubPages(
           displayName: page.displayName,
           category: page.category,
           filepath: page.filepath,
+          ...(page.order !== undefined && { order: page.order }),
+          ...(page.section !== undefined && { section: page.section }),
         })),
       );
     },

@@ -49,8 +49,6 @@ export interface BlockPreviewEmbed {
   inspecting: Ref<boolean>;
   /** The route parameters the last `render` gave the blocks, for their `{{params.X}}` tokens. */
   params: Ref<Record<string, string> | undefined>;
-  /** The route of the live page the last `render` drew in place of the tree, read-only. */
-  live: Ref<string | undefined>;
   /** Tells the embedding page what went wrong. */
   reportError: (message: string) => void;
 }
@@ -148,7 +146,6 @@ export function useBlockPreviewEmbed(options: EmbedOptions): BlockPreviewEmbed {
   const revision = ref(0);
   const inspecting = ref(false);
   const params = ref<Record<string, string>>();
-  const live = ref<string>();
   let observer: ResizeObserver | undefined;
   let stopObservingBlocks: (() => void) | undefined;
   let layoutFrame: number | undefined;
@@ -200,7 +197,6 @@ export function useBlockPreviewEmbed(options: EmbedOptions): BlockPreviewEmbed {
       previewNavigation.value = message.navigation;
       previewHeader.value = message.header;
       params.value = message.params;
-      live.value = message.live;
       revision.value += 1;
     },
     theme: (message) => {
@@ -269,7 +265,6 @@ export function useBlockPreviewEmbed(options: EmbedOptions): BlockPreviewEmbed {
     padding,
     inspecting,
     params,
-    live,
     reportError: (message) => postToParent(previewErrorMessage(message)),
   };
 }

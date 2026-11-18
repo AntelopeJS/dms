@@ -8,10 +8,6 @@ import RolePreviewBar from "./RolePreviewBar.vue";
 import { useAppWidgets } from "../../../composables/useAppWidgets";
 import { useVisitNavBadges } from "../../composables/navigation/useVisitNavBadges";
 import { useSidePanelRoom } from "#dms-ui/app/entries/composables/layout/sidePanelState";
-import {
-  BARE_FRAME_QUERY,
-  BARE_FRAME_VALUE,
-} from "#dms-ui/app/entries/utils/liveFrame";
 
 const DASHBOARD_STORAGE_KEY = "dms-dashboard";
 const DASHBOARD_SIZE_UNIT = "px";
@@ -71,12 +67,6 @@ const regionAttrs = computed(() =>
 );
 
 const groupAttrs = useSidePanelRoom(SIDE_PANEL_ROOM_CLASS);
-
-/** A mockup draws the page bare, read-only, under its own sidebar and top bar: no click reaches it, and it still scrolls. */
-const route = useDmsRoute();
-const isBare = computed(
-  () => route.query[BARE_FRAME_QUERY] === BARE_FRAME_VALUE,
-);
 </script>
 
 <template>
@@ -86,10 +76,10 @@ const isBare = computed(
     :unit="DASHBOARD_SIZE_UNIT"
     v-bind="groupAttrs"
   >
-    <DashboardSidebar v-if="!isBare" />
+    <DashboardSidebar />
 
     <UDashboardPanel>
-      <template v-if="!isBare" #header>
+      <template #header>
         <DashboardHeader />
         <DashboardBanners />
         <RolePreviewBar />
@@ -101,18 +91,17 @@ const isBare = computed(
           data-dms-page-content
           :full-width="props.fullWidth"
           :class="regionClass"
-          :inert="isBare || undefined"
           v-bind="regionAttrs"
         >
           <slot />
         </Container>
       </template>
 
-      <template v-if="!isBare" #footer>
+      <template #footer>
         <DmsAppWidgetsDock />
       </template>
     </UDashboardPanel>
 
-    <GithubStarPrompt v-if="!isBare" />
+    <GithubStarPrompt />
   </UDashboardGroup>
 </template>

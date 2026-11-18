@@ -59,7 +59,6 @@ const NO_BLOCK_OPTIONS = [
   "mockup_write_spec",
   "mockup_patch_spec",
   "mockup_from_page",
-  "mockup_from_app",
 ] as const;
 
 type BlockWriter = (typeof BLOCK_WRITERS)[number];

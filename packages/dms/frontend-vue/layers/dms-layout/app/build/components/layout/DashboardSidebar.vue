@@ -15,16 +15,15 @@ import { useMediaQuery } from "@vueuse/core";
 import DmsSidebarUserMenu from "./SidebarUserMenu.vue";
 import MockupSidebarMenu from "./MockupSidebarMenu.vue";
 import BlockPreviewSketch from "#dms-ui/app/entries/components/block-preview/BlockPreviewSketch";
-import { dimmedMenu } from "./mockupMenu";
 import { useInstalledModuleCount } from "../../../composables/page/useInstalledModules";
 import type { PreviewNavigation } from "#dms-ui/app/entries/utils/blockPreview";
 import { PREVIEW_NAVIGATION_ATTRIBUTE } from "#dms-ui/app/entries/composables/block-preview/previewNavigation";
 
 /**
  * The dashboard's sidebar: the brand, the sidebar widgets, the search, the
- * menu and the account. Given a mockup's `navigation`, it draws the mockup's
- * sections among the app's own entries, which are dimmed and not reachable,
- * and the mockup's widget sketches below the app's widgets; everything else
+ * menu and the account. Given a mockup's `navigation`, its menu is the
+ * mockup's own sections, none of the app's entries or favorites, and the
+ * mockup's widget sketches follow the app's widgets; everything else
  * is drawn as in the dashboard and acts on nothing. With `lockedCollapsed` it
  * is the real sidebar fixed to its icon rail: no fold control, the size and
  * the mobile menu ignored, and the dashboard's persisted collapsed state read
@@ -255,8 +254,9 @@ const moduleCount = isMockup.value
   ? computed(() => 0)
   : useInstalledModuleCount();
 
+/** A mockup's sidebar is the spec's own menu: the app's favorites stay out of it. */
 const shownFavoriteItems = computed(() =>
-  isMockup.value ? dimmedMenu(favoriteItems.value) : favoriteItems.value,
+  isMockup.value ? [] : favoriteItems.value,
 );
 
 const footerItems = computed((): NavigationMenuItem[] => {
@@ -429,7 +429,6 @@ const footerItems = computed((): NavigationMenuItem[] => {
         v-if="navigation"
         v-model:open="openCategories"
         :navigation="navigation"
-        :existing="items"
         :collapsed="isRail(sidebarRail)"
       />
       <DmsNavigationMenu

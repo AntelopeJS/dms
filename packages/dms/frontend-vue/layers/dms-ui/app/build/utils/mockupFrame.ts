@@ -11,7 +11,6 @@ import type {
   MockupSidebarWidget,
 } from "./mockup";
 import { groupSections } from "./mockupSections";
-import type { PreviewPageStatus } from "./previewPageStatus";
 import { currentSketchScheme } from "./sketch";
 
 const HOME_ICON = "i-ph-house-light";
@@ -50,39 +49,24 @@ export function mockupPageIcon(
 
 type NavigationPage = Pick<
   MockupPageState,
-  "id" | "title" | "icon" | "category" | "menu" | "parent" | "livePage" | "live"
+  "id" | "title" | "icon" | "category" | "menu" | "parent"
 >;
 
 /**
- * What a page is beside the live app: a live reference page is `live`, a
- * page converted from a live page `edited`, any other `new`.
- */
-export function mockupPageStatus(
-  page: Pick<MockupPageState, "live" | "livePage">,
-): PreviewPageStatus {
-  if (page.live) return "live";
-  return page.livePage ? "edited" : "new";
-}
-
-/** Whether a mockup stands for the whole platform: it holds a live reference page. */
-export function isWholeAppMockup(
-  pages: readonly Pick<MockupPageState, "live">[],
-): boolean {
-  return pages.some((page) => page.live !== undefined);
-}
-
-/**
- * The titles of the pages a whole-platform mockup builds, in the spec's
- * order: its edited and new pages, never a live reference page, which
- * stands for its live page untouched. Undefined for any other mockup.
+ * The titles of the pages a mockup of an existing app builds, in the spec's
+ * order: each page it converted from a live page, which the build updates,
+ * and each new one, never a table's generated form page. Undefined for a
+ * mockup that is one converted page, whose build targets that page, and for
+ * a mockup with no converted page, which is built whole.
  */
 export function pagesToBuild(
-  pages: readonly Pick<MockupPageState, "title" | "live" | "generated">[],
+  pages: readonly Pick<MockupPageState, "title" | "livePage" | "generated">[],
 ): string[] | undefined {
-  if (!isWholeAppMockup(pages)) return undefined;
-  return pages.flatMap((page) =>
-    page.live || page.generated ? [] : [`"${page.title}"`],
-  );
+  const own = pages.filter((page) => page.generated !== true);
+  if (own.length < 2 || !own.some((page) => page.livePage !== undefined)) {
+    return undefined;
+  }
+  return own.map((page) => `"${page.title}"`);
 }
 
 /** What the preview's sidebar lists of a mockup. */
@@ -131,12 +115,9 @@ function menuEntryOf(
 
 /**
  * The mockup's pages as the preview's sidebar lists them: under their
- * sections, each page with its icon and the route of the live page it was
- * converted from, and `active` as the current one. A page with `menu: false`
+ * sections, each page with its icon, and `active` as the current one. A page with `menu: false`
  * is left out, and while it is the current one, its nearest listed parent is.
- * The mockup's sidebar widgets follow, each `title` the caption over it. A
- * whole-platform mockup's sidebar is its own menu, each page with its
- * {@link mockupPageStatus}.
+ * The mockup's sidebar widgets follow, each `title` the caption over it.
  */
 export function mockupNavigation(
   source: MockupNavigationSource,
@@ -149,7 +130,6 @@ export function mockupNavigation(
     indexed,
     ({ page }) => page.category,
   );
-  const wholeApp = isWholeAppMockup(source.pages);
   return {
     title: source.title,
     sections: sections.map((section) => ({
@@ -158,13 +138,10 @@ export function mockupNavigation(
         id: page.id,
         label: page.title,
         icon: sidebarIcon(page, index),
-        ...(page.livePage && { livePage: page.livePage.ref }),
-        ...(wholeApp && { status: mockupPageStatus(page) }),
       })),
     })),
     active: menuEntryOf(source.pages, source.active),
     ...(source.editable && { editable: true }),
-    ...(wholeApp && { wholeApp: true }),
     ...(source.widgets &&
       source.widgets.length > 0 && {
         widgets: source.widgets.map(sidebarWidget),
@@ -193,13 +170,11 @@ export function mockupPageRender(
     locale: page.options.locale,
     padding: page.options.padding ?? true,
     navigation,
-    ...(page.live && { live: page.live.ref }),
     header: {
       title: page.title,
       icon: page.icon,
       description: page.description,
       actions: page.headerActions,
-      ...(navigation.wholeApp && { status: mockupPageStatus(page) }),
     },
   });
 }

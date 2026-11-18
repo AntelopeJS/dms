@@ -236,24 +236,6 @@ describe("[unit] mockup apply to its live page, refused", () => {
     expect(builder.writes).to.deep.equal([]);
   });
 
-  it("answers not_linked for a live reference page and writes nothing, so a build skips it (fails an apply that builds a page standing for its live page)", async () => {
-    await writeFile(
-      t.specFile(),
-      JSON.stringify({
-        version: 1,
-        pages: [{ id: "books", title: "Books", live: { ref: "/books" } }],
-      }),
-    );
-    const builder = builderOver([structureOf("/books", BLOCKS, CONVERTED)]);
-
-    const answer = await t.apply(builder);
-
-    expect(answer).to.deep.include({ ok: false, error: "not_linked" });
-    expect(JSON.stringify(answer)).to.contain("live reference");
-    expect(builder.writes).to.deep.equal([]);
-    expect(builder.reads).to.deep.equal([]);
-  });
-
   it("passes on the issues the builder refused the draft with, and records no version (fails an apply that hides why)", async () => {
     const before = await t.editTitle("Income");
     const issue = { pointer: "/blocks/0/config", message: "bad option" };

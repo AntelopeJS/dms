@@ -192,28 +192,6 @@
             },
             "tree": {
               "maxItems": 0
-            },
-            "live": false
-          }
-        },
-        {
-          "required": [
-            "live"
-          ],
-          "propertyNames": {
-            "enum": [
-              "id",
-              "title",
-              "icon",
-              "category",
-              "menu",
-              "live",
-              "tree"
-            ]
-          },
-          "properties": {
-            "tree": {
-              "maxItems": 0
             }
           }
         },
@@ -228,8 +206,7 @@
             "html": false,
             "css": false,
             "height": false,
-            "states": false,
-            "live": false
+            "states": false
           }
         }
       ],
@@ -381,22 +358,6 @@
             "version": {
               "type": "string",
               "description": "Its source file's version at the conversion."
-            }
-          }
-        },
-        "live": {
-          "type": "object",
-          "required": [
-            "ref"
-          ],
-          "additionalProperties": false,
-          "description": "Makes the page a live reference: it stands for a live page of the app, untouched, and the viewer draws that page itself, read-only, with real data. Such a page holds only id, title, icon, category, menu and live. mockup_from_app writes one per page of the app's menu, in menu order; to change one, write a converted page in its place (mockup_from_app pages), which holds livePage instead. The build leaves it as it is.",
-          "properties": {
-            "ref": {
-              "type": "string",
-              "pattern": "^\\/(?![/\\\\])[^\\s\\p{Cc}]*$",
-              "maxLength": 2048,
-              "description": "The live page's route, as builder_list_pages lists its ref, e.g. \"/orders\"."
             }
           }
         },

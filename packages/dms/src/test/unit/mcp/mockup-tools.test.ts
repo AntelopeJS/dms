@@ -493,7 +493,6 @@ function describesSafeMode(): void {
         mockup_write_spec: "builder",
         mockup_patch_spec: "builder",
         mockup_from_page: "builder",
-        mockup_from_app: "builder",
         mockup_apply_to_page: "builder",
       });
     });

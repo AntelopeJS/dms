@@ -169,6 +169,24 @@ describe("Build it", () => {
     );
   });
 
+  it("names every page a mockup of an existing app builds, converted and new, and targets no single live page (fails when Build it builds only the page on screen)", async () => {
+    await viewer.publish(
+      "state",
+      mockupState({
+        pages: [
+          { ...STATE.pages[0], livePage: { ref: "/orders" } },
+          mockupPage({ id: "forecast", title: "Forecast" }),
+          mockupPage({ id: "order-form", title: "Order", generated: true }),
+        ],
+      }),
+    );
+    await click("[data-dms-mockup-build]");
+    expect(received).toEqual([{ prompt: "demo", source: "build" }]);
+    expect(modal()?.textContent?.trim()).toBe(
+      'dms.mockup.prompt_build_pages demo,"Orders", "Forecast"',
+    );
+  });
+
   it("adds the mockup's title when it differs from its name, in the event and in the copy, and keeps the name as the prompt (fails when the request names the folder alone)", async () => {
     await viewer.publish("state", mockupState({ title: "Shop admin" }));
 

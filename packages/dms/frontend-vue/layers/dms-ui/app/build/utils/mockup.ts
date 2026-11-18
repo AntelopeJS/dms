@@ -74,8 +74,6 @@ export interface MockupPageState {
    */
   realTree?: PreviewNode[];
   livePage?: MockupLivePage;
-  /** The live page a live reference page stands for, drawn itself, read-only. */
-  live?: { ref: string };
   /** Spec JSON pointer of each node, keyed by the layout path the preview gives it. */
   paths: Record<string, string>;
 }
@@ -335,8 +333,6 @@ function isPageState(
       (Array.isArray(value.realTree) && isPreviewTree(value.realTree))) &&
     (value.livePage === undefined ||
       (isRecord(value.livePage) && isString(value.livePage.ref))) &&
-    (value.live === undefined ||
-      (isRecord(value.live) && isString(value.live.ref))) &&
     isRecord(value.paths) &&
     Object.values(value.paths).every((pointer) => isString(pointer))
   );

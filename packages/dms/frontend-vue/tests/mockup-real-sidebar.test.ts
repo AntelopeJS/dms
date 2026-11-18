@@ -1,13 +1,8 @@
 /** @vitest-environment jsdom */
 import { createApp, h, type App } from "vue";
-import type { NavigationMenuItem } from "@nuxt/ui";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import MockupSidebarMenu from "../layers/dms-layout/app/entries/components/layout/MockupSidebarMenu";
-import {
-  DIMMED_ENTRY_CLASS,
-  dimmedMenu,
-  mockupMenu,
-} from "../layers/dms-layout/app/entries/components/layout/mockupMenu";
+import { mockupMenu } from "../layers/dms-layout/app/entries/components/layout/mockupMenu";
 import { PREVIEW_CHANNEL } from "../layers/dms-ui/app/entries/utils/blockPreview";
 import {
   flush,
@@ -16,17 +11,6 @@ import {
   shopNavigation,
   stubMenuRuntime,
 } from "./helpers/mockup-sidebar";
-
-const EXISTING: NavigationMenuItem[][] = [
-  [
-    { label: "Examples", type: "label" },
-    {
-      label: "Overview",
-      to: "/examples/overview",
-      children: [{ label: "Charts", to: "/examples/charts" }],
-    },
-  ],
-];
 
 let app: App | undefined;
 let host: HTMLDivElement;
@@ -45,9 +29,9 @@ afterEach(() => {
 });
 
 describe("the mockup's menu", () => {
-  it("lists the default section's pages bare and each category as a label over its pages, leaving out an empty one, the active page marked (fails when a section loses its header or an empty one shows)", () => {
+  it("lists the default section's pages under its Pages header and each category as a label over its pages, leaving out an empty one, the active page marked (fails when a section loses its header or an empty one shows)", () => {
     const select = vi.fn<(id: string) => void>();
-    const { groups } = mockupMenu(shopNavigation(false), [], {
+    const { groups } = mockupMenu(shopNavigation(false), {
       defaultSection: "Pages",
       select,
     });
@@ -57,7 +41,10 @@ describe("the mockup's menu", () => {
         group.map((item) => [item.type ?? "link", item.label, item.active]),
       ),
     ).toEqual([
-      [["link", "Home", false]],
+      [
+        ["label", "Pages", undefined],
+        ["link", "Home", false],
+      ],
       [
         ["label", "Sales", undefined],
         ["link", "Orders", true],
@@ -68,7 +55,7 @@ describe("the mockup's menu", () => {
   });
 
   it("while editing, lists every category and heads the default section too (fails when an empty section cannot take a dropped page)", () => {
-    const { groups } = mockupMenu(shopNavigation(true), [], {
+    const { groups } = mockupMenu(shopNavigation(true), {
       defaultSection: "Pages",
       select: () => {},
     });
@@ -79,40 +66,13 @@ describe("the mockup's menu", () => {
       "Customers",
     ]);
   });
-
-  it("dims every entry of the app's own menu and takes away its link and its action (fails when an existing page stays reachable from a mockup)", () => {
-    const dimmed = dimmedMenu(EXISTING).flat();
-    const entries = [
-      ...dimmed,
-      ...dimmed.flatMap((item) => item.children ?? []),
-    ];
-
-    expect(entries).toHaveLength(3);
-    for (const entry of entries) {
-      expect(entry.to).toBeUndefined();
-      expect(entry.disabled).toBe(true);
-      expect(entry.class).toContain(DIMMED_ENTRY_CLASS);
-    }
-  });
 });
 
-/** The app's own Sales section, which the mockup's Sales joins. */
-const APP_SALES: NavigationMenuItem[][] = [
-  [
-    { label: "SALES", type: "label" },
-    { label: "Invoices", to: "/invoices" },
-  ],
-];
-
-async function mountMenu(
-  editable: boolean,
-  existing: NavigationMenuItem[][] = EXISTING,
-): Promise<void> {
+async function mountMenu(editable: boolean): Promise<void> {
   app = createApp({
     render: () =>
       h(MockupSidebarMenu, {
         navigation: shopNavigation(editable),
-        existing,
         collapsed: false,
         open: [],
       }),
@@ -141,17 +101,17 @@ async function type(selector: string, value: string): Promise<void> {
 }
 
 describe("the sidebar's menu around a mockup", () => {
-  it("draws the app's entries dimmed and out of reach, then the mockup's pages, which pick the page (fails when the app's pages act or a mockup page does not)", async () => {
+  it("draws the mockup's pages alone, under the real menu's Pages header, which pick the page (fails when an app entry shows or a mockup page does not act)", async () => {
     await mountMenu(false);
 
     const rows = [...host.querySelectorAll("button")];
     expect(rows.map((row) => row.textContent?.trim())).toEqual([
-      "Overview",
       "Home",
       "Orders",
     ]);
-    expect(rows[0]?.disabled).toBe(true);
-    expect(rows[0]?.dataset.to).toBeUndefined();
+    expect(find('[data-dms-preview-section=""]')?.textContent?.trim()).toBe(
+      "menu.section.pages",
+    );
     expect(
       find('[data-dms-preview-page="orders"]')?.getAttribute("aria-current"),
     ).toBe("page");
@@ -269,38 +229,6 @@ describe("the sidebar's menu around a mockup", () => {
         channel: PREVIEW_CHANNEL,
         type: "section-edit",
         edit: { kind: "movePageTo", page: "orders", category: null, index: 0 },
-      },
-    ]);
-  });
-});
-
-describe("a mockup section merged with the app's", () => {
-  it("renames the mockup's section from the merged header and leaves the app's entries in it as they are (fails when the merged header edits nothing)", async () => {
-    await mountMenu(true, APP_SALES);
-
-    const section = titleOf("sales").closest("ul");
-    expect(
-      [
-        ...(section?.querySelectorAll<HTMLButtonElement>(
-          ":scope > li > button",
-        ) ?? []),
-      ].map((row) => [row.textContent?.trim(), row.disabled]),
-    ).toEqual([
-      ["Invoices", true],
-      ["Orders", false],
-    ]);
-
-    titleOf("sales").dispatchEvent(
-      new MouseEvent("dblclick", { bubbles: true }),
-    );
-    await flush();
-    await type('input[aria-label="dms.mockup.section_name"]', "Selling");
-
-    expect(posted("section-edit")).toEqual([
-      {
-        channel: PREVIEW_CHANNEL,
-        type: "section-edit",
-        edit: { kind: "updateCategory", category: "sales", title: "Selling" },
       },
     ]);
   });

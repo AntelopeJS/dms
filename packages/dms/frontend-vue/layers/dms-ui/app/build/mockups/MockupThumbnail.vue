@@ -19,9 +19,8 @@ import { mockupNavigation } from "../utils/mockupFrame";
 import { currentSketchScheme } from "../utils/sketch";
 
 /**
- * A live, scaled-down drawing of the whole first page of a mockup that is
- * not a live reference page: the real `/dms-preview` (on live routes for a
- * page converted from a live page), at desktop width and a 16:10 screen, shrunk to the card's
+ * A live, scaled-down drawing of the whole first page of a mockup: the real
+ * `/dms-preview` (on live routes for a page converted from a live page), at desktop width and a 16:10 screen, shrunk to the card's
  * width. It reads the mockup and loads the frame once the thumbnail scrolls
  * into view, and leaves a quiet placeholder when the mockup cannot be read or
  * has no page to draw.
@@ -46,12 +45,7 @@ useResizeObserver(band, ([entry]) => {
   bandWidth.value = entry?.contentRect.width ?? 0;
 });
 
-/** The first page the mockup draws itself: a live reference page shows a live page, not the mockup. */
-const page = computed(
-  () =>
-    state.value?.pages.find((candidate) => candidate.live === undefined) ??
-    state.value?.pages[0]
-);
+const page = computed(() => state.value?.pages[0]);
 /** A page converted from a live page is drawn on its live routes, the others on fixtures that refuse them. */
 const previewPath = computed(() =>
   mockupPreviewPath(readsRealData(page.value, undefined)),

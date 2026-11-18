@@ -1,3 +1,4 @@
+import type { JsonObject } from "./model";
 import {
   SKETCH_DEFAULT_STATE,
   SKETCH_MAX_CAPTION,
@@ -10,8 +11,6 @@ import {
 } from "./sketch";
 import { SIDEBAR_WIDGET_MAX_HEIGHT } from "./sketch-limits";
 import {
-  type JsonObject,
-  LIVE_PAGE_FIELDS,
   MAX_SIDEBAR_WIDGETS,
   SIDEBAR_WIDGET_DEFAULT_HEIGHT,
   SLUG_PATTERN,
@@ -56,23 +55,13 @@ export const CUSTOM_PAGE_PROPERTIES: JsonObject = {
 
 /**
  * A custom page writes `custom: true` and its `html`, and no block in
- * `tree`; a live reference page writes its `live` and only its menu entry
- * beside it; any other page writes its `tree` and no sketch field.
+ * `tree`; any other page writes its `tree` and no sketch field.
  */
 export const CUSTOM_PAGE_RULE: JsonObject = {
   anyOf: [
     {
       required: ["custom", "html"],
-      properties: {
-        custom: { const: true },
-        tree: { maxItems: 0 },
-        live: false,
-      },
-    },
-    {
-      required: ["live"],
-      propertyNames: { enum: [...LIVE_PAGE_FIELDS] },
-      properties: { tree: { maxItems: 0 } },
+      properties: { custom: { const: true }, tree: { maxItems: 0 } },
     },
     {
       required: ["tree"],
@@ -82,7 +71,6 @@ export const CUSTOM_PAGE_RULE: JsonObject = {
         css: false,
         height: false,
         states: false,
-        live: false,
       },
     },
   ],

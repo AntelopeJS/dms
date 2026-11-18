@@ -45,7 +45,6 @@ const TAKES_NO_FREE_FORM_VALUE: readonly string[] = [
   "builder_create_theme_layer",
   "mockup_resolve_annotation",
   "mockup_from_page",
-  "mockup_from_app",
   "mockup_apply_to_page",
 ];
 

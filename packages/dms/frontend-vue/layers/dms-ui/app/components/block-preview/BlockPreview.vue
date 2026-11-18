@@ -2,7 +2,6 @@
 import { isString } from "../../../../dms-core/app/utils/type-check";
 import { markRaw, type Component } from "vue";
 import BlockPreviewIssue from "../../build/components/block-preview/BlockPreviewIssue.vue";
-import BlockPreviewLivePage from "../../build/components/block-preview/BlockPreviewLivePage.vue";
 import BlockPreviewSketch from "../../build/components/block-preview/BlockPreviewSketch.vue";
 import { previewHeader } from "../../build/composables/block-preview/previewNavigation";
 import { useBlockPreviewEmbed } from "../../build/composables/block-preview/useBlockPreviewEmbed";
@@ -89,7 +88,7 @@ const PAGE_HEADER_COMPONENT = "DmsPreviewPageHeader";
 
 /** The dashboard's page header, when a mockup's render asked the preview to draw one above the blocks. */
 const headerComponent = computed(() =>
-  embed && previewHeader.value && livePage.value === undefined
+  embed && previewHeader.value
     ? resolveDmsComponent(PAGE_HEADER_COMPONENT)
     : undefined,
 );
@@ -99,8 +98,6 @@ const blockTypes = computed(() => props.blockTypes ?? fetchedBlockTypes.value);
 const tree = computed(() => (embed ? embed.tree.value : props.tree));
 const revision = computed(() => embed?.revision.value ?? 0);
 const routeParams = computed(() => embed?.params.value);
-/** The live page a mockup's live reference page draws in place of blocks. */
-const livePage = computed(() => embed?.live.value);
 const isTransparent = computed(() => embed?.transparent.value ?? false);
 const isPadded = computed(
   () => embed?.padding.value ?? (props.embed || props.padding),
@@ -177,16 +174,15 @@ onMounted(async () => {
     data-dms-block-preview
     :data-dms-preview-transparent="isTransparent || undefined"
     :data-dms-inspecting="embed?.inspecting.value || undefined"
-    :class="{ 'p-4 sm:p-6': isPadded && livePage === undefined }"
+    :class="{ 'p-4 sm:p-6': isPadded }"
   >
     <component
       :is="headerComponent"
       v-if="headerComponent && previewHeader"
       :header="previewHeader"
     />
-    <BlockPreviewLivePage v-if="livePage !== undefined" :path="livePage" />
     <UAlert
-      v-else-if="isStateInvalid"
+      v-if="isStateInvalid"
       color="error"
       variant="subtle"
       icon="i-ph-warning-circle"

@@ -18,7 +18,6 @@ import type {
   JsonObject,
   MockupCategory,
   MockupIssue,
-  MockupLiveRef,
   MockupName,
   MockupNode,
   MockupPageState,
@@ -347,7 +346,6 @@ function compilePage(
   pointer: string,
   spec: SpecScope,
 ): MockupPageState {
-  if (page.live) return liveRefState(page, page.live);
   const pageScope = scopeOf(page, spec, spec.issues);
   const isCustom = page.custom === true;
   const tree = isCustom
@@ -391,26 +389,6 @@ function compilePage(
   if (page.description !== undefined) state.description = page.description;
   if (page.headerActions) state.headerActions = page.headerActions;
   if (page.livePage) state.livePage = { ref: page.livePage.ref };
-  return state;
-}
-
-/** A live reference page as the viewer draws it: the live page itself, with no tree of its own. */
-function liveRefState(
-  page: MockupSpecPage,
-  live: MockupLiveRef,
-): MockupPageState {
-  const state: MockupPageState = {
-    id: page.id,
-    title: page.title,
-    options: {},
-    links: [],
-    tree: [],
-    paths: {},
-    live: { ref: live.ref },
-  };
-  if (page.menu === false) state.menu = false;
-  if (page.category !== undefined) state.category = page.category;
-  if (page.icon !== undefined) state.icon = page.icon;
   return state;
 }
 

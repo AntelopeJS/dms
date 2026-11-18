@@ -1,6 +1,6 @@
 import type { Ref } from "vue";
 import type { MockupPageState } from "../../utils/mockup";
-import { isWholeAppMockup, pagesToBuild } from "../../utils/mockupFrame";
+import { pagesToBuild } from "../../utils/mockupFrame";
 import { blockName, nodeLabel } from "../../utils/mockupOutline";
 import { layoutPathOf, nodeAt } from "../../utils/mockupSpec";
 import type { MockupSpecDocument } from "../../utils/mockupSpec";
@@ -24,8 +24,8 @@ interface ViewerHandoffOptions {
  * What the viewer asks of the DMS assistant: build the mockup, or the live
  * page a converted page names, resolve the open comments of the page on
  * screen or of every page, and write a block's custom zone. Each is a
- * request to the handoff, and the runs follow the assistant's answers. A
- * whole-platform mockup's build names its edited and new pages alone.
+ * request to the handoff, and the runs follow the assistant's answers. The
+ * build of a mockup of an existing app names the pages it builds.
  */
 export function useMockupViewerHandoff(options: ViewerHandoffOptions) {
   const { t } = useI18n();
@@ -93,7 +93,7 @@ export function useMockupViewerHandoff(options: ViewerHandoffOptions) {
       if (request) handoff.request(request);
     },
     build(): void {
-      const livePage = isWholeAppMockup(options.pages.value)
+      const livePage = pagesToBuild(options.pages.value)
         ? undefined
         : options.currentPage.value?.livePage;
       handoff.request({
