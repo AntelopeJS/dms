@@ -20,6 +20,7 @@ export const mockupReadSpecTool = defineTool({
   description:
     "Reads mockups/<mockup>/spec.json, or one part of it, and answers it as JSON text. path is an RFC 6901 JSON pointer into the spec, such as /pages/0/tree/2/options; leave it out, or pass an empty string, to read the whole spec. Read only the part you need: a page is /pages/<index>, its blocks /pages/<index>/tree, and mockup_annotations gives the pointer of each note's block, so use that rather than reading the whole spec. A pointer that leads nowhere is an error naming the deepest value that exists on the way and what it holds (its keys, or the indexes of an array), so you can correct it. Changes nothing. To change the spec, call mockup_patch_spec with the same pointers. An unknown mockup is an error.",
   effect: "read",
+  alwaysLoad: true,
   input: z.object({
     mockup: mockupArgument,
     path: z

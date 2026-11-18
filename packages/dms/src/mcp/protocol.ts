@@ -4,6 +4,7 @@ import { isToolAllowed, type McpAccess } from "./access";
 import type { McpClient } from "./bridge";
 import { JsonObjectSchema, JsonValueSchema } from "./json";
 import {
+  type McpInputSchema,
   type McpTool,
   type McpToolResult,
   ThrownReasonSchema,
@@ -64,20 +65,36 @@ function negotiatedVersion(params: JsonValue | undefined): string {
   return known ?? PROTOCOL_VERSIONS[0];
 }
 
+/** One tool as `tools/list` hands it out. */
+type ListedTool = {
+  name: string;
+  title: string;
+  description: string;
+  inputSchema: McpInputSchema;
+  annotations: { title: string; readOnlyHint: boolean };
+  _meta?: { "anthropic/alwaysLoad": true };
+};
+
 function listTools(session: McpSession): JsonValue {
   return {
     tools: session.tools
       .filter((tool) => isToolAllowed(tool, session.access))
-      .map((tool) => ({
-        name: tool.name,
-        title: tool.title,
-        description: tool.description,
-        inputSchema: tool.inputSchema,
-        annotations: {
+      .map((tool) => {
+        const listed: ListedTool = {
+          name: tool.name,
           title: tool.title,
-          readOnlyHint: tool.effect === "read",
-        },
-      })),
+          description: tool.description,
+          inputSchema: tool.inputSchema,
+          annotations: {
+            title: tool.title,
+            readOnlyHint: tool.effect === "read",
+          },
+        };
+        if (tool.alwaysLoad === true) {
+          listed._meta = { "anthropic/alwaysLoad": true };
+        }
+        return listed;
+      }),
   };
 }
 

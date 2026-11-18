@@ -36,6 +36,11 @@ export interface McpTool {
   title: string;
   description: string;
   effect: McpToolEffect;
+  /**
+   * Whether an agent client loads this tool's definition upfront rather than
+   * behind its tool search, as `_meta["anthropic/alwaysLoad"]` in `tools/list`.
+   */
+  alwaysLoad?: boolean;
   inputSchema: McpInputSchema;
   /**
    * Parses the arguments against the tool's schema, then runs it.
@@ -61,6 +66,11 @@ export interface McpToolSpec<Fields extends McpInputFields> {
   title: string;
   description: string;
   effect: McpToolEffect;
+  /**
+   * Whether an agent client loads this tool's definition upfront rather than
+   * behind its tool search, as `_meta["anthropic/alwaysLoad"]` in `tools/list`.
+   */
+  alwaysLoad?: boolean;
   input: z.ZodObject<Fields>;
   run(
     args: z.infer<z.ZodObject<Fields>>,
@@ -124,6 +134,7 @@ export function defineTool<Fields extends McpInputFields>(
     title: spec.title,
     description: spec.description,
     effect: spec.effect,
+    alwaysLoad: spec.alwaysLoad === true,
     inputSchema: inputSchemaOf(spec.input),
     async call(args, sessionId, client) {
       const parsed = spec.input.safeParse(args ?? {});

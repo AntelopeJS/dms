@@ -10,6 +10,7 @@ export const mockupResolveAnnotationTool = defineTool({
   description:
     "Marks one annotation of a mockup resolved, after you addressed it in the spec. Sets its status to 'resolved' and stamps resolvedAt and resolvedVersion (the history version that is newest now, so write the spec first); writes only mockups/<mockup>/annotations.json, never the spec. Answers the updated annotation. An unknown mockup or id is an error: call mockup_annotations to list the ids. Resolving a resolved annotation changes nothing.",
   effect: "builder",
+  alwaysLoad: true,
   input: z.object({
     mockup: mockupArgument,
     id: z.string().describe("An annotation id from mockup_annotations."),

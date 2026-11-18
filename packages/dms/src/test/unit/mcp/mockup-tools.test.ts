@@ -443,6 +443,41 @@ function describesSafeMode(): void {
       ]);
     });
 
+    it("marks only the four everyday mockup tools for upfront loading in tools/list", async () => {
+      const listed = z
+        .object({
+          result: z.object({
+            tools: z.array(
+              z.object({
+                name: z.string(),
+                _meta: z
+                  .object({ "anthropic/alwaysLoad": z.literal(true) })
+                  .optional(),
+              }),
+            ),
+          }),
+        })
+        .parse(
+          await answerMcpMessage(
+            { access: "safe", tools: MCP_TOOLS },
+            { jsonrpc: "2.0", id: 1, method: "tools/list" },
+            undefined,
+          ),
+        );
+
+      expect(
+        listed.result.tools
+          .filter((tool) => tool._meta !== undefined)
+          .map((tool) => tool.name)
+          .sort(),
+      ).to.deep.equal([
+        "mockup_annotations",
+        "mockup_patch_spec",
+        "mockup_read_spec",
+        "mockup_resolve_annotation",
+      ]);
+    });
+
     it("keeps the effects the descriptions promise: annotations and read_spec read, the rest builder", () => {
       const effects = Object.fromEntries(
         MCP_TOOLS.filter((tool) => tool.name.startsWith("mockup_")).map(
