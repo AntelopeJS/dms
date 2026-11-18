@@ -27,7 +27,6 @@ const HOME = mockupPage({
   title: "Home",
   tree: [],
   paths: {},
-  live: { ref: "/" },
 });
 
 const added = (id: string) =>

@@ -207,13 +207,13 @@ function reachable(): HTMLElement[] {
 }
 
 describe("the dashboard's sidebar around a mockup", () => {
-  it("draws the brand, the widgets, the search and the account but lets only the mockup's pages act, and reads nothing for itself (fails when a copied control acts or each frame reads the module store)", async () => {
+  it("draws the brand, the widgets, the search and the account but lists only the mockup's pages and lets only them act, and reads nothing for itself (fails when a copied control acts, the app's own pages show or each frame reads the module store)", async () => {
     const { readApiData, cleanupFavorites } = stubSidebarRuntime();
     await mountSidebar({ navigation: shopNavigation(false) });
 
     expect(find("[data-widget]")).not.toBeNull();
     expect(host.querySelector("img")).not.toBeNull();
-    expect(host.textContent).toContain("Live orders");
+    expect(host.textContent).not.toContain("Live orders");
     expect(reachable().map((element) => element.textContent?.trim())).toEqual([
       "Home",
       "Orders",

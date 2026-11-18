@@ -240,11 +240,11 @@ describe("the preview's sidebar and the Overview", () => {
     });
   });
 
-  it("names the live page a converted page comes from, and hands the sidebar's widgets to the frame, each title its caption (fails when the sidebar cannot tell a converted page's live entry or never gets the widgets)", () => {
+  it("hands the sidebar's widgets to the frame, each title its caption (fails when the sidebar never gets the widgets)", () => {
     const navigation = mockupNavigation({
       title: "Shop",
       categories: [],
-      pages: [{ id: "orders", title: "Orders", livePage: { ref: "/orders" } }],
+      pages: [{ id: "orders", title: "Orders" }],
       active: "orders",
       widgets: [
         { id: "plan", title: "Your plan", html: "<p>Pro</p>", height: 120 },
@@ -252,7 +252,6 @@ describe("the preview's sidebar and the Overview", () => {
       ],
     });
 
-    expect(navigation.sections[0]?.items[0]?.livePage).toBe("/orders");
     expect(navigation.widgets).toEqual([
       { id: "plan", caption: "Your plan", html: "<p>Pro</p>", height: 120 },
       { id: "help", html: "<p>Help</p>", css: "p{}", height: 90 },
