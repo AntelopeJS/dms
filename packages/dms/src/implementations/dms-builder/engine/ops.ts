@@ -47,12 +47,7 @@ import {
   UnknownDataTypeError,
   UnknownReferenceError,
 } from "./value";
-import {
-  findPageClass,
-  getWritableProject,
-  refreshFromDisk,
-  Transaction,
-} from "./writable";
+import { findPageClass, openWritableProject, Transaction } from "./writable";
 
 export function notFound<T = void>(ref: string): OpResult<T> {
   return { ok: false, error: { code: "not_found", ref } };
@@ -149,8 +144,7 @@ export function openPage(ref: string): PageContext | OpResult<never> {
   if (!page) {
     return notFound<never>(ref);
   }
-  const project = getWritableProject();
-  refreshFromDisk(project);
+  const project = openWritableProject();
   const sourceFile = project.getSourceFile(page.filepath);
   if (!sourceFile) {
     return notFound<never>(page.filepath);

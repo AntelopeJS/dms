@@ -123,13 +123,16 @@ describe("[unit] the install state or the tsconfig changed between two builder o
 
   after(() => destroyFixture());
 
-  it("keeps both parses when neither changed", async function () {
+  it("keeps both parses when an install rewrote its state with the same content", async function () {
     this.timeout(OP_TIMEOUT);
     expectOk(await addBanner(), "AddBlock");
     const writable = getWritableProject();
     const indexed = indexedProject().project;
 
-    expectOk(await addBanner(), "AddBlock with nothing installed");
+    installLabels("v1");
+    const later = Date.now() / 1000 + 10;
+    fs.utimesSync(nodeModules(".modules.yaml"), later, later);
+    expectOk(await addBanner(), "AddBlock after a no-op install");
 
     expect(getWritableProject()).to.equal(writable);
     expect(indexedProject().project).to.equal(indexed);
@@ -143,6 +146,7 @@ describe("[unit] the install state or the tsconfig changed between two builder o
 
     writeLabelsVersion("v2", "published");
     installLabels("v2");
+    expect(getWritableProject()).to.equal(writable);
     const result = await addBanner();
 
     expect(failedFiles(result)).to.deep.equal([

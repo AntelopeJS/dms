@@ -45,7 +45,7 @@ import {
   unsupported,
 } from "./ops";
 import { UnknownDataTypeError, UnknownReferenceError } from "./value";
-import { getWritableProject, refreshFromDisk, Transaction } from "./writable";
+import { openWritableProject, Transaction } from "./writable";
 import { describeValue } from "./describe-value";
 import { mappedConnectionOfFile } from "./mapped-modules";
 import { moduleOfFile } from "./modules";
@@ -60,8 +60,7 @@ interface OpenResource {
 }
 
 export function openResource(record: ResourceRecord): OpenResource | undefined {
-  const project = getWritableProject();
-  refreshFromDisk(project);
+  const project = openWritableProject();
   const databaseFile = project.getSourceFile(record.databaseFile);
   const dataApiFile = project.getSourceFile(record.dataApiFile);
   if (!databaseFile || !dataApiFile) {
@@ -239,8 +238,7 @@ export function createResource(
       );
     }
   }
-  const project = getWritableProject();
-  refreshFromDisk(project);
+  const project = openWritableProject();
   const placement = resolveResourcePlacement(project, input);
   if ("ok" in placement) {
     return placement;

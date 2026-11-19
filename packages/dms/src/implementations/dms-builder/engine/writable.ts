@@ -33,16 +33,34 @@ import {
 let writable: { project: Project; inputs: ResolutionInputs } | undefined;
 
 /**
- * The project every operation edits and typechecks, kept across operations. It is built again
- * once a {@link ResolutionInputs} file has changed, since its module resolutions and compiler
- * options are read only when it is built.
+ * The project every operation edits and typechecks, as {@link openWritableProject} last left it.
+ * Every read within one operation answers the same project.
  */
 export function getWritableProject(): Project {
-  if (!writable || resolutionInputsChanged(writable.inputs)) {
-    const inputs = readResolutionInputs();
-    writable = { project: createModulesProject(), inputs };
+  if (!writable) {
+    writable = {
+      project: createModulesProject(),
+      inputs: readResolutionInputs(),
+    };
   }
   return writable.project;
+}
+
+/**
+ * The writable project in line with the disk, for an operation to start from. Once a
+ * {@link ResolutionInputs} file has changed it is built again, since its module resolutions and
+ * compiler options are read only when it is built; otherwise it is refreshed with
+ * {@link refreshFromDisk}.
+ */
+export function openWritableProject(): Project {
+  if (writable && resolutionInputsChanged(writable.inputs)) {
+    const inputs = readResolutionInputs();
+    writable = { project: createModulesProject(), inputs };
+    return writable.project;
+  }
+  const project = getWritableProject();
+  refreshFromDisk(project);
+  return project;
 }
 
 /**

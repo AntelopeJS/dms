@@ -52,7 +52,7 @@ import { pagesToRemove, writePages } from "./map-resources-pages";
 import { type EmitContext, UnknownReferenceError } from "./value";
 import {
   getWritableProject,
-  refreshFromDisk,
+  openWritableProject,
   resolveRootBarrel,
   Transaction,
 } from "./writable";
@@ -313,8 +313,7 @@ function planned(
       `map into a local module bound to the database, not ${module ? "the project's own" : `unknown module "${input.module}"`}: ${boundModulesSentence(input.connection)}`,
     );
   }
-  const project = getWritableProject();
-  refreshFromDisk(project);
+  const project = openWritableProject();
   const src = srcDir(project, input.module);
   if (!src) {
     return unsupported<MapResourcesResult>(
@@ -485,7 +484,7 @@ async function withDescriptions<T>(
       outside.length > 0
         ? [...own, ...(await catalog.DescribeRelations(outside))]
         : own;
-    refreshFromDisk(getWritableProject());
+    openWritableProject();
     return await run(
       descriptions,
       await displayDefaultsOf(input, descriptions, catalog),

@@ -45,7 +45,7 @@ import { isPlainObject } from "./plain-object";
 import {
   findPageClass,
   getWritableProject,
-  refreshFromDisk,
+  openWritableProject,
   Transaction,
 } from "./writable";
 
@@ -489,8 +489,6 @@ export async function composePage(
   if (issues.length > 0) {
     return invalid(issues);
   }
-  if (!input.create) {
-    refreshFromDisk(getWritableProject());
-  }
+  openWritableProject();
   return write(input, opts);
 }
