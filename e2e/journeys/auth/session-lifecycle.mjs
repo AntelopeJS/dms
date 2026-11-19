@@ -302,6 +302,11 @@ export const sessionLifecycleJourneys = [
         agedTab.visible({ role: "heading", name: "Service unavailable" }),
       ]);
       await ctx.startDatabase();
+      for (let attempt = 1; attempt <= 10; attempt += 1) {
+        const back = await ctx.api(`read the signed-in account once the database is back, attempt ${attempt}`, { method: "GET", path: "/api/auth/me" });
+        if (back.status !== 503) break;
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+      }
       await tab.goto(MEMBERS);
       await ctx.verify("the session survives the outage", [tab.at(ON_MEMBERS), tab.visible({ role: "heading", name: "Members", exact: true })]);
     },

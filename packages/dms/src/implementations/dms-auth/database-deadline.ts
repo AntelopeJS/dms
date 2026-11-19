@@ -53,6 +53,7 @@ export async function readBeforeDeadline<T>(
     return await Promise.race([read(), deadline]);
   } catch (error: unknown) {
     if (Date.now() >= unavailableUntil) {
+      unavailableUntil = Date.now() + AUTH_DATABASE_DEADLINE_MS;
       if (error instanceof DeadlineExceeded) {
         Logging.Warn(
           `[DMS-AUTH] The database did not answer a session read within ${AUTH_DATABASE_DEADLINE_MS} ms`,
@@ -61,7 +62,6 @@ export async function readBeforeDeadline<T>(
         Logging.Warn("[DMS-AUTH] A session read failed", error);
       }
     }
-    unavailableUntil = Date.now() + AUTH_DATABASE_DEADLINE_MS;
     throw new DatabaseUnavailable();
   } finally {
     clearTimeout(timer);

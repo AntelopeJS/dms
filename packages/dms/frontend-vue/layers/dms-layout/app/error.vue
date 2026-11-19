@@ -37,7 +37,7 @@ const ERROR_CONFIGS: Record<
     tone: "warning",
   },
   503: {
-    icon: "i-ph-database",
+    icon: "i-ph-cloud-slash",
     titleKey: "error.503.title",
     descriptionKey: "error.503.description",
     tone: "warning",
