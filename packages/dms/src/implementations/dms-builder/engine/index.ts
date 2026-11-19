@@ -32,6 +32,7 @@ export * from "./mapped-literals";
 export * from "./mapped-modules";
 export * from "./module-loader";
 export * from "./module-reload";
+export { indexedProject } from "./indexed-project";
 export * from "./modules";
 export * from "./native-kind";
 export * from "./ops";

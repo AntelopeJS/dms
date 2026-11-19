@@ -6,8 +6,10 @@ import {
   CreateCategory,
   CreatePage,
 } from "../../../implementations/dms-builder";
-import { getWritableProject } from "../../../implementations/dms-builder/engine";
-import { indexedProject } from "../../../implementations/dms-builder/engine/indexed-project";
+import {
+  getWritableProject,
+  indexedProject,
+} from "../../../implementations/dms-builder/engine";
 import {
   createFixture,
   destroyFixture,
