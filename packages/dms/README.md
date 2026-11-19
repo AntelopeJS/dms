@@ -110,7 +110,7 @@ Each DMS release declares the renderer releases it runs on in `engines["@antelop
 
 The runtime guides live in [`docs/`](./docs). The canonical contract reference belongs to [`@antelopejs/interface-dms`](../interface-dms/docs/index.md), not this runtime package.
 
-The package ships the core Claude Code skills (`dms`, `dms-auth`, `dms-module`, `dms-project`) in [`skills/`](https://github.com/AntelopeJS/dms/tree/main/packages/dms/skills), declared under `antelopeJs.skills`; [Install the plugin](https://dms.antelopejs.com/docs/ai-and-claude-code/install) to use them. The plugin itself ships `antelopejs:dms-pages` and `antelopejs:dms-best-practices`.
+The package ships the core Claude Code skills (`dms`, `dms-auth`, `dms-module`, `dms-project`) in [`skills/`](https://github.com/AntelopeJS/dms/tree/main/packages/dms/skills), declared under `antelopeJs.skills`; [Install the plugin](https://dms.antelopejs.com/docs/ai-and-claude-code/coding-agent/install) to use them. The plugin itself ships `antelopejs:dms-pages` and `antelopejs:dms-best-practices`.
 
 ## Contributing
 
