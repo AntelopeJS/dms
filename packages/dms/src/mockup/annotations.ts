@@ -1,27 +1,27 @@
 import { randomBytes } from "node:crypto";
-import { readFile, stat } from "node:fs/promises";
-import { join } from "node:path";
 import { z } from "zod";
 import {
   anchorSite,
-  blockAnchorSchema,
   type BlockTree,
   locateAnchor,
   locateBlock,
   type NoteAnchor,
-  noteAnchorSchema,
   type NoteSite,
   viewOf,
 } from "./anchor";
 import { parseSpec } from "./compile";
 import {
-  ANNOTATIONS_FILE,
-  defaultMockupsDir,
-  MISSING_FILE,
-  parseFsError,
-  mockupDirectory,
-  writeAtomically,
-} from "./files";
+  annotationsPath,
+  exists,
+  FILE_VERSION,
+  pinOffsetSchema,
+  readAnnotationsFile,
+  serialized,
+  statusSchema,
+  type StoredAnnotation,
+  writeAnnotationsFile,
+} from "./annotations-file";
+import { defaultMockupsDir, mockupDirectory } from "./files";
 import { newestVersion } from "./history";
 import type {
   Json,
@@ -30,12 +30,7 @@ import type {
   MockupName,
   MockupSpec,
 } from "./model";
-import {
-  annotationIdSchema,
-  jsonPointer,
-  pageIdSchema,
-  specValueAt,
-} from "./model";
+import { jsonPointer, pageIdSchema, specValueAt } from "./model";
 import { SKETCH_STATE_PATTERN } from "./sketch";
 import {
   readSpecSource,
@@ -47,28 +42,14 @@ import {
 const MAX_TEXT = 2000;
 const MAX_POINTER = 2048;
 const ID_BYTES = 12;
-const JSON_INDENT = 2;
-const FILE_VERSION = 3;
 
 const textSchema = z.string().trim().min(1).max(MAX_TEXT);
-const statusSchema = z.enum(["open", "resolved"]);
-const versionNumberSchema = z.number().int().positive();
-const fractionSchema = z.number().min(0).max(1);
 
 /** A spec JSON pointer: `""` or `/`-led segments. */
 const pointerSchema = z
   .string()
   .max(MAX_POINTER)
   .regex(/^(?:\/[^/]*)*$/);
-
-/**
- * Where a pin sits on what it is on: fractions of its box, from its top left
- * corner, so the pin stays at the same spot of a block on every frame width.
- */
-export const pinOffsetSchema = z
-  .object({ x: fractionSchema, y: fractionSchema })
-  .strict();
-export type PinOffset = z.infer<typeof pinOffsetSchema>;
 
 /** The named state of a sketch a note was pinned on, as the viewer drew it. */
 const sketchStateSchema = z.string().regex(SKETCH_STATE_PATTERN);
@@ -105,50 +86,6 @@ export const annotationPatchSchema = z
   .strict();
 export type AnnotationPatch = z.infer<typeof annotationPatchSchema>;
 
-const storedSchema = z.object({
-  id: annotationIdSchema,
-  anchor: noteAnchorSchema,
-  offset: pinOffsetSchema,
-  text: z.string(),
-  status: statusSchema,
-  createdAt: z.string(),
-  resolvedAt: z.string().optional(),
-  /** The history version that was newest when the note was pinned; absent on a note written before versions. */
-  version: versionNumberSchema.optional(),
-  /** The history version that was newest when the note was resolved. */
-  resolvedVersion: versionNumberSchema.optional(),
-  /** The state of the sketch the note was pinned on; absent on its default `html` and on any other block. */
-  state: z.string().optional(),
-});
-type StoredAnnotation = z.infer<typeof storedSchema>;
-
-/** Where a note of a version 2 file sits on its block: that version had no offset. */
-const VERSION_2_OFFSET: PinOffset = { x: 0, y: 0 };
-
-/** An annotations file as stored, a version 2 file read as version 3. The version 3 file takes `version` and `resolvedVersion` as optional fields. */
-const annotationsFileSchema = z.union([
-  z.object({
-    version: z.literal(FILE_VERSION),
-    annotations: z.array(storedSchema),
-  }),
-  z
-    .object({
-      version: z.literal(2),
-      annotations: z.array(
-        storedSchema
-          .omit({ offset: true })
-          .extend({ anchor: blockAnchorSchema }),
-      ),
-    })
-    .transform(({ annotations }): AnnotationsFile => ({
-      version: FILE_VERSION,
-      annotations: annotations.map((note) => ({
-        ...note,
-        offset: VERSION_2_OFFSET,
-      })),
-    })),
-]);
-
 /**
  * A reviewer's pin on a mockup: a note on one block, or on one page as a
  * whole, at `offset` of its box. The file stores `anchor` and no location.
@@ -159,12 +96,6 @@ const annotationsFileSchema = z.union([
  * `resolvedVersion` is the version it was resolved on.
  */
 export type MockupAnnotation = StoredAnnotation & Partial<NoteSite>;
-
-/** An annotations file, its notes as stored. */
-interface AnnotationsFile {
-  version: typeof FILE_VERSION;
-  annotations: StoredAnnotation[];
-}
 
 /** Why a note could not be pinned where it was asked: nothing is there, its block cannot be told apart from another, or the spec does not parse. */
 export type PlacementRefusal =
@@ -193,64 +124,6 @@ type StrictSpec =
   | { kind: "read"; spec: MockupSpec; text: string }
   | { kind: "missing" }
   | { kind: "invalid"; errors: MockupIssue[] };
-
-/**
- * The last write of each annotations file, settled either way: the next
- * write of that file starts once it is done.
- */
-const queues = new Map<string, Promise<void>>();
-
-function serialized<T>(path: string, task: () => Promise<T>): Promise<T> {
-  const previous = queues.get(path) ?? Promise.resolve();
-  const run = previous.then(task);
-  queues.set(
-    path,
-    run.then(
-      () => undefined,
-      () => undefined,
-    ),
-  );
-  return run;
-}
-
-async function exists(directory: string): Promise<boolean> {
-  try {
-    return (await stat(directory)).isDirectory();
-  } catch (error) {
-    if (parseFsError(error).code === MISSING_FILE) return false;
-    throw error;
-  }
-}
-
-async function readAnnotationsFile(path: string): Promise<AnnotationsFile> {
-  let text: string;
-  try {
-    text = await readFile(path, "utf8");
-  } catch (error) {
-    if (parseFsError(error).code === MISSING_FILE) {
-      return { version: FILE_VERSION, annotations: [] };
-    }
-    throw error;
-  }
-  const parsed = annotationsFileSchema.safeParse(JSON.parse(text));
-  if (!parsed.success) {
-    throw new Error(
-      `${path} is not an annotations file: ${parsed.error.message}`,
-    );
-  }
-  return parsed.data;
-}
-
-function writeAnnotationsFile(
-  path: string,
-  file: AnnotationsFile,
-): Promise<void> {
-  return writeAtomically(path, `${JSON.stringify(file, null, JSON_INDENT)}\n`);
-}
-
-function annotationsPath(mockupsDir: string, name: MockupName): string {
-  return join(mockupDirectory(mockupsDir, name), ANNOTATIONS_FILE);
-}
 
 /** What a writer of a mockup's annotations holds while it runs: the mockup, its annotations path and the stamp writer of its spec lock. */
 interface Held {
