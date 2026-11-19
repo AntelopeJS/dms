@@ -253,7 +253,7 @@ function withoutConfiguredMongod(t) {
   t.after(() => {
     process.env = saved;
   });
-  delete process.env.DMS_CONTROL_MONGOD;
+  delete process.env.DMS_E2E_MONGOD;
   process.env.PATH = "";
 }
 

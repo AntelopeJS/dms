@@ -41,7 +41,7 @@ const TIMESTAMP_LENGTH = 15;
  */
 
 /**
- * Where runs are created: `--runs`, else `DMS_CONTROL_RUNS`, else
+ * Where runs are created: `--runs`, else `DMS_E2E_RUNS`, else
  * `<tmpdir>/dms-e2e`. A run holds a playground copy and its frontend
  * build, a few hundred megabytes, so prefer a folder on disk over a tmpfs.
  *
@@ -50,7 +50,7 @@ const TIMESTAMP_LENGTH = 15;
  */
 export function runsRoot(option) {
   return resolve(
-    option ?? process.env.DMS_CONTROL_RUNS ?? join(tmpdir(), "dms-e2e"),
+    option ?? process.env.DMS_E2E_RUNS ?? join(tmpdir(), "dms-e2e"),
   );
 }
 

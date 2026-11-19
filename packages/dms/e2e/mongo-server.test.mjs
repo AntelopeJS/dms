@@ -51,7 +51,7 @@ function runFolders(t) {
  * @param {string} folder Where to write it
  * @param {string} binary The real mongod
  * @param {string} spawned The file that receives mongod's pid
- * @returns {string} The command, for `DMS_CONTROL_MONGOD`
+ * @returns {string} The command, for `DMS_E2E_MONGOD`
  */
 function standaloneMongod(folder, binary, spawned) {
   if (platform() === "win32") {
@@ -95,19 +95,15 @@ await test("the run's mongod serves a change stream", async (t) => {
 });
 
 await test("a mongod that cannot join the replica set is stopped", async (t) => {
-  const saved = process.env.DMS_CONTROL_MONGOD;
+  const saved = process.env.DMS_E2E_MONGOD;
   t.after(() => {
-    if (saved === undefined) delete process.env.DMS_CONTROL_MONGOD;
-    else process.env.DMS_CONTROL_MONGOD = saved;
+    if (saved === undefined) delete process.env.DMS_E2E_MONGOD;
+    else process.env.DMS_E2E_MONGOD = saved;
   });
   const paths = runFolders(t);
   const binary = await mongodBinary([PACKAGE_ROOT]);
   const spawned = join(paths.root, "mongod.pid");
-  process.env.DMS_CONTROL_MONGOD = standaloneMongod(
-    paths.root,
-    binary,
-    spawned,
-  );
+  process.env.DMS_E2E_MONGOD = standaloneMongod(paths.root, binary, spawned);
   await assert.rejects(startMongod(paths, [PACKAGE_ROOT]), {
     message: "This node was not started with replication enabled.",
   });
