@@ -1,6 +1,6 @@
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { isRecord } from "../../../packages/dms/bin/control/json.mjs";
+import { isRecord } from "../../../packages/dms/e2e/json.mjs";
 
 /**
  * @typedef {import("@antelopejs/dms/e2e").Ctx} Ctx

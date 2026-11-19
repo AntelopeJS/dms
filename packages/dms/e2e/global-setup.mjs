@@ -1,4 +1,4 @@
-import { declaredSuite, startOptions } from "./e2e-suite.mjs";
+import { declaredSuite, startOptions } from "./suite.mjs";
 import { loadRun } from "./run-state.mjs";
 import { down } from "./stack.mjs";
 import { startRun } from "./start.mjs";

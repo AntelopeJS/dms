@@ -15,7 +15,7 @@ import {
   declaredSuite,
   startOptions,
   suiteJourneys,
-} from "./e2e-suite.mjs";
+} from "./suite.mjs";
 import { frontendRefusal } from "./journey-load.mjs";
 import { loadSkill } from "./verify/skill.mjs";
 

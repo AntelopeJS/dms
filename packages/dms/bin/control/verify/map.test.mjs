@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import test from "node:test";
 import { checkMap, planFor } from "./map.mjs";
-import { loadSkill } from "./skill.mjs";
+import { loadSkill } from "../../../e2e/verify/skill.mjs";
 
 const JOURNEYS = (/** @type {string} */ id) =>
   `export const journeys = [{ id: "${id}", title: "t", entryPoint: "e", async run() {} }];\n`;
@@ -68,7 +68,7 @@ function commit(repo, files) {
  *
  * @param {import("node:test").TestContext} t
  * @param {Record<string, string>} changes
- * @param {Partial<import("./skill.mjs").SkillConfig>} [config]
+ * @param {Partial<import("../../../e2e/verify/skill.mjs").SkillConfig>} [config]
  */
 function fixture(t, changes, config = {}) {
   const repo = mkdtempSync(join(tmpdir(), "dms-control-map-test-"));
@@ -77,7 +77,7 @@ function fixture(t, changes, config = {}) {
   git(repo, "remote", "add", "origin", "https://github.com/o/r.git");
   const base = commit(repo, BASE_FILES);
   const head = commit(repo, changes);
-  /** @type {import("./skill.mjs").Skill} */
+  /** @type {import("../../../e2e/verify/skill.mjs").Skill} */
   const skill = {
     dir: join(repo, "skill"),
     name: "verify-x",

@@ -5,7 +5,7 @@ import {
   nullable,
   objectOf,
   oneOf,
-} from "./json.mjs";
+} from "../../e2e/json.mjs";
 
 /**
  * What the `dms-control browser` client and the browser server post to each
@@ -15,7 +15,7 @@ import {
 const isRoleName = { role: isString };
 const isRoleOptions = { name: isString, exact: isBoolean };
 
-/** @type {import("./json.mjs").Guard<import("./browser-server.mjs").BrowserRequest>} One browser action, as the client posts it */
+/** @type {import("../../e2e/json.mjs").Guard<import("./browser-server.mjs").BrowserRequest>} One browser action, as the client posts it */
 export const isBrowserRequest = objectOf(
   { do: isString, account: isString, tab: isString, folder: isString },
   {
@@ -32,7 +32,7 @@ export const isBrowserRequest = objectOf(
   },
 );
 
-/** @type {import("./json.mjs").Guard<import("./browser.mjs").Outcome>} What the server answers for one action */
+/** @type {import("../../e2e/json.mjs").Guard<import("../../e2e/browser.mjs").Outcome>} What the server answers for one action */
 export const isOutcome = objectOf({
   ok: isBoolean,
   url: isString,

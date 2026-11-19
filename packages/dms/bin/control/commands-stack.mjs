@@ -1,19 +1,24 @@
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { browserCommand } from "./browser-client.mjs";
-import { ACTION_NAMES, describeTarget } from "./browser.mjs";
+import { ACTION_NAMES, describeTarget } from "../../e2e/browser.mjs";
 import { serveBrowser } from "./browser-server.mjs";
 import { doctor } from "./doctor.mjs";
-import { setUpFrontendWorkspace } from "./frontend-workspace.mjs";
-import { capturedMail, serveMail } from "./mail.mjs";
-import { loadRun, readRun } from "./run-state.mjs";
-import { apiRequest, isOk, onboard } from "./session.mjs";
-import { resolutionFolders } from "./launch.mjs";
-import { down } from "./stack.mjs";
-import { startRun } from "./start.mjs";
-import { freshDatabase } from "./backend.mjs";
-import { apiTargetFile, serveForwarder } from "./forwarder.mjs";
-import { formatTimings, readTimings, summarize, timed } from "./timing.mjs";
+import { setUpFrontendWorkspace } from "../../e2e/frontend-workspace.mjs";
+import { capturedMail, serveMail } from "../../e2e/mail.mjs";
+import { loadRun, readRun } from "../../e2e/run-state.mjs";
+import { apiRequest, isOk, onboard } from "../../e2e/session.mjs";
+import { resolutionFolders } from "../../e2e/launch.mjs";
+import { down } from "../../e2e/stack.mjs";
+import { startRun } from "../../e2e/start.mjs";
+import { freshDatabase } from "../../e2e/backend.mjs";
+import { apiTargetFile, serveForwarder } from "../../e2e/forwarder.mjs";
+import {
+  formatTimings,
+  readTimings,
+  summarize,
+  timed,
+} from "../../e2e/timing.mjs";
 
 /** @typedef {import("./options.mjs").Values} Values */
 

@@ -5,7 +5,7 @@ import { join } from "node:path";
 import test from "node:test";
 import { doorLine, flaggedDoors, patchFiles } from "./doors.mjs";
 
-/** @type {import("./skill.mjs").Skill} */
+/** @type {import("../../../e2e/verify/skill.mjs").Skill} */
 const skill = {
   dir: "/repo/.agents/skills/verify-x",
   name: "verify-x",

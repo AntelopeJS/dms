@@ -6,10 +6,10 @@ import {
   buildKey,
   sourceNames,
   WORKSPACE_FOLDER,
-} from "./build-key.mjs";
-import { layOutCopy } from "./run-copy.mjs";
-import { frontendPackage } from "./launch.mjs";
-import { workspaceSetup } from "./stack.mjs";
+} from "../../e2e/build-key.mjs";
+import { layOutCopy } from "../../e2e/run-copy.mjs";
+import { frontendPackage } from "../../e2e/launch.mjs";
+import { workspaceSetup } from "../../e2e/stack.mjs";
 
 const SUFFIX_BYTES = 4;
 
@@ -20,7 +20,7 @@ const SUFFIX_BYTES = 4;
  * keyed with the versions the run's own workspace installed. The copy is
  * removed.
  *
- * @param {import("./run-state.mjs").RunState} state The run, after `up`
+ * @param {import("../../e2e/run-state.mjs").RunState} state The run, after `up`
  * @returns {Promise<string>} The key
  */
 export async function currentFrontendBuildKey(state) {

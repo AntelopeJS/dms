@@ -2,8 +2,8 @@ import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { expect, test } from "@playwright/test";
-import { currentRun } from "./e2e-run.mjs";
-import { declareSuite, declaredSuite, suiteJourneys } from "./e2e-suite.mjs";
+import { currentRun } from "./global-setup.mjs";
+import { declareSuite, declaredSuite, suiteJourneys } from "./suite.mjs";
 import { assertForwardedRun } from "./backend.mjs";
 import { runJourney } from "./journey.mjs";
 import { loadJourneys } from "./journey-load.mjs";
@@ -15,7 +15,7 @@ import { journeysFile, loadSkill, readFeatures } from "./verify/skill.mjs";
  * @typedef {import("./tab.mjs").Tab} Tab A browser tab of a journey
  * @typedef {import("./journey.mjs").Check} Check A check a journey records
  * @typedef {import("./journey-load.mjs").Journey} Journey A journey a feature's module exports
- * @typedef {import("./e2e-suite.mjs").SuiteOptions} SuiteOptions What a journeys suite runs
+ * @typedef {import("./suite.mjs").SuiteOptions} SuiteOptions What a journeys suite runs
  */
 
 const MINUTE = 60_000;
@@ -50,7 +50,7 @@ export function e2eConfig(options = {}) {
     retries: 0,
     forbidOnly: CI,
     timeout: 15 * MINUTE,
-    globalSetup: fileURLToPath(new URL("e2e-run.mjs", import.meta.url)),
+    globalSetup: fileURLToPath(new URL("global-setup.mjs", import.meta.url)),
     reporter: CI
       ? [
           ["list"],

@@ -5,16 +5,16 @@ import {
   newContext,
   perform,
   signInThroughForm,
-} from "./browser.mjs";
-import { describeFailure } from "./failure.mjs";
-import { decode } from "./json.mjs";
-import { loadRun } from "./run-state.mjs";
+} from "../../e2e/browser.mjs";
+import { describeFailure } from "../../e2e/failure.mjs";
+import { decode } from "../../e2e/json.mjs";
+import { loadRun } from "../../e2e/run-state.mjs";
 
 /**
  * @typedef {import("playwright-core").BrowserContext} BrowserContext
  * @typedef {import("playwright-core").Page} Page
- * @typedef {import("./browser.mjs").Outcome} Outcome
- * @typedef {Omit<import("./browser.mjs").Action, "baseUrl"> & { account: string, tab: string, folder: string }} BrowserRequest
+ * @typedef {import("../../e2e/browser.mjs").Outcome} Outcome
+ * @typedef {Omit<import("../../e2e/browser.mjs").Action, "baseUrl"> & { account: string, tab: string, folder: string }} BrowserRequest
  */
 
 /**

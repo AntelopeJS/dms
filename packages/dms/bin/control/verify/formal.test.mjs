@@ -3,7 +3,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import test from "node:test";
-import { evidenceText } from "../helpers/evidence.mjs";
+import { evidenceText } from "../../../e2e/helpers/evidence.mjs";
 import { runFormalCheck, touchedFormalChecks } from "./formal.mjs";
 
 const CHECK = `console.log("holds AddWorks");

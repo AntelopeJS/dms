@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 import { pathToFileURL } from "node:url";
-import manifest from "../../package.json" with { type: "json" };
+import manifest from "../package.json" with { type: "json" };
 import { PACKAGE_ROOT } from "./launch.mjs";
 
 /**
@@ -23,7 +23,7 @@ function consumerEnv() {
 
 /**
  * A module repository that depends on `@antelopejs/dms` and declares nothing
- * else: the installed copy gets the `bin` folder it publishes and, beside it,
+ * else: the installed copy gets the `e2e` folder it publishes and, beside it,
  * the dependencies an install of that kind gives a dependency.
  *
  * @param {import("node:test").TestContext} t
@@ -35,14 +35,14 @@ function resolveFromConsumer(t, installed) {
   t.after(() => rmSync(moduleRoot, { recursive: true, force: true }));
   const dms = join(moduleRoot, "node_modules", "@antelopejs", "dms");
   mkdirSync(dms, { recursive: true });
-  cpSync(join(PACKAGE_ROOT, "bin"), join(dms, "bin"), { recursive: true });
+  cpSync(join(PACKAGE_ROOT, "e2e"), join(dms, "e2e"), { recursive: true });
   cpSync(join(PACKAGE_ROOT, "package.json"), join(dms, "package.json"));
   for (const name of installed.flatMap((list) => Object.keys(list))) {
     const link = join(dms, "node_modules", name);
     mkdirSync(join(link, ".."), { recursive: true });
     symlinkSync(join(PACKAGE_ROOT, "node_modules", name), link, "dir");
   }
-  const mongo = pathToFileURL(join(dms, "bin", "control", "mongo.mjs"));
+  const mongo = pathToFileURL(join(dms, "e2e", "mongo.mjs"));
   const from = [join(moduleRoot, ".agents", "playground"), moduleRoot, dms];
   const run = spawnSync(
     process.execPath,

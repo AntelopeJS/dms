@@ -8,8 +8,8 @@
     "module": "nodenext",
     "moduleResolution": "nodenext",
     "rootDir": ".",
-    "outDir": "../dist/bin"
+    "outDir": "../dist/e2e"
   },
   "include": [],
-  "files": ["control/e2e.mjs"]
+  "files": ["index.mjs"]
 }

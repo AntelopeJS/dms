@@ -41,7 +41,9 @@
   "files": [
     "bin",
     "!bin/tsconfig.json",
-    "!bin/tsconfig.types.json",
+    "e2e",
+    "!e2e/tsconfig.json",
+    "!e2e/tsconfig.types.json",
     "dist",
     "!dist/.tsbuildinfo",
     "!dist/test",
@@ -73,7 +75,7 @@
     "node": "^20.19.0 || >=22.12.0"
   },
   "scripts": {
-    "build": "pnpm --filter @antelopejs/interface-dms --filter @antelopejs/interface-dms-builder build && rimraf dist && antelopejs-tsc && tsc-alias && tsc -p bin/tsconfig.types.json",
+    "build": "pnpm --filter @antelopejs/interface-dms --filter @antelopejs/interface-dms-builder build && rimraf dist && antelopejs-tsc && tsc-alias && tsc -p e2e/tsconfig.types.json",
     "dev": "ajs project run --inspect -w -p playground",
     "frontend:dev": "pnpm --dir playground frontend:dev",
     "frontend:build": "pnpm --dir playground frontend:build",
@@ -205,8 +207,8 @@
       "default": "./frontend-vue/eslint-globals.generated.mjs"
     },
     "./e2e": {
-      "types": "./dist/bin/control/e2e.d.mts",
-      "default": "./bin/control/e2e.mjs"
+      "types": "./dist/e2e/index.d.mts",
+      "default": "./e2e/index.mjs"
     },
     "./interfaces/*": null
   },
