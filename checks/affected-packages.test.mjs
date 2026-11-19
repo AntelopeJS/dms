@@ -396,13 +396,14 @@ await test("the output keys are the five the select step appends, in order (catc
   ]);
 });
 
-await test("the backend suites are unit, integration and four builder shards as index/count (catches a shard count changed without a decision, or a shard test-files.mjs refuses)", () => {
+await test("the backend suites are unit, integration and five builder shards as index/count (catches a shard count changed without a decision, or a shard test-files.mjs refuses)", () => {
   assert.deepEqual(planFor("queue", undefined)["backend-suites"], [
     "unit",
     "integration",
-    "builder:1/4",
-    "builder:2/4",
-    "builder:3/4",
-    "builder:4/4",
+    "builder:1/5",
+    "builder:2/5",
+    "builder:3/5",
+    "builder:4/5",
+    "builder:5/5",
   ]);
 });
