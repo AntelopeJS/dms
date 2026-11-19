@@ -46,7 +46,12 @@ files that `scripts/test-files.mjs` assigns it by the seconds per file in
 `DMS_TEST_DURATIONS` set to a path, `src/test/helpers/file-durations.ts` writes
 the seconds each file took there, and CI uploads it as the artifact
 `builder-durations-<n>`. After a few runs, `node scripts/refresh-test-weights.mjs
-<run-id>...` rewrites the weights from their artifacts. The readiness gate lives in
+builder <run-id>...` rewrites the weights from their artifacts. The Playwright
+suite of the root `e2e/` folder shards the same way: its reporter
+`e2e/weighted-shards.mjs` cuts the suite into contiguous runs of equal seconds
+per test in `e2e/test-weights.json`, where `--shard` cuts runs of equal count, CI uploads each queue and nightly
+shard's seconds as `e2e-durations-<n>`, and `node scripts/refresh-test-weights.mjs
+e2e <run-id>...` rewrites those weights. The readiness gate lives in
 `integration/setup.test.ts` because only the HTTP tests race startup — unit
 tests are pure logic and don't touch the runtime. `[unit]` / `[integration]`
 tags in the `describe` titles are for readability.

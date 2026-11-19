@@ -29,12 +29,16 @@ await test("averages each file over the runs to one decimal and sorts by path, s
   assert.deepEqual(Object.keys(meanWeights([{ z: 1, a: 1 }])), ["a", "z"]);
 });
 
-await test("exits nonzero with a usage line and leaves the weights alone when given no run, so a bare invocation cannot empty the file", () => {
-  const before = statSync(WEIGHTS).mtimeMs;
-  const run = spawnSync(process.execPath, [SCRIPT], { encoding: "utf8" });
-  assert.notEqual(run.status, 0);
-  assert.match(run.stderr, /^usage: /);
-  assert.equal(statSync(WEIGHTS).mtimeMs, before);
+await test("exits nonzero with a usage line and leaves the weights alone when given no suite or no run, so a bare invocation cannot empty a file", () => {
+  for (const args of [[], ["builder"], ["unit", "123"]]) {
+    const before = statSync(WEIGHTS).mtimeMs;
+    const run = spawnSync(process.execPath, [SCRIPT, ...args], {
+      encoding: "utf8",
+    });
+    assert.notEqual(run.status, 0, args.join(" "));
+    assert.match(run.stderr, /^usage: /, args.join(" "));
+    assert.equal(statSync(WEIGHTS).mtimeMs, before, args.join(" "));
+  }
 });
 
 await test(
@@ -49,7 +53,7 @@ await test(
       writeFileSync(gh, "#!/bin/sh\nexit 0\n");
       chmodSync(gh, 0o755);
       const before = statSync(WEIGHTS).mtimeMs;
-      const run = spawnSync(process.execPath, [SCRIPT, "123"], {
+      const run = spawnSync(process.execPath, [SCRIPT, "builder", "123"], {
         encoding: "utf8",
         env: {
           ...process.env,
@@ -57,7 +61,7 @@ await test(
         },
       });
       assert.notEqual(run.status, 0);
-      assert.match(run.stderr, /usage: /);
+      assert.match(run.stderr, /^no builder-durations-\* JSON in runs 123\n/);
       assert.equal(statSync(WEIGHTS).mtimeMs, before);
     } finally {
       rmSync(bin, { recursive: true, force: true });
