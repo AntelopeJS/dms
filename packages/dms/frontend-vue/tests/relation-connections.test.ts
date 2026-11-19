@@ -8,6 +8,7 @@ import {
   shallowRef,
   Suspense,
   type App,
+  type Component,
 } from "vue";
 import SelectMenu from "@nuxt/ui/components/SelectMenu.vue";
 import Button from "@nuxt/ui/components/Button.vue";
@@ -16,6 +17,14 @@ import { host, registerFormComponents, t } from "./helpers/form-runtime";
 import { browserRuntime, engine } from "./helpers/api-data-runtime";
 
 let app: App | undefined;
+let Relation: Component;
+beforeEach(async () => {
+  Relation = (
+    await import(
+      "../layers/dms-ui/app/components/form/components/InputRelation.vue"
+    )
+  ).default;
+}, 60_000);
 beforeEach(() => {
   Object.defineProperty(HTMLElement.prototype, "scrollIntoView", {
     configurable: true,
@@ -57,9 +66,6 @@ async function mountRelation() {
     };
   });
   vi.stubGlobal("useDrawer", () => ({ open }));
-  const { default: Relation } = await import(
-    "../layers/dms-ui/app/components/form/components/InputRelation.vue"
-  );
   const selected = ref<string | undefined>("ann");
   const updates = vi.fn((value: string | undefined) => {
     selected.value = value;
