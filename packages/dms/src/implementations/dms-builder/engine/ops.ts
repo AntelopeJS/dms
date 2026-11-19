@@ -25,6 +25,7 @@ import { buildCatalog } from "./catalog";
 import { assertBlockAccess, formGuard } from "./connection-access";
 import { editableOptions } from "./config-literal";
 import { applyImportRef, blockCallText, childArgText } from "./emit";
+import { markSourcesWritten } from "./indexed-project";
 import { stringLiteralValue } from "./literals";
 import { contentVersion, pageVersion } from "./page-structure";
 import { parseBlockPath } from "./paths";
@@ -36,9 +37,9 @@ import {
   requestIssues,
   requestRefusal,
 } from "./request-targets";
-import { invalidateResourceIndex, resourceRefResolver } from "./resource-index";
+import { resourceRefResolver } from "./resource-index";
 import { type PageRecord } from "./scan";
-import { findPageRecord, invalidateSourceIndex } from "./source-index";
+import { findPageRecord } from "./source-index";
 import {
   createImportCollector,
   InvalidValueError,
@@ -196,8 +197,7 @@ export function commit<T>(
     return stale(changed.path, contentVersion(changed.text));
   }
   const changes = transaction.flush();
-  invalidateSourceIndex();
-  invalidateResourceIndex();
+  markSourcesWritten();
   return warnings.length > 0
     ? { ok: true, data, changes, warnings }
     : { ok: true, data, changes };
