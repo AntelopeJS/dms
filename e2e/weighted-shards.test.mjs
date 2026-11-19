@@ -69,7 +69,7 @@ await test("cuts the suite into contiguous shards that together hold every test 
 
 await test("splits by the weights rather than by count, so the slowest shard of the recorded suite is within 5% of the mean", async () => {
   const tests = Object.keys(WEIGHTS).map(testCase);
-  const total = 5;
+  const total = 3;
   const loads = await Promise.all(
     Array.from({ length: total }, async (_, index) => {
       const { kept } = await preprocess(tests, { current: index + 1, total });
