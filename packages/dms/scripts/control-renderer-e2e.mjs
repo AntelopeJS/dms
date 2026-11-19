@@ -5,7 +5,7 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { parseArgs } from "node:util";
-import { loadRun } from "../bin/control/run-state.mjs";
+import { loadRun } from "../e2e/run-state.mjs";
 
 /**
  * Proves `dms-control up --renderer` serves the given checkout: a marker

@@ -44,6 +44,7 @@ The people of the workspace and how they join: Settings > Workspace > Members li
 - `remove-last-owner-refused`: error path: the only owner cannot drop the owner role or be removed, in the UI or through `DELETE /api/tables/members/delete` (409).
 - `make-owner-and-back`: Make owner and Remove owner role confirm first, the API flips `isTenantOwner`, and the member's access to the Roles page follows in both directions.
 - `change-member-roles`: Change roles swaps a member's role; the list and the API show only the new one.
+- Spec `e2e/settings-members-invite-quick-action.spec.ts`: an administrator opens the header's Quick actions menu on `/settings`, picks "Invite a member", sends an invitation with Team Sales and a role created through the API, and lands on Member invitations. After a reload the address is listed, and `/api/tables/admin-invites/list` holds the invitation with that role and no owner flag. It fails when the quick action does not open the invite dialog, or the dialog drops the chosen role.
 
 ## How to get to it (user POV)
 

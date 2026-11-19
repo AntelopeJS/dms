@@ -1,8 +1,8 @@
 import { existsSync, readdirSync } from "node:fs";
 import { join, matchesGlob, relative } from "node:path";
-import { git } from "../git.mjs";
-import { loadJourneys } from "../journey-load.mjs";
-import { journeysFile, readFeatures } from "./skill.mjs";
+import { git } from "../../../e2e/git.mjs";
+import { loadJourneys } from "../../../e2e/journey-load.mjs";
+import { journeysFile, readFeatures } from "../../../e2e/verify/skill.mjs";
 
 /**
  * @param {string} file A repository path
@@ -17,7 +17,7 @@ function matches(file, globs) {
  * Whether a repository path is user-facing: matched by the config's
  * `userFacing` globs and by none of its `notUserFacing` globs.
  *
- * @param {import("./skill.mjs").Skill} skill The skill
+ * @param {import("../../../e2e/verify/skill.mjs").Skill} skill The skill
  * @param {string} file A repository path
  * @returns {boolean} True when a feature must cover it
  */
@@ -33,7 +33,7 @@ export function isUserFacing(skill, file) {
  * globs and by none of its `notShared` globs. A change to it can alter any
  * feature, so the plan runs them all.
  *
- * @param {import("./skill.mjs").Skill} skill The skill
+ * @param {import("../../../e2e/verify/skill.mjs").Skill} skill The skill
  * @param {string} file A repository path
  * @returns {boolean} True when the file forces the full set
  */
@@ -57,7 +57,7 @@ export function featuresOf(file, features) {
 }
 
 /**
- * @param {import("./skill.mjs").Skill} skill The skill
+ * @param {import("../../../e2e/verify/skill.mjs").Skill} skill The skill
  * @returns {string[]} The tracked paths
  */
 function trackedFiles(skill) {
@@ -65,7 +65,7 @@ function trackedFiles(skill) {
 }
 
 /**
- * @param {import("./skill.mjs").Skill} skill The skill
+ * @param {import("../../../e2e/verify/skill.mjs").Skill} skill The skill
  * @param {ReturnType<typeof readFeatures>[number]} feature The feature
  * @param {string[]} tracked The tracked paths
  * @returns {Promise<string[]>} One line per problem
@@ -100,7 +100,7 @@ async function featureProblems(skill, feature, tracked) {
 }
 
 /**
- * @param {import("./skill.mjs").Skill} skill The skill
+ * @param {import("../../../e2e/verify/skill.mjs").Skill} skill The skill
  * @param {string[]} tracked The tracked paths
  * @returns {string[]} One line per problem
  */
@@ -119,7 +119,7 @@ function sharedProblems(skill, tracked) {
 }
 
 /**
- * @param {import("./skill.mjs").Skill} skill The skill
+ * @param {import("../../../e2e/verify/skill.mjs").Skill} skill The skill
  * @param {string[]} tracked The tracked paths
  * @returns {string[]} One line per problem
  */
@@ -144,7 +144,7 @@ function doorProblems(skill, tracked) {
  * existing docs pages, and every feature, shared and door glob matches a
  * tracked file.
  *
- * @param {import("./skill.mjs").Skill} skill The skill
+ * @param {import("../../../e2e/verify/skill.mjs").Skill} skill The skill
  * @returns {Promise<string[]>} One line per problem
  */
 export async function checkMap(skill) {
@@ -184,10 +184,10 @@ export async function checkMap(skill) {
  * `all`, runs the smoke feature and then every feature; `shared` lists the
  * changed files that forced it.
  *
- * @param {import("./skill.mjs").Skill} skill The skill
+ * @param {import("../../../e2e/verify/skill.mjs").Skill} skill The skill
  * @param {string} baseRef The base, such as `origin/main`
  * @param {boolean} [all] Run every feature whatever the diff, for a release
- * @returns {import("./types.mjs").Plan} The plan
+ * @returns {import("../../../e2e/verify/types.mjs").Plan} The plan
  */
 export function planFor(skill, baseRef, all = false) {
   const features = readFeatures(skill);

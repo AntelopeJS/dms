@@ -4,14 +4,14 @@ import { execFileSync, spawn } from "node:child_process";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { createRunFolders, saveRun } from "./run-state.mjs";
+import { createRunFolders, saveRun } from "../../e2e/run-state.mjs";
 import {
   assertSignalable,
   isAlive,
   isRunning,
   startTimeOf,
-} from "./identity.mjs";
-import { killRecorded, stopRecorded } from "./processes.mjs";
+} from "../../e2e/identity.mjs";
+import { killRecorded, stopRecorded } from "../../e2e/processes.mjs";
 
 const UNSAFE = [
   -1,

@@ -14,7 +14,7 @@ import {
 import { platform } from "node:os";
 import { dirname, join } from "node:path";
 import test from "node:test";
-import { freshDatabase, restartBackend } from "./backend.mjs";
+import { freshDatabase, restartBackend } from "../../e2e/backend.mjs";
 import { doctor } from "./doctor.mjs";
 import {
   buildFiles,
@@ -25,10 +25,10 @@ import {
   running,
   served,
   startedOn,
-} from "./helpers/fake-run.mjs";
-import { isRunning } from "./identity.mjs";
-import { loadRun, saveRun } from "./run-state.mjs";
-import { down, liveBackends } from "./stack.mjs";
+} from "../../e2e/helpers/fake-run.mjs";
+import { isRunning } from "../../e2e/identity.mjs";
+import { loadRun, saveRun } from "../../e2e/run-state.mjs";
+import { down, liveBackends } from "../../e2e/stack.mjs";
 
 await test("each fresh database is served by a backend that served nothing before, and the one it replaces is gone", async (t) => {
   const state = await newRun(t);

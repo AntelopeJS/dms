@@ -16,7 +16,7 @@ import { isAlive } from "./identity.mjs";
 import { mongodBinary, startMongod } from "./mongo.mjs";
 import { stopRecorded } from "./processes.mjs";
 
-const PACKAGE_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
+const PACKAGE_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 
 /**
  * A run's folders, removed after the test once its `teardown` stopped what

@@ -1,5 +1,3 @@
-import { isMemberRow, listOf, stringIn } from "../rows.mjs";
-
 /**
  * @typedef {import("@antelopejs/dms/e2e").Ctx} Ctx
  */
@@ -8,45 +6,8 @@ const GATE = "/api/playground/gate-demo";
 const TENANCY = "/tenancy";
 const GATED_PAGE = "/settings/workspace/members";
 
-async function refreshToken(/** @type {Ctx} */ ctx) {
-  const admin = ctx.adminCredentials();
-  const login = await ctx.api("sign in for a refresh token", {
-    method: "POST",
-    path: "/api/auth/login",
-    as: "anon",
-    body: { email: admin.email, password: admin.password },
-  });
-  return stringIn(login.body, "refresh_token") ?? "";
-}
-
-function switchTenant(/** @type {Ctx} */ ctx, /** @type {string} */ label, /** @type {string} */ token, /** @type {string} */ tenantId) {
-  return ctx.api(label, { method: "POST", path: "/api/auth/switch-tenant", as: "anon", body: { refreshToken: token, tenantId } });
-}
-
 /** The workspace a request is bound to, membership checks, and the tenant access gate. */
 export const journeys = [
-  {
-    id: "default-workspace-membership",
-    title: "onboarding makes the owner a member of the default workspace, and switching to a workspace it is not in answers 403",
-    entryPoint: "POST /api/auth/switch-tenant, /api/tables/members/list",
-    async run(/** @type {Ctx} */ ctx) {
-      const members = await ctx.api("list the default workspace's members", { method: "GET", path: "/api/tables/members/list" });
-      const rows = listOf(members.body, isMemberRow);
-      await ctx.verify("the owner is the default workspace's only member", [
-        ctx.equal("member ids", rows.map((row) => row._id.split(":")[0]), ["default"]),
-        ctx.equal("owner", rows.map((row) => row.isTenantOwner), [true]),
-      ]);
-      const token = await refreshToken(ctx);
-      const foreign = await switchTenant(ctx, "switch to a workspace the owner is not in", token, "verify-foreign-workspace");
-      const home = await switchTenant(ctx, "switch back to the default workspace", token, "default");
-      await ctx.verify("membership decides which workspace a session may enter", [
-        ctx.status(foreign, 403),
-        ctx.equal("error", foreign.body, "error.not_a_member"),
-        ctx.status(home, 200),
-        ctx.holds("new tokens for the default workspace", stringIn(home.body, "access_token"), JSON.stringify(home.body)),
-      ]);
-    },
-  },
   {
     id: "suspended-workspace-gate",
     title: "suspending the workspace makes gated pages refuse the owner while the recovery page still answers, and restoring it reopens them",

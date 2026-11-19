@@ -43,7 +43,6 @@ export const journeys = [
   },
   {
     id: "create-role-persists",
-    tag: "@smoke",
     title: "a new role with a permission is listed, survives a reload and is stored with exactly that permission",
     entryPoint: "Settings > Roles > New role, POST /dms/pages/settings/workspace/roles/create",
     async run(/** @type {Ctx} */ ctx) {

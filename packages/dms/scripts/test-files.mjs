@@ -1,7 +1,7 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join, sep } from "node:path";
 import { pathToFileURL } from "node:url";
-import { decode, isNumber, recordOf } from "../bin/control/json.mjs";
+import { decode, isNumber, recordOf } from "../e2e/json.mjs";
 
 /** The test files `ajs module test` collects from a folder. */
 const TEST_FILE = /\.(test|spec)\.(js|ts)$/;

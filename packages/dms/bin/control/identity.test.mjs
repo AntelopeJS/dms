@@ -9,8 +9,8 @@ import {
   isString,
   nullable,
   objectOf,
-} from "./json.mjs";
-import { newRun } from "./helpers/fake-run.mjs";
+} from "../../e2e/json.mjs";
+import { newRun } from "../../e2e/helpers/fake-run.mjs";
 
 const CONTROL_BIN = join(import.meta.dirname, "..", "dms-control.mjs");
 const INSIDE_TIMEOUT_MS = 60_000;
@@ -27,9 +27,9 @@ import { spawn, spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { setTimeout as sleep } from "node:timers/promises";
 const [bin, dir] = process.argv.slice(1);
-const control = new URL("./control/", "file://" + bin);
-const { startDetached } = await import(new URL("processes.mjs", control));
-const { loadRun, saveRun } = await import(new URL("run-state.mjs", control));
+const kit = new URL("../e2e/", "file://" + bin);
+const { startDetached } = await import(new URL("processes.mjs", kit));
+const { loadRun, saveRun } = await import(new URL("run-state.mjs", kit));
 const other = spawn(process.execPath, ["-e", "setInterval(() => {}, 1000)"], { stdio: "ignore" });
 let startTime = null;
 try {
@@ -107,9 +107,9 @@ const WITHOUT_PROC = `
 import { spawnSync } from "node:child_process";
 import { setTimeout as sleep } from "node:timers/promises";
 const [bin, dir] = process.argv.slice(1);
-const control = new URL("./control/", "file://" + bin);
-const { startDetached } = await import(new URL("processes.mjs", control));
-const { loadRun, saveRun } = await import(new URL("run-state.mjs", control));
+const kit = new URL("../e2e/", "file://" + bin);
+const { startDetached } = await import(new URL("processes.mjs", kit));
+const { loadRun, saveRun } = await import(new URL("run-state.mjs", kit));
 const own = startDetached({ name: "own", program: "sleep", args: ["60"], cwd: dir, env: process.env, logs: dir });
 const state = loadRun(dir);
 state.processes = [own];

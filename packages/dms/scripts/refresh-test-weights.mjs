@@ -9,7 +9,7 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
-import { decode, isNumber, recordOf } from "../bin/control/json.mjs";
+import { decode, isNumber, recordOf } from "../e2e/json.mjs";
 
 const WEIGHTS_FILE = new URL("./test-weights.json", import.meta.url);
 const USAGE = "usage: node scripts/refresh-test-weights.mjs <run-id>...";

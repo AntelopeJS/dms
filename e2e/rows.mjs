@@ -7,6 +7,7 @@
  * @typedef {{ _id: string, name: string, permissions?: string[] }} RoleRow
  * @typedef {{ _id: string, name: string, email: string }} UserRow
  * @typedef {{ _id: string, inviteCount?: number, memberCount?: number }} RoleOverviewRow
+ * @typedef {{ _id: string, isArchived?: boolean }} TaskRow
  * @typedef {{ id: string, state?: string }} StoreModule
  * @typedef {{ icon?: string, linkTo?: string, isRead?: boolean }} NotificationRow
  */
@@ -15,7 +16,7 @@
  * @param {unknown} value
  * @returns {value is Record<string, unknown>} Whether it is a JSON object, not an array, a primitive or `null`
  */
-function isRecord(value) {
+export function isRecord(value) {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
@@ -31,7 +32,7 @@ function isString(value) {
  * @param {unknown} value
  * @returns {value is number} Whether it is a finite number, the only kind JSON holds
  */
-function isNumber(value) {
+export function isNumber(value) {
   return typeof value === "number" && Number.isFinite(value);
 }
 
@@ -122,6 +123,14 @@ export function isRoleRow(value) {
  */
 export function isUserRow(value) {
   return hasId(value) && isRecord(value) && isString(own(value, "name")) && isString(own(value, "email"));
+}
+
+/**
+ * @param {unknown} value
+ * @returns {value is TaskRow}
+ */
+export function isTaskRow(value) {
+  return hasId(value) && optionally(value, "isArchived", isBoolean);
 }
 
 /**
@@ -231,29 +240,6 @@ export function stringsIn(body, key) {
   return items.map((item, index) => {
     if (!isString(item)) throw new Error(`${key}[${index}] is not a string`);
     return item;
-  });
-}
-
-/**
- * @param {unknown} body The answer's body
- * @returns {(string | undefined)[]} The dotted `path` of each validation issue; an answer that is not a list of issues holds none
- */
-export function issuePaths(body) {
-  if (!Array.isArray(body)) return [];
-  /** @type {unknown[]} */
-  const issues = body;
-  return issues.map((issue) => {
-    const path = isRecord(issue) ? own(issue, "path") : undefined;
-    if (path === undefined || path === null) return undefined;
-    if (!Array.isArray(path)) throw new Error("an issue path is not a list");
-    /** @type {unknown[]} */
-    const steps = path;
-    return steps
-      .map((step) => {
-        if (!isString(step) && !isNumber(step)) throw new Error("an issue path step is not a string or a number");
-        return String(step);
-      })
-      .join(".");
   });
 }
 

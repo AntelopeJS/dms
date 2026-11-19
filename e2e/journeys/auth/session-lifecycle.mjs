@@ -1,7 +1,7 @@
 import { createCipheriv, createDecipheriv, createHash, randomBytes, randomUUID } from "node:crypto";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { isNumber, isRecord, stringField } from "../../../packages/dms/bin/control/json.mjs";
+import { isNumber, isRecord, stringIn as stringField } from "../../rows.mjs";
 import { createRole, joinedMember } from "../settings-members/steps.mjs";
 import { storedRoles } from "../settings-roles/steps.mjs";
 

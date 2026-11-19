@@ -4,13 +4,13 @@ import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { createInterface } from "node:readline";
 import test from "node:test";
-import { bystander, newRun, storedRun } from "./helpers/fake-run.mjs";
+import { bystander, newRun, storedRun } from "../../e2e/helpers/fake-run.mjs";
 import {
   currentNamespaces,
   hasProc,
   isRunning,
   startTimeOf,
-} from "./identity.mjs";
+} from "../../e2e/identity.mjs";
 import {
   decode,
   isBoolean,
@@ -18,8 +18,8 @@ import {
   isString,
   nullable,
   objectOf,
-} from "./json.mjs";
-import { saveRun } from "./run-state.mjs";
+} from "../../e2e/json.mjs";
+import { saveRun } from "../../e2e/run-state.mjs";
 
 const CONTROL_BIN = join(import.meta.dirname, "..", "dms-control.mjs");
 const NESTED_TIMEOUT_MS = 60_000;
@@ -36,10 +36,10 @@ import { spawnSync } from "node:child_process";
 import { createInterface } from "node:readline";
 import { setTimeout as sleep } from "node:timers/promises";
 const [bin, dir] = process.argv.slice(1);
-const control = new URL("./control/", "file://" + bin);
-const { startDetached } = await import(new URL("processes.mjs", control));
-const { currentNamespaces, isRunning } = await import(new URL("identity.mjs", control));
-const { loadRun, saveRun } = await import(new URL("run-state.mjs", control));
+const kit = new URL("../e2e/", "file://" + bin);
+const { startDetached } = await import(new URL("processes.mjs", kit));
+const { currentNamespaces, isRunning } = await import(new URL("identity.mjs", kit));
+const { loadRun, saveRun } = await import(new URL("run-state.mjs", kit));
 const own = startDetached({ name: "own", program: "sleep", args: ["60"], cwd: dir, env: process.env, logs: dir });
 const state = loadRun(dir);
 state.namespaces = currentNamespaces();

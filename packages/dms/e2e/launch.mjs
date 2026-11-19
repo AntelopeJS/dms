@@ -6,10 +6,10 @@ import { RENDERER_CLI } from "./renderer.mjs";
 const DROPPED_PREFIXES = ["ANTELOPEJS_", "npm_", "PNPM_", "DMS_", "MONGO_"];
 
 /** This package's root, which resolves dms-control's own dependencies. */
-export const PACKAGE_ROOT = resolve(import.meta.dirname, "..", "..");
+export const PACKAGE_ROOT = resolve(import.meta.dirname, "..");
 
-/** The dms-control entry, which also serves the mail sink and the browser. */
-export const CONTROL_BIN = join(PACKAGE_ROOT, "bin", "dms-control.mjs");
+/** The kit's service entry, which runs a service of a run (see `runService`). */
+export const SERVICE_BIN = join(import.meta.dirname, "service.mjs");
 
 /** The AntelopeJS environment every run builds and starts. */
 export const ENVIRONMENT = "docs";

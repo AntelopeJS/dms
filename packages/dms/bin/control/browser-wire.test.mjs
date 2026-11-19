@@ -1,11 +1,11 @@
 import assert from "node:assert/strict";
 import { createServer } from "node:http";
 import test from "node:test";
-import { answerRequest } from "./browser.mjs";
+import { answerRequest } from "./browser-server.mjs";
 import { postAction } from "./browser-client.mjs";
 import { isOutcome } from "./browser-wire.mjs";
-import { decode } from "./json.mjs";
-import { freePort } from "./processes.mjs";
+import { decode } from "../../e2e/json.mjs";
+import { freePort } from "../../e2e/processes.mjs";
 
 const REQUEST = {
   do: "click",
@@ -18,7 +18,7 @@ const OUTCOME = { ok: true, url: "/", error: null, aria: "- button" };
 
 /**
  * @param {string} body What a client posted
- * @returns {Promise<{ answer: import("./browser.mjs").Outcome, handled: unknown[] }>} The answer and the requests that reached the handler
+ * @returns {Promise<{ answer: import("../../e2e/browser.mjs").Outcome, handled: unknown[] }>} The answer and the requests that reached the handler
  */
 async function answered(body) {
   /** @type {unknown[]} */

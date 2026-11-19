@@ -197,7 +197,7 @@ async function importNamespace(name, from) {
 function missingPackage(name) {
   const { optionalDependencies } = decode(
     objectOf({ optionalDependencies: recordOf(isString) }),
-    createRequire(import.meta.url)("../../package.json"),
+    createRequire(import.meta.url)("../package.json"),
     "@antelopejs/dms package.json",
     "optionalDependencies of version ranges",
   );

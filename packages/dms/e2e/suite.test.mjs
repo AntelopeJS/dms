@@ -9,16 +9,10 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { parseArgs } from "node:util";
 import test from "node:test";
-import {
-  declareSuite,
-  declaredSuite,
-  suiteJourneys,
-  upArgs,
-} from "./e2e-suite.mjs";
+import { declareSuite, declaredSuite, suiteJourneys } from "./suite.mjs";
 import { frontendRefusal } from "./journey-load.mjs";
-import { OPTIONS } from "./options.mjs";
+import { startOptions } from "./start.mjs";
 import { loadSkill } from "./verify/skill.mjs";
 
 const CONFIG = `export default ${JSON.stringify({
@@ -42,10 +36,14 @@ function twoSkillCheckout(t) {
   const root = realpathSync(mkdtempSync(join(tmpdir(), "dms-e2e-suite-")));
   const cwd = process.cwd();
   const recorded = process.env.DMS_E2E_SUITE;
+  const prebuilt = process.env.DMS_E2E_PREBUILT;
+  delete process.env.DMS_E2E_PREBUILT;
   t.after(() => {
     process.chdir(cwd);
     if (recorded === undefined) delete process.env.DMS_E2E_SUITE;
     else process.env.DMS_E2E_SUITE = recorded;
+    if (prebuilt === undefined) delete process.env.DMS_E2E_PREBUILT;
+    else process.env.DMS_E2E_PREBUILT = prebuilt;
     rmSync(root, { recursive: true, force: true });
   });
   spawnSync("git", ["init", "-q"], { cwd: root });
@@ -76,7 +74,7 @@ function journey(id, fields = {}) {
   return { id, title: id, entryPoint: "/", async run() {}, ...fields };
 }
 
-await test("a suite that names one of two skills loads it from e2e/ and starts its run with --skill (catches a global setup or registerJourneys that discovers the skill, which throws on two)", async (t) => {
+await test("a suite that names one of two skills loads it from e2e/ and starts its run on it (catches a global setup or registerJourneys that discovers the skill, which throws on two)", async (t) => {
   const root = twoSkillCheckout(t);
   await assert.rejects(
     loadSkill(undefined, process.cwd()),
@@ -86,27 +84,35 @@ await test("a suite that names one of two skills loads it from e2e/ and starts i
   const suite = declaredSuite();
   const skill = await loadSkill(suite.skill, process.cwd());
   assert.equal(skill.name, "verify-dms-assistant");
-  const { values } = parseArgs({
-    args: upArgs(suite, false),
-    options: OPTIONS,
+  const { skill: folder, frontend } = suite;
+  assert.deepEqual(startOptions({ skill: folder, frontend }, process.cwd()), {
+    prepare: true,
+    skill: join(root, ".agents", "skills", "verify-dms-assistant"),
+    frontendMode: "build",
   });
-  assert.equal(
-    values.skill,
-    join(root, ".agents", "skills", "verify-dms-assistant"),
-  );
-  assert.equal(values.prepare, true);
-  assert.equal(values["dev-frontend"], undefined);
 });
 
-await test("a frontend: dev suite starts its run with --dev-frontend, and a prepared one skips --prepare (catches a global setup that always serves a build)", (t) => {
-  twoSkillCheckout(t);
+await test("a frontend: dev suite starts its run on the development dashboard, and a prepared one skips the prepare commands (catches a global setup that always serves a build)", (t) => {
+  const root = twoSkillCheckout(t);
   declareSuite({ skill: ".agents/skills/verify-dms-builder", frontend: "dev" });
-  const { values } = parseArgs({
-    args: upArgs(declaredSuite(), true),
-    options: OPTIONS,
+  const { skill, frontend } = declaredSuite();
+  process.env.DMS_E2E_PREBUILT = "1";
+  assert.deepEqual(startOptions({ skill, frontend }, process.cwd()), {
+    prepare: false,
+    skill: join(root, ".agents", "skills", "verify-dms-builder"),
+    frontendMode: "dev",
   });
-  assert.equal(values["dev-frontend"], true);
-  assert.equal(values.prepare, undefined);
+});
+
+await test("startRun resolves its skill against the repository root, builds a dashboard unless told otherwise, and prepares when asked whatever DMS_E2E_PREBUILT says (catches a node:test file whose skill resolves against its own folder)", (t) => {
+  const root = twoSkillCheckout(t);
+  process.env.DMS_E2E_PREBUILT = "1";
+  const skill = ".agents/skills/verify-dms-assistant";
+  assert.deepEqual(startOptions({ skill, prepare: true }, process.cwd()), {
+    prepare: true,
+    skill: join(root, skill),
+    frontendMode: "build",
+  });
 });
 
 await test('a suite option e2eConfig does not take is refused (catches a typo such as frontend: "development" silently serving a build)', (t) => {
@@ -128,7 +134,7 @@ await test('a suite option e2eConfig does not take is refused (catches a typo su
   }
 });
 
-await test("a build suite leaves out the journeys that need the development dashboard and a dev suite runs only those, each keeping last ones last (catches a suite that runs a dev journey on a built dashboard)", () => {
+await test("a build suite leaves out the journeys that need the development dashboard and a dev suite runs only those, each with the smoke feature first and last ones last (catches a suite that runs a dev journey on a built dashboard, or the smoke feature in its alphabetical place)", () => {
   const features = [
     {
       name: "a",
@@ -145,18 +151,33 @@ await test("a build suite leaves out the journeys that need the development dash
         journey("b-1"),
       ],
     },
+    {
+      name: "smoke",
+      journeys: [
+        journey("smoke"),
+        journey("smoke-last", { last: true }),
+        journey("smoke-dev", { frontend: "dev" }),
+      ],
+    },
   ];
   const ids = (/** @type {"build" | "dev"} */ frontend) =>
-    suiteJourneys(features, frontend).map(
+    suiteJourneys(features, frontend, "smoke").map(
       (entry) => `${entry.feature}/${entry.journey.id}`,
     );
-  assert.deepEqual(ids("build"), ["a/a-2", "b/b-1", "a/a-1"]);
-  assert.deepEqual(ids("dev"), ["a/a-dev", "b/b-dev"]);
+  assert.deepEqual(ids("build"), [
+    "smoke/smoke",
+    "a/a-2",
+    "b/b-1",
+    "smoke/smoke-last",
+    "a/a-1",
+  ]);
+  assert.deepEqual(ids("dev"), ["smoke/smoke-dev", "a/a-dev", "b/b-dev"]);
   assert.throws(
     () =>
       suiteJourneys(
         [...features, { name: "c", journeys: [journey("b-1")] }],
         "build",
+        "smoke",
       ),
     /b-1/,
   );

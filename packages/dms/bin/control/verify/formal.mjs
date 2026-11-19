@@ -7,9 +7,9 @@ const OUTPUT_LIMIT = 64 * 1024 * 1024;
 /**
  * The formal checks whose covered files or own `files` a set of changed files touches.
  *
- * @param {import("./skill.mjs").Skill} skill The skill
+ * @param {import("../../../e2e/verify/skill.mjs").Skill} skill The skill
  * @param {string[]} changed Repository paths
- * @returns {import("./types.mjs").FormalCheck[]} The checks
+ * @returns {import("../../../e2e/verify/types.mjs").FormalCheck[]} The checks
  */
 export function touchedFormalChecks(skill, changed) {
   return skill.config.formal.filter((check) =>
@@ -22,7 +22,7 @@ export function touchedFormalChecks(skill, changed) {
 }
 
 /**
- * @param {import("./types.mjs").FormalCheck} check The check
+ * @param {import("../../../e2e/verify/types.mjs").FormalCheck} check The check
  * @param {number | null} exitCode How the run exited
  * @param {string} output What the run printed
  * @returns {string[]} The violated rules
@@ -42,10 +42,10 @@ function violatedRules(check, exitCode, output) {
  * Runs one formal check from the repository root and writes its command,
  * output, exit code and violated rules under `evidence/formal/<name>/`.
  *
- * @param {import("./skill.mjs").Skill} skill The skill
- * @param {import("../run-state.mjs").RunState} state The run
- * @param {import("./types.mjs").FormalCheck} check The check
- * @returns {import("./types.mjs").FormalResult} The result
+ * @param {import("../../../e2e/verify/skill.mjs").Skill} skill The skill
+ * @param {import("../../../e2e/run-state.mjs").RunState} state The run
+ * @param {import("../../../e2e/verify/types.mjs").FormalCheck} check The check
+ * @returns {import("../../../e2e/verify/types.mjs").FormalResult} The result
  */
 export function runFormalCheck(skill, state, check) {
   const folder = join(state.evidence, "formal", check.name);

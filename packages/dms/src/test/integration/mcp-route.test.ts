@@ -56,7 +56,9 @@ describe("[integration] mcp route", () => {
       headers: { authorization: "Bearer not-this-start" },
     });
     expect(missing.status).to.equal(401);
+    expect(missing.data).to.deep.equal({ error: "unauthorized" });
     expect(wrong.status).to.equal(401);
+    expect(wrong.data).to.deep.equal({ error: "unauthorized" });
   });
 
   it("answers initialize and lists the tools for this start's credential", async () => {

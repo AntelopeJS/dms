@@ -1,13 +1,12 @@
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import { UserModel } from "@antelopejs/interface-dms/auth/db";
 import { assert, expect } from "chai";
-import {
-  announceSetupToken,
-  SetupTokenModel,
-  SystemStateModel,
-} from "../../db";
+import { z } from "zod";
+import { announceSetupToken, SetupTokenModel } from "../../db";
 import { resetDatabase } from "../helpers/db";
 import { createClient } from "../helpers/http";
+import { hasOnboarded, seedUnclaimedInstance } from "../helpers/onboarding";
+import { parseBody } from "../helpers/parse-body";
 
 const REGISTER_PATH = "/api/onboarding/register";
 const HTTP_OK = 200;
@@ -29,30 +28,27 @@ function register(body: Partial<Registration>) {
   return createClient().post(REGISTER_PATH, { ...owner, ...body });
 }
 
+const SessionBody = z.object({ access_token: z.string() });
+const MeBody = z.object({ owner: z.boolean() });
+
+/** `owner` as `GET /api/auth/me` reads it for the session a login answered. */
+async function ownerFlagOf(
+  login: z.infer<typeof SessionBody>,
+): Promise<boolean> {
+  const { access_token } = login;
+  const me = await createClient().get("/api/auth/me", {
+    headers: { authorization: `Bearer ${access_token}` },
+  });
+  return parseBody(MeBody, me).owner;
+}
+
 async function userCount(): Promise<number> {
   return (await GetModel(UserModel).getAll()).length;
 }
 
-async function seedUnclaimedInstance(): Promise<void> {
-  await resetDatabase();
-  await GetModel(SystemStateModel).insert({
-    has_onboarded: false,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  });
-  await GetModel(SetupTokenModel).ensure(SETUP_TOKEN);
-}
-
 describe("[integration] onboarding setup token", () => {
-  beforeEach(seedUnclaimedInstance);
-  after(async () => {
-    await resetDatabase();
-    await GetModel(SystemStateModel).insert({
-      has_onboarded: false,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
-  });
+  beforeEach(() => seedUnclaimedInstance(SETUP_TOKEN));
+  after(() => seedUnclaimedInstance());
 
   it("refuses a registration without the token and creates no user", async () => {
     const response = await register({});
@@ -60,6 +56,7 @@ describe("[integration] onboarding setup token", () => {
     expect(response.status).to.equal(HTTP_FORBIDDEN);
     expect(response.data).to.equal("error.invalid_setup_token");
     expect(await userCount()).to.equal(0);
+    expect(await hasOnboarded()).to.equal(false);
   });
 
   it("refuses a registration with a wrong token and creates no user", async () => {
@@ -68,6 +65,7 @@ describe("[integration] onboarding setup token", () => {
     expect(response.status).to.equal(HTTP_FORBIDDEN);
     expect(response.data).to.equal("error.invalid_setup_token");
     expect(await userCount()).to.equal(0);
+    expect(await hasOnboarded()).to.equal(false);
   });
 
   it("keeps the token usable after a refused attempt", async () => {
@@ -86,6 +84,7 @@ describe("[integration] onboarding setup token", () => {
     expect(await GetModel(SetupTokenModel).claim(SETUP_TOKEN)).to.equal(
       undefined,
     );
+    expect(await hasOnboarded()).to.equal(true);
   });
 
   it("refuses a second registration with error.admin_already_set", async () => {
@@ -98,19 +97,35 @@ describe("[integration] onboarding setup token", () => {
     expect(second.status).to.equal(HTTP_BAD_REQUEST);
     expect(second.data).to.equal("error.admin_already_set");
     expect(await userCount()).to.equal(1);
+    expect(await hasOnboarded()).to.equal(true);
   });
 
-  it("creates a single owner when valid registrations race", async () => {
+  it("creates a single owner when valid registrations race, and no account behind a refused one", async () => {
+    const emails = ["one", "two", "three", "four"].map(
+      (name) => `${name}@test.local`,
+    );
     const answers = await Promise.all(
-      ["one", "two", "three", "four"].map((name) =>
-        register({ setupToken: SETUP_TOKEN, email: `${name}@test.local` }),
-      ),
+      emails.map((email) => register({ setupToken: SETUP_TOKEN, email })),
     );
 
     expect(
       answers.filter((answer) => answer.status === HTTP_OK),
     ).to.have.length(1);
     expect(await userCount()).to.equal(1);
+    expect(await hasOnboarded()).to.equal(true);
+    for (const [index, email] of emails.entries()) {
+      const accepted = answers[index]?.status === HTTP_OK;
+      const session = await createClient().post("/api/auth/login", {
+        email,
+        password: owner.password,
+      });
+      expect(session.status, email).to.equal(accepted ? HTTP_OK : 401);
+      if (accepted) {
+        expect(await ownerFlagOf(parseBody(SessionBody, session))).to.equal(
+          true,
+        );
+      }
+    }
   });
 });
 

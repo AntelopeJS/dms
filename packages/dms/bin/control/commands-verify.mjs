@@ -1,16 +1,16 @@
 import { join } from "node:path";
 import { print } from "./commands-stack.mjs";
-import { runJourneyFile } from "./journey.mjs";
-import { loadRun } from "./run-state.mjs";
-import { timed } from "./timing.mjs";
+import { runJourneyFile } from "../../e2e/journey-run.mjs";
+import { loadRun } from "../../e2e/run-state.mjs";
+import { timed } from "../../e2e/timing.mjs";
 import { doorLine, flaggedDoors, patchFiles } from "./verify/doors.mjs";
 import { runFormalCheck, touchedFormalChecks } from "./verify/formal.mjs";
 import { checkMap, planFor } from "./verify/map.mjs";
-import { journeysFile, loadSkill } from "./verify/skill.mjs";
+import { journeysFile, loadSkill } from "../../e2e/verify/skill.mjs";
 
 /**
  * @typedef {import("./options.mjs").Values} Values
- * @typedef {import("./run-state.mjs").RunState} RunState
+ * @typedef {import("../../e2e/run-state.mjs").RunState} RunState
  */
 
 /**

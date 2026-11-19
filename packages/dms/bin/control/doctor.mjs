@@ -1,17 +1,17 @@
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
-import { isSameProcess } from "./identity.mjs";
-import { descendantsOf, listenersOf, probe } from "./processes.mjs";
-import { buildChangedSince } from "./build-inputs.mjs";
-import { apiTargetFile, readTarget } from "./forwarder.mjs";
-import { checkoutOf } from "./git.mjs";
-import { stringField } from "./json.mjs";
-import { apiRequest } from "./session.mjs";
-import { describeFailure } from "./failure.mjs";
+import { isSameProcess } from "../../e2e/identity.mjs";
+import { descendantsOf, listenersOf, probe } from "../../e2e/processes.mjs";
+import { buildChangedSince } from "../../e2e/build-inputs.mjs";
+import { apiTargetFile, readTarget } from "../../e2e/forwarder.mjs";
+import { checkoutOf } from "../../e2e/git.mjs";
+import { stringField } from "../../e2e/json.mjs";
+import { apiRequest } from "../../e2e/session.mjs";
+import { describeFailure } from "../../e2e/failure.mjs";
 import { currentFrontendBuildKey } from "./frontend-check.mjs";
 
-/** @typedef {import("./run-state.mjs").RunState} RunState */
+/** @typedef {import("../../e2e/run-state.mjs").RunState} RunState */
 
 /**
  * The version a package.json declares, or `missing`.
@@ -290,7 +290,7 @@ async function sessionLine(state) {
  * last build, the database is the run's own, and the admin session (once
  * onboarded) is valid.
  *
- * @param {import("./run-state.mjs").RunState} state The run
+ * @param {import("../../e2e/run-state.mjs").RunState} state The run
  * @returns {Promise<{ check: string, ok: boolean, detail: string }[]>} One line per check
  */
 export async function doctor(state) {

@@ -4,7 +4,7 @@ import { existsSync, symlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import test from "node:test";
 import { setTimeout as sleep } from "node:timers/promises";
-import { freshDatabase, restartBackend } from "./backend.mjs";
+import { freshDatabase, restartBackend } from "../../e2e/backend.mjs";
 import { doctor } from "./doctor.mjs";
 import {
   bystander,
@@ -13,12 +13,12 @@ import {
   served,
   startedOn,
   withoutStartTimes,
-} from "./helpers/fake-run.mjs";
-import { canChoosePid, chooseNextPid } from "./helpers/pids.mjs";
-import { hasProc, isRunning } from "./identity.mjs";
-import { startDetached } from "./processes.mjs";
-import { backendsFolder, recordBackend } from "./run-state.mjs";
-import { down, liveBackends } from "./stack.mjs";
+} from "../../e2e/helpers/fake-run.mjs";
+import { canChoosePid, chooseNextPid } from "../../e2e/helpers/pids.mjs";
+import { hasProc, isRunning } from "../../e2e/identity.mjs";
+import { startDetached } from "../../e2e/processes.mjs";
+import { backendsFolder, recordBackend } from "../../e2e/run-state.mjs";
+import { down, liveBackends } from "../../e2e/stack.mjs";
 
 const SIX_DAYS_MS = 6 * 24 * 60 * 60 * 1000;
 
@@ -153,9 +153,9 @@ await test("a backend record whose pid is not a process id above 1 is forgotten,
  * A process the run records as a backend on `database` that never answers.
  * `down` stops it with the run.
  *
- * @param {import("./run-state.mjs").RunState} state The run
+ * @param {import("../../e2e/run-state.mjs").RunState} state The run
  * @param {string} database The database its record names
- * @returns {import("./run-state.mjs").BackendRecord} Its record
+ * @returns {import("../../e2e/run-state.mjs").BackendRecord} Its record
  */
 function silentBackend(state, database) {
   const started = startDetached({
@@ -172,8 +172,8 @@ function silentBackend(state, database) {
 }
 
 /**
- * @param {import("./run-state.mjs").RunState} state The run
- * @returns {import("./run-state.mjs").ProcessRecord} The forwarder run.json records
+ * @param {import("../../e2e/run-state.mjs").RunState} state The run
+ * @returns {import("../../e2e/run-state.mjs").ProcessRecord} The forwarder run.json records
  */
 function forwarderOf(state) {
   const api = state.processes.find((entry) => entry.name === "api");
