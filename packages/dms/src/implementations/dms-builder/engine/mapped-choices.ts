@@ -296,21 +296,27 @@ export async function mappedChoices(
   const relations = new Map(
     records.map(([relation, record]) => [record.ref, relation]),
   );
+  const current = mappedRecordsOf(module);
   const data = await Promise.all(
-    found.map(([relation, record]) =>
-      withProfiledBadges(
-        catalog,
-        relationOf(
-          connection,
-          record,
-          descriptions.find(
-            (description) =>
-              `${description.schema}.${description.name}` === relation,
-          )!,
-          relations,
-        ),
-      ),
-    ),
+    found.flatMap(([relation]) => {
+      const record = current.get(relation);
+      return record
+        ? [
+            withProfiledBadges(
+              catalog,
+              relationOf(
+                connection,
+                record,
+                descriptions.find(
+                  (description) =>
+                    `${description.schema}.${description.name}` === relation,
+                )!,
+                relations,
+              ),
+            ),
+          ]
+        : [];
+    }),
   );
   if (missing.length === 0) {
     return { ok: true, data, changes: [] };

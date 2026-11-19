@@ -47,14 +47,21 @@ export function resetWritableProject(): void {
 /**
  * Bring the project's source files and the declaration files its program read
  * in line with the disk, adding the sources created since and dropping the
- * files that are gone. Only a file whose text differs is parsed again, so a
- * refresh keeps every unchanged declaration it holds.
+ * ones that are gone. Only a file whose text differs is parsed again, so a
+ * refresh keeps every unchanged declaration it holds. A declaration file that
+ * is gone keeps its last text: a reinstall or a `rimraf dist` puts it back, and
+ * the importers TypeScript does not resolve again would otherwise stay unresolved.
  */
 export function refreshFromDisk(project: Project): void {
   addModuleSources(project);
   for (const sourceFile of project.getSourceFiles()) {
-    if (!sourceFile.isInNodeModules()) {
-      matchDisk(project, sourceFile);
+    if (sourceFile.isInNodeModules()) {
+      continue;
+    }
+    if (fs.existsSync(sourceFile.getFilePath())) {
+      matchDisk(sourceFile);
+    } else {
+      project.removeSourceFile(sourceFile);
     }
   }
   const program = project.getProgram().compilerObject;
@@ -63,25 +70,21 @@ export function refreshFromDisk(project: Project): void {
     if (
       sourceFile &&
       file.isDeclarationFile &&
-      !program.isSourceFileDefaultLibrary(file)
+      !program.isSourceFileDefaultLibrary(file) &&
+      fs.existsSync(file.fileName)
     ) {
-      matchDisk(project, sourceFile);
+      matchDisk(sourceFile);
     }
   }
 }
 
 /**
- * Reapply a file's text from the disk when it differs, or drop the file when
- * it is gone. The text goes in as one change: ts-morph's own refresh prints it
- * through a writer that normalizes CRLF before the editor can preserve source
- * expressions.
+ * Reapply a file's text from the disk when it differs. The text goes in as one
+ * change: ts-morph's own refresh prints it through a writer that normalizes
+ * CRLF before the editor can preserve source expressions.
  */
-function matchDisk(project: Project, sourceFile: SourceFile): void {
+function matchDisk(sourceFile: SourceFile): void {
   const filepath = sourceFile.getFilePath();
-  if (!fs.existsSync(filepath)) {
-    project.removeSourceFile(sourceFile);
-    return;
-  }
   const text = fs.readFileSync(filepath, "utf8");
   if (text !== sourceFile.getFullText()) {
     sourceFile.applyTextChanges([

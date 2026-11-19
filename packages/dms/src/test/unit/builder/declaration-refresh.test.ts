@@ -88,4 +88,27 @@ describe("[unit] a declaration file edited between two builder operations", () =
       path.join(app.root, "src", "labels.ts"),
     ]);
   });
+
+  /**
+   * A reinstall or a `rimraf dist` removes a declaration file for a moment. An
+   * engine that drops it leaves its importers unresolved after it is back,
+   * because TypeScript keeps the failed resolution of a file that did not change.
+   */
+  it("keeps its last text while it is gone and resolves it once it is back", async function () {
+    this.timeout(OP_TIMEOUT);
+    writeLabelsPackage("draft");
+    expectOk(await addBanner("third"), "AddBlock before the removal");
+
+    const declaration = path.join(
+      app.root,
+      "node_modules",
+      "fixture-labels",
+      "index.d.ts",
+    );
+    fs.rmSync(declaration);
+    expectOk(await addBanner("fourth"), "AddBlock while it is gone");
+
+    writeLabelsPackage("draft");
+    expectOk(await addBanner("fifth"), "AddBlock once it is back");
+  });
 });
