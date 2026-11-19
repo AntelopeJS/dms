@@ -3,11 +3,19 @@ name: ci
 on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
+  merge_group:
+    types: [checks_requested]
   push:
     branches: [next]
   schedule:
     - cron: "17 2 * * *"
   workflow_dispatch:
+    inputs:
+      tier:
+        description: The tier to run, in place of the one the event picks
+        type: choice
+        options: [full, fast, queue, nightly]
+        default: full
 permissions:
   contents: read
 
@@ -44,16 +52,20 @@ jobs:
     permissions:
       contents: read
 
-  # ci-node.yml exposes no outputs, so this copies its tier rule for the jobs
-  # declared here and narrows them to the packages the change touches.
+  # ci-node.yml exposes no outputs, so this takes its tier rule from the shared
+  # action and forces the tier of an event it does not know. checks/
+  # affected-packages.mjs is the only selector: it plans the packages, the
+  # formal checks and the jobs of the run, and every job below reads that plan.
   select:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     outputs:
       tier: ${{ steps.tier.outputs.tier }}
       os: ${{ steps.tier.outputs.os }}
-      dependents: ${{ steps.tier.outputs.dependents }}
-      packages: ${{ steps.packages.outputs.packages }}
+      packages: ${{ steps.plan.outputs.packages }}
+      formal: ${{ steps.plan.outputs.formal }}
+      formal-generated: ${{ steps.plan.outputs.formal-generated }}
+      jobs: ${{ steps.plan.outputs.jobs }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -65,20 +77,23 @@ jobs:
       - name: Pick the tier with the shared rule
         id: pick
         uses: AntelopeJS/.github/.github/actions/ci-tier@v2
-      - name: Pick the tier from the event, the target branch and the draft flag
+      - name: Force the tier of a merge queue or a manual run
         id: tier
         env:
           EVENT: ${{ github.event_name }}
           TIER: ${{ steps.pick.outputs.tier }}
+          DISPATCHED_TIER: ${{ inputs.tier }}
         run: |
+          set -euo pipefail
           tier="$TIER"
-          dependents=false
-          if [[ "$EVENT" == schedule || ( "$EVENT" == pull_request && "$tier" == none ) ]]; then
-            dependents=true
+          if [[ "$EVENT" == merge_group ]]; then
+            tier=queue
+          elif [[ "$EVENT" == workflow_dispatch ]]; then
+            tier="$DISPATCHED_TIER"
           fi
 
           test_base=""
-          if [[ "$tier" == fast ]]; then
+          if [[ "$EVENT" == pull_request || ( "$EVENT" == workflow_dispatch && "$tier" == fast ) ]]; then
             test_base=$(git rev-parse --verify HEAD^1)
           fi
 
@@ -91,29 +106,41 @@ jobs:
             echo "tier=${tier}"
             echo "test-base=${test_base}"
             echo "os=${os}"
-            echo "dependents=${dependents}"
           } >> "$GITHUB_OUTPUT"
-      - name: Select the packages whose tests run
-        id: packages
+      - name: Plan the packages, the formal checks and the jobs
+        id: plan
         env:
           ANTELOPEJS_CI_TIER: ${{ steps.tier.outputs.tier }}
           ANTELOPEJS_TEST_BASE: ${{ steps.tier.outputs.test-base }}
         run: |
           set -euo pipefail
-          packages=$(node checks/affected-packages.mjs)
-          echo "packages=${packages}" >> "$GITHUB_OUTPUT"
-          echo "Tier \`${ANTELOPEJS_CI_TIER}\`: ${packages}" >> "$GITHUB_STEP_SUMMARY"
+          plan=$(node checks/affected-packages.mjs)
+          echo "$plan" >> "$GITHUB_OUTPUT"
+          {
+            echo "Tier \`${ANTELOPEJS_CI_TIER}\`"
+            echo '```'
+            echo "$plan"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
 
   backend:
     needs: select
-    if: contains(fromJSON(needs.select.outputs.packages), 'dms')
+    if: contains(fromJSON(needs.select.outputs.jobs), 'backend')
     runs-on: ${{ matrix.os }}
     timeout-minutes: ${{ matrix.os == 'windows-latest' && 35 || 20 }}
     strategy:
       fail-fast: false
       matrix:
         os: ${{ fromJSON(needs.select.outputs.os) }}
-        suite: [unit, integration, "builder:1", "builder:2"]
+        suite:
+          [
+            unit,
+            integration,
+            "builder:1/4",
+            "builder:2/4",
+            "builder:3/4",
+            "builder:4/4",
+          ]
     defaults:
       run:
         shell: bash
@@ -136,13 +163,36 @@ jobs:
       # Also the compile gate: the separate `build` step this job replaces
       # had nothing else to check.
       - run: pnpm --dir packages/dms build
+      - name: Name the builder shard of the suite
+        id: suite
+        env:
+          SUITE: ${{ matrix.suite }}
+        run: |
+          if [[ "$SUITE" == builder:* ]]; then
+            shard="${SUITE#builder:}"
+            echo "shard=${shard%/*}" >> "$GITHUB_OUTPUT"
+          fi
       # Needs no service: the harness starts an in-memory MongoDB replica set
       # and lets the OS pick the api port.
-      - run: pnpm --dir packages/dms test:${{ matrix.suite }}
+      - if: steps.suite.outputs.shard == ''
+        run: pnpm --dir packages/dms test:${{ matrix.suite }}
+      # The weights in scripts/test-weights.json balance the four shards, and
+      # the durations of this run feed the next refresh.
+      - if: steps.suite.outputs.shard != ''
+        run: pnpm --dir packages/dms test:builder:shard
+        env:
+          DMS_TEST_SHARD: ${{ steps.suite.outputs.shard }}
+          DMS_TEST_DURATIONS: ${{ runner.temp }}/builder-durations.json
+      - if: success() && runner.os == 'Linux' && steps.suite.outputs.shard != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: builder-durations-${{ steps.suite.outputs.shard }}
+          path: ${{ runner.temp }}/builder-durations.json
+          retention-days: 14
 
   frontend-test:
     needs: select
-    if: contains(fromJSON(needs.select.outputs.packages), 'frontend-vue')
+    if: contains(fromJSON(needs.select.outputs.jobs), 'frontend-test')
     runs-on: ${{ matrix.os }}
     timeout-minutes: 15
     strategy:
@@ -166,7 +216,7 @@ jobs:
 
   frontend-verify:
     needs: select
-    if: contains(fromJSON(needs.select.outputs.packages), 'frontend-vue')
+    if: contains(fromJSON(needs.select.outputs.jobs), 'frontend-verify')
     runs-on: ${{ matrix.os }}
     timeout-minutes: 15
     strategy:
@@ -188,7 +238,7 @@ jobs:
 
   dependents:
     needs: select
-    if: needs.select.outputs.dependents == 'true'
+    if: contains(fromJSON(needs.select.outputs.jobs), 'dependents')
     runs-on: ubuntu-latest
     timeout-minutes: 15
     strategy:
@@ -216,18 +266,35 @@ jobs:
           interface: "true"
       - run: pnpm --dir packages/dms/frontend-vue typecheck -m "$GITHUB_WORKSPACE/dependents/${{ matrix.repository }}/${{ matrix.module }}"
 
-  # The shipped playground image is checked on every push to next, every
-  # nightly run and every manual run. Its Docker build kept every pull request
-  # waiting, so pull requests skip it.
+  # The shipped playground image is checked in the merge queue and on the
+  # nightly run. Its Docker build kept every pull request waiting, so pull
+  # requests skip it. Only the stable prefix of the image (apt, corepack and
+  # the pnpm store, the `deps` stage) goes to the layer cache, so the layers of
+  # each checkout never fill the repository's cache.
   docs-playground:
-    if: github.event_name != 'pull_request'
+    needs: select
+    if: contains(fromJSON(needs.select.outputs.jobs), 'docs-playground')
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          file: Dockerfile.playground
+          target: deps
+          cache-from: type=gha,scope=docs-playground
+          cache-to: type=gha,mode=max,scope=docs-playground
       # This also renders every documentation example in both themes, so a
       # broken preview fails here.
-      - run: docker build -f Dockerfile.playground -t dms-playground:ci .
+      - uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          file: Dockerfile.playground
+          load: true
+          tags: dms-playground:ci
+          cache-from: type=gha,scope=docs-playground
       - name: Start the shipped artifacts against a fresh database
         shell: bash
         run: |
@@ -258,7 +325,7 @@ jobs:
 
   verify-map:
     needs: select
-    if: contains(fromJSON(needs.select.outputs.packages), 'verify-dms')
+    if: contains(fromJSON(needs.select.outputs.jobs), 'verify-map')
     runs-on: ${{ matrix.os }}
     timeout-minutes: 5
     strategy:
@@ -275,18 +342,19 @@ jobs:
           node-version-file: .nvmrc
       - run: node packages/dms/bin/dms-control.mjs map
 
-  # The journeys of e2e/ as a Playwright suite: the @smoke ones on the full
-  # tier, every journey in shards on the nightly tier, nothing on a draft or
-  # the fast tier. Its global setup prepares and starts one dms-control run.
+  # The journeys of e2e/ as a Playwright suite: the @smoke ones on the fast and
+  # full tiers, every journey in 4 shards on the queue tier and in 2 on the
+  # nightly tier, nothing on a draft. Its global setup prepares and starts one
+  # dms-control run.
   e2e:
     needs: select
-    if: needs.select.outputs.tier == 'full' || needs.select.outputs.tier == 'nightly'
+    if: contains(fromJSON(needs.select.outputs.jobs), 'e2e')
     runs-on: ubuntu-latest
     timeout-minutes: 60
     strategy:
       fail-fast: false
       matrix:
-        shard: ${{ fromJSON(needs.select.outputs.tier == 'nightly' && '[1, 2]' || '[1]') }}
+        shard: ${{ fromJSON(needs.select.outputs.tier == 'nightly' && '[1, 2]' || needs.select.outputs.tier == 'queue' && '[1, 2, 3, 4]' || '[1]') }}
     env:
       TIER: ${{ needs.select.outputs.tier }}
     steps:
@@ -317,8 +385,10 @@ jobs:
           fi
           echo "::warning::Chromium's system packages did not install: installing the browser alone"
           pnpm exec playwright install --only-shell chromium
-      - if: env.TIER == 'full'
+      - if: env.TIER == 'fast' || env.TIER == 'full'
         run: pnpm e2e --grep @smoke
+      - if: env.TIER == 'queue'
+        run: pnpm e2e --shard=${{ matrix.shard }}/${{ strategy.job-total }}
       - if: env.TIER == 'nightly'
         run: pnpm e2e --shard=${{ matrix.shard }}/2 --reporter=blob
         env:
@@ -370,22 +440,17 @@ jobs:
           path: e2e/playwright-report
           retention-days: 14
 
+  # The checks the selector plans: those the change touches on a pull request,
+  # all of them in the queue and on the nightly run.
   formal:
     needs: select
-    if: contains(fromJSON(needs.select.outputs.packages), 'agents')
+    if: contains(fromJSON(needs.select.outputs.jobs), 'formal')
     runs-on: ubuntu-latest
     timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
-        check:
-          - formal-default-tenant-provisioning
-          - formal-invite-creation
-          - formal-onboarding-bootstrap
-          - formal-option-patch-prune
-          - formal-realtime-tabs
-          - formal-route-patterns
-          - formal-tenant-lifecycle
+        check: ${{ fromJSON(needs.select.outputs.formal) }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -402,24 +467,23 @@ jobs:
           path: ~/.cache/antelopejs-formal
           key: tla2tools-1.7.4
       - run: node .agents/skills/${{ matrix.check }}/check.mjs
-      - if: matrix.check == 'formal-default-tenant-provisioning'
-        run: node .agents/skills/formal-default-tenant-provisioning/history.mjs
-      - if: matrix.check == 'formal-invite-creation'
-        run: node .agents/skills/formal-invite-creation/history.mjs
+      - run: |
+          history=".agents/skills/${CHECK}/history.mjs"
+          if [[ -f "$history" ]]; then node "$history"; fi
+        env:
+          CHECK: ${{ matrix.check }}
 
   # The formal checks that call the real code with generated inputs: they build
   # the module and boot the test harness, which the TLA+ checks above do not.
   formal-generated:
     needs: select
-    if: contains(fromJSON(needs.select.outputs.packages), 'agents')
+    if: contains(fromJSON(needs.select.outputs.jobs), 'formal-generated')
     runs-on: ubuntu-latest
     timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
-        check:
-          - formal-ai-answers-no-row-values
-          - formal-block-writes-judge-request-targets
+        check: ${{ fromJSON(needs.select.outputs.formal-generated) }}
     env:
       DMS_PREBUILT: "1"
     steps:
@@ -435,10 +499,10 @@ jobs:
       - run: node .agents/skills/${{ matrix.check }}/check.mjs
 
   # The one check branch protection requires was the single job's name, so it
-  # stays: green only when every job above is. A job the package selection
-  # skipped does not fail it, and docs-playground may be skipped on a pull
-  # request only. A draft pull request fails it, so merge-when-green cannot
-  # merge on the draft run.
+  # stays: green only when every job the plan requires is. A job outside the
+  # plan is skipped and does not fail it, a required job that was skipped does,
+  # and so does a failed or cancelled one. A draft pull request fails it, so
+  # merge-when-green cannot merge on the draft run.
   ubuntu:
     if: always()
     needs:
@@ -456,9 +520,25 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - if: >-
-          needs.select.result != 'success' || contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') || needs.ci.result == 'skipped' || (github.event_name != 'pull_request' && needs.docs-playground.result == 'skipped') || ((needs.select.outputs.tier == 'full' || needs.select.outputs.tier == 'nightly') && needs.e2e.result == 'skipped')
-        run: exit 1
+      - name: Fail on a job that failed, was cancelled or was required and did not succeed
+        env:
+          NEEDS: ${{ toJSON(needs) }}
+          REQUIRED: ${{ needs.select.outputs.jobs }}
+        run: |
+          set -euo pipefail
+          offenders=$(jq -r --argjson required "${REQUIRED:-[]}" '
+            . as $needs
+            | [ ("select", "ci") as $job | select($needs[$job].result != "success") | $job ]
+              + [ $needs | to_entries[] | select(.value.result == "failure" or .value.result == "cancelled") | .key ]
+              + [ $required[] | select(($needs[.].result // "missing") != "success") ]
+            | unique[]
+            | "\(.): \($needs[.].result // "missing")"
+          ' <<< "$NEEDS")
+          if [[ -n "$offenders" ]]; then
+            echo "::error::Jobs that did not pass: $(tr '\n' ' ' <<< "$offenders")"
+            echo "$offenders"
+            exit 1
+          fi
       - if: needs.select.outputs.tier == 'draft'
         run: |
           echo "::error::Draft pull request: only lint and typecheck ran. Mark it ready for review to run the tests."
