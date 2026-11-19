@@ -1,5 +1,21 @@
 # Changelog
 
+## v0.6.1
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/interface-dms-builder-v0.6.0...interface-dms-builder-v0.6.1)
+
+### 🚀 Enhancements
+
+- **dms:** Mockup workbench, builder sections and column presentation, Safe-mode MCP access ([#1156](https://github.com/AntelopeJS/dms/pull/1156))
+
+### 🩹 Fixes
+
+- **deps:** Require the latest @antelopejs dependencies ([#1157](https://github.com/AntelopeJS/dms/pull/1157))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli
+
 ## v0.6.0
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/interface-dms-builder-v0.5.2...interface-dms-builder-v0.6.0)
