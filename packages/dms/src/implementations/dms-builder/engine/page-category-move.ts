@@ -61,7 +61,7 @@ export function planCategoryMove(
 
 /**
  * Use the same directory convention as CreatePage, when the category has a barrel.
- * The path keeps ts-morph's forward slashes on every platform, so it compares equal to a `PageRecord.filepath`.
+ * The path keeps ts-morph's form on every platform (forward slashes, a UNC root's `//`), so it compares equal to a `PageRecord.filepath`.
  */
 function pageDirectoryFor(
   project: ReturnType<typeof getWritableProject>,
@@ -70,9 +70,8 @@ function pageDirectoryFor(
 ): string | undefined {
   if (!category.importModule?.endsWith(".ts")) return undefined;
   const categoryDir = path.posix.dirname(category.importModule);
-  if (!project.getSourceFile(path.posix.join(categoryDir, "index.ts")))
-    return undefined;
-  return path.posix.join(categoryDir, id, "page.ts");
+  if (!project.getSourceFile(`${categoryDir}/index.ts`)) return undefined;
+  return `${categoryDir}/${id}/page.ts`;
 }
 
 /**
