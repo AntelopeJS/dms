@@ -40,6 +40,13 @@ export function useTableViewLiveHold<T extends Data>(
       ? rowSidePanel.value.rowKey
       : undefined,
   );
+  const openRowDrawers = ref(0);
+  const openRowDrawer = () => {
+    openRowDrawers.value += 1;
+    return () => {
+      openRowDrawers.value -= 1;
+    };
+  };
 
   const NEW_ROWS_COUNT_ID = "liveHold:new";
   const tableRoot = useTemplateRef<ComponentPublicInstance>("tableRoot");
@@ -48,7 +55,8 @@ export function useTableViewLiveHold<T extends Data>(
     isSource: tableRows.isSource,
     gate: () => deferred.liveGate,
     signals: {
-      isRowOpen: () => openRowId.value !== undefined,
+      isRowOpen: () =>
+        openRowId.value !== undefined || openRowDrawers.value > 0,
       isSearching: () => !!effectiveGlobalFilter.value,
       isSorted: () => !isSameSorting(effectiveSorting.value, defaultSortState),
       tableElement: () => {
@@ -82,7 +90,7 @@ export function useTableViewLiveHold<T extends Data>(
       },
     },
   });
-  return { liveHold, openRowId, tableRoot };
+  return { liveHold, openRowId, openRowDrawer, tableRoot };
 }
 
 export function useTableViewRefresh<T extends Data>(

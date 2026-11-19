@@ -97,6 +97,7 @@ export const useTableRowActions = <T extends Data>(
     rowNavigation: config.rowNavigation,
     recordScope: config.recordScope,
     onRecordShown: config.onRecordShown,
+    onRowDrawerOpen: config.onRowDrawerOpen,
     rowIdKey: config.rowIdKey,
   });
 

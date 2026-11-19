@@ -124,7 +124,10 @@ export interface TableViewLiveHoldOptions {
    * Defaults to true.
    */
   whileOnScreen?: boolean;
-  /** While one of its rows is open in the side panel. Defaults to false. */
+  /**
+   * While one of its rows is open in the side panel or a drawer. Defaults to
+   * false.
+   */
   whileRowOpen?: boolean;
   /** While the user has scrolled its first row out of view. Defaults to false. */
   whileScrolled?: boolean;

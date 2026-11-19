@@ -20,7 +20,7 @@ type Query = TableCountQuery["query"];
 
 /** What the table tells its hold about the user's reading. */
 export interface TableLiveHoldSignals {
-  /** One of its rows is open in the side panel. */
+  /** One of its rows is open in the side panel or a drawer. */
   isRowOpen?: () => boolean;
   /** The user's search narrows the rows. */
   isSearching?: () => boolean;

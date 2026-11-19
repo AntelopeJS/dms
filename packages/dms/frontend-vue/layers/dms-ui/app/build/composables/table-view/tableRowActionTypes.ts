@@ -34,6 +34,8 @@ export interface TableRowActionsConfig {
   recordScope?: TableUrlScope;
   /** Told the row a `deepLink` action shows, `undefined` once closed. */
   onRecordShown?: (id?: string) => void;
+  /** Told a drawer opened on a row; what it returns is called once it closed. */
+  onRowDrawerOpen?: () => () => void;
 }
 
 export interface BulkActionConfig {
