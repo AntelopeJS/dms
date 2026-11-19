@@ -126,3 +126,40 @@ await test("a malformed e2e/journeys.config.ts is refused with its path (catches
     message: `${join(root, "e2e", "journeys.config.ts")} is malformed: expected a journeys config`,
   });
 });
+
+await test("a config option reads that file and the journeys folder beside it, and the default stays e2e/journeys.config.ts (catches a kit that always reads e2e/journeys)", async (t) => {
+  const root = checkout(t);
+  ownConfig(root, { playground: "main", prepare: [], smoke: "alpha" });
+  write(
+    join(root, "e2e", "builder", "journeys.config.ts"),
+    `export default ${JSON.stringify({ playground: "builder", prepare: [], smoke: "only" })};\n`,
+  );
+  write(join(root, "e2e", "builder", "journeys", "only.mjs"), JOURNEY);
+
+  const second = await loadSuiteConfig(
+    undefined,
+    root,
+    "e2e/builder/journeys.config.ts",
+  );
+  const first = await loadSuiteConfig(undefined, root);
+
+  assert.equal(
+    second.source,
+    join(root, "e2e", "builder", "journeys.config.ts"),
+  );
+  assert.equal(second.journeysDir, join(root, "e2e", "builder", "journeys"));
+  assert.deepEqual(second.features, ["only"]);
+  assert.equal(second.playground, join(root, "builder"));
+  assert.deepEqual(first.features, ["alpha", "beta", "skill-smoke"]);
+  assert.deepEqual(
+    await targetOf(
+      { config: join(root, "e2e", "builder", "journeys.config.ts") },
+      root,
+    ),
+    { playground: join(root, "builder"), renderer: undefined },
+  );
+  await assert.rejects(
+    loadSuiteConfig(undefined, root, "e2e/none.config.ts"),
+    /does not exist/,
+  );
+});

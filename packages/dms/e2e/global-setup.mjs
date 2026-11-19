@@ -30,6 +30,7 @@ export default async function globalSetup() {
   }
   const { run, stop } = await startRun({
     skill: suite.skill,
+    config: suite.config,
     frontend: suite.frontend,
   });
   process.env[RUN] = run.dir;
