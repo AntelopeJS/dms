@@ -24,12 +24,7 @@ The installed modules page (`/modules`) and the module store (`/modules/store`, 
 - `modules-search-empty`: empty path: a store search and an installed search that match nothing show no module; Clear search lists the catalog again.
 - `store-read-only-outside-dev`: error path, on a production backend: the store says it is read-only, Install is disabled, `POST /dms/store/install` answers 403 `error.store_disabled`, and the listing still shows the module as available.
 - `store-open-in-dev`: the same store on a development backend: no read-only notice, Install is enabled, the listing says `enabled`, and `POST /dms/store/install` passes the development gate to answer 404 `error.store_module_unknown` for an id the catalog does not hold, so nothing is installed.
-
-## Checked by the integration suite
-
-These checks make no browser tab, so they run in the backend suite (`pnpm --dir packages/dms test:integration`), not as journeys.
-
-- `store-listing-owners-only`: `GET /dms/store/listing` answers the platform owner with the catalog (read-only outside development) and refuses a visitor and a member who is not an owner with 403. Held by `packages/dms/src/test/integration/module-store-listing.test.ts`.
+- `store-listing-owners-only`: Exposure: `GET /dms/store/listing` answers the platform owner and refuses a visitor with 403. It is a journey because the owner's catalog comes from the npm registry. The refusals, of a visitor and of a member who is not an owner, also run in the integration test `packages/dms/src/test/integration/module-store-listing.test.ts`.
 
 ## How to get to it (user POV)
 
