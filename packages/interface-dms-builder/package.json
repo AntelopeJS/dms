@@ -65,7 +65,7 @@
   "peerDependencies": {
     "@antelopejs/interface-core": ">=0.5.1 <0.6.0"
   },
-  "packageManager": "pnpm@10.2.0",
+  "packageManager": "pnpm@10.34.9",
   "antelopeJs": {
     "standalone": true
   }
