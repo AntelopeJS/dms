@@ -325,8 +325,10 @@ jobs:
   # The Playwright suite of e2e/, when the plan selects it: its global setup
   # prepares the playground and starts one run of the @antelopejs/dms/e2e kit.
   # A pull request runs the @smoke tests. The merge queue runs the whole suite
-  # in four shards; a manual run, a pull request labelled ci:full and the
-  # nightly schedule in three. e2e-report merges the shards into one report.
+  # in five shards; a manual run, a pull request labelled ci:full and the
+  # nightly schedule in three. A shard is a contiguous run of the suite cut by
+  # the seconds in e2e/test-weights.json, and records this run's seconds.
+  # e2e-report merges the shards into one report.
   # The shard list carries the choice: ["smoke"], or the shard numbers.
   e2e:
     needs: select
@@ -336,7 +338,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: ${{ fromJSON(needs.select.outputs.tier == 'queue' && '[1, 2, 3, 4]' || (needs.select.outputs.tier == 'nightly' || github.event_name == 'workflow_dispatch' || contains(github.event.pull_request.labels.*.name, 'ci:full')) && '[1, 2, 3]' || '["smoke"]') }}
+        shard: ${{ fromJSON(needs.select.outputs.tier == 'queue' && '[1, 2, 3, 4, 5]' || (needs.select.outputs.tier == 'nightly' || github.event_name == 'workflow_dispatch' || contains(github.event.pull_request.labels.*.name, 'ci:full')) && '[1, 2, 3]' || '["smoke"]') }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -358,18 +360,13 @@ jobs:
           path: ~/.cache/dms-control/frontend
           key: dms-control-frontend-${{ github.sha }}
           restore-keys: dms-control-frontend-
-      - name: Install Chromium and its system packages
-        run: |
-          if timeout 240 pnpm exec playwright install --with-deps --only-shell chromium; then
-            exit 0
-          fi
-          echo "::warning::Chromium's system packages did not install: installing the browser alone"
-          pnpm exec playwright install --only-shell chromium
+      - run: pnpm exec playwright install --only-shell chromium
       - if: matrix.shard == 'smoke'
         run: pnpm e2e --grep @smoke
       - if: matrix.shard != 'smoke'
-        run: pnpm e2e --shard=${{ matrix.shard }}/${{ strategy.job-total }} --reporter=blob
+        run: pnpm e2e --shard=${{ matrix.shard }}/${{ strategy.job-total }} --add-reporter=blob
         env:
+          DMS_E2E_DURATIONS: ${{ runner.temp }}/e2e-durations.json
           PLAYWRIGHT_BLOB_OUTPUT_DIR: e2e/blob-report
       # The run helper of @antelopejs/dms/e2e/run, on the playground the suite prepared.
       - if: matrix.shard == 'smoke' || matrix.shard == 1
@@ -377,6 +374,12 @@ jobs:
       # The declarations @antelopejs/dms/e2e publishes, built by the run's prepare.
       - if: success() || failure()
         run: pnpm exec tsc --noEmit -p e2e
+      - if: ${{ !cancelled() && matrix.shard != 'smoke' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-durations-${{ matrix.shard }}
+          path: ${{ runner.temp }}/e2e-durations.json
+          retention-days: 14
       - if: always() && matrix.shard != 'smoke'
         uses: actions/upload-artifact@v4
         with:

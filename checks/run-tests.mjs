@@ -83,7 +83,7 @@ const STEPS = [
   },
   {
     when: (selected) => selected.has("verify-dms"),
-    command: "node --test e2e/rows.test.mjs",
+    command: "node --test e2e/rows.test.mjs e2e/weighted-shards.test.mjs",
   },
   {
     when: (selected) => selected.has("dms"),
