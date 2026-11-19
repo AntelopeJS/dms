@@ -2,7 +2,7 @@ name: ci
 
 on:
   pull_request:
-    types: [opened, synchronize, reopened, ready_for_review]
+    types: [opened, synchronize, reopened, ready_for_review, labeled, unlabeled]
   merge_group:
   push:
     branches: [main]
@@ -42,6 +42,7 @@ jobs:
         pnpm --dir packages/dms mockup:schema:check
         pnpm --dir packages/dms check:frontend-declarations
       renovate-sync: false
+      single-job: false
       test-job: true
     permissions:
       contents: read
@@ -321,8 +322,7 @@ jobs:
 
   # The journeys of e2e/ as a Playwright suite: the @smoke ones on the fast and
   # full tiers, every journey in 4 shards on the queue tier and in 2 on the
-  # nightly tier, nothing on a draft. Its global setup prepares and starts one
-  # dms-control run.
+  # nightly tier. Its global setup prepares and starts one dms-control run.
   e2e:
     needs: select
     if: contains(fromJSON(needs.select.outputs.jobs), 'e2e')
@@ -478,8 +478,8 @@ jobs:
   # The one check branch protection requires was the single job's name, so it
   # stays: green only when every job the plan requires is. A job outside the
   # plan is skipped and does not fail it, a required job that was skipped does,
-  # and so does a failed or cancelled one. A draft pull request fails it, so
-  # merge-when-green cannot merge on the draft run.
+  # and so does a failed or cancelled one. It answers on pull_request and
+  # merge_group, and the merge queue requires it with `ci / checks`.
   ubuntu:
     if: always()
     needs:
@@ -516,10 +516,6 @@ jobs:
             echo "$offenders"
             exit 1
           fi
-      - if: needs.select.outputs.tier == 'draft'
-        run: |
-          echo "::error::Draft pull request: only lint and typecheck ran. Mark it ready for review to run the tests."
-          exit 1
   renovate-sync:
     if: >-
       github.event_name == 'pull_request' && startsWith(github.head_ref, 'renovate/') && github.event.pull_request.head.repo.full_name == github.repository
