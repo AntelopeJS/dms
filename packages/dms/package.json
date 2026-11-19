@@ -41,9 +41,12 @@
   "files": [
     "bin",
     "!bin/tsconfig.json",
+    "!bin/**/*.test.mjs",
     "e2e",
     "!e2e/tsconfig.json",
     "!e2e/tsconfig.types.json",
+    "!e2e/**/*.test.mjs",
+    "!e2e/helpers",
     "dist",
     "!dist/.tsbuildinfo",
     "!dist/test",

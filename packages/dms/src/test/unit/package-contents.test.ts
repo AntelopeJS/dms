@@ -9,11 +9,18 @@ const PACK_TIMEOUT_MS = 60_000;
 /**
  * What a consumer reads from the installed package: the loader the backend
  * entry and the skills, the renderer the Vue layer, which it copies whole into
- * every workspace it generates.
+ * every workspace it generates, and a Playwright suite the e2e kit and its
+ * declarations, whose global setup, service entry and build preload the kit
+ * loads by path.
  */
 const RUNTIME_ENTRIES = [
   "package.json",
   "dist/index.js",
+  "e2e/index.mjs",
+  "dist/e2e/index.d.mts",
+  "e2e/global-setup.mjs",
+  "e2e/service.mjs",
+  "e2e/prepared-workspace.mjs",
   "frontend-vue/package.json",
   "frontend-vue/dms.frontend.ts",
   "frontend-vue/dms.server.ts",
@@ -24,12 +31,17 @@ const RUNTIME_ENTRIES = [
 
 /**
  * Development files of this repository: the compiled backend suites, the Vue
- * layer's Vitest suites and its standalone tooling. The renderer installs the
- * layer from its generated workspace's lockfile and excludes tests, Vitest and
- * ESLint configs from its type check, so none of them reaches a consumer.
+ * layer's Vitest suites and its standalone tooling, and the Node tests, test
+ * helpers and TypeScript configs of the e2e kit and of dms-control. The
+ * renderer installs the layer from its generated workspace's lockfile and
+ * excludes tests, Vitest and ESLint configs from its type check, so none of
+ * them reaches a consumer.
  */
 const DEVELOPMENT_ONLY = [
   /^dist\/test\//,
+  /^(?:e2e|bin)\/.*\.test\.mjs$/,
+  /^e2e\/helpers\//,
+  /^(?:e2e|bin)\/tsconfig[^/]*\.json$/,
   /^frontend-vue\/tests\//,
   /^frontend-vue\/vitest\.config\.ts$/,
   /^frontend-vue\/eslint\.config\.mjs$/,
