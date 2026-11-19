@@ -193,7 +193,7 @@ await test("a run whose backend holds the API port itself is refused before its 
       file: journeysModule(t, `export const journeys = [${JOURNEY}];`),
       feature: "smoke",
       ids: [],
-      skill: { config: {} },
+      config: { prepare: [] },
     }),
     { message: "this run was started by an older dms-control; run `up` again" },
   );

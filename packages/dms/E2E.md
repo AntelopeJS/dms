@@ -1,6 +1,6 @@
 # The e2e kit
 
-`@antelopejs/dms/e2e` is a Playwright setup for a DMS repository. The global setup of its config prepares the playground and starts one run for the whole invocation: a copy of the playground on free ports, its own MongoDB, a mail sink and the built dashboard. It stops the run after the last test. A spec is ordinary Playwright: it imports `test` and `expect` from the kit, and its fixtures give it a fresh database, an administrator and the run's dashboard as `baseURL`. `registerJourneys()` turns the journeys of the repository's verify skill into tests on the same fixtures. Nothing in the kit runs `dms-control`.
+`@antelopejs/dms/e2e` is a Playwright setup for a DMS repository. The global setup of its config prepares the playground and starts one run for the whole invocation: a copy of the playground on free ports, its own MongoDB, a mail sink and the built dashboard. It stops the run after the last test. A spec is ordinary Playwright: it imports `test` and `expect` from the kit, and its fixtures give it a fresh database, an administrator and the run's dashboard as `baseURL`. `registerJourneys()` turns the journeys of `e2e/journeys/` into tests on the same fixtures. Nothing in the kit runs `dms-control`.
 
 ## Configure a suite
 
@@ -20,14 +20,37 @@ import { registerJourneys } from "@antelopejs/dms/e2e";
 await registerJourneys();
 ```
 
+`e2e/journeys.config.ts` declares the suite's run and its journeys:
+
+```ts
+import type { JourneysConfig } from "@antelopejs/dms/e2e";
+
+export default {
+  playground: "packages/dms/playground",
+  prepare: [
+    ["pnpm", "install", "--frozen-lockfile", "--prefer-offline", "--ignore-scripts"],
+    ["pnpm", "--dir", "packages/dms", "build"],
+    ["pnpm", "--dir", "packages/dms/playground", "build"],
+  ],
+  smoke: "smoke",
+} satisfies JourneysConfig;
+```
+
+- `playground`: the playground folder, relative to the repository root, or absolute for a playground in another checkout.
+- `renderer`: the built `@antelopejs/dms-frontend` checkout the run serves, for the repository that is the renderer. Without it, the playground's installed one.
+- `prepare`: the install and build commands the global setup runs before the run starts.
+- `smoke`: the feature whose journeys run first.
+
+Each `*.mjs` file of `e2e/journeys/` is a feature, named after the file, and exports its `journeys`. The helpers they import live in subfolders or outside `e2e/journeys/`.
+
 `e2eConfig` takes two options:
 
-- `skill`: the verify skill folder, relative to the repository root. A repository with one `.agents/skills/verify-*` folder leaves it out. A repository with several names the one its suite runs, such as `e2eConfig({ skill: ".agents/skills/verify-dms-assistant" })`.
+- `skill`: for a repository without `e2e/journeys.config.ts`, the verify skill folder whose `verify.config.ts` and `features/` the kit reads instead, relative to the repository root. A repository with one `.agents/skills/verify-*` folder leaves it out. A `skill` wins over `e2e/journeys.config.ts`, so a migrated suite drops it.
 - `frontend: "dev"`: the run serves the dashboard with `ajs dms dev`, and the suite runs only the journeys that set `frontend: "dev"`. A suite without it serves a build and leaves those journeys out. Its test output and report folders end in `-dev`.
 
 `registerJourneys()` reads both from the config that loaded it.
 
-The tests of a suite run one at a time against its run, the files in alphabetical order. `registerJourneys()` registers the journeys of the verify config's `smoke` feature first, then the other features in alphabetical order, then every journey marked `last`, so `--grep @smoke` runs the `smoke` journey before the other journeys. Name the journeys file so that it sorts after the specs (`zz-journeys.spec.ts`): a journey marked `last` changes the playground for the backends that follow, and a spec that sorts after it cannot start its backend. `--shard=i/N` splits a suite across machines, each with a run of its own.
+The tests of a suite run one at a time against its run, the files in alphabetical order. `registerJourneys()` registers the journeys of the config's `smoke` feature first, then the other features in alphabetical order, then every journey marked `last`, so `--grep @smoke` runs the `smoke` journey before the other journeys. Name the journeys file so that it sorts after the specs (`zz-journeys.spec.ts`): a journey marked `last` changes the playground for the backends that follow, and a spec that sorts after it cannot start its backend. `--shard=i/N` splits a suite across machines, each with a run of its own.
 
 ## Write a spec
 
@@ -62,7 +85,7 @@ Playwright's own `page` opens the run's dashboard on the database the previous t
 
 ## Start a run from node:test
 
-`@antelopejs/dms/e2e/run` starts the same run as the global setup, for a test runner without Playwright. It loads no `@playwright/test`. `startRun` takes the options of `e2eConfig` plus `prepare`, which runs the skill's prepare commands unless `DMS_E2E_PREBUILT=1`. It returns the ready `run` and `stop`, which stops every process the run started. `onboard(run, {})` creates and signs in the administrator, and `apiRequest(run, { method, path, body, as })` calls the backend as `admin`, another account of `run.accounts`, or `anon`. Each request and its answer go to the run's `evidence/` folder.
+`@antelopejs/dms/e2e/run` starts the same run as the global setup, for a test runner without Playwright. It loads no `@playwright/test`. `startRun` takes the options of `e2eConfig` plus `prepare`, which runs the config's `prepare` commands unless `DMS_E2E_PREBUILT=1`. It returns the ready `run` and `stop`, which stops every process the run started. `onboard(run, {})` creates and signs in the administrator, and `apiRequest(run, { method, path, body, as })` calls the backend as `admin`, another account of `run.accounts`, or `anon`. Each request and its answer go to the run's `evidence/` folder.
 
 `test/cli.test.mjs`:
 
@@ -93,7 +116,7 @@ test("the administrator reads the onboarding state", async () => {
 
 ## Environment
 
-- `DMS_E2E_PREBUILT=1`: the global setup and `startRun` skip the skill's prepare commands (install and build), for a checkout an earlier run prepared.
+- `DMS_E2E_PREBUILT=1`: the global setup and `startRun` skip the config's `prepare` commands (install and build), for a checkout an earlier run prepared.
 - `DMS_E2E_RUN=<run folder>`: the tests drive that run, such as one `dms-control up` started, and the suite stops nothing. A run whose dashboard is not served the way the suite asks is refused.
 - `DMS_CONTROL_RUNS`: the folder the run folders go to.
 - `DMS_CONTROL_NO_STANDBY=1`: each fresh database's backend starts when the test needs it, rather than one ahead.
@@ -101,9 +124,13 @@ test("the administrator reads the onboarding state", async () => {
 ## Port recipe
 
 1. Pin `@antelopejs/dms` to the exact preview that `next` publishes (dist-tag `next`). A range such as `>=0.20.2 <0.21.0` does not match a prerelease. Add `@playwright/test` `~1.65.0` as a devDependency, on the line of the `playwright-core` that `@antelopejs/dms` resolves.
-2. Add the two files above, an `e2e/tsconfig.json` (`allowJs`, `noEmit`, `nodenext`), and the script `"e2e": "playwright test -c e2e"`. A repository with several verify skills passes `skill` to `e2eConfig`.
-3. Move the skill's `journeys/` folder and the helpers it imports to `e2e/`, and set `journeys: "e2e/journeys"` in `verify.config.ts`. `dms-control map` must exit 0.
-4. Give each journey that needs the development dashboard `frontend: "dev"`, and add `e2e/playwright.dev.config.ts` with `e2eConfig({ frontend: "dev" })` (and the same `skill`). Run it with `playwright test -c e2e/playwright.dev.config.ts`.
+2. Add the three files above, an `e2e/tsconfig.json` (`allowJs`, `noEmit`, `nodenext`), and the script `"e2e": "playwright test -c e2e"`.
+3. Move the skill's `journeys/` folder to `e2e/journeys/`, with the helpers it imports in subfolders or beside it in `e2e/`.
+4. Give each journey that needs the development dashboard `frontend: "dev"`, and add `e2e/playwright.dev.config.ts` with `e2eConfig({ frontend: "dev" })`. Run it with `playwright test -c e2e/playwright.dev.config.ts`.
 5. A journey that fails today because of a product finding gets `knownFailures`, never a skip. A journey that changes the run's playground for later backends gets `last: true`.
 6. Tag `@smoke` on about 5 fast journeys, the `smoke` journey first, none that needs `backend: "watch"`, `withBaseBackend`, `standby: false` or `frontend: "dev"`.
 7. Copy the `e2e` and `e2e-report` jobs of AntelopeJS/dms's `ci.yml` and the `e2e` line of its `ubuntu` gate. Nothing runs on a draft or the none tier. A pull request runs `--grep @smoke`. The merge queue, a manual run, a pull request labelled `ci:full` and the nightly schedule run the whole suite with `--shard=i/N --add-reporter=blob`, which keeps the config's reporters, with N chosen so that one shard stays under about 30 minutes, and `e2e-report` merges the shards' blob reports. A dev config runs in the same job, after the build config.
+
+## Move off verify.config.ts
+
+A suite that still reads `.agents/skills/verify-*/verify.config.ts`: copy its `playground`, `renderer`, `prepare` and `smoke` into `e2e/journeys.config.ts`, move its journeys to `e2e/journeys/` and a playground that lives in the skill folder to `e2e/`, and drop `skill` from `e2eConfig`.

@@ -5,7 +5,7 @@ import { isRecord, isString } from "./json.mjs";
 
 /**
  * @typedef {import("./journey-load.mjs").Journey} Journey
- * @typedef {{ skill?: string, frontend?: "dev" }} SuiteOptions What a journeys suite runs: `skill` is the verify skill folder, relative to the repository root, for a repository with several; `frontend: "dev"` serves the dashboard with `ajs dms dev` and runs only the journeys that ask for it
+ * @typedef {{ skill?: string, frontend?: "dev" }} SuiteOptions What a journeys suite runs: `skill` is the verify skill folder, relative to the repository root, for a repository with several and no `e2e/journeys.config.ts`; `frontend: "dev"` serves the dashboard with `ajs dms dev` and runs only the journeys that ask for it
  * @typedef {{ skill: string | undefined, frontend: "build" | "dev" }} Suite The suite a config declared, its skill folder absolute
  */
 
@@ -93,7 +93,7 @@ function isSuite(value) {
  *
  * @param {{ name: string, journeys: Journey[] }[]} features The features and their journeys
  * @param {Suite["frontend"]} frontend How the suite's run serves its dashboard
- * @param {string} smoke The feature whose journeys run first, the verify config's `smoke`
+ * @param {string} smoke The feature whose journeys run first, the journeys config's `smoke`
  * @returns {{ feature: string, journey: Journey }[]} The journeys, each with its feature
  * @throws When two journeys share an id
  */

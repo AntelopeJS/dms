@@ -78,11 +78,11 @@ async function prepare(state, feature, journey, context) {
  * @param {import("./run-state.mjs").RunState} state The run
  * @param {string} feature The feature it belongs to
  * @param {Journey} journey The journey
- * @param {import("./verify/skill.mjs").Skill | undefined} skill The skill the journey belongs to
+ * @param {import("./journeys-config.mjs").SuiteConfig | undefined} config The journeys config the journey belongs to, none for a browserless run
  * @param {Pick<import("playwright-core").Browser, "newContext" | "close">} [browser] The browser to open its contexts in, such as Playwright Test's
  * @returns {Promise<FeatureResult>} The result
  */
-export function runJourney(state, feature, journey, skill, browser) {
+export function runJourney(state, feature, journey, config, browser) {
   const detail = { feature, journey: journey.id };
   return timedJourney(state, detail, async () => {
     const opened =
@@ -94,7 +94,13 @@ export function runJourney(state, feature, journey, skill, browser) {
         detail,
       ));
     try {
-      const context = await openJourney(state, feature, journey, skill, opened);
+      const context = await openJourney(
+        state,
+        feature,
+        journey,
+        config,
+        opened,
+      );
       await context.drive(journey.run);
       return await judgeJourney(context, journey);
     } finally {
@@ -113,17 +119,17 @@ export function runJourney(state, feature, journey, skill, browser) {
  * @param {import("./run-state.mjs").RunState} state The run
  * @param {string} feature The feature it belongs to
  * @param {JourneyPreparation} journey What it asks of the run
- * @param {import("./verify/skill.mjs").Skill | undefined} skill The skill it belongs to
+ * @param {import("./journeys-config.mjs").SuiteConfig | undefined} config The journeys config it belongs to, none for a browserless run
  * @param {Pick<import("playwright-core").Browser, "newContext">} browser The browser to open its contexts in
  * @returns {Promise<JourneyContext>} Its context, ended when the preparation failed
  */
-export async function openJourney(state, feature, journey, skill, browser) {
+export async function openJourney(state, feature, journey, config, browser) {
   const context = new JourneyContext(
     state,
     feature,
     journey.id,
     browser,
-    skill,
+    config,
   );
   await context.attempt(() => prepare(state, feature, journey, context));
   return context;
@@ -191,7 +197,7 @@ export async function timedJourney(state, detail, drive) {
  * into `<feature>/feature.json` so a partial run never drops earlier ones.
  *
  * @param {import("./run-state.mjs").RunState} state The run
- * @param {{ file: string, feature: string, ids: string[], skill: import("./verify/skill.mjs").Skill }} request Which journeys, and the skill they belong to
+ * @param {{ file: string, feature: string, ids: string[], config: import("./journeys-config.mjs").SuiteConfig }} request Which journeys, and the journeys config they belong to
  * @returns {Promise<FeatureResult[]>} The results of this run
  */
 export async function runJourneyFile(state, request) {
@@ -215,7 +221,7 @@ export async function runJourneyFile(state, request) {
   const results = [];
   for (const journey of selected)
     results.push(
-      await runJourney(state, request.feature, journey, request.skill),
+      await runJourney(state, request.feature, journey, request.config),
     );
   const file = join(state.evidence, request.feature, "feature.json");
   const earlier = existsSync(file) ? readRecordList(file) : [];

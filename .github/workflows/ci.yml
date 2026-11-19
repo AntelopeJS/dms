@@ -423,62 +423,22 @@ jobs:
           retention-days: 14
 
   # The checks the selector plans: those the change touches on a pull request,
-  # all of them in the queue and on the nightly run.
+  # all of them in the queue and on the nightly run, which checks their full
+  # configurations, as a manual run does.
   formal:
     needs: select
     if: contains(fromJSON(needs.select.outputs.jobs), 'formal')
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    strategy:
-      fail-fast: false
-      matrix:
-        check: ${{ fromJSON(needs.select.outputs.formal) }}
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version-file: .nvmrc
-      - run: corepack enable
-      - run: pnpm install --frozen-lockfile --ignore-scripts
-      - uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: "21"
-      - uses: actions/cache@v4
-        with:
-          path: ~/.cache/antelopejs-formal
-          key: tla2tools-1.7.4
-      - run: node .agents/skills/${{ matrix.check }}/check.mjs
-      - run: |
-          history=".agents/skills/${CHECK}/history.mjs"
-          if [[ -f "$history" ]]; then node "$history"; fi
-        env:
-          CHECK: ${{ matrix.check }}
+    uses: ./.github/workflows/formal.yml
+    with:
+      checks: ${{ needs.select.outputs.formal }}
+      full: ${{ needs.select.outputs.tier == 'nightly' || github.event_name == 'workflow_dispatch' }}
 
-  # The formal checks that call the real code with generated inputs: they build
-  # the module and boot the test harness, which the TLA+ checks above do not.
   formal-generated:
     needs: select
     if: contains(fromJSON(needs.select.outputs.jobs), 'formal-generated')
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    strategy:
-      fail-fast: false
-      matrix:
-        check: ${{ fromJSON(needs.select.outputs.formal-generated) }}
-    env:
-      DMS_PREBUILT: "1"
-    steps:
-      - uses: actions/checkout@v4
-      - uses: ./.github/actions/setup
-      - uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cache/mongodb-binaries
-            packages/dms/.antelope/cache
-          key: dms-test-harness-${{ runner.os }}-${{ hashFiles('packages/dms/src/test/antelope.test.ts', 'packages/dms/antelope-lock/**') }}
-      - run: pnpm --dir packages/dms build
-      - run: node .agents/skills/${{ matrix.check }}/check.mjs
+    uses: ./.github/workflows/formal-generated.yml
+    with:
+      checks: ${{ needs.select.outputs.formal-generated }}
 
   # The one check branch protection requires was the single job's name, so it
   # stays: green only when every job the plan requires is. A job outside the
