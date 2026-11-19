@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { spawn } from "node:child_process";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -107,6 +108,33 @@ await test("a run.json whose field has the wrong type is refused", (t) => {
   assert.throws(() => loadRun(dir), /malformed: expected a run state/);
   const processes = savedRun(t, { processes: [{ name: "api", pid: "7" }] });
   assert.throws(() => loadRun(processes), /malformed: expected a run state/);
+});
+
+await test("a process reading the run while it is saved again never reads a partial run.json", async (t) => {
+  const dir = savedRun(t, {});
+  const state = loadRun(dir);
+  const reader = spawn(
+    process.execPath,
+    [
+      "--input-type=module",
+      "-e",
+      `import { loadRun } from ${JSON.stringify(new URL("./run-state.mjs", import.meta.url).href)};
+      const deadline = Date.now() + 2000;
+      let reads = 0;
+      while (Date.now() < deadline) { loadRun(${JSON.stringify(dir)}); reads += 1; }
+      process.stdout.write(String(reads));`,
+    ],
+    { stdio: ["ignore", "pipe", "pipe"] },
+  );
+  let output = "";
+  reader.stdout.on("data", (chunk) => (output += chunk));
+  reader.stderr.on("data", (chunk) => (output += chunk));
+  const exit = new Promise((done) => reader.on("exit", done));
+  while (reader.exitCode === null) {
+    saveRun(state);
+    await new Promise((done) => setImmediate(done));
+  }
+  assert.equal(await exit, 0, output);
 });
 
 await test("keys of a run.json that the schema does not name are written back", (t) => {

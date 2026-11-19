@@ -265,16 +265,18 @@ export function loadRun(dir) {
 
 /**
  * Writes the run state, readable by its owner only since it holds the run's
- * secrets and the admin password.
+ * secrets and the admin password. It replaces run.json in one rename, so a
+ * service that loads the run while it is saved reads the old state or the new
+ * one, never a truncated file.
  *
  * @param {StoredRunState} state The run state
  */
 export function saveRun(state) {
-  writeFileSync(
-    join(state.dir, RUN_FILE),
-    `${JSON.stringify(state, null, 2)}\n`,
-    { mode: 0o600 },
-  );
+  const file = join(state.dir, RUN_FILE);
+  writeFileSync(`${file}.next`, `${JSON.stringify(state, null, 2)}\n`, {
+    mode: 0o600,
+  });
+  renameSync(`${file}.next`, file);
 }
 
 /**
