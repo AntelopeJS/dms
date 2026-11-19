@@ -11,8 +11,18 @@ import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { decode, isNumber, recordOf } from "../e2e/json.mjs";
 
-const WEIGHTS_FILE = new URL("./test-weights.json", import.meta.url);
-const USAGE = "usage: node scripts/refresh-test-weights.mjs <run-id>...";
+/** Where each sharded suite's CI runs record their seconds, and its weights file. */
+const SUITES = {
+  builder: {
+    artifacts: "builder-durations-*",
+    weights: new URL("./test-weights.json", import.meta.url),
+  },
+  e2e: {
+    artifacts: "e2e-durations-*",
+    weights: new URL("../../../e2e/test-weights.json", import.meta.url),
+  },
+};
+const USAGE = `usage: node scripts/refresh-test-weights.mjs <${Object.keys(SUITES).join("|")}> <run-id>...`;
 
 /**
  * @param {string} folder A folder to search
@@ -27,10 +37,10 @@ function jsonFiles(folder) {
 }
 
 /**
- * The mean seconds per file over every run, to one decimal place, sorted by
- * path.
+ * The mean seconds per test or file over every run, to one decimal place,
+ * sorted by key.
  *
- * @param {Record<string, number>[]} measurements One `{ file: seconds }` object per shard run
+ * @param {Record<string, number>[]} measurements One `{ key: seconds }` object per shard run
  * @returns {Record<string, number>}
  */
 export function meanWeights(measurements) {
@@ -55,24 +65,17 @@ export function meanWeights(measurements) {
 }
 
 /**
- * Downloads the `builder-durations-*` artifacts of the runs into `folder`.
+ * Downloads the artifacts matching `pattern` of the runs into `folder`.
  *
  * @param {string[]} runs Workflow run ids
+ * @param {string} pattern The artifact name pattern
  * @param {string} folder An empty folder
  */
-function download(runs, folder) {
+function download(runs, pattern, folder) {
   for (const run of runs) {
     const result = spawnSync(
       "gh",
-      [
-        "run",
-        "download",
-        run,
-        "-p",
-        "builder-durations-*",
-        "-D",
-        join(folder, run),
-      ],
+      ["run", "download", run, "-p", pattern, "-D", join(folder, run)],
       { stdio: ["ignore", "inherit", "inherit"] },
     );
     if (result.status !== 0) process.exit(result.status ?? 1);
@@ -83,18 +86,19 @@ if (
   process.argv[1] &&
   import.meta.url === pathToFileURL(process.argv[1]).href
 ) {
-  const runs = process.argv.slice(2);
-  if (runs.length === 0) {
+  const [name, ...runs] = process.argv.slice(2);
+  const suite = Object.entries(SUITES).find(([key]) => key === name)?.[1];
+  if (suite === undefined || runs.length === 0) {
     process.stderr.write(`${USAGE}\n`);
     process.exit(1);
   }
   const folder = mkdtempSync(join(tmpdir(), "dms-durations-"));
   try {
-    download(runs, folder);
+    download(runs, suite.artifacts, folder);
     const files = jsonFiles(folder);
     if (files.length === 0) {
       process.stderr.write(
-        `no builder-durations JSON in runs ${runs.join(", ")}\n${USAGE}\n`,
+        `no ${suite.artifacts} JSON in runs ${runs.join(", ")}\n${USAGE}\n`,
       );
       process.exit(1);
     }
@@ -104,11 +108,11 @@ if (
           recordOf(isNumber),
           JSON.parse(readFileSync(file, "utf8")),
           file,
-          "seconds per test file",
+          "seconds per test",
         ),
       ),
     );
-    writeFileSync(WEIGHTS_FILE, `${JSON.stringify(weights, null, 2)}\n`);
+    writeFileSync(suite.weights, `${JSON.stringify(weights, null, 2)}\n`);
   } finally {
     rmSync(folder, { recursive: true, force: true });
   }
