@@ -86,9 +86,25 @@ export interface ThemeFiles {
   assetsDirectory: string;
 }
 
+/**
+ * Whether the DMS frontend loader finds the layer. `ajs dms dev`, `build` and
+ * `start` read the frontend modules of a project from the `dmsFrontend` field
+ * of each module's `package.json`, not from what the backend registers at run
+ * time: a layer the field does not name is left out of every frontend, so its
+ * theme never reaches the dashboard.
+ */
+export interface ThemeLayerDeclaration {
+  /** Whether the `package.json` shipping the layer names its frontend module. */
+  declared: boolean;
+  /** Absolute path of the `package.json` that must name it. */
+  manifest: string;
+}
+
 /** A project's theme as its files hold it. */
 export interface ThemeStructure {
   layer: ThemeLayer;
+  /** When `declared` is false, a save writes files the dashboard never loads: `CreateThemeLayer` declares the layer. */
+  declaration: ThemeLayerDeclaration;
   variables: ThemeVariableSets;
   colors: ThemeColors;
   logos: ThemeLogos;
@@ -162,8 +178,17 @@ export const SetTheme =
 /**
  * Create the frontend layer a theme is written to, for a project without one:
  * `frontend-vue/` at the project root, with an entry importing the stylesheet,
- * registered from the project's `start()` above the DMS. A project that
- * already has a layer gets it back unchanged, and nothing is written.
+ * and the frontend module that declares it: `src/frontend-module.ts`, named as
+ * `dmsFrontend` in the project's `package.json` for the frontend loader and
+ * registered from the project's `start()` above the DMS.
+ *
+ * A project that already has a layer gets it back, and `CreateThemeLayer`
+ * repairs a layer the project registers without declaring it (`GetTheme`
+ * answers `declaration.declared: false`): it moves the registration into the
+ * frontend module and declares it. A layer that is declared is returned
+ * unchanged, and nothing is written. Refused with `unsupported` when the
+ * project registers the layer in a way it cannot rewrite, or has no `main`
+ * naming its compiled entry.
  *
  * The backend reloads with the registration; the frontend dev server reads
  * its frontend modules at startup, so it needs a restart to serve the layer.

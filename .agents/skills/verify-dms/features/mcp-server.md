@@ -3,8 +3,9 @@ covers:
   - packages/dms/src/mcp/**
   - packages/dms/src/utils/owner-only-file.ts
 docs:
-  - packages/dms/docs/08.ai-and-claude-code/10.mcp-server.md
-  - packages/dms/docs/08.ai-and-claude-code/15.block-requests.md
+  - packages/dms/docs/08.ai-and-claude-code/15.mcp-server.md
+  - packages/dms/docs/08.ai-and-claude-code/16.mcp-external-databases.md
+  - packages/dms/docs/08.ai-and-claude-code/21.block-requests.md
 ---
 
 # MCP server

@@ -11,6 +11,8 @@ import {
   type PageReader,
 } from "./built-sync";
 import { compileSpec, parseSpec } from "./compile";
+import type { Clock } from "./generate";
+import { keepingHistory, recordDiskText } from "./history";
 import {
   ANNOTATIONS_FILE,
   MISSING_FILE,
@@ -21,6 +23,7 @@ import {
 import type {
   Json,
   JsonObject,
+  MockupCategory,
   MockupIssue,
   MockupName,
   MockupPageState,
@@ -32,9 +35,13 @@ import {
   mockupSourceSchema,
   parseMockupName,
 } from "./model";
+import { readSpecText, withSpecLock } from "./source";
 
 /** How long a burst of writes to one file is waited out before it is read. */
 const WATCH_DEBOUNCE_MS = 40;
+
+/** How often the mockups directory is read for a mockup that appeared. */
+const CREATED_POLL_MS = 500;
 
 /** What a subscriber to one mockup receives. */
 export type MockupEvent =
@@ -42,6 +49,22 @@ export type MockupEvent =
   | { event: "annotations"; data: { annotations: MockupAnnotation[] } };
 
 export type MockupListener = (event: MockupEvent) => void;
+
+/** A mockup whose spec did not exist before: sent once, with the title it had then. */
+export interface MockupCreated {
+  name: MockupName;
+  title?: string;
+}
+
+export type MockupCreatedListener = (created: MockupCreated) => void;
+
+/** The mockups known to exist, and who is told of a new one. */
+interface CreatedWatch {
+  listeners: Set<MockupCreatedListener>;
+  known: Set<MockupName>;
+  timer: NodeJS.Timeout;
+  scanning: boolean;
+}
 
 type EventReader = (name: MockupName) => Promise<MockupEvent>;
 
@@ -76,6 +99,8 @@ export type MockupSummary = MockupSummaryBase &
 interface Entry {
   revision: number;
   title?: string;
+  categories?: MockupCategory[];
+  sidebar?: MockupState["sidebar"];
   pages: MockupPageState[];
   fixtures: Map<string, JsonObject>;
   issues: MockupIssue[];
@@ -122,6 +147,8 @@ function lastGood(
   return {
     revision,
     title: previous?.title,
+    categories: previous?.categories,
+    sidebar: previous?.sidebar,
     pages: previous?.pages ?? [],
     fixtures: previous?.fixtures ?? new Map<string, JsonObject>(),
     issues,
@@ -139,11 +166,16 @@ export class MockupStore {
   private readonly entries = new Map<MockupName, Entry>();
   private readonly watches = new Map<MockupName, Watch>();
   private watcher: FSWatcher | undefined;
+  private created: CreatedWatch | undefined;
 
-  /** Without `livePages`, as when the builder is off, no built page reads as changed. */
+  /**
+   * Without `livePages`, as when the builder is off, no built page reads as
+   * changed. `clock` anchors the dates a `$generate` fixture makes up.
+   */
   constructor(
     readonly mockupsDir: string,
     private readonly livePages?: PageReader,
+    private readonly clock: Clock = Date.now,
   ) {}
 
   /**
@@ -274,6 +306,92 @@ export class MockupStore {
     };
   }
 
+  /**
+   * Sends `listener` each mockup whose spec did not exist before, until the
+   * returned function is called. The mockups there already are not sent, nor
+   * is a change to one: only a name that was absent from the mockups
+   * directory, or had no spec, and has one now. The directory is read every
+   * {@link CREATED_POLL_MS} ms while anyone listens, so a mockup directory
+   * that is made later is seen too.
+   */
+  async subscribeCreated(listener: MockupCreatedListener): Promise<() => void> {
+    const watched = this.created ?? (await this.startCreatedWatch());
+    watched.listeners.add(listener);
+    return () => {
+      watched.listeners.delete(listener);
+      if (!watched.listeners.size) this.stopCreatedWatch(watched);
+    };
+  }
+
+  private async startCreatedWatch(): Promise<CreatedWatch> {
+    const known = new Set(await this.specNames());
+    if (this.created) return this.created;
+    const watched: CreatedWatch = {
+      listeners: new Set(),
+      known,
+      scanning: false,
+      timer: setInterval(() => void this.scanCreated(watched), CREATED_POLL_MS),
+    };
+    watched.timer.unref();
+    this.created = watched;
+    return watched;
+  }
+
+  private stopCreatedWatch(watched: CreatedWatch): void {
+    clearInterval(watched.timer);
+    if (this.created === watched) this.created = undefined;
+  }
+
+  /** The mockups whose directory holds a spec, in the order the directory lists them. */
+  private async specNames(): Promise<MockupName[]> {
+    let entries: string[];
+    try {
+      entries = await readdir(this.mockupsDir);
+    } catch (error) {
+      if (parseFsError(error).code === MISSING_FILE) return [];
+      throw error;
+    }
+    const names = await Promise.all(
+      entries.map(async (entry) => {
+        const name = parseMockupName(entry);
+        if (!name) return undefined;
+        try {
+          await stat(join(mockupDirectory(this.mockupsDir, name), SPEC_FILE));
+          return name;
+        } catch (error) {
+          if (parseFsError(error).code === MISSING_FILE) return undefined;
+          throw error;
+        }
+      }),
+    );
+    return names.flatMap((name) => name ?? []);
+  }
+
+  private async scanCreated(watched: CreatedWatch): Promise<void> {
+    if (watched.scanning) return;
+    watched.scanning = true;
+    try {
+      const names = await this.specNames();
+      const present = new Set(names);
+      for (const name of watched.known) {
+        if (!present.has(name)) watched.known.delete(name);
+      }
+      for (const name of names) {
+        if (watched.known.has(name)) continue;
+        const text = await this.readSpec(name);
+        watched.known.add(name);
+        const created: MockupCreated = { name };
+        const title = text === undefined ? "" : readSummaryFields(text).title;
+        if (title) created.title = title;
+        for (const listener of watched.listeners) listener(created);
+      }
+    } catch (error) {
+      Logging.Warn("[DMS] the mockups directory could not be read", error);
+    } finally {
+      watched.scanning = false;
+    }
+  }
+
   /** Whether a watcher runs: true while anyone is subscribed. */
   isWatching(): boolean {
     return this.watcher !== undefined;
@@ -282,6 +400,7 @@ export class MockupStore {
   /** Stops every watcher and pending read. Subscribing again restarts one. */
   close(): void {
     for (const name of this.watches.keys()) this.stopWatch(name);
+    if (this.created) this.stopCreatedWatch(this.created);
   }
 
   private async current(name: MockupName): Promise<Entry | undefined> {
@@ -303,17 +422,34 @@ export class MockupStore {
   }
 
   /**
+   * Records a valid spec that differs from the mockup's newest version as a
+   * version by `disk`: a change made in an editor, or with git. It reads the
+   * file in the write queue, so a write in flight is recorded as its own.
+   */
+  private observeDisk(name: MockupName): Promise<void> {
+    return keepingHistory(name, () =>
+      withSpecLock(this.mockupsDir, name, async () => {
+        const text = await readSpecText(this.mockupsDir, name);
+        if (text !== undefined) {
+          await recordDiskText(this.mockupsDir, name, text);
+        }
+      }),
+    );
+  }
+
+  /**
    * Reads and compiles the spec. Unreadable JSON or a broken envelope keeps
    * the last good pages and lists why.
    */
   private async load(name: MockupName): Promise<Entry | undefined> {
     const text = await this.readSpec(name);
     if (text === undefined) return undefined;
+    await this.observeDisk(name);
     const previous = this.entries.get(name);
     const revision = (previous?.revision ?? 0) + 1;
     const read = parseSpec(text);
     const entry: Entry = read.ok
-      ? { revision, ...compileSpec(name, read.spec) }
+      ? { revision, ...compileSpec(name, read.spec, this.clock()) }
       : lastGood(previous, revision, read.issues);
     this.entries.set(name, entry);
     return entry;
@@ -327,6 +463,8 @@ export class MockupStore {
       issues: entry.issues,
     };
     if (entry.title !== undefined) state.title = entry.title;
+    if (entry.categories !== undefined) state.categories = entry.categories;
+    if (entry.sidebar !== undefined) state.sidebar = entry.sidebar;
     return state;
   }
 

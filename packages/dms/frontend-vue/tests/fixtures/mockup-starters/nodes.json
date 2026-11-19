@@ -37,7 +37,7 @@
 "Spacer":{"node":{"id":"spacer","type":"Spacer","options":{"grow":1}},"fixtures":{}},
 "StatGroup":{"node":{"id":"stat-group","type":"StatGroup","options":{"layout":"joined"}},"fixtures":{}},
 "Tab":{"node":{"id":"tab","type":"Tab","options":{"items":[]}},"fixtures":{}},
-"TableView":{"node":{"id":"table-view","type":"TableView","options":{"fetchUrl":"fixture:table-view-data","rowIdKey":"id","columns":{"name":{"name":"Name","type":"string"},"status":{"name":"Status","type":"string"},"amount":{"name":"Amount","type":"number"}}}},"fixtures":{"table-view-data":[{"id":"1","name":"Ada Lovelace","status":"Active","amount":1200},{"id":"2","name":"Grace Hopper","status":"Pending","amount":860},{"id":"3","name":"Alan Turing","status":"Active","amount":2450}]}},
+"TableView":{"node":{"id":"table-view","type":"TableView","options":{"caption":"Customers","fetchUrl":"fixture:table-view-data","rowIdKey":"id","columns":{"name":{"name":"Name","type":"string"},"status":{"name":"Status","type":"string"},"amount":{"name":"Amount","type":"number"}}}},"fixtures":{"table-view-data":[{"id":"1","name":"Ada Lovelace","status":"Active","amount":1200},{"id":"2","name":"Grace Hopper","status":"Pending","amount":860},{"id":"3","name":"Alan Turing","status":"Active","amount":2450}]}},
 "TopListCard":{"node":{"id":"top-list-card","type":"TopListCard","options":{"title":"Top list"}},"fixtures":{}},
 "VStack":{"node":{"id":"vstack","type":"VStack","options":{"alignment":"center","distribution":"start","spacing":"8px"}},"fixtures":{}}
 }

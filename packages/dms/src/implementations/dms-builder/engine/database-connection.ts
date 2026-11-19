@@ -211,6 +211,35 @@ export function connectionWiring(
   return draft && wiringIn(draft, connection);
 }
 
+/**
+ * The ids of the local modules bound to a connection's database: those whose record names it,
+ * else those read through its driver that record none. None when the configuration cannot be read.
+ */
+export function boundModuleIds(connection: string): string[] {
+  try {
+    const wiring = connectionWiring(connection);
+    if (!wiring) {
+      return [];
+    }
+    const bound =
+      wiring.modules.length > 0 ? wiring.modules : wiring.unrecorded;
+    return bound.map((module) => module.id);
+  } catch (error) {
+    if (isConnectionRefusal(error)) {
+      return [];
+    }
+    throw error;
+  }
+}
+
+/** The sentence naming the modules bound to `connection`, for an answer that names a wrong one. */
+export function boundModulesSentence(connection: string): string {
+  const bound = boundModuleIds(connection);
+  return bound.length === 0
+    ? `no local module is bound to "${connection}" yet`
+    : `the modules bound to "${connection}" are ${bound.join(", ")}`;
+}
+
 type UrlRead =
   | { ok: true; wiring: ConnectionWiring; url: URL }
   | { ok: false; message: string };

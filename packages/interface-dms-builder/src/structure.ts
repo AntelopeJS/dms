@@ -31,6 +31,8 @@ export interface PageMeta {
   hidden?: boolean;
   permission?: PagePermission;
   live?: PageLive;
+  /** The sidebar section the page shows under: its category, or that category's nearest ancestor that is one. */
+  section?: CategoryRef;
   /** Resolved by the builder's source index, NOT the runtime registry. */
   filepath: string;
 }
@@ -103,6 +105,8 @@ export interface PageSummary {
   hidden?: boolean;
   /** The project module the page lives in, when it is not the project's own. */
   sourceModule?: string;
+  /** As `PageMeta.section`. */
+  section?: CategoryRef;
 }
 
 /** A lightweight category listing entry. */
@@ -113,6 +117,12 @@ export interface CategorySummary {
   icon?: string;
   /** Its place among its siblings in the menu, lowest first. */
   order?: number;
+  /**
+   * `true` for a sidebar section: a header listing its pages and categories
+   * under it, such as the built-in Pages. Absent for a category, an entry that
+   * folds its pages away.
+   */
+  section?: true;
 }
 
 /** The category metadata fields `ConfigureCategory` may patch. */
@@ -121,4 +131,10 @@ export interface EditableCategoryMeta {
   parent?: CategoryRef;
   icon?: string;
   order?: number;
+  /**
+   * `true` turns a category directly under Pages into a sidebar section, and
+   * `false` a section made with `CreateCategory` back into a category under
+   * Pages. Its routes stay; its ref changes, and the answer gives the new one.
+   */
+  section?: boolean;
 }

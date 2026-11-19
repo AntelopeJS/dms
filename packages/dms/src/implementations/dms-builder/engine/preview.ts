@@ -28,7 +28,7 @@ import { findPageRecord } from "./source-index";
 import { isCallable, isIndexable, isLiteralObject } from "./guards";
 import { loadedModules, loadModule } from "./module-loader";
 import { isString } from "./scalar-guards";
-import { isPlainObject } from "./value";
+import { isPlainObject } from "./plain-object";
 
 const BASE_MODULE = "@antelopejs/interface-dms/base";
 const TABLE_VIEW_MODULE = `${BASE_MODULE}/table-view`;

@@ -45,11 +45,11 @@ import {
 import { pageVersion } from "./page-structure";
 import { syncQueries } from "./query-sync";
 import { validateDraft } from "./page-draft-validation";
+import { isPlainObject } from "./plain-object";
 import { resourceRefResolver } from "./resource-index";
 import {
   createImportCollector,
   type EmitContext,
-  isPlainObject,
   InvalidValueError,
   serializeValue,
 } from "./value";

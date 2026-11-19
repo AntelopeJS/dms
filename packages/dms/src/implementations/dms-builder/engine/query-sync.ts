@@ -32,7 +32,7 @@ import {
 } from "./query-structure";
 import { findResourceRecord } from "./resource-index";
 import { isString } from "./scalar-guards";
-import { isPlainObject } from "./value";
+import { isPlainObject } from "./plain-object";
 import type { Transaction } from "./writable";
 
 interface SyncContext {

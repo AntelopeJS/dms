@@ -15,7 +15,7 @@ import { fieldOf, isRecord, itemsOf, parseJson, textOf, toolText, withBridge } f
  * @returns {Promise<ListedPage[]>} The pages the builder lists
  */
 async function listedPages(session) {
-  const pages = itemsOf(parseJson(toolText(await session.call("builder_list_pages")).text));
+  const pages = itemsOf(fieldOf(parseJson(toolText(await session.call("builder_list_pages")).text), "pages"));
   return pages.map((page) => ({
     ref: textOf(fieldOf(page, "ref")),
     id: textOf(fieldOf(page, "id")),

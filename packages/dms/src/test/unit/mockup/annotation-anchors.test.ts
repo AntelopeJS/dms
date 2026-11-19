@@ -6,6 +6,7 @@ import { createAnnotation, defaultMockupsDir } from "../../../mockup";
 import {
   annotate,
   block,
+  blockAnchorOf,
   chartCard,
   edit,
   expectBlockAt,
@@ -140,8 +141,8 @@ describe("[unit] mockup annotation anchors: a stamped id", () => {
     const note = await served(id);
 
     expect(note.path).to.equal("/pages/0/tree/2/children/0");
-    expect(note.anchor?.steps).to.deep.equal(["chart"]);
-    expect(note.anchor?.block).to.match(STAMPED_ID);
+    expect(blockAnchorOf(note).steps).to.deep.equal(["chart"]);
+    expect(blockAnchorOf(note).block).to.match(STAMPED_ID);
     await edit(
       { op: "test", path: "/pages/0/tree/1/children/0/id", value: "chart" },
       { op: "test", path: "/pages/0/tree/2/children/0/id", value: "chart" },
@@ -297,7 +298,12 @@ describe("[unit] mockup annotation anchors: telling blocks apart", () => {
 
     const created = await createAnnotation(
       MOCKUP,
-      { page: "page-0", path: "/pages/0/tree/1", text: "note" },
+      {
+        page: "page-0",
+        path: "/pages/0/tree/1",
+        text: "note",
+        offset: { x: 0, y: 0 },
+      },
       defaultMockupsDir(),
     );
 
@@ -315,7 +321,12 @@ describe("[unit] mockup annotation anchors: telling blocks apart", () => {
 
     const created = await createAnnotation(
       MOCKUP,
-      { page: "home", path: "/pages/0/tree/1", text: "on the copy" },
+      {
+        page: "home",
+        path: "/pages/0/tree/1",
+        text: "on the copy",
+        offset: { x: 0, y: 0 },
+      },
       defaultMockupsDir(),
     );
 

@@ -4,9 +4,9 @@
   "type": "module",
   "packageManager": "pnpm@10.2.0",
   "devDependencies": {
-    "@antelopejs/core": "~1.24.0",
+    "@antelopejs/core": "~1.24.5",
     "@antelopejs/dms": "workspace:*",
-    "@antelopejs/tooling-configs": ">=0.8.0 <0.9.0",
+    "@antelopejs/tooling-configs": ">=0.8.4 <0.9.0",
     "@playwright/test": "~1.65.0",
     "dependency-cruiser": "^18.7.0",
     "fast-check": "^4.10.2",

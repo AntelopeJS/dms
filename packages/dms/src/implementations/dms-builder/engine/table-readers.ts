@@ -7,7 +7,7 @@ import { routeModelBinding, findQueryRoutes } from "./query-structure";
 import { listResourceRecords } from "./resource-index";
 import { resourceSchema } from "./resource-schema";
 import { listPageRecords } from "./source-index";
-import { isPlainObject } from "./value";
+import { isPlainObject } from "./plain-object";
 
 /** A page that reads a table, and how many of its blocks and sources do. */
 export interface TableReader {

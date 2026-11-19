@@ -38,7 +38,8 @@ import type {
   EditableCategoryMeta,
   EditablePageMeta,
   EditableResourceMeta,
-  FieldAspects,
+  ColumnGroupsPatch,
+  FieldAspectsPatch,
   FieldPath,
   FieldSpec,
   MoveDest,
@@ -118,6 +119,7 @@ import {
   removeField,
 } from "./engine/resource-ops-delete";
 import { buildResourceStructure } from "./engine/resource-structure";
+import { configureColumnGroups } from "./engine/column-groups-write";
 import { getTheme, setTheme } from "./engine/theme";
 import { createThemeLayer } from "./engine/theme-scaffold";
 import {
@@ -210,7 +212,7 @@ export async function CreateCategory(
 export async function ConfigureCategory(
   ref: CategoryRef,
   patch: Partial<EditableCategoryMeta>,
-): Promise<OpResult> {
+): Promise<OpResult<{ ref: CategoryRef }>> {
   return configureCategory(ref, patch);
 }
 
@@ -284,8 +286,9 @@ export async function GetMapping(
  *
  * The owner path for a connection's access: owner-authenticated routes grant `read-write` through
  * it, dms-database's `PUT /api/database/connections/<id>/access` and dms-assistant's
- * `POST /database/project`. Agents reach it only through the MCP tool `builder_configure_project`,
- * which refuses a step that raises an access before it calls this.
+ * `POST /database/project`. Agents reach it through the MCP tool `builder_configure_project`,
+ * which refuses a step that raises an access before it calls this, and through
+ * `builder_set_connection_access`, which writes one access once the person confirmed it.
  */
 export async function ConfigureProject(
   steps: ProjectConfigStep[],
@@ -303,8 +306,9 @@ export async function ConfigureProject(
  *
  * The owner path for a connection's access: owner-authenticated routes grant `read-write` through
  * it, dms-database's `PUT /api/database/connections/<id>/access` and dms-assistant's
- * `POST /database/project`. Agents reach it only through the MCP tool `builder_configure_project`,
- * which refuses a step that raises an access before it calls this.
+ * `POST /database/project`. Agents reach it through the MCP tool `builder_configure_project`,
+ * which refuses a step that raises an access before it calls this, and through
+ * `builder_set_connection_access`, which writes one access once the person confirmed it.
  */
 export async function AddModule(
   id: string,
@@ -319,8 +323,9 @@ export async function AddModule(
  *
  * The owner path for a connection's access: owner-authenticated routes grant `read-write` through
  * it, dms-database's `PUT /api/database/connections/<id>/access` and dms-assistant's
- * `POST /database/project`. Agents reach it only through the MCP tool `builder_configure_project`,
- * which refuses a step that raises an access before it calls this.
+ * `POST /database/project`. Agents reach it through the MCP tool `builder_configure_project`,
+ * which refuses a step that raises an access before it calls this, and through
+ * `builder_set_connection_access`, which writes one access once the person confirmed it.
  */
 export async function ConfigureModule(
   id: string,
@@ -335,8 +340,9 @@ export async function ConfigureModule(
  *
  * The owner path for a connection's access: owner-authenticated routes grant `read-write` through
  * it, dms-database's `PUT /api/database/connections/<id>/access` and dms-assistant's
- * `POST /database/project`. Agents reach it only through the MCP tool `builder_configure_project`,
- * which refuses a step that raises an access before it calls this.
+ * `POST /database/project`. Agents reach it through the MCP tool `builder_configure_project`,
+ * which refuses a step that raises an access before it calls this, and through
+ * `builder_set_connection_access`, which writes one access once the person confirmed it.
  */
 export async function CreateLocalModule(
   id: string,
@@ -390,10 +396,18 @@ export async function AddField(
 
 export async function ConfigureField(
   path: FieldPath,
-  patch: Partial<FieldAspects>,
+  patch: FieldAspectsPatch,
   opts?: MutationOpts,
 ): Promise<OpResult> {
   return configureField(path, patch, opts);
+}
+
+export async function ConfigureColumnGroups(
+  ref: ResourceRef,
+  groups: ColumnGroupsPatch,
+  opts?: MutationOpts,
+): Promise<OpResult> {
+  return configureColumnGroups(ref, groups, opts);
 }
 
 export async function RemoveField(
@@ -478,6 +492,7 @@ export const Operations = {
   ComposePage,
   ConfigureBlock,
   ConfigureCategory,
+  ConfigureColumnGroups,
   ConfigureField,
   ConfigureModule,
   ConfigurePage,

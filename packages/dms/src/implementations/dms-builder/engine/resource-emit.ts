@@ -163,6 +163,7 @@ export const DECORATOR_IMPORTS = {
   Searchable: SEARCHABLE_MODULE,
   ArchiveField: TABLE_VIEW_MODULE,
   Column: TABLE_VIEW_MODULE,
+  DefaultDisplays: TABLE_VIEW_MODULE,
   Select: TABLE_VIEW_MODULE,
   Exported: TABLE_VIEW_MODULE,
   TableViewRoutes: TABLE_VIEW_MODULE,

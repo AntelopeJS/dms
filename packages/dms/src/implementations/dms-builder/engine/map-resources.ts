@@ -15,6 +15,7 @@ import {
 } from "./model-methods-keep";
 import { catalogOf } from "./catalog-connection";
 import { writableMappingRefusal } from "./connection-access";
+import { boundModulesSentence } from "./database-connection";
 import { type DisplayDefaults, displayDefaultsOf } from "./display-defaults";
 import { ensureNamedImport } from "./emit";
 import { planMapping } from "./map-resources-batch";
@@ -309,7 +310,7 @@ function planned(
   const module = targetModule(input.module);
   if (!module || module.isProject) {
     return invalidConfig<MapResourcesResult>(
-      `map into a local module bound to the database, not ${module ? "the project's own" : `unknown module "${input.module}"`}`,
+      `map into a local module bound to the database, not ${module ? "the project's own" : `unknown module "${input.module}"`}: ${boundModulesSentence(input.connection)}`,
     );
   }
   const project = getWritableProject();

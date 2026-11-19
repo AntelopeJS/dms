@@ -1,4 +1,6 @@
 import type {
+  ColumnGroupSpec,
+  ColumnPresentation,
   DataTypeValue,
   OpResult,
   ResourceFieldStructure,
@@ -25,6 +27,11 @@ import {
   type LiteralValue,
 } from "./guards";
 import { contentVersion } from "./page-structure";
+import {
+  isPresentationKey,
+  readPresentationOption,
+} from "./column-presentation";
+import { columnGroupsOf } from "./column-groups";
 import { findResourceBySymbol, findResourceRecord } from "./resource-index";
 
 const KNOWN_DECORATORS = new Set([
@@ -184,14 +191,23 @@ const MODELLED_COLUMN_OPTIONS = new Set([
   "order",
 ]);
 
+/** The `@Column` options a field is presented with, and the ones the builder has no aspect for. */
+interface ColumnOptionsRead {
+  presentation: ColumnPresentation;
+  extras?: LiteralObject;
+}
+
 /**
- * Everything in `@Column({...})` the builder has no aspect for. Kept verbatim so
- * a later write puts it back; a value it cannot read as data makes the field
- * opaque rather than silently losing it.
+ * Everything in `@Column({...})` past its name, type, filter and order: the
+ * presentation options the builder writes, and the rest kept verbatim so a
+ * later write puts it back. A presentation option whose value the builder does
+ * not write (a display of another module, a computed width) is kept verbatim
+ * too. A value it cannot read as data is carried as `$expr`.
  */
-function readColumnExtras(
+function readColumnOptions(
   columnArg: ObjectLiteralExpression,
-): LiteralObject | undefined {
+): ColumnOptionsRead {
+  const presentation: ColumnPresentation = {};
   const extras: LiteralObject = {};
   for (const property of columnArg.getProperties()) {
     if (!Node.isPropertyAssignment(property)) {
@@ -205,6 +221,13 @@ function readColumnExtras(
     if (!initializer) {
       throw new OpaqueFieldError(`@Column option "${key}" has no value`);
     }
+    const read = isPresentationKey(key)
+      ? readPresentationOption(key, initializer, literalToValue)
+      : undefined;
+    if (read) {
+      Object.assign(presentation, read);
+      continue;
+    }
     try {
       extras[key] = literalToValue(initializer);
     } catch (error) {
@@ -214,7 +237,9 @@ function readColumnExtras(
       extras[key] = { $expr: initializer.getText() };
     }
   }
-  return Object.keys(extras).length > 0 ? extras : undefined;
+  return Object.keys(extras).length > 0
+    ? { presentation, extras }
+    : { presentation };
 }
 
 /**
@@ -252,7 +277,7 @@ export function readDataApiFieldAspects(
       throw new OpaqueFieldError("field has no @Column({ type }) stack");
     }
     const dataType = reverseDataType(getObjectProperty(columnArg, "type"));
-    const columnExtras = readColumnExtras(columnArg);
+    const { presentation, extras: columnExtras } = readColumnOptions(columnArg);
     const listable = prop.getDecorator("Listable") !== undefined;
     const selectable = prop.getDecorator("Select") !== undefined;
     const exported = prop.getDecorator("Exported");
@@ -282,6 +307,7 @@ export function readDataApiFieldAspects(
       order: getNumberProperty(columnArg, "order"),
       exported: exported !== undefined,
       archiveField: prop.getDecorator("ArchiveField") !== undefined,
+      ...presentation,
     };
     const dbField = declarations?.get(name);
     if (dbField) result.dbField = dbField;
@@ -384,5 +410,12 @@ export function buildResourceStructure(
     ),
   };
   if (record.routes) data.routes = record.routes;
+  const groups: Record<string, ColumnGroupSpec> = Object.fromEntries(
+    columnGroupsOf(record.apiClass, literalToValue).map((group) => [
+      group.id,
+      group.config,
+    ]),
+  );
+  if (Object.keys(groups).length > 0) data.columnGroups = groups;
   return { ok: true, data, changes: [] };
 }

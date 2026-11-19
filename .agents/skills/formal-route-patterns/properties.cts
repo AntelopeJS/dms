@@ -1,6 +1,6 @@
 import fc from "fast-check";
 import { runProperties, rule, type PropertyCheck } from "../../formal/run-properties.cjs";
-import { MAX_RELATIVE_ROUTE, RELATIVE_ROUTE_PATTERN, liveRouteSchema, relativeRouteSchema } from "../../../packages/dms/src/mockup/model";
+import { MAX_RELATIVE_ROUTE, RELATIVE_ROUTE_PATTERN, liveRouteSchema, relativeRouteSchema } from "../../../packages/dms/src/mockup/route-patterns";
 
 import { isDashboardPath } from "../../../packages/dms/frontend-vue/layers/dms-ui/app/build/utils/mockup";
 import { resolveUrlVariables } from "../../../packages/dms/frontend-vue/layers/dms-ui/app/build/utils/urlVariables";

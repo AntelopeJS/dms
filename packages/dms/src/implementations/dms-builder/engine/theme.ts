@@ -33,6 +33,7 @@ import {
   withUploads,
 } from "./theme-assets";
 import { reachableStrings } from "./theme-config-imports";
+import { layerDeclaration } from "./theme-declaration";
 import { isString } from "./scalar-guards";
 import { themeDraftIssues } from "./theme-draft";
 import { importStylesheet, importsStylesheet } from "./theme-entry";
@@ -157,7 +158,7 @@ function readThemeSources(layer: ThemeLayer): ThemeSources | OpResult<never> {
 
 /**
  * Without a theme layer, returns `not_found` with the path `CreateThemeLayer`
- * would create, so the editor can offer to create it.
+ * would create, so a caller can offer to create it.
  */
 async function openThemeLayer(): Promise<ThemeSources | OpResult<never>> {
   const layer = await resolveThemeLayer();
@@ -205,6 +206,7 @@ export async function getTheme(): Promise<OpResult<ThemeStructure>> {
     ok: true,
     data: {
       layer: sources.layer,
+      declaration: layerDeclaration(sources.layer),
       variables,
       colors: readColors(sources.appConfig),
       logos: readLogos(sources.appConfig),
@@ -329,7 +331,7 @@ function draftIssues(
 
 /**
  * One warning per SVG file that had active content, not one per slot: the
- * simple editor puts one file in every slot. It names the mode of the file's
+ * same file can fill every slot. It names the mode of the file's
  * first upload only.
  */
 function sanitizedWarnings(stagedLogos: StagedLogo[]): OpWarning[] {

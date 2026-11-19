@@ -65,10 +65,108 @@
         }
       }
     },
+    "data": {
+      "type": "object",
+      "required": [
+        "connection"
+      ],
+      "additionalProperties": false,
+      "description": "Where the mockup's data comes from. With access \"read\", every option that writes rows is an issue naming the connection: rowActions add, edit, duplicate, delete, archive and restore, archiveMode and kanban.draggable on a TableView, and a ResourceForm in a mode other than \"view\". Only details is allowed on a table.",
+      "properties": {
+        "connection": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The external connection the app reads, by its id in config.externalConnections of the dms-database module, e.g. crm."
+        },
+        "access": {
+          "enum": [
+            "read",
+            "read-write"
+          ],
+          "default": "read",
+          "description": "What the project lets the DMS do on the connection, as config.externalConnections.<id>.access of dms-database: \"read\" (the default) or \"read-write\"."
+        }
+      }
+    },
+    "categories": {
+      "type": "array",
+      "maxItems": 50,
+      "description": "The sections of the sidebar, in the menu's order, as categories of the dashboard's menu (RootCategory). A page names one in its category.",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "title"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9-]{0,63}$"
+          },
+          "title": {
+            "type": "string"
+          },
+          "icon": {
+            "type": "string",
+            "description": "An icon name, e.g. i-ph-shopping-cart."
+          }
+        }
+      }
+    },
+    "sidebar": {
+      "type": "object",
+      "required": [
+        "widgets"
+      ],
+      "additionalProperties": false,
+      "description": "What the mockup adds to the dashboard's sidebar, drawn in every page of the mockup.",
+      "properties": {
+        "widgets": {
+          "type": "array",
+          "maxItems": 10,
+          "description": "Sketches drawn in the sidebar's widget area, below the dashboard's own widgets, in order. Each follows the sketch rules: static HTML and CSS, drawn in a sandboxed frame.",
+          "items": {
+            "type": "object",
+            "required": [
+              "id",
+              "html"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[a-z0-9][a-z0-9-]{0,63}$",
+                "description": "Unique among the sidebar's widgets."
+              },
+              "title": {
+                "type": "string",
+                "maxLength": 200,
+                "description": "The caption over the widget."
+              },
+              "html": {
+                "type": "string",
+                "maxLength": 524288
+              },
+              "css": {
+                "type": "string",
+                "maxLength": 524288
+              },
+              "height": {
+                "type": "integer",
+                "minimum": 80,
+                "maximum": 1200,
+                "default": 120
+              }
+            }
+          }
+        }
+      }
+    },
     "pages": {
       "type": "array",
-      "minItems": 1,
       "maxItems": 50,
+      "description": "May be empty: create the mockup first and add its pages later.",
       "items": {
         "$ref": "#/$defs/page"
       }
@@ -79,17 +177,150 @@
       "type": "object",
       "required": [
         "id",
-        "title",
-        "tree"
+        "title"
       ],
       "additionalProperties": false,
+      "anyOf": [
+        {
+          "required": [
+            "custom",
+            "html"
+          ],
+          "properties": {
+            "custom": {
+              "const": true
+            },
+            "tree": {
+              "maxItems": 0
+            }
+          }
+        },
+        {
+          "required": [
+            "tree"
+          ],
+          "properties": {
+            "custom": {
+              "const": false
+            },
+            "html": false,
+            "css": false,
+            "height": false,
+            "states": false
+          }
+        }
+      ],
       "properties": {
+        "custom": {
+          "type": "boolean",
+          "description": "true: the page is one sketch, drawn whole inside the real page header and sidebar, from html, css, height and states. Its tree is left out or empty. The build draws it as a tree of DMS blocks, with a CustomComponent only for a part no block can draw."
+        },
+        "html": {
+          "type": "string",
+          "maxLength": 524288,
+          "description": "A custom page's markup, checked as a sketch's html. An <a> links to an #anchor, or to a spec page with href=\"page:<id>\"."
+        },
+        "css": {
+          "type": "string",
+          "maxLength": 524288
+        },
+        "height": {
+          "type": "integer",
+          "minimum": 80,
+          "maximum": 3000,
+          "default": 800,
+          "description": "A custom page's frame height, in pixels."
+        },
+        "states": {
+          "type": "object",
+          "maxProperties": 8,
+          "propertyNames": {
+            "pattern": "^[a-z][a-z0-9-]{0,31}$",
+            "not": {
+              "const": "default"
+            }
+          },
+          "additionalProperties": {
+            "type": "string",
+            "maxLength": 524288
+          },
+          "description": "Named states drawn in place of html, such as empty, error or loading: each its own markup, checked as html is, drawn with the same css."
+        },
         "id": {
           "type": "string",
           "pattern": "^[a-z0-9][a-z0-9-]{0,63}$"
         },
         "title": {
-          "type": "string"
+          "type": "string",
+          "description": "The page's display name, drawn as the title of the page header."
+        },
+        "category": {
+          "type": "string",
+          "description": "The id of the categories entry the page is listed under in the sidebar. Left out, the page is in the default \"Pages\" section."
+        },
+        "menu": {
+          "type": "boolean",
+          "default": true,
+          "description": "false leaves the page out of the sidebar, as a detail or form page the dashboard opens from another page: the viewer still lists it, marked hidden."
+        },
+        "parent": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9-]{0,63}$",
+          "description": "The id of the page this one is a sub-page of, such as a list's detail page. Its blocks read the fixtures of its parents that it does not hold itself."
+        },
+        "route": {
+          "type": "string",
+          "pattern": "^:[A-Za-z_][A-Za-z0-9_]*$",
+          "description": "A route parameter, \":id\": the page shows one row. An option \"fixture:<key>\" naming a parent's rows reads the row whose _id, else id, is the parameter, and a \"page:<id>\" link from a table row passes that row's id. Needs a parent."
+        },
+        "icon": {
+          "type": "string",
+          "description": "The page's icon (MenuOptions.icon), drawn in the badge of the page header, e.g. i-ph-shopping-cart."
+        },
+        "description": {
+          "type": "string",
+          "description": "The page's description (MenuOptions.description), drawn under the title in the page header."
+        },
+        "headerActions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "label"
+            ],
+            "additionalProperties": false,
+            "description": "A button right of the page title, as a PageHeaderButton of DefaultLayout({ headerActions }) looks. What it does is code, so the mockup holds none.",
+            "properties": {
+              "label": {
+                "type": "string"
+              },
+              "icon": {
+                "type": "string",
+                "description": "An icon name, e.g. i-ph-plus."
+              },
+              "color": {
+                "enum": [
+                  "neutral",
+                  "primary",
+                  "secondary",
+                  "success",
+                  "warning",
+                  "error",
+                  "info"
+                ]
+              },
+              "variant": {
+                "enum": [
+                  "solid",
+                  "outline",
+                  "soft",
+                  "ghost",
+                  "link"
+                ]
+              }
+            }
+          },
+          "description": "The buttons right of the title, in order, as DefaultLayout({ headerActions }) declares them."
         },
         "options": {
           "type": "object",
@@ -117,7 +348,7 @@
             "version"
           ],
           "additionalProperties": false,
-          "description": "The live page this page was converted from (Edit as mockup) or built into, and its version then. Build it updates that page instead of creating a new one.",
+          "description": "The live page this page was converted from (mockup_from_page) or built into, and its version then. Build it updates that page instead of creating a new one.",
           "properties": {
             "ref": {
               "type": "string",
@@ -147,12 +378,132 @@
           "propertyNames": {
             "pattern": "^[A-Za-z0-9_-]{1,64}$"
           },
-          "description": "Data a block reads: an option \"fixture:<key>\" is served from here."
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/generate"
+              },
+              {
+                "not": {
+                  "type": "object",
+                  "required": [
+                    "$generate"
+                  ]
+                }
+              }
+            ]
+          },
+          "description": "Data a block reads: an option \"fixture:<key>\" is served from here. A value { \"$generate\": { \"rows\", \"fields\" } } is replaced by generated rows."
         },
         "tree": {
           "type": "array",
           "items": {
             "$ref": "#/$defs/node"
+          },
+          "description": "The blocks, top to bottom. A string option \"page:<id>\", at any depth, links to the spec page of that id: a block's link, a button's or a row action's target URL, a tab's link."
+        }
+      }
+    },
+    "generate": {
+      "type": "object",
+      "required": [
+        "$generate"
+      ],
+      "additionalProperties": false,
+      "description": "Rows the server makes up, the same on every read of the spec: they are seeded by the mockup, the page and the fixture key. Read as an array of row objects, by a table's `fixture:<key>` as by any other block.",
+      "properties": {
+        "$generate": {
+          "type": "object",
+          "required": [
+            "fields"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "rows": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200,
+              "default": 8,
+              "description": "How many rows."
+            },
+            "fields": {
+              "type": "object",
+              "minProperties": 1,
+              "description": "The value of each row field, by its kind.",
+              "additionalProperties": {
+                "anyOf": [
+                  {
+                    "enum": [
+                      "id",
+                      "name",
+                      "email",
+                      "company",
+                      "city",
+                      "text",
+                      "date",
+                      "boolean"
+                    ],
+                    "description": "\"id\" is a unique text id (r1, r2...); \"name\", \"email\" (of the same row's person), \"company\", \"city\", \"text\" (a short sentence) and \"date\" (an ISO 8601 date and time within the last 30 days) are realistic text; \"boolean\" is true or false."
+                  },
+                  {
+                    "type": "object",
+                    "required": [
+                      "number"
+                    ],
+                    "additionalProperties": false,
+                    "description": "A number in the range: an integer when both bounds are.",
+                    "properties": {
+                      "number": {
+                        "type": "array",
+                        "prefixItems": [
+                          {
+                            "type": "number"
+                          },
+                          {
+                            "type": "number"
+                          }
+                        ],
+                        "minItems": 2,
+                        "maxItems": 2,
+                        "description": "[min, max], the minimum not above the maximum."
+                      }
+                    }
+                  },
+                  {
+                    "type": "object",
+                    "required": [
+                      "money"
+                    ],
+                    "additionalProperties": false,
+                    "description": "An amount in the range, to the cent.",
+                    "properties": {
+                      "money": {
+                        "type": "array",
+                        "prefixItems": [
+                          {
+                            "type": "number"
+                          },
+                          {
+                            "type": "number"
+                          }
+                        ],
+                        "minItems": 2,
+                        "maxItems": 2,
+                        "description": "[min, max], the minimum not above the maximum."
+                      }
+                    }
+                  },
+                  {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "minItems": 1,
+                    "description": "One of these values for each row."
+                  }
+                ]
+              }
+            }
           }
         }
       }
@@ -9799,7 +10150,7 @@
               "properties": {
                 "caption": {
                   "type": "string",
-                  "description": "Heading above the table."
+                  "description": "The title of the table, such as \"Orders\". A mockup table needs one: without it the real table moves its status tabs into the header and draws the views strip under them."
                 },
                 "density": {
                   "type": "string",
@@ -10145,6 +10496,14 @@
                   }
                 },
                 "customButtons": {},
+                "archiveMode": {
+                  "type": "boolean",
+                  "description": "Archive mode, drawn as the real TableView draws it: a \"Show archived\" toggle above the rows, archive on the rows not archived and restore on the archived ones, edit only on the rows not archived. A row is archived when its isArchived field is true; a fixture whose rows have no isArchived gets the last quarter of its rows archived. rowActions archive and restore need it."
+                },
+                "archivedCountLabel": {
+                  "type": "string",
+                  "description": "Count shown while the archive is listed, with {count} (\"13 archived invoices\")."
+                },
                 "defaultSort": {
                   "type": "object",
                   "properties": {
@@ -10392,8 +10751,102 @@
                       "sortable": {
                         "type": "boolean"
                       },
+                      "filterable": {
+                        "type": "boolean"
+                      },
                       "order": {
                         "type": "number"
+                      },
+                      "display": {
+                        "anyOf": [
+                          {
+                            "anyOf": [
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "kind": {
+                                    "type": "string",
+                                    "enum": [
+                                      "badge"
+                                    ]
+                                  },
+                                  "items": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "object",
+                                      "properties": {
+                                        "value": {
+                                          "type": "string"
+                                        },
+                                        "label": {
+                                          "type": "string"
+                                        },
+                                        "tone": {
+                                          "type": "string",
+                                          "enum": [
+                                            "neutral",
+                                            "primary",
+                                            "secondary",
+                                            "success",
+                                            "warning",
+                                            "error",
+                                            "info"
+                                          ]
+                                        }
+                                      },
+                                      "required": [
+                                        "value",
+                                        "label",
+                                        "tone"
+                                      ]
+                                    }
+                                  }
+                                },
+                                "required": [
+                                  "kind",
+                                  "items"
+                                ]
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "kind": {
+                                    "type": "string",
+                                    "enum": [
+                                      "price"
+                                    ]
+                                  },
+                                  "currency": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "kind"
+                                ]
+                              }
+                            ]
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string"
+                              },
+                              "options": {
+                                "type": "object",
+                                "additionalProperties": {}
+                              }
+                            },
+                            "required": [
+                              "type"
+                            ]
+                          }
+                        ],
+                        "description": "How the cells draw the column: the builder's display of a mapped column, { kind: \"badge\", items: [{ value, label, tone }] } on a string or select column or { kind: \"price\", currency? } on a number or price column, else a cell display of the TableView, { type: \"identity\", options }, its options the ones its DefaultDisplays class takes, as builder_configure_field checks them."
+                      },
+                      "group": {
+                        "type": "string",
+                        "description": "The id of the group the column's field joins in the add, edit and details forms, as @Column({ group }): the group's fields are gathered where its first column stands, under its columnGroups label, else its id."
                       }
                     },
                     "required": [
@@ -10402,10 +10855,435 @@
                   },
                   "description": "The columns, keyed by row field."
                 },
+                "columnGroups": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "object",
+                    "properties": {
+                      "label": {
+                        "type": "string"
+                      },
+                      "description": {
+                        "type": "string"
+                      },
+                      "orientation": {
+                        "type": "string",
+                        "enum": [
+                          "horizontal",
+                          "vertical"
+                        ]
+                      },
+                      "order": {
+                        "type": "number"
+                      }
+                    },
+                    "required": [
+                      "label"
+                    ]
+                  },
+                  "description": "Each form group's title and layout, by the id the columns' group names, as @ColumnGroup(id, config) declares it on a controller."
+                },
                 "capabilities": {
                   "type": "object",
                   "properties": {},
-                  "description": "Defaults to search, sort and paginate, all on."
+                  "description": "Defaults to search, sort, paginate and filter, all on: the rows route applies tabs, quick filters and column filters. A table that sets it keeps its own value, and tabs, quick filters and queryParamFilters need filter: true."
+                },
+                "formContainer": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "enum": [
+                            "drawer"
+                          ]
+                        },
+                        "direction": {
+                          "type": "string",
+                          "description": "The edge the drawer slides in from: bottom (the default) or right, a side sheet.",
+                          "enum": [
+                            "bottom",
+                            "right"
+                          ]
+                        },
+                        "pages": {
+                          "type": "object",
+                          "properties": {
+                            "new": {
+                              "type": "object",
+                              "properties": {
+                                "displayName": {
+                                  "type": "string"
+                                },
+                                "description": {
+                                  "type": "string"
+                                }
+                              }
+                            },
+                            "edit": {
+                              "type": "object",
+                              "properties": {
+                                "displayName": {
+                                  "type": "string"
+                                },
+                                "description": {
+                                  "type": "string"
+                                }
+                              }
+                            },
+                            "details": {
+                              "type": "object",
+                              "properties": {
+                                "displayName": {
+                                  "type": "string"
+                                },
+                                "description": {
+                                  "type": "string"
+                                }
+                              }
+                            }
+                          },
+                          "description": "Titles of the add, edit and details forms."
+                        }
+                      },
+                      "required": [
+                        "type"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "enum": [
+                            "modal"
+                          ]
+                        },
+                        "size": {
+                          "type": "string"
+                        },
+                        "pages": {
+                          "type": "object",
+                          "properties": {
+                            "new": {
+                              "type": "object",
+                              "properties": {
+                                "displayName": {
+                                  "type": "string"
+                                },
+                                "description": {
+                                  "type": "string"
+                                }
+                              }
+                            },
+                            "edit": {
+                              "type": "object",
+                              "properties": {
+                                "displayName": {
+                                  "type": "string"
+                                },
+                                "description": {
+                                  "type": "string"
+                                }
+                              }
+                            },
+                            "details": {
+                              "type": "object",
+                              "properties": {
+                                "displayName": {
+                                  "type": "string"
+                                },
+                                "description": {
+                                  "type": "string"
+                                }
+                              }
+                            }
+                          },
+                          "description": "Titles of the add, edit and details forms."
+                        }
+                      },
+                      "required": [
+                        "type"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "enum": [
+                            "page"
+                          ]
+                        },
+                        "pages": {
+                          "type": "object",
+                          "properties": {
+                            "new": {
+                              "type": "object",
+                              "properties": {
+                                "urlSlug": {
+                                  "type": "string"
+                                },
+                                "displayName": {
+                                  "type": "string"
+                                },
+                                "description": {
+                                  "type": "string"
+                                },
+                                "customPage": {
+                                  "type": "boolean"
+                                }
+                              }
+                            },
+                            "edit": {
+                              "type": "object",
+                              "properties": {
+                                "urlSlug": {
+                                  "type": "string"
+                                },
+                                "displayName": {
+                                  "type": "string"
+                                },
+                                "description": {
+                                  "type": "string"
+                                },
+                                "customPage": {
+                                  "type": "boolean"
+                                }
+                              }
+                            },
+                            "details": {
+                              "type": "object",
+                              "properties": {
+                                "urlSlug": {
+                                  "type": "string"
+                                },
+                                "displayName": {
+                                  "type": "string"
+                                },
+                                "description": {
+                                  "type": "string"
+                                },
+                                "customPage": {
+                                  "type": "boolean"
+                                }
+                              }
+                            }
+                          },
+                          "description": "Titles of the add, edit and details forms."
+                        }
+                      },
+                      "required": [
+                        "type"
+                      ]
+                    }
+                  ],
+                  "description": "Where the forms of rowActions add, edit and details open. \"modal\", the default, or \"drawer\" draws a form over the columns: add and edit close on save and keep nothing, details shows the row read-only. Prefer it for details. A drawer slides in from the bottom, or from the right with direction: \"right\". \"page\" opens each form on a page of its own, for a long record or a long or sectioned form: by default a generated page holding the generated form, read-only for details, with a Cancel back to the table, which pages.new, pages.edit and pages.details may title with a displayName and a description, with no spec page to write; or, for a details page that adds something, such as KPIs or related lists, the spec page the entry names: { \"urlSlug\": \"page:<id>\", \"customPage\": true }, whose edit and details pages take a route, \":id\", and receive the row's id. A ResourceForm on the details page is in mode \"view\", on the edit page in mode \"edit\"."
+                },
+                "kanban": {
+                  "type": "object",
+                  "properties": {
+                    "groupByField": {
+                      "type": "string",
+                      "description": "Field the cards are grouped into columns by."
+                    },
+                    "draggable": {
+                      "type": "boolean",
+                      "default": true
+                    },
+                    "columnMaxHeight": {
+                      "type": "string",
+                      "default": "60vh"
+                    }
+                  },
+                  "required": [
+                    "groupByField"
+                  ],
+                  "description": "The kanban board: a column of cards per value of groupByField, a select (a badge), boolean or status column. A card never moves in a mockup."
+                },
+                "grouped": {
+                  "type": "object",
+                  "properties": {
+                    "groupByField": {
+                      "type": "string"
+                    },
+                    "by": {
+                      "type": "string",
+                      "enum": [
+                        "value",
+                        "day",
+                        "week"
+                      ]
+                    },
+                    "collapsible": {
+                      "type": "boolean"
+                    },
+                    "count": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "groupByField"
+                  ],
+                  "description": "The grid with a header row per group of groupByField, a sortable column; by day or week needs a date column."
+                },
+                "views": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "label": {
+                            "type": "string"
+                          },
+                          "icon": {
+                            "type": "string"
+                          },
+                          "tone": {
+                            "type": "string",
+                            "enum": [
+                              "neutral",
+                              "primary",
+                              "secondary",
+                              "success",
+                              "warning",
+                              "error",
+                              "info"
+                            ]
+                          },
+                          "dot": {
+                            "type": "string",
+                            "enum": [
+                              "neutral",
+                              "primary",
+                              "secondary",
+                              "success",
+                              "warning",
+                              "error",
+                              "info"
+                            ]
+                          },
+                          "count": {
+                            "type": "boolean"
+                          },
+                          "filters": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "accessorKey": {
+                                  "type": "string"
+                                },
+                                "value": {
+                                  "type": "string"
+                                },
+                                "mode": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "accessorKey",
+                                "mode"
+                              ]
+                            }
+                          },
+                          "search": {
+                            "type": "string"
+                          },
+                          "sort": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "field": {
+                                  "type": "string"
+                                },
+                                "desc": {
+                                  "type": "boolean"
+                                }
+                              },
+                              "required": [
+                                "field"
+                              ]
+                            }
+                          },
+                          "columns": {
+                            "type": "object",
+                            "properties": {
+                              "visible": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                }
+                              },
+                              "hidden": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                }
+                              },
+                              "order": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                }
+                              }
+                            }
+                          },
+                          "display": {
+                            "type": "string"
+                          },
+                          "density": {
+                            "type": "string",
+                            "enum": [
+                              "default",
+                              "compact"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "label"
+                        ]
+                      }
+                    },
+                    "layout": {
+                      "type": "string",
+                      "enum": [
+                        "tabs",
+                        "strip",
+                        "menu"
+                      ]
+                    },
+                    "defaultView": {
+                      "type": "string"
+                    },
+                    "userViews": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "items"
+                  ],
+                  "description": "The saved views: filters on filterable columns, sorts on sortable ones, a display the table offers."
+                },
+                "tabsFrom": {
+                  "type": "object",
+                  "properties": {
+                    "column": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "column"
+                  ],
+                  "description": "Tabs read from a filterable badge column, as the builder writes them: \"All\", then one per badge item in its tone. Leave tabs out."
                 }
               },
               "required": [
@@ -10877,7 +11755,8 @@
               "properties": {
                 "html": {
                   "type": "string",
-                  "maxLength": 524288
+                  "maxLength": 524288,
+                  "description": "Static markup, no script or handler. An <a> links to an #anchor, or to a spec page with href=\"page:<id>\"."
                 },
                 "css": {
                   "type": "string",
@@ -10886,12 +11765,27 @@
                 "height": {
                   "type": "integer",
                   "minimum": 80,
-                  "maximum": 1200,
+                  "maximum": 3000,
                   "default": 320
                 },
                 "caption": {
                   "type": "string",
                   "maxLength": 200
+                },
+                "states": {
+                  "type": "object",
+                  "maxProperties": 8,
+                  "propertyNames": {
+                    "pattern": "^[a-z][a-z0-9-]{0,31}$",
+                    "not": {
+                      "const": "default"
+                    }
+                  },
+                  "additionalProperties": {
+                    "type": "string",
+                    "maxLength": 524288
+                  },
+                  "description": "Named states drawn in place of html, such as empty, error or loading: each its own markup, checked as html is, drawn with the same css."
                 }
               }
             },

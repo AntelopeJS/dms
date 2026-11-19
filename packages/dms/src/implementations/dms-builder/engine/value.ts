@@ -72,12 +72,6 @@ export function createImportCollector(opts?: {
   };
 }
 
-export function isPlainObject(
-  value: unknown,
-): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
 function isExprSentinel(value: ConfigObject): value is ExprSentinel {
   return (
     "$expr" in value &&

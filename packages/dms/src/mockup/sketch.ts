@@ -2,31 +2,81 @@ import { z } from "zod";
 import type { JsonObject, MockupIssue, MockupNode } from "./model";
 import { zodIssues } from "./model";
 import { cssRefusals } from "./sketch-css";
-import { checkMarkup, staysInStyle } from "./sketch-html";
-import { SKETCH_MAX_SOURCE } from "./sketch-limits";
+import { checkMarkup, type PageLink, staysInStyle } from "./sketch-html";
+import {
+  SKETCH_MAX_CAPTION,
+  SKETCH_MAX_HEIGHT,
+  SKETCH_MAX_SOURCE,
+  SKETCH_MIN_HEIGHT,
+} from "./sketch-limits";
 
 /** The node type of a sketch: static HTML and CSS of a part the DMS lacks. */
 export const SKETCH_TYPE = "sketch";
 
-export const SKETCH_MIN_HEIGHT = 80;
-export const SKETCH_MAX_HEIGHT = 1200;
 export const SKETCH_DEFAULT_HEIGHT = 320;
-export const SKETCH_MAX_CAPTION = 200;
-export { SKETCH_MAX_SOURCE };
+/** How tall a custom page's sketch is drawn when it sets no `height`. */
+export const SKETCH_PAGE_DEFAULT_HEIGHT = 800;
+export {
+  SKETCH_MAX_CAPTION,
+  SKETCH_MAX_HEIGHT,
+  SKETCH_MAX_SOURCE,
+  SKETCH_MIN_HEIGHT,
+};
 
-const sketchOptionsSchema = z
-  .object({
-    html: z.string().max(SKETCH_MAX_SOURCE),
-    css: z.string().max(SKETCH_MAX_SOURCE).optional(),
-    height: z
-      .number()
-      .int()
-      .min(SKETCH_MIN_HEIGHT)
-      .max(SKETCH_MAX_HEIGHT)
-      .optional(),
-    caption: z.string().max(SKETCH_MAX_CAPTION).optional(),
-  })
+/** How many named states a sketch holds at most, beside its `html`. */
+export const SKETCH_MAX_STATES = 8;
+/** A state's name: a lowercase letter, then lowercase letters, digits and `-`, 32 characters at most. */
+export const SKETCH_STATE_PATTERN = /^[a-z][a-z0-9-]{0,31}$/;
+/** The name a state may not take: the sketch's own `html` is its default state. */
+export const SKETCH_DEFAULT_STATE = "default";
+
+const stateNameSchema = z
+  .string()
+  .regex(
+    SKETCH_STATE_PATTERN,
+    "a state's name is a lowercase letter, then lowercase letters, digits and -, such as empty or error",
+  )
+  .refine((name) => name !== SKETCH_DEFAULT_STATE, {
+    message: `"${SKETCH_DEFAULT_STATE}" is the sketch's own html: name the state otherwise`,
+  });
+
+/** The fields of a sketch: its markup, style sheet, height and named states, which a custom page holds too. */
+const sketchFieldsSchema = z.object({
+  html: z.string().max(SKETCH_MAX_SOURCE),
+  css: z.string().max(SKETCH_MAX_SOURCE).optional(),
+  height: z
+    .number()
+    .int()
+    .min(SKETCH_MIN_HEIGHT)
+    .max(SKETCH_MAX_HEIGHT)
+    .optional(),
+  states: z
+    .record(stateNameSchema, z.string().max(SKETCH_MAX_SOURCE))
+    .refine((states) => Object.keys(states).length <= SKETCH_MAX_STATES, {
+      message: `a sketch holds at most ${SKETCH_MAX_STATES} states`,
+    })
+    .optional(),
+});
+
+const sketchOptionsSchema = sketchFieldsSchema
+  .extend({ caption: z.string().max(SKETCH_MAX_CAPTION).optional() })
   .strict();
+
+/** How a check reads a sketch's links. */
+export interface SketchCheckOptions {
+  /**
+   * The URL an `<a href="page:<id>">` goes to, or undefined when `id` is no
+   * page id, which refuses the sketch. The link is drawn with that URL and
+   * `target="_top"`. Without it, an `<a>` links only to an `#anchor`.
+   */
+  pageLink?: PageLink;
+}
+
+/**
+ * Where a mockup sketch's `page:<id>` links go: the URL of the link written
+ * at the spec pointer `pointer`, or undefined when `id` is no page id.
+ */
+export type SketchLinks = (id: string, pointer: string) => string | undefined;
 
 /** A sketch's source: the markup of its body and its style sheet. */
 export interface SketchSource {
@@ -88,7 +138,10 @@ function readable<T>(read: () => T, unreadable: T): T {
  * viewer's `buildSketchDocument` draws the markup it is handed as is, so the
  * check holds only for the markup it answered.
  */
-export function checkSketch(source: SketchSource): SketchCheck {
+export function checkSketch(
+  source: SketchSource,
+  options: SketchCheckOptions = {},
+): SketchCheck {
   const read = SketchSourceSchema.safeParse(source);
   if (!read.success) {
     const field = read.error.issues[0]?.path[0] === "css" ? "css" : "html";
@@ -104,7 +157,7 @@ export function checkSketch(source: SketchSource): SketchCheck {
       : [],
   );
   if (oversized.length > 0) return { ok: false, refusals: oversized };
-  const markup = readable(() => checkMarkup(sketch.html), {
+  const markup = readable(() => checkMarkup(sketch.html, options.pageLink), {
     refusals: [UNREADABLE],
     body: "",
   });
@@ -154,15 +207,103 @@ function placed(node: MockupNode, sketch: MockupNode): MockupNode {
   return result;
 }
 
+/** Where a sketch's fields are compiled: the spec pointer of the object holding them, its issues and its links. */
+interface SketchSite {
+  at: string;
+  issues: MockupIssue[];
+  links: SketchLinks;
+}
+
+/**
+ * The sketch to draw for `source`, whose markup is the field at `htmlAt`, or
+ * an empty one when the check refuses it, each refusal reported at its field.
+ */
+function drawnAt(
+  source: SketchSource,
+  htmlAt: string,
+  site: SketchSite,
+): SketchSource {
+  const checked = checkSketch(source, {
+    pageLink: (id) => site.links(id, htmlAt),
+  });
+  if (checked.ok) return checked.sketch;
+  for (const { field, what } of checked.refusals) {
+    site.issues.push({
+      path: field === "html" ? htmlAt : `${site.at}/css`,
+      message: `a sketch is static HTML and CSS, so it may not hold ${what}`,
+    });
+  }
+  return { html: "" };
+}
+
+/**
+ * The options the viewer draws a sketch with, from its written fields at
+ * `site.at`: its markup and each named state checked as the frame reads them,
+ * the style sheet once, with the markup, and the page links rewritten. A
+ * refused markup or state is emitted empty, so none of it reaches the frame.
+ */
+function compileSketchFields(
+  fields: z.infer<typeof sketchOptionsSchema>,
+  site: SketchSite,
+): JsonObject {
+  const { html, css, height, caption, states } = fields;
+  const drawn = drawnAt(
+    css === undefined ? { html } : { html, css },
+    `${site.at}/html`,
+    site,
+  );
+  const options: JsonObject = {
+    html: drawn.html,
+    height: height ?? SKETCH_DEFAULT_HEIGHT,
+  };
+  if (drawn.css !== undefined) options.css = drawn.css;
+  if (caption !== undefined) options.caption = caption;
+  if (states !== undefined) {
+    options.states = Object.fromEntries(
+      Object.entries(states).map(([name, markup]) => [
+        name,
+        drawnAt({ html: markup }, `${site.at}/states/${name}`, site).html,
+      ]),
+    );
+  }
+  return options;
+}
+
+/**
+ * The sketch a custom page is drawn as, from its sketch fields, written on
+ * the page at `at`: the page's whole tree, which no spec node holds.
+ */
+export function compileSketchPage(
+  fields: JsonObject,
+  at: string,
+  issues: MockupIssue[],
+  links: SketchLinks,
+): MockupNode {
+  const parsed = sketchFieldsSchema.strict().safeParse(fields);
+  if (!parsed.success) {
+    issues.push(...zodIssues(at, parsed.error));
+    return { type: SKETCH_TYPE, options: { html: "" } };
+  }
+  const options = compileSketchFields(
+    {
+      ...parsed.data,
+      height: parsed.data.height ?? SKETCH_PAGE_DEFAULT_HEIGHT,
+    },
+    { at, issues, links },
+  );
+  return { type: SKETCH_TYPE, options };
+}
+
 /**
  * The sketch the viewer draws for `node`, with its issues. A sketch holding
  * forbidden markup is refused: it is emitted empty, so none of it reaches the
- * frame.
+ * frame. Its `page:<id>` links go where `links` says.
  */
 export function compileSketch(
   node: MockupNode,
   pointer: string,
   issues: MockupIssue[],
+  links: SketchLinks,
 ): MockupNode {
   if (node.children?.length) {
     issues.push({
@@ -170,27 +311,12 @@ export function compileSketch(
       message: "a sketch has no children",
     });
   }
+  const at = `${pointer}/options`;
   const parsed = sketchOptionsSchema.safeParse(node.options ?? {});
   if (!parsed.success) {
-    issues.push(...zodIssues(`${pointer}/options`, parsed.error));
+    issues.push(...zodIssues(at, parsed.error));
     return placed(node, { type: SKETCH_TYPE, options: { html: "" } });
   }
-  const { html, css, height, caption } = parsed.data;
-  const checked = checkSketch(css === undefined ? { html } : { html, css });
-  if (!checked.ok) {
-    for (const { field, what } of checked.refusals) {
-      issues.push({
-        path: `${pointer}/options/${field}`,
-        message: `a sketch is static HTML and CSS, so it may not hold ${what}`,
-      });
-    }
-  }
-  const drawn = checked.ok ? checked.sketch : { html: "" };
-  const options: JsonObject = {
-    html: drawn.html,
-    height: height ?? SKETCH_DEFAULT_HEIGHT,
-  };
-  if (drawn.css !== undefined) options.css = drawn.css;
-  if (caption !== undefined) options.caption = caption;
+  const options = compileSketchFields(parsed.data, { at, issues, links });
   return placed(node, { type: SKETCH_TYPE, options });
 }

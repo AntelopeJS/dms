@@ -20,13 +20,13 @@ import {
 
 const parentWindow = { postMessage: vi.fn<(message: JsonValue) => void>() };
 const setLocale = vi.fn();
-let resizeCallback: (() => void) | undefined;
+const resizeCallbacks: Array<() => void> = [];
 let app: App | undefined;
 let embed: BlockPreviewEmbed;
 
 class FakeResizeObserver {
   constructor(callback: () => void) {
-    resizeCallback = callback;
+    resizeCallbacks.push(callback);
   }
   observe(): void {}
   disconnect(): void {}
@@ -63,6 +63,7 @@ const sent = () =>
 beforeEach(() => {
   parentWindow.postMessage.mockClear();
   setLocale.mockClear();
+  resizeCallbacks.length = 0;
   vi.stubGlobal("ResizeObserver", FakeResizeObserver);
   Object.defineProperty(window, "parent", {
     value: parentWindow,
@@ -103,6 +104,29 @@ describe("embedded block preview", () => {
     expect(embed.tree.value).toEqual([{ type: "Banner" }]);
     expect(embed.revision.value).toBe(1);
     expect(document.documentElement.classList.contains("dark")).toBe(true);
+  });
+
+  it("holds the frame at the floor height the parent asks for, and lifts it on 0 (fails when a short page stops above the window's bottom)", async () => {
+    const host = mount();
+    host.setAttribute("data-dms-preview-frame", "");
+    const floor = () => host.style.getPropertyValue("--dms-preview-min-height");
+
+    postFromParent({
+      channel: PREVIEW_CHANNEL,
+      type: "min-height",
+      height: 640,
+    });
+    expect(floor()).toBe("640px");
+
+    postFromParent({ channel: PREVIEW_CHANNEL, type: "min-height", height: 0 });
+    expect(floor()).toBe("0px");
+
+    postFromParent({
+      channel: PREVIEW_CHANNEL,
+      type: "min-height",
+      height: -5,
+    });
+    expect(floor()).toBe("0px");
   });
 
   it("keeps the transparent flag of ?state= until a render changes it", async () => {
@@ -172,7 +196,7 @@ describe("embedded block preview", () => {
 
   it("reports each height change and each error to the parent", () => {
     mount({ tree: { type: "KpiCard" } });
-    resizeCallback?.();
+    resizeCallbacks.forEach((callback) => callback());
     embed.reportError("Nope is not a registered block type.");
     expect(sent()).toContainEqual({
       channel: PREVIEW_CHANNEL,

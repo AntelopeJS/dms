@@ -67,17 +67,32 @@ function describesAnnotationsTool(): void {
       });
       const first = await createAnnotation(
         MOCKUP,
-        { page: "home", path: "/pages/0/tree/0", text: "one" },
+        {
+          page: "home",
+          path: "/pages/0/tree/0",
+          text: "one",
+          offset: { x: 0, y: 0 },
+        },
         dir,
       );
       const second = await createAnnotation(
         MOCKUP,
-        { page: "home", path: "/pages/0/tree/0", text: "two" },
+        {
+          page: "home",
+          path: "/pages/0/tree/0",
+          text: "two",
+          offset: { x: 0, y: 0 },
+        },
         dir,
       );
       await createAnnotation(
         MOCKUP,
-        { page: "other", path: "/pages/1/tree/0", text: "three" },
+        {
+          page: "other",
+          path: "/pages/1/tree/0",
+          text: "three",
+          offset: { x: 0, y: 0 },
+        },
         dir,
       );
       await updateAnnotation(
@@ -131,12 +146,22 @@ function describesResolveAnnotationTool(): void {
       });
       const created = await createAnnotation(
         MOCKUP,
-        { page: "home", path: "/pages/0/tree/0", text: "tighten" },
+        {
+          page: "home",
+          path: "/pages/0/tree/0",
+          text: "tighten",
+          offset: { x: 0, y: 0 },
+        },
         workspace.mockups(),
       );
       await createAnnotation(
         MOCKUP,
-        { page: "home", path: "/pages/0/tree/1", text: "keep open" },
+        {
+          page: "home",
+          path: "/pages/0/tree/1",
+          text: "keep open",
+          offset: { x: 0, y: 0 },
+        },
         workspace.mockups(),
       );
       return created.kind === "created" ? created.annotation.id : "";
@@ -207,7 +232,7 @@ function writesOrRefusesSpecs(): void {
     );
     const text = await workspace.specBytes();
 
-    expect(result).to.deep.equal({ ok: true, errors: [] });
+    expect(result).to.deep.equal({ ok: true, errors: [], warnings: [] });
     expect(text).to.equal(`${JSON.stringify(valid, null, 2)}\n`);
     expect(parseSpec(text)).to.have.property("ok", true);
     expect(await readdir(join(workspace.mockups(), NAME))).to.deep.equal([
@@ -338,6 +363,7 @@ function refusesMalformedSpecs(): void {
           message: `the spec nests deeper than ${MAX_JSON_DEPTH} levels`,
         },
       ],
+      warnings: [],
     });
     expect(await workspace.specBytes()).to.equal(before);
   });
@@ -412,12 +438,48 @@ function describesSafeMode(): void {
       expect(listed.result.tools.map((tool) => tool.name)).to.include.members([
         "mockup_annotations",
         "mockup_resolve_annotation",
+        "mockup_read_spec",
         "mockup_write_spec",
         "mockup_patch_spec",
       ]);
     });
 
-    it("keeps the effects the descriptions promise: annotations read, the rest builder", () => {
+    it("marks only the four everyday mockup tools for upfront loading in tools/list", async () => {
+      const listed = z
+        .object({
+          result: z.object({
+            tools: z.array(
+              z.object({
+                name: z.string(),
+                _meta: z
+                  .object({ "anthropic/alwaysLoad": z.literal(true) })
+                  .optional(),
+              }),
+            ),
+          }),
+        })
+        .parse(
+          await answerMcpMessage(
+            { access: "safe", tools: MCP_TOOLS },
+            { jsonrpc: "2.0", id: 1, method: "tools/list" },
+            undefined,
+          ),
+        );
+
+      expect(
+        listed.result.tools
+          .filter((tool) => tool._meta !== undefined)
+          .map((tool) => tool.name)
+          .sort(),
+      ).to.deep.equal([
+        "mockup_annotations",
+        "mockup_patch_spec",
+        "mockup_read_spec",
+        "mockup_resolve_annotation",
+      ]);
+    });
+
+    it("keeps the effects the descriptions promise: annotations and read_spec read, the rest builder", () => {
       const effects = Object.fromEntries(
         MCP_TOOLS.filter((tool) => tool.name.startsWith("mockup_")).map(
           (tool) => [tool.name, tool.effect],
@@ -427,6 +489,7 @@ function describesSafeMode(): void {
       expect(effects).to.deep.equal({
         mockup_annotations: "read",
         mockup_resolve_annotation: "builder",
+        mockup_read_spec: "read",
         mockup_write_spec: "builder",
         mockup_patch_spec: "builder",
         mockup_from_page: "builder",

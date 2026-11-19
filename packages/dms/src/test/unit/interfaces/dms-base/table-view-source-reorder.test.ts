@@ -136,6 +136,26 @@ function registerSourceServingCases(): void {
     expect(options.realtime).to.equal(false);
   });
 
+  it("keeps archive and restore off, as every built-in action, even when rowActions carries them (fails when they reach the client on)", () => {
+    const written = {
+      archive: true,
+      restore: true,
+      delete: true,
+      hasSelection: true,
+    };
+    expect(sourceOf({ rowActions: written }).rowActions).to.deep.include({
+      add: false,
+      edit: false,
+      delete: false,
+      duplicate: false,
+      details: false,
+      copyLink: false,
+      archive: false,
+      restore: false,
+      hasSelection: true,
+    });
+  });
+
   it("serves the key a source table opens its search with", () => {
     expect(sourceOf({ searchShortcut: "/" }).searchShortcut).to.equal("/");
     expect(sourceOf().searchShortcut).to.equal(undefined);

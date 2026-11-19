@@ -1,7 +1,9 @@
 import { resolve } from "node:path";
 import {
+  type CategorySummary,
   GetPageStructure,
   GetResourceStructure,
+  ListCategories,
   ListPages,
   type OpResult,
   type PageStructure,
@@ -18,17 +20,20 @@ import {
 } from "./from-page";
 import type {
   JsonObject,
+  MockupCategory,
   MockupIssue,
   MockupName,
   MockupSpec,
   MockupSpecPage,
 } from "./model";
-import { parseMockupName, specSchema } from "./model";
+import { pageIdSchema, parseMockupName, specSchema } from "./model";
+import { menuOrder, placePage, withCategory } from "./page-placement";
 import { queued } from "./queue";
 import { readSpecSource, type SpecDigest, withSpecLock } from "./source";
 
 export interface LivePages {
   listPages(): Promise<readonly PageSummary[]>;
+  listCategories(): Promise<readonly CategorySummary[]>;
   pageStructure(ref: string): Promise<OpResult<PageStructure>>;
   resourceStructure(ref: string): Promise<OpResult<ResourceStructure>>;
 }
@@ -36,6 +41,7 @@ export interface LivePages {
 /** The project's pages, as the builder reads them. */
 export const BUILDER_PAGES: LivePages = {
   listPages: () => ListPages(),
+  listCategories: () => ListCategories(),
   pageStructure: (ref) => GetPageStructure(ref),
   resourceStructure: (ref) => GetResourceStructure(ref),
 };
@@ -49,6 +55,12 @@ export interface EditAsMockupOptions {
   digest?: SpecDigest;
   /** Reaches the page of this mockup converted from the live page, never another mockup. */
   mockup?: MockupName;
+  /**
+   * Converts the page into this existing mockup, at its real place, instead
+   * of the page's own mockup; refused when the mockup already holds it,
+   * unless `replace`.
+   */
+  into?: MockupName;
 }
 
 type Opened = { mockup: MockupName; page: string; url: string };
@@ -56,7 +68,8 @@ type Opened = { mockup: MockupName; page: string; url: string };
 export type EditAsMockupAnswer =
   | ({
       ok: true;
-      outcome: "created" | "replaced";
+      /** `added` when the page joined an existing mockup (`into`). */
+      outcome: "created" | "replaced" | "added";
       sketches: SketchNote[];
       /** The fixture keys Real data reads from a live route. */
       liveRoutes: string[];
@@ -143,7 +156,7 @@ export function resolvePageRef(
 }
 
 function mockupUrl(name: MockupName, page: string): string {
-  const query = new URLSearchParams({ name, page, mode: "edit" });
+  const query = new URLSearchParams({ name, page });
   return `/mockup?${query.toString()}`;
 }
 
@@ -265,6 +278,58 @@ function specWith(
     : { ...replaced.spec, pages };
 }
 
+/** The built-in section the mockup's default section stands for, in the app and in each module. */
+const DEFAULT_SECTION_ID = "pages";
+const FALLBACK_CATEGORY_ID = "section";
+
+/** A category id as a mockup spec takes it, from a builder category id. */
+function categoryIdOf(id: string): string {
+  const slug = id
+    .toLowerCase()
+    .replace(/[^a-z0-9-]+/g, "-")
+    .replace(/^-+/, "")
+    .slice(0, 64);
+  return pageIdSchema.safeParse(slug).success ? slug : FALLBACK_CATEGORY_ID;
+}
+
+/**
+ * The mockup category of the live page's sidebar section, none for the
+ * default Pages section, which a mockup draws for a page without category.
+ */
+function sectionCategory(
+  structure: PageStructure,
+  categories: readonly CategorySummary[],
+): MockupCategory | undefined {
+  const ref = structure.page.section;
+  if (ref === undefined) return undefined;
+  const section = categories.find((category) => category.ref === ref);
+  const id = ref.split(".").at(-1) ?? ref;
+  if (!section || id === DEFAULT_SECTION_ID) return undefined;
+  const category: MockupCategory = {
+    id: categoryIdOf(id),
+    title: section.displayName,
+  };
+  if (section.icon !== undefined) category.icon = section.icon;
+  return category;
+}
+
+/** `spec` with `page` filed under `category`, which joins the spec's categories unless one has its id or title. */
+function inCategory(
+  spec: MockupSpec,
+  pageId: string,
+  category: MockupCategory | undefined,
+): MockupSpec {
+  if (!category) return spec;
+  const filed = withCategory(spec, category);
+  return {
+    ...spec,
+    categories: filed.categories,
+    pages: spec.pages.map((page) =>
+      page.id === pageId ? { ...page, category: filed.id } : page,
+    ),
+  };
+}
+
 async function readStructure(
   target: LivePageTarget,
   pages: LivePages,
@@ -317,6 +382,9 @@ async function convertLivePage(
 ): Promise<EditAsMockupAnswer> {
   const structure = await readStructure(target, pages);
   if ("ok" in structure) return structure;
+  if (options.into !== undefined) {
+    return convertInto(mockupsDir, options.into, structure, options, pages);
+  }
   const slot = await targetSlot(mockupsDir, structure.page.ref, options.mockup);
   if ("ok" in slot) return slot;
   const pageId = slot.kind === "linked" ? slot.page.id : slot.name;
@@ -345,11 +413,15 @@ async function convertLivePage(
     oracle: openOracle(slot.name, pageId),
     resources,
   });
-  const spec = specWith(replaced, structure, converted.page);
+  const spec = inCategory(
+    specWith(replaced, structure, converted.page),
+    pageId,
+    sectionCategory(structure, await pages.listCategories()),
+  );
   const read = slot.kind === "linked" ? slot.digest : undefined;
   const written = await withSpecLock(mockupsDir, slot.name, async (write) => {
     const current = await readSpecSource(mockupsDir, slot.name);
-    return current?.digest === read ? write(spec) : undefined;
+    return current?.digest === read ? write(spec, { by: "you" }) : undefined;
   });
   if (!written) {
     return failure("conflict", "spec.json changed since it was read");
@@ -363,5 +435,100 @@ async function convertLivePage(
     sketches: converted.sketches,
     liveRoutes: Object.keys(converted.page.liveRoutes ?? {}),
     ...opened,
+  };
+}
+
+/** A page id for `ref` that no page of `spec` has: its slug, suffixed when taken. */
+function freePageId(spec: MockupSpec, ref: string): string {
+  const taken = new Set(spec.pages.map((page) => page.id));
+  const base = slugOf(ref);
+  let id = base;
+  for (let suffix = 2; taken.has(id); suffix += 1) id = `${base}-${suffix}`;
+  return id;
+}
+
+/**
+ * Converts the live page into the existing mockup `into`: a new page at its
+ * real place (see {@link placePage}), or, with `replace`, over the page of
+ * `into` already converted from it, which keeps its id and its place. A
+ * mockup that already holds the page is otherwise left as it is.
+ */
+async function convertInto(
+  mockupsDir: string,
+  into: MockupName,
+  structure: PageStructure,
+  options: EditAsMockupOptions,
+  pages: LivePages,
+): Promise<EditAsMockupAnswer> {
+  const ref = structure.page.ref;
+  const source = await readSpecSource(mockupsDir, into);
+  if (!source) {
+    return failure(
+      "not_found",
+      `the mockup ${into} does not exist: name an existing mockup, or leave into out to make the page's own`,
+    );
+  }
+  const linked = linkedPageOf(source.spec, ref);
+  if (linked && !options.replace) {
+    return failure(
+      "conflict",
+      `the mockup ${into} already holds the page ${ref} as ${linked.id}: pass replace: true to convert it again over that page`,
+    );
+  }
+  const read = specSchema.safeParse(source.spec);
+  if (!read.success) {
+    return failure(
+      "invalid",
+      `spec.json of the mockup ${into} has issues: fix them before converting a page into it`,
+    );
+  }
+  if (options.digest !== undefined && options.digest !== source.digest) {
+    return failure("conflict", "spec.json changed since it was read");
+  }
+  const spec = read.data;
+  const pageId = linked?.id ?? freePageId(spec, ref);
+  const converted = convertPage(structure, pageId, {
+    oracle: openOracle(into, pageId),
+    resources: await readResources(collectControllers(structure.blocks), pages),
+  });
+  const categories = await pages.listCategories();
+  const category = sectionCategory(structure, categories);
+  const next = linked
+    ? inCategory(
+        {
+          ...spec,
+          pages: spec.pages.map((page, index) =>
+            index === linked.index ? converted.page : page,
+          ),
+        },
+        pageId,
+        category,
+      )
+    : placePage(
+        spec,
+        converted.page,
+        category,
+        menuOrder(await pages.listPages(), categories),
+      );
+  const written = await withSpecLock(mockupsDir, into, async (write) => {
+    const current = await readSpecSource(mockupsDir, into);
+    return current?.digest === source.digest
+      ? write(next, { by: "you" })
+      : undefined;
+  });
+  if (!written) {
+    return failure("conflict", "spec.json changed since it was read");
+  }
+  if (!written.ok) {
+    return failure("invalid", "the converted spec has issues", written.errors);
+  }
+  return {
+    ok: true,
+    outcome: linked ? "replaced" : "added",
+    sketches: converted.sketches,
+    liveRoutes: Object.keys(converted.page.liveRoutes ?? {}),
+    mockup: into,
+    page: pageId,
+    url: mockupUrl(into, pageId),
   };
 }

@@ -3,6 +3,12 @@ import { html } from "parse5";
 /** The value a URL-bearing attribute may hold. */
 export type UrlForm = "anchor" | "image";
 
+/**
+ * What a URL-bearing attribute may hold: one {@link UrlForm}, or `link`, an
+ * `#anchor` or, when the check takes page links, a `page:<id>` link.
+ */
+export type UrlRule = UrlForm | "link";
+
 /** What a sketch may write in one namespace: its elements, and the attributes each may carry. */
 export interface NamespaceAllowlist {
   /** The namespace's name in a refusal, empty for HTML. */
@@ -12,8 +18,8 @@ export interface NamespaceAllowlist {
   global: ReadonlySet<string>;
   /** Attributes only some elements may carry, keyed by element. */
   byElement: ReadonlyMap<string, ReadonlySet<string>>;
-  /** Attributes holding a URL, keyed by element then attribute, with the one form each may take. */
-  urls: ReadonlyMap<string, ReadonlyMap<string, UrlForm>>;
+  /** Attributes holding a URL, keyed by element then attribute, with what each may hold. */
+  urls: ReadonlyMap<string, ReadonlyMap<string, UrlRule>>;
   /** Whether every attribute value is read as CSS, as SVG reads its presentation attributes. */
   valuesAreCss: boolean;
 }
@@ -168,8 +174,8 @@ const HTML_ALLOWLIST: NamespaceAllowlist = {
     ["output", new Set(["for"])],
     ["fieldset", new Set(["disabled"])],
   ]),
-  urls: new Map<string, ReadonlyMap<string, UrlForm>>([
-    ["a", new Map([["href", "anchor"]])],
+  urls: new Map<string, ReadonlyMap<string, UrlRule>>([
+    ["a", new Map([["href", "link"]])],
     ["img", new Map([["src", "image"]])],
   ]),
   valuesAreCss: false,

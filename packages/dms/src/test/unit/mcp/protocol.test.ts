@@ -1,7 +1,7 @@
 import type { JsonValue } from "@antelopejs/interface-dms/json";
 import { expect } from "chai";
 import { z } from "zod";
-import type { McpAccess } from "../../../mcp/access";
+import { type McpAccess, narrowedAccess } from "../../../mcp/access";
 import { answerMcpMessage } from "../../../mcp/protocol";
 import { defineTool, type McpTool, textResult } from "../../../mcp/tool";
 import { MCP_TOOLS } from "../../../mcp/tools";
@@ -246,27 +246,86 @@ function gatesToolsByAccess(): void {
   });
 }
 
+const PROJECT_TOOLS = [
+  "builder_configure_project",
+  "builder_delete_resource",
+  "builder_set_connection_access",
+];
+
+function narrowsAccessPerRequest(): void {
+  it("serves a safe request on a full server as safe: it lists no project tool and refuses one without running it", async () => {
+    const access = narrowedAccess("full", "safe");
+    const names = await listed(access, MCP_TOOLS);
+    expect(names).to.include.members(["builder_catalog", "list_pages"]);
+    expect(names).to.not.include.members(PROJECT_TOOLS);
+    for (const name of PROJECT_TOOLS) {
+      const reply = await answerMcpMessage(
+        { access, tools: MCP_TOOLS },
+        request(3, "tools/call", { name, arguments: {} }),
+        "test-session",
+      );
+      expect(ErrorAnswerSchema.parse(reply).error.message, name).to.contain(
+        "is not available in Safe mode",
+      );
+    }
+    expect(
+      ErrorAnswerSchema.parse(await call(access, "configure", {})).error.code,
+    ).to.equal(-32602);
+    expect(calls.project).to.equal(0);
+  });
+
+  it("keeps a safe server safe when a request asks for full access", async () => {
+    const access = narrowedAccess("safe", "full");
+    expect(access).to.equal("safe");
+    expect(await listed(access, MCP_TOOLS)).to.not.include.members(
+      PROJECT_TOOLS,
+    );
+    ErrorAnswerSchema.parse(await call(access, "configure", {}));
+    expect(calls.project).to.equal(0);
+  });
+
+  it("serves a request that asks for no access, or one the server does not know, with the configured access", async () => {
+    for (const configured of ["safe", "full"] as const) {
+      for (const requested of [undefined, "", "Safe", "readonly"]) {
+        expect(
+          narrowedAccess(configured, requested),
+          String(requested),
+        ).to.equal(configured);
+      }
+    }
+    expect(
+      await listed(narrowedAccess("full", undefined), MCP_TOOLS),
+    ).to.include.members(PROJECT_TOOLS);
+    expect(narrowedAccess("full", "full")).to.equal("full");
+    expect(narrowedAccess("safe", "safe")).to.equal("safe");
+  });
+}
+
 function servesTheRealTools(): void {
-  it("serves the builder tools under safe access and keeps the project configuration and resource deletion out", async () => {
+  it("serves the builder tools under safe access and keeps the project configuration, connection access and resource deletion out", async () => {
     const safe = await listed("safe", MCP_TOOLS);
     const full = await listed("full", MCP_TOOLS);
     expect(safe).to.include.members([
       "builder_add_block",
       "builder_compose_page",
+      "builder_configure_column_groups",
+      "builder_configure_field",
       "builder_map_resources",
       "database_describe",
       "navigate_to_page",
     ]);
     expect(safe).to.not.include.members([
       "builder_configure_project",
+      "builder_set_connection_access",
       "builder_delete_resource",
     ]);
     expect(full).to.include.members([
       ...safe,
       "builder_configure_project",
+      "builder_set_connection_access",
       "builder_delete_resource",
     ]);
-    expect(full).to.have.lengthOf(safe.length + 2);
+    expect(full).to.have.lengthOf(safe.length + 3);
   });
 
   it("serves the theme tools under safe access, since they edit through the builder", async () => {
@@ -309,5 +368,6 @@ describe("[unit] mcp protocol", () => {
 
   answersProtocolMessages();
   gatesToolsByAccess();
+  narrowsAccessPerRequest();
   servesTheRealTools();
 });

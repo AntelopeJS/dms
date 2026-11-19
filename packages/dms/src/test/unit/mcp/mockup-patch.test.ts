@@ -48,7 +48,7 @@ async function patchedData(
     { mockup: NAME, patch: operations },
     writeAnswerSchema,
   );
-  expect(result).to.deep.equal({ ok: true, errors: [] });
+  expect(result).to.deep.equal({ ok: true, errors: [], warnings: [] });
   return dataSchema.parse(JSON.parse(await workspace.specBytes())).pages[0]
     .fixtures.data;
 }
@@ -264,7 +264,7 @@ function writesPatchedSpec(): void {
         ),
       })
       .parse(JSON.parse(text));
-    expect(result).to.deep.equal({ ok: true, errors: [] });
+    expect(result).to.deep.equal({ ok: true, errors: [], warnings: [] });
     expect(written.title).to.equal("Desk");
     expect(written.pages[0].tree.map((node) => node.options)).to.deep.equal([
       { html: "<p>two</p>", height: 120 },

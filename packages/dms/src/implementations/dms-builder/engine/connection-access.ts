@@ -46,7 +46,7 @@ function readOnlyRefusal(
   }
   switch (resolved.cause) {
     case "configured":
-      return `refused to ${attempt}: connection "${connection}" is read-only, since ${resolved.reason}. Ask the person to allow changes: the Read & write switch at the top of the Database module's Data browser, or \`access: "read-write"\` under \`config.externalConnections.${connection}\` on the dms-database entry of antelope.config.ts.`;
+      return `refused to ${attempt}: connection "${connection}" is read-only, since ${resolved.reason}. Ask the person to allow changes: the Read & write switch at the top of the Database module's Data browser, \`access: "read-write"\` under \`config.externalConnections.${connection}\` on the dms-database entry of antelope.config.ts, or, once they agree, an agent's builder_set_connection_access.`;
     case "unresolved":
       return `refused to ${attempt}: the access of connection "${connection}" could not be checked, since ${resolved.reason}. Fix antelope.config.ts so core can load it, then try again.`;
     case "core-missing":

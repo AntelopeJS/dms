@@ -109,7 +109,8 @@ describe("applyMockupEdit leaves its input alone", () => {
       { kind: "removePage", page: "nowhere" },
       { kind: "updatePage", page: "orders", id: "settings" },
       { kind: "updatePage", page: "orders", id: "Not A Slug" },
-      { kind: "movePage", from: 0, to: 5 },
+      { kind: "movePageTo", page: "orders", category: null, index: 0 },
+      { kind: "movePageTo", page: "orders", category: "nowhere", index: 0 },
     ];
     for (const edit of refused) {
       expect(applyMockupEdit(before, edit).spec).toBe(before);
@@ -375,7 +376,12 @@ describe("pages", () => {
   });
 
   it("reorders pages, which makes the first one home (fails when the page is copied instead of moved)", () => {
-    const next = apply({ kind: "movePage", from: 1, to: 0 });
+    const next = apply({
+      kind: "movePageTo",
+      page: "settings",
+      category: null,
+      index: 0,
+    });
     expect(next.spec.pages.map((page) => page.id)).toEqual([
       "settings",
       "orders",

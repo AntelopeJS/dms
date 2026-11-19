@@ -53,16 +53,6 @@ export interface DmsUiColors {
 }
 
 /**
- * The DMS's own logos and palettes, kept whatever a layer sets in their place,
- * so a tool can preview a return to the DMS look (the builder's theme editor).
- * A layer overrides `branding.logo` and `ui.colors`, never these.
- */
-export interface DmsBrandingDefaults {
-  logo: DmsBrandingLogo;
-  colors: DmsUiColors;
-}
-
-/**
  * What the footer of the public and auth pages shows besides its links
  * (`registerFooterLink`).
  */
@@ -83,8 +73,6 @@ export interface DmsBrandingConfig {
    */
   logo?: DmsBrandingLogo;
   footer?: DmsFooterConfig;
-  /** Supplied by the DMS layout layer's app config. */
-  defaults?: DmsBrandingDefaults;
 }
 
 export interface DmsAppConfig {

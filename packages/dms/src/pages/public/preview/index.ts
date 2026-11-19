@@ -15,6 +15,12 @@ export const PREVIEW_LAYOUT = {
   options: {},
 };
 
+/** The `/mockup` viewer's frame: the dashboard's sidebar folded to its rail beside the viewer. */
+export const MOCKUP_LAYOUT = {
+  componentName: "dms-mockup-layout",
+  options: {},
+};
+
 /** What the page hands `DmsBlockPreview`. */
 interface DocsPreviewOptions {
   embed: boolean;

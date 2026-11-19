@@ -7,10 +7,7 @@ import GithubStarPrompt from "./GithubStarPrompt.vue";
 import RolePreviewBar from "./RolePreviewBar.vue";
 import { useAppWidgets } from "../../../composables/useAppWidgets";
 import { useVisitNavBadges } from "../../composables/navigation/useVisitNavBadges";
-import {
-  sidePanelWidthStyle,
-  useActiveSidePanel,
-} from "#dms-ui/app/entries/composables/layout/sidePanelState";
+import { useSidePanelRoom } from "#dms-ui/app/entries/composables/layout/sidePanelState";
 
 const DASHBOARD_STORAGE_KEY = "dms-dashboard";
 const DASHBOARD_SIZE_UNIT = "px";
@@ -23,7 +20,8 @@ const DOCK_CLEARANCE_CLASS =
 const DOCK_CHIP_REM = 3;
 const DOCK_EDGE_REM = 1.375;
 
-const SIDE_PANEL_ROOM_CLASS = "lg:end-[min(var(--dms-side-panel-width),60vw)]";
+const SIDE_PANEL_ROOM_CLASS =
+  "end-[var(--dms-side-rail-width,0px)] lg:end-[calc(min(var(--dms-side-panel-width,0px),60vw)+var(--dms-side-rail-width,0px))]";
 const dockHeight = (chips: number): string =>
   `${chips * DOCK_CHIP_REM + DOCK_EDGE_REM}rem`;
 
@@ -68,21 +66,12 @@ const regionAttrs = computed(() =>
     : {},
 );
 
-const { panel: sidePanel, width: sidePanelWidth } = useActiveSidePanel();
-
-const groupAttrs = computed(() =>
-  sidePanel.value
-    ? {
-        class: SIDE_PANEL_ROOM_CLASS,
-        style: sidePanelWidthStyle(sidePanelWidth.value),
-      }
-    : {},
-);
+const groupAttrs = useSidePanelRoom(SIDE_PANEL_ROOM_CLASS);
 </script>
 
 <template>
   <UDashboardGroup
-    data-dms-persistent-shell
+    data-dms-docks-side-panel
     :storage-key="DASHBOARD_STORAGE_KEY"
     :unit="DASHBOARD_SIZE_UNIT"
     v-bind="groupAttrs"

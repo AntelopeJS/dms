@@ -3,6 +3,7 @@ import { isString } from "../../../../dms-core/app/utils/type-check";
 import { markRaw, type Component } from "vue";
 import BlockPreviewIssue from "../../build/components/block-preview/BlockPreviewIssue.vue";
 import BlockPreviewSketch from "../../build/components/block-preview/BlockPreviewSketch.vue";
+import { previewHeader } from "../../build/composables/block-preview/previewNavigation";
 import { useBlockPreviewEmbed } from "../../build/composables/block-preview/useBlockPreviewEmbed";
 import {
   collectPreviewIssues,
@@ -83,10 +84,20 @@ const embed = props.embed
     })
   : undefined;
 
+const PAGE_HEADER_COMPONENT = "DmsPreviewPageHeader";
+
+/** The dashboard's page header, when a mockup's render asked the preview to draw one above the blocks. */
+const headerComponent = computed(() =>
+  embed && previewHeader.value
+    ? resolveDmsComponent(PAGE_HEADER_COMPONENT)
+    : undefined,
+);
+
 const fetchedBlockTypes = ref<PreviewBlockTypes>();
 const blockTypes = computed(() => props.blockTypes ?? fetchedBlockTypes.value);
 const tree = computed(() => (embed ? embed.tree.value : props.tree));
 const revision = computed(() => embed?.revision.value ?? 0);
+const routeParams = computed(() => embed?.params.value);
 const isTransparent = computed(() => embed?.transparent.value ?? false);
 const isPadded = computed(
   () => embed?.padding.value ?? (props.embed || props.padding),
@@ -165,6 +176,11 @@ onMounted(async () => {
     :data-dms-inspecting="embed?.inspecting.value || undefined"
     :class="{ 'p-4 sm:p-6': isPadded }"
   >
+    <component
+      :is="headerComponent"
+      v-if="headerComponent && previewHeader"
+      :header="previewHeader"
+    />
     <UAlert
       v-if="isStateInvalid"
       color="error"
@@ -190,6 +206,7 @@ onMounted(async () => {
           :page-id="pageId"
           :component-id="childComponentId(componentId, component.id)"
           :layout-path="component.id"
+          :route-params="routeParams"
         />
       </div>
     </div>

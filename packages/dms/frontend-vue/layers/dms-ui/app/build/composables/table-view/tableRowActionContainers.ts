@@ -7,6 +7,7 @@ import {
   TableRowAction,
   FormContainerType,
   DEFAULT_FORM_CONTAINER_TYPE,
+  DEFAULT_FORM_DRAWER_DIRECTION,
 } from "./types";
 import DmsFormBlock from "../../../components/form/FormBlock.vue";
 import { get } from "@nuxt/ui/runtime/utils/index.js";
@@ -136,6 +137,8 @@ const createContainerOpeners = (
         title,
         description,
         containerId,
+        direction:
+          config.formContainer?.direction ?? DEFAULT_FORM_DRAWER_DIRECTION,
         component: DmsFormBlock,
         componentOptions: {
           ...processedOptions,

@@ -73,7 +73,7 @@ export const SKETCH_NODE_TYPE = "sketch";
 
 export const SKETCH_DEFAULT_HEIGHT_PX = 320;
 export const SKETCH_MIN_HEIGHT_PX = 80;
-export const SKETCH_MAX_HEIGHT_PX = 1200;
+export const SKETCH_MAX_HEIGHT_PX = 3000;
 export const SKETCH_CAPTION_MAX_LENGTH = 200;
 
 /** The options of a sketch node, as {@link resolvePreviewTree} reads them. */

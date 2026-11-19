@@ -32,11 +32,12 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
+/** Opens `page` in the viewer, its other query parameters `query`. */
 async function open(
   page: MockupPageState,
-  query: Record<string, string> = { name: "demo" },
+  query: Record<string, string> = {},
 ): Promise<void> {
-  stubMockupRuntime({ query });
+  stubMockupRuntime({ query: { name: "demo", page: page.id, ...query } });
   viewer = await mountViewer();
   await viewer.publish("state", mockupState({ pages: [page] }));
   await viewer.say({ type: "ready" });
@@ -74,17 +75,14 @@ describe("Real data", () => {
   });
 
   it("is absent from a hand-made mockup, which draws its fixtures even with ?data=real (fails on a toggle that reads the query alone)", async () => {
-    await open(mockupPage({ tree: SAMPLE_TREE }), {
-      name: "demo",
-      data: "real",
-    });
+    await open(mockupPage({ tree: SAMPLE_TREE }), { data: "real" });
 
     expect(toggle()).toBeNull();
     expect(lastTree()).toEqual(SAMPLE_TREE);
   });
 
   it("follows ?data=sample on a converted page (fails when the query cannot override the default)", async () => {
-    await open(CONVERTED, { name: "demo", data: "sample" });
+    await open(CONVERTED, { data: "sample" });
 
     expect(toggle()?.getAttribute("aria-checked")).toBe("false");
     expect(lastTree()).toEqual(SAMPLE_TREE);

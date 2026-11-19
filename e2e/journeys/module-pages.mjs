@@ -225,7 +225,7 @@ export const journeys = [
         };
         const written = toolText(await session.call("mockup_write_spec", { mockup: DIALOG_MOCKUP, spec }));
         const resource = await operation(session, "builder_create_resource", { name: `shipment${suffix}`, fields: [{ name: "label", dataType: { $dataType: "string" } }], seeds: [{ _id: "s1", label: "First" }] });
-        const [page] = itemsOf(parseJson(toolText(await session.call("builder_list_pages")).text));
+        const [page] = itemsOf(fieldOf(parseJson(toolText(await session.call("builder_list_pages")).text), "pages"));
         const pageRef = textOf(fieldOf(page, "ref"));
         const button = (/** @type {keyof typeof DIALOGS} */ key) => ({ label: labels[key], target: { type: "external", url: "https://example.com" }, confirm: { from: fixtureRoute(key) } });
         const added = await operation(session, "builder_add_block", {

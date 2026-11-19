@@ -149,12 +149,42 @@ describe("pages, width and size", () => {
     await viewer.say({ type: "ready" });
     expect(rendered(viewer.posted).at(-1)?.navigation).toEqual({
       title: "demo",
-      items: [
-        { id: "orders", label: "Orders", icon: "i-ph-house-light" },
-        { id: "settings", label: "Settings", icon: undefined },
+      sections: [
+        {
+          items: [
+            { id: "orders", label: "Orders", icon: "i-ph-house-light" },
+            { id: "settings", label: "Settings", icon: undefined },
+          ],
+        },
       ],
       active: "orders",
+      editable: true,
     });
+  });
+
+  it("draws each page's own icon in the sidebar, the default only for a page without one (fails when every page but home shows a file icon)", async () => {
+    stubMockupRuntime();
+    viewer = await mountViewer();
+    await viewer.publish(
+      "state",
+      mockupState({
+        pages: [
+          mockupPage({ id: "overview", title: "Overview" }),
+          mockupPage({ id: "orders", title: "Orders", icon: "i-ph-receipt" }),
+          mockupPage({ id: "notes", title: "Notes" }),
+        ],
+      }),
+    );
+    await viewer.say({ type: "ready" });
+    expect(rendered(viewer.posted).at(-1)?.navigation?.sections).toEqual([
+      {
+        items: [
+          { id: "overview", label: "Overview", icon: "i-ph-house-light" },
+          { id: "orders", label: "Orders", icon: "i-ph-receipt" },
+          { id: "notes", label: "Notes", icon: undefined },
+        ],
+      },
+    ]);
   });
 
   it("draws the page the sidebar picks, with that page's theme (fails when a sidebar click switches nothing)", async () => {
@@ -297,5 +327,116 @@ describe("layout path to spec pointer", () => {
     };
     expect(parseMockupState(bad)).toBeUndefined();
     expect(parseMockupState(mockupState())).toMatchObject({ name: "demo" });
+  });
+});
+
+describe("a generated form page's state", () => {
+  const stateOf = (generated: boolean) => ({
+    ...mockupState(),
+    pages: [{ ...mockupPage(), generated }],
+  });
+
+  it("keeps the flag of a page the mockup drew itself and refuses any other value (fails when the state is refused or the flag dropped)", () => {
+    expect(parseMockupState(stateOf(true))?.pages[0]).toMatchObject({
+      generated: true,
+    });
+    expect(parseMockupState(stateOf(false))).toBeUndefined();
+  });
+});
+
+describe("one viewer", () => {
+  it("goes back to the mockups from the top bar (fails when the viewer is a dead end)", async () => {
+    stubMockupRuntime();
+    viewer = await mountViewer();
+    expect(
+      viewer.host.querySelector("[data-dms-mockup-back]")?.getAttribute("to"),
+    ).toBe("/mockups");
+  });
+
+  it("selects the clicked block for editing even from a URL that still says ?mode=comment (fails when a stale mode opens a comment box)", async () => {
+    stubMockupRuntime({ query: { name: "demo", mode: "comment" } });
+    viewer = await mountViewer();
+    await viewer.publish("state", mockupState());
+    await viewer.say({ type: "ready" });
+    await viewer.say({ type: "select", path: "block-0" });
+    await viewer.say({
+      type: "layout",
+      blocks: [
+        { path: "block-0", rect: { x: 0, y: 0, width: 200, height: 80 } },
+      ],
+    });
+    expect(viewer.host.querySelector("[data-dms-mockup-selection]")).not.toBe(
+      null,
+    );
+    expect(viewer.host.querySelector("textarea")).toBeNull();
+  });
+
+  it("says the AI is writing the mockup while its spec has no page, then draws the first page it writes (fails when an empty spec shows nothing)", async () => {
+    stubMockupRuntime();
+    viewer = await mountViewer();
+    await viewer.publish("state", mockupState({ pages: [] }));
+    expect(
+      viewer.host.querySelector("[data-dms-mockup-empty]")?.textContent,
+    ).toContain("dms.mockup.writing");
+
+    await viewer.publish("state", mockupState({ revision: 2 }));
+    await viewer.say({ type: "ready" });
+    expect(viewer.host.querySelector("[data-dms-mockup-empty]")).toBeNull();
+    expect(rendered(viewer.posted).at(-1)?.tree).toEqual([
+      { type: "KpiCard", options: { title: "Revenue" } },
+    ]);
+  });
+});
+
+describe("side panels of the viewer", () => {
+  beforeEach(() => localStorage.clear());
+
+  const shown = () => ({
+    left: viewer?.host.querySelector("[data-dms-mockup-edit-panel]") !== null,
+    right: viewer?.host.querySelector("[data-dms-mockup-inspector]") !== null,
+  });
+
+  function press(key: string): Promise<void> {
+    window.dispatchEvent(new KeyboardEvent("keydown", { key }));
+    return flush();
+  }
+
+  it("closes and opens each panel from the top bar and from [ and ] (fails when a panel cannot close)", async () => {
+    stubMockupRuntime();
+    viewer = await mountViewer();
+    expect(shown()).toEqual({ left: true, right: true });
+
+    viewer.host
+      .querySelector<HTMLElement>('[data-dms-mockup-panel-toggle="left"]')
+      ?.click();
+    await press("]");
+    expect(shown()).toEqual({ left: false, right: false });
+
+    await press("[");
+    expect(shown()).toEqual({ left: true, right: false });
+  });
+
+  it("keeps the panels as they were left on the next visit, and a selection does not reopen the inspector (fails when the choice is lost on reload)", async () => {
+    stubMockupRuntime();
+    viewer = await mountViewer();
+    await press("]");
+    viewer.unmount();
+
+    stubMockupRuntime();
+    viewer = await mountViewer();
+    await viewer.publish("state", mockupState());
+    await viewer.say({ type: "ready" });
+    await viewer.say({ type: "select", path: "block-0" });
+
+    expect(shown()).toEqual({ left: true, right: false });
+  });
+
+  it("marks itself as a surface the side panel docks beside (fails when the assistant's panel hides on /mockup)", async () => {
+    stubMockupRuntime();
+    viewer = await mountViewer();
+    const root = viewer.host.querySelector<HTMLElement>(
+      "[data-dms-docks-side-panel]",
+    );
+    expect(root?.querySelector("[data-dms-mockup-viewer]")).not.toBeNull();
   });
 });

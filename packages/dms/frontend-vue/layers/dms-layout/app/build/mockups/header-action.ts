@@ -10,7 +10,7 @@ export default defineDmsPlugin(() => {
   const router = useDmsRouter();
   registerHeaderAction({
     id: MOCKUPS_ACTION_ID,
-    icon: "i-ph-frame-corners-light",
+    icon: "i-lucide-layout-template",
     label: "$mockups.header.open",
     order: 90,
     isVisible: () => isOwner.value,

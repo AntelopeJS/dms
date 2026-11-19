@@ -62,6 +62,19 @@ function reflowNamedImports(declaration: ImportDeclaration): void {
   );
 }
 
+/** Rewrites the named imports from `specifier` as a fresh import would write them, once a rewrite added or pruned some. */
+export function reflowImportOf(
+  sourceFile: SourceFile,
+  specifier: string,
+): void {
+  const declaration = sourceFile
+    .getImportDeclarations()
+    .find((decl) => decl.getModuleSpecifierValue() === specifier);
+  if (declaration) {
+    reflowNamedImports(declaration);
+  }
+}
+
 function importedNames(sourceFile: SourceFile): Set<string> {
   const names = new Set<string>();
   for (const decl of sourceFile.getImportDeclarations()) {

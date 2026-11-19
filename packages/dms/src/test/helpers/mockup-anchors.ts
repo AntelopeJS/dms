@@ -7,6 +7,9 @@ import {
   type MockupAnnotation,
   mockupNameSchema,
 } from "../../mockup";
+
+/** The anchor of a note on a block. */
+type BlockAnchor = Extract<MockupAnnotation["anchor"], { block: string }>;
 import {
   answer,
   mockupTool,
@@ -93,21 +96,29 @@ export function patchAnswer(...operations: JsonValue[]) {
   return answer(patch, { mockup: NAME, patch: operations }, writeAnswerSchema);
 }
 
+/** The anchor of a note on a block; throws for a note on a page. */
+export function blockAnchorOf(
+  note: Pick<MockupAnnotation, "anchor">,
+): BlockAnchor {
+  if (!("block" in note.anchor)) throw new Error("the note is on a page");
+  return note.anchor;
+}
+
 /** Creates a note on the node at `path` of page `page`, and answers it as created. */
 export async function annotate(
   page: string,
   path: string,
   text = "note",
-): Promise<MockupAnnotation> {
+): Promise<MockupAnnotation & { anchor: BlockAnchor }> {
   const created = await createAnnotation(
     MOCKUP,
-    { page, path, text },
+    { page, path, text, offset: { x: 0, y: 0 } },
     defaultMockupsDir(),
   );
   if (created.kind !== "created") {
     throw new Error(`not created: ${created.kind}`);
   }
-  return created.annotation;
+  return { ...created.annotation, anchor: blockAnchorOf(created.annotation) };
 }
 
 export async function served(id: string): Promise<MockupAnnotation> {

@@ -8,7 +8,12 @@ import { createRole, joinedMember } from "./settings-members/steps.mjs";
  */
 
 const ROUTES = ["/api/mockup", "/api/mockup/schema", "/api/mockup/orders/annotations"];
-const NOTE = { page: "home", path: "/pages/0/tree/0", text: "Not mine" };
+const NOTE = {
+  page: "home",
+  path: "/pages/0/tree/0",
+  offset: { x: 0.5, y: 0.5 },
+  text: "Not mine",
+};
 const SAMPLE_MOCKUP = "sample-live-routes";
 /** Live routes of the playground, each named directly by a block of the sample mockup. */
 const LIVE = { kpi: "/api/dashboard/kpi/revenue", chart: "/api/dashboard/sales", table: "/api/user/list" };
@@ -44,18 +49,41 @@ const SHELL_ROUTES = [
  * included: it reads the playground's feature index and draws nothing in the preview.
  */
 const PLUGIN_ROUTES = [/^GET \/api\/playground-features$/];
+/** The mockup whose Overview labels the label journey zooms out on. */
+const OVERVIEW_MOCKUP = "overview-labels";
+/** The Overview's narrowest zoom, `OVERVIEW_ZOOM.min` of the viewer. */
+const OVERVIEW_MIN_ZOOM = 0.02;
+/** One Ctrl+wheel notch of the zoom-out sweep, in pixels of wheel. */
+const WHEEL_STEP_PX = 60;
+/** More notches than it takes to reach the narrowest zoom from the fitted one. */
+const ZOOM_OUT_STEPS = 16;
+/** How long the camera rests after a notch, past the Overview's 250 ms rest. */
+const ZOOM_SETTLE_MS = 400;
+/** The frame width, on the screen, from which a label has room for its icons, its truncated titles and the marker. */
+const MARKER_WHOLE_FROM_PX = 64;
 
 /**
- * Writes the sample mockup's spec under the run's `mockups/`, which the development backend watches.
+ * Writes a mockup's spec under the run's `mockups/`, which the development backend watches.
+ *
+ * @param {Ctx} ctx
+ * @param {string} name
+ * @param {{ title: string, pages: unknown[] }} spec
+ */
+function writeSpec(ctx, name, spec) {
+  const folder = join(ctx.state.runPlayground ?? ctx.state.playground, "mockups", name);
+  mkdirSync(folder, { recursive: true });
+  writeFileSync(join(folder, "spec.json"), JSON.stringify({ version: 1, ...spec }));
+}
+
+/**
+ * Writes the sample mockup's spec.
  *
  * @param {Ctx} ctx
  * @param {unknown[]} tree
  */
 function writeSampleSpec(ctx, tree) {
-  const folder = join(ctx.state.runPlayground ?? ctx.state.playground, "mockups", SAMPLE_MOCKUP);
-  mkdirSync(folder, { recursive: true });
   const page = { id: "live", title: "Live", fixtures: { [ROWS_FIXTURE]: SAMPLE_ROWS, [RECORD_FIXTURE]: SAMPLE_RECORD }, tree };
-  writeFileSync(join(folder, "spec.json"), JSON.stringify({ version: 1, title: "Sample on live routes", pages: [page] }));
+  writeSpec(ctx, SAMPLE_MOCKUP, { title: "Sample on live routes", pages: [page] });
 }
 
 /**
@@ -96,6 +124,64 @@ async function previewStates(page) {
   }
   await page.waitForTimeout(SETTLE_MS);
   return states;
+}
+
+/**
+ * Waits until the backend compiled `count` pages of the mockup `name`.
+ *
+ * @param {Ctx} ctx
+ * @param {string} name
+ * @param {number} count
+ */
+async function compiledPages(ctx, name, count) {
+  const deadline = Date.now() + DRAW_TIMEOUT_MS;
+  for (;;) {
+    const state = await ctx.api(`GET the ${name} mockup`, { method: "GET", path: `/api/mockup/${name}` });
+    const pages = itemsOf(fieldOf(state.body, "pages"));
+    if (pages.length === count || Date.now() > deadline) return pages.length;
+    await new Promise((resolve) => setTimeout(resolve, POLL_MS));
+  }
+}
+
+/**
+ * Where each Overview frame's label is painted at the current zoom: each part's box cut to the ancestors that clip
+ * it, against its frame's right edge, and how much of the hidden-page marker is painted.
+ *
+ * @param {import("playwright-core").Page} page
+ */
+function overviewLabels(page) {
+  return page.evaluate(() => {
+    const PARTS = ["title-icon", "parent", "title", "hidden", "count"].map((part) => `[data-dms-mockup-overview-${part}]`).join(", ");
+    /** @param {Element} element */
+    const painted = (element) => {
+      const box = element.getBoundingClientRect();
+      let { left, right } = box;
+      for (let at = element.parentElement; at; at = at.parentElement) {
+        if (getComputedStyle(at).overflowX === "visible") continue;
+        const clip = at.getBoundingClientRect();
+        left = Math.max(left, clip.left);
+        right = Math.min(right, clip.right);
+      }
+      return { left, right, width: Math.max(0, right - left), drawnWidth: box.width };
+    };
+    const world = document.querySelector("[data-dms-mockup-overview-world]");
+    const zoom = Number(/scale\(([^)]+)\)/.exec(world instanceof HTMLElement ? world.style.transform : "")?.[1] ?? NaN);
+    const frames = [...document.querySelectorAll("[data-dms-mockup-overview-frame]")].map((frame) => {
+      const edge = frame.getBoundingClientRect().right;
+      const past = [...frame.querySelectorAll(PARTS)]
+        .map((part) => ({ part: [...part.attributes].find((attribute) => attribute.name.startsWith("data-dms-mockup-overview-"))?.name, box: painted(part) }))
+        .filter(({ box }) => box.width > 0 && box.right > edge + 0.5)
+        .map(({ part, box }) => `${part} ends at ${Math.round(box.right)}, past ${Math.round(edge)}`);
+      const marker = frame.querySelector("[data-dms-mockup-overview-hidden]");
+      return {
+        id: frame.getAttribute("data-dms-mockup-overview-frame"),
+        width: Math.round(frame.getBoundingClientRect().width),
+        past,
+        marker: marker ? painted(marker) : undefined,
+      };
+    });
+    return { zoom, frames };
+  });
 }
 
 /**
@@ -248,6 +334,53 @@ export const journeys = [
         ctx.holds("the API requests of the preview frame", requests.length > 0, JSON.stringify(apiOf(true))),
         ctx.holds("the API requests of the page around it", true, JSON.stringify(apiOf(false))),
         ctx.holds("what the preview's policy refused", true, JSON.stringify(refused)),
+      ]);
+    },
+  },
+  {
+    id: "mockup-overview-labels-stay-in-their-frames",
+    title: "zoomed out to the end, no Overview label paints past its frame, and a hidden page keeps its marker whole while its frame is wide enough",
+    entryPoint: `/mockup?name=${OVERVIEW_MOCKUP}`,
+    backend: "dev",
+    async run(/** @type {Ctx} */ ctx) {
+      const page = (/** @type {string} */ id, /** @type {object} */ extra = {}) => ({
+        id,
+        title: id[0].toUpperCase() + id.slice(1).replace("-", " "),
+        ...extra,
+        tree: [{ id: "facts", type: "KeyValueList", options: { items: [{ label: "Account", value: "ACME-0042" }] } }],
+      });
+      writeSpec(ctx, OVERVIEW_MOCKUP, {
+        title: "Overview labels",
+        pages: [page("customers"), page("customer-detail", { parent: "customers", menu: false }), page("invoices")],
+      });
+      const compiled = await compiledPages(ctx, OVERVIEW_MOCKUP, 3);
+      await ctx.verify("the mockup compiled", [ctx.equal("its pages", compiled, 3)], { critical: true });
+      const admin = await ctx.tab("admin");
+      await admin.signIn("admin");
+      await admin.goto(`/mockup?name=${OVERVIEW_MOCKUP}`);
+      const { page: viewer } = admin;
+      await viewer.locator("[data-dms-mockup-overview-hidden]").waitFor({ timeout: DRAW_TIMEOUT_MS });
+      const area = await viewer.locator("[data-dms-mockup-overview]").boundingBox();
+      if (area) await viewer.mouse.move(area.x + area.width / 2, area.y + area.height / 2);
+      /** @type {Awaited<ReturnType<typeof overviewLabels>>[]} */
+      const zooms = [await overviewLabels(viewer)];
+      for (let step = 0; step < ZOOM_OUT_STEPS && zooms.at(-1)?.zoom !== OVERVIEW_MIN_ZOOM; step += 1) {
+        await viewer.keyboard.down("Control");
+        await viewer.mouse.wheel(0, WHEEL_STEP_PX);
+        await viewer.keyboard.up("Control");
+        await viewer.waitForTimeout(ZOOM_SETTLE_MS);
+        zooms.push(await overviewLabels(viewer));
+      }
+      const past = zooms.flatMap(({ zoom, frames }) => frames.flatMap(({ id, past: parts }) => parts.map((part) => `zoom ${zoom}, ${id}: ${part}`)));
+      const cutMarkers = zooms.flatMap(({ zoom, frames }) =>
+        frames
+          .filter(({ width, marker }) => marker && width >= MARKER_WHOLE_FROM_PX && marker.width < marker.drawnWidth - 0.5)
+          .map(({ id, width, marker }) => `zoom ${zoom}, ${id} ${width} px wide: marker painted ${marker?.width} of ${marker?.drawnWidth} px`),
+      );
+      await ctx.verify("every label stays in its frame's column", [
+        ctx.holds("the camera reached the narrowest zoom", zooms.at(-1)?.zoom === OVERVIEW_MIN_ZOOM, JSON.stringify(zooms.map(({ zoom }) => zoom))),
+        ctx.equal("no part of a label is painted past its frame's right edge", past, []),
+        ctx.equal(`the hidden-page marker is painted whole on a frame at least ${MARKER_WHOLE_FROM_PX} px wide`, cutMarkers, []),
       ]);
     },
   },

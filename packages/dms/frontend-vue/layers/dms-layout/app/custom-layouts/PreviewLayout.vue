@@ -1,60 +1,58 @@
 <script setup lang="ts">
-import PreviewSidebar from "../build/components/layout/PreviewSidebar.vue";
+import DashboardSidebar from "../build/components/layout/DashboardSidebar.vue";
+import PreviewTopBar from "../build/components/layout/PreviewTopBar.vue";
+import { useSidebarState } from "../build/components/layout/sidebarState";
 import {
   PREVIEW_FRAME_ATTRIBUTE,
-  PREVIEW_NAVIGATION_ATTRIBUTE,
+  previewHeader,
   previewNavigation,
 } from "#dms-ui/app/entries/composables/block-preview/previewNavigation";
 
 /**
  * The block preview's frame: nothing around the blocks, so an embedding page
  * sizes the iframe to them and a capture crops to them. A mockup's `render`
- * adds the sidebar of its pages, drawn as the dashboard draws its own.
+ * adds the dashboard's own sidebar, listing its pages, and the top bar over
+ * the page. The frame grows with its content, and keeps the sidebar's size
+ * to itself, never in the dashboard's storage. A mockup's sidebar starts
+ * open whatever the dashboard's starts as, so its pages show.
  */
 defineOptions({
   inheritAttrs: false,
 });
 
-const { t } = useI18n();
-const isSidebarOpen = ref(false);
+const FRAME_CLASS = "static inset-auto items-stretch overflow-visible";
+
+useSidebarState().collapsed.value = false;
 
 const frameAttribute = { [PREVIEW_FRAME_ATTRIBUTE]: "" };
-const navigationAttribute = { [PREVIEW_NAVIGATION_ATTRIBUTE]: "" };
 </script>
 
 <template>
-  <div v-bind="frameAttribute" class="flex items-stretch">
-    <PreviewSidebar
+  <UDashboardGroup
+    v-bind="frameAttribute"
+    :persistent="false"
+    unit="px"
+    :class="FRAME_CLASS"
+  >
+    <DashboardSidebar
       v-if="previewNavigation"
-      v-model:open="isSidebarOpen"
       :navigation="previewNavigation"
     />
     <main class="bg-default min-w-0 flex-1" data-dms-page-content>
-      <div
+      <PreviewTopBar
         v-if="previewNavigation"
-        v-bind="navigationAttribute"
-        class="border-default flex items-center gap-2 border-b px-3 py-2 lg:hidden"
-      >
-        <UButton
-          color="neutral"
-          variant="ghost"
-          class="text-muted hover:text-highlighted"
-          :icon="isSidebarOpen ? 'i-ph-x' : 'i-ph-list'"
-          :aria-label="
-            isSidebarOpen ? t('header.close_sidebar') : t('header.open_sidebar')
-          "
-          @click="isSidebarOpen = !isSidebarOpen"
-        />
-        <span class="text-highlighted truncate text-sm font-semibold">
-          {{ previewNavigation.title }}
-        </span>
-      </div>
+        :title="previewHeader?.title ?? previewNavigation.title ?? ''"
+      />
       <slot />
     </main>
-  </div>
+  </UDashboardGroup>
 </template>
 
 <style>
+[data-dms-preview-frame] {
+  min-height: var(--dms-preview-min-height, 0px);
+}
+
 /* A transparent preview (`transparent: true`) lets the embedding page's own
    background show through the iframe, e.g. a docs site in dark mode. */
 html:has([data-dms-preview-transparent]),

@@ -48,6 +48,36 @@ describe("theme stylesheet", () => {
     });
   });
 
+  it("writes the shades of a palette in shade order, not as text", () => {
+    const shades = [50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950];
+    const text = emitStylesheet({
+      shared: Object.fromEntries(
+        [...shades]
+          .reverse()
+          .map((shade) => [`--color-brand-${shade}`, "#abc"]),
+      ),
+      light: {},
+      dark: {},
+    });
+    expect(
+      text
+        .split("\n")
+        .filter((line) => line.includes("--color-brand-"))
+        .map((line) => line.trim().split(":")[0]),
+    ).to.deep.equal(shades.map((shade) => `--color-brand-${shade}`));
+  });
+
+  it("keeps the order of names without digits, and a name before its longer one", () => {
+    const text = emitStylesheet({
+      shared: { "--ui-bg-muted": "a", "--ui-bg": "b", "--font-sans": "c" },
+      light: {},
+      dark: {},
+    });
+    expect(text).to.equal(
+      ":root {\n  --font-sans: c;\n  --ui-bg: b;\n  --ui-bg-muted: a;\n}\n",
+    );
+  });
+
   it("keeps a value set for light alone out of dark mode", () => {
     expect(
       emitStylesheet({ shared: {}, light: { "--ui-bg": "snow" }, dark: {} }),
@@ -76,6 +106,66 @@ describe("theme stylesheet", () => {
     });
   });
 });
+
+function writesBrandPalette(): void {
+  it("writes a brand palette and points the primary at it, reads it back, and drops it for a preset", async () => {
+    const shades = [50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950];
+    const brand = Object.fromEntries(
+      shades.map((shade, index) => [
+        `--color-brand-${shade}`,
+        `#${(index * 20 + 16).toString(16).padStart(2, "0").repeat(3)}`,
+      ]),
+    );
+    const custom = expectOk(
+      await SetTheme(
+        draft({
+          variables: {
+            shared: { ...brand, "--ui-radius": "0.5rem" },
+            light: {},
+            dark: {},
+          },
+          colors: { primary: "brand" },
+        }),
+      ),
+      "SetTheme",
+    );
+    const written = readLayerFile("app/assets/css/theme.css");
+    expect(
+      written.startsWith(":root {\n  --color-brand-50: #101010;"),
+    ).to.equal(true);
+    expect(written).to.contain(
+      "--color-brand-950: #d8d8d8;\n  --ui-radius: 0.5rem;",
+    );
+    expect(readLayerFile("app/app.config.ts")).to.contain('primary: "brand"');
+    const read = expectOk(await GetTheme(), "GetTheme");
+    expect(read.colors).to.deep.equal({ primary: "brand" });
+    expect(read.variables.shared).to.deep.equal({
+      ...brand,
+      "--ui-radius": "0.5rem",
+    });
+
+    expectOk(
+      await SetTheme(
+        draft({
+          variables: {
+            shared: { "--ui-radius": "0.5rem" },
+            light: {},
+            dark: {},
+          },
+          colors: { primary: "violet" },
+        }),
+        { expectedVersion: custom.version },
+      ),
+      "SetTheme",
+    );
+    expect(readLayerFile("app/assets/css/theme.css")).to.equal(
+      ":root {\n  --ui-radius: 0.5rem;\n}\n",
+    );
+    const back = expectOk(await GetTheme(), "GetTheme");
+    expect(back.colors).to.deep.equal({ primary: "violet" });
+    expect(back.variables.shared).to.deep.equal({ "--ui-radius": "0.5rem" });
+  });
+}
 
 function writesStylesheetAndPalettes(): void {
   it("reads a layer that has no theme yet", async () => {
@@ -321,6 +411,7 @@ describe("theme", function () {
   });
 
   writesStylesheetAndPalettes();
+  writesBrandPalette();
   writesSanitizedLogos();
   sharesAndCleansUpLogoFiles();
   refusesUnsafeOrStaleWrites();
@@ -363,7 +454,7 @@ describe("theme layer", function () {
     destroyFixture();
   });
 
-  it("creates frontend-vue and registers it from a start() it adds", () => {
+  it("creates frontend-vue and declares it as the project's frontend module", () => {
     const result = scaffoldThemeLayer();
     const layer = expectOk(result, "scaffoldThemeLayer");
     expect(layer.sourcePath).to.equal(path.join(app.root, LAYER));
@@ -375,17 +466,21 @@ describe("theme layer", function () {
       private: true,
     });
     const entry = app.read("index.ts");
-    expect(entry).to.match(/^import path from "node:path";/);
     expect(entry).to.contain(
       'import { AddFrontendModule } from "@antelopejs/interface-dms/page";',
     );
-    expect(entry).to.contain("export async function start(): Promise<void> {");
     expect(entry).to.contain(
+      'import { frontendModule } from "./frontend-module";',
+    );
+    expect(entry).to.contain("export async function start(): Promise<void> {");
+    expect(entry).to.contain("await AddFrontendModule(frontendModule());");
+    const module = app.read("frontend-module.ts");
+    expect(module).to.contain(
       'sourcePath: path.join(__dirname, "../frontend-vue"),',
     );
-    expect(entry).to.contain("priority: 1,");
+    expect(module).to.contain("priority: 1,");
     expect(readLayerFile("app/assets/css/theme.css")).to.equal("");
-    expect(result.ok && result.changes.length).to.equal(4);
+    expect(result.ok && result.changes.length).to.equal(6);
   });
 
   it("makes an existing start() async and registers the layer at its end", () => {
@@ -395,7 +490,7 @@ describe("theme layer", function () {
     );
     expectOk(scaffoldThemeLayer(), "scaffoldThemeLayer");
     expect(app.read("index.ts")).to.match(
-      /export async function start\(\): Promise<void> \{\n {2}console\.log\("started"\);\n {2}await AddFrontendModule\(\{/,
+      /export async function start\(\): Promise<void> \{\n {2}console\.log\("started"\);\n {2}await AddFrontendModule\(frontendModule\(\)\);\n\}/,
     );
   });
 

@@ -91,6 +91,49 @@ it.each([HTTP_NOT_FOUND, HTTP_FORBIDDEN])(
   },
 );
 
+function copyButton(): HTMLButtonElement | null {
+  return host.querySelector("button[aria-label^='dms.button.copy']");
+}
+
+/**
+ * jsdom has no `ClipboardItem`, so `@vueuse/core` falls back to copying through
+ * a selected textarea, which this records.
+ */
+function stubExecCommand() {
+  const copied: string[] = [];
+  Object.defineProperty(window.navigator, "clipboard", {
+    value: {},
+    configurable: true,
+  });
+  Object.defineProperty(document, "execCommand", {
+    value: vi.fn(() => {
+      copied.push(document.querySelector("textarea")?.value ?? "");
+      return true;
+    }),
+    configurable: true,
+  });
+  return copied;
+}
+
+it("copies the status code followed by the message", async () => {
+  const copied = stubExecCommand();
+  mountError(500);
+  const button = copyButton();
+  expect(button?.getAttribute("aria-label")).toBe("dms.button.copy");
+
+  button?.click();
+  await vi.waitFor(() => expect(copied).toHaveLength(1));
+  expect(copied).toEqual([`500 ${TECHNICAL_MESSAGE}`]);
+});
+
+it.each([HTTP_NOT_FOUND, HTTP_FORBIDDEN])(
+  "offers no copy button on the %i card",
+  (statusCode) => {
+    mountError(statusCode);
+    expect(copyButton()).toBeNull();
+  },
+);
+
 it("still shows the message of an unexpected error", () => {
   expect(mountError(500)).toContain(TECHNICAL_MESSAGE);
 });

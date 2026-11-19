@@ -4,6 +4,10 @@ import {
   isString,
 } from "../../../../dms-core/app/utils/type-check";
 import { isPreviewTree, type PreviewNode } from "./blockPreview";
+import {
+  isPreviewHeader,
+  type PreviewHeaderAction,
+} from "./blockPreviewMessages";
 
 /**
  * The dev-only mockup API the viewer reads (`/api/mockup`): the compiled state
@@ -27,9 +31,40 @@ export interface MockupLivePage {
   ref: string;
 }
 
+/** A section of the sidebar: a category of the dashboard's menu, its pages under its header. */
+export interface MockupCategory {
+  id: string;
+  title: string;
+  icon?: string;
+}
+
+/** The route of a sub-page: its parameter, and the row it shows while no link names one. */
+export interface MockupPageRoute {
+  param: string;
+  sample?: string;
+}
+
 export interface MockupPageState {
   id: string;
   title: string;
+  /** The id of the section the page is listed under; none for the default one. */
+  category?: string;
+  /** The sidebar leaves the page out: a detail or form page another page opens. */
+  menu?: false;
+  /** The page is one sketch, its whole `tree`, drawn inside the real page header and sidebar. */
+  custom?: true;
+  /** The mockup drew the page, not the spec: a table's generated form page, which no spec page holds, so nothing on it is edited or commented. */
+  generated?: true;
+  /** The page it is a sub-page of. */
+  parent?: string;
+  /** Its route parameter, when it shows one row of its parent's rows. */
+  route?: MockupPageRoute;
+  /** The pages it links to, in the spec's order. */
+  links?: string[];
+  /** The page header's icon, description and buttons, as the spec page writes them. */
+  icon?: string;
+  description?: string;
+  headerActions?: PreviewHeaderAction[];
   options: MockupPageOptions;
   /** What `DmsBlockPreview` draws: fixtures resolved, sketch nodes passed through. */
   tree: PreviewNode[];
@@ -43,11 +78,31 @@ export interface MockupPageState {
   paths: Record<string, string>;
 }
 
+/** A sketch the sidebar draws among its widgets in every page of the mockup. */
+export interface MockupSidebarWidget {
+  id: string;
+  title?: string;
+  /** Checked markup: empty when the spec's was refused. */
+  html: string;
+  css?: string;
+  /** Frame height in CSS pixels. */
+  height: number;
+}
+
+/** What the mockup adds to the sidebar beside its pages. */
+export interface MockupSidebar {
+  widgets: MockupSidebarWidget[];
+}
+
 export interface MockupState {
   name: string;
   title?: string;
   /** Moves on every successful read of the spec file. */
   revision: number;
+  /** The sidebar's sections, in the menu's order; absent when the spec has none. */
+  categories?: MockupCategory[];
+  /** Absent when the spec adds nothing to the sidebar. */
+  sidebar?: MockupSidebar;
   pages: MockupPageState[];
   issues: MockupIssue[];
 }
@@ -64,24 +119,59 @@ export interface MockupBlockAnchor {
   page?: string;
 }
 
+/** What a note is on: a block, or the page `page` as a whole. */
+export type MockupNoteAnchor = MockupBlockAnchor | { page: string };
+
+/** Where a pin sits on its block or page: fractions of its box, from its top left corner. */
+export interface MockupPinOffset {
+  x: number;
+  y: number;
+}
+
+/**
+ * A reviewer's pin. `page` and `path` are where it is now: both on a block,
+ * `page` alone on a page, neither when its block or page was removed.
+ * `version` is the number of the history version it was pinned on, and
+ * `resolvedVersion` the one it was resolved on.
+ */
 export interface MockupAnnotation {
   id: string;
-  anchor?: MockupBlockAnchor;
-  /** The page the note's block is on now. Absent when the block was removed. */
+  anchor: MockupNoteAnchor;
+  offset: MockupPinOffset;
   page?: string;
-  /** Spec JSON pointer of the note's block now. Absent when the block was removed. */
+  /** Spec JSON pointer of the note's block now. */
   path?: string;
   text: string;
   status: MockupAnnotationStatus;
   createdAt: string;
   resolvedAt?: string;
+  version?: number;
+  resolvedVersion?: number;
+  /** The state of the sketch the note was pinned on; absent on its own `html` and on any other block. */
+  state?: string;
+}
+
+/**
+ * Where a pin is put: on the node at `path` of page `page`, or on the page
+ * itself without `path`, and the state of the sketch drawn there.
+ */
+export interface MockupPinPlace {
+  page: string;
+  path?: string;
+  offset: MockupPinOffset;
+  state?: string;
 }
 
 /** What `POST /api/mockup/:name/annotations` takes. */
-export interface MockupAnnotationDraft {
-  page: string;
-  path: string;
+export interface MockupAnnotationDraft extends MockupPinPlace {
   text: string;
+}
+
+/** What `PATCH /api/mockup/:name/annotations/:id` takes. */
+export interface MockupAnnotationPatch {
+  status?: MockupAnnotationStatus;
+  text?: string;
+  place?: MockupPinPlace;
 }
 
 /** Who wrote a mockup: the dashboard chat, Claude Code or Codex. */
@@ -133,15 +223,6 @@ export function isMockupDataMode(
   return MOCKUP_DATA_MODES.some((mode) => mode === value);
 }
 
-/** The editor's mode: leave notes for the AI, or edit the spec yourself. */
-export type MockupMode = "comment" | "edit";
-
-export const MOCKUP_MODES: readonly MockupMode[] = ["comment", "edit"];
-
-export function isMockupMode(value: string | undefined): value is MockupMode {
-  return MOCKUP_MODES.some((mode) => mode === value);
-}
-
 export const MOCKUP_WIDTH_OPTIONS: readonly MockupWidth[] = [
   "desktop",
   "mobile",
@@ -188,8 +269,46 @@ function isOptionalString(value: Parameters<typeof isString>[0]): boolean {
   return value === undefined || isString(value);
 }
 
+function isOptionalNumber(value: Parameters<typeof isNumber>[0]): boolean {
+  return value === undefined || isNumber(value);
+}
+
 function isIssue(value: Parameters<typeof isObject>[0]): value is MockupIssue {
   return isRecord(value) && isString(value.path) && isString(value.message);
+}
+
+/** Whether `value` is a section of the sidebar. */
+export function isMockupCategory(
+  value: Parameters<typeof isObject>[0],
+): value is MockupCategory {
+  return (
+    isRecord(value) &&
+    isString(value.id) &&
+    isString(value.title) &&
+    isOptionalString(value.icon)
+  );
+}
+
+function isPageRoute(
+  value: Parameters<typeof isObject>[0],
+): value is MockupPageRoute {
+  return (
+    isRecord(value) && isString(value.param) && isOptionalString(value.sample)
+  );
+}
+
+/** Whether a page's place among the others reads right: out of the menu, under a parent, on a route, linking to pages. */
+function hasPagePlace(value: Parameters<typeof isObject>[0]): boolean {
+  return (
+    isRecord(value) &&
+    (value.menu === undefined || value.menu === false) &&
+    (value.custom === undefined || value.custom === true) &&
+    (value.generated === undefined || value.generated === true) &&
+    isOptionalString(value.parent) &&
+    (value.route === undefined || isPageRoute(value.route)) &&
+    (value.links === undefined ||
+      (Array.isArray(value.links) && value.links.every(isString)))
+  );
 }
 
 function isPageState(
@@ -199,6 +318,14 @@ function isPageState(
     isRecord(value) &&
     isString(value.id) &&
     isString(value.title) &&
+    isOptionalString(value.category) &&
+    hasPagePlace(value) &&
+    isPreviewHeader({
+      title: value.title,
+      icon: value.icon,
+      description: value.description,
+      actions: value.headerActions,
+    }) &&
     isRecord(value.options) &&
     Array.isArray(value.tree) &&
     isPreviewTree(value.tree) &&
@@ -211,6 +338,29 @@ function isPageState(
   );
 }
 
+function isSidebarWidget(
+  value: Parameters<typeof isObject>[0],
+): value is MockupSidebarWidget {
+  return (
+    isRecord(value) &&
+    isString(value.id) &&
+    isOptionalString(value.title) &&
+    isString(value.html) &&
+    isOptionalString(value.css) &&
+    isNumber(value.height)
+  );
+}
+
+function isSidebar(
+  value: Parameters<typeof isObject>[0],
+): value is MockupSidebar {
+  return (
+    isRecord(value) &&
+    Array.isArray(value.widgets) &&
+    value.widgets.every(isSidebarWidget)
+  );
+}
+
 function isMockupState(
   value: Parameters<typeof isObject>[0],
 ): value is MockupState {
@@ -219,6 +369,10 @@ function isMockupState(
     isString(value.name) &&
     isOptionalString(value.title) &&
     isNumber(value.revision) &&
+    (value.categories === undefined ||
+      (Array.isArray(value.categories) &&
+        value.categories.every(isMockupCategory))) &&
+    (value.sidebar === undefined || isSidebar(value.sidebar)) &&
     Array.isArray(value.pages) &&
     value.pages.every(isPageState) &&
     Array.isArray(value.issues) &&
@@ -235,15 +389,25 @@ export function parseMockupState(
 
 function isAnchor(
   value: Parameters<typeof isObject>[0],
-): value is MockupBlockAnchor {
+): value is MockupNoteAnchor {
+  if (!isRecord(value)) return false;
+  if (value.block === undefined) return isString(value.page);
   return (
-    value === undefined ||
-    (isRecord(value) &&
-      isString(value.block) &&
-      Array.isArray(value.steps) &&
-      value.steps.every((step) => isString(step)) &&
-      isOptionalString(value.page))
+    isString(value.block) &&
+    Array.isArray(value.steps) &&
+    value.steps.every((step) => isString(step)) &&
+    isOptionalString(value.page)
   );
+}
+
+function isFraction(value: Parameters<typeof isNumber>[0]): boolean {
+  return isNumber(value) && value >= 0 && value <= 1;
+}
+
+function isOffset(
+  value: Parameters<typeof isObject>[0],
+): value is MockupPinOffset {
+  return isRecord(value) && isFraction(value.x) && isFraction(value.y);
 }
 
 function isAnnotation(
@@ -253,12 +417,16 @@ function isAnnotation(
     isRecord(value) &&
     isString(value.id) &&
     isAnchor(value.anchor) &&
+    isOffset(value.offset) &&
     isOptionalString(value.page) &&
     isOptionalString(value.path) &&
     isString(value.text) &&
     (value.status === "open" || value.status === "resolved") &&
     isString(value.createdAt) &&
-    isOptionalString(value.resolvedAt)
+    isOptionalString(value.resolvedAt) &&
+    isOptionalNumber(value.version) &&
+    isOptionalNumber(value.resolvedVersion) &&
+    isOptionalString(value.state)
   );
 }
 
@@ -374,54 +542,6 @@ export function layoutPathFor(
   pointer: string,
 ): string | undefined {
   return Object.entries(page.paths).find(([, at]) => at === pointer)?.[0];
-}
-
-const ROOT_LAYOUT_PREFIX = "block-";
-
-function nodeAt(
-  page: Pick<MockupPageState, "tree">,
-  layoutPath: string,
-): PreviewNode | undefined {
-  const [root, ...steps] = layoutPath.split(".");
-  if (!root?.startsWith(ROOT_LAYOUT_PREFIX)) return undefined;
-  let node: PreviewNode | undefined =
-    page.tree[Number(root.slice(ROOT_LAYOUT_PREFIX.length))];
-  for (const step of steps) {
-    node = node?.children?.find(
-      (child, index) => (child.id ?? String(index)) === step,
-    );
-  }
-  return node;
-}
-
-/**
- * The compiled node the preview calls `layoutPath`, as JSON text: root `i` is
- * `block-<i>`, then each child by its id or index. Undefined when the tree
- * has none. Two reads that differ mean the node at that place changed.
- */
-export function nodeTextAt(
-  page: Pick<MockupPageState, "tree">,
-  layoutPath: string,
-): string | undefined {
-  const node = nodeAt(page, layoutPath);
-  return node ? JSON.stringify(node) : undefined;
-}
-
-/**
- * The name of the block a note is about, as the preview resolves it: its
- * `type`, else its `componentName`. Undefined when the note has no location
- * or the pages draw no node there.
- */
-export function annotationBlockName(
-  pages: readonly MockupPageState[],
-  annotation: Pick<MockupAnnotation, "page" | "path">,
-): string | undefined {
-  const { page: pageId, path } = annotation;
-  const page = pages.find((entry) => entry.id === pageId);
-  const layoutPath =
-    page && path !== undefined ? layoutPathFor(page, path) : undefined;
-  const node = page && layoutPath ? nodeAt(page, layoutPath) : undefined;
-  return node?.type ?? node?.componentName;
 }
 
 /** `annotation` with the answer of a `PATCH` or `POST` merged into `list`, newest last. */

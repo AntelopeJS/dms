@@ -5,7 +5,7 @@ import { z } from "zod";
 import { posixRelative } from "./file-paths";
 import { isString } from "./scalar-guards";
 import { DEFAULT_COMPILER_OPTIONS, resolveProjectRoot } from "./project";
-import { isPlainObject } from "./value";
+import { isPlainObject } from "./plain-object";
 
 const INTERFACE_PACKAGE = /^@antelopejs\/interface-/;
 /** The interface packages the code the builder writes imports. */

@@ -27,7 +27,7 @@ import {
   stringOf,
 } from "./project-config";
 import { scaffoldLocalModule } from "./project-scaffold";
-import { isPlainObject } from "./value";
+import { isPlainObject } from "./plain-object";
 
 const DISABLED_EXPORTS = "disabledExports";
 

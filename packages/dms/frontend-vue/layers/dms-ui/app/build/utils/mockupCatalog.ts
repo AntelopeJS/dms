@@ -307,6 +307,7 @@ const CONTROLLER_STARTERS = new Map<
     {
       sample: SAMPLE_ROWS,
       options: (reference) => ({
+        caption: "Customers",
         fetchUrl: reference,
         rowIdKey: "id",
         columns: {

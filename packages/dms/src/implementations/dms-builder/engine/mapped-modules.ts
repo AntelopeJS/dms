@@ -10,7 +10,7 @@ import { resolveProjectRoot } from "./project";
 import { StepRefusal } from "./project-config";
 import { rowValueDigest, rowValuesOf } from "./row-literals";
 import { isString } from "./scalar-guards";
-import { isPlainObject } from "./value";
+import { isPlainObject } from "./plain-object";
 
 const MANIFEST = "package.json";
 

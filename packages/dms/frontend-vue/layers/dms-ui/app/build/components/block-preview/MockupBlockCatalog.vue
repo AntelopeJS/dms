@@ -7,7 +7,8 @@ import {
 
 /**
  * The registered blocks, by palette group, searchable. A block is dragged
- * onto the preview, or picked with a click or Enter.
+ * onto the preview, or picked with a click, Enter or Space: what a pick does
+ * is the parent's to say.
  */
 const props = defineProps<{
   blocks: readonly MockupBlockType[];

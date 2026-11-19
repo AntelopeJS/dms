@@ -105,6 +105,7 @@ const uiTableMenu = computed(() => uiTableMenuVariant());
         <UButton
           v-if="canGoBack"
           :icon="appConfig.ui.icons.arrowLeft"
+          :aria-label="t('button.back')"
           variant="ghost"
           color="neutral"
           size="xs"
@@ -129,6 +130,7 @@ const uiTableMenu = computed(() => uiTableMenuVariant());
       <Popover.Close as-child>
         <UButton
           :icon="appConfig.ui.icons.close"
+          :aria-label="t('dms.a11y.close')"
           variant="ghost"
           color="neutral"
           size="xs"

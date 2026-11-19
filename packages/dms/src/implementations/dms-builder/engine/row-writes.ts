@@ -1,4 +1,7 @@
-import type { RelationDescription } from "@antelopejs/interface-database-catalog";
+import type {
+  RelationDescription,
+  RelationSummary,
+} from "@antelopejs/interface-database-catalog";
 import type {
   MapResourcesInput,
   OpWarning,
@@ -12,7 +15,9 @@ interface RowWritesBatch {
 }
 
 /** Whether the catalog's account may insert, update or delete any row of the relation. */
-function writesRows({ writes }: RelationDescription): boolean {
+export function writesRows({
+  writes,
+}: Pick<RelationSummary, "writes">): boolean {
   return writes.insert || writes.update || writes.delete;
 }
 

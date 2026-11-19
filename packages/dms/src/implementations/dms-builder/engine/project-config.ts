@@ -18,7 +18,7 @@ import { configObject, propertyKey } from "./modules";
 import { indentationText, resolveProjectRoot } from "./project";
 import { keyText, literalText } from "./project-config-text";
 import type { Scaffold } from "./project-scaffold";
-import { isPlainObject } from "./value";
+import { isPlainObject } from "./plain-object";
 
 export const ENV_OVERRIDES = "envOverrides";
 export const MODULES = "modules";

@@ -33,8 +33,6 @@ function disabledBuilder(
  * engine answers; otherwise every operation rejects at once with
  * {@link BUILDER_DISABLED_MESSAGE}. The engine's imports are dynamic so a
  * production start never loads the engine or `ts-morph`.
- * In development it also serves the Branding editor, which a production start
- * never does, `builder.enabled` or not.
  *
  * @param dev Whether the runtime is in development mode.
  * @param env The configuration environment core launched with, which decides
@@ -54,5 +52,4 @@ export async function startBuilder(dev: boolean, env: string): Promise<void> {
     await import("@antelopejs/interface-dms-builder"),
     await import("./implementations/dms-builder"),
   );
-  if (dev) (await import("./branding")).registerBranding();
 }

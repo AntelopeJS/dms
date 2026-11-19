@@ -3,8 +3,10 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { expect } from "chai";
 import {
+  type AnnotationPatch,
   createAnnotation,
   listAnnotations,
+  type MockupAnnotation,
   type MockupEvent,
   type MockupName,
   mockupNameSchema,
@@ -16,6 +18,12 @@ import {
 const NAME = mockupNameSchema.parse("desk");
 const SAVE_TO_STATE_BUDGET_MS = 1000;
 const CONCURRENT_CREATES = 25;
+/** A note's place on the first block of the page `home`. */
+const ON_FIRST_BLOCK = {
+  page: "home",
+  path: "/pages/0/tree/0",
+  offset: { x: 0, y: 0 },
+};
 
 function spec(title: string): string {
   return JSON.stringify({
@@ -160,6 +168,16 @@ describe("[unit] mockup store", () => {
   });
 });
 
+/** Applies `patch` to the note `id` of `NAME`, and answers it as updated. */
+async function updated(
+  id: string,
+  patch: AnnotationPatch,
+): Promise<MockupAnnotation> {
+  const update = await updateAnnotation(NAME, id, patch, root);
+  if (update.kind !== "updated") throw new Error(`not updated: ${update.kind}`);
+  return update.annotation;
+}
+
 describe("[unit] mockup store names and annotations", () => {
   withMockupsDirectory();
 
@@ -237,25 +255,18 @@ describe("[unit] mockup store names and annotations", () => {
       Array.from({ length: CONCURRENT_CREATES }, (_, index) =>
         createAnnotation(
           NAME,
-          { page: "home", path: "/pages/0/tree/0", text: `note ${index}` },
+          { ...ON_FIRST_BLOCK, text: `note ${index}` },
           root,
         ),
       ),
     );
     const first = created[0];
     if (first.kind !== "created") throw new Error(`not created: ${first.kind}`);
-    const resolved = await updateAnnotation(
-      NAME,
-      first.annotation.id,
-      { status: "resolved" },
-      root,
-    );
-    const reopened = await updateAnnotation(
-      NAME,
-      first.annotation.id,
-      { status: "open", text: "again" },
-      root,
-    );
+    const resolved = await updated(first.annotation.id, { status: "resolved" });
+    const reopened = await updated(first.annotation.id, {
+      status: "open",
+      text: "again",
+    });
     const listed = (await listAnnotations(NAME, root)) ?? [];
     const createdIds = created.map((creation) =>
       creation.kind === "created" ? creation.annotation.id : creation.kind,
@@ -270,8 +281,8 @@ describe("[unit] mockup store names and annotations", () => {
         (_, index) => `note ${index + 1}`,
       ),
     ]);
-    expect(resolved?.status).to.equal("resolved");
-    expect(resolved?.resolvedAt).to.be.a("string");
+    expect(resolved.status).to.equal("resolved");
+    expect(resolved.resolvedAt).to.be.a("string");
     expect(reopened).to.not.have.property("resolvedAt");
     expect(listed[listedIds.indexOf(first.annotation.id)]).to.deep.equal(
       reopened,
@@ -285,7 +296,7 @@ describe("[unit] mockup store names and annotations", () => {
     expect(
       await createAnnotation(
         missing,
-        { page: "home", path: "", text: "x" },
+        { page: "home", path: "", text: "x", offset: { x: 0, y: 0 } },
         root,
       ),
     ).to.deep.equal({ kind: "no_mockup" });

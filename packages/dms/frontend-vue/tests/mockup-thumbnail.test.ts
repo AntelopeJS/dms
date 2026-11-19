@@ -155,3 +155,44 @@ it("leaves a placeholder and no frame when the mockup cannot be read or has no p
     empty.querySelector("[data-dms-mockup-thumbnail-placeholder]"),
   ).not.toBeNull();
 });
+
+/**
+ * Fails an implementation that draws a converted page on its fixtures, where
+ * every block that reads a live route shows "No data".
+ */
+it("draws a page converted from a live page on its live tree in the frame that allows live routes", async () => {
+  const realTree = [{ type: "KpiCard", options: { fetchUrl: "/api/kpi" } }];
+  authFetch.mockResolvedValue(
+    mockupState({
+      pages: [
+        mockupPage({
+          tree: [{ type: "KpiCard", options: { title: "Sample" } }],
+          realTree,
+          livePage: { ref: "/orders" },
+        }),
+      ],
+    }),
+  );
+  const root = await mountThumbnail();
+  await scrollIntoView();
+
+  const iframe = root.querySelector("iframe");
+  const frameWindow = iframe?.contentWindow;
+  if (!iframe || !frameWindow) throw new Error("no frame was drawn");
+  const posted: PreviewInboundMessage[] = [];
+  vi.spyOn(frameWindow, "postMessage").mockImplementation((message) => {
+    const parsed = parsePreviewMessage(structuredClone(message));
+    if (parsed) posted.push(parsed);
+  });
+  window.dispatchEvent(
+    new MessageEvent("message", {
+      data: { channel: PREVIEW_CHANNEL, type: "ready" },
+      source: frameWindow,
+    }),
+  );
+  await flush();
+
+  expect(iframe.getAttribute("src")).toBe("/dms-preview");
+  expect(posted).toHaveLength(1);
+  expect(posted[0]).toMatchObject({ type: "render", tree: realTree });
+});

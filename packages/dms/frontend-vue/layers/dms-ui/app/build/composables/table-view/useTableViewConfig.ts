@@ -8,7 +8,7 @@ import {
   KANBAN_DISPLAY_ID,
   GROUPED_DISPLAY_ID,
 } from "../../../composables/table-view/types";
-import type { FormContainerType } from "./types";
+import type { FormContainerType, FormDrawerDirection } from "./types";
 import { buildInitialColumnVisibility } from "./utils/columnVisibility";
 import type { TableViewFormPages } from "./utils/formTexts";
 
@@ -44,6 +44,8 @@ const withBuiltinDefaults = (
 export interface FormContainer {
   type: FormContainerType;
   size?: ModalSize;
+  /** The edge a `drawer` slides in from; `bottom` without one. */
+  direction?: FormDrawerDirection;
   /** Titles and descriptions of the add, edit and details forms. */
   pages?: TableViewFormPages;
 }

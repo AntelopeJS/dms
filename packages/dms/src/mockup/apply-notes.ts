@@ -8,7 +8,8 @@ export type WiringReason =
   | "locked"
   | "type"
   | "name"
-  | "placement";
+  | "placement"
+  | "header-actions";
 
 /** What each wiring reason asks of whoever builds the rest, as the tool describes it. */
 export const WIRING_REASONS: Readonly<Record<WiringReason, string>> = {
@@ -28,6 +29,8 @@ export const WIRING_REASONS: Readonly<Record<WiringReason, string>> = {
   name: "a new block whose id gives it the block name of another block at its place. Give the node an id of its own.",
   placement:
     "a slot or colSpan on a block at the page's top level, which the builder lays out in order only: the block was written without it.",
+  "header-actions":
+    "the page's headerActions, the buttons right of its title: the builder cannot write a page's layout. Declare them in the page's DefaultLayout({ headerActions }), each with the target its button needs.",
 };
 
 /**

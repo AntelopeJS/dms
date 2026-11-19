@@ -131,7 +131,7 @@ export const journeys = [
     entryPoint: `node ${BRIDGE_LAUNCHER}, tools/call builder_add_block`,
     async run(/** @type {Ctx} */ ctx) {
       await withBridge(ctx, async (session) => {
-        const [page] = itemsOf(parseJson(toolText(await session.call("builder_list_pages")).text));
+        const [page] = itemsOf(fieldOf(parseJson(toolText(await session.call("builder_list_pages")).text), "pages"));
         const pageRef = textOf(fieldOf(page, "ref"));
         const added = toolText(
           await session.call("builder_add_block", {

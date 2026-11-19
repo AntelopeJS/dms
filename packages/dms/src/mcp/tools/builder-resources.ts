@@ -1,5 +1,6 @@
 import {
   AddField,
+  ConfigureColumnGroups,
   ConfigureField,
   CreateResource,
   DeleteResource,
@@ -8,6 +9,7 @@ import {
   RemoveField,
 } from "@antelopejs/interface-dms-builder";
 import { z } from "zod";
+import { CELL_DISPLAYS } from "../../implementations/dms-builder/engine/cell-displays";
 import { JsonObjectSchema } from "../json";
 import { repeatConfirmation } from "../confirmation-gate";
 import { defineTool } from "../tool";
@@ -38,6 +40,60 @@ const DATA_TYPE_VALUE = z.object({
   ),
 });
 
+/** The ids of the cell displays the DMS draws, as the tool descriptions list them. */
+const CELL_DISPLAY_IDS = [...CELL_DISPLAYS.keys()].join(", ");
+
+/** A cell display of the TableView, `{ type, options }`, as the builder and a mockup spec take it. */
+export const CELL_DISPLAY = z
+  .object({
+    type: z
+      .string()
+      .describe(
+        `The id of one of the DMS's cell displays: ${CELL_DISPLAY_IDS}.`,
+      ),
+    options: JsonObjectSchema.optional().describe(
+      "The options of that display's DefaultDisplays class (identity: avatarField, subtitleField, badges…; two_line: primaryField, subField…; status_pill: tones, toneField…; progress: doneField and totalField). An option the class does not take is refused.",
+    ),
+  })
+  .describe(
+    "How table cells draw the value, written as `@Column({ display: new DefaultDisplays.<Class>(options) })`. The column keeps its dataType for its forms, filters and exports.",
+  );
+
+/** The `@Column` options that present a column, as builder_add_field and builder_map_resources take them. */
+export const COLUMN_PRESENTATION = {
+  description: z.string().optional().describe("The column's help text."),
+  group: z
+    .string()
+    .optional()
+    .describe(
+      "The id of the form group the field joins (`@Column({ group })`); declare its title with builder_configure_column_groups.",
+    ),
+  isVisible: z
+    .boolean()
+    .optional()
+    .describe(
+      "False hides the column until the person picks it. Default true.",
+    ),
+  size: z
+    .number()
+    .positive()
+    .optional()
+    .describe("Default width of the grid column, in px (150 when left out)."),
+  cellWrap: z
+    .boolean()
+    .optional()
+    .describe("Wrap the cell's content without a line limit."),
+};
+
+const PRESENTATION_PATCH = {
+  description: COLUMN_PRESENTATION.description.unwrap().nullable().optional(),
+  group: COLUMN_PRESENTATION.group.unwrap().nullable().optional(),
+  isVisible: COLUMN_PRESENTATION.isVisible.unwrap().nullable().optional(),
+  size: COLUMN_PRESENTATION.size.unwrap().nullable().optional(),
+  cellWrap: COLUMN_PRESENTATION.cellWrap.unwrap().nullable().optional(),
+  display: CELL_DISPLAY.nullable().optional(),
+};
+
 const FIELD_ASPECTS = {
   dataType: DATA_TYPE_VALUE,
   label: z
@@ -61,6 +117,8 @@ const FIELD_ASPECTS = {
     .number()
     .optional()
     .describe("Position among the resource's fields."),
+  ...COLUMN_PRESENTATION,
+  display: CELL_DISPLAY.optional(),
 };
 
 const FIELD_SPEC = z.object({
@@ -74,6 +132,7 @@ const FIELD_SPEC = z.object({
 
 const FIELD_ASPECTS_PATCH = z.object({
   ...FIELD_ASPECTS,
+  ...PRESENTATION_PATCH,
   dataType: DATA_TYPE_VALUE.optional(),
 });
 
@@ -117,7 +176,7 @@ const resourceStructure = defineTool({
   name: "builder_resource_structure",
   title: "Resource structure",
   description: withEscalationNote(
-    "Returns a resource's fields with their semantic aspects, its `routes` (absent when it serves the full set), and a version hash for optimistic concurrency. Hand-edited or relation fields come back marked `opaque` — safe mode cannot reconfigure those. In a module mapped from a connected database, a badge's select reads its items from a column (`itemsFrom: { column }`, `items: []`) and a price may read its currency from one (`currencyFrom: { column }`): the DMS reads those values from the rows when it serves the page. A select's `items` and a price's `currency` that a mapping wrote before that read `{ $hidden: n }`, n the values it read from rows: leave `dataType` out of a patch to keep them. The ones you wrote read as written.",
+    "Returns a resource's fields with their semantic aspects (a cell display reads `display: { type, options }`, beside `group`, `isVisible`, `size`, `cellWrap` and `description`), its `columnGroups` by id, its `routes` (absent when it serves the full set), and a version hash for optimistic concurrency. Hand-edited or relation fields come back marked `opaque` — safe mode cannot reconfigure those. In a module mapped from a connected database, a badge's select reads its items from a column (`itemsFrom: { column }`, `items: []`) and a price may read its currency from one (`currencyFrom: { column }`): the DMS reads those values from the rows when it serves the page. A select's `items` and a price's `currency` that a mapping wrote before that read `{ $hidden: n }`, n the values it read from rows: leave `dataType` out of a patch to keep them. The ones you wrote read as written.",
   ),
   effect: "read",
   input: z.object({ ref: z.string() }),
@@ -181,7 +240,7 @@ const addField = defineTool({
   name: "builder_add_field",
   title: "Add field",
   description: withEscalationNote(
-    "Adds a field to a resource, editing the Table and DataAPI classes together in one atomic op.",
+    "Adds a field to a resource, editing the Table and DataAPI classes together in one atomic op. Its `@Column` takes the presentation a mockup column declares: `display` (a cell display `{ type, options }`), `group`, `isVisible`, `size`, `cellWrap` and `description`. A display whose options its class does not take is refused with invalid_config.",
   ),
   effect: "builder",
   input: z.object({ ref: z.string(), field: FIELD_SPEC }),
@@ -195,7 +254,7 @@ const configureField = defineTool({
   name: "builder_configure_field",
   title: "Configure field",
   description: withEscalationNote(
-    "Reconfigures a field by merging the patch over its current aspects and re-deriving the whole decorator stack on both classes (no drift). Field name is immutable — rename via builder_remove_field + builder_add_field.",
+    "Reconfigures a field by merging the patch over its current aspects and re-deriving the whole decorator stack on both classes (no drift). Field name is immutable — rename via builder_remove_field + builder_add_field. The presentation options (`display`, `group`, `isVisible`, `size`, `cellWrap`, `description`) are replaced when sent and removed when sent as null; a display whose options its class does not take is refused with invalid_config.",
   ),
   effect: "builder",
   input: z.object({ path: FIELD_PATH, patch: FIELD_ASPECTS_PATCH }),
@@ -219,6 +278,38 @@ const removeField = defineTool({
     ),
 });
 
+const COLUMN_GROUP = z.object({
+  label: z.string().min(1).describe("The group's title in the forms."),
+  description: z.string().optional(),
+  orientation: z
+    .enum(["horizontal", "vertical"])
+    .optional()
+    .describe("How the group lays its fields out."),
+  order: z
+    .number()
+    .optional()
+    .describe("Where the group sorts among the others."),
+});
+
+const configureColumnGroups = defineTool({
+  name: "builder_configure_column_groups",
+  title: "Configure column groups",
+  description: withEscalationNote(
+    "Writes or removes the `@ColumnGroup(id, { label, description?, orientation?, order? })` decorators on a resource's DataAPI controller: the titles and layouts of the form groups its fields join with `group`. A group sent replaces the one of its id, `null` removes it, and groups left out stay. builder_resource_structure reads them back as `columnGroups`.",
+  ),
+  effect: "builder",
+  input: z.object({
+    resource: z
+      .string()
+      .describe("The resource's `ref`, from builder_list_resources."),
+    groups: z
+      .record(COLUMN_GROUP.nullable())
+      .describe("The groups to write by id; null removes that group."),
+  }),
+  run: async ({ resource, groups }) =>
+    opResult(await ConfigureColumnGroups(resource, groups)),
+});
+
 export const BUILDER_RESOURCE_TOOLS = [
   listResources,
   resourceStructure,
@@ -226,5 +317,6 @@ export const BUILDER_RESOURCE_TOOLS = [
   deleteResource,
   addField,
   configureField,
+  configureColumnGroups,
   removeField,
 ];

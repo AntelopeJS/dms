@@ -44,7 +44,7 @@ describe("sketch nodes", () => {
         )[0].sketch,
     );
     expect(heights.map((sketch) => sketch?.height)).toEqual([
-      80, 1200, 410, 320,
+      80, 3000, 410, 320,
     ]);
     expect(heights[0]?.caption).toHaveLength(200);
   });
@@ -103,8 +103,13 @@ describe("sketch tokens", () => {
 let app: App | undefined;
 let host: HTMLElement;
 
-function mountSketch(sketch: PreviewSketch): void {
-  app = createApp({ render: () => h(BlockPreviewSketch, { sketch }) });
+function mountSketch(
+  sketch: PreviewSketch,
+  routeParams?: Record<string, string>,
+): void {
+  app = createApp({
+    render: () => h(BlockPreviewSketch, { sketch, routeParams }),
+  });
   app.mount(host);
 }
 
@@ -154,6 +159,45 @@ describe("sketch frame", () => {
     expect(csp).toBeLessThan(srcdoc.indexOf("p{color:red}"));
     expect(csp).toBeLessThan(srcdoc.indexOf("<p>Body</p>"));
     expect(frame()?.style.height).toBe("200px");
+  });
+
+  it("lets a sketch linking to a page of the mockup navigate the dashboard on a click, and nothing more, its link drawn absolute on the row on screen (fails when the link stays relative to about:srcdoc or the sandbox grants more)", async () => {
+    mountSketch(
+      {
+        html: '<a href="/mockup?name=demo&amp;page=order-edit&amp;record={{params.id}}" target="_top">Edit</a>',
+        height: 120,
+      },
+      { id: 'o"2&x' },
+    );
+    await settle();
+    expect(frame()?.getAttribute("sandbox")).toBe(
+      "allow-top-navigation-by-user-activation",
+    );
+    const drawn = new DOMParser().parseFromString(
+      frame()?.getAttribute("srcdoc") ?? "",
+      "text/html",
+    );
+    const link = drawn.querySelector("a");
+    expect(link?.href).toBe(
+      `${window.location.origin}/mockup?name=demo&page=order-edit&record=o%222%26x`,
+    );
+    expect(link?.target).toBe("_top");
+    expect(drawn.querySelectorAll("a, script")).toHaveLength(1);
+  });
+
+  it("leaves a link's row empty when the page shows none, so the page draws its sample row", async () => {
+    mountSketch({
+      html: '<a href="/mockup?name=demo&amp;page=order&amp;record={{params.id}}" target="_top">Open</a>',
+      height: 120,
+    });
+    await settle();
+    const drawn = new DOMParser().parseFromString(
+      frame()?.getAttribute("srcdoc") ?? "",
+      "text/html",
+    );
+    expect(drawn.querySelector("a")?.getAttribute("href")).toBe(
+      `${window.location.origin}/mockup?name=demo&page=order&record=`,
+    );
   });
 
   it("is labelled Custom, with its caption, so it is not taken for a block", async () => {

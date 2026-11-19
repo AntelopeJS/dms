@@ -49,6 +49,7 @@ import {
 } from "./queries";
 import {
   AddField,
+  ConfigureColumnGroups,
   ConfigureField,
   ConfigureResource,
   CreateResource,
@@ -77,6 +78,7 @@ export const Operations = {
   ComposePage,
   ConfigureBlock,
   ConfigureCategory,
+  ConfigureColumnGroups,
   ConfigureField,
   ConfigureModule,
   ConfigurePage,

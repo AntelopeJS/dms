@@ -9,7 +9,7 @@ import { buildPageBlocks } from "./block-tree";
 import { importedConstants } from "./config-literal";
 import { buildQueryStructures } from "./query-structure";
 import type { PageRecord } from "./scan";
-import { findPageRecord } from "./source-index";
+import { findPageRecord, sectionOf } from "./source-index";
 
 export function contentVersion(text: string): string {
   return createHash("sha1").update(text).digest("hex").slice(0, 16);
@@ -39,6 +39,7 @@ function toPageMeta(page: PageRecord): PageMeta {
     hidden: page.hidden,
     permission: page.permission,
     live: page.live,
+    section: sectionOf(page.categoryRef)?.ref,
     filepath: page.filepath,
   };
 }

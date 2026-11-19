@@ -86,7 +86,11 @@ describe("[unit] mockup list order and comments", () => {
   });
 
   it("counts the open annotations of a mockup, never the resolved ones", async () => {
-    const draft = { page: "home", path: "/pages/0/tree/0" };
+    const draft = {
+      page: "home",
+      path: "/pages/0/tree/0",
+      offset: { x: 0, y: 0 },
+    };
     const first = await createAnnotation(NAME, { ...draft, text: "a" }, root);
     if (first.kind !== "created") throw new Error(`not created: ${first.kind}`);
     await createAnnotation(NAME, { ...draft, text: "b" }, root);

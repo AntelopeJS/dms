@@ -13672,6 +13672,23 @@
                     "drawer"
                   ]
                 },
+                "direction": {
+                  "type": "string",
+                  "enum": [
+                    "bottom",
+                    "right"
+                  ],
+                  "optional": true,
+                  "description": "The edge the drawer slides in from: bottom (the default) or right, a side sheet.",
+                  "ui": {
+                    "label": "Direction",
+                    "widget": "segmented",
+                    "valueLabels": {
+                      "bottom": "Bottom",
+                      "right": "Right"
+                    }
+                  }
+                },
                 "pages": {
                   "type": "object",
                   "properties": {

@@ -13,11 +13,11 @@ import {
 } from "../../helpers/mockup-routes";
 
 const ORDERS = [
-  { _id: "o1", customer: "Acme", total: 120 },
-  { _id: "o2", customer: "Brightline", total: 480 },
-  { _id: "o3", customer: "Corvid", total: 75 },
-  { _id: "o4", customer: "Delta Acme", total: 310 },
-  { _id: "o5", customer: "Evergreen", total: 220 },
+  { _id: "o1", customer: "Acme", total: 120, status: "paid" },
+  { _id: "o2", customer: "Brightline", total: 480, status: "pending" },
+  { _id: "o3", customer: "Corvid", total: 75, status: "paid" },
+  { _id: "o4", customer: "Delta Acme", total: 310, status: "refunded" },
+  { _id: "o5", customer: "Evergreen", total: 220, status: "pending" },
 ];
 
 const PEOPLE = [
@@ -68,6 +68,10 @@ const annotationSchema = z.object({
 });
 
 const placeSchema = z.object({ page: z.string(), path: z.string() });
+const OFFSET = { x: 0.5, y: 0.5 };
+const idsListSchema = z.object({
+  annotations: z.array(z.object({ id: z.string() })),
+});
 const placesSchema = z.object({ annotations: z.array(placeSchema) });
 
 const specSourceSchema = z.object({
@@ -113,6 +117,62 @@ describe("[unit] mockup routes: listing and fixtures", () => {
     expect(rowsSchema.parse(sorted.data).total).to.equal(5);
     expect(ids(searched)).to.deep.equal(["o1", "o4"]);
     expect(ids(all)).to.deep.equal(["o1", "o2", "o3", "o4", "o5"]);
+  });
+
+  it("filters an array fixture's rows by column as tabs, views and a kanban board send it, on the rows route and its list route (fails when the route ignores filter_<column>)", async () => {
+    const rows = `${BASE}/desk/pages/home/fixtures/orders/rows`;
+    const paid = await owner.get(`${rows}?filter_status=is:paid`);
+    const firstPaid = await owner.get(
+      `${rows}/list?filter_status=is:paid&limit=1`,
+    );
+    const open = await owner.get(
+      `${rows}?filter_status=include:pending,refunded`,
+    );
+    const large = await owner.get(
+      `${rows}?filter_total=greater_than:200&filter_status=is_not:refunded`,
+    );
+
+    expect(ids(paid)).to.deep.equal(["o1", "o3"]);
+    expect(ids(firstPaid)).to.deep.equal(["o1"]);
+    expect(rowsSchema.parse(firstPaid.data).total).to.equal(2);
+    expect(ids(open)).to.deep.equal(["o2", "o4", "o5"]);
+    expect(ids(large)).to.deep.equal(["o2", "o5"]);
+  });
+
+  it("answers the row of a fixture's rows whose id is ?id= on its record route, and 404 for an id no row has (fails when a sub-page with a route reads no row)", async () => {
+    const record = `${BASE}/desk/pages/home/fixtures/orders/record`;
+    const found = await owner.get(`${record}?id=o3`);
+    const missing = await owner.get(`${record}?id=o9`);
+    const unnamed = await owner.get(record);
+
+    expect(found.data).to.deep.equal(ORDERS[2]);
+    expect(missing.status).to.equal(404);
+    expect(unnamed.status).to.equal(404);
+  });
+
+  it("answers the row a table's details view reads where a data controller's get route stands, and 404 for an id no row has (fails when the details drawer reads no row)", async () => {
+    const get = `${BASE}/desk/pages/home/fixtures/orders/rows/get`;
+    const found = await owner.get(`${get}?id=o2&action=details`);
+    const missing = await owner.get(`${get}?id=o9&action=details`);
+
+    expect(found.data).to.deep.equal(ORDERS[1]);
+    expect(missing.status).to.equal(404);
+  });
+
+  it("answers an add form's row as sent and an edit form's row with its changes, and keeps neither (fails when a mockup form cannot save and stays open)", async () => {
+    const rows = `${BASE}/desk/pages/home/fixtures/orders/rows`;
+    const added = await owner.put(rows, { customer: "Fable", total: 5 });
+    const edited = await owner.put(`${rows}?id=o2`, { total: 999 });
+    const keyed = await owner.put(`${rows}?id=Corvid&key=customer`, {
+      status: "refunded",
+    });
+    const after = await owner.get(rows);
+
+    expect(added.data).to.deep.equal({ customer: "Fable", total: 5 });
+    expect(edited.data).to.deep.equal({ ...ORDERS[1], total: 999 });
+    expect(keyed.data).to.deep.equal({ ...ORDERS[2], status: "refunded" });
+    expect(ids(after)).to.deep.equal(["o1", "o2", "o3", "o4", "o5"]);
+    expect(after.data).to.have.nested.property("results[1].total", 480);
   });
 
   it("serves a fixture as JSON and refuses rows over one that is not an array", async () => {
@@ -163,7 +223,7 @@ describe("[unit] mockup routes: annotations", () => {
   });
 
   it("refuses an annotation on a page or node the spec does not have", async () => {
-    const note = { text: "Somewhere" };
+    const note = { text: "Somewhere", offset: OFFSET };
     const ghostPage = await owner.post(`${BASE}/desk/annotations`, {
       ...note,
       page: "ghost",
@@ -183,6 +243,7 @@ describe("[unit] mockup routes: annotations", () => {
       page: "home",
       path: "/pages/0/tree/0",
       text: "Move the KPI left",
+      offset: OFFSET,
     });
     const { id } = annotationSchema.parse(created.data);
     const resolved = await owner.patch(`${BASE}/desk/annotations/${id}`, {
@@ -220,6 +281,7 @@ describe("[unit] mockup routes: annotations", () => {
       page: "home",
       path: "/pages/0/tree/1",
       text: "About b",
+      offset: OFFSET,
     });
     const source = specSourceSchema.parse(
       (await owner.get(`${BASE}/shelf/spec`)).data,
@@ -235,6 +297,7 @@ describe("[unit] mockup routes: annotations", () => {
       page: "home",
       path: "/pages/0/tree/0",
       text: "Anywhere",
+      offset: OFFSET,
     });
 
     expect(posted.status).to.equal(200);
@@ -247,6 +310,64 @@ describe("[unit] mockup routes: annotations", () => {
       placesSchema.parse(listed.data).annotations.map(({ path }) => path),
     ).to.deep.equal(["/pages/0/tree/2"]);
     expect(refused.status).to.equal(409);
+  });
+});
+
+describe("[unit] mockup routes: moving and deleting pins", () => {
+  const served = serveMockupRoutes(SPEC);
+  let owner: AxiosInstance;
+
+  before(() => {
+    ({ owner } = served());
+  });
+
+  it("moves a pin with PATCH place, onto the page or back on a block, and refuses an offset out of the box (fails when PATCH ignores place)", async () => {
+    const created = await owner.post(`${BASE}/desk/annotations`, {
+      page: "home",
+      path: "/pages/0/tree/0",
+      text: "Pin me",
+      offset: OFFSET,
+    });
+    const { id } = annotationSchema.parse(created.data);
+    const onPage = await owner.patch(`${BASE}/desk/annotations/${id}`, {
+      place: { page: "home", offset: { x: 0.1, y: 0.9 } },
+    });
+    const outside = await owner.patch(`${BASE}/desk/annotations/${id}`, {
+      place: { page: "home", offset: { x: 1.5, y: 0 } },
+    });
+    const nowhere = await owner.patch(`${BASE}/desk/annotations/${id}`, {
+      place: { page: "home", path: "/pages/0/tree/4", offset: OFFSET },
+    });
+
+    expect(onPage.status).to.equal(200);
+    expect(onPage.data).to.include({ page: "home" });
+    expect(onPage.data).to.not.have.property("path");
+    expect(onPage.data).to.deep.include({
+      anchor: { page: "home" },
+      offset: { x: 0.1, y: 0.9 },
+    });
+    expect([outside.status, nowhere.status]).to.deep.equal([400, 404]);
+  });
+
+  it("deletes a pin with DELETE, then answers 404 for it (fails when the route only resolves it)", async () => {
+    const created = await owner.post(`${BASE}/desk/annotations`, {
+      page: "home",
+      text: "On the page",
+      offset: OFFSET,
+    });
+    const { id } = annotationSchema.parse(created.data);
+
+    const deleted = await owner.delete(`${BASE}/desk/annotations/${id}`);
+    const again = await owner.delete(`${BASE}/desk/annotations/${id}`);
+    const listed = idsListSchema.parse(
+      (await owner.get(`${BASE}/desk/annotations`)).data,
+    );
+
+    expect([created.status, deleted.status, again.status]).to.deep.equal([
+      200, 200, 404,
+    ]);
+    expect(deleted.data).to.deep.equal({ id });
+    expect(listed.annotations.map((note) => note.id)).to.not.include(id);
   });
 });
 
@@ -268,7 +389,10 @@ describe("[unit] mockup routes: events", () => {
   });
 
   it("streams the state on connect and ends the stream when the engine stops", async () => {
-    const { response, firstChunk } = await openEvents("desk", ownerToken);
+    const { response, firstChunk } = await openEvents(
+      "desk/events",
+      ownerToken,
+    );
     const ended = new Promise<void>((resolve) => {
       response.once("end", resolve);
     });
@@ -281,10 +405,37 @@ describe("[unit] mockup routes: events", () => {
     expect(engine.streams.size).to.equal(0);
   });
 
+  it("streams a created event for a mockup made after the stream opened, and none for the ones there (fails a stream that replays the list)", async () => {
+    const { request, response } = await openEvents(
+      "events/created",
+      ownerToken,
+    );
+    const frames: string[] = [];
+    response.on("data", (chunk: Buffer) => frames.push(chunk.toString("utf8")));
+    response.resume();
+    await mkdir(join(base, "mockups", "fresh"), { recursive: true });
+    await writeFile(
+      join(base, "mockups", "fresh", "spec.json"),
+      JSON.stringify({ version: 1, title: "Fresh", pages: [] }),
+    );
+
+    const seen = await waitFor(
+      () => frames.join("").includes("event: created"),
+      CREATED_BUDGET_MS,
+    );
+    request.destroy();
+
+    expect(seen).to.equal(true);
+    expect(frames.join("")).to.contain(
+      'event: created\ndata: {"name":"fresh","title":"Fresh"}',
+    );
+    expect(frames.join("")).to.not.contain('"name":"desk"');
+  });
+
   it("releases a stream and its watch once the client goes away", async () => {
     const clients = await Promise.all([
-      openEvents("desk", ownerToken),
-      openEvents("desk", ownerToken),
+      openEvents("desk/events", ownerToken),
+      openEvents("desk/events", ownerToken),
     ]);
     expect(engine.streams.size).to.equal(2);
 
@@ -303,11 +454,11 @@ interface OpenEvents {
   firstChunk: string;
 }
 
-/** Opens a mockup's event stream over HTTP as `token`'s user and reads its first frame. */
-function openEvents(name: string, token: string): Promise<OpenEvents> {
+/** Opens an event stream, `<mockup>/events` or `events/created`, over HTTP as `token`'s user and reads its first frame. */
+function openEvents(path: string, token: string): Promise<OpenEvents> {
   return new Promise((resolve, reject) => {
     const request = get(
-      `${getBaseUrl()}${BASE}/${name}/events`,
+      `${getBaseUrl()}${BASE}/${path}`,
       {
         headers: {
           "x-antelopejs-namespace": "default",
@@ -327,10 +478,14 @@ function openEvents(name: string, token: string): Promise<OpenEvents> {
 
 const RELEASE_POLL_MS = 20;
 const RELEASE_BUDGET_MS = 1000;
+const CREATED_BUDGET_MS = 3000;
 
-/** Whether `condition` holds within a second. */
-async function waitFor(condition: () => boolean): Promise<boolean> {
-  const deadline = Date.now() + RELEASE_BUDGET_MS;
+/** Whether `condition` holds within `budget` ms, a second by default. */
+async function waitFor(
+  condition: () => boolean,
+  budget = RELEASE_BUDGET_MS,
+): Promise<boolean> {
+  const deadline = Date.now() + budget;
   while (!condition() && Date.now() < deadline) {
     await new Promise((resolve) => setTimeout(resolve, RELEASE_POLL_MS));
   }

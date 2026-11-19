@@ -22,6 +22,11 @@ import { RESERVED_FIELD_NAMES } from "./reserved-names";
 import { MixedTypeDeclarations } from "./mixed-types";
 import { displayDataType, displayRefusal, suits } from "./column-display";
 import {
+  fieldPresentation,
+  type PlannedField,
+  splitDisplay,
+} from "./map-resources-presentation";
+import {
   currencyColumnsOf,
   currencyOfComment,
   priceCurrency,
@@ -64,6 +69,9 @@ export interface PlannedResource {
   tableView: boolean;
   routes?: ResourceRoute[];
   label?: string;
+  /** The title the call sends, which wins on a new page and on a remap. Absent, a remap keeps the page's title. */
+  title?: string;
+  /** The title a new page takes: the one sent, else the relation's name, humanized. */
   displayName: string;
   /** The page's own options and the table options the mapping sets. */
   page: PlannedPage;
@@ -290,7 +298,7 @@ interface ControllerChoice {
  */
 function displayOf(
   defaults: DisplayDefaults | undefined,
-  field: MappedField,
+  field: PlannedField,
   declared: string,
 ): ColumnDisplay | undefined {
   if (field.display !== undefined) {
@@ -337,7 +345,7 @@ function isReadOnly(
  */
 function usableDisplay(
   plan: FieldPlan,
-  field: MappedField,
+  field: PlannedField,
   declared: string,
   display: ColumnDisplay | undefined,
 ): ColumnDisplay | undefined {
@@ -387,7 +395,7 @@ function displayedDataType(
 /** The controller's field for a column, or why the TableView leaves it out. */
 function controllerField(
   plan: FieldPlan,
-  field: MappedField,
+  field: PlannedField,
   declared: string,
 ): ControllerChoice {
   const { resource, description, targets } = plan;
@@ -468,7 +476,7 @@ interface PlannedFields {
 /** Whether the rules had no profile to read a text column left without a display by. */
 function isUnproposed(
   plan: FieldPlan,
-  field: MappedField,
+  field: PlannedField,
   declared: string,
 ): boolean {
   return (
@@ -485,10 +493,11 @@ export function plannedFields(plan: FieldPlan): PlannedFields {
   const apiFields: FieldSpec[] = [];
   const displays = new Map<string, ColumnDisplay>();
   let unproposed = false;
-  for (const { field, onController } of chosenFields(
+  for (const { field: sent, onController } of chosenFields(
     plan.resource,
     plan.description,
   )) {
+    const { field, cell } = splitDisplay(sent);
     const column = columnOf(plan.description, field.column);
     const declared = field.relation
       ? "string"
@@ -504,7 +513,15 @@ export function plannedFields(plan: FieldPlan): PlannedFields {
     unproposed ||=
       choice.spec !== undefined && isUnproposed(plan, field, declared);
     if (choice.spec) {
-      apiFields.push(choice.spec);
+      apiFields.push({
+        ...choice.spec,
+        ...fieldPresentation(
+          plan.defaults,
+          `${relationName(plan.description)}.${sent.column}`,
+          sent,
+          cell,
+        ),
+      });
       if (choice.display) {
         displays.set(choice.spec.name, choice.display);
       }
