@@ -2,12 +2,14 @@ name: ci
 
 on:
   pull_request:
-    types: [opened, synchronize, reopened, ready_for_review]
+    types: [opened, synchronize, reopened, ready_for_review, labeled, unlabeled]
+  merge_group:
   push:
-    branches: [next]
+    branches: [main]
   schedule:
     - cron: "17 2 * * *"
   workflow_dispatch:
+
 permissions:
   contents: read
 
@@ -41,8 +43,11 @@ jobs:
         pnpm --dir packages/dms check:frontend-declarations
       renovate-sync: false
       test-job: true
+      single-job: false
     permissions:
       contents: read
+    secrets:
+      NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
 
   # ci-node.yml exposes no outputs, so this copies its tier rule for the jobs
   # declared here and narrows them to the packages the change touches.
