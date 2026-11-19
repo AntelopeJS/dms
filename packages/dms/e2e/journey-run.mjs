@@ -78,8 +78,8 @@ async function prepare(state, feature, journey, context) {
  * @param {import("./run-state.mjs").RunState} state The run
  * @param {string} feature The feature it belongs to
  * @param {Journey} journey The journey
- * @param {import("./verify/skill.mjs").Skill} skill The skill the journey belongs to
- * @param {import("playwright-core").Browser} [browser] The browser to open its contexts in, such as Playwright Test's
+ * @param {import("./verify/skill.mjs").Skill | undefined} skill The skill the journey belongs to
+ * @param {Pick<import("playwright-core").Browser, "newContext" | "close">} [browser] The browser to open its contexts in, such as Playwright Test's
  * @returns {Promise<FeatureResult>} The result
  */
 export function runJourney(state, feature, journey, skill, browser) {
@@ -113,8 +113,8 @@ export function runJourney(state, feature, journey, skill, browser) {
  * @param {import("./run-state.mjs").RunState} state The run
  * @param {string} feature The feature it belongs to
  * @param {JourneyPreparation} journey What it asks of the run
- * @param {import("./verify/skill.mjs").Skill} skill The skill it belongs to
- * @param {import("playwright-core").Browser} browser The browser to open its contexts in
+ * @param {import("./verify/skill.mjs").Skill | undefined} skill The skill it belongs to
+ * @param {Pick<import("playwright-core").Browser, "newContext">} browser The browser to open its contexts in
  * @returns {Promise<JourneyContext>} Its context, ended when the preparation failed
  */
 export async function openJourney(state, feature, journey, skill, browser) {

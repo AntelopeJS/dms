@@ -106,8 +106,8 @@ export class JourneyContext {
    * @param {import("./run-state.mjs").RunState} state The run
    * @param {string} feature The feature the journey belongs to
    * @param {string} journey The journey id
-   * @param {import("playwright-core").Browser} browser The Playwright browser
-   * @param {import("./verify/skill.mjs").Skill} skill The skill the journey belongs to
+   * @param {Pick<import("playwright-core").Browser, "newContext">} browser The Playwright browser
+   * @param {import("./verify/skill.mjs").Skill | undefined} skill The skill the journey belongs to, none for a browserless run
    */
   constructor(state, feature, journey, browser, skill) {
     this.state = state;
@@ -310,6 +310,11 @@ export class JourneyContext {
    * @returns {Promise<string>} The base commit
    */
   async withBaseBackend(action) {
+    if (!this.skill) {
+      throw new Error(
+        "ctx.withBaseBackend() needs a verify skill, and a browserless runJourney has none",
+      );
+    }
     const sha = await withBaseBackend(this.state, this.skill, action);
     writeJson(join(this.step("base version"), "base.json"), {
       baseRef: this.state.baseRef,
