@@ -1,6 +1,6 @@
 # The e2e kit
 
-`@antelopejs/dms/e2e` runs the journeys of a repository's verify skill as a Playwright suite. Each journey runs through the same runner as `dms-control journey`, in Playwright's browser. The global setup of a config prepares the skill, starts one `dms-control up` run for the whole invocation, and stops it after the last test.
+`@antelopejs/dms/e2e` is a Playwright setup for a DMS repository. The global setup of its config prepares the playground and starts one run for the whole invocation: a copy of the playground on free ports, its own MongoDB, a mail sink and the built dashboard. It stops the run after the last test. A spec is ordinary Playwright: it imports `test` and `expect` from the kit, and its fixtures give it a fresh database, an administrator and the run's dashboard as `baseURL`. `registerJourneys()` turns the journeys of the repository's verify skill into tests on the same fixtures. Nothing in the kit runs `dms-control`.
 
 ## Configure a suite
 
@@ -23,9 +23,34 @@ await registerJourneys();
 `e2eConfig` takes two options:
 
 - `skill`: the verify skill folder, relative to the repository root. A repository with one `.agents/skills/verify-*` folder leaves it out. A repository with several names the one its suite runs, such as `e2eConfig({ skill: ".agents/skills/verify-dms-assistant" })`.
-- `frontend: "dev"`: the run serves the dashboard with `ajs dms dev` (`up --dev-frontend`), and the suite runs only the journeys that set `frontend: "dev"`. A suite without it serves a build and leaves those journeys out. Its test output and report folders end in `-dev`.
+- `frontend: "dev"`: the run serves the dashboard with `ajs dms dev`, and the suite runs only the journeys that set `frontend: "dev"`. A suite without it serves a build and leaves those journeys out. Its test output and report folders end in `-dev`.
 
 `registerJourneys()` reads both from the config that loaded it.
+
+The tests of a suite run one at a time against its run. `--shard=i/N` splits a suite across machines, each with a run of its own.
+
+## Write a spec
+
+`e2e/members.spec.ts`:
+
+```ts
+import { expect, test } from "@antelopejs/dms/e2e";
+
+test("the administrator opens the members page", async ({ adminPage }) => {
+  await adminPage.goto("/settings/workspace/members");
+  await expect(adminPage.getByRole("heading", { name: "Members", exact: true })).toBeVisible();
+});
+```
+
+The fixtures:
+
+- `run`: the run of the global setup, shared by a worker: its `webUrl`, `apiUrl`, `accounts` and `evidence` folder.
+- `baseURL`: the run's dashboard, so `page.goto("/settings")` opens it.
+- `dms`: the test's journey context. Before the test, it prepares the run as a journey's run does: a fresh database with a backend of its own, and an onboarded administrator. The test drives the run through it: `dms.tab(account)`, `dms.api(label, request)`, `dms.mail(accept)`, `dms.email(name)`, `dms.unique(prefix)` and `dms.verify(label, checks)`. After the test, it closes the tabs, judges the `verify` steps, and replays them into the report. A failing step attaches its screenshot and ARIA snapshot, and a failed test attaches the backend's log. The evidence goes to `<run>/evidence/<feature>/<test>/`. A test whose preparation fails does not run.
+- `adminPage`: a tab of `dms` that the administrator signed in on.
+- `dmsOptions`: how `dms` prepares the test, with the fields of a journey: `test.use({ dmsOptions: { database: "shared", onboard: false, backend: "dev", standby: false, knownFailures: { … } } })`.
+
+Playwright's own `page` opens the run's dashboard on the database the previous test left. A test that needs a fresh database uses `dms` or `adminPage`.
 
 ## Journey fields for the suite
 
@@ -33,6 +58,14 @@ await registerJourneys();
 - `knownFailures`: the name of each check that fails today, mapped to the finding that makes it fail. A listed check that fails does not fail the journey. A listed check that passes does.
 - `last: true`: runs the journey after all others, for a journey that changes the run's playground for later backends.
 - `frontend: "dev"`: the journey needs the development dashboard, for UI that only `import.meta.env.DEV` renders. `dms-control journey` refuses it on a run started without `--dev-frontend`.
+- `database`, `onboard`, `backend` and `standby`: how the run is prepared for the journey, as `dmsOptions` does for a spec.
+
+## Environment
+
+- `DMS_E2E_PREBUILT=1`: the global setup skips the skill's prepare commands (install and build), for a checkout an earlier run prepared.
+- `DMS_E2E_RUN=<run folder>`: the tests drive that run, such as one `dms-control up` started, and the suite stops nothing. A run whose dashboard is not served the way the suite asks is refused.
+- `DMS_CONTROL_RUNS`: the folder the run folders go to.
+- `DMS_CONTROL_NO_STANDBY=1`: each fresh database's backend starts when the test needs it, rather than one ahead.
 
 ## Port recipe
 
@@ -42,4 +75,4 @@ await registerJourneys();
 4. Give each journey that needs the development dashboard `frontend: "dev"`, and add `e2e/playwright.dev.config.ts` with `e2eConfig({ frontend: "dev" })` (and the same `skill`). Run it with `playwright test -c e2e/playwright.dev.config.ts`.
 5. A journey that fails today because of a product finding gets `knownFailures`, never a skip. A journey that changes the run's playground for later backends gets `last: true`.
 6. Tag `@smoke` on about 5 fast journeys, the `smoke` journey first, none that needs `backend: "watch"`, `withBaseBackend`, `standby: false` or `frontend: "dev"`.
-7. Copy the `e2e` and `e2e-report` jobs of AntelopeJS/dms's `ci.yml` and the `e2e` line of its `ubuntu` gate: nothing on a draft or the fast tier, `--grep @smoke` on the full tier, `--shard=i/N --reporter=blob` on the nightly tier, with N chosen so that one shard stays under about 30 minutes. A dev config runs in the same job, after the build config.
+7. Copy the `e2e` and `e2e-report` jobs of AntelopeJS/dms's `ci.yml` and the `e2e` line of its `ubuntu` gate. Nothing runs on a draft or the none tier. A pull request runs `--grep @smoke`. The merge queue, a manual run, a pull request labelled `ci:full` and the nightly schedule run the whole suite with `--shard=i/N --reporter=blob`, with N chosen so that one shard stays under about 30 minutes, and `e2e-report` merges the shards' blob reports. A dev config runs in the same job, after the build config.
