@@ -211,7 +211,10 @@ class ResourceScanner {
       routes,
       databaseFile: databaseFilePath,
       dataApiFile: cls.getSourceFile().getFilePath(),
-      indexFile: path.join(path.dirname(databaseFilePath), "index.ts"),
+      indexFile: path.posix.join(
+        path.posix.dirname(databaseFilePath),
+        "index.ts",
+      ),
       apiClass: cls,
       tableClass,
     });

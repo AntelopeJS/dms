@@ -115,11 +115,16 @@ export function resolveRootBarrel(
   return undefined;
 }
 
+/**
+ * The declarations that import or re-export `targetPath`. ts-morph reports every
+ * path with `/`, so a path built with `path.join` (`\` on Windows) is read in that form.
+ */
 export function findImporters(
   project: Project,
   targetPath: string,
 ): Array<ImportDeclaration | ExportDeclaration> {
   const importers: Array<ImportDeclaration | ExportDeclaration> = [];
+  const wanted = targetPath.replaceAll("\\", "/");
   for (const sourceFile of project.getSourceFiles()) {
     if (sourceFile.isInNodeModules()) {
       continue;
@@ -129,7 +134,7 @@ export function findImporters(
       ...sourceFile.getExportDeclarations(),
     ];
     for (const decl of declarations) {
-      if (decl.getModuleSpecifierSourceFile()?.getFilePath() === targetPath) {
+      if (decl.getModuleSpecifierSourceFile()?.getFilePath() === wanted) {
         importers.push(decl);
       }
     }
