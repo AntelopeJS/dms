@@ -61,7 +61,11 @@ function notice(host: HTMLElement): string | undefined {
     ?.textContent?.trim();
 }
 
-it("says the table is on hold while a drawer has one of its rows open, and stops once the drawer closes (fails when only a side panel counts as a row open)", async () => {
+async function openRowIn(
+  target:
+    | { type: "drawer"; direction: "right" }
+    | { type: "modal"; size: "xl" },
+): Promise<HTMLElement> {
   const { app, container } = await mountTableView({
     liveHold: { whileOnScreen: false, whileRowOpen: true },
     rowClick: "single",
@@ -70,11 +74,7 @@ it("says the table is on hold while a drawer has one of its rows open, and stops
         {
           label: "Order",
           isDefault: true,
-          target: {
-            type: "drawer",
-            direction: "right",
-            component: { componentName: "OrderPanel" },
-          },
+          target: { ...target, component: { componentName: "OrderPanel" } },
         },
       ],
     },
@@ -88,9 +88,19 @@ it("says the table is on hold while a drawer has one of its rows open, and stops
   cell.dispatchEvent(new MouseEvent("click", { bubbles: true, detail: 1 }));
   await vi.waitFor(() => expect(openDrawers).toHaveLength(1));
   await settleTable();
+  return container;
+}
+
+it("says the table is on hold while a drawer has one of its rows open, and stops once the drawer closes (fails when only a side panel counts as a row open)", async () => {
+  const container = await openRowIn({ type: "drawer", direction: "right" });
   expect(notice(container)).toBe(ROW_OPEN_NOTICE);
 
   openDrawers[0]!();
   await settleTable();
+  expect(notice(container)).toBeUndefined();
+});
+
+it("does not hold for a row open in a modal (fails when every container opened on a row counts as a row open)", async () => {
+  const container = await openRowIn({ type: "modal", size: "xl" });
   expect(notice(container)).toBeUndefined();
 });
