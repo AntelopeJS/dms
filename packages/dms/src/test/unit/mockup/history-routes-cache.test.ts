@@ -1,4 +1,4 @@
-import { readFile, writeFile } from "node:fs/promises";
+import { readFile, utimes, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import type { AxiosInstance } from "axios";
 import { expect } from "chai";
@@ -27,28 +27,22 @@ function specOf(label: string) {
   };
 }
 
-/** How many times `run` compiled a spec. */
-async function compilesDuring(run: () => Promise<void>): Promise<number> {
-  const compile = await import("../../../mockup/compile");
-  const compileSpec = compile.compileSpec;
-  let count = 0;
-  Reflect.set(
-    compile,
-    "compileSpec",
-    (...args: Parameters<typeof compileSpec>) => {
-      count++;
-      return compileSpec(...args);
-    },
-  );
-  try {
-    await run();
-  } finally {
-    Reflect.set(compile, "compileSpec", compileSpec);
-  }
-  return count;
+/**
+ * Replaces the label `from` with `to` in the version file in place, keeping
+ * its inode, and sets its mtime to `seconds`.
+ */
+async function relabel(
+  file: string,
+  from: string,
+  to: string,
+  seconds: number,
+) {
+  const text = await readFile(file, "utf8");
+  await writeFile(file, text.replaceAll(`"${from}"`, `"${to}"`));
+  await utimes(file, seconds, seconds);
 }
 
-describe("[unit] mockup history routes: a version compiles once", () => {
+describe("[unit] mockup history routes: a version is compiled once while its file stays the same", () => {
   const served = serveMockupRoutes(JSON.stringify(specOf("first")));
   let owner: AxiosInstance;
   let versionFile: string;
@@ -70,34 +64,31 @@ describe("[unit] mockup history routes: a version compiles once", () => {
     return answers.map(({ data }: { data: unknown }) => data);
   }
 
-  it("compiles a version once for its answer and every fixture its blocks read", async () => {
-    const compiles = await compilesDuring(async () => {
-      expect((await owner.get(`${HISTORY}/1`)).status).to.equal(200);
-      await readAll();
-      await readAll();
-    });
+  it("answers every fixture read from the version it compiled while the file keeps its inode, mtime and size", async () => {
+    const pinned = 1_700_000_000;
+    await utimes(versionFile, pinned, pinned);
+    expect((await owner.get(`${HISTORY}/1`)).status).to.equal(200);
+    await relabel(versionFile, "first", "fresh", pinned);
 
-    expect(compiles).to.equal(1);
+    const answers = [...(await readAll()), ...(await readAll())];
+
+    expect(JSON.stringify(answers)).to.include('"first"');
+    expect(JSON.stringify(answers)).not.to.include('"fresh"');
   });
 
   it("compiles a version again once its file changed, and answers the new fixtures", async () => {
-    const stored: unknown = JSON.parse(await readFile(versionFile, "utf8"));
-    await writeFile(
+    await relabel(
       versionFile,
-      JSON.stringify({
-        ...Object(stored),
-        spec: specOf("second, with a longer label"),
-      }),
+      "fresh",
+      "second, with a longer label",
+      Date.now() / 1000,
     );
 
-    const compiles = await compilesDuring(async () => {
-      const [fixture] = await readAll();
-      expect(fixture).to.deep.equal([
-        { _id: "metric0-1", label: "second, with a longer label" },
-      ]);
-    });
+    const [fixture] = await readAll();
 
-    expect(compiles).to.equal(1);
+    expect(fixture).to.deep.equal([
+      { _id: "metric0-1", label: "second, with a longer label" },
+    ]);
   });
 
   it("answers 404 for a version of a deleted mockup it had compiled", async () => {
