@@ -12,7 +12,7 @@ import { e2eConfig } from "@antelopejs/dms/e2e";
 export default e2eConfig();
 ```
 
-`e2e/journeys.spec.ts`:
+`e2e/zz-journeys.spec.ts`:
 
 ```ts
 import { registerJourneys } from "@antelopejs/dms/e2e";
@@ -27,7 +27,7 @@ await registerJourneys();
 
 `registerJourneys()` reads both from the config that loaded it.
 
-The tests of a suite run one at a time against its run. `--shard=i/N` splits a suite across machines, each with a run of its own.
+The tests of a suite run one at a time against its run, the files in alphabetical order. Name the journeys file so that it sorts after the specs (`zz-journeys.spec.ts`): a journey marked `last` changes the playground for the backends that follow, and a spec that sorts after it cannot start its backend. `--shard=i/N` splits a suite across machines, each with a run of its own.
 
 ## Write a spec
 

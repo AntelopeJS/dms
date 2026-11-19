@@ -99,7 +99,6 @@ async function search(/** @type {Tab} */ tab, /** @type {string} */ text) {
 export const journeys = [
   {
     id: "table-create-record",
-    tag: "@smoke",
     title: "New entry creates a user that the table lists, and it survives a reload and a backend restart",
     entryPoint: "/table-view/table-view-users > New entry",
     async run(/** @type {Ctx} */ ctx) {
@@ -214,6 +213,7 @@ export const journeys = [
     title: "table buttons whose confirm.from reads a mockup fixture an agent wrote draw no input posting to an owner-only route: the component is left out of a dialog that still shows its texts and plain field, a dialog with a secret field does not open, and the owner's clicks send nothing there",
     entryPoint: "MCP tools mockup_write_spec, builder_create_resource, builder_add_block, then the page's toolbar buttons",
     backend: "dev",
+    last: true,
     async run(/** @type {Ctx} */ ctx) {
       const suffix = randomBytes(3).toString("hex");
       const labels = { component: `Review export ${suffix}`, field: `Renew token ${suffix}` };
