@@ -24,6 +24,7 @@ const DMS_TESTS = [
   "e2e/pid-reuse",
   "e2e/processes",
   "e2e/renderer",
+  "e2e/run-exports",
   "e2e/run-ports",
   "e2e/run-state",
   "e2e/services",

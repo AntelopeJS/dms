@@ -74,16 +74,16 @@ function checkoutWithPlayground(root) {
   return { checkout, playground, modules };
 }
 
-await test("--renderer takes a built dms-frontend checkout as an absolute folder", (t) => {
+await test("the journeys config renderer takes a built dms-frontend checkout as an absolute folder", (t) => {
   const folder = builtRenderer(join(scratch(t), "dms-frontend"));
   assert.equal(resolveRenderer(folder), folder);
 });
 
-await test("--renderer refuses a folder without a package.json", (t) => {
+await test("the journeys config renderer refuses a folder without a package.json", (t) => {
   assert.throws(() => resolveRenderer(scratch(t)), /has no package\.json/);
 });
 
-await test("--renderer refuses a package that is not dms-frontend", (t) => {
+await test("the journeys config renderer refuses a package that is not dms-frontend", (t) => {
   const folder = writePackage(join(scratch(t), "other"), "@antelopejs/dms");
   assert.throws(
     () => resolveRenderer(folder),
@@ -91,7 +91,7 @@ await test("--renderer refuses a package that is not dms-frontend", (t) => {
   );
 });
 
-await test("--renderer refuses a checkout that is not built", (t) => {
+await test("the journeys config renderer refuses a checkout that is not built", (t) => {
   const folder = writePackage(
     join(scratch(t), "dms-frontend"),
     "@antelopejs/dms-frontend",

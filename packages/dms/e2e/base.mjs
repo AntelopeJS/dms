@@ -67,7 +67,7 @@ export function baseCheckout(state, config) {
 export async function withBaseBackend(state, config, action) {
   if (state.renderer) {
     throw new Error(
-      "A run with --renderer has no base backend: the journeys config's prepare builds the renderer's repository, not the playground's.",
+      "A run with a journeys config renderer has no base backend: the journeys config's prepare builds the renderer's repository, not the playground's.",
     );
   }
   const base = baseCheckout(state, config);
