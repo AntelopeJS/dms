@@ -7,6 +7,7 @@
  * @typedef {{ _id: string, name: string, permissions?: string[] }} RoleRow
  * @typedef {{ _id: string, name: string, email: string }} UserRow
  * @typedef {{ _id: string, inviteCount?: number, memberCount?: number }} RoleOverviewRow
+ * @typedef {{ _id: string, isArchived?: boolean }} TaskRow
  * @typedef {{ id: string, state?: string }} StoreModule
  * @typedef {{ icon?: string, linkTo?: string, isRead?: boolean }} NotificationRow
  */
@@ -122,6 +123,14 @@ export function isRoleRow(value) {
  */
 export function isUserRow(value) {
   return hasId(value) && isRecord(value) && isString(own(value, "name")) && isString(own(value, "email"));
+}
+
+/**
+ * @param {unknown} value
+ * @returns {value is TaskRow}
+ */
+export function isTaskRow(value) {
+  return hasId(value) && optionally(value, "isArchived", isBoolean);
 }
 
 /**

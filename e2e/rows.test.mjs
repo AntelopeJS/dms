@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { booleanIn, isInviteRow, isMemberRow, isNotificationRow, isRoleOverviewRow, isRoleRow, isStoreModule, isUserRow, listIn, listOf, numberIn, rowsOf, requiredStringIn, stringIn, stringsIn } from "./rows.mjs";
+import { booleanIn, isInviteRow, isMemberRow, isNotificationRow, isRoleOverviewRow, isRoleRow, isStoreModule, isTaskRow, isUserRow, listIn, listOf, numberIn, rowsOf, requiredStringIn, stringIn, stringsIn } from "./rows.mjs";
 
 const MEMBER = { _id: "default:u1", email: "a@example.com", name: "Ada", isTenantOwner: true, roleIds: [{ _id: "r1" }] };
 const INVITE = { _id: "i1", email: "b@example.com", asTenantOwner: false, roles_ids: [{ _id: "r1" }] };
@@ -15,6 +15,8 @@ await test("each row guard accepts the shape the data API lists and the fields a
   assert.equal(isRoleRow(ROLE), true);
   assert.equal(isRoleRow({ _id: "r", name: "n" }), true);
   assert.equal(isUserRow(USER), true);
+  assert.equal(isTaskRow({ _id: "4", isArchived: true }), true);
+  assert.equal(isTaskRow({ _id: "4" }), true);
   assert.equal(isRoleOverviewRow({ _id: "r1", inviteCount: 1, memberCount: 0 }), true);
   assert.equal(isRoleOverviewRow({ _id: "r1" }), true);
   assert.equal(isStoreModule({ id: "api", state: "available" }), true);
@@ -35,6 +37,8 @@ await test("each row guard refuses a value that is not that row", () => {
   assert.equal(isRoleRow({ ...ROLE, permissions: "a.b" }), false);
   assert.equal(isRoleRow({ ...ROLE, permissions: [1] }), false);
   assert.equal(isUserRow({ _id: "u1", name: "Ada" }), false);
+  assert.equal(isTaskRow({ _id: "4", isArchived: "yes" }), false);
+  assert.equal(isTaskRow({ isArchived: true }), false);
   assert.equal(isRoleOverviewRow({ _id: "r1", inviteCount: "1" }), false);
   assert.equal(isStoreModule({ id: "api", state: 3 }), false);
 });
