@@ -14,7 +14,8 @@ import {
   resolveProjectRoot,
 } from "./project";
 
-const CONFIG_FILES = ["antelope.config.ts", "antelope.config.mts"];
+/** The names of the project configuration file, at the project root. */
+export const CONFIG_FILES = ["antelope.config.ts", "antelope.config.mts"];
 const MODULE_ENTRY = path.join("src", "index.ts");
 const LOCAL_SOURCE = "local";
 

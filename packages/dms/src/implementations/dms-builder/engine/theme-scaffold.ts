@@ -20,8 +20,7 @@ import {
 } from "./theme-layer";
 import { declareLayer } from "./theme-registration";
 import {
-  getWritableProject,
-  refreshFromDisk,
+  openWritableProject,
   resolveRootBarrel,
   Transaction,
 } from "./writable";
@@ -141,8 +140,7 @@ function declareAndWrite(
   batch: FileBatch,
 ): OpResult<ThemeLayer> {
   const root = resolveProjectRoot();
-  const project = getWritableProject();
-  refreshFromDisk(project);
+  const project = openWritableProject();
   const barrel = resolveRootBarrel(project);
   if (!barrel) {
     return unsupported(
