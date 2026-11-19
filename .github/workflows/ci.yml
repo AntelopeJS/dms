@@ -326,9 +326,7 @@ jobs:
   # prepares the playground and starts one run of the @antelopejs/dms/e2e kit.
   # A pull request runs the @smoke tests. The merge queue runs the whole suite
   # in five shards; a manual run, a pull request labelled ci:full and the
-  # nightly schedule in three. A shard is a contiguous run of the suite cut by
-  # the seconds in e2e/test-weights.json, and records this run's seconds.
-  # e2e-report merges the shards into one report.
+  # nightly schedule in three. e2e-report merges the shards into one report.
   # The shard list carries the choice: ["smoke"], or the shard numbers.
   e2e:
     needs: select
