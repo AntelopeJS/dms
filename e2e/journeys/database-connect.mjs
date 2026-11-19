@@ -10,8 +10,11 @@ import { RESTART_TIMEOUT_MS, POLL_MS, backendLog, connectSteps, operation, seedO
  * @typedef {import("@antelopejs/dms/e2e").Ctx} Ctx
  */
 
-/** A database connected through the Builder, as its *Connect a database* form does. */
-export const journeys = [
+/** A database connected through the Builder, as its *Connect a database* form does. They open no tab, so `e2e/integration/journeys.test.mjs` runs them. */
+export const journeys = [];
+
+/** The command-line journeys of the feature. */
+export const commandLineJourneys = [
   {
     id: "database-connect-restarts-under-watch",
     title: "under ajs project dev -w, the connect batch restarts the project with its tables module installed, and the connection answers",

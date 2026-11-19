@@ -73,8 +73,8 @@ function writtenSince(before, root) {
 /** An image, video, trace or document extension, or the word screenshot, in a tool answer. */
 const IMAGE_MENTION = /\.(?:png|jpe?g|webp|gif|pdf|webm|mp4|zip|har)\b|screenshot/i;
 
-/** The MCP server the DMS serves in development, reached through its stdio bridge. */
-export const journeys = [
+/** The command-line journeys of the feature, which `e2e/integration/journeys.test.mjs` runs. */
+export const commandLineJourneys = [
   {
     id: "page-verify-reports-a-page",
     title: "page_verify opens a page in a headless Chromium as the owner and reports its blocks, data and form validation without a screenshot, and fails a route no page serves",
@@ -104,6 +104,10 @@ export const journeys = [
       });
     },
   },
+];
+
+/** The MCP server the DMS serves in development, reached through its stdio bridge. */
+export const journeys = [
   {
     id: "page-verify-member-against-mockup",
     title: "page_verify opens a page as a member holding only one role and draws the mockup comparison through the owner's session, which the member is refused",
