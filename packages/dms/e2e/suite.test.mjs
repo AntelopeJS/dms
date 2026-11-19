@@ -120,7 +120,7 @@ await test('a suite option e2eConfig does not take is refused (catches a typo su
   }
 });
 
-await test("a build suite leaves out the journeys that need the development dashboard and a dev suite runs only those, each keeping last ones last (catches a suite that runs a dev journey on a built dashboard)", () => {
+await test("a build suite leaves out the journeys that need the development dashboard and a dev suite runs only those, each with the smoke feature first and last ones last (catches a suite that runs a dev journey on a built dashboard, or the smoke feature in its alphabetical place)", () => {
   const features = [
     {
       name: "a",
@@ -137,18 +137,33 @@ await test("a build suite leaves out the journeys that need the development dash
         journey("b-1"),
       ],
     },
+    {
+      name: "smoke",
+      journeys: [
+        journey("smoke"),
+        journey("smoke-last", { last: true }),
+        journey("smoke-dev", { frontend: "dev" }),
+      ],
+    },
   ];
   const ids = (/** @type {"build" | "dev"} */ frontend) =>
-    suiteJourneys(features, frontend).map(
+    suiteJourneys(features, frontend, "smoke").map(
       (entry) => `${entry.feature}/${entry.journey.id}`,
     );
-  assert.deepEqual(ids("build"), ["a/a-2", "b/b-1", "a/a-1"]);
-  assert.deepEqual(ids("dev"), ["a/a-dev", "b/b-dev"]);
+  assert.deepEqual(ids("build"), [
+    "smoke/smoke",
+    "a/a-2",
+    "b/b-1",
+    "smoke/smoke-last",
+    "a/a-1",
+  ]);
+  assert.deepEqual(ids("dev"), ["smoke/smoke-dev", "a/a-dev", "b/b-dev"]);
   assert.throws(
     () =>
       suiteJourneys(
         [...features, { name: "c", journeys: [journey("b-1")] }],
         "build",
+        "smoke",
       ),
     /b-1/,
   );

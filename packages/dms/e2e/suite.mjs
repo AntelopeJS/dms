@@ -99,16 +99,18 @@ export function startOptions(suite, prepared) {
 }
 
 /**
- * The journeys a suite runs, in the order of its features and with those
- * marked `last` after all others: a `frontend: "dev"` suite runs the
- * journeys that ask for the development dashboard, any other the rest.
+ * The journeys a suite runs: those of the `smoke` feature first, then the
+ * others in the order of their features, and those marked `last` after all
+ * others. A `frontend: "dev"` suite runs the journeys that ask for the
+ * development dashboard, any other the rest.
  *
  * @param {{ name: string, journeys: Journey[] }[]} features The features and their journeys
  * @param {Suite["frontend"]} frontend How the suite's run serves its dashboard
+ * @param {string} smoke The feature whose journeys run first, the verify config's `smoke`
  * @returns {{ feature: string, journey: Journey }[]} The journeys, each with its feature
  * @throws When two journeys share an id
  */
-export function suiteJourneys(features, frontend) {
+export function suiteJourneys(features, frontend, smoke) {
   const ids = features.flatMap((feature) =>
     feature.journeys.map((journey) => journey.id),
   );
@@ -116,7 +118,10 @@ export function suiteJourneys(features, frontend) {
   if (repeated.length > 0) {
     throw new Error(`Journey ids registered twice: ${repeated.join(", ")}`);
   }
-  const entries = features
+  const entries = [
+    ...features.filter((feature) => feature.name === smoke),
+    ...features.filter((feature) => feature.name !== smoke),
+  ]
     .flatMap((feature) =>
       feature.journeys.map((journey) => ({ feature: feature.name, journey })),
     )

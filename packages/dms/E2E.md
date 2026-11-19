@@ -27,7 +27,7 @@ await registerJourneys();
 
 `registerJourneys()` reads both from the config that loaded it.
 
-The tests of a suite run one at a time against its run, the files in alphabetical order. Name the journeys file so that it sorts after the specs (`zz-journeys.spec.ts`): a journey marked `last` changes the playground for the backends that follow, and a spec that sorts after it cannot start its backend. `--shard=i/N` splits a suite across machines, each with a run of its own.
+The tests of a suite run one at a time against its run, the files in alphabetical order. `registerJourneys()` registers the journeys of the verify config's `smoke` feature first, then the other features in alphabetical order, then every journey marked `last`, so `--grep @smoke` runs the `smoke` journey before the other journeys. Name the journeys file so that it sorts after the specs (`zz-journeys.spec.ts`): a journey marked `last` changes the playground for the backends that follow, and a spec that sorts after it cannot start its backend. `--shard=i/N` splits a suite across machines, each with a run of its own.
 
 ## Write a spec
 

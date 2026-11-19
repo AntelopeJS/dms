@@ -62,9 +62,10 @@ export function e2eConfig(options = {}) {
 
 /**
  * Registers the journeys of the suite its config declared: those of the
- * config's verify skill that its `frontend` serves, in the order of the
- * skill's feature files and with those marked `last` after all others. One
- * test per journey, named by its id under its feature's name, with the
+ * config's verify skill that its `frontend` serves, the skill's `smoke`
+ * feature first, then the other feature files in order, and those marked
+ * `last` after all others. One test per journey, named by its id under its
+ * feature's name, with the
  * journey's `tag` and its title and entry point as annotations. Each test
  * drives its journey through the `dms` fixture, prepared with the
  * journey's `database`, `onboard`, `backend` and `standby` and judged
@@ -82,7 +83,8 @@ export async function registerJourneys() {
       journeys: await loadJourneys(journeysFile(skill, feature.name)),
     })),
   );
-  for (const { feature, journey } of suiteJourneys(features, suite.frontend)) {
+  const journeys = suiteJourneys(features, suite.frontend, skill.config.smoke);
+  for (const { feature, journey } of journeys) {
     const annotation = [
       { type: "title", description: journey.title },
       { type: "entry point", description: journey.entryPoint },
