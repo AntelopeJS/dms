@@ -37,6 +37,7 @@ What each role can see and do, and who holds it. Settings > Workspace > Roles is
 - `role-delete-unused`: the dialog says nobody holds the role; Cancel keeps it; Delete removes it from the list and the API after a reload.
 - `role-editor-grants-only-held`: a member whose role grants Roles edit opens their own role and sees "Export reports" disabled; their `PUT` adding it answers 403 and the stored role is unchanged; their `PUT` adding `*` and their `GET /dms/modules-listing` both answer 403; the platform owner sees the same toggle enabled and saves the tick ("Role saved").
 - `role-delete-in-use-moves-members`: the dialog counts the holders and offers "Move them to"; after deleting, the member holds the chosen role and is refused the page the deleted role granted.
+- Spec `e2e/settings-roles-unsaved-changes.spec.ts`: ticking a permission in the role editor and following another link asks "Discard unsaved changes?". Keep editing stays on the page with the permission still ticked; Discard changes leaves, and after a reload the editor shows 0 permissions and `/api/tables/roles/list` holds `permissions: []`. It fails when the editor stops treating a ticked permission as unsaved, so the page is left without asking.
 
 ## How to get to it (user POV)
 

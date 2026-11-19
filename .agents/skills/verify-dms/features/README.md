@@ -22,3 +22,5 @@ One file per feature. `covers:` lists the source globs it owns, `docs:` the page
 | [tenancy](tenancy.md) | Which workspace a request is bound to, who may enter it, and the tenant access gate. The playground runs one workspace, `default`, and demonstrates the gate on `/tenancy`. | suspended-workspace-gate, tenant-routes-refuse-visitors |
 
 The smoke journey (onboard → login → invite a member → reload) runs on every verdict.
+
+A flow that needs no `dms-control` journey can be a Playwright spec, `e2e/<feature>-<flow>.spec.ts`, run with `pnpm e2e <file>`. Its feature file describes it under Sub-features as `Spec e2e/<file>`; `dms-control map` reads journeys only and does not list specs.
