@@ -42,12 +42,7 @@ import { requestIssues } from "./request-targets";
 import { stageQuery } from "./query-ops-emit";
 import { stringLiteralValue } from "./literals";
 import { isPlainObject } from "./plain-object";
-import {
-  findPageClass,
-  getWritableProject,
-  openWritableProject,
-  Transaction,
-} from "./writable";
+import { findPageClass, openWritableProject, Transaction } from "./writable";
 
 const DEFAULT_ROUTE_KEY = "fetchUrl";
 
@@ -314,9 +309,8 @@ function openTarget(
   input: ComposePageInput,
   opts: MutationOpts | undefined,
 ): Target | OpResult<never> {
-  const project = getWritableProject();
-  const transaction = new Transaction(project);
   if (input.create) {
+    const transaction = new Transaction(openWritableProject());
     const staged = stagePage(input.create, transaction);
     if ("ok" in staged) {
       return staged.ok
@@ -351,6 +345,7 @@ function openTarget(
   if (!cls) {
     return { ok: false, error: { code: "not_found", ref: page } };
   }
+  const transaction = new Transaction(context.sourceFile.getProject());
   transaction.track(context.sourceFile);
   return { page, sourceFile: context.sourceFile, cls, transaction };
 }
@@ -489,6 +484,5 @@ export async function composePage(
   if (issues.length > 0) {
     return invalid(issues);
   }
-  openWritableProject();
   return write(input, opts);
 }

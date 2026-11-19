@@ -24,15 +24,21 @@ const OP_TIMEOUT = 60_000;
 let app: Fixture;
 let banners = 0;
 
-function nodeModules(...segments: string[]): string {
-  return path.join(app.root, "node_modules", ...segments);
+function nodeModules(root: string, ...segments: string[]): string {
+  return path.join(root, "node_modules", ...segments);
 }
 
 /** A version of the `fixture-labels` package under its own folder, whose `label` accepts one value. */
-function writeLabelsVersion(version: string, accepted: string): void {
-  fs.mkdirSync(nodeModules("fixture-labels", version), { recursive: true });
+function writeLabelsVersion(
+  root: string,
+  version: string,
+  accepted: string,
+): void {
+  fs.mkdirSync(nodeModules(root, "fixture-labels", version), {
+    recursive: true,
+  });
   fs.writeFileSync(
-    nodeModules("fixture-labels", version, "index.d.ts"),
+    nodeModules(root, "fixture-labels", version, "index.d.ts"),
     `export declare function label(value: "${accepted}"): string;\n`,
   );
 }
@@ -41,15 +47,18 @@ function writeLabelsVersion(version: string, accepted: string): void {
  * Point `fixture-labels` at one version, as an upgrade relinks a package, and record the
  * install as pnpm does. The old version's files stay on disk.
  */
-function installLabels(version: string): void {
+function installLabels(root: string, version: string): void {
   fs.writeFileSync(
-    nodeModules("fixture-labels", "package.json"),
+    nodeModules(root, "fixture-labels", "package.json"),
     JSON.stringify({
       name: "fixture-labels",
       types: `${version}/index.d.ts`,
     }),
   );
-  fs.writeFileSync(nodeModules(".modules.yaml"), `layoutVersion: ${version}\n`);
+  fs.writeFileSync(
+    nodeModules(root, ".modules.yaml"),
+    `layoutVersion: ${version}\n`,
+  );
 }
 
 /** A `tsconfig.json` as this suite writes it. */
@@ -101,8 +110,8 @@ describe("[unit] the install state or the tsconfig changed between two builder o
   before(async function () {
     this.timeout(120_000);
     app = createFixture();
-    writeLabelsVersion("v1", "draft");
-    installLabels("v1");
+    writeLabelsVersion(app.root, "v1", "draft");
+    installLabels(app.root, "v1");
     app.write(
       "labels.ts",
       `import { label } from "fixture-labels";\n\nexport const status = label("draft");\n`,
@@ -129,9 +138,9 @@ describe("[unit] the install state or the tsconfig changed between two builder o
     const writable = getWritableProject();
     const indexed = indexedProject().project;
 
-    installLabels("v1");
+    installLabels(app.root, "v1");
     const later = Date.now() / 1000 + 10;
-    fs.utimesSync(nodeModules(".modules.yaml"), later, later);
+    fs.utimesSync(nodeModules(app.root, ".modules.yaml"), later, later);
     expectOk(await addBanner(), "AddBlock after a no-op install");
 
     expect(getWritableProject()).to.equal(writable);
@@ -144,8 +153,8 @@ describe("[unit] the install state or the tsconfig changed between two builder o
     const writable = getWritableProject();
     const indexed = indexedProject().project;
 
-    writeLabelsVersion("v2", "published");
-    installLabels("v2");
+    writeLabelsVersion(app.root, "v2", "published");
+    installLabels(app.root, "v2");
     expect(getWritableProject()).to.equal(writable);
     const result = await addBanner();
 
@@ -158,7 +167,7 @@ describe("[unit] the install state or the tsconfig changed between two builder o
 
   it("resolves a `paths` alias added to the tsconfig in the next operation", async function () {
     this.timeout(OP_TIMEOUT);
-    installLabels("v1");
+    installLabels(app.root, "v1");
     app.write(
       "aliased.ts",
       `import { status } from "@labels";\n\nexport const shown = status;\n`,
@@ -191,6 +200,34 @@ describe("[unit] the install state or the tsconfig changed between two builder o
 
     expect(failedFiles(await addBanner())).to.deep.equal([
       path.join(app.root, "src", "aliased.ts"),
+    ]);
+  });
+
+  it("reads the install state of a module added to the project configuration by hand", async function () {
+    this.timeout(OP_TIMEOUT);
+    writeConfig("tsconfig.base.json", {
+      compilerOptions: { paths: { "@labels": ["./src/labels.ts"] } },
+    });
+    expectOk(await addBanner(), "AddBlock before the module");
+    const extra = path.join(app.root, "modules", "extra");
+    writeLabelsVersion(extra, "v1", "draft");
+    installLabels(extra, "v1");
+    fs.mkdirSync(path.join(extra, "src"), { recursive: true });
+    fs.writeFileSync(
+      path.join(extra, "src", "index.ts"),
+      `import { label } from "fixture-labels";\n\nexport const extra = label("draft");\n`,
+    );
+    fs.writeFileSync(
+      path.join(app.root, "antelope.config.ts"),
+      `export default {\n  name: "fixture",\n  modules: {\n    app: { source: { type: "local", path: "." } },\n    extra: { source: { type: "local", path: "modules/extra" } },\n  },\n};\n`,
+    );
+    expectOk(await addBanner(), "AddBlock with the module added");
+
+    writeLabelsVersion(extra, "v2", "published");
+    installLabels(extra, "v2");
+
+    expect(failedFiles(await addBanner())).to.deep.equal([
+      path.join(extra, "src", "index.ts"),
     ]);
   });
 });

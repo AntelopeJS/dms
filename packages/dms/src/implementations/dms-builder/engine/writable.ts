@@ -38,10 +38,8 @@ let writable: { project: Project; inputs: ResolutionInputs } | undefined;
  */
 export function getWritableProject(): Project {
   if (!writable) {
-    writable = {
-      project: createModulesProject(),
-      inputs: readResolutionInputs(),
-    };
+    const inputs = readResolutionInputs();
+    writable = { project: createModulesProject(), inputs };
   }
   return writable.project;
 }
