@@ -32,13 +32,18 @@ const FIXTURE_ROOT = path.join(
 /**
  * Resolved the way the playground resolves: the DMS interfaces publish their
  * subpaths through `exports` alone, which `moduleResolution: "node"` never reads.
+ * It loads no ambient types and the playground's `lib` alone: the engine parses
+ * every declaration again on each operation, and `@types/node` and the DOM lib
+ * made up most of that parse. A suite whose app reads a Node global, such as
+ * the frontend module a theme layer registers, sets `types: ["node"]`.
  */
 export const TSCONFIG = {
   compilerOptions: {
     target: "ES2022",
+    lib: ["ES2022"],
     module: "preserve",
     moduleResolution: "bundler",
-    types: ["node"],
+    types: [],
     experimentalDecorators: true,
     emitDecoratorMetadata: true,
     strict: true,
@@ -60,8 +65,8 @@ export interface FixtureOptions {
   fromSnapshot?: boolean;
   /** Each external connection's access on a `dms-database` entry; no such entry when absent. */
   connectionAccess?: ConnectionAccessConfig;
-  /** Compiler options the app's `tsconfig.json` sets over the default ones, such as `noUnusedLocals`. */
-  compilerOptions?: Record<string, boolean>;
+  /** Compiler options the app's `tsconfig.json` sets over the default ones, such as `noUnusedLocals` or `types`. */
+  compilerOptions?: Record<string, boolean | string[]>;
 }
 
 /** What dms-database lets the DMS do on each external connection, by connection id. */

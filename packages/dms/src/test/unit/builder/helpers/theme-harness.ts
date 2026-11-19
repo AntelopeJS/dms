@@ -42,12 +42,13 @@ let root = "";
 /**
  * Point the engine at an empty app, as `createFixture` does, and — unless
  * told not to — give it the layer the theme is configured to live in, with
- * an entry and `appConfig` as its app config.
+ * an entry and `appConfig` as its app config. The app loads `@types/node`:
+ * the frontend module a layer registers reads `node:path` and `__dirname`.
  */
 export function createThemeFixture(
   options: { withLayer?: boolean; appConfig?: string } = {},
 ): Fixture {
-  const app = createFixture();
+  const app = createFixture({ compilerOptions: { types: ["node"] } });
   root = app.root;
   writeProjectManifest({ main: "dist/index.js" });
   if (options.withLayer !== false) {
