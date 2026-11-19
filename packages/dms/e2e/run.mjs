@@ -3,6 +3,9 @@ import { down } from "./stack.mjs";
 import { startOptions, startStack } from "./start.mjs";
 
 export { apiRequest, onboard } from "./session.mjs";
+export { freshDatabase, restartBackend } from "./backend.mjs";
+export { capturedMail } from "./mail.mjs";
+export { loadRun, saveRun } from "./run-state.mjs";
 
 /**
  * @typedef {import("./run-state.mjs").RunState} RunState A running DMS: its `apiUrl`, `webUrl`, `accounts`, `secrets` and `evidence` folder
