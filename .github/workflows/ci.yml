@@ -237,7 +237,6 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: AntelopeJS/${{ matrix.repository }}
-          ref: next
           path: dependents/${{ matrix.repository }}
           persist-credentials: false
       - uses: ./.github/actions/setup
