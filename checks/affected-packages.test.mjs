@@ -2,7 +2,10 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
   affectedPackages,
+  loadFormalChecks,
   PACKAGES,
+  planRun,
+  selectFormal,
   selectPackages,
 } from "./affected-packages.mjs";
 
@@ -202,4 +205,192 @@ await test("a documentation file next to a code change does not narrow the selec
 
 await test("an empty diff selects no package (catches an empty diff selecting everything)", () => {
   assert.deepEqual(affectedPackages([]), []);
+});
+
+const CHECKS = await loadFormalChecks();
+const BUILDER_SUITE_CHECKS = [
+  "formal-theme-logo-orphans",
+  "formal-builder-option-echo",
+];
+
+/**
+ * @param {string} tier
+ * @param {string[] | undefined} diff The changed files, or undefined for no base.
+ * @returns {{ formal: string[], formalGenerated: string[] }}
+ */
+const formalFor = (tier, diff) =>
+  selectFormal(
+    { tier, base: diff === undefined ? undefined : "abc" },
+    CHECKS,
+    () => diff ?? failOnDiff(),
+  );
+
+await test("a diff touching one covered path selects only the check that covers it (catches a diff that selects every check)", () => {
+  assert.deepEqual(formalFor("fast", ["packages/dms/src/realtime/broker.ts"]), {
+    formal: ["formal-realtime-tabs"],
+    formalGenerated: [],
+  });
+});
+
+await test("a shared property runner selects the two checks whose files name it (catches matching only covers)", () => {
+  assert.deepEqual(
+    formalFor("fast", [".agents/formal/run-properties.cts"]).formal,
+    ["formal-route-patterns", "formal-option-patch-prune"],
+  );
+});
+
+await test("a path two generated checks cover selects both (catches a path that stops at the first check)", () => {
+  assert.deepEqual(
+    formalFor("fast", ["packages/dms/src/mcp/tools/builder-pages.ts"]),
+    {
+      formal: [],
+      formalGenerated: [
+        "formal-ai-answers-no-row-values",
+        "formal-block-writes-judge-request-targets",
+      ],
+    },
+  );
+});
+
+await test("a glob of a check's own files selects that check (catches exact-path matching only)", () => {
+  assert.deepEqual(
+    formalFor("fast", [".agents/skills/formal-invite-creation/check.mjs"]),
+    { formal: ["formal-invite-creation"], formalGenerated: [] },
+  );
+});
+
+await test("no base selects every CI check and reads no diff (catches a diff against an empty base)", () => {
+  for (const tier of ["queue", "nightly", "full"]) {
+    const { formal, formalGenerated } = formalFor(tier, undefined);
+    assert.equal(formal.length + formalGenerated.length, 9);
+  }
+});
+
+await test("a base narrows the formal checks on the full tier too (catches narrowing on the fast tier only)", () => {
+  assert.deepEqual(
+    formalFor("full", ["packages/dms/src/realtime/broker.ts"]).formal,
+    ["formal-realtime-tabs"],
+  );
+});
+
+await test("the checks split 7 and 2 and the builder suite's two never appear (catches a check run twice)", () => {
+  const { formal, formalGenerated } = formalFor("queue", undefined);
+  assert.equal(formal.length, 7);
+  assert.equal(formalGenerated.length, 2);
+  for (const name of BUILDER_SUITE_CHECKS) {
+    assert.equal(
+      formal.includes(name) || formalGenerated.includes(name),
+      false,
+    );
+  }
+});
+
+await test("a diff to a builder-suite check's own files runs no formal job (catches the builder suite's checks left to formal)", () => {
+  assert.deepEqual(
+    formalFor("fast", [
+      "packages/dms/src/implementations/dms-builder/engine/theme.ts",
+      "packages/dms/src/test/unit/builder/builder-option-echo.formal.test.ts",
+    ]),
+    { formal: [], formalGenerated: [] },
+  );
+});
+
+await test("a documentation-only diff runs no formal check (catches docs treated as shared tooling)", () => {
+  assert.deepEqual(
+    formalFor("fast", ["README.md", "packages/dms/docs/01.intro.md"]),
+    { formal: [], formalGenerated: [] },
+  );
+});
+
+await test("the draft and none tiers run no formal check even without a base (catches a draft run that runs the models)", () => {
+  for (const tier of ["draft", "none"]) {
+    assert.deepEqual(formalFor(tier, undefined), {
+      formal: [],
+      formalGenerated: [],
+    });
+  }
+});
+
+/**
+ * @param {string} tier
+ * @param {string[] | undefined} diff
+ * @returns {ReturnType<typeof planRun>}
+ */
+const planFor = (tier, diff) =>
+  planRun(
+    { tier, base: diff === undefined ? undefined : "abc" },
+    CHECKS,
+    () => diff ?? failOnDiff(),
+  );
+
+/**
+ * @param {string} tier
+ * @param {string[] | undefined} diff
+ * @returns {string[]}
+ */
+const jobsFor = (tier, diff) => planFor(tier, diff).jobs;
+
+await test("the docs-playground job runs on the queue and nightly tiers only (catches it on a pull request tier)", () => {
+  assert.equal(
+    jobsFor("fast", ["packages/dms/src/index.ts"]).includes("docs-playground"),
+    false,
+  );
+  assert.equal(jobsFor("full", undefined).includes("docs-playground"), false);
+  assert.equal(jobsFor("queue", undefined).includes("docs-playground"), true);
+  assert.equal(jobsFor("nightly", undefined).includes("docs-playground"), true);
+});
+
+await test("the dependents job runs on the nightly and none tiers only (catches it on every tier)", () => {
+  assert.equal(jobsFor("nightly", undefined).includes("dependents"), true);
+  assert.deepEqual(jobsFor("none", undefined), ["dependents"]);
+  assert.equal(jobsFor("queue", undefined).includes("dependents"), false);
+  assert.equal(jobsFor("full", undefined).includes("dependents"), false);
+});
+
+await test("a draft run needs no job (catches the gate requiring a job a draft skips)", () => {
+  assert.deepEqual(jobsFor("draft", undefined), []);
+});
+
+await test("a documentation-only fast diff needs no job (catches a docs diff that runs the backend)", () => {
+  assert.deepEqual(jobsFor("fast", ["README.md"]), []);
+});
+
+await test("a realtime broker diff needs the backend, the map, the smoke journey and one formal job (catches a job table that drops a package's job)", () => {
+  assert.deepEqual(jobsFor("fast", ["packages/dms/src/realtime/broker.ts"]), [
+    "backend",
+    "verify-map",
+    "e2e",
+    "formal",
+  ]);
+});
+
+await test("a Vue layer diff needs the Vue jobs and not the backend (catches the Vue jobs keyed on the backend)", () => {
+  const jobs = jobsFor("fast", [
+    "packages/dms/frontend-vue/layers/dms-ui/app/components/X.vue",
+  ]);
+  assert.equal(jobs.includes("frontend-test"), true);
+  assert.equal(jobs.includes("frontend-verify"), true);
+  assert.equal(jobs.includes("backend"), false);
+});
+
+await test("the queue tier needs every job but dependents (catches a queue run that skips a job)", () => {
+  assert.deepEqual(jobsFor("queue", undefined), [
+    "backend",
+    "frontend-test",
+    "frontend-verify",
+    "verify-map",
+    "e2e",
+    "docs-playground",
+    "formal",
+    "formal-generated",
+  ]);
+});
+
+await test("the output keys are the four the select step appends, in order (catches a renamed or dropped key)", () => {
+  assert.deepEqual(Object.keys(planFor("queue", undefined)), [
+    "packages",
+    "formal",
+    "formal-generated",
+    "jobs",
+  ]);
 });
