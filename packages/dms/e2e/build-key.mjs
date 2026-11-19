@@ -8,6 +8,7 @@ import {
   realpathSync,
 } from "node:fs";
 import { basename, dirname, isAbsolute, join, relative, sep } from "node:path";
+import { isRecord } from "./json.mjs";
 
 /**
  * @typedef {{ format: number, node: string, frontend: string, environment: string, env: string[], envFiles: string, sources: string, installed: string, outside: string }} BuildInputs Everything a frontend build reads, with the run's own values left out: the code of the dms-frontend that builds, the variables Vite bakes in, the project's `.env` files, the sources the workspace setup wrote, the versions its install resolved and the installs above the workspace a bare import can resolve from
@@ -304,16 +305,39 @@ function upFrom(folder, top) {
 }
 
 /**
+ * @param {string} content A `.modules.yaml`
+ * @returns {Record<string, unknown> | null} Its fields, when it is the JSON object pnpm 12 writes
+ */
+function jsonRecord(content) {
+  try {
+    /** @type {unknown} */
+    const parsed = JSON.parse(content);
+    return isRecord(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * The content of an install record the key reads. Of `.modules.yaml`, only
- * the fields that say what pnpm linked where.
+ * the fields that say what pnpm linked where, read from the JSON pnpm 12
+ * writes or the YAML of top-level fields pnpm 10 writes.
  *
  * @param {string} path The record
  * @returns {string} What the key hashes
- * @throws When `.modules.yaml` is not the YAML of top-level fields pnpm 10 writes (pnpm 12 writes JSON), since its layout fields could not be told apart
+ * @throws When `.modules.yaml` is neither, or has no `layoutVersion` field, since its layout fields could not be told apart
  */
 function installRecord(path) {
   const content = readFileSync(path, "utf8");
   if (!path.endsWith(MODULES_RECORD)) return content;
+  const json = jsonRecord(content);
+  if (json !== null && "layoutVersion" in json) {
+    const layout = Object.keys(json)
+      .filter((field) => LAYOUT_FIELDS.has(field))
+      .sort()
+      .map((field) => [field, json[field]]);
+    return JSON.stringify(layout);
+  }
   const lines = content.split("\n");
   const unread = lines.findIndex(
     (line) => TOP_LEVEL_FIELD.test(line) && !FIELD_LINE.test(line),
@@ -323,7 +347,7 @@ function installRecord(path) {
     !lines.some((line) => line.startsWith("layoutVersion:"))
   ) {
     throw new Error(
-      `${path} is not the YAML layout the build cache reads (${unread === -1 ? "no layoutVersion field" : `line ${unread + 1}`})`,
+      `${path} is neither the JSON nor the YAML layout the build cache reads (${unread === -1 ? "no layoutVersion field" : `line ${unread + 1}`})`,
     );
   }
   let layout = false;
