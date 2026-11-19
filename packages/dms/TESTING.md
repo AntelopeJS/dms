@@ -38,8 +38,15 @@ pnpm test:builder       # build + run only src/test/unit/builder/**
 to a subdirectory by setting `DMS_TEST_DIR` (read by `antelope.test.ts`'s
 `test.folder`). `test:unit` hands the runner its files with
 `scripts/test-files.mjs`, which leaves out `unit/builder/`: the builder specs
-take about as long as the rest of the unit suite, so CI runs them in two jobs,
-`test:builder:1` and `test:builder:2`, each every other spec file. Each still boots the full harness. The readiness gate lives in
+take about as long as the rest of the unit suite, so CI runs them in `BUILDER_SHARDS` jobs
+(`checks/affected-packages.mjs`), each `test:builder:shard` with
+`DMS_TEST_SHARD` set to its `<index>/<count>`, such as `1/4`. Each job takes the
+files that `scripts/test-files.mjs` assigns it by the seconds per file in
+`scripts/test-weights.json`, and still boots the full harness. With
+`DMS_TEST_DURATIONS` set to a path, `src/test/helpers/file-durations.ts` writes
+the seconds each file took there, and CI uploads it as the artifact
+`builder-durations-<n>`. After a few runs, `node scripts/refresh-test-weights.mjs
+<run-id>...` rewrites the weights from their artifacts. The readiness gate lives in
 `integration/setup.test.ts` because only the HTTP tests race startup — unit
 tests are pure logic and don't touch the runtime. `[unit]` / `[integration]`
 tags in the `describe` titles are for readability.

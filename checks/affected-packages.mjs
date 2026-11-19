@@ -1,5 +1,7 @@
 import { spawnSync } from "node:child_process";
 import { matchesGlob } from "node:path/posix";
+import { decodeSkillConfig } from "../packages/dms/bin/control/verify/decode.mjs";
+import { isRecord } from "../packages/dms/bin/control/json.mjs";
 
 /** @typedef {{ name: string, root: string, reads: string[], dependsOn: string[] }} TestPackage */
 
@@ -198,13 +200,200 @@ export const gitChangedFiles = (base) => {
   return diff.stdout.split("\n").filter((line) => line !== "");
 };
 
+/**
+ * @typedef {{ name: string, covers: string[], files: string[] }} FormalCheck
+ */
+
+/**
+ * Where a formal check runs, by the folder of its own files. The first rule a
+ * file matches decides, and a check none of whose files match runs in the
+ * `formal` job. The builder suite already runs the checks under
+ * `packages/dms/src/test/unit/`, so they get no job of their own.
+ *
+ * @type {{ prefix: string, job: "formal-generated" | null }[]}
+ */
+const FORMAL_JOB_RULES = [
+  { prefix: "packages/dms/src/test/formal/", job: "formal-generated" },
+  { prefix: "packages/dms/src/test/unit/", job: null },
+];
+
+/**
+ * The job that runs a formal check, or `null` when another job already does.
+ *
+ * @param {FormalCheck} check
+ * @returns {"formal" | "formal-generated" | null}
+ */
+export const formalJob = ({ files }) => {
+  for (const { prefix, job } of FORMAL_JOB_RULES) {
+    if (files.some((file) => file.startsWith(prefix))) return job;
+  }
+  return "formal";
+};
+
+/**
+ * The formal checks a run executes, split by the job that runs them. The draft
+ * and none tiers run none. With a base, only the checks whose `covers` or
+ * `files` the diff against it touches run. Without one, every check runs.
+ *
+ * @param {{ tier?: string, base?: string }} env
+ * @param {FormalCheck[]} checks
+ * @param {(base: string) => string[]} changedFiles Called only with a base.
+ * @returns {{ formal: string[], formalGenerated: string[] }}
+ */
+export const selectFormal = ({ tier, base }, checks, changedFiles) => {
+  /** @type {string[]} */
+  const formal = [];
+  /** @type {string[]} */
+  const formalGenerated = [];
+  if (tier === "draft" || tier === "none") return { formal, formalGenerated };
+  const changed =
+    base === undefined || base === "" ? undefined : changedFiles(base);
+  for (const check of checks) {
+    const touched =
+      changed === undefined ||
+      changed.some(
+        (file) =>
+          check.covers.includes(file) ||
+          check.files.some((glob) => matchesGlob(file, glob)),
+      );
+    if (!touched) continue;
+    const job = formalJob(check);
+    if (job === "formal") formal.push(check.name);
+    else if (job === "formal-generated") formalGenerated.push(check.name);
+  }
+  return { formal, formalGenerated };
+};
+
+/**
+ * @typedef {{
+ *   tier: string | undefined,
+ *   packages: Set<string>,
+ *   formal: string[],
+ *   formalGenerated: string[],
+ * }} Plan
+ */
+
+/**
+ * Every job of `ci.yml` that the run can need, with the rule that decides it.
+ * The `if:` of each job and the gate read the list this table produces.
+ *
+ * @type {{ job: string, when: (plan: Plan) => boolean }[]}
+ */
+const JOB_RULES = [
+  { job: "backend", when: ({ packages }) => packages.has("dms") },
+  {
+    job: "frontend-test",
+    when: ({ packages }) => packages.has("frontend-vue"),
+  },
+  {
+    job: "frontend-verify",
+    when: ({ packages }) => packages.has("frontend-vue"),
+  },
+  { job: "verify-map", when: ({ packages }) => packages.has("verify-dms") },
+  { job: "e2e", when: ({ packages }) => packages.has("verify-dms") },
+  {
+    job: "docs-playground",
+    when: ({ tier }) => tier === "queue" || tier === "nightly",
+  },
+  {
+    job: "dependents",
+    when: ({ tier }) => tier === "nightly",
+  },
+  { job: "formal", when: ({ formal }) => formal.length > 0 },
+  {
+    job: "formal-generated",
+    when: ({ formalGenerated }) => formalGenerated.length > 0,
+  },
+];
+
+/**
+ * The `ci.yml` job ids a run needs.
+ *
+ * @param {Plan} plan
+ * @returns {string[]}
+ */
+export const requiredJobs = (plan) =>
+  JOB_RULES.filter(({ when }) => when(plan)).map(({ job }) => job);
+
+/** How many jobs share the builder suite, balanced by `scripts/test-weights.json`. */
+const BUILDER_SHARDS = 4;
+
+/**
+ * The suites of the `backend` job's matrix: `unit`, `integration` and one
+ * `builder:<index>/<count>` per builder shard.
+ *
+ * @type {string[]}
+ */
+const BACKEND_SUITES = [
+  "unit",
+  "integration",
+  ...Array.from(
+    { length: BUILDER_SHARDS },
+    (_, index) => `builder:${index + 1}/${BUILDER_SHARDS}`,
+  ),
+];
+
+/**
+ * What a run executes: the selected packages, the formal checks of each formal
+ * job, the `ci.yml` jobs those need and the backend suites. The keys are the
+ * select step's outputs.
+ *
+ * @param {{ tier?: string, base?: string }} env
+ * @param {FormalCheck[]} checks
+ * @param {(base: string) => string[]} changedFiles
+ * @returns {{ packages: string[], formal: string[], "formal-generated": string[], jobs: string[], "backend-suites": string[] }}
+ */
+export const planRun = (env, checks, changedFiles) => {
+  const packages = selectPackages(env, changedFiles);
+  const { formal, formalGenerated } = selectFormal(env, checks, changedFiles);
+  const jobs = requiredJobs({
+    tier: env.tier,
+    packages: new Set(packages),
+    formal,
+    formalGenerated,
+  });
+  return {
+    packages,
+    formal,
+    "formal-generated": formalGenerated,
+    jobs,
+    "backend-suites": BACKEND_SUITES,
+  };
+};
+
+/**
+ * The formal checks the verification skill lists.
+ *
+ * @returns {Promise<FormalCheck[]>}
+ */
+export const loadFormalChecks = async () => {
+  const config = new URL(
+    "../.agents/skills/verify-dms/verify.config.ts",
+    import.meta.url,
+  );
+  /** @type {unknown} */
+  const loaded = await import(config.href);
+  const { formal } = decodeSkillConfig(
+    isRecord(loaded) ? loaded.default : undefined,
+    config.pathname,
+  );
+  return formal.map(({ name, covers, files = [] }) => ({
+    name,
+    covers,
+    files,
+  }));
+};
+
 if (import.meta.main) {
-  const selection = selectPackages(
+  const run = planRun(
     {
       tier: process.env["ANTELOPEJS_CI_TIER"],
       base: process.env["ANTELOPEJS_TEST_BASE"],
     },
+    await loadFormalChecks(),
     gitChangedFiles,
   );
-  process.stdout.write(`${JSON.stringify(selection)}\n`);
+  for (const [key, value] of Object.entries(run)) {
+    process.stdout.write(`${key}=${JSON.stringify(value)}\n`);
+  }
 }
