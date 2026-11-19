@@ -104,7 +104,6 @@ export const journeys = [
   },
   {
     id: "login-autofilled-wrong-password",
-    tag: "@smoke",
     title: "a wrong password the browser filled in, sent with Enter right after a full load of /auth, shows the credentials error",
     entryPoint: "/auth sign-in form",
     async run(/** @type {Ctx} */ ctx) {
