@@ -201,7 +201,7 @@ describe("[unit] mockup conversion of a live page", () => {
     expect(z.string().parse(layout.options?.html)).to.contain("<li>loose</li>");
   });
 
-  it("reads each fetchUrl through a fixture: null for a block, sample rows for a table, the live route kept aside", () => {
+  it("reads each fetchUrl through a fixture: a sample shaped as the block reads it, sample rows for a table, the live route kept aside", () => {
     const { page } = convert(EVERY_ROW);
     const revenue = optionsSchema.parse(
       nodeNamed(page.tree, "revenue").options,
@@ -217,7 +217,10 @@ describe("[unit] mockup conversion of a live page", () => {
       "rows-api-book-list": "/api/book/list",
       "api-feed-status-query-status": "/api/feed?status={{query.status}}",
     });
-    expect(page.fixtures?.["api-books-revenue"]).to.equal(null);
+    expect(page.fixtures?.["api-books-revenue"]).to.deep.equal({
+      value: 1284,
+      sparkline: [42, 51, 47, 63, 58, 71, 76],
+    });
     expect(page.fixtures?.["rows-api-book-list"]).to.deep.equal([
       { _id: "sample-1", title: "Sample Title 1", price: 10 },
       { _id: "sample-2", title: "Sample Title 2", price: 20 },
@@ -248,6 +251,77 @@ describe("[unit] mockup conversion of a live page", () => {
       livePage: { ref: REF, version: "0123456789abcdef" },
       tree: [],
     });
+  });
+});
+
+const DATA_BLOCKS: BlockDraft[] = [
+  {
+    name: "kpi",
+    type: "KpiCard",
+    config: { title: "Revenue", fetchUrl: "/api/kpi" },
+  },
+  {
+    name: "card",
+    type: "ChartCard",
+    config: {
+      title: "Sales",
+      fetchUrl: "/api/card",
+      chart: { $block: { type: "ChartArea", config: {} } },
+    },
+  },
+  {
+    name: "line",
+    type: "ChartLine",
+    config: { fetchUrl: "/api/line" },
+  },
+  {
+    name: "top",
+    type: "TopListCard",
+    config: { title: "Top", fetchUrl: "/api/top" },
+  },
+  { name: "stats", type: "StatGroup", config: { fetchUrl: "/api/stats" } },
+  { name: "feed", type: "ActivityFeed", config: { fetchUrl: "/api/feed" } },
+  { name: "meter", type: "Meter", config: { fetchUrl: "/api/meter" } },
+];
+
+describe("[unit] mockup conversion of a data block's sample", () => {
+  it("gives each data block a sample its fixture check reads without a warning (fails when a converted block reads null)", () => {
+    const converted = convert(DATA_BLOCKS);
+    const read = parseSpec(
+      JSON.stringify({ version: 1, pages: [converted.page] }),
+    );
+    if (!read.ok) throw new Error(JSON.stringify(read.issues));
+    const compiled = compileSpec(NAME, read.spec);
+
+    expect(converted.sketches).to.deep.equal([]);
+    expect(compiled.issues).to.deep.equal([]);
+    expect(compiled.warnings).to.deep.equal([]);
+    expect(Object.keys(converted.page.fixtures ?? {})).to.have.length(
+      DATA_BLOCKS.length,
+    );
+    for (const [key, value] of Object.entries(converted.page.fixtures ?? {})) {
+      expect(value, key).to.not.equal(null);
+    }
+  });
+
+  it("gives a chart a series of plausible points and a top list its items", () => {
+    const { fixtures } = convert(DATA_BLOCKS).page;
+    const series = z
+      .object({
+        series: z.array(
+          z.object({
+            name: z.string(),
+            data: z.array(z.object({ x: z.string(), y: z.number() })),
+          }),
+        ),
+      })
+      .parse(fixtures?.["api-line"]);
+    const top = z
+      .object({ items: z.array(z.object({}).passthrough()) })
+      .parse(fixtures?.["api-top"]);
+
+    expect(series.series[0]?.data).to.have.length(7);
+    expect(top.items).to.have.length(3);
   });
 });
 

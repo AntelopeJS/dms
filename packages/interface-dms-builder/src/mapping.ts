@@ -1,6 +1,6 @@
 import { InterfaceFunction } from "@antelopejs/interface-core";
 import type { CategoryRef, PageRef } from "./addressing";
-import type { ResourceRef } from "./resources";
+import type { CellDisplay, ColumnPresentation, ResourceRef } from "./resources";
 import type { OpResult } from "./results";
 import type { TableViewSettings } from "./table-view";
 
@@ -38,7 +38,7 @@ export interface TabsChoice {
 }
 
 /** One column of a mapped relation, as the integrator chose to show it. */
-export interface MappedField {
+export interface MappedField extends Omit<ColumnPresentation, "display"> {
   column: string;
   /** One of the column's `accepts`; the first when omitted. */
   declared?: string;
@@ -67,8 +67,12 @@ export interface MappedField {
    * alone, which proposes a price but no badge; a warning `display_not_proposed` says when no
    * profile or analysis was there. A kept or proposed display the column's declaration does not
    * suit is dropped, not refused. Null writes the column plain, over any display it had.
+   *
+   * A cell display of the TableView, `{ type, options }`, draws the cells instead, over a column
+   * written without a badge or a price. Left out, a column of a relation mapped before keeps the
+   * cell display its controller holds, as it keeps its other presentation options.
    */
-  display?: ColumnDisplay | null;
+  display?: ColumnDisplay | CellDisplay | null;
   /**
    * `"schema.name"` of another mapped relation this column refers to, by that relation's
    * single-column key: the column becomes a relation column showing the target's `label`.
@@ -88,7 +92,10 @@ export interface MappedResource {
   className?: string;
   /** The column relation columns pointing here show, and the TableView's `labelKey`. */
   label?: string;
-  /** The page's title and the TableView's caption; the relation's name, humanized, when omitted. */
+  /**
+   * The page's title and the TableView's caption. Left out or blank, a new page takes the relation's
+   * name, humanized, and a page mapped before keeps its title.
+   */
   title?: string;
   /**
    * The icon the menu shows beside the page, an icon name such as `i-ph-shopping-cart`. Left out,
@@ -105,6 +112,17 @@ export interface MappedResource {
    * order below 100 to be sure of it.
    */
   order?: number;
+  /**
+   * The category of the menu the page is written in: the id of a category made with
+   * `CreateCategory` in the same `module` the tables are mapped into, since a module can only use
+   * its own declarations. A category that does not exist, or that another module declares,
+   * refuses the relation, naming it.
+   *
+   * Left out, a new page goes in the connection's category and a page mapped before stays where
+   * it is, in whatever category it was moved to. Sent on a page mapped before, the page moves to
+   * the category, which changes its route.
+   */
+  category?: CategoryRef;
   /**
    * Displays, views and footer figures written to the page's TableView by the same checks as
    * `ConfigureTableView`: a refused choice is a warning `page_not_written` and the page keeps

@@ -23,7 +23,7 @@ import {
 } from "./query-template";
 import { unwrapReturnedCall } from "./query-route-response";
 import { findResourceBySymbol, findResourceRecord } from "./resource-index";
-import { isPlainObject } from "./value";
+import { isPlainObject } from "./plain-object";
 import { getWritableProject } from "./writable";
 
 export const MODEL_DECORATORS = ["Model", "TenantScopedModel"];

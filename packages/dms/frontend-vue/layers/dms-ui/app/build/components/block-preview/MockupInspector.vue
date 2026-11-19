@@ -8,6 +8,10 @@ import {
 } from "../../utils/mockupInspector";
 import { blockName, breadcrumb } from "../../utils/mockupOutline";
 import {
+  CUSTOM_PAGE_SKETCH,
+  sketchStateNames,
+} from "../../utils/mockupSketchStates";
+import {
   MOCKUP_SKETCH_TYPE,
   nodeAt,
   type MockupSpecDocument,
@@ -17,11 +21,14 @@ import type { JsonValue } from "../../../../../dms-core/app/types/json";
 import MockupInspectorField from "./MockupInspectorField.vue";
 import MockupIssues from "./MockupIssues.vue";
 import MockupPageInspector from "./MockupPageInspector.vue";
+import MockupSketchStatePicker from "./MockupSketchStatePicker.vue";
 
 /**
  * Edit mode's right panel. A selected block shows its visual options, Content
- * and Style, and hands its data to the AI; a custom zone offers the AI or a
- * DMS block in its place; with nothing selected, the page's own settings.
+ * and Style, and says its data is sample data; a custom zone offers the AI or a
+ * DMS block in its place, and picks the state it is drawn in when it has
+ * named states; with nothing selected, the page's own settings, and the
+ * state a custom page is drawn in.
  */
 const props = defineProps<{
   spec: MockupSpecDocument;
@@ -29,12 +36,14 @@ const props = defineProps<{
   selection: string | undefined;
   catalog: ReadonlyMap<string, MockupBlockType>;
   issues: MockupIssue[];
+  /** The state the selected sketch, or with none the custom page, is drawn in; undefined for its own `html`. */
+  sketchState?: string;
 }>();
 const emit = defineEmits<{
   edit: [edit: MockupEdit, coalesceKey?: string];
-  connectData: [pointer: string];
   askAi: [pointer: string];
   replace: [pointer: string];
+  sketchState: [pointer: string, state: string | undefined];
 }>();
 
 const TABS: readonly MockupInspectorTab[] = ["content", "style"];
@@ -48,6 +57,15 @@ const node = computed(() =>
 );
 const block = computed(() => props.catalog.get(node.value?.type ?? ""));
 const isSketch = computed(() => node.value?.type === MOCKUP_SKETCH_TYPE);
+const stateNames = computed(() =>
+  isSketch.value ? sketchStateNames(node.value?.options?.states) : [],
+);
+const pageStateNames = computed(() => {
+  const page = props.spec.pages[props.page];
+  return page?.custom === true && !Array.isArray(page.states)
+    ? sketchStateNames(page.states)
+    : [];
+});
 const fields = computed(() =>
   block.value ? inspectorFields(block.value, tab.value) : [],
 );
@@ -62,6 +80,10 @@ const hasData = computed(() => {
     Object.values(type.config).some((option) => option.ui?.group === "data")
   );
 });
+
+function pickState(state: string | undefined): void {
+  if (props.selection) emit("sketchState", props.selection, state);
+}
 
 function optionValue(key: string): JsonValue | undefined {
   const options = node.value?.options ?? {};
@@ -95,6 +117,12 @@ function setOption(key: string, value: JsonValue | undefined): void {
 
       <template v-if="isSketch">
         <p class="text-muted text-sm">{{ t("dms.mockup.sketch_hint") }}</p>
+        <MockupSketchStatePicker
+          v-if="stateNames.length"
+          :names="stateNames"
+          :model-value="sketchState"
+          @update:model-value="pickState"
+        />
         <div class="flex flex-col gap-2">
           <UButton
             color="primary"
@@ -147,29 +175,22 @@ function setOption(key: string, value: JsonValue | undefined): void {
           :value="optionValue(field.key)"
           @update="setOption(field.key, $event)"
         />
-        <section
-          v-if="hasData"
-          class="border-default bg-elevated/50 space-y-2 rounded-lg border p-3"
-          data-dms-mockup-data-card
-        >
-          <h3 class="text-highlighted text-sm font-semibold">
-            {{ t("dms.mockup.data_title") }}
-          </h3>
-          <p class="text-muted text-sm">{{ t("dms.mockup.data_hint") }}</p>
-          <UButton
-            color="primary"
-            icon="i-ph-sparkle"
-            block
-            data-dms-mockup-connect-data
-            @click="emit('connectData', selection)"
-          >
-            {{ t("dms.mockup.connect_data") }}
-          </UButton>
-        </section>
+        <p v-if="hasData" class="text-muted text-xs" data-dms-mockup-data-hint>
+          {{ t("dms.mockup.data_hint") }}
+        </p>
       </template>
     </div>
 
     <template v-else>
+      <div v-if="pageStateNames.length" class="px-4 pt-4">
+        <MockupSketchStatePicker
+          :names="pageStateNames"
+          :model-value="sketchState"
+          @update:model-value="
+            (state) => emit('sketchState', CUSTOM_PAGE_SKETCH, state)
+          "
+        />
+      </div>
       <MockupPageInspector
         :spec="spec"
         :page="page"

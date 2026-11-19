@@ -9,7 +9,19 @@ import type {
   OpResult,
 } from "@antelopejs/interface-dms-builder";
 import { Node } from "ts-morph";
-import { applyImportRef, importStatement, relativeModule } from "./emit";
+import {
+  type CategoryPlacement,
+  categoryDeclaration,
+  sectionRefOf,
+  switchedRef,
+  switchSection,
+} from "./category-section";
+import {
+  applyImportRef,
+  importStatement,
+  reflowImportOf,
+  relativeModule,
+} from "./emit";
 import { slugError } from "./ops-blocks";
 import { indentationText, resolveProjectRoot } from "./project";
 import { resourceRefResolver } from "./resource-index";
@@ -28,7 +40,7 @@ import {
   resolveRootBarrel,
   Transaction,
 } from "./writable";
-import { applyPatch, optionsPatch } from "./options-patch";
+import { applyPatch, optionsPatch, pruningOrphans } from "./options-patch";
 import {
   commit,
   duplicate,
@@ -42,36 +54,44 @@ function buildCategorySource(
   parent: CategoryRecord | undefined,
   filepath: string,
 ): string {
-  const constName = `${input.name.replace(/[^A-Za-z0-9]/g, "")}Category`;
-  const parentName = parent?.importName ?? "pagesCategory";
   const parentModuleRaw = parent?.importModule ?? DMS_PAGE_MODULE;
-  const parentSpec = parentModuleRaw.endsWith(".ts")
-    ? relativeModule(filepath, parentModuleRaw)
-    : parentModuleRaw;
-  const imports = new Map<string, Set<string>>();
-  const add = (specifier: string, name: string) => {
-    const set = imports.get(specifier) ?? new Set<string>();
-    set.add(name);
-    imports.set(specifier, set);
-  };
-  add(DMS_PAGE_MODULE, "Category");
-  add(parentSpec, parentName);
-  const options = [
-    `displayName: ${JSON.stringify(input.displayName)}`,
-    `category: ${parentName}`,
-  ];
-  if (input.icon) {
-    options.push(`icon: ${JSON.stringify(input.icon)}`);
-  }
-  if (input.order !== undefined) {
-    options.push(`order: ${input.order}`);
-  }
+  const placement: CategoryPlacement = input.section
+    ? { section: true }
+    : {
+        section: false,
+        parentName: parent?.importName ?? "pagesCategory",
+        parentSpecifier: parentModuleRaw.endsWith(".ts")
+          ? relativeModule(filepath, parentModuleRaw)
+          : parentModuleRaw,
+      };
   const indent = indentationText(resolveProjectRoot());
-  const importText = [...imports]
-    .map(([specifier, names]) => importStatement([...names], specifier, indent))
-    .join("\n");
-  const optionsText = options.map((option) => `${indent}${option},`).join("\n");
-  return `${importText}\n\nexport const ${constName} = Category(${JSON.stringify(input.name)}, {\n${optionsText}\n});\n`;
+  return categoryDeclaration(input, placement, indent, (names, specifier) =>
+    importStatement(names, specifier, indent),
+  );
+}
+
+/** Where `input` goes: its ref and its parent, or why it cannot go there. */
+function placementOf(
+  input: CreateCategoryInput,
+):
+  | OpResult<{ ref: CategoryRef }>
+  | { ref: CategoryRef; parent: CategoryRecord | undefined } {
+  if (input.section) {
+    const placed = sectionRefOf(input);
+    return "ok" in placed ? placed : { ref: placed.ref, parent: undefined };
+  }
+  const parent = input.parent ? findCategoryRecord(input.parent) : undefined;
+  if (input.parent && !parent) {
+    return notFound<{ ref: CategoryRef }>(input.parent);
+  }
+  const misplaced = moduleError(
+    input.module,
+    parent?.importModule,
+    `category "${input.parent}"`,
+  );
+  return (
+    misplaced ?? { ref: `${parent?.ref ?? "pages"}.${input.name}`, parent }
+  );
 }
 
 export function createCategory(
@@ -81,21 +101,13 @@ export function createCategory(
   if (invalid) {
     return invalid;
   }
-  const parent = input.parent ? findCategoryRecord(input.parent) : undefined;
-  if (input.parent && !parent) {
-    return notFound<{ ref: CategoryRef }>(input.parent);
+  const placed = placementOf(input);
+  if ("ok" in placed) {
+    return placed;
   }
-  const ref = `${parent?.ref ?? "pages"}.${input.name}`;
+  const { ref, parent } = placed;
   if (findCategoryRecord(ref)) {
     return duplicate<{ ref: CategoryRef }>(input.name, "category");
-  }
-  const misplaced = moduleError(
-    input.module,
-    parent?.importModule,
-    `category "${input.parent}"`,
-  );
-  if (misplaced) {
-    return misplaced;
   }
   const project = getWritableProject();
   refreshFromDisk(project);
@@ -144,7 +156,7 @@ function openCategoryDeclaration(category: CategoryRecord) {
 export function configureCategory(
   ref: string,
   patch: Partial<EditableCategoryMeta>,
-): OpResult {
+): OpResult<{ ref: CategoryRef }> {
   const category = findCategoryRecord(ref);
   if (!category) {
     return notFound(ref);
@@ -154,14 +166,20 @@ export function configureCategory(
     return unsupported("category is built-in or not editable from source");
   }
   const init = opened.decl.getInitializer();
-  const optionsArg =
-    init && Node.isCallExpression(init) ? init.getArguments()[1] : undefined;
-  if (!optionsArg || !Node.isObjectLiteralExpression(optionsArg)) {
+  const call = init && Node.isCallExpression(init) ? init : undefined;
+  const optionsArg = call?.getArguments()[1];
+  if (!call || !optionsArg || !Node.isObjectLiteralExpression(optionsArg)) {
     return unsupported("category options are not a plain object literal");
   }
-  const { parent, ...scalar } = patch;
+  const { parent, section, ...scalar } = patch;
   if (parent !== undefined && parent !== category.parentRef) {
     return unsupported("changing a category's parent is not supported in v1");
+  }
+  const switched = section === category.section ? undefined : section;
+  const target =
+    switched === undefined ? { ref } : switchedRef(category, call, switched);
+  if ("ok" in target) {
+    return target;
   }
   const transaction = new Transaction(opened.sourceFile.getProject());
   transaction.track(opened.sourceFile);
@@ -169,12 +187,23 @@ export function configureCategory(
     resolveRef: resourceRefResolver(),
   });
   try {
-    applyPatch(
-      optionsArg,
-      optionsPatch(optionsArg, scalar, category.id),
-      false,
-      ctx,
-    );
+    pruningOrphans(opened.sourceFile, () => {
+      applyPatch(
+        optionsArg,
+        optionsPatch(optionsArg, scalar, category.id),
+        false,
+        ctx,
+      );
+      if (switched !== undefined) {
+        switchSection(
+          { sourceFile: opened.sourceFile, call, options: optionsArg },
+          switched,
+        );
+      }
+    });
+    if (switched !== undefined) {
+      reflowImportOf(opened.sourceFile, DMS_PAGE_MODULE);
+    }
   } catch (error) {
     transaction.rollback();
     if (error instanceof InvalidValueError) {
@@ -185,7 +214,7 @@ export function configureCategory(
   for (const importRef of imports) {
     applyImportRef(opened.sourceFile, importRef);
   }
-  return commit(transaction, undefined);
+  return commit(transaction, { ref: target.ref });
 }
 
 /**

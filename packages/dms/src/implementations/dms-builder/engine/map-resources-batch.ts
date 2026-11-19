@@ -26,6 +26,8 @@ import {
 import { plannedPage } from "./planned-page";
 import type { ResourceNames } from "./resource-emit";
 import { humanized, words } from "./name-words";
+import { moduleMismatch } from "./modules";
+import { findCategoryRecord } from "./source-index";
 
 function targetsOf(
   input: MapResourcesInput,
@@ -78,13 +80,45 @@ function targetsOf(
   return targets;
 }
 
+/** The title a call sends for a page, which is also its TableView's caption. A blank one is none. */
+function sentTitle(title: string | undefined): string | undefined {
+  return title?.trim() ? title : undefined;
+}
+
 /** What planning one relation reads and adds to. */
 interface PlanContext {
   targets: Map<string, BatchTarget>;
+  module: string;
   srcRoot: string;
   defaults: ReadonlyMap<string, DisplayDefaults>;
   leftOut: LeftOutColumn[];
   warnings: OpWarning[];
+}
+
+/**
+ * A category a page may be written in: one that exists and that the tables module declares itself,
+ * since a module loads only its own sources. Made with `CreateCategory` and the module's id.
+ */
+function checkCategory(category: string | undefined, module: string): void {
+  if (category === undefined) {
+    return;
+  }
+  const record = findCategoryRecord(category);
+  if (!record) {
+    refuse(
+      `the category "${category}" does not exist: create it with builder_create_category first`,
+    );
+  }
+  const mismatch = moduleMismatch(
+    module,
+    record.importModule,
+    `the category "${category}"`,
+  );
+  if (mismatch) {
+    refuse(
+      `${mismatch}: create the category with module "${module}" to put mapped pages in it`,
+    );
+  }
 }
 
 function planResource(
@@ -93,6 +127,7 @@ function planResource(
 ): PlannedResource {
   const { targets, srcRoot, defaults, leftOut, warnings } = context;
   const relationDefaults = defaults.get(target.resource.relation);
+  checkCategory(target.resource.category, context.module);
   const { tableFields, apiFields, displays, unproposed } = plannedFields({
     resource: target.resource,
     description: target.description,
@@ -148,7 +183,9 @@ function planResource(
     tableView: target.resource.tableView,
     routes: RoutesOf(target.resource),
     label: target.resource.label,
-    displayName: target.resource.title ?? humanized(description.name),
+    title: sentTitle(target.resource.title),
+    displayName:
+      sentTitle(target.resource.title) ?? humanized(description.name),
     page,
     tabs,
     clearTabs:
@@ -189,6 +226,7 @@ export function planMapping(
         resource.relation,
         planResource(target, {
           targets,
+          module: input.module,
           srcRoot,
           defaults,
           leftOut: mineLeftOut,

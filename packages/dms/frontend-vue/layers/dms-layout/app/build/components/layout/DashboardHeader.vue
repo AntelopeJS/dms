@@ -3,6 +3,7 @@ import type { BreadcrumbItem, DropdownMenuItem } from "@nuxt/ui";
 import { onMounted, ref } from "vue";
 import NotificationPopover from "../notification/NotificationPopover.vue";
 import HeaderActionIcon from "./HeaderActionIcon.vue";
+import { HOME_ICON, TOOLBAR_BUTTON_CLASS } from "./dashboardNavbar";
 import QuickActionsPopover from "./QuickActionsPopover.vue";
 import { useSidebarState } from "./sidebarState";
 import {
@@ -19,12 +20,8 @@ import {
 } from "../../../utils/breadcrumb";
 import { fillRouteParams } from "#dms-core/app/utils/pageQuery";
 
-const HOME_ICON = "i-ph-house-light";
 /** Breadcrumb slot of the folded middle crumbs on small screens. */
 const MOBILE_ELLIPSIS_SLOT = "ellipsis";
-/** v2 toolbar buttons: muted until hovered or open. */
-const TOOLBAR_BUTTON_CLASS =
-  "text-muted hover:text-highlighted data-[state=open]:text-highlighted";
 const BUILDER_FALLBACK_ICON = "i-ph-hammer-light";
 /** The crumb naming a row keeps the row's own case (crumbs capitalize). */
 const RECORD_CRUMB_LABEL_CLASS = "first-letter:normal-case";

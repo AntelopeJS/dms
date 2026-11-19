@@ -2,6 +2,8 @@ import {
   MOCKUP_MAX_PAGES,
   MOCKUP_PAGE_ID_PATTERN,
   authoredId,
+  freeId,
+  slugify,
   isWithinPointer,
   nodeAtAddress,
   nodePointer,
@@ -16,6 +18,7 @@ import {
 } from "./mockupSpec";
 import type { JsonValue } from "../../../../dms-core/app/types/json";
 import type { JsonObject } from "./json";
+import { applySectionEdit, type MockupSectionEdit } from "./mockupSections";
 
 /** One change the `/mockup` editor makes to a spec. */
 export type MockupEdit =
@@ -54,10 +57,22 @@ export type MockupEdit =
       /** Fixtures the node reads, added to its page by the same edit. */
       fixtures?: JsonObject;
     }
+  | { kind: "setTitle"; title: string }
   | { kind: "addPage"; title: string }
-  | { kind: "updatePage"; page: string; title?: string; id?: string }
-  | { kind: "movePage"; from: number; to: number }
-  | { kind: "removePage"; page: string };
+  | {
+      kind: "updatePage";
+      page: string;
+      title?: string;
+      id?: string;
+      /** The page header's icon: empty removes it. */
+      icon?: string;
+      /** The page header's description: empty removes it. */
+      description?: string;
+      /** The page header's buttons, replaced as a whole: none removes them. */
+      headerActions?: JsonObject[];
+    }
+  | { kind: "removePage"; page: string }
+  | MockupSectionEdit;
 
 /**
  * What an edit leaves: the new spec, the node it leaves selected and the page
@@ -73,9 +88,6 @@ export interface MockupEditResult {
 type ListUpdate = (list: MockupSpecNode[]) => MockupSpecNode[];
 
 const PAGE_ID_FALLBACK = "page";
-/** Leaves room for a `-<n>` suffix under the 64 characters a page id has. */
-const PAGE_ID_MAX_BASE = 60;
-const ID_SUFFIX = /-\d+$/;
 
 function updateList(
   list: MockupSpecNode[],
@@ -118,15 +130,6 @@ function insertAt<Item>(list: Item[], index: number, item: Item): Item[] {
 
 function removeAt<Item>(list: Item[], index: number): Item[] {
   return list.filter((_entry, position) => position !== index);
-}
-
-/** `wanted`, or the first `<base>-<n>` no sibling carries yet. */
-function freeId(taken: ReadonlySet<string>, wanted: string): string {
-  if (!taken.has(wanted)) return wanted;
-  const base = wanted.replace(ID_SUFFIX, "");
-  let suffix = 2;
-  while (taken.has(`${base}-${suffix}`)) suffix += 1;
-  return `${base}-${suffix}`;
 }
 
 /** `node` with an id none of `siblings` carries, when it has an id at all. */
@@ -355,26 +358,38 @@ function replacement(
   return placed;
 }
 
-/** `text` as a URL slug a page id may be: lowercase, dashes, no accents. */
-export function slugify(text: string): string {
-  return text
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, PAGE_ID_MAX_BASE);
-}
-
 function pageIdFor(spec: MockupSpecDocument, title: string): string {
   const taken = new Set(spec.pages.map((page) => page.id));
   return freeId(taken, slugify(title) || PAGE_ID_FALLBACK);
+}
+
+function setTitle(spec: MockupSpecDocument, title: string): MockupEditResult {
+  return spec.title === title ? { spec } : { spec: { ...spec, title } };
 }
 
 function addPage(spec: MockupSpecDocument, title: string): MockupEditResult {
   if (spec.pages.length >= MOCKUP_MAX_PAGES) return { spec };
   const page: MockupSpecPage = { id: pageIdFor(spec, title), title, tree: [] };
   return { spec: { ...spec, pages: [...spec.pages, page] }, page: page.id };
+}
+
+/** `page` with the header fields `edit` sets: an empty one is taken out of the spec. */
+function withHeader(
+  page: MockupSpecPage,
+  edit: Extract<MockupEdit, { kind: "updatePage" }>,
+): MockupSpecPage {
+  const next: MockupSpecPage = { ...page };
+  for (const field of ["icon", "description"] as const) {
+    const value = edit[field];
+    if (value === undefined) continue;
+    if (value === "") delete next[field];
+    else next[field] = value;
+  }
+  if (edit.headerActions !== undefined) {
+    if (edit.headerActions.length) next.headerActions = edit.headerActions;
+    else delete next.headerActions;
+  }
+  return next;
 }
 
 function updatePage(
@@ -387,24 +402,13 @@ function updatePage(
   const id = edit.id ?? page.id;
   const isIdFree = id === page.id || pageIndexOf(spec, id) === -1;
   if (!MOCKUP_PAGE_ID_PATTERN.test(id) || !isIdFree) return { spec };
-  const next = { ...page, id, title: edit.title ?? page.title };
+  const next = withHeader(
+    { ...page, id, title: edit.title ?? page.title },
+    edit,
+  );
   return {
     spec: { ...spec, pages: replaceAt(spec.pages, index, next) },
     page: id,
-  };
-}
-
-function movePage(
-  spec: MockupSpecDocument,
-  from: number,
-  to: number,
-): MockupEditResult {
-  const page = spec.pages[from];
-  const isInRange = to >= 0 && to < spec.pages.length;
-  if (!page || !isInRange || from === to) return { spec };
-  return {
-    spec: { ...spec, pages: insertAt(removeAt(spec.pages, from), to, page) },
-    page: page.id,
   };
 }
 
@@ -422,7 +426,8 @@ function applyNodeEdit(
   spec: MockupSpecDocument,
   edit: Exclude<
     MockupEdit,
-    { kind: "addPage" | "updatePage" | "movePage" | "removePage" }
+    | { kind: "setTitle" | "addPage" | "updatePage" | "removePage" }
+    | MockupSectionEdit
   >,
 ): MockupEditResult {
   switch (edit.kind) {
@@ -475,14 +480,20 @@ export function applyMockupEdit(
   edit: MockupEdit,
 ): MockupEditResult {
   switch (edit.kind) {
+    case "setTitle":
+      return setTitle(spec, edit.title);
     case "addPage":
       return addPage(spec, edit.title);
     case "updatePage":
       return updatePage(spec, edit);
-    case "movePage":
-      return movePage(spec, edit.from, edit.to);
     case "removePage":
       return removePage(spec, edit.page);
+    case "addCategory":
+    case "updateCategory":
+    case "removeCategory":
+    case "moveCategory":
+    case "movePageTo":
+      return { spec: applySectionEdit(spec, edit) };
     default:
       return applyNodeEdit(spec, edit);
   }

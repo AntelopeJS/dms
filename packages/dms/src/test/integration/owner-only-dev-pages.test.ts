@@ -18,7 +18,6 @@ import {
 } from "@antelopejs/interface-dms/page";
 import type { AxiosInstance } from "axios";
 import { expect } from "chai";
-import { registerBranding } from "../../branding";
 import { startMockupEngine, stopMockupEngine } from "../../mockup";
 import type { RoleEditorPermissionNode } from "../../pages/permissions";
 import { authorizedClient, registerUser } from "../helpers/auth";
@@ -38,12 +37,6 @@ interface DevArea {
 
 /** The development-only areas whose page must stay the platform owner's alone. */
 const DEV_AREAS: DevArea[] = [
-  {
-    slug: "/branding",
-    api: "/api/branding",
-    start: () => registerBranding(),
-    stop: () => undefined,
-  },
   {
     slug: "/mockup",
     api: "/api/mockup",

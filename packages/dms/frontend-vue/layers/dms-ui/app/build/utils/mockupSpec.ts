@@ -1,5 +1,7 @@
 import type { JsonValue } from "../../../../dms-core/app/types/json";
 import { isNumber, isString } from "../../../../dms-core/app/utils/type-check";
+import type { PreviewHeaderAction } from "./blockPreviewMessages";
+import { isHeaderColor, isHeaderVariant } from "./blockPreviewMessages";
 import {
   isJsonObject,
   isJsonValue,
@@ -56,6 +58,30 @@ export const MOCKUP_PAGE_ID_PATTERN = /^[a-z0-9][a-z0-9-]{0,63}$/;
 /** How many pages a spec holds at most. */
 export const MOCKUP_MAX_PAGES = 50;
 
+/** Leaves room for a `-<n>` suffix under the 64 characters an id has. */
+const ID_MAX_BASE = 60;
+const ID_SUFFIX = /-\d+$/;
+
+/** `text` as a URL slug a page or category id may be: lowercase, dashes, no accents. */
+export function slugify(text: string): string {
+  return text
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, ID_MAX_BASE);
+}
+
+/** `wanted`, or the first `<base>-<n>` none of `taken` is yet. */
+export function freeId(taken: ReadonlySet<string>, wanted: string): string {
+  if (!taken.has(wanted)) return wanted;
+  const base = wanted.replace(ID_SUFFIX, "");
+  let suffix = 2;
+  while (taken.has(`${base}-${suffix}`)) suffix += 1;
+  return `${base}-${suffix}`;
+}
+
 const POINTER_PATTERN = /^\/pages\/(\d+)\/tree\/(\d+)((?:\/children\/\d+)*)$/;
 const STAMPED_ID = /^b-[a-z0-9]{8}$/;
 
@@ -71,6 +97,42 @@ function isOptional<Value extends JsonValue>(
   guard: (entry: JsonValue) => entry is Value,
 ): value is Value | undefined {
   return value === undefined || guard(value);
+}
+
+/** A button right of a page's title, as a spec page holds it. */
+export type MockupHeaderAction = PreviewHeaderAction;
+
+/** The header buttons a page holds, in order, as far as each reads cleanly. */
+export function pageHeaderActions(page: MockupSpecPage): MockupHeaderAction[] {
+  const { headerActions } = page;
+  if (!Array.isArray(headerActions)) return [];
+  return headerActions.flatMap((entry): MockupHeaderAction[] => {
+    if (!isJsonObject(entry)) return [];
+    const { label, icon, color, variant } = entry;
+    return [
+      {
+        label: isString(label) ? label : "",
+        icon: isString(icon) ? icon : undefined,
+        color: isHeaderColor(color) ? color : undefined,
+        variant: isHeaderVariant(variant) ? variant : undefined,
+      },
+    ];
+  });
+}
+
+/** The header button as the spec writes it: a field that is not set is not written. */
+export function headerActionJson(action: MockupHeaderAction): JsonObject {
+  const written: JsonObject = { label: action.label };
+  if (action.icon) written.icon = action.icon;
+  if (action.color) written.color = action.color;
+  if (action.variant) written.variant = action.variant;
+  return written;
+}
+
+/** The text field `name` of a page, empty when it holds none. */
+export function pageText(page: MockupSpecPage, name: string): string {
+  const value = Object.hasOwn(page, name) ? page[name] : undefined;
+  return isString(value) ? value : "";
 }
 
 /** The fixtures a page holds, keyed as written; none when it holds no object of them. */
@@ -110,15 +172,24 @@ function isMockupSpecPage(
   );
 }
 
-/** The spec `value` holds, or undefined when it is not JSON or not a spec the editor can change. */
+/** `page` with an empty tree when it writes none, as a custom page may. */
+function withTree(page: JsonValue): JsonValue {
+  return isObjectValue(page) && page.tree === undefined
+    ? { ...page, tree: [] }
+    : page;
+}
+
+/**
+ * The spec `value` holds, or undefined when it is not JSON or not a spec the
+ * editor can change. A page writing no tree, a custom page, holds an empty
+ * one.
+ */
 export function parseMockupSpec(
   value: JsonWritable | undefined,
 ): MockupSpecDocument | undefined {
-  if (!isJsonObject(value)) return undefined;
-  const { pages } = value;
-  if (!Array.isArray(pages) || !pages.every(isMockupSpecPage)) {
-    return undefined;
-  }
+  if (!isJsonObject(value) || !Array.isArray(value.pages)) return undefined;
+  const pages = value.pages.map(withTree);
+  if (!pages.every(isMockupSpecPage)) return undefined;
   return { ...value, pages };
 }
 
@@ -191,6 +262,18 @@ export function nodeAt(
 /** The index of the page `id`, or -1. */
 export function pageIndexOf(spec: MockupSpecDocument, id: string): number {
   return spec.pages.findIndex((page) => page.id === id);
+}
+
+/**
+ * The index of the spec page the editing panels work on while `id` is on
+ * screen: its own, else the first page's, since a page the spec lacks, a
+ * table's generated form page, is edited by no panel.
+ */
+export function editedIndex(
+  spec: MockupSpecDocument | undefined,
+  id: string | undefined,
+): number {
+  return spec && id !== undefined ? Math.max(0, pageIndexOf(spec, id)) : 0;
 }
 
 /**

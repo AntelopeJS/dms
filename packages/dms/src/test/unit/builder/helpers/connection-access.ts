@@ -33,7 +33,8 @@ export const READ_ONLY = 'connection "erp" is read-only';
 export const ACCESS_PATH =
   "modules.dms-database.config.externalConnections.erp.access";
 
-export const RAISE_REFUSED = "an agent never raises a connection's access";
+export const RAISE_REFUSED =
+  "builder_configure_project never raises a connection's access";
 
 const ToolAnswerSchema = z.object({
   result: z.object({

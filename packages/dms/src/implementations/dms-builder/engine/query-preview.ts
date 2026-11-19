@@ -43,7 +43,7 @@ import {
 import { findResourceRecord, type ResourceRecord } from "./resource-index";
 import { resourceSchema } from "./resource-schema";
 import { buildResourceStructure } from "./resource-structure";
-import { isPlainObject } from "./value";
+import { isPlainObject } from "./plain-object";
 
 /** How many points a preview will return before it says it stopped early. */
 const PREVIEW_LIMIT = 500;

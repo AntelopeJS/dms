@@ -12,7 +12,7 @@ import { badgeItems } from "@antelopejs/interface-dms/base/internal/column-badge
 import { refuse } from "./mapping-refusal";
 import { words } from "./name-words";
 import { isCurrencyCode, type PriceCurrency } from "./price-currency";
-import { isPlainObject } from "./value";
+import { isPlainObject } from "./plain-object";
 
 const BADGE_MIN_VALUES = 2;
 const BADGE_MAX_VALUES = 10;

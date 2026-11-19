@@ -6,7 +6,13 @@ import { expect } from "chai";
 import { z } from "zod";
 import type { McpTool } from "../../mcp/tool";
 import { MCP_TOOLS } from "../../mcp/tools";
-import { defaultMockupsDir, MISSING_FILE, parseFsError } from "../../mockup";
+import {
+  defaultMockupsDir,
+  MISSING_FILE,
+  mockupNameSchema,
+  parseFsError,
+  removeHistory,
+} from "../../mockup";
 
 const NAME_BYTES = 4;
 
@@ -23,10 +29,15 @@ export function spec(...tree: JsonValue[]): JsonValue {
   return { version: 1, pages: [{ id: "home", title: "Home", tree }] };
 }
 
+const issuesSchema = z.array(
+  z.object({ path: z.string(), message: z.string() }),
+);
+
 /** What `mockup_write_spec` and `mockup_patch_spec` answer. */
 export const writeAnswerSchema = z.object({
   ok: z.boolean(),
-  errors: z.array(z.object({ path: z.string(), message: z.string() })),
+  errors: issuesSchema,
+  warnings: issuesSchema,
 });
 
 /** The tool the MCP server serves under `name`. */
@@ -83,6 +94,7 @@ export interface Workspace {
 
 async function clear(): Promise<void> {
   await rm(join(defaultMockupsDir(), NAME), { recursive: true, force: true });
+  await removeHistory(defaultMockupsDir(), mockupNameSchema.parse(NAME));
   if ((await listing(defaultMockupsDir())).length === 0) {
     await rmdir(defaultMockupsDir()).catch((error: unknown) => {
       if (parseFsError(error).code !== MISSING_FILE) throw error;

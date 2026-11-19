@@ -20,10 +20,24 @@ export const blockAnchorSchema = z
   .strict();
 export type BlockAnchor = z.infer<typeof blockAnchorSchema>;
 
+/** A note on a page as a whole: the page whose id is `page`. A missing page names none. */
+export const pageAnchorSchema = z.object({ page: pageIdSchema }).strict();
+export type PageAnchor = z.infer<typeof pageAnchorSchema>;
+
+/** What a note is on: one block, or one page as a whole. */
+export const noteAnchorSchema = z.union([blockAnchorSchema, pageAnchorSchema]);
+export type NoteAnchor = BlockAnchor | PageAnchor;
+
 /** Where a node is now: the id of its page and its spec JSON pointer. */
 export interface NodeSite {
   page: string;
   path: string;
+}
+
+/** Where a note is now: its page, and the spec JSON pointer of its block when it is on one. */
+export interface NoteSite {
+  page: string;
+  path?: string;
 }
 
 /** The part of a node anchoring reads: its id and its children. A child that is no node leaves an empty slot, so indexes stay the spec's. */
@@ -39,12 +53,17 @@ export interface BlockTree {
   >;
 }
 
-const nodeViewSchema: z.ZodType<TreeNode, z.ZodTypeDef, unknown> = z.lazy(() =>
-  z.object({
-    id: z.string().optional().catch(undefined),
-    children: z.array(nodeViewSchema.optional().catch(undefined)).catch([]),
-  }),
-);
+const nodeViewSchema: z.ZodType<TreeNode, z.ZodTypeDef, unknown> = z.object({
+  id: z.string().optional().catch(undefined),
+  children: z
+    .array(
+      z
+        .lazy(() => nodeViewSchema)
+        .optional()
+        .catch(undefined),
+    )
+    .catch([]),
+});
 
 const treeViewSchema = z.object({
   pages: z
@@ -191,6 +210,20 @@ export function locateBlock(
   const page = found && tree.pages[found.address.page]?.id;
   return found && page !== undefined
     ? { page, path: pointerOf(found.address) }
+    : undefined;
+}
+
+/**
+ * Where the block or the page `anchor` names is in `tree` now. Undefined when
+ * it is gone, or when a block cannot be told apart from another.
+ */
+export function locateAnchor(
+  tree: BlockTree,
+  anchor: NoteAnchor,
+): NoteSite | undefined {
+  if ("block" in anchor) return locateBlock(tree, anchor);
+  return tree.pages.some((page) => page?.id === anchor.page)
+    ? { page: anchor.page }
     : undefined;
 }
 

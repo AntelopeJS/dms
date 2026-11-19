@@ -172,6 +172,51 @@ function rewritesFixtureReferences(): void {
   });
 }
 
+function bindsPeriodScopes(): void {
+  it("binds a PeriodSelector written with no id to the scope its page's cards read", () => {
+    const { issues, pages } = compile(
+      onePage(
+        [
+          {
+            id: "toolbar",
+            type: "PageToolbar",
+            children: [
+              {
+                id: "period",
+                type: "PeriodSelector",
+                options: { defaultPreset: "last-90-days" },
+              },
+            ],
+          },
+          {
+            id: "kpi",
+            type: "KpiCard",
+            options: {
+              title: "Revenue",
+              fetchUrl: "fixture:revenue",
+              periodScope: "page",
+            },
+          },
+        ],
+        { revenue: { value: 1, delta: 2, previousValue: 1 } },
+      ),
+    );
+
+    expect(issues).to.deep.equal([]);
+    expect(pages[0].tree[0].children?.[0].options?.id).to.equal(
+      pages[0].tree[1].options?.periodScope,
+    );
+  });
+
+  it("keeps the scope id a PeriodSelector names", () => {
+    const { pages } = compile(
+      onePage([{ type: "PeriodSelector", options: { id: "sales" } }]),
+    );
+
+    expect(pages[0].tree[0].options?.id).to.equal("sales");
+  });
+}
+
 function keepsSketchPlacement(): void {
   it("keeps a sketch's id, slot and span, so the preview draws it at the layout path its pointer is recorded under", () => {
     const compiled = compile(
@@ -421,6 +466,7 @@ function validatesTablesAndPageIds(): void {
           {
             type: "TableView",
             options: {
+              caption: "Rows",
               fetchUrl: "fixture:rows",
               columns: { name: { type: "no-such-type" } },
             },
@@ -428,6 +474,7 @@ function validatesTablesAndPageIds(): void {
           {
             type: "TableView",
             options: {
+              caption: "Rows",
               fetchUrl: "fixture:rows",
               columns: { name: { type: "string" } },
               labelKey: "missing",
@@ -472,6 +519,7 @@ describe("[unit] mockup compiler", () => {
   compilesShippedSpecs();
   reportsBadBlocks();
   rewritesFixtureReferences();
+  bindsPeriodScopes();
   keepsSketchPlacement();
   refusesRemoteSketchContent();
   checksSketchMarkupAndSiblingIds();

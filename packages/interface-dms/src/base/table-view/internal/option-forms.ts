@@ -40,7 +40,18 @@ export interface FormContainerPages<
  * "Task details"); a page-mode entry also sets the page's URL.
  */
 export type FormContainer =
-  | { type: "drawer"; pages?: FormContainerPages<FormContainerPageTexts> }
+  | {
+      type: "drawer";
+      /**
+       * The edge the drawer slides in from, as a drawer action target's
+       * `direction`: `bottom` (the default), a sheet as wide as the window,
+       * or `right`, a side sheet spanning the window's height, 600px wide
+       * from `lg`, which the user widens by its inner edge. A form opens from
+       * no other edge.
+       */
+      direction?: "bottom" | "right";
+      pages?: FormContainerPages<FormContainerPageTexts>;
+    }
   | {
       type: "modal";
       size?: ModalSize;

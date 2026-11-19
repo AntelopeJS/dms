@@ -26,7 +26,10 @@ import {
   type ValuePrecision,
 } from "../../composables/chart/types";
 import type { DefaultComponentProps } from "../../../../dms-core/app/types/component";
-import { drawableSeries } from "../../build/composables/chart/groupPoints";
+import {
+  drawableSeries,
+  responseSeries,
+} from "../../build/composables/chart/groupPoints";
 
 interface Props extends DefaultComponentProps {
   title: string;
@@ -99,7 +102,9 @@ function localized(entry: ChartSeries): ChartSeries {
 }
 
 const cardSeries = computed<ChartSeries[]>(() =>
-  drawableSeries(data.value?.series ?? []).map(localized),
+  responseSeries(data.value?.series ?? [], processI18n(props.title)).map(
+    localized,
+  ),
 );
 
 const cardComparisonSeries = computed<ChartSeries[]>(() =>

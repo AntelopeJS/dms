@@ -17,9 +17,11 @@ import {
   parsePreviewMessage,
   previewErrorMessage,
   previewLayoutMessage,
+  previewPressMessage,
   previewReadyMessage,
   previewResizeMessage,
   previewSelectMessage,
+  previewSelectPageMessage,
   previewTextMessage,
   type PreviewInboundMessage,
   type PreviewOutboundMessage,
@@ -27,9 +29,11 @@ import {
 import { blockRects, documentRect, fontOf } from "./previewGeometry";
 import {
   PREVIEW_FRAME_ATTRIBUTE,
+  previewHeader,
   previewNavigation,
 } from "./previewNavigation";
 import { useBlockInspector } from "./useBlockInspector";
+import { usePreviewLinks } from "./usePreviewLinks";
 import { applyFixturesOnlyPolicy } from "../../utils/previewFixturesOnly";
 
 /** What the embedded preview shows: `?state=` first, then each message. */
@@ -43,6 +47,8 @@ export interface BlockPreviewEmbed {
   padding: Ref<boolean | undefined>;
   /** Whether a click picks a block for the embedding page instead of reaching it. */
   inspecting: Ref<boolean>;
+  /** The route parameters the last `render` gave the blocks, for their `{{params.X}}` tokens. */
+  params: Ref<Record<string, string> | undefined>;
   /** Tells the embedding page what went wrong. */
   reportError: (message: string) => void;
 }
@@ -75,21 +81,43 @@ function applyTheme(theme: PreviewTheme | undefined): void {
   classes.add(theme);
 }
 
-/**
- * Reports the height of the preview's frame (the sidebar and the blocks) when
- * its layout draws one, else of the blocks alone, on each change.
- */
+/** The custom property the layout's frame reads its floor height from. */
+const MIN_HEIGHT_PROPERTY = "--dms-preview-min-height";
+
+/** The preview's frame (the sidebar and the blocks) when its layout draws one, else the blocks alone. */
+function frameOf(root: HTMLElement): HTMLElement {
+  return root.closest<HTMLElement>(`[${PREVIEW_FRAME_ATTRIBUTE}]`) ?? root;
+}
+
+/** Reports the height of the preview's frame on each change. */
 function observeHeight(
   root: HTMLElement,
   onResize: () => void,
 ): ResizeObserver {
-  const target = root.closest(`[${PREVIEW_FRAME_ATTRIBUTE}]`) ?? root;
+  const target = frameOf(root);
   const observer = new ResizeObserver(() => {
     postToParent(previewResizeMessage(target.getBoundingClientRect().height));
     onResize();
   });
   observer.observe(target);
   return observer;
+}
+
+/**
+ * Calls `onChange` when the blocks under `root` may have moved without the
+ * frame changing height: a block mounting after the first draw (lazy
+ * components, data arriving), or the blocks growing inside a frame held at
+ * its floor height.
+ */
+function observeBlocks(root: HTMLElement, onChange: () => void): () => void {
+  const mutations = new MutationObserver(onChange);
+  mutations.observe(root, { childList: true, subtree: true });
+  const sizes = new ResizeObserver(onChange);
+  sizes.observe(root);
+  return () => {
+    mutations.disconnect();
+    sizes.disconnect();
+  };
 }
 
 function postText(path: string, element: Element): void {
@@ -117,21 +145,42 @@ export function useBlockPreviewEmbed(options: EmbedOptions): BlockPreviewEmbed {
   const padding = ref(options.initialState?.padding);
   const revision = ref(0);
   const inspecting = ref(false);
+  const params = ref<Record<string, string>>();
   let observer: ResizeObserver | undefined;
+  let stopObservingBlocks: (() => void) | undefined;
   let layoutFrame: number | undefined;
+  let lastLayout: string | undefined;
+  let isForced = false;
 
-  function reportLayout(): void {
-    if (!inspecting.value || layoutFrame !== undefined) return;
+  /**
+   * Posts where the blocks sit at the next frame. An observed change posts
+   * only a layout that differs from the last; `force` posts it anyway, for a
+   * render the parent waits to see drawn.
+   */
+  function reportLayout(force = false): void {
+    if (!inspecting.value) return;
+    isForced ||= force;
+    if (layoutFrame !== undefined) return;
     layoutFrame = window.requestAnimationFrame(() => {
       layoutFrame = undefined;
-      if (inspecting.value) postToParent(previewLayoutMessage(blockRects()));
+      const forced = isForced;
+      isForced = false;
+      if (!inspecting.value) return;
+      const blocks = blockRects();
+      const layout = JSON.stringify(blocks);
+      if (!forced && layout === lastLayout) return;
+      lastLayout = layout;
+      postToParent(previewLayoutMessage(blocks));
     });
   }
 
+  const links = usePreviewLinks({ inspecting, post: postToParent });
   useBlockInspector({
     enabled: inspecting,
     onSelect: (path) => postToParent(previewSelectMessage(path)),
+    onSelectPage: () => postToParent(previewSelectPageMessage()),
     onText: postText,
+    onFollow: links.followAnchor,
   });
 
   const handlers: Record<
@@ -146,6 +195,8 @@ export function useBlockPreviewEmbed(options: EmbedOptions): BlockPreviewEmbed {
       transparent.value = message.transparent ?? transparent.value;
       padding.value = message.padding ?? padding.value;
       previewNavigation.value = message.navigation;
+      previewHeader.value = message.header;
+      params.value = message.params;
       revision.value += 1;
     },
     theme: (message) => {
@@ -156,7 +207,22 @@ export function useBlockPreviewEmbed(options: EmbedOptions): BlockPreviewEmbed {
       if (message.type !== "inspect") return;
       inspecting.value = message.enabled;
     },
+    "min-height": (message) => {
+      if (message.type !== "min-height" || !options.root.value) return;
+      frameOf(options.root.value).style.setProperty(
+        MIN_HEIGHT_PROPERTY,
+        `${message.height}px`,
+      );
+    },
   };
+
+  function onObserved(): void {
+    reportLayout();
+  }
+
+  function onPress(event: PointerEvent): void {
+    postToParent(previewPressMessage(event.button));
+  }
 
   function onMessage(event: MessageEvent): void {
     if (event.source !== window.parent) return;
@@ -165,8 +231,8 @@ export function useBlockPreviewEmbed(options: EmbedOptions): BlockPreviewEmbed {
   }
 
   watch(theme, applyTheme);
-  watch(revision, () => nextTick(reportLayout));
-  watch(inspecting, reportLayout);
+  watch(revision, () => nextTick(() => reportLayout(true)));
+  watch(inspecting, () => reportLayout(true));
   watch(locale, (next) => next && options.setLocale(next), { immediate: true });
 
   onMounted(() => {
@@ -175,17 +241,21 @@ export function useBlockPreviewEmbed(options: EmbedOptions): BlockPreviewEmbed {
     }
     applyTheme(theme.value);
     window.addEventListener("message", onMessage);
-    window.addEventListener("resize", reportLayout);
+    window.addEventListener("resize", onObserved);
+    window.addEventListener("pointerdown", onPress, true);
     if (options.root.value) {
-      observer = observeHeight(options.root.value, reportLayout);
+      observer = observeHeight(options.root.value, onObserved);
+      stopObservingBlocks = observeBlocks(options.root.value, onObserved);
     }
     postToParent(previewReadyMessage());
   });
   onBeforeUnmount(() => {
     window.removeEventListener("message", onMessage);
-    window.removeEventListener("resize", reportLayout);
+    window.removeEventListener("resize", onObserved);
+    window.removeEventListener("pointerdown", onPress, true);
     if (layoutFrame !== undefined) window.cancelAnimationFrame(layoutFrame);
     observer?.disconnect();
+    stopObservingBlocks?.();
   });
 
   return {
@@ -194,6 +264,7 @@ export function useBlockPreviewEmbed(options: EmbedOptions): BlockPreviewEmbed {
     transparent,
     padding,
     inspecting,
+    params,
     reportError: (message) => postToParent(previewErrorMessage(message)),
   };
 }

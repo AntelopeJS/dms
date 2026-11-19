@@ -30,6 +30,7 @@ import {
 import type { MockupEdit } from "../../utils/mockupEdit";
 import {
   nodeAt,
+  nodePointer,
   pageFixtures,
   parentPointer,
   parseNodePointer,
@@ -62,11 +63,21 @@ interface EditingOptions {
   revision: ComputedRef<number | undefined>;
 }
 
-/** Edit mode's state: what is selected, dragged and edited in place, and the actions on it. */
+/** A block armed from the catalog, waiting for a click on the page to drop it. */
+export interface MockupPlacing {
+  type: string;
+  /** The block's name in the catalog, shown beside the pointer. */
+  name: string;
+}
+
+/** Edit mode's state: what is selected, dragged, armed and edited in place, and the actions on it. */
 export interface MockupEditing {
   selection: Ref<string | undefined>;
   rects: ShallowRef<PreviewBlockRect[]>;
   drag: Ref<MockupDrag | undefined>;
+  /** The block armed for a click on the page; none while nothing is. */
+  placing: Ref<MockupPlacing | undefined>;
+  /** Where a drag, or the armed block, would land now. */
   drop: Ref<MockupDropTarget | undefined>;
   text: Ref<MockupInlineText | undefined>;
   /** Where the selected block is drawn; undefined until the preview draws the edited spec. */
@@ -82,9 +93,20 @@ export interface MockupEditing {
   settle: () => void;
   selectPath: (layoutPath: string) => void;
   moveBy: (delta: number) => void;
+  /** Selects the block `delta` places along its siblings; stays put at either end. */
+  selectSibling: (delta: number) => void;
   duplicate: () => void;
   remove: () => void;
-  addBlock: (type: string) => void;
+  /** Arms a block of the catalog: the next click on the page drops it there. */
+  armPlacing: (type: string) => void;
+  /** Disarms the armed block; false when none was. */
+  cancelPlacing: () => boolean;
+  /** Follows the pointer over the page while a block is armed; undefined when it left. */
+  hoverPlacing: (point: { x: number; y: number } | undefined) => void;
+  /** Drops the armed block where the page was clicked. */
+  placeAt: (point: { x: number; y: number }) => void;
+  /** Inserts the armed block right after the selection; false when none is armed or selected. */
+  insertPlaced: () => boolean;
   replaceWith: (pointer: string, type: string) => void;
   dragOver: (point: { x: number; y: number }) => void;
   dropAt: (point: { x: number; y: number }) => void;
@@ -133,26 +155,90 @@ function useDragging(core: EditingCore, rects: ShallowRef<PreviewBlockRect[]>) {
     };
   }
 
-  function dragOver(point: { x: number; y: number }): void {
+  function targetAt(
+    current: MockupDrag | undefined,
+    point: { x: number; y: number } | undefined,
+  ): MockupDropTarget | undefined {
     const context = dropContext();
-    drop.value =
-      context && drag.value
-        ? dropTarget(context, drag.value, point)
-        : undefined;
+    return context && current && point
+      ? dropTarget(context, current, point)
+      : undefined;
   }
 
-  function dropAt(point: { x: number; y: number }): void {
-    const current = drag.value;
+  function dragOver(point: { x: number; y: number }): void {
+    drop.value = targetAt(drag.value, point);
+  }
+
+  function land(
+    current: MockupDrag | undefined,
+    point: { x: number; y: number },
+  ): void {
     const context = dropContext();
     const page = pageId();
-    drag.value = undefined;
     drop.value = undefined;
     if (!current || !context || !page) return;
     const target = dropTarget(context, current, point);
     edit(dropEdit(current, target, page, () => newNode(current.type)));
   }
 
-  return { drag, drop, dragOver, dropAt };
+  function dropAt(point: { x: number; y: number }): void {
+    const current = drag.value;
+    drag.value = undefined;
+    land(current, point);
+  }
+
+  return { drag, drop, dragOver, dropAt, targetAt, land };
+}
+
+/** A block armed from the catalog: the drop it would make follows the pointer, a click makes it. */
+function usePlacing(
+  core: EditingCore,
+  dragging: ReturnType<typeof useDragging>,
+  addBlock: (type: string) => void,
+) {
+  const { catalog, selection } = core;
+  const { drop, targetAt, land } = dragging;
+  const placing = ref<MockupPlacing>();
+
+  function armPlacing(type: string): void {
+    const block = catalog.byType.value.get(type);
+    placing.value = { type, name: block?.meta.name ?? type };
+  }
+
+  function cancelPlacing(): boolean {
+    const wasArmed = placing.value !== undefined;
+    placing.value = undefined;
+    drop.value = undefined;
+    return wasArmed;
+  }
+
+  function hoverPlacing(point: { x: number; y: number } | undefined): void {
+    const armed = placing.value;
+    drop.value = targetAt(armed && { kind: "add", type: armed.type }, point);
+  }
+
+  function placeAt(point: { x: number; y: number }): void {
+    const armed = placing.value;
+    placing.value = undefined;
+    land(armed && { kind: "add", type: armed.type }, point);
+  }
+
+  function insertPlaced(): boolean {
+    const armed = placing.value;
+    if (!armed || !selection.value) return false;
+    cancelPlacing();
+    addBlock(armed.type);
+    return true;
+  }
+
+  return {
+    placing,
+    armPlacing,
+    cancelPlacing,
+    hoverPlacing,
+    placeAt,
+    insertPlaced,
+  };
 }
 
 function useInlineText(core: EditingCore) {
@@ -246,6 +332,54 @@ function selectedBlock(
   return { rect, label: node.type ?? node.componentName ?? "" };
 }
 
+/** The actions on the selected block: move it, select its neighbour, duplicate it, remove it. */
+function useNodeActions(
+  core: EditingCore,
+  position: ComputedRef<{ index: number; count: number } | undefined>,
+) {
+  const { selection, edit } = core;
+
+  function moveBy(delta: number): void {
+    const from = selection.value;
+    const at = position.value;
+    const index = at && at.index + delta;
+    const parent = from ? parentPointer(from) : undefined;
+    if (!from || !at || index === undefined || parent === undefined) return;
+    if (index < 0 || index >= at.count) return;
+    edit({ kind: "moveNode", from, parent, index });
+  }
+
+  function selectSibling(delta: number): void {
+    const address = selection.value && parseNodePointer(selection.value);
+    const at = position.value;
+    if (!address || !at) return;
+    const index = at.index + delta;
+    if (index < 0 || index >= at.count) return;
+    const steps = [...address.steps.slice(0, -1), index];
+    selection.value = nodePointer({ ...address, steps });
+  }
+
+  return {
+    moveBy,
+    selectSibling,
+    canMoveUp: computed(() => (position.value?.index ?? 0) > 0),
+    canMoveDown: computed(() => {
+      const at = position.value;
+      return !!at && at.index < at.count - 1;
+    }),
+    duplicate: () => {
+      if (selection.value) {
+        edit({ kind: "duplicateNode", pointer: selection.value });
+      }
+    },
+    remove: () => {
+      if (selection.value) {
+        edit({ kind: "removeNode", pointer: selection.value });
+      }
+    },
+  };
+}
+
 /** Wires edit mode: every action becomes one reducer edit, whose result picks the selection. */
 export function useMockupEditing(options: EditingOptions): MockupEditing {
   const { editor, catalog } = options;
@@ -264,7 +398,8 @@ export function useMockupEditing(options: EditingOptions): MockupEditing {
     newNode,
     pageId,
   };
-  const { drag, drop, dragOver, dropAt } = useDragging(core, rects);
+  const dragging = useDragging(core, rects);
+  const { drag, drop, dragOver, dropAt } = dragging;
   const { text, openText, commitText } = useInlineText(core);
   const selectedNode = computed(() =>
     spec.value && selection.value
@@ -288,7 +423,7 @@ export function useMockupEditing(options: EditingOptions): MockupEditing {
 
   function edit(next: MockupEdit, coalesceKey?: string): void {
     const result = editor.apply(next, coalesceKey);
-    if (!result) return;
+    if (!result || next.kind === "setTitle") return;
     if (next.kind !== "setOption" && next.kind !== "setText") markMoved();
     if (result.page !== undefined) {
       options.openPage(result.page);
@@ -302,15 +437,6 @@ export function useMockupEditing(options: EditingOptions): MockupEditing {
     if (editor.isPending.value) return;
     const page = options.page.value;
     selection.value = page ? specPointerFor(page, layoutPath) : undefined;
-  }
-
-  function moveBy(delta: number): void {
-    const from = selection.value;
-    const at = position.value;
-    if (!from || !at) return;
-    const parent = parentPointer(from);
-    if (parent === undefined) return;
-    edit({ kind: "moveNode", from, parent, index: at.index + delta });
   }
 
   function newNode(type: string): MockupNewBlock {
@@ -338,6 +464,9 @@ export function useMockupEditing(options: EditingOptions): MockupEditing {
     edit({ kind: "insertNode", page, ...at, ...newNode(type) });
   }
 
+  const placement = usePlacing(core, dragging, addBlock);
+  const nodeActions = useNodeActions(core, position);
+
   const selected = computed(() =>
     selectedBlock(core, rects, selectedNode, movedAt),
   );
@@ -349,27 +478,13 @@ export function useMockupEditing(options: EditingOptions): MockupEditing {
     drop,
     text,
     selected,
-    canMoveUp: computed(() => (position.value?.index ?? 0) > 0),
-    canMoveDown: computed(() => {
-      const at = position.value;
-      return !!at && at.index < at.count - 1;
-    }),
     edit,
     setLayout,
     markMoved,
     settle: () => (movedAt.value = undefined),
     selectPath,
-    moveBy,
-    duplicate: () => {
-      if (selection.value) {
-        edit({ kind: "duplicateNode", pointer: selection.value });
-      }
-    },
-    remove: () => {
-      if (selection.value)
-        edit({ kind: "removeNode", pointer: selection.value });
-    },
-    addBlock,
+    ...nodeActions,
+    ...placement,
     replaceWith: (pointer, type) =>
       edit({ kind: "replaceNode", pointer, ...newNode(type) }),
     dragOver,

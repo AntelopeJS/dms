@@ -26,43 +26,18 @@
             }
           ]
         },
-        "orders": [
-          {
-            "_id": "o1",
-            "customer": "Acme Logistics",
-            "total": 1240,
-            "status": "paid",
-            "placedAt": "2026-01-11T09:12:00.000Z"
-          },
-          {
-            "_id": "o2",
-            "customer": "Brightline Foods",
-            "total": 380,
-            "status": "pending",
-            "placedAt": "2026-01-11T08:40:00.000Z"
-          },
-          {
-            "_id": "o3",
-            "customer": "Corvid Studio",
-            "total": 2950,
-            "status": "paid",
-            "placedAt": "2026-01-10T17:05:00.000Z"
-          },
-          {
-            "_id": "o4",
-            "customer": "Delta Marine",
-            "total": 610,
-            "status": "refunded",
-            "placedAt": "2026-01-10T11:30:00.000Z"
-          },
-          {
-            "_id": "o5",
-            "customer": "Evergreen Supply",
-            "total": 1875,
-            "status": "paid",
-            "placedAt": "2026-01-09T15:48:00.000Z"
+        "orders": {
+          "$generate": {
+            "rows": 8,
+            "fields": {
+              "_id": "id",
+              "customer": "company",
+              "total": { "money": [120, 3000] },
+              "status": ["paid", "pending", "refunded"],
+              "placedAt": "date"
+            }
           }
-        ]
+        }
       },
       "tree": [
         {

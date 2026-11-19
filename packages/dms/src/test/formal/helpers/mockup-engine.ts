@@ -2,8 +2,8 @@ import fs from "node:fs";
 import path from "node:path";
 import {
   defaultMockupsDir,
+  endMockupEngine,
   startMockupEngine,
-  stopMockupEngine,
 } from "../../../mockup";
 
 /** What a suite that runs the mockup engine can do about the mockups the tools write. */
@@ -39,7 +39,7 @@ export function useMockupEngine(): MockupEngine {
     startMockupEngine();
   });
   after(() => {
-    stopMockupEngine();
+    endMockupEngine();
     clear();
   });
   return { clear };

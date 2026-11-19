@@ -13,7 +13,26 @@ import { useSidebarState } from "./sidebarState";
 import { useKeyboardPlatform } from "#dms-ui/app/composables/global/keyboardPlatform";
 import { useMediaQuery } from "@vueuse/core";
 import DmsSidebarUserMenu from "./SidebarUserMenu.vue";
+import MockupSidebarMenu from "./MockupSidebarMenu.vue";
+import BlockPreviewSketch from "#dms-ui/app/entries/components/block-preview/BlockPreviewSketch";
 import { useInstalledModuleCount } from "../../../composables/page/useInstalledModules";
+import type { PreviewNavigation } from "#dms-ui/app/entries/utils/blockPreview";
+import { PREVIEW_NAVIGATION_ATTRIBUTE } from "#dms-ui/app/entries/composables/block-preview/previewNavigation";
+
+/**
+ * The dashboard's sidebar: the brand, the sidebar widgets, the search, the
+ * menu and the account. Given a mockup's `navigation`, its menu is the
+ * mockup's own sections, none of the app's entries or favorites, and the
+ * mockup's widget sketches follow the app's widgets; everything else
+ * is drawn as in the dashboard and acts on nothing. With `lockedCollapsed` it
+ * is the real sidebar fixed to its icon rail: no fold control, the size and
+ * the mobile menu ignored, and the dashboard's persisted collapsed state read
+ * and written by no one.
+ */
+const props = defineProps<{
+  navigation?: PreviewNavigation;
+  lockedCollapsed?: boolean;
+}>();
 
 const MODULES_PATH = "/modules";
 
@@ -30,12 +49,27 @@ const SEARCH_SHORTCUT_KEYS = ["meta", "k"];
 const DESKTOP_QUERY = "(min-width: 1024px)";
 
 const SIDEBAR_UI = { body: "*:shrink-0" };
+/** A mockup's sidebar takes its frame's height and never holds it up, so the frame shrinks with its page. */
+const MOCKUP_SIDEBAR_UI = { ...SIDEBAR_UI, root: "min-h-0" };
 
 const { t } = useI18n();
 const appConfig = useDmsAppConfig();
 const { processI18n } = useTranslation();
 const route = useDmsRoute();
-const { open: sidebarOpen, collapsed: sidebarCollapsed } = useSidebarState();
+const { open: dashboardOpen, collapsed: dashboardCollapsed } =
+  useSidebarState();
+const sidebarOpen = computed({
+  get: () => dashboardOpen.value && !props.lockedCollapsed,
+  set: (open) => {
+    dashboardOpen.value = open;
+  },
+});
+const sidebarCollapsed = computed({
+  get: () => props.lockedCollapsed || dashboardCollapsed.value,
+  set: (collapsed) => {
+    if (!props.lockedCollapsed) dashboardCollapsed.value = collapsed;
+  },
+});
 const { formatShortcut } = useKeyboardPlatform();
 
 const searchShortcutHint = computed(() => formatShortcut(SEARCH_SHORTCUT_KEYS));
@@ -53,7 +87,7 @@ watch(isDesktop, (desktop) => {
 });
 
 watch(
-  () => route.path,
+  () => [route.path, props.navigation?.active],
   () => closeMobileSidebar(),
 );
 
@@ -64,7 +98,8 @@ function closeOnLinkClick(event: MouseEvent): void {
   }
 }
 
-const isRail = (collapsed: boolean): boolean => collapsed && !sidebarOpen.value;
+const isRail = (collapsed: boolean): boolean =>
+  props.lockedCollapsed || (collapsed && !sidebarOpen.value);
 
 onMounted(() => window.addEventListener("keydown", closeMobileSidebar));
 onBeforeUnmount(() =>
@@ -75,8 +110,18 @@ const siteLayout = useSiteLayout();
 
 const favoritePages = useFavoritePages();
 
-favoritePages.cleanupInvalidFavorites((path) =>
-  isFavoritePathValid(path, siteLayout.findMatchingRoute),
+const isMockup = computed(() => props.navigation !== undefined);
+
+if (!isMockup.value) {
+  favoritePages.cleanupInvalidFavorites((path) =>
+    isFavoritePathValid(path, siteLayout.findMatchingRoute),
+  );
+}
+
+/** What a mockup's sidebar puts on everything it draws but its own pages: drawn, never acting. */
+const chromeAttrs = computed(() => (isMockup.value ? { inert: true } : {}));
+const mockupAttrs = computed(() =>
+  isMockup.value ? { [PREVIEW_NAVIGATION_ATTRIBUTE]: "" } : {},
 );
 
 const isOwner = useIsOwner();
@@ -205,7 +250,14 @@ watch(
   { immediate: true },
 );
 
-const moduleCount = useInstalledModuleCount();
+const moduleCount = isMockup.value
+  ? computed(() => 0)
+  : useInstalledModuleCount();
+
+/** A mockup's sidebar is the spec's own menu: the app's favorites stay out of it. */
+const shownFavoriteItems = computed(() =>
+  isMockup.value ? [] : favoriteItems.value,
+);
 
 const footerItems = computed((): NavigationMenuItem[] => {
   const result: NavigationMenuItem[] = [];
@@ -249,21 +301,23 @@ const footerItems = computed((): NavigationMenuItem[] => {
     aria-hidden="true"
     tabindex="-1"
     class="bg-elevated/75 fixed inset-0 z-40 lg:hidden"
+    v-bind="mockupAttrs"
     @click="closeMobileSidebar()"
   />
 
   <UDashboardSidebar
     v-model:collapsed="sidebarCollapsed"
     data-dms-persistent-sidebar
+    v-bind="mockupAttrs"
     :open="false"
     :default-size="SIDEBAR_DEFAULT_WIDTH_PX"
     :min-size="SIDEBAR_MIN_WIDTH_PX"
     :max-size="SIDEBAR_MAX_WIDTH_PX"
     :collapsed-size="SIDEBAR_COLLAPSED_WIDTH_PX"
     :toggle="false"
-    :ui="SIDEBAR_UI"
+    :ui="isMockup ? MOCKUP_SIDEBAR_UI : SIDEBAR_UI"
     collapsible
-    resizable
+    :resizable="!isMockup && !lockedCollapsed"
     class="bg-(--dms-bg-sidebar)"
     :class="{
       'fixed inset-y-0 start-0 z-50 flex w-[280px] max-w-[85vw] shadow-xl':
@@ -273,6 +327,7 @@ const footerItems = computed((): NavigationMenuItem[] => {
   >
     <template #header="{ collapsed: sidebarRail }">
       <DmsLink
+        v-bind="chromeAttrs"
         :to="homepage"
         class="flex w-full items-center"
         :class="{ 'justify-center': isRail(sidebarRail) }"
@@ -306,10 +361,12 @@ const footerItems = computed((): NavigationMenuItem[] => {
         :is="widget.component"
         v-for="widget in widgetsAboveSearchBar"
         :key="widget.id"
+        v-bind="chromeAttrs"
         :collapsed="isRail(sidebarRail)"
       />
 
       <UDashboardSearchButton
+        v-bind="chromeAttrs"
         :collapsed="isRail(sidebarRail)"
         :label="t('commandPalette.button')"
         :kbds="[searchShortcutHint]"
@@ -347,17 +404,35 @@ const footerItems = computed((): NavigationMenuItem[] => {
         :is="widget.component"
         v-for="widget in widgetsBelowSearchBar"
         :key="widget.id"
+        v-bind="chromeAttrs"
         :collapsed="isRail(sidebarRail)"
       />
 
+      <template v-if="!isRail(sidebarRail)">
+        <div
+          v-for="widget in navigation?.widgets"
+          :key="widget.id"
+          :data-dms-preview-sidebar-widget="widget.id"
+        >
+          <BlockPreviewSketch :sketch="widget" />
+        </div>
+      </template>
+
       <DmsNavigationMenu
-        v-if="favoriteItems.length > 0"
+        v-if="shownFavoriteItems.length > 0"
         :collapsed="isRail(sidebarRail)"
-        :items="favoriteItems"
+        :items="shownFavoriteItems"
         orientation="vertical"
       />
 
+      <MockupSidebarMenu
+        v-if="navigation"
+        v-model:open="openCategories"
+        :navigation="navigation"
+        :collapsed="isRail(sidebarRail)"
+      />
       <DmsNavigationMenu
+        v-else
         v-model="openCategories"
         :collapsed="isRail(sidebarRail)"
         :items="items"
@@ -368,16 +443,20 @@ const footerItems = computed((): NavigationMenuItem[] => {
     <template #footer="{ collapsed: sidebarRail }">
       <DmsNavigationMenu
         v-if="footerItems.length > 0"
+        v-bind="chromeAttrs"
         :collapsed="isRail(sidebarRail)"
         :items="footerItems"
         orientation="vertical"
         class="w-full"
       />
-      <DmsSidebarUserMenu :collapsed="isRail(sidebarRail)" />
+      <DmsSidebarUserMenu
+        v-bind="chromeAttrs"
+        :collapsed="isRail(sidebarRail)"
+      />
     </template>
   </UDashboardSidebar>
 
-  <DmsDashboardSearch />
+  <DmsDashboardSearch v-if="!navigation" />
 </template>
 
 <style>

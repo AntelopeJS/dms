@@ -14,6 +14,10 @@ const HELD = /^builder_delete_page was not run: no one has confirmed it yet\./;
 const SESSIONLESS =
   /^builder_delete_page was not run: the MCP client sent no session/;
 
+const RefusalSchema = z.object({
+  error: z.object({ code: z.number(), message: z.string() }),
+});
+
 const ToolsAnswerSchema = z.object({
   id: z.number(),
   result: z.object({ tools: z.array(z.object({ name: z.string() })) }),
@@ -113,6 +117,56 @@ describe("[integration] mcp route", () => {
     });
     expect(response.status).to.equal(400);
     expect(response.data).to.have.nested.property("error.code", -32700);
+  });
+});
+
+describe("[integration] mcp route access", () => {
+  const client = createClient();
+
+  function bearer(): string {
+    return `Bearer ${readBridgeConfig().token}`;
+  }
+
+  it("serves a session whose bridge asked for safe access as safe on a full server, and never widens a request past it", async () => {
+    async function names(access: string): Promise<string[]> {
+      const listed = await client.post(
+        ROUTE,
+        { jsonrpc: "2.0", id: 4, method: "tools/list" },
+        { headers: { authorization: bearer(), "mcp-client-access": access } },
+      );
+      return ToolsAnswerSchema.parse(listed.data).result.tools.map(
+        ({ name }) => name,
+      );
+    }
+    const safe = await names("safe");
+    expect(safe).to.include("builder_catalog");
+    expect(safe).to.not.include.members([
+      "builder_configure_project",
+      "builder_delete_resource",
+      "builder_set_connection_access",
+    ]);
+    expect(await names("full")).to.include("builder_configure_project");
+    expect(await names("root")).to.include("builder_configure_project");
+
+    const refused = await client.post(
+      ROUTE,
+      {
+        jsonrpc: "2.0",
+        id: 5,
+        method: "tools/call",
+        params: { name: "builder_configure_project", arguments: {} },
+      },
+      {
+        headers: {
+          authorization: bearer(),
+          "mcp-session-id": "route-safe-session",
+          "mcp-client-access": "safe",
+        },
+      },
+    );
+    expect(RefusalSchema.parse(refused.data).error.message).to.contain(
+      "is not available in Safe mode",
+    );
   });
 });
 

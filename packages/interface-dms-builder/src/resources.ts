@@ -17,11 +17,62 @@ export interface ResourceFiles {
 }
 
 /**
+ * A cell display of the TableView, as `@Column({ display })` takes it: the id
+ * of one of the DMS's `DefaultDisplays` (`identity`, `two_line`,
+ * `status_pill`, …) and the options of its class. It is written as
+ * `new DefaultDisplays.<Class>(options)`.
+ */
+export interface CellDisplay {
+  /** The display's id, as `@RegisterDisplay` names it. */
+  type: string;
+  /** The options of the display's class, checked against them before a write. */
+  options?: ConfigObject;
+}
+
+/** How the TableView presents a column, as the `@Column` options of the same names take it. */
+export interface ColumnPresentation {
+  /** The column's help text. */
+  description?: string;
+  /** The id of the `@ColumnGroup` the column's form field joins. */
+  group?: string;
+  /** Whether the grid shows the column before the person picks columns. Default true. */
+  isVisible?: boolean;
+  /** Default width of the grid column, in px. */
+  size?: number;
+  /** Wrap grid cell content without a line limit. */
+  cellWrap?: boolean;
+  /** How table cells draw the value, in place of its data type's rendering. */
+  display?: CellDisplay;
+}
+
+/**
+ * A patch of a field's aspects: each one sent replaces the one written, and a
+ * presentation option sent as `null` is removed.
+ */
+export type FieldAspectsPatch = Omit<
+  Partial<FieldAspects>,
+  keyof ColumnPresentation
+> & {
+  [Key in keyof ColumnPresentation]?: ColumnPresentation[Key] | null;
+};
+
+/** The title and layout of a group of form fields, as `@ColumnGroup(id, config)` takes them. */
+export interface ColumnGroupSpec {
+  label: string;
+  description?: string;
+  orientation?: "horizontal" | "vertical";
+  order?: number;
+}
+
+/** The column groups to write on a resource, by id: `null` removes the group's `@ColumnGroup`. */
+export type ColumnGroupsPatch = Record<string, ColumnGroupSpec | null>;
+
+/**
  * The semantic aspects of a resource field. The engine maps these to the paired
  * `@Field`/`@Index` (Table) and `@Select`/`@Listable`/`@Column`/`@Access`/…
  * (DataAPI) decorator stacks; the consumer never touches raw decorators.
  */
-export interface FieldAspects {
+export interface FieldAspects extends ColumnPresentation {
   /** The field's DataType value, e.g. `{ $dataType: "string" }`. */
   dataType: DataTypeValue;
   /** Column header label; defaults to the field name. */
@@ -185,6 +236,8 @@ export interface ResourceStructure {
   schema: string;
   files: ResourceFiles;
   fields: ResourceFieldStructure[];
+  /** The `@ColumnGroup` decorators of the DataAPI controller, by id, when it has any. */
+  columnGroups?: Record<string, ColumnGroupSpec>;
   /**
    * The exposed DataAPI routes when the resource serves a subset; omitted when it
    * serves the full set (`TableViewRoutes.All`). Best-effort — absent for a
@@ -266,7 +319,20 @@ export const ConfigureField =
   InterfaceFunction<
     (
       path: FieldPath,
-      patch: Partial<FieldAspects>,
+      patch: FieldAspectsPatch,
+      opts?: MutationOpts,
+    ) => Promise<OpResult>
+  >();
+/**
+ * Write or remove the class-level `@ColumnGroup` decorators of a resource's
+ * DataAPI controller. A group sent replaces the one of the same id; `null`
+ * removes it. Groups left out stay as they are.
+ */
+export const ConfigureColumnGroups =
+  InterfaceFunction<
+    (
+      ref: ResourceRef,
+      groups: ColumnGroupsPatch,
       opts?: MutationOpts,
     ) => Promise<OpResult>
   >();

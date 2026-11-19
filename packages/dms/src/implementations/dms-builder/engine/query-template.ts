@@ -22,7 +22,7 @@ import {
   isString,
   type Scalar,
 } from "./scalar-guards";
-import { isPlainObject } from "./value";
+import { isPlainObject } from "./plain-object";
 
 /** The parameters a query template is given, as `AddQueryInput` carries them. */
 export type QueryParams = NonNullable<AddQueryInput["params"]>;

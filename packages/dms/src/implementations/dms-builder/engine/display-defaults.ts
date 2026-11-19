@@ -4,6 +4,7 @@ import type {
 } from "@antelopejs/interface-database-catalog";
 import type {
   ColumnDisplay,
+  ColumnPresentation,
   MapResourcesInput,
   MappedResource,
   ProposedResource,
@@ -32,6 +33,8 @@ export type DisplayDefaults =
       displays: ReadonlyMap<string, ColumnDisplay>;
       /** The label each column of the controller shows. */
       labels: ReadonlyMap<string, string>;
+      /** How the controller presents each column: its cell display, group, width and help. */
+      presentations: ReadonlyMap<string, ColumnPresentation>;
       /** The column of the page's tabs, when they are the ones the mapping wrote from a badge. */
       tabs?: TabsChoice;
     }
@@ -147,12 +150,13 @@ export async function displayDefaultsOf(
   for (const resource of input.resources) {
     const record = mapped.get(resource.relation);
     if (record) {
-      const { displays, labels } = currentColumns(record);
+      const { displays, labels, presentations } = currentColumns(record);
       const column = tabsColumnOf(pageOf(input.connection, record), displays);
       defaults.set(resource.relation, {
         kind: "mapped",
         displays,
         labels,
+        presentations,
         tabs: column === undefined ? undefined : { column },
       });
       continue;

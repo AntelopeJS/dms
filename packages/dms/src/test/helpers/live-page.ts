@@ -1,5 +1,6 @@
 import type {
   BlockNode,
+  CategorySummary,
   ConfigObject,
   OpResult,
   PageStructure,
@@ -88,6 +89,7 @@ function found<Data>(data: Data): OpResult<Data> {
 export function stubPages(
   structures: PageStructure[],
   resources: ResourceStructure[] = [BOOK_RESOURCE],
+  categories: CategorySummary[] = [],
 ): StubPages {
   const byRef = new Map(structures.map((s) => [s.page.ref, s]));
   const reads: string[] = [];
@@ -103,8 +105,14 @@ export function stubPages(
           displayName: page.displayName,
           category: page.category,
           filepath: page.filepath,
+          ...(page.order !== undefined && { order: page.order }),
+          ...(page.section !== undefined && { section: page.section }),
         })),
       );
+    },
+    listCategories: () => {
+      reads.push("listCategories");
+      return Promise.resolve(categories);
     },
     pageStructure: (ref) => {
       reads.push(`page ${ref}`);

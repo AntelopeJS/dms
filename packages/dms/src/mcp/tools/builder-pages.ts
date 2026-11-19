@@ -8,6 +8,7 @@ import {
   DeleteCategory,
   DeletePage,
   GetPageStructure,
+  ListCategories,
   ListPages,
   MoveBlock,
   RefreshSourceIndex,
@@ -35,11 +36,17 @@ const listPages = defineTool({
   name: "builder_list_pages",
   title: "List Builder pages",
   description: withEscalationNote(
-    "Lists all builder-editable pages (route, id, category, file).",
+    "Answers { pages, categories }. `pages`: every builder-editable page with its route (`ref`), id, category, file and `section`, the ref of the sidebar section it shows under. `categories`: every category with its ref, parent, title, icon and order; a sidebar section (a header over its pages, such as the built-in Pages, ref `pages`) has `section: true`, any other category folds its pages away under its entry.",
   ),
   effect: "read",
   input: z.object({}),
-  run: async () => opResult(await ListPages()),
+  run: async () =>
+    textResult(
+      JSON.stringify({
+        pages: await ListPages(),
+        categories: await ListCategories(),
+      }),
+    ),
 });
 
 const pageStructure = defineTool({
@@ -243,16 +250,30 @@ const createCategory = defineTool({
   name: "builder_create_category",
   title: "Create category",
   description: withEscalationNote(
-    "Creates a navigation category (optionally under a parent category).",
+    "Creates a navigation category under a parent category (Pages, ref `pages`, by default), which folds its pages away under its entry. With `section: true` it creates a sidebar section instead: a header at the top of the sidebar, beside Pages, listing its pages, as a mockup's `categories` draw. Answers its `ref`: `<parent>.<name>` for a category, `<name>` for a section. Create pages in either by passing that ref as their `category`.",
   ),
   effect: "builder",
   input: z.object({
     name: z.string(),
     displayName: z.string(),
-    parent: z.string().optional(),
+    parent: z
+      .string()
+      .optional()
+      .describe("The parent category's ref; a section takes none."),
     icon: z.string().optional(),
-    order: z.number().optional(),
+    order: z
+      .number()
+      .optional()
+      .describe(
+        "Sorts it among its siblings, lowest first. A section sits among Pages (1), Modules (2) and Settings (3).",
+      ),
     module: TARGET_MODULE,
+    section: z
+      .boolean()
+      .optional()
+      .describe(
+        "Writes a sidebar section (RootCategory) at the top of the sidebar instead of a category folded under a parent.",
+      ),
   }),
   run: async (input) => opResult(await CreateCategory(input)),
 });
@@ -261,10 +282,22 @@ const configureCategory = defineTool({
   name: "builder_configure_category",
   title: "Configure category",
   description: withEscalationNote(
-    "Updates a category's metadata (displayName, icon, order).",
+    "Updates a category's metadata (displayName, icon, order). `section: true` turns a category directly under Pages into a sidebar section and `section: false` a section into a category under Pages: its pages and routes stay, its ref changes, and the answer's `ref` is the new one.",
   ),
   effect: "builder",
-  input: z.object({ ref: z.string(), patch: JsonObjectSchema }),
+  input: z.object({
+    ref: z.string(),
+    patch: JsonObjectSchema.and(
+      z.object({
+        section: z
+          .boolean()
+          .optional()
+          .describe(
+            "true makes a category under Pages a sidebar section; false makes a section a category under Pages.",
+          ),
+      }),
+    ),
+  }),
   run: async ({ ref, patch }) =>
     containsExprSentinel.parse(patch)
       ? exprRefusal()

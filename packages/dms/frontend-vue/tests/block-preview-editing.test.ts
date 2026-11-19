@@ -43,9 +43,13 @@ const TREE = [
 ];
 const NAVIGATION = {
   title: "Order desk",
-  items: [
-    { id: "orders", label: "Orders", icon: "i-ph-house" },
-    { id: "settings", label: "Settings" },
+  sections: [
+    {
+      items: [
+        { id: "orders", label: "Orders", icon: "i-ph-house" },
+        { id: "settings", label: "Settings" },
+      ],
+    },
   ],
   active: "orders",
 };
@@ -190,8 +194,14 @@ describe("editing messages", () => {
         navigation,
       });
     expect(render(NAVIGATION)).toMatchObject({ navigation: NAVIGATION });
-    expect(render({ items: [{ id: "a", label: 3 }] })).toBeUndefined();
-    expect(render({ items: "orders" })).toBeUndefined();
+    expect(
+      render({ sections: [{ items: [{ id: "a", label: 3 }] }] }),
+    ).toBeUndefined();
+    expect(render({ sections: [{ items: "orders" }] })).toBeUndefined();
+    expect(
+      render({ sections: [{ category: { id: "sales" }, items: [] }] }),
+    ).toBeUndefined();
+    expect(render({ items: [] })).toBeUndefined();
   });
 
   it("rebuilds layout, text and navigate reports from checked fields only (fails on a NaN box or a missing font)", () => {

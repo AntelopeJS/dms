@@ -1,12 +1,61 @@
 import type { PreviewSketch } from "./blockPreview";
+import { MOCKUP_VIEWER_PATH } from "./mockupLinks";
 
 /**
- * How a sketch is drawn. The frame is the security boundary: an empty
- * `sandbox` (no scripts, opaque origin, no forms, popups or top navigation)
- * and a CSP that loads nothing but inline styles and `data:` images and fonts.
+ * How a sketch is drawn. The frame is the security boundary: a `sandbox`
+ * with no scripts, an opaque origin, no forms or popups, and top navigation
+ * only for a sketch linking to a page ({@link sketchSandbox}), and a CSP that
+ * loads nothing but inline styles and `data:` images and fonts.
  */
 export const SKETCH_CSP =
   "default-src 'none'; style-src 'unsafe-inline'; img-src data:; font-src data:";
+
+/**
+ * A link to a page of the mockup as the compiler writes it in a sketch's
+ * markup, and only so: `href` first, holding the viewer's path, then
+ * `target="_top"`. The frame's `<base>` is `about:srcdoc`, so the path is
+ * drawn as an absolute URL.
+ */
+const PAGE_LINK = `<a href="(${MOCKUP_VIEWER_PATH}\\?[^"]*)" target="_top"`;
+const HOLDS_PAGE_LINK = new RegExp(PAGE_LINK);
+const EVERY_PAGE_LINK = new RegExp(PAGE_LINK, "g");
+
+/** A route token of a link's row, `{{params.<name>}}`, which the preview fills. */
+const ROUTE_TOKEN = /\{\{params\.(\w+)\}\}/g;
+
+/** What a sketch's page links are drawn against: the dashboard's origin, and the route parameters the page shows. */
+export interface SketchLinkContext {
+  origin: string;
+  params?: Readonly<Record<string, string>>;
+}
+
+/**
+ * The frame's `sandbox`: empty, except for a sketch linking to a page of the
+ * mockup, which may navigate the window holding the dashboard when the user
+ * clicks a link. Never scripts, never the dashboard's origin.
+ */
+export function sketchSandbox(html: string): string {
+  return HOLDS_PAGE_LINK.test(html)
+    ? "allow-top-navigation-by-user-activation"
+    : "";
+}
+
+/**
+ * `html` with each link to a page of the mockup drawn absolute, against
+ * `links.origin`, its route tokens filled from `links.params`, URL-encoded.
+ * A token with no parameter is left empty, and the page shows its sample row.
+ */
+export function resolveSketchLinks(
+  html: string,
+  links: SketchLinkContext,
+): string {
+  return html.replace(EVERY_PAGE_LINK, (_link, path: string) => {
+    const filled = path.replace(ROUTE_TOKEN, (_token, name: string) =>
+      encodeURIComponent(links.params?.[name] ?? ""),
+    );
+    return `<a href="${links.origin}${filled}" target="_top"`;
+  });
+}
 
 export type SketchScheme = "light" | "dark";
 
@@ -149,11 +198,13 @@ export function currentSketchScheme(): SketchScheme {
  * so unchecked markup can navigate the frame away. Its `<base>` makes an
  * `#anchor` resolve inside the frame's own `about:srcdoc` document, where a
  * srcdoc document would otherwise resolve it against the dashboard's URL and
- * load the dashboard into the frame.
+ * load the dashboard into the frame. With `links`, the sketch's links to the
+ * pages of the mockup are drawn absolute ({@link resolveSketchLinks}).
  */
 export function buildSketchDocument(
   sketch: PreviewSketch,
   tokensCss: string,
+  links?: SketchLinkContext,
 ): string {
   return [
     "<!doctype html><html><head>",
@@ -162,6 +213,6 @@ export function buildSketchDocument(
     '<meta charset="utf-8">',
     `<style>${tokensCss}\n${SKETCH_BASE_CSS}</style>`,
     `<style>${sketch.css ?? ""}</style>`,
-    `</head><body>${sketch.html}</body></html>`,
+    `</head><body>${links ? resolveSketchLinks(sketch.html, links) : sketch.html}</body></html>`,
   ].join("");
 }

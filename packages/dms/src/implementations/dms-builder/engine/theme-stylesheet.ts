@@ -184,8 +184,34 @@ function emitBlock(selector: string, lines: string[]): string {
   return `${selector} {\n${lines.map((line) => `${INDENT}${line}`).join("\n")}\n}`;
 }
 
+const NUMBER_RUN = /(\d+)/;
+
+/**
+ * Names by code unit, a run of digits by its value, so the shades of a palette
+ * read `-50`, `-100`, `-200`, … `-950` and not `-100`, `-200`, … `-50`.
+ */
+function compareNames(left: string, right: string): number {
+  const leftParts = left.split(NUMBER_RUN);
+  const rightParts = right.split(NUMBER_RUN);
+  for (
+    let index = 0;
+    index < Math.min(leftParts.length, rightParts.length);
+    index++
+  ) {
+    const one = leftParts[index] ?? "";
+    const other = rightParts[index] ?? "";
+    if (one === other) continue;
+    const isNumber = index % 2 === 1;
+    if (isNumber && Number(one) !== Number(other)) {
+      return Number(one) - Number(other);
+    }
+    return one < other ? -1 : 1;
+  }
+  return leftParts.length - rightParts.length;
+}
+
 function emitRule(selector: string, variables: ThemeVariables): string {
-  const names = Object.keys(variables).sort();
+  const names = Object.keys(variables).sort(compareNames);
   if (names.length === 0) {
     return "";
   }
@@ -197,7 +223,7 @@ function emitRule(selector: string, variables: ThemeVariables): string {
 
 /**
  * The `@font-face` rules first, as given, then one rule per non-empty set,
- * its declarations sorted by name.
+ * its declarations sorted by name, digit runs by value.
  */
 export function emitStylesheet(
   variables: ThemeVariableSets,

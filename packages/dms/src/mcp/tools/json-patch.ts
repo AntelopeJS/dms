@@ -1,6 +1,7 @@
 import { isDeepStrictEqual } from "node:util";
 import type { JsonValue } from "@antelopejs/interface-dms/json";
 import { z } from "zod";
+import { jsonPointer } from "../../mockup";
 import { JsonValueSchema } from "../json";
 
 const pointer = z.string().regex(/^(?:\/[^/]*)*$/, "must be a JSON pointer");
@@ -179,4 +180,48 @@ export function applyPatch(
     }
   }
   return { ok: true, document: patched };
+}
+
+/**
+ * What reading a pointer gives: the value there, or why it leads nowhere:
+ * `parent` is the pointer of the deepest value that exists on the way, and
+ * `members` what that value holds (object keys, or the indexes of an array;
+ * none for a value without members).
+ */
+export type PointerRead =
+  | { ok: true; value: JsonValue }
+  | { ok: false; parent: string; members: string[]; message: string };
+
+function membersOf(node: JsonValue): string[] {
+  if (Array.isArray(node)) return node.map((_, index) => String(index));
+  return isContainer(node) ? Object.keys(node) : [];
+}
+
+/** Reads the value at the RFC 6901 pointer `path` of `document`, without changing it. */
+export function readPointer(document: JsonValue, path: string): PointerRead {
+  if (path !== "" && !path.startsWith("/")) {
+    return {
+      ok: false,
+      parent: "",
+      members: membersOf(document),
+      message: `"${path}" is not a JSON pointer: it is empty or starts with "/"`,
+    };
+  }
+  const tokens = tokensOf(path);
+  let node = document;
+  const reached: string[] = [];
+  for (const token of tokens) {
+    try {
+      node = memberOf(containerOf(node), token);
+    } catch (error) {
+      return {
+        ok: false,
+        parent: jsonPointer(reached),
+        members: membersOf(node),
+        message: error instanceof Error ? error.message : String(error),
+      };
+    }
+    reached.push(token);
+  }
+  return { ok: true, value: node };
 }

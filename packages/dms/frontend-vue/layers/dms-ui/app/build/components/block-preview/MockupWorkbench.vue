@@ -1,80 +1,68 @@
 <script setup lang="ts">
-import {
-  computed,
-  onBeforeUnmount,
-  onMounted,
-  ref,
-  useTemplateRef,
-  watch,
-} from "vue";
-import { useResizeObserver } from "@vueuse/core";
+import { computed, ref } from "vue";
 import { useMockupCatalog } from "../../composables/block-preview/useMockupCatalog";
-import { useMockupComments } from "../../composables/block-preview/useMockupComments";
+import { useMockupDocument } from "../../composables/block-preview/useMockupDocument";
 import { useMockupEditing } from "../../composables/block-preview/useMockupEditing";
-import { useMockupHandoff } from "../../composables/block-preview/useMockupHandoff";
+import { useMockupGridLayout } from "../../composables/block-preview/useMockupGridLayout";
+import { useMockupOverview } from "../../composables/block-preview/useMockupOverview";
+import { useMockupPageFrame } from "../../composables/block-preview/useMockupPageFrame";
+import { useMockupPanels } from "../../composables/block-preview/useMockupPanels";
+import { useMockupPins } from "../../composables/block-preview/useMockupPins";
+import { useMockupRealData } from "../../composables/block-preview/useMockupRealData";
+import { useMockupSectionWrites } from "../../composables/block-preview/useMockupSectionWrites";
 import { useMockupSession } from "../../composables/block-preview/useMockupSession";
-import {
-  useMockupSpec,
-  type MockupSpecNotice,
-} from "../../composables/block-preview/useMockupSpec";
-import { usePreviewFrame } from "../../composables/block-preview/usePreviewFrame";
-import { isPreviewTheme } from "../../utils/blockPreview";
-import {
-  previewInspectMessage,
-  previewRenderMessage,
-  type PreviewNavigation,
-} from "../../utils/blockPreviewMessages";
-import {
-  MOCKUP_WIDTHS,
-  type MockupDataMode,
-  type MockupMode,
-  type MockupWidth,
-} from "../../utils/mockup";
-import { blockName, nodeLabel, outlineRows } from "../../utils/mockupOutline";
-import { layoutPathOf, nodeAt, pageIndexOf } from "../../utils/mockupSpec";
-import {
-  FIXTURES_ONLY_QUERY,
-  FIXTURES_ONLY_VALUE,
-} from "../../utils/previewFixturesOnly";
-import { currentSketchScheme } from "../../utils/sketch";
-import MockupBlockCatalog from "./MockupBlockCatalog.vue";
-import MockupCommentPanel from "./MockupCommentPanel.vue";
+import { useMockupToolModes } from "../../composables/block-preview/useMockupToolModes";
+import { useMockupViewerHandoff } from "../../composables/block-preview/useMockupViewerHandoff";
+import { useMockupViewerPages } from "../../composables/block-preview/useMockupViewerPages";
+import { useMockupViewerShortcuts } from "../../composables/block-preview/useMockupViewerShortcuts";
+import type { MockupDataMode, MockupWidth } from "../../utils/mockup";
+import { mockupNavigation } from "../../utils/mockupFrame";
+import { outlineRows } from "../../utils/mockupOutline";
+import { specCategories } from "../../utils/mockupSections";
 import MockupEditOverlay from "./MockupEditOverlay.vue";
 import MockupEditPanel from "./MockupEditPanel.vue";
+import MockupHistoryPanel from "./MockupHistoryPanel.vue";
 import MockupInspector from "./MockupInspector.vue";
+import MockupOverview from "./MockupOverview.vue";
+import MockupPinLayer from "./MockupPinLayer.vue";
+import MockupPlacementChip from "./MockupPlacementChip.vue";
 import MockupPromptModal from "./MockupPromptModal.vue";
+import MockupReplaceModal from "./MockupReplaceModal.vue";
+import MockupSectionDeleteModal from "./MockupSectionDeleteModal.vue";
+import MockupShortcutsModal from "./MockupShortcutsModal.vue";
+import MockupCanvasChrome from "./MockupCanvasChrome.vue";
+import MockupStatusBanners from "./MockupStatusBanners.vue";
 import MockupTopBar from "./MockupTopBar.vue";
 
 /**
- * One mockup, live, in two modes. Comment leaves notes on the blocks for the
- * AI. Edit changes the spec in place: select, add, move, duplicate, remove
- * and restyle blocks, edit pages, each edit written to `spec.json` at once,
- * with undo and redo. The page is drawn by the real block preview in an
- * iframe, inside the sidebar of the mockup's pages; data wiring is never
- * edited here, but handed to the AI. A page converted from a live page reads
- * its live routes while Real data is on, which it is unless the developer
- * turns it off; any other page reads its fixtures alone.
+ * One mockup, live. A click selects a block to edit the spec in place:
+ * add, move, duplicate, remove and restyle blocks, edit pages, each edit
+ * written to `spec.json` at once, with undo and redo. The Comment tool drops
+ * a pin with a note for the AI on a block or on the page; pins are dragged
+ * to another spot at any time, and "Resolve with AI" hands the open ones to
+ * the assistant. The page is drawn by the real block preview in an iframe,
+ * inside the sidebar of the mockup's pages; data wiring is never edited here,
+ * but handed to the AI. A page converted from a live page reads its live
+ * routes while Real data is on, which it is unless the developer turns it
+ * off; any other page reads its fixtures alone. Only the open comments show
+ * on the current spec. The History panel lists the versions of the spec, with
+ * how many comments were pinned on each; one picked is drawn read-only in
+ * place of the current spec, with the comments pinned on it, resolved or not,
+ * until the viewer goes back to it or restores it. The Overview is the
+ * mockup's home: it lays every page of what is on screen side by side, to
+ * look at and comment on, never to edit, and shows while no page is open. A
+ * page opened from it shows a ✕, which, as Escape once nothing else takes it,
+ * goes back to the Overview where it was. Preview hands every click to the
+ * page, as the dashboard runs it; Escape leaves it. Each page opened, from
+ * the Overview or a link, is a new entry of the browser's history.
  */
 const props = defineProps<{
   name: string;
-  initialPage?: string;
   initialWidth?: MockupWidth;
-  initialMode?: MockupMode;
   initialData?: MockupDataMode;
 }>();
 
-const PREVIEW_PATH = "/dms-preview";
-const FRAME_MIN_HEIGHT_PX = 240;
-const HOME_ICON = "i-ph-house-light";
-const EDITABLE_TAGS = new Set(["INPUT", "TEXTAREA", "SELECT"]);
-const PROMPT_KEYS = {
-  "connect-data": "dms.mockup.prompt_connect_data",
-  "custom-zone": "dms.mockup.prompt_custom_zone",
-} as const;
-
 const { t } = useI18n();
-const toast = useToast();
-const { presentError } = useApiErrorPresenter();
 const { $authFetch } = useAuthFetch();
 const config = useDmsRuntimeConfig();
 
@@ -83,76 +71,52 @@ const session = useMockupSession({
   baseURL: config.public.dms?.baseURL?.replace(/\/+$/, "") ?? "",
   authFetch: $authFetch,
 });
-const { state, annotations, isConnected, hasRequestFailed } = session;
-
-function notify(notice: MockupSpecNotice): void {
-  editing.settle();
-  if (notice.kind === "adopted") {
-    toast.add({ color: "info", title: t("dms.mockup.adopted") });
-  } else if (notice.kind === "refused") {
-    const issue = `${notice.issue.path}: ${notice.issue.message}`;
-    toast.add({
-      color: "warning",
-      title: t("dms.mockup.refused"),
-      description: notice.discarded
-        ? `${issue} ${t("dms.mockup.refused_discarded")}`
-        : issue,
-    });
-  } else {
-    presentError(notice.error, { fallbackKey: "dms.mockup.save_failed" });
-  }
-}
-
-const editor = useMockupSpec({
+const { state, isConnected, hasRequestFailed } = session;
+const { editor, history } = useMockupDocument({
   name: props.name,
-  authFetch: $authFetch,
   state,
-  onNotice: notify,
+  onNotice: () => editing.settle(),
 });
 const catalog = useMockupCatalog($authFetch);
-const handoff = useMockupHandoff({
-  mockup: props.name,
-  buildCommand: (name, target) =>
-    target
-      ? t("dms.mockup.prompt_build_page", { name, ref: target.pageRef })
-      : t("dms.mockup.prompt_build", { name }),
-});
+const panels = useMockupPanels();
 
-const previewElement = useTemplateRef<HTMLIFrameElement>("preview");
-const canvasElement = useTemplateRef<HTMLElement>("canvas");
-const requestedPage = ref(props.initialPage);
 const width = ref<MockupWidth>(props.initialWidth ?? "desktop");
-const mode = ref<MockupMode>(props.initialMode ?? "edit");
-const dataChoice = ref<MockupDataMode | undefined>(props.initialData);
 const replacing = ref<string>();
+const showsShortcuts = ref(false);
 
-const pages = computed(() => state.value?.pages ?? []);
-const issues = computed(() => state.value?.issues ?? []);
-const currentPage = computed(
-  () =>
-    pages.value.find((entry) => entry.id === requestedPage.value) ??
-    pages.value[0],
-);
 const spec = editor.spec;
-const pageIndex = computed(() =>
-  Math.max(
-    0,
-    spec.value ? pageIndexOf(spec.value, currentPage.value?.id ?? "") : 0,
-  ),
+const {
+  shown,
+  isReadOnly,
+  title,
+  pages,
+  categories,
+  issues,
+  requestedPage,
+  record,
+  open: openPage,
+  currentPage,
+  isOverview,
+  pageIndex,
+  isVirtual,
+  close: closePage,
+} = useMockupViewerPages({ name: props.name, state, history, spec });
+const { choice, hasRealData, realData, previewSrc } = useMockupRealData(
+  currentPage,
+  pages,
+  isOverview,
+  props.initialData,
 );
-const title = computed(() => state.value?.title || props.name);
-const hasRealData = computed(() => currentPage.value?.realTree !== undefined);
-/** On by default for a page converted from a live page; the developer's choice wins. */
-const realData = computed({
-  get: () =>
-    hasRealData.value &&
-    (dataChoice.value
-      ? dataChoice.value === "real"
-      : currentPage.value?.livePage !== undefined),
-  set: (isOn: boolean) => {
-    dataChoice.value = isOn ? "real" : "sample";
-  },
-});
+const { handoff, runs, handOff, build, resolveComments } =
+  useMockupViewerHandoff({
+    name: props.name,
+    title: () => title.value,
+    spec,
+    currentPage,
+    pages,
+    catalog,
+    isOverview,
+  });
 
 const editing = useMockupEditing({
   editor,
@@ -162,348 +126,304 @@ const editing = useMockupEditing({
   openPage: (id) => (requestedPage.value = id),
   revision: computed(() => state.value?.revision),
 });
-const comments = useMockupComments({ session, page: currentPage, pages });
+const overview = useMockupOverview({
+  name: props.name,
+  isOpen: isOverview,
+  pages,
+  categories,
+});
+const pins = useMockupPins({
+  session,
+  canvases: computed(() => {
+    if (isOverview.value) return overview.canvases.value;
+    const page = currentPage.value;
+    if (!page) return [];
+    return [
+      {
+        page,
+        blocks: editing.rects.value,
+        width: frameWidth.value,
+        height: frameHeight.value,
+        states: sketchStates.of(page.id),
+      },
+    ];
+  }),
+  toFrame: (client) =>
+    isOverview.value ? overview.toFrame(client) : toFrame(client),
+  previewed: computed(() => history.previewing.value?.annotations),
+});
+const { isPreviewing, mode } = useMockupToolModes({
+  editing,
+  pins,
+  isOverview,
+  post: (message) => bridge.post(message),
+  focusCanvas: () => focusCanvas(),
+});
 
-const isEditing = computed(() => mode.value === "edit" && !!spec.value);
 const rows = computed(() =>
   spec.value
     ? outlineRows(spec.value, pageIndex.value, catalog.byType.value)
     : [],
 );
-const navigation = computed(
-  (): PreviewNavigation => ({
+/** The editing panels show on the current spec's page view alone: the Overview, Preview, a past version and a generated form page edit nothing. */
+const canEdit = computed(
+  () =>
+    !!spec.value &&
+    !isReadOnly.value &&
+    !isOverview.value &&
+    !isPreviewing.value &&
+    !isVirtual.value,
+);
+const navigation = computed(() =>
+  mockupNavigation({
     title: title.value,
-    items: pages.value.map((entry, index) => ({
-      id: entry.id,
-      label: entry.title,
-      icon: index === 0 ? HOME_ICON : undefined,
-    })),
+    categories: categories.value,
+    pages: pages.value,
     active: currentPage.value?.id,
+    editable: canEdit.value,
+    widgets: shown.value?.sidebar?.widgets,
   }),
 );
-
-/**
- * The preview frame's document: on fixtures, one that refuses every live
- * route. Switching Real data replaces the frame, so no tree is drawn in the
- * document of the other mode.
- */
-const previewSrc = computed(() =>
-  realData.value
-    ? PREVIEW_PATH
-    : `${PREVIEW_PATH}?${FIXTURES_ONLY_QUERY}=${FIXTURES_ONLY_VALUE}`,
-);
-
-function syncPreview(): void {
-  const page = currentPage.value;
-  if (!page) return;
-  bridge.post(
-    previewRenderMessage({
-      tree: realData.value && page.realTree ? page.realTree : page.tree,
-      theme: isPreviewTheme(page.options.theme)
-        ? page.options.theme
-        : currentSketchScheme(),
-      locale: page.options.locale,
-      padding: page.options.padding ?? true,
-      navigation: navigation.value,
-    }),
-  );
-  bridge.post(previewInspectMessage(true));
-}
-
-function onSelect(layoutPath: string): void {
-  if (mode.value === "comment") {
-    comments.open(layoutPath);
-    return;
-  }
-  editing.selectPath(layoutPath);
-  canvasElement.value?.focus({ preventScroll: true });
-}
-
-const bridge = usePreviewFrame({
-  frame: previewElement,
-  onReady: syncPreview,
-  onSelect,
-  onLayout: (blocks) => editing.setLayout(blocks),
-  onText: (message) => {
-    if (mode.value === "edit") editing.openText(message);
-  },
-  onNavigate: (id) => (requestedPage.value = id),
+const sections = useMockupSectionWrites({
+  spec,
+  canEdit,
+  edit: editing.edit,
+});
+const shortcuts = useMockupViewerShortcuts({
+  editor,
+  editing,
+  pins,
+  panels,
+  history,
+  overview,
+  isOverview,
+  isReadOnly,
+  isPreviewing,
+  showsShortcuts,
+  closePage,
 });
 
-watch([state, () => currentPage.value?.id, realData], syncPreview);
-watch(mode, () => {
-  comments.close();
-  editing.text.value = undefined;
+const {
+  bridge,
+  sketchStates,
+  focusCanvas,
+  frameWidth,
+  frameHeight,
+  scale,
+  previewStyle,
+  boxStyle,
+  stageStyle,
+  toFrame,
+} = useMockupPageFrame({
+  editing,
+  width,
+  shown,
+  pages,
+  currentPage,
+  record,
+  realData,
+  navigation,
+  isPreviewing,
+  isPending: editor.isPending,
+  openPage,
+  onSectionEdit: (edit) => sections.write(edit),
+  onEscape: () =>
+    shortcuts.run(new KeyboardEvent("keydown", { key: "Escape" })),
 });
 
-function blockOf(pointer: string, source: "connect-data" | "custom-zone") {
-  const node = spec.value ? nodeAt(spec.value, pointer) : undefined;
-  const page = currentPage.value;
-  if (!node || !page || !spec.value) return undefined;
-  const label = nodeLabel(node, catalog.byType.value);
-  const values = {
-    mockup: props.name,
-    page: page.title,
-    block: blockName(node, catalog.byType.value),
-    label,
-  };
-  return {
-    source,
-    prompt: t(PROMPT_KEYS[source], values),
-    block: {
-      mockup: props.name,
-      page: page.id,
-      path: layoutPathOf(spec.value, pointer) ?? "",
-      type: node.type,
-    },
-  };
-}
-
-function handOff(
-  pointer: string,
-  source: "connect-data" | "custom-zone",
-): void {
-  const request = blockOf(pointer, source);
-  if (request) handoff.request(request);
-}
-
-function build(): void {
-  const livePage = currentPage.value?.livePage;
-  handoff.request({
-    source: "build",
-    ...(livePage && { target: { pageRef: livePage.ref } }),
-  });
-}
-
-function closeReplacement(open: boolean): void {
-  if (!open) replacing.value = undefined;
-}
-
-function pickReplacement(type: string): void {
-  const pointer = replacing.value;
-  replacing.value = undefined;
-  if (pointer) editing.replaceWith(pointer, type);
-}
-
-/** Whether a key pressed on `target` belongs to it: a field, or a dialog over the editor. */
-function undo(): void {
-  if (!editor.canUndo.value) return;
-  editor.undo();
-  editing.markMoved();
-}
-
-function redo(): void {
-  if (!editor.canRedo.value) return;
-  editor.redo();
-  editing.markMoved();
-}
-
-function isEditable(target: EventTarget | null): boolean {
-  return (
-    target instanceof HTMLElement &&
-    (target.isContentEditable ||
-      EDITABLE_TAGS.has(target.tagName) ||
-      target.closest("[role=dialog]") !== null)
-  );
-}
-
-function onKeydown(event: KeyboardEvent): void {
-  if (isEditable(event.target) || !spec.value) return;
-  const key = event.key.toLowerCase();
-  const isCommand = event.metaKey || event.ctrlKey;
-  if (isCommand && (key === "z" || key === "y")) {
-    event.preventDefault();
-    if (key === "y" || event.shiftKey) redo();
-    else undo();
-    return;
-  }
-  if (mode.value !== "edit" || !editing.selection.value) return;
-  if (key === "delete" || key === "backspace") {
-    event.preventDefault();
-    editing.remove();
-  } else if (key === "escape") {
-    editing.selection.value = undefined;
-  }
-}
-
-onMounted(() => window.addEventListener("keydown", onKeydown));
-onBeforeUnmount(() => window.removeEventListener("keydown", onKeydown));
-
-const canvasWidth = ref(0);
-useResizeObserver(canvasElement, ([entry]) => {
-  canvasWidth.value = entry?.contentRect.width ?? 0;
+const { showsLeft, showsInspector, gridClass } = useMockupGridLayout({
+  panels,
+  canEdit,
+  isHistoryOpen: history.isOpen,
 });
-const frameWidth = computed(() => MOCKUP_WIDTHS[width.value]);
-const frameHeight = computed(() =>
-  Math.max(bridge.height.value ?? 0, FRAME_MIN_HEIGHT_PX),
-);
-/** Draws the frame at its true width, shrunk to fit the canvas: the page lays out as on that screen. */
-const scale = computed(() =>
-  canvasWidth.value > 0 ? Math.min(1, canvasWidth.value / frameWidth.value) : 1,
-);
-const previewStyle = computed(() => ({
-  width: `${frameWidth.value}px`,
-  height: `${frameHeight.value}px`,
-}));
-const boxStyle = computed(() => ({
-  width: `${frameWidth.value * scale.value}px`,
-  height: `${frameHeight.value * scale.value}px`,
-}));
-const stageStyle = computed(() => ({
-  ...previewStyle.value,
-  transform: `scale(${scale.value})`,
-  transformOrigin: "top left",
-}));
 </script>
 
 <template>
   <div class="bg-default flex h-dvh flex-col" data-dms-mockup-viewer>
     <MockupTopBar
       v-model:width="width"
-      v-model:mode="mode"
       v-model:real-data="realData"
+      v-model:placing="pins.isPlacing.value"
+      v-model:previewing="isPreviewing"
       :has-real-data="hasRealData"
       :title="title"
-      :can-undo="editor.canUndo.value"
-      :can-redo="editor.canRedo.value"
+      :can-undo="editor.canUndo.value && canEdit"
+      :can-redo="editor.canRedo.value && canEdit"
+      :is-overview="isOverview"
       :issue-count="issues.length"
       :is-connected="isConnected"
-      @undo="undo"
-      @redo="redo"
+      :panels="panels.open.value"
+      :is-history-open="history.isOpen.value"
+      :is-building="runs.isRunning('build')"
+      @history="history.toggle"
+      @undo="shortcuts.undo"
+      @redo="shortcuts.redo"
       @build="build"
+      @panel="panels.toggle"
+      @rename="(next) => editing.edit({ kind: 'setTitle', title: next })"
+      @shortcuts="showsShortcuts = true"
     />
-    <UAlert
-      v-if="comments.notice.value"
-      color="warning"
-      variant="subtle"
-      icon="i-ph-warning"
-      :title="t(`dms.mockup.${comments.notice.value}`)"
+    <MockupStatusBanners
+      :has-save-failed="editor.hasFailed.value"
+      :has-request-failed="hasRequestFailed"
+      :history="history"
     />
-    <UAlert
-      v-if="editor.hasFailed.value"
-      color="error"
-      variant="subtle"
-      icon="i-ph-warning-circle"
-      :title="t('dms.mockup.save_retrying')"
-      data-dms-mockup-save-retrying
-    />
-    <UAlert
-      v-if="hasRequestFailed"
-      color="error"
-      variant="subtle"
-      icon="i-ph-warning-circle"
-      :title="t('dms.mockup.request_failed')"
-    />
-    <div
-      class="grid min-h-0 flex-1"
-      :class="
-        isEditing
-          ? 'grid-cols-[16rem_minmax(0,1fr)_20rem]'
-          : 'grid-cols-[minmax(0,1fr)_20rem]'
-      "
-    >
+    <div class="grid min-h-0 flex-1" :class="gridClass">
       <MockupEditPanel
-        v-if="isEditing && spec"
+        v-if="showsLeft && spec"
         :blocks="catalog.blocks.value"
         :has-catalog-failed="catalog.hasFailed.value"
         :rows="rows"
         :selection="editing.selection.value"
         :pages="spec.pages"
+        :categories="specCategories(spec)"
         :current-page="currentPage?.id"
-        @add="editing.addBlock"
+        @arm="editing.armPlacing"
         @drag-start="(type) => (editing.drag.value = { kind: 'add', type })"
         @drag-end="editing.drag.value = undefined"
         @select="(pointer) => (editing.selection.value = pointer)"
         @open="(id) => (requestedPage = id)"
         @edit="editing.edit"
+        @section="sections.write"
       />
-      <main
-        ref="canvas"
-        tabindex="-1"
-        class="bg-muted min-h-0 overflow-auto p-6 outline-none"
-        data-dms-mockup-canvas
-      >
-        <p v-if="!pages.length" class="text-muted text-sm">
-          {{ t("dms.mockup.waiting") }}
-        </p>
-        <div v-show="pages.length" class="mx-auto" :style="boxStyle">
-          <div class="relative" :style="stageStyle">
-            <iframe
-              ref="preview"
-              :key="previewSrc"
-              class="bg-default ring-default block rounded-md ring-1"
-              :src="previewSrc"
-              :title="t('dms.mockup.frame_title')"
-              :style="previewStyle"
+      <div class="relative min-h-0 min-w-0">
+        <main
+          v-show="!isOverview"
+          ref="canvas"
+          tabindex="-1"
+          class="bg-muted absolute inset-0 overflow-auto p-6 pe-20 outline-none"
+          data-dms-mockup-canvas
+        >
+          <div
+            v-if="!pages.length"
+            class="flex h-full flex-col items-center justify-center gap-2"
+            data-dms-mockup-empty
+          >
+            <UIcon
+              name="i-ph-sparkle"
+              class="text-primary size-6 animate-pulse motion-reduce:animate-none"
             />
-            <MockupEditOverlay
-              v-if="isEditing"
-              :selected="editing.selected.value"
-              :can-move-up="editing.canMoveUp.value"
-              :can-move-down="editing.canMoveDown.value"
-              :is-dragging="!!editing.drag.value"
-              :drop-line="editing.drop.value?.line"
-              :text="editing.text.value"
-              :scale="scale"
-              @move-up="editing.moveBy(-1)"
-              @move-down="editing.moveBy(1)"
-              @duplicate="editing.duplicate"
-              @remove="editing.remove"
-              @drag-start="
-                editing.drag.value = editing.selection.value
-                  ? {
-                      kind: 'move',
-                      pointer: editing.selection.value,
-                      type: editing.selected.value?.label ?? '',
-                    }
-                  : undefined
-              "
-              @drag-end="editing.drag.value = undefined"
-              @drag-over="editing.dragOver"
-              @drag-leave="editing.drop.value = undefined"
-              @drop="editing.dropAt"
-              @text-commit="editing.commitText"
-              @text-cancel="editing.text.value = undefined"
-            />
+            <p class="text-muted text-sm">
+              {{ state ? t("dms.mockup.writing") : t("dms.mockup.waiting") }}
+            </p>
           </div>
-        </div>
-      </main>
+          <div v-show="pages.length" class="mx-auto" :style="boxStyle">
+            <div ref="stage" class="relative" :style="stageStyle">
+              <iframe
+                ref="preview"
+                :key="previewSrc"
+                class="bg-default ring-default block rounded-md ring-1"
+                :src="previewSrc"
+                :title="t('dms.mockup.frame_title')"
+                :style="previewStyle"
+              />
+              <MockupEditOverlay
+                v-if="spec && !isReadOnly && !isPreviewing && !isVirtual"
+                :selected="editing.selected.value"
+                :can-move-up="editing.canMoveUp.value"
+                :can-move-down="editing.canMoveDown.value"
+                :is-dragging="!!editing.drag.value"
+                :is-placing="!!editing.placing.value"
+                :drop-line="editing.drop.value?.line"
+                :text="editing.text.value"
+                :scale="scale"
+                @move-up="editing.moveBy(-1)"
+                @move-down="editing.moveBy(1)"
+                @duplicate="editing.duplicate"
+                @remove="editing.remove"
+                @drag-start="
+                  editing.drag.value = editing.selection.value
+                    ? {
+                        kind: 'move',
+                        pointer: editing.selection.value,
+                        type: editing.selected.value?.label ?? '',
+                      }
+                    : undefined
+                "
+                @drag-end="editing.drag.value = undefined"
+                @drag-over="editing.dragOver"
+                @drag-leave="editing.drop.value = undefined"
+                @drop="editing.dropAt"
+                @place-hover="editing.hoverPlacing"
+                @place="editing.placeAt"
+                @text-commit="editing.commitText"
+                @text-cancel="editing.text.value = undefined"
+              />
+              <MockupPinLayer
+                v-if="currentPage && !isVirtual && !isOverview && !isPreviewing"
+                :pins="pins"
+                :page="currentPage.id"
+                :scale="scale"
+              />
+            </div>
+          </div>
+        </main>
+        <MockupOverview
+          v-if="isOverview"
+          class="absolute inset-0"
+          :overview="overview"
+          :pins="pins"
+          :pages="pages"
+          :categories="categories"
+          :navigation-title="title"
+          :data-mode="choice"
+          @open="openPage"
+        />
+        <MockupCanvasChrome
+          :has-open-page="!isOverview && pages.length > 0"
+          :is-locked="isReadOnly || isPreviewing"
+          :pins="pins"
+          :mode="mode"
+          :is-unclaimed="handoff.isUnclaimed.value"
+          :is-resolving="runs.isRunning('resolve-comments')"
+          @close="closePage"
+          @resolve="resolveComments"
+        />
+      </div>
+      <MockupHistoryPanel
+        v-if="history.isOpen.value"
+        :versions="history.versions.value"
+        :previewing="history.previewing.value?.seq"
+        :is-loading="history.isLoading.value"
+        :has-failed="history.hasFailed.value"
+        @preview="history.preview"
+        @current="history.backToCurrent"
+        @close="history.close"
+      />
       <MockupInspector
-        v-if="isEditing && spec"
+        v-else-if="showsInspector && spec"
         :spec="spec"
         :page="pageIndex"
         :selection="editing.selection.value"
         :catalog="catalog.byType.value"
         :issues="issues"
+        :sketch-state="
+          sketchStates.of(currentPage?.id).get(editing.selection.value ?? '')
+        "
         @edit="editing.edit"
-        @connect-data="(pointer) => handOff(pointer, 'connect-data')"
-        @ask-ai="(pointer) => handOff(pointer, 'custom-zone')"
+        @ask-ai="handOff"
         @replace="(pointer) => (replacing = pointer)"
-      />
-      <MockupCommentPanel
-        v-else
-        v-model:note="comments.note.value"
-        :pending="comments.pending.value?.path"
-        :annotations="annotations"
-        :pages="pages"
-        :issues="issues"
-        @save="comments.save"
-        @cancel="comments.pending.value = undefined"
-        @status="session.setAnnotationStatus"
+        @sketch-state="
+          (pointer, state) =>
+            currentPage && sketchStates.pick(currentPage.id, pointer, state)
+        "
       />
     </div>
+    <MockupPlacementChip
+      v-if="editing.placing.value"
+      :name="editing.placing.value.name"
+    />
     <MockupPromptModal v-model:prompt="handoff.fallback.value" />
-    <UModal
-      :open="replacing !== undefined"
-      :title="t('dms.mockup.replace_title')"
-      @update:open="closeReplacement"
-    >
-      <template #body>
-        <MockupBlockCatalog
-          :blocks="catalog.blocks.value"
-          @pick="pickReplacement"
-        />
-      </template>
-    </UModal>
+    <MockupShortcutsModal v-model:open="showsShortcuts" />
+    <MockupSectionDeleteModal
+      :removing="sections.removing.value"
+      @cancel="sections.cancel"
+      @confirm="sections.confirm"
+    />
+    <MockupReplaceModal
+      v-model:pointer="replacing"
+      :blocks="catalog.blocks.value"
+      @pick="editing.replaceWith"
+    />
   </div>
 </template>

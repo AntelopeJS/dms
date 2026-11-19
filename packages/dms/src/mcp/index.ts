@@ -1,12 +1,13 @@
 import { Logging } from "@antelopejs/interface-core/logging";
 import { z } from "zod";
 import { getConfig, type McpConfig } from "../config";
+import { McpAccessSchema } from "./access";
 import type { McpSettings } from "./server";
 
 const McpConfigSchema = z
   .object({
     enabled: z.boolean().optional(),
-    access: z.enum(["safe", "full"]).optional(),
+    access: McpAccessSchema.optional(),
     mcpJson: z.boolean().optional(),
     codexConfig: z.boolean().optional(),
     backendUrl: z.string().optional(),

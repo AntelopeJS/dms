@@ -232,9 +232,10 @@ describe("edit mode shortcuts and blocks", () => {
     expect(titles(await written())).toEqual(["Orders"]);
   });
 
-  it("adds a block from the catalog right after the selection, from a click or Enter (fails when it lands at the end)", async () => {
+  it("adds a block armed from the catalog right after the selection on Enter (fails when it lands at the end)", async () => {
     await pick("block-0");
     await click("[data-dms-mockup-block-type=KpiCard]");
+    await press("Enter");
     expect((await written()).pages[0]?.tree).toEqual([
       { id: "revenue", type: "KpiCard", options: { title: "Revenue" } },
       { id: "kpi-card", type: "KpiCard", options: { title: "KPI card" } },

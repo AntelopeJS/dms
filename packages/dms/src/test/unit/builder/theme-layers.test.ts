@@ -13,6 +13,7 @@ import {
   OP_TIMEOUT,
   PNG_LOGO,
   readLayerFile,
+  readProjectManifest,
   upload,
   writeLayerFile,
 } from "./helpers/theme-harness";
@@ -98,5 +99,7 @@ describe("theme layer creation", function () {
     }
     expect(fs.existsSync(layerPath(""))).to.equal(false);
     expect(app.read("index.ts")).to.equal(entry);
+    expect(app.exists("frontend-module.ts")).to.equal(false);
+    expect(readProjectManifest().dmsFrontend).to.equal(undefined);
   });
 });

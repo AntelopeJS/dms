@@ -8,6 +8,7 @@ import {
   CreatePage,
   GetPageStructure,
   GetResourceStructure,
+  ListCategories,
   ListPages,
   SetPageBlocks,
 } from "../../../implementations/dms-builder";
@@ -44,6 +45,7 @@ const IMPORTS = [
 
 const BUILDER: LivePageWriter = {
   listPages: () => ListPages(),
+  listCategories: () => ListCategories(),
   pageStructure: (ref) => GetPageStructure(ref),
   resourceStructure: (ref) => GetResourceStructure(ref),
   setPageBlocks: (ref, draft, opts) => SetPageBlocks(ref, draft, opts),

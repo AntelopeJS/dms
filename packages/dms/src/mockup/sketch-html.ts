@@ -10,7 +10,7 @@ import {
   ALLOWLISTS,
   FREE_ATTRIBUTE,
   type NamespaceAllowlist,
-  type UrlForm,
+  type UrlRule,
 } from "./sketch-allowlist";
 import { cssRefusals, localUrlForm } from "./sketch-css";
 import { SKETCH_MAX_SOURCE } from "./sketch-limits";
@@ -131,10 +131,42 @@ function allowsAttribute(
   );
 }
 
-const URL_FORM_REFUSAL: Record<UrlForm, string> = {
-  anchor: "an #anchor",
-  image: "a data:image/ URL",
-};
+/** What opens a link to a spec page: `page:` and the page's id. */
+const PAGE_LINK_PREFIX = "page:";
+
+/** How a followed link of the frame leaves it: in the window holding the dashboard. */
+const TOP_TARGET = "_top";
+
+/**
+ * The URL an `<a href="page:<id>">` of a sketch goes to, or undefined when
+ * `id` is no page id.
+ */
+export type PageLink = (id: string) => string | undefined;
+
+/** What one read of a sketch's markup reads its CSS with, and whether it takes `page:<id>` links. */
+interface Reading {
+  readCss: CssReader;
+  takesPageLinks: boolean;
+}
+
+function urlRuleRefusal(rule: UrlRule, takesPageLinks: boolean): string {
+  switch (rule) {
+    case "anchor":
+      return "an #anchor";
+    case "image":
+      return "a data:image/ URL";
+    case "link":
+      return takesPageLinks ? "an #anchor or a page:<id> link" : "an #anchor";
+  }
+}
+
+function holdsUrl(rule: UrlRule, value: string, reading: Reading): boolean {
+  if (rule !== "link") return localUrlForm(value) === rule;
+  return (
+    localUrlForm(value) === "anchor" ||
+    (reading.takesPageLinks && value.startsWith(PAGE_LINK_PREFIX))
+  );
+}
 
 /** What a style text holds that a sketch may not, read once per distinct text in one parse. */
 type CssReader = (css: string) => string[];
@@ -154,7 +186,7 @@ function cssReader(): CssReader {
 function attributeRefusals(
   allowlist: NamespaceAllowlist,
   element: Element,
-  readCss: CssReader,
+  reading: Reading,
 ): string[] {
   const tag = `<${element.tagName}>`;
   return element.attrs.flatMap((attribute) => {
@@ -164,39 +196,39 @@ function attributeRefusals(
         `a${/^[aeiou]/i.test(name) ? "n" : ""} ${name} attribute on ${allowlist.label}${tag}`,
       ];
     }
-    const form = allowlist.urls.get(element.tagName)?.get(name);
-    if (form !== undefined) {
-      return localUrlForm(attribute.value) === form
+    const rule = allowlist.urls.get(element.tagName)?.get(name);
+    if (rule !== undefined) {
+      return holdsUrl(rule, attribute.value, reading)
         ? []
         : [
-            `a ${name} on ${allowlist.label}${tag} that is not ${URL_FORM_REFUSAL[form]}`,
+            `a ${name} on ${allowlist.label}${tag} that is not ${urlRuleRefusal(rule, reading.takesPageLinks)}`,
           ];
     }
     if (name === "style" || allowlist.valuesAreCss)
-      return readCss(attribute.value);
+      return reading.readCss(attribute.value);
     return [];
   });
 }
 
 /** What `element` and its descendants hold that a sketch may not. */
-function treeRefusals(element: Element, readCss: CssReader): string[] {
+function treeRefusals(element: Element, reading: Reading): string[] {
   const allowlist = ALLOWLISTS.get(element.namespaceURI);
   if (allowlist === undefined || !allowlist.elements.has(element.tagName)) {
     return [`a ${allowlist?.label ?? ""}<${element.tagName}> element`];
   }
-  const own = attributeRefusals(allowlist, element, readCss);
+  const own = attributeRefusals(allowlist, element, reading);
   if (element.tagName === "style") {
     const elements = elementChildren(element);
     return [
       ...own,
       ...(elements.length > 0 ? ["an element inside a <style>"] : []),
-      ...readCss(textOf(element)),
+      ...reading.readCss(textOf(element)),
     ];
   }
   return [
     ...own,
     ...elementChildren(element).flatMap((child) =>
-      treeRefusals(child, readCss),
+      treeRefusals(child, reading),
     ),
   ];
 }
@@ -212,6 +244,11 @@ function withoutComments(node: ParentNode): void {
 interface ReadMarkup {
   refusals: string[];
   body: string;
+}
+
+/** One read of a sketch's markup, with the body element it wrote back once it holds nothing refused. */
+interface ReadTree extends ReadMarkup {
+  tree?: Element;
 }
 
 /**
@@ -265,7 +302,7 @@ function deeperThan(root: ParentNode, limit: number): boolean {
   return false;
 }
 
-function readMarkup(markup: string): ReadMarkup {
+function readMarkup(markup: string, takesPageLinks: boolean): ReadTree {
   if (moreTagsThan(markup, MAX_TAGS)) {
     return { refusals: [`more than ${MAX_TAGS} tags`], body: "" };
   }
@@ -295,11 +332,11 @@ function readMarkup(markup: string): ReadMarkup {
     head.childNodes.length > 0 ||
     elementChildren(root).length !== 2 ||
     elementChildren(document).length !== 1;
-  const readCss = cssReader();
+  const reading: Reading = { readCss: cssReader(), takesPageLinks };
   const refusals = [
     ...(scaffold ? ["an <html>, <head> or <body> tag"] : []),
     ...elementChildren(body).flatMap((element) =>
-      treeRefusals(element, readCss),
+      treeRefusals(element, reading),
     ),
   ];
   if (refusals.length > 0) return { refusals, body: "" };
@@ -312,20 +349,63 @@ function readMarkup(markup: string): ReadMarkup {
         ],
         body: "",
       }
-    : { refusals, body: written };
+    : { refusals, body: written, tree: body };
+}
+
+/** Every HTML `<a>` under `root`, read without recursion. */
+function htmlAnchors(root: Element): Element[] {
+  const found: Element[] = [];
+  const pending = [...elementChildren(root)];
+  for (let element = pending.pop(); element; element = pending.pop()) {
+    if (element.tagName === "a" && element.namespaceURI === html.NS.HTML) {
+      found.push(element);
+    }
+    pending.push(...elementChildren(element));
+  }
+  return found;
+}
+
+/**
+ * The checked body `tree` with each `<a href="page:<id>">` pointing at the
+ * URL `pageLink` answers, opened in the window holding the dashboard: `href`
+ * first, then `target="_top"`, so the frame's drawer finds each link by the
+ * one form it is written in. An id `pageLink` answers nothing for refuses the
+ * sketch.
+ */
+function linkPages(tree: Element, pageLink: PageLink): ReadMarkup {
+  const refusals: string[] = [];
+  for (const anchor of htmlAnchors(tree)) {
+    const href = anchor.attrs.find((attribute) => attribute.name === "href");
+    if (!href?.value.startsWith(PAGE_LINK_PREFIX)) continue;
+    const url = pageLink(href.value.slice(PAGE_LINK_PREFIX.length));
+    if (url === undefined) {
+      refusals.push("a page: link whose id is not a page id");
+      continue;
+    }
+    anchor.attrs = [
+      { name: "href", value: url },
+      { name: "target", value: TOP_TARGET },
+      ...anchor.attrs.filter((attribute) => attribute !== href),
+    ];
+  }
+  return refusals.length > 0
+    ? { refusals: [...new Set(refusals)], body: "" }
+    : { refusals, body: serialize(tree) };
 }
 
 /**
  * What a sketch's `html` holds that a sketch may not, and the markup to draw
  * in its place: the tree the check read, written back. Markup that the parser
  * would read differently once written back is refused, so the frame draws the
- * tree that was checked.
+ * tree that was checked. With `pageLink`, an `<a>` may also link to a page,
+ * `href="page:<id>"`, and is drawn linking to the URL `pageLink` answers.
  */
-export function checkMarkup(markup: string): ReadMarkup {
-  const first = readMarkup(markup);
+export function checkMarkup(markup: string, pageLink?: PageLink): ReadMarkup {
+  const takesPageLinks = pageLink !== undefined;
+  const first = readMarkup(markup, takesPageLinks);
   if (first.refusals.length > 0)
     return { refusals: [...new Set(first.refusals)], body: "" };
-  const second = readMarkup(first.body);
+  const second = readMarkup(first.body, takesPageLinks);
   if (second.refusals.length > 0) {
     return {
       refusals: [
@@ -338,12 +418,15 @@ export function checkMarkup(markup: string): ReadMarkup {
       body: "",
     };
   }
-  return second.body === first.body
-    ? first
-    : {
-        refusals: ["markup the parser reads differently once written back"],
-        body: "",
-      };
+  if (second.body !== first.body) {
+    return {
+      refusals: ["markup the parser reads differently once written back"],
+      body: "",
+    };
+  }
+  return pageLink && second.tree
+    ? linkPages(second.tree, pageLink)
+    : { refusals: [], body: first.body };
 }
 
 /**

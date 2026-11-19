@@ -60,11 +60,4 @@ export class AppearanceSettingsController extends PageController("appearance", {
     icon: "i-ph-sidebar-simple",
     component: "DmsAppearanceSidebar",
   });
-
-  static developerComponent = appearanceGroup({
-    title: `${TEXTS}.developer_title`,
-    description: `${TEXTS}.developer_description`,
-    icon: "i-ph-brackets-curly",
-    component: "DmsAppearanceDeveloper",
-  });
 }

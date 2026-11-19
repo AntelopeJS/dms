@@ -103,6 +103,15 @@ function packCountQueries(
 
 type SourceCapabilities = TableViewSourceConfig["capabilities"];
 
+/** The archive toggle's side of the rows, `true` for the archived ones. */
+const SHOW_ARCHIVED_QUERY_KEY = "showArchived";
+
+/** The query keys a source route receives whatever its capabilities. */
+const ALWAYS_SENT_QUERY_KEYS: ReadonlySet<string> = new Set([
+  LIVE_HELD_AT_QUERY_KEY,
+  SHOW_ARCHIVED_QUERY_KEY,
+]);
+
 const QUERY_KEY_CAPABILITIES: Array<
   [matches: (key: string) => boolean, capability: keyof SourceCapabilities]
 > = [
@@ -114,8 +123,10 @@ const QUERY_KEY_CAPABILITIES: Array<
 
 /**
  * The part of the list query a source route handles, by its capabilities: a
- * key no capability names (a controller's `showArchived`…) never reaches it.
- * The live hold's bound always does: a route not reading it lists as usual.
+ * key no capability names never reaches it. The live hold's bound always
+ * does, and so does the archive toggle's `showArchived`, which only a table
+ * in archive mode sends, as a mockup's table is: a route not reading them
+ * lists as usual.
  */
 export function sourceRouteQuery(
   query: Query,
@@ -123,7 +134,7 @@ export function sourceRouteQuery(
 ): Query {
   return Object.fromEntries(
     Object.entries(query).filter(([key]) => {
-      if (key === LIVE_HELD_AT_QUERY_KEY) return true;
+      if (ALWAYS_SENT_QUERY_KEYS.has(key)) return true;
       const entry = QUERY_KEY_CAPABILITIES.find(([matches]) => matches(key));
       return !!entry && !!capabilities[entry[1]];
     }),

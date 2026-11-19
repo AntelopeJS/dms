@@ -1,7 +1,10 @@
 import { onBeforeUnmount, watch, type Ref } from "vue";
 import { blockAnchorAt, blockAnchorElements } from "../page/blockAnchors";
 import { PREVIEW_ROOT_ID_PREFIX } from "../../utils/blockPreview";
-import { PREVIEW_NAVIGATION_ATTRIBUTE } from "./previewNavigation";
+import {
+  PREVIEW_HEADER_ATTRIBUTE,
+  PREVIEW_NAVIGATION_ATTRIBUTE,
+} from "./previewNavigation";
 
 /** Attribute the hovered block's elements carry while inspecting, for the outline. */
 export const INSPECT_TARGET_ATTRIBUTE = "data-dms-inspect-target";
@@ -24,8 +27,20 @@ interface InspectorOptions {
   enabled: Readonly<Ref<boolean>>;
   /** Called with the layout path of the block a click landed in. */
   onSelect: (path: string) => void;
+  /** Called when a click landed in the page header, which is the page's own. */
+  onSelectPage?: () => void;
   /** Called with the layout path and the element of a text double-clicked in a block. */
   onText?: (path: string, element: Element) => void;
+  /** Called with a Ctrl or ⌘ click: true when it followed a link, which then picks nothing. */
+  onFollow?: (event: MouseEvent) => boolean;
+}
+
+function isFollowClick(event: Event): event is MouseEvent {
+  return (
+    event.type === "click" &&
+    event instanceof MouseEvent &&
+    (event.ctrlKey || event.metaKey)
+  );
 }
 
 function isInNavigation(target: EventTarget | null): boolean {
@@ -33,6 +48,12 @@ function isInNavigation(target: EventTarget | null): boolean {
     target instanceof Element &&
     target.closest(`[${PREVIEW_NAVIGATION_ATTRIBUTE}]`) !== null
   );
+}
+
+function headerAt(target: EventTarget | null): Element | undefined {
+  return target instanceof Element
+    ? (target.closest(`[${PREVIEW_HEADER_ATTRIBUTE}]`) ?? undefined)
+    : undefined;
 }
 
 function sameElements(left: Element[], right: Element[]): boolean {
@@ -44,7 +65,8 @@ function sameElements(left: Element[], right: Element[]): boolean {
 
 /**
  * Lets the page's blocks be picked by clicking. While `enabled`, the block
- * under the pointer is outlined and a click selects it instead of reaching it.
+ * under the pointer is outlined and a click selects it instead of reaching it;
+ * a Ctrl or ⌘ click on a link follows it instead.
  * A block is found through the anchors `RecursiveComponent` registers by layout
  * path, so nothing is added to the rendered blocks and nothing runs until the
  * pointer moves.
@@ -52,8 +74,7 @@ function sameElements(left: Element[], right: Element[]): boolean {
 export function useBlockInspector(options: InspectorOptions): void {
   let outlined: Element[] = [];
 
-  function outline(path: string | undefined): void {
-    const next = path ? blockAnchorElements(path) : [];
+  function outline(next: Element[]): void {
     if (sameElements(next, outlined)) return;
     for (const element of outlined) {
       element.removeAttribute(INSPECT_TARGET_ATTRIBUTE);
@@ -64,19 +85,31 @@ export function useBlockInspector(options: InspectorOptions): void {
   }
 
   function onPointerOver(event: Event): void {
-    outline(blockAnchorAt(event.target, PREVIEW_ROOT_ID_PREFIX));
+    const header = headerAt(event.target);
+    if (header) {
+      outline([header]);
+      return;
+    }
+    const path = blockAnchorAt(event.target, PREVIEW_ROOT_ID_PREFIX);
+    outline(path ? blockAnchorElements(path) : []);
   }
 
   function onPointerLeave(): void {
-    outline(undefined);
+    outline([]);
   }
 
   function onSwallowed(event: Event): void {
     if (isInNavigation(event.target)) return;
     event.preventDefault();
     event.stopPropagation();
+    if (isFollowClick(event) && options.onFollow?.(event)) return;
     const path = blockAnchorAt(event.target, PREVIEW_ROOT_ID_PREFIX);
-    if (!path) return;
+    if (!path) {
+      if (event.type === "click" && headerAt(event.target)) {
+        options.onSelectPage?.();
+      }
+      return;
+    }
     if (event.type === "click") options.onSelect(path);
     const { target } = event;
     if (
@@ -105,7 +138,7 @@ export function useBlockInspector(options: InspectorOptions): void {
       "pointerleave",
       onPointerLeave,
     );
-    outline(undefined);
+    outline([]);
   }
 
   watch(options.enabled, (enabled) => (enabled ? start() : stop()), {

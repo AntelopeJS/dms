@@ -18,6 +18,7 @@ import { impliedReferenceChecks, proposeMapping } from "./analysis";
 import { type ReferenceTarget, referenceTarget } from "./analysis-fields";
 import { type ImpliedReference, relationName } from "./analysis-input";
 import { type CatalogConnection, catalogOf } from "./catalog-connection";
+import { boundModulesSentence } from "./database-connection";
 import { excludedRelationsOf } from "./mapped-modules";
 import { targetModule } from "./modules";
 import { invalidConfig, notFound } from "./ops";
@@ -304,7 +305,7 @@ export function startAnalysis(
   const module = targetModule(input.module);
   if (!module || module.isProject) {
     return invalidConfig<AnalysisState>(
-      `analyse for a local module bound to the database, not ${module ? "the project's own" : `unknown module "${input.module}"`}`,
+      `analyse for a local module bound to the database, not ${module ? "the project's own" : `unknown module "${input.module}"`}: ${boundModulesSentence(input.connection)}`,
     );
   }
   const current = jobOf(input.connection);

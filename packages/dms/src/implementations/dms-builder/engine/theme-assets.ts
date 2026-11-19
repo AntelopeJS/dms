@@ -171,8 +171,7 @@ function stageLogo(
 
 /**
  * The first staged logo with the same bytes and extension, whose file a later
- * upload reuses instead of writing a copy (the simple editor puts one logo in
- * every slot).
+ * upload reuses instead of writing a copy (one logo can fill every slot).
  */
 function findIdenticalStagedLogo(
   stagedLogos: StagedLogo[],

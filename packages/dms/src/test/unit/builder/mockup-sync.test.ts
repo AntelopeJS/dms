@@ -15,6 +15,7 @@ import {
   CreatePage,
   GetPageStructure,
   GetResourceStructure,
+  ListCategories,
   ListPages,
 } from "../../../implementations/dms-builder";
 import {
@@ -35,6 +36,7 @@ import {
 const OP_TIMEOUT = 60_000;
 const BUILDER: LivePages = {
   listPages: () => ListPages(),
+  listCategories: () => ListCategories(),
   pageStructure: (ref) => GetPageStructure(ref),
   resourceStructure: (ref) => GetResourceStructure(ref),
 };

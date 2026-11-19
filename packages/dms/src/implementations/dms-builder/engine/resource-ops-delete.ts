@@ -6,7 +6,7 @@ import fs from "node:fs";
 import path from "node:path";
 import type {
   DeleteResourceOpts,
-  FieldAspects,
+  FieldAspectsPatch,
   FieldSpec,
   MutationOpts,
   OpResult,
@@ -15,6 +15,10 @@ import type {
 } from "@antelopejs/interface-dms-builder";
 import { Node, type Project, type SourceFile } from "ts-morph";
 import { applyImportRef, ensureNamedImport } from "./emit";
+import {
+  patchedPresentation,
+  presentationRefusal,
+} from "./column-presentation";
 import { dropResourceData } from "./resource-data";
 import {
   findResourceRecord,
@@ -25,7 +29,6 @@ import {
 import {
   indexedFieldNames,
   readDataApiFieldAspects,
-  resourceVersion,
   tableFieldDeclarations,
 } from "./resource-structure";
 import {
@@ -61,25 +64,7 @@ import {
   withDefaultIndex,
 } from "./resource-emit";
 import { getExtendsCall } from "./literals";
-
-function checkVersion(
-  ref: string,
-  databaseFile: SourceFile,
-  dataApiFile: SourceFile,
-  opts?: MutationOpts,
-): OpResult<never> | undefined {
-  if (!opts?.expectedVersion) {
-    return undefined;
-  }
-  const current = resourceVersion(databaseFile, dataApiFile);
-  if (current !== opts.expectedVersion) {
-    return {
-      ok: false,
-      error: { code: "stale", ref, currentVersion: current },
-    };
-  }
-  return undefined;
-}
+import { checkVersion, mappedRefusal } from "./resource-guards";
 
 /**
  * The other resources whose code imports this one -- a relation field pointing
@@ -105,25 +90,6 @@ function referencingResources(
         (importing.has(other.databaseFile) || importing.has(other.dataApiFile)),
     )
     .map((other) => other.ref);
-}
-/** The refusal for an operation that would create or alter a column of a mapped module's table. */
-function mappedRefusal(filepath: string): OpResult<never> | undefined {
-  const connection = mappedConnectionOfFile(filepath);
-  if (!connection) {
-    return undefined;
-  }
-  return {
-    ok: false,
-    error: {
-      code: "invalid_config",
-      issues: [
-        {
-          pointer: "",
-          message: `this table mirrors the "${connection}" database, whose columns are its own; map columns with MapResources`,
-        },
-      ],
-    },
-  };
 }
 
 export async function deleteResource(
@@ -243,6 +209,10 @@ export function addField(
   const reserved = reservedFieldError(spec.name);
   if (reserved) {
     return reserved;
+  }
+  const refusal = presentationRefusal(spec);
+  if (refusal) {
+    return invalidConfig(refusal);
   }
   const record = findResourceRecord(ref);
   if (!record) {
@@ -367,7 +337,7 @@ function locateField(fieldPath: string, opts: MutationOpts | undefined) {
  */
 function mergeFieldAspects(
   located: Extract<ReturnType<typeof locateField>, { opened: unknown }>,
-  patch: Partial<FieldAspects>,
+  patch: FieldAspectsPatch,
 ): FieldSpec {
   const { parsed, current, dataType } = located;
   return {
@@ -388,6 +358,7 @@ function mergeFieldAspects(
     mandatory: patch.mandatory ?? current.mandatory,
     dbField: patch.dataType ? undefined : current.dbField,
     columnExtras: patch.columnExtras ?? current.columnExtras,
+    ...patchedPresentation(patch, current),
   };
 }
 
@@ -399,11 +370,15 @@ function mergeFieldAspects(
  */
 export function configureField(
   fieldPath: string,
-  patch: Partial<FieldAspects>,
+  patch: FieldAspectsPatch,
   opts?: MutationOpts,
 ): OpResult {
   const located = locateField(fieldPath, opts);
   if (!("opened" in located)) return located;
+  const refusal = presentationRefusal(patch);
+  if (refusal) {
+    return invalidConfig(refusal);
+  }
   const { opened, dataApiProp, tableProp } = located;
   if (patch.dbField !== undefined) {
     const mapped = mappedRefusal(opened.databaseFile.getFilePath());

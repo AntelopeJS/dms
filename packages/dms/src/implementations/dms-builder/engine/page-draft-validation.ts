@@ -15,7 +15,7 @@ import {
   buildResourceStructure,
   RESERVED_FIELD_NAMES,
 } from "./resource-structure";
-import { isPlainObject } from "./value";
+import { isPlainObject } from "./plain-object";
 import { issue, scanForExpr } from "./query-template";
 
 /** Walk a config value alongside the schema that describes it, visiting each string in it. */

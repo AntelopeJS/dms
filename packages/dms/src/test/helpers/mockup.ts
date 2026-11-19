@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { GetBlockType } from "@antelopejs/interface-dms/base/block-types";
 import { z } from "zod";
+import { type Json, jsonSchema } from "../../mockup";
 
 /** `packages/dms`, from `dist/test/helpers`. */
 const PACKAGE_ROOT = join(__dirname, "..", "..", "..");
@@ -11,6 +12,15 @@ export const MOCKUP_DATA_DIR = join(PACKAGE_ROOT, "data");
 
 /** The name the example spec is read under, its directory in `data/`. */
 export const EXAMPLE_MOCKUP = "mockup-example";
+
+/** The example spec's file, as shipped. */
+export function shippedExampleSpec(): Json {
+  return jsonSchema.parse(
+    JSON.parse(
+      readFileSync(join(MOCKUP_DATA_DIR, EXAMPLE_MOCKUP, "spec.json"), "utf8"),
+    ),
+  );
+}
 
 const docsExamplesSchema = z.record(
   z.object({ type: z.string() }).passthrough(),

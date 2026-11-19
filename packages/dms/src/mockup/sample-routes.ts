@@ -1,7 +1,8 @@
 import { z } from "zod";
-import { type FixtureScope, fixtureUrl } from "./fixtures";
+import { type FixtureScope, fixtureUrl, MOCKUP_API } from "./fixtures";
 import type { Json, JsonObject } from "./model";
 import { jsonObjectSchema } from "./model";
+import { MOCKUP_VIEWER_PATH } from "./page-links";
 
 /**
  * The option keys whose string a block requests or loads: the keys the
@@ -13,6 +14,10 @@ const REQUEST_KEY = /(?:url|^location|^src|endpoint)$/i;
 /** A fixture key no spec can hold, so its route answers an error and reads nothing. */
 const NO_FIXTURE = "~live-route";
 
+/** Where every page of a mockup reads its fixtures from. */
+const pagesPrefix = (scope: FixtureScope) =>
+  `${MOCKUP_API}/${scope.name}/pages/`;
+
 /** The origin a request URL is resolved against, standing for the dashboard's own. */
 const DASHBOARD = "http://dashboard.invalid";
 
@@ -23,14 +28,18 @@ const requestValueSchema = z.string().min(1);
 
 /**
  * Whether `value`, resolved as the browser resolves it, reads nothing but
- * one of the page's fixtures: a fixture route, or a `data:` URL.
+ * the mockup's fixtures: a fixture route of one of its pages, a `data:` URL,
+ * or a link to one of its pages, which the viewer opens itself.
  */
 function readsFixtureOnly(value: string, scope: FixtureScope): boolean {
-  const prefix = fixtureUrl(scope.name, scope.pageId, "");
   try {
     const url = new URL(value, `${DASHBOARD}/`);
     if (url.protocol === INLINE_DATA) return true;
-    return url.origin === DASHBOARD && url.pathname.startsWith(prefix);
+    if (url.origin !== DASHBOARD) return false;
+    if (url.pathname === MOCKUP_VIEWER_PATH) {
+      return url.searchParams.get("name") === scope.name;
+    }
+    return url.pathname.startsWith(pagesPrefix(scope));
   } catch {
     return false;
   }

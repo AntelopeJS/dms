@@ -25,6 +25,7 @@ import {
 } from "#dms-ui/app/entries/utils/dispatchQuickActionTarget";
 import { DEFAULT_PAGE_HEADER_ACTIONS_ORDER } from "#dms-ui/app/composables/layout/usePageHeaderActions";
 import { isString } from "#dms-core/app/utils/type-check";
+import { headerButtonProps } from "./headerButton";
 
 /**
  * A button of the page header as the server serves it (`DefaultLayout({
@@ -100,11 +101,6 @@ function pressComponentButton(componentId: string, buttonId?: string) {
   void router.replace({ query });
 }
 
-const defaultVariant = (
-  color: ButtonProps["color"] | undefined,
-): ButtonProps["variant"] =>
-  !color || color === "neutral" ? "outline" : "solid";
-
 const orderOf = (action: LayoutHeaderAction): number =>
   action.order ?? DEFAULT_PAGE_HEADER_ACTIONS_ORDER;
 
@@ -114,11 +110,8 @@ function labelParams() {
 }
 
 function baseButton(action: LayoutHeaderAction): ButtonProps {
-  const color = action.color ?? "neutral";
   return {
-    color,
-    variant: action.variant ?? defaultVariant(color),
-    icon: action.icon,
+    ...headerButtonProps(action),
     label: action.label ? processI18n(action.label, labelParams()) : undefined,
     disabled: action.disabled,
   };

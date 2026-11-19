@@ -24,15 +24,21 @@ export function useTableViewRowNavigation<T extends Data>(
   const ADJACENT_ROWS_TIMEOUT_MS = 15_000;
   const listsServerPages = computed(() => !isActiveDisplaySelfManaged.value);
 
-  const selfManagedRows = shallowRef<Data[]>([]);
+  const selfManagedRows = shallowRef<Data[] | undefined>(undefined);
   const setSelfManagedRows = (rows: T[]) => {
     selfManagedRows.value = rows;
   };
   watch(activeDisplayId, () => {
-    selfManagedRows.value = [];
+    selfManagedRows.value = undefined;
   });
-  const navigableRows = (): Data[] =>
-    listsServerPages.value ? (shownResults.value ?? []) : selfManagedRows.value;
+  /**
+   * The rows the active display shows: the list's page, or the rows a
+   * self-managed display (the board) reported, undefined until it reports.
+   */
+  const displayedRows = computed((): Data[] | undefined =>
+    listsServerPages.value ? (shownResults.value ?? []) : selfManagedRows.value,
+  );
+  const navigableRows = (): Data[] => displayedRows.value ?? [];
   const loadedRowsOffset = () => {
     if (isAccumulating || !listsServerPages.value) return 0;
     const { pageIndex, pageSize } = paginationState.value;
@@ -70,6 +76,7 @@ export function useTableViewRowNavigation<T extends Data>(
   };
   return {
     listsServerPages,
+    displayedRows,
     navigableRows,
     loadedRowsOffset,
     loadAdjacentRows,

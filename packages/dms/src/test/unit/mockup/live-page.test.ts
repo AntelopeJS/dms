@@ -8,6 +8,7 @@ import {
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import type { CategorySummary } from "@antelopejs/interface-dms-builder";
 import { expect } from "chai";
 import {
   type EditAsMockupAnswer,
@@ -82,7 +83,7 @@ describe("[unit] mockup of a live page, opened twice", () => {
       outcome: "created",
       mockup: "books",
       page: "books",
-      url: "/mockup?name=books&page=books&mode=edit",
+      url: "/mockup?name=books&page=books",
       sketches: [{ path: "/books#custom", reason: "custom-component" }],
       liveRoutes: ["api-books-revenue"],
     });
@@ -425,5 +426,46 @@ describe("[unit] the page a dashboard path shows", () => {
   it("matches a parameter against one non-empty segment, never more", () => {
     expect(resolvePageRef("/projects/7/edit", pages)).to.equal(undefined);
     expect(resolvePageRef("/projects", pages)).to.equal(undefined);
+  });
+});
+
+describe("[unit] mockup of a live page in a sidebar section", () => {
+  const t = useMockupsDir();
+  const SALES: CategorySummary = {
+    ref: "sales",
+    displayName: "Sales",
+    icon: "i-ph-storefront",
+    section: true,
+  };
+
+  function inSection(section: string) {
+    const structure = structureOf("/books", BLOCKS);
+    return { ...structure, page: { ...structure.page, section } };
+  }
+
+  it("files the page under the section as a mockup category", async () => {
+    await t.open(
+      { pageRef: "/books" },
+      stubPages([inSection("sales")], undefined, [SALES]),
+    );
+    const spec = await t.specOf("books");
+
+    expect(spec.categories).to.deep.equal([
+      { id: "sales", title: "Sales", icon: "i-ph-storefront" },
+    ]);
+    expect(spec.pages[0]?.category).to.equal("sales");
+  });
+
+  it("leaves a page of the default Pages section without category", async () => {
+    await t.open(
+      { pageRef: "/books" },
+      stubPages([inSection("pages")], undefined, [
+        { ref: "pages", displayName: "pages", section: true },
+      ]),
+    );
+    const spec = await t.specOf("books");
+
+    expect(spec.categories).to.equal(undefined);
+    expect(spec.pages[0]?.category).to.equal(undefined);
   });
 });

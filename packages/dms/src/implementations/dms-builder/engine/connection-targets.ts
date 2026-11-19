@@ -10,7 +10,7 @@ import { propertyKey } from "./modules";
 import { MODULES, stringOf } from "./project-config";
 import { readableConfig, writtenModules } from "./project-config-readers";
 import { isString } from "./scalar-guards";
-import { isPlainObject } from "./value";
+import { isPlainObject } from "./plain-object";
 
 /**
  * A driver option that takes a connection target (`true`), or an object the driver hands its

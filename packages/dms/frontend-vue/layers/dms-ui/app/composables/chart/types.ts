@@ -91,7 +91,8 @@ export interface ChartCardResponse {
   value?: number;
   delta?: number;
   previousValue?: number;
-  series: ChartSeries[];
+  /** Named series, or one point per group, which the card draws as one series named after its title. */
+  series: ChartSeries[] | ChartGroupPoint[];
   comparisonSeries?: ChartSeries[];
 }
 

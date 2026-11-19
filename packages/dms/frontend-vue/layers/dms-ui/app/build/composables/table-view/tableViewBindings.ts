@@ -51,6 +51,7 @@ export function tableViewBindings<T extends Data>(scope: TableViewScope<T>) {
     listLoadError: scope.listState.listLoadError,
     listNotFound: scope.listState.listNotFound,
     shownResults: scope.listState.shownResults,
+    displayedRows: scope.rowNavigation.displayedRows,
     activeDisplayBlockedByError:
       scope.listPagination.activeDisplayBlockedByError,
     viewItems: scope.countsData.viewItems,

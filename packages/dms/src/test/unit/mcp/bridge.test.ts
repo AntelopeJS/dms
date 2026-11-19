@@ -10,6 +10,7 @@ import { setTimeout as delay } from "node:timers/promises";
 import { expect } from "chai";
 import { z } from "zod";
 import {
+  MCP_CLIENT_ACCESS_HEADER,
   MCP_CLIENT_HEADER,
   MCP_SESSION_HEADER,
   runBridge,
@@ -37,6 +38,7 @@ interface Received {
   authorization: string | undefined;
   session: string | string[] | undefined;
   client: string | string[] | undefined;
+  access: string | string[] | undefined;
   body: string;
 }
 
@@ -74,6 +76,7 @@ async function startBackend(
         authorization: request.headers.authorization,
         session: request.headers[MCP_SESSION_HEADER],
         client: request.headers[MCP_CLIENT_HEADER],
+        access: request.headers[MCP_CLIENT_ACCESS_HEADER],
         body,
       });
       Promise.resolve(reply(body)).then(
@@ -220,6 +223,36 @@ function relaysMessages(): void {
       undefined,
       "chat",
       "chat",
+    ]);
+  });
+
+  it("asks for the access of a bridge started with --access=safe or --access=full on every message, and for none without a known one", async () => {
+    const backend = await serve(echo);
+    input.write('{"jsonrpc":"2.0","id":1,"method":"tools/list"}\n');
+    await until(() => backend.received.length === 1);
+    const bridges = [
+      ["--client=chat", "--access=safe"],
+      ["--access=full"],
+      ["--access=root", "--verbose"],
+    ].map((args) => {
+      const bridgeInput = new PassThrough();
+      runBridge(configPath, bridgeInput, new PassThrough(), args);
+      return bridgeInput;
+    });
+    for (const [index, bridgeInput] of bridges.entries()) {
+      bridgeInput.write(
+        `{"jsonrpc":"2.0","id":${index + 2},"method":"tools/list"}\n`,
+      );
+      await until(() => backend.received.length === index + 2);
+      bridgeInput.end();
+    }
+    expect(
+      backend.received.map(({ client, access }) => ({ client, access })),
+    ).to.deep.equal([
+      { client: undefined, access: undefined },
+      { client: "chat", access: "safe" },
+      { client: undefined, access: "full" },
+      { client: undefined, access: undefined },
     ]);
   });
 

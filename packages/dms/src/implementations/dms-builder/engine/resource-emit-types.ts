@@ -8,6 +8,7 @@ import type {
   OpWarning,
   ResourceRoute,
 } from "@antelopejs/interface-dms-builder";
+import { presentationParts } from "./column-presentation";
 import { relativeModule } from "./emit";
 import { propertyKey } from "./paths";
 import { isNumber, isString } from "./scalar-guards";
@@ -350,6 +351,10 @@ export function dataApiFieldText(
   }
   if (field.order !== undefined) {
     columnParts.push(`order: ${field.order}`);
+  }
+  columnParts.push(...presentationParts(field, ctx));
+  if (field.display) {
+    symbols.push("DefaultDisplays");
   }
   for (const [key, value] of Object.entries(field.columnExtras ?? {})) {
     columnParts.push(`${propertyKey(key)}: ${serializeValue(value, ctx)}`);

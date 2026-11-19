@@ -187,7 +187,6 @@ export default {
   },
   branding: {
     logo: dmsLogo(),
-    defaults: { logo: dmsLogo(), colors: dmsColors() },
     footer: {
       copyright: "Antelope",
       localeSwitcher: true,

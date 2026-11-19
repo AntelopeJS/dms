@@ -36,10 +36,12 @@ import {
   registerShellUi,
 } from "./helpers/live-shell-runtime";
 import { engine } from "./helpers/api-data-runtime";
+import { FOLD_RAIL_WIDTH, mountFoldedRail } from "./helpers/side-rail";
 
 const PANEL_COMPONENT = "DemoSidePanel";
 const DESKTOP_QUERY = "(min-width: 1024px)";
 const WIDTH_VARIABLE = "--dms-side-panel-width";
+const RAIL_VARIABLE = "--dms-side-rail-width";
 const DEFAULT_WIDTH = 440;
 const OVERLAYS_STATE_KEY = "dms-app-overlays";
 
@@ -250,7 +252,9 @@ describe("side panel host on the server", () => {
     expect(markup).toContain('aria-label="Assistant"');
     expect(markup).toContain("data-panel-body");
     expect(markup).toContain(`${WIDTH_VARIABLE}:500px`);
-    expect(markup).toContain("lg:end-[min(var(--dms-side-panel-width),60vw)]");
+    expect(markup).toContain(
+      "lg:end-[calc(min(var(--dms-side-panel-width,0px),60vw)+var(--dms-side-rail-width,0px))]",
+    );
   });
 
   it("renders nothing, and reserves nothing, when no panel is open", async () => {
@@ -285,13 +289,34 @@ describe("side panel host", () => {
     expect(aside(host)?.querySelector("[data-panel-body]")).not.toBeNull();
   });
 
-  it("hides the panel on pages without the dashboard shell", async () => {
+  it("keeps the folded rail's width free beside the frame while no panel is open (fails when the rail covers the page)", async () => {
+    registerSidePanel(panel("a"));
+    const host = mountApp();
+    await nextTick();
+    expect(group(host)?.getAttribute("style")).toBeNull();
+
+    const { remove } = mountFoldedRail();
+    await new Promise((resolve) => setTimeout(resolve));
+    expect(group(host)?.style.getPropertyValue(RAIL_VARIABLE)).toBe(
+      `${FOLD_RAIL_WIDTH}px`,
+    );
+    expect(group(host)?.className).toContain(
+      "end-[var(--dms-side-rail-width,0px)]",
+    );
+    expect(group(host)?.style.getPropertyValue(WIDTH_VARIABLE)).toBe("");
+
+    remove();
+    await new Promise((resolve) => setTimeout(resolve));
+    expect(group(host)?.getAttribute("style")).toBeNull();
+  });
+
+  it("hides the panel on pages with no surface that keeps room for it (fails when a bare preview shows the panel)", async () => {
     registerSidePanel(panel("a"));
     useSidePanel("a").open();
     const host = mountApp();
     const wrapper = host.querySelector("[data-dms-side-panel-host]");
     expect(wrapper?.className).toContain(
-      "[body:not(:has([data-dms-persistent-shell]))_&]:hidden",
+      "[body:not(:has([data-dms-docks-side-panel]))_&]:hidden",
     );
   });
 

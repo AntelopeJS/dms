@@ -4,6 +4,7 @@ import type {
   PreviewFont,
   PreviewRect,
 } from "../../utils/blockPreviewMessages";
+import MockupShortcutTip from "./MockupShortcutTip.vue";
 
 /** The text being edited in place: where it is drawn, and how. */
 interface InlineText {
@@ -14,8 +15,9 @@ interface InlineText {
 
 /**
  * What edit mode draws over the preview, from the boxes the preview reports:
- * the selected block's outline and toolbar, the drop line of a drag, and the
- * input a double-clicked text is edited in. The frame is sized to its
+ * the selected block's outline and toolbar, the drop line of a drag or of a
+ * block armed from the catalog (which also takes the click that drops it),
+ * and the input a double-clicked text is edited in. The frame is sized to its
  * content, so its boxes are this layer's coordinates as they are.
  */
 const props = defineProps<{
@@ -23,6 +25,8 @@ const props = defineProps<{
   canMoveUp: boolean;
   canMoveDown: boolean;
   isDragging: boolean;
+  /** A block armed from the catalog waits for a click on the page. */
+  isPlacing?: boolean;
   dropLine?: PreviewRect;
   text?: InlineText;
   /** How much the frame is shrunk on screen: a pointer's offset is divided by it. */
@@ -38,6 +42,8 @@ const emit = defineEmits<{
   dragOver: [point: { x: number; y: number }];
   drop: [point: { x: number; y: number }];
   dragLeave: [];
+  placeHover: [point: { x: number; y: number } | undefined];
+  place: [point: { x: number; y: number }];
   textCommit: [value: string];
   textCancel: [];
 }>();
@@ -98,7 +104,7 @@ const textStyle = computed(() => {
   };
 });
 
-function pointOf(event: DragEvent) {
+function pointOf(event: MouseEvent) {
   const target = event.currentTarget;
   const origin =
     target instanceof Element
@@ -119,6 +125,14 @@ function onDragOver(event: DragEvent): void {
 function onDrop(event: DragEvent): void {
   event.preventDefault();
   emit("drop", pointOf(event));
+}
+
+function onPlace(event: MouseEvent): void {
+  emit("place", pointOf(event));
+}
+
+function onPlaceHover(event: MouseEvent): void {
+  emit("placeHover", pointOf(event));
 }
 
 function onHandleDragStart(event: DragEvent): void {
@@ -147,7 +161,15 @@ function settle(commit: boolean): void {
       @drop="onDrop"
     />
     <div
-      v-if="dropLine && isDragging"
+      v-if="isPlacing"
+      class="pointer-events-auto absolute inset-0 cursor-copy"
+      data-dms-mockup-place-capture
+      @pointermove="onPlaceHover"
+      @pointerleave="emit('placeHover', undefined)"
+      @click="onPlace"
+    />
+    <div
+      v-if="dropLine && (isDragging || isPlacing)"
       class="bg-primary pointer-events-none absolute rounded-full"
       :style="box(dropLine)"
       data-dms-mockup-drop-line
@@ -172,56 +194,72 @@ function settle(commit: boolean): void {
         <span class="text-primary max-w-40 truncate px-1 font-mono text-[11px]">
           {{ selected.label }}
         </span>
-        <span
-          class="text-muted hover:text-highlighted flex size-6 cursor-grab items-center justify-center"
-          draggable="true"
-          role="button"
-          tabindex="-1"
-          :aria-label="t('dms.mockup.drag')"
-          data-dms-mockup-drag-handle
-          @dragstart="onHandleDragStart"
-          @dragend="emit('dragEnd')"
+        <MockupShortcutTip :label="t('dms.mockup.drag')">
+          <span
+            class="text-muted hover:text-highlighted flex size-6 cursor-grab items-center justify-center"
+            draggable="true"
+            role="button"
+            tabindex="-1"
+            :aria-label="t('dms.mockup.drag')"
+            data-dms-mockup-drag-handle
+            @dragstart="onHandleDragStart"
+            @dragend="emit('dragEnd')"
+          >
+            <UIcon name="i-ph-dots-six-vertical" class="size-4" />
+          </span>
+        </MockupShortcutTip>
+        <MockupShortcutTip :label="t('dms.mockup.move_up')" shortcut="move_up">
+          <UButton
+            size="xs"
+            color="neutral"
+            variant="ghost"
+            icon="i-ph-arrow-up"
+            :disabled="!canMoveUp"
+            :aria-label="t('dms.mockup.move_up')"
+            data-dms-mockup-move-up
+            @click="emit('moveUp')"
+          />
+        </MockupShortcutTip>
+        <MockupShortcutTip
+          :label="t('dms.mockup.move_down')"
+          shortcut="move_down"
         >
-          <UIcon name="i-ph-dots-six-vertical" class="size-4" />
-        </span>
-        <UButton
-          size="xs"
-          color="neutral"
-          variant="ghost"
-          icon="i-ph-arrow-up"
-          :disabled="!canMoveUp"
-          :aria-label="t('dms.mockup.move_up')"
-          data-dms-mockup-move-up
-          @click="emit('moveUp')"
-        />
-        <UButton
-          size="xs"
-          color="neutral"
-          variant="ghost"
-          icon="i-ph-arrow-down"
-          :disabled="!canMoveDown"
-          :aria-label="t('dms.mockup.move_down')"
-          data-dms-mockup-move-down
-          @click="emit('moveDown')"
-        />
-        <UButton
-          size="xs"
-          color="neutral"
-          variant="ghost"
-          icon="i-ph-copy"
-          :aria-label="t('dms.mockup.duplicate')"
-          data-dms-mockup-duplicate
-          @click="emit('duplicate')"
-        />
-        <UButton
-          size="xs"
-          color="error"
-          variant="ghost"
-          icon="i-ph-trash"
-          :aria-label="t('dms.mockup.remove')"
-          data-dms-mockup-remove
-          @click="emit('remove')"
-        />
+          <UButton
+            size="xs"
+            color="neutral"
+            variant="ghost"
+            icon="i-ph-arrow-down"
+            :disabled="!canMoveDown"
+            :aria-label="t('dms.mockup.move_down')"
+            data-dms-mockup-move-down
+            @click="emit('moveDown')"
+          />
+        </MockupShortcutTip>
+        <MockupShortcutTip
+          :label="t('dms.mockup.duplicate')"
+          shortcut="duplicate"
+        >
+          <UButton
+            size="xs"
+            color="neutral"
+            variant="ghost"
+            icon="i-ph-copy"
+            :aria-label="t('dms.mockup.duplicate')"
+            data-dms-mockup-duplicate
+            @click="emit('duplicate')"
+          />
+        </MockupShortcutTip>
+        <MockupShortcutTip :label="t('dms.mockup.remove')" shortcut="remove">
+          <UButton
+            size="xs"
+            color="error"
+            variant="ghost"
+            icon="i-ph-trash"
+            :aria-label="t('dms.mockup.remove')"
+            data-dms-mockup-remove
+            @click="emit('remove')"
+          />
+        </MockupShortcutTip>
       </div>
     </template>
     <input

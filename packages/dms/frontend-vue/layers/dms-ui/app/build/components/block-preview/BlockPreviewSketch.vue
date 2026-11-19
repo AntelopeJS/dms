@@ -5,6 +5,7 @@ import {
   buildSketchDocument,
   computedStyleReader,
   currentSketchScheme,
+  sketchSandbox,
   sketchTokensCss,
 } from "../../utils/sketch";
 
@@ -13,8 +14,13 @@ defineOptions({ inheritAttrs: false });
 /**
  * Draws a sketch node: static HTML and CSS of a part that is not a DMS block,
  * in a sandboxed frame, marked as custom so it is never mistaken for a block.
+ * A link of the sketch to a page of the mockup opens it in the window holding
+ * the dashboard, on the row `routeParams` names when it passes one.
  */
-const props = defineProps<{ sketch: PreviewSketch }>();
+const props = defineProps<{
+  sketch: PreviewSketch;
+  routeParams?: Record<string, string>;
+}>();
 
 const OBSERVED_ATTRIBUTES = ["class", "style"];
 
@@ -42,8 +48,12 @@ const srcdoc = computed(() => {
     currentSketchScheme(),
     computedStyleReader(host.value),
   );
-  return buildSketchDocument(props.sketch, tokens);
+  return buildSketchDocument(props.sketch, tokens, {
+    origin: window.location.origin,
+    params: props.routeParams,
+  });
 });
+const sandbox = computed(() => sketchSandbox(props.sketch.html));
 </script>
 
 <template>
@@ -66,7 +76,7 @@ const srcdoc = computed(() => {
     </figcaption>
     <iframe
       v-if="srcdoc"
-      sandbox=""
+      :sandbox="sandbox"
       referrerpolicy="no-referrer"
       class="bg-default block w-full rounded-md border-0"
       :title="sketch.caption || label"
