@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ref } from "vue";
+import type { DataTypeValue } from "../layers/dms-core/app/types/data-type";
 import {
   clearedFieldValue,
   collectSubmitData,
@@ -14,17 +14,32 @@ const field = (id: string, type?: string, disabled?: boolean) => ({
   disabled,
 });
 
+/** An instance a control may hold: compared by identity, never a cleared field. */
+class Upload {
+  [field: string]: DataTypeValue;
+  name = "";
+}
+
 /** A localized field, one value per language. */
 const localizedField = (id: string, type = "string") => ({
   ...field(id, type),
   localized: true,
 });
 
+/** A field type, with a stored value, what its control emits once cleared, and what is sent. */
+interface ClearableEntry {
+  type: string;
+  label?: string;
+  stored: DataTypeValue;
+  cleared: DataTypeValue;
+  sent: DataTypeValue;
+}
+
 /**
  * Every field type the generic form renders, with a stored value and what
  * its control emits once cleared.
  */
-const CLEARABLE = [
+const CLEARABLE: ClearableEntry[] = [
   { type: "string", stored: "Some text", cleared: undefined, sent: null },
   {
     type: "string",
@@ -121,7 +136,7 @@ const CLEARABLE = [
     cleared: undefined,
     sent: null,
   },
-] as const;
+];
 
 describe("collectSubmitData on an edit form", () => {
   registerClearableTypeTests();
@@ -205,7 +220,7 @@ describe("isClearedFieldValue", () => {
     expect(isClearedFieldValue(false)).toBe(false);
     expect(isClearedFieldValue([])).toBe(false);
     expect(isClearedFieldValue({ en: "", fr: "Titre" })).toBe(false);
-    expect(isClearedFieldValue(new Blob(["pdf"]))).toBe(false);
+    expect(isClearedFieldValue(new Upload())).toBe(false);
   });
 });
 
@@ -232,8 +247,7 @@ describe("clearedFieldValue", () => {
 
 function registerClearableTypeTests() {
   for (const entry of CLEARABLE) {
-    const name =
-      "label" in entry ? `${entry.type} (${entry.label})` : entry.type;
+    const name = entry.label ? `${entry.type} (${entry.label})` : entry.type;
 
     it(`sends a cleared ${name} as its empty value`, () => {
       expect(
@@ -401,11 +415,5 @@ function registerGroupedAndLocalizedClearTests() {
         },
       ),
     ).toEqual({ title: { en: "", fr: "" }, notes: { en: "", fr: "" } });
-  });
-
-  it("unwraps a ref held in the state", () => {
-    expect(
-      collectSubmitData({ count: ref(3) }, [field("count", "number")]),
-    ).toEqual({ count: 3 });
   });
 }

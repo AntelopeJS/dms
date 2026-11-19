@@ -1,4 +1,4 @@
-import type { I18nTranslate } from "../composables/translation/useTranslation";
+import type { DataTypeRow } from "./data-type";
 
 /** One dependent a confirmed action affects, listed in its dialog. */
 export interface ConfirmDialogImpact {
@@ -73,7 +73,7 @@ export interface ConfirmDialogSecondaryAction {
 export interface ConfirmDialog {
   title: string;
   description?: string;
-  params?: Parameters<I18nTranslate>[1];
+  params?: DataTypeRow;
   icon?: string;
   color?: ConfirmDialogColor;
   confirmLabel?: string;

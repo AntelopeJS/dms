@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { ComponentOptionsData } from "#dms-core/app/types/component";
 import type { ComponentInfo } from "#dms-core/app/types/page";
 import { EYEBROW_CLASS } from "../../../build/utils/eyebrow";
 import {
@@ -15,7 +16,7 @@ interface RepeaterColumn {
   id: string;
   label?: string;
   type?: string;
-  component: ComponentInfo;
+  component: ComponentInfo<ComponentOptionsData>;
   required?: boolean;
 }
 

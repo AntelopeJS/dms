@@ -1,5 +1,8 @@
 import type { DataTypeFormatter } from "#dms-core/app/composables/data-types/useDataType";
-import { isObject } from "#dms-core/app/utils/type-check";
+import {
+  isDataTypeRow,
+  textOf,
+} from "#dms-core/app/entries/utils/dataTypeValue";
 import { DEFAULT_RELATION_VALUE_KEY } from "./relationValue";
 
 /** How many labels a multi-value relation cell shows before collapsing. */
@@ -20,10 +23,11 @@ export function readRelationLabel(
   labelKey: string,
   valueKey = DEFAULT_RELATION_VALUE_KEY,
 ): string {
-  if (isObject(item) && item !== null) {
-    return String(item[labelKey] ?? "") || String(item[valueKey] ?? "");
+  if (isDataTypeRow(item)) {
+    return textOf(item[labelKey] ?? "") || textOf(item[valueKey] ?? "");
   }
-  return String(item ?? "");
+  if (Array.isArray(item) || item instanceof Date) return "";
+  return textOf(item ?? "");
 }
 
 /**
@@ -33,7 +37,7 @@ export function readRelationLabel(
  * (join skipped) is shown as is rather than dropped.
  */
 export function buildRelationBadges(
-  values: unknown[],
+  values: Parameters<DataTypeFormatter>[0][],
   labelKey: string,
   maxVisible = MAX_RELATION_BADGES,
   valueKey = DEFAULT_RELATION_VALUE_KEY,

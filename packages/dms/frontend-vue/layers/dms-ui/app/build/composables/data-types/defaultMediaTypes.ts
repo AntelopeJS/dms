@@ -2,7 +2,9 @@ import type {
   DataType,
   DataTypeFormatter,
 } from "#dms-core/app/composables/data-types/useDataType";
-import { isObject, isString } from "#dms-core/app/utils/type-check";
+import { isBoolean, isString } from "#dms-core/app/utils/type-check";
+import { isDataTypeRow } from "#dms-core/app/entries/utils/dataTypeValue";
+import type { DataTypeRow } from "#dms-core/app/types/data-type";
 import UAvatar from "@nuxt/ui/components/Avatar.vue";
 import { getAppTranslation } from "../../../../../dms-core/app/composables/translation/useTranslation";
 import {
@@ -29,12 +31,16 @@ interface ImageOptions {
   storage?: string;
 }
 
+const isImageItem = (item: CellValue): item is DataTypeRow & ImageItemValue =>
+  isDataTypeRow(item) &&
+  isString(item.key) &&
+  (item.alt === undefined || isString(item.alt)) &&
+  (item.principal === undefined || isBoolean(item.principal));
+
 function toImageList(value: CellValue): ImageItemValue[] {
   if (!value) return [];
   const list = Array.isArray(value) ? value : [value];
-  return list.filter(
-    (item): item is ImageItemValue => isObject(item) && isString(item.key),
-  );
+  return list.filter(isImageItem);
 }
 
 function renderImage(value: CellValue, options: CellOptions) {

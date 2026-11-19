@@ -107,8 +107,7 @@ export function useTableViewMobileDisplay<T extends Data>(
     activeView,
     isDisplayChosen: () =>
       isDefaultDisplayStandalone ||
-      tablePreferences.get<string | undefined>("viewMode", undefined) !==
-        undefined,
+      tablePreferences.get("viewMode", undefined) !== undefined,
   });
   return {};
 }

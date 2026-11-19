@@ -3,6 +3,7 @@ import type {
   DataTypeFormatter,
 } from "#dms-core/app/composables/data-types/useDataType";
 import { isObject } from "#dms-core/app/utils/type-check";
+import { textOf } from "#dms-core/app/entries/utils/dataTypeValue";
 import UAvatar from "@nuxt/ui/components/Avatar.vue";
 import UBadge from "@nuxt/ui/components/Badge.vue";
 import {
@@ -66,7 +67,7 @@ function renderNotFoundRelation(relation: NotFoundRelation) {
 }
 
 function renderRelationBadges(
-  values: unknown[],
+  values: CellValue[],
   labelKey: string,
   valueKey: string,
 ) {
@@ -113,7 +114,7 @@ function renderRelation(value: CellValue, options: CellOptions) {
 
   return h("span", { class: "inline-flex items-center gap-2" }, [
     h(UAvatar, {
-      src: String(valueObject[avatarKey]),
+      src: textOf(valueObject[avatarKey]),
       alt: String(label),
       size: Size.tiny,
     }),

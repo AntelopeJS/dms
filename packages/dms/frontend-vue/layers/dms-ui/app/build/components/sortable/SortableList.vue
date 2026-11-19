@@ -11,6 +11,7 @@
  */
 import { useSortable } from "@vueuse/integrations/useSortable";
 import { type VNode, ref, watch } from "vue";
+import type { SortableGroup } from "./sortableGroup";
 
 export interface SortableListChange<Item> {
   added?: { element: Item; newIndex: number };
@@ -24,8 +25,8 @@ const list = defineModel<Item[]>("list", { required: true });
 const props = defineProps<{
   /** A stable key of an item: Vue keeps each element with its item. */
   itemKey: (item: Item) => PropertyKey | undefined;
-  /** Lists sharing a group exchange items. */
-  group?: string;
+  /** Lists given one group exchange items, the dragged one through it. */
+  group?: SortableGroup<Item>;
   disabled?: boolean;
   /** Only an item grabbed by an element matching this selector moves. */
   handle?: string;
@@ -54,8 +55,6 @@ interface SortableEvent {
   newIndex?: number;
 }
 
-const draggedKey = () => props.group ?? "";
-
 const root = ref<HTMLElement | null>(null);
 
 /**
@@ -78,7 +77,7 @@ function without(index: number): [Item[], Item | undefined] {
 }
 
 const { option } = useSortable(root, list, {
-  group: props.group,
+  group: props.group?.name,
   disabled: props.disabled,
   handle: props.handle,
   filter: props.filter,
@@ -93,7 +92,7 @@ const { option } = useSortable(root, list, {
     const { parentNode, nextSibling } = event.item;
     origin = parentNode ? { parent: parentNode, next: nextSibling } : undefined;
     const element = list.value[event.oldIndex ?? -1];
-    if (element !== undefined) sharedDragged.set(draggedKey(), element);
+    props.group?.hold(element);
   },
   onUpdate: (event: SortableEvent) => {
     const { oldIndex, newIndex } = event;
@@ -106,7 +105,7 @@ const { option } = useSortable(root, list, {
     emit("change", { moved: { element, oldIndex, newIndex } });
   },
   onAdd: (event: SortableEvent) => {
-    const element = sharedDragged.get(draggedKey()) as Item | undefined;
+    const element = props.group?.held();
     const { newIndex } = event;
     if (element === undefined || newIndex === undefined) return;
 
@@ -127,7 +126,7 @@ const { option } = useSortable(root, list, {
   },
   onEnd: () => {
     origin = undefined;
-    sharedDragged.delete(draggedKey());
+    props.group?.hold(undefined);
   },
 });
 
@@ -135,10 +134,6 @@ watch(
   () => props.disabled,
   (disabled) => option("disabled", disabled),
 );
-</script>
-
-<script lang="ts">
-const sharedDragged = new Map<string, unknown>();
 </script>
 
 <template>
