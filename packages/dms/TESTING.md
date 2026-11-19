@@ -39,7 +39,7 @@ to a subdirectory by setting `DMS_TEST_DIR` (read by `antelope.test.ts`'s
 `test.folder`). `test:unit` hands the runner its files with
 `scripts/test-files.mjs`, which leaves out `unit/builder/`: the builder specs
 take about as long as the rest of the unit suite, so CI runs them in four jobs,
-each `test:builder:shard` with `DMS_TEST_SHARD` set to 1 to 4. Each job takes the
+each `test:builder:shard` with `DMS_TEST_SHARD` set to `1/4` to `4/4`. Each job takes the
 files that `scripts/test-files.mjs` assigns it by the seconds per file in
 `scripts/test-weights.json`, and still boots the full harness. With
 `DMS_TEST_DURATIONS` set to a path, `src/test/helpers/file-durations.ts` writes

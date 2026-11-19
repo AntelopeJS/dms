@@ -170,7 +170,8 @@ jobs:
         run: |
           if [[ "$SUITE" == builder:* ]]; then
             shard="${SUITE#builder:}"
-            echo "shard=${shard%/*}" >> "$GITHUB_OUTPUT"
+            echo "shard=${shard}" >> "$GITHUB_OUTPUT"
+            echo "index=${shard%/*}" >> "$GITHUB_OUTPUT"
           fi
       # Needs no service: the harness starts an in-memory MongoDB replica set
       # and lets the OS pick the api port.
@@ -186,7 +187,7 @@ jobs:
       - if: success() && runner.os == 'Linux' && steps.suite.outputs.shard != ''
         uses: actions/upload-artifact@v4
         with:
-          name: builder-durations-${{ steps.suite.outputs.shard }}
+          name: builder-durations-${{ steps.suite.outputs.index }}
           path: ${{ runner.temp }}/builder-durations.json
           retention-days: 14
 

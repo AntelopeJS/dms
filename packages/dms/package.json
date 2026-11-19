@@ -85,7 +85,7 @@
     "test:integration": "node scripts/unless-prebuilt.mjs pnpm run build && DMS_TEST_DIR=dist/test/integration ajs module test .",
     "test:published-dms": "node scripts/published-dms.mjs",
     "test:builder": "node scripts/unless-prebuilt.mjs pnpm run build && DMS_TEST_DIR=dist/test/unit/builder ajs module test .",
-    "test:builder:shard": "node scripts/unless-prebuilt.mjs pnpm run build && DMS_TEST_DIR=dist/test/unit/builder ajs module test . -f dist/test/helpers/file-durations.js $(node scripts/test-files.mjs dist/test/unit/builder --shard=$DMS_TEST_SHARD --weights=scripts/test-weights.json)",
+    "test:builder:shard": "node scripts/unless-prebuilt.mjs pnpm run build && files=$(node scripts/test-files.mjs dist/test/unit/builder --shard=$DMS_TEST_SHARD --weights=scripts/test-weights.json) && DMS_TEST_DIR=dist/test/unit/builder ajs module test . -f dist/test/helpers/file-durations.js $files",
     "test:watch": "tsc -w & tsc-alias -w",
     "release": "pnpm --filter @antelopejs/interface-dms build && pnpm --dir frontend-vue install --frozen-lockfile && release-it",
     "prepack": "pnpm run build",

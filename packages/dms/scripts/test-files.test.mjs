@@ -137,3 +137,19 @@ await test("reads the weights of --weights from the command line, so the CI shar
     rmSync(root, { recursive: true, force: true });
   }
 });
+
+await test("refuses a malformed shard option, so a shard never reads it as an excluded folder and runs every file", () => {
+  assert.throws(
+    () =>
+      execFileSync(
+        process.execPath,
+        [
+          fileURLToPath(new URL("./test-files.mjs", import.meta.url)),
+          fileURLToPath(new URL(".", import.meta.url)),
+          "--shard=1",
+        ],
+        { stdio: "pipe" },
+      ),
+    /unknown option --shard=1/,
+  );
+});

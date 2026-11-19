@@ -92,6 +92,14 @@ if (
   import.meta.url === pathToFileURL(process.argv[1]).href
 ) {
   const args = process.argv.slice(2);
+  const unknown = args.filter(
+    (arg) => arg.startsWith("--") && !SHARD.test(arg) && !WEIGHTS.test(arg),
+  );
+  if (unknown.length > 0) {
+    throw new Error(
+      `unknown option ${unknown.join(" ")}: pass --shard=<index>/<count> and --weights=<file>`,
+    );
+  }
   const shard = args.map((arg) => SHARD.exec(arg)).find(Boolean);
   const weightsFile = args.map((arg) => WEIGHTS.exec(arg)).find(Boolean)?.[1];
   const [root, ...excluded] = args.filter(
