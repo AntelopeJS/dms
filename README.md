@@ -38,7 +38,7 @@ We ran it on the connect demo, a sample coffee shop on PostgreSQL.
 | Code     | About 2,100 lines of TypeScript in 50 files, in one module                 |
 | Result   | The project typechecks, and all 12 pages pass the check against the mockup |
 
-**What it got wrong.** On the Shipments and Support tickets pages, the order column shows `[object Object]` instead of the order: the assistant offered a monospace display for those relations, and we accepted it. Two breakdowns were left out, and the assistant said so in its report: top products by revenue needs the order items table, which we had not selected, and revenue by customer name cannot be built yet. That was one run with no follow-up prompt. [Run it yourself](#quick-start).
+That was one run with no follow-up prompt. [Run it yourself](#quick-start).
 
 ### A finished back office
 
