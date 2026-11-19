@@ -77,22 +77,22 @@ export class SalesPage extends PageController("sales", {
 
 <!-- antelopejs-docs-compat:start -->
 
-| Package                                     | Supported         | Tested with |
-| ------------------------------------------- | ----------------- | ----------- |
-| `@antelopejs/core`                          | `~1.24.5`         | `1.24.5`    |
-| `@antelopejs/interface-api`                 | `>=0.3.4 <0.4.0`  | `0.3.4`     |
-| `@antelopejs/interface-api-util`            | `>=0.3.3 <0.4.0`  | `0.3.3`     |
-| `@antelopejs/interface-core`                | `>=0.5.1 <0.6.0`  | `0.5.1`     |
-| `@antelopejs/interface-data-api`            | `>=0.8.2 <0.9.0`  | `0.8.2`     |
-| `@antelopejs/interface-database`            | `>=0.4.3 <0.5.0`  | `0.4.3`     |
-| `@antelopejs/interface-database-catalog`    | `>=0.1.0 <0.2.0`  | `0.1.0`     |
-| `@antelopejs/interface-database-decorators` | `>=0.5.4 <0.6.0`  | `0.5.4`     |
-| `@antelopejs/interface-dms`                 | `^0.14.5`         | `0.14.5`    |
-| `@antelopejs/interface-dms-automation`      | `>=0.7.2 <0.8.0`  | `0.7.2`     |
-| `@antelopejs/interface-dms-builder`         | `^0.6.0`          | `0.6.0`     |
-| `@antelopejs/interface-email`               | `>=0.2.1 <0.3.0`  | `0.2.1`     |
-| `@antelopejs/interface-file-storage`        | `>=0.1.9 <0.2.0`  | `0.1.9`     |
-| `@antelopejs/interface-redis`               | `>=0.0.11 <0.1.0` | `0.0.11`    |
+| Package                                     | Supported        | Tested with |
+| ------------------------------------------- | ---------------- | ----------- |
+| `@antelopejs/core`                          | `~1.24.5`        | `1.24.5`    |
+| `@antelopejs/interface-api`                 | `>=0.3.2 <0.4.0` | `0.3.4`     |
+| `@antelopejs/interface-api-util`            | `>=0.3.0 <0.4.0` | `0.3.3`     |
+| `@antelopejs/interface-core`                | `>=0.5.1 <0.6.0` | `0.5.1`     |
+| `@antelopejs/interface-data-api`            | `>=0.8.0 <0.9.0` | `0.8.2`     |
+| `@antelopejs/interface-database`            | `>=0.4.0 <0.5.0` | `0.4.3`     |
+| `@antelopejs/interface-database-catalog`    | `>=0.1.0 <0.2.0` | `0.1.0`     |
+| `@antelopejs/interface-database-decorators` | `>=0.5.2 <0.6.0` | `0.5.4`     |
+| `@antelopejs/interface-dms`                 | `^0.14.5`        | `0.14.5`    |
+| `@antelopejs/interface-dms-automation`      | `>=0.7.0 <0.8.0` | `0.7.2`     |
+| `@antelopejs/interface-dms-builder`         | `^0.6.0`         | `0.6.0`     |
+| `@antelopejs/interface-email`               | `>=0.2.1 <0.3.0` | `0.2.1`     |
+| `@antelopejs/interface-file-storage`        | `>=0.1.4 <0.2.0` | `0.1.9`     |
+| `@antelopejs/interface-redis`               | `>=0.0.9 <0.1.0` | `0.0.11`    |
 
 <!-- antelopejs-docs-compat:end -->
 
