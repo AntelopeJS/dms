@@ -111,7 +111,7 @@ describe("[integration] file-bearing table routes answer what the route answers"
     const absent = await client.delete(`${LOCATION}/delete`, {
       params: { id: "absent" },
     });
-    expect(answerOf(absent)).to.deep.equal({ status: HTTP_OK, body: "" });
+    expect(answerOf(absent)).to.deep.equal({ status: HTTP_OK, body: 0 });
     const edited = await client.put(
       `${LOCATION}/edit`,
       { file: "" },

@@ -122,7 +122,7 @@ function accountPrivilegeCases() {
 }
 
 function databaseNameCases() {
-  it("answers a database with no table as readable and not written to", async () => {
+  it("answers a database with no table as readable, and writable by an account that can create its tables", async () => {
     const answer = await checkDatabase(
       "rethinkdb",
       urlOf("admin", ADMIN_SECRET, "empty"),
@@ -131,7 +131,7 @@ function databaseNameCases() {
     expect(answer).to.include({
       reachable: true,
       canRead: true,
-      canWrite: false,
+      canWrite: true,
     });
   });
 

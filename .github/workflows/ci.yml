@@ -42,10 +42,12 @@ jobs:
         pnpm --dir packages/dms mockup:schema:check
         pnpm --dir packages/dms check:frontend-declarations
       renovate-sync: false
-      single-job: false
       test-job: true
+      single-job: false
     permissions:
       contents: read
+    secrets:
+      NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
 
   # ci-node.yml exposes no outputs, so this takes its tier rule from the shared
   # action and forces the tier of an event it does not know. checks/

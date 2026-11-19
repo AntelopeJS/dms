@@ -1,5 +1,4 @@
 import { HTTPResult } from "@antelopejs/interface-api";
-import { assertValidation } from "@antelopejs/interface-api-util";
 import {
   inviteExtensionFieldId,
   splitInviteExtensionFieldId,
@@ -171,13 +170,14 @@ export function assertSliceValid(
   info: InviteExtensionInfo,
   slice: InviteFieldValues,
 ): void {
-  assertValidation(
-    slice,
-    (v) => info.schema.parse(v),
-    (error) =>
+  try {
+    info.schema.parse(slice);
+  } catch (error) {
+    throw new HTTPResult(
+      HTTP_BAD_REQUEST,
       hasIssues(error) ? describeIssues(info.key, error.issues) : String(error),
-    HTTP_BAD_REQUEST,
-  );
+    );
+  }
 }
 
 /**
