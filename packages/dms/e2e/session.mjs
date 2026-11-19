@@ -149,9 +149,7 @@ export function isOk(answer) {
 export async function signIn(state, account) {
   const credentials = state.accounts?.[account];
   if (!credentials) {
-    throw new Error(
-      `No account ${account} in the run; onboard first or add it with dms-control account.`,
-    );
+    throw new Error(`No account ${account} in the run; onboard first.`);
   }
   const folder = nextFolder(state, "auth", `login ${account}`);
   const answer = await recordedRequest(folder, {

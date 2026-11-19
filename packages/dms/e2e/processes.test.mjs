@@ -79,7 +79,7 @@ function recordKills(t, allowed) {
  * @returns {Promise<ReturnType<typeof startDetached>>} The leader's record
  */
 async function startTree(t, ports) {
-  const logs = mkdtempSync(join(tmpdir(), "dms-control-processes-test-"));
+  const logs = mkdtempSync(join(tmpdir(), "dms-e2e-processes-test-"));
   const leader = startDetached({
     name: "tree",
     program: process.execPath,
@@ -145,7 +145,7 @@ await test(
       "a zombie and the descendants of a process are read from /proc",
   },
   async (t) => {
-    const dir = mkdtempSync(join(tmpdir(), "dms-control-zombie-"));
+    const dir = mkdtempSync(join(tmpdir(), "dms-e2e-zombie-"));
     const parent = startDetached({
       name: "zombie-parent",
       program: "sh",

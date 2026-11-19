@@ -24,8 +24,8 @@ const CI = Boolean(process.env.CI);
  * timeout above the kit's own waits, and the CI reporters. It is plain
  * Playwright config, so `defineConfig(e2eConfig(), overrides)` adjusts it.
  * The suite's journeys come from `e2e/journeys.config.ts` and
- * `e2e/journeys/`; in a repository without that file, from its verify
- * skill, which `skill` names when the repository has several.
+ * `e2e/journeys/`, or the journeys config `config` names and the
+ * `journeys/` folder beside it.
  * `frontend: "dev"` serves the run's dashboard with `ajs dms dev` and
  * registers only the journeys that set `frontend: "dev"`, which every other
  * suite leaves out; its test output and report folders end in `-dev`. The
@@ -79,11 +79,7 @@ export function e2eConfig(options = {}) {
  */
 export async function registerJourneys() {
   const suite = declaredSuite();
-  const config = await loadSuiteConfig(
-    suite.skill,
-    process.cwd(),
-    suite.config,
-  );
+  const config = await loadSuiteConfig(process.cwd(), suite.config);
   const features = await Promise.all(
     config.features.map(async (name) => ({
       name,

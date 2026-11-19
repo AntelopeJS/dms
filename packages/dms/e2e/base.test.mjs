@@ -24,9 +24,7 @@ const PLAYGROUND = join(".agents", "skills", "verify", "playground");
  * @returns {{ repo: string, playground: string }} Its paths
  */
 function repoWithNewPlayground(t) {
-  const root = realpathSync(
-    mkdtempSync(join(tmpdir(), "dms-control-base-test-")),
-  );
+  const root = realpathSync(mkdtempSync(join(tmpdir(), "dms-e2e-base-test-")));
   t.after(() => rmSync(root, { recursive: true, force: true }));
   setEnv(t, { XDG_CACHE_HOME: join(root, "cache") });
   const repo = join(root, "repo");

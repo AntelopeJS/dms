@@ -14,7 +14,7 @@ import { withBaseBackend } from "./base.mjs";
 import { targetOf } from "./start.mjs";
 import { git } from "./git.mjs";
 import { resolveRenderer } from "./renderer.mjs";
-import { decodeSkillConfig } from "./verify/decode.mjs";
+import { loadSuiteConfig } from "./journeys-config.mjs";
 import { layOutCopy } from "./run-copy.mjs";
 import { cliPaths } from "./launch.mjs";
 
@@ -24,7 +24,7 @@ import { cliPaths } from "./launch.mjs";
  */
 function scratch(t) {
   const dir = realpathSync.native(
-    mkdtempSync(join(tmpdir(), "dms-control-renderer-test-")),
+    mkdtempSync(join(tmpdir(), "dms-e2e-renderer-test-")),
   );
   t.after(() => rmSync(dir, { recursive: true, force: true }));
   return dir;
@@ -169,14 +169,16 @@ await test("the dashboard CLI is the renderer's build, the backend CLI stays the
 
 /**
  * @param {string} root The scratch folder
- * @param {string} config The text after `export default` in `verify.config.ts`
- * @returns {string} The checkout holding a verification skill with that config
+ * @param {Record<string, unknown>} config The fields of `e2e/journeys.config.ts` besides `prepare` and `smoke`
+ * @returns {string} The checkout holding a journeys config with those fields
  */
-function checkoutWithSkill(root, config) {
+function checkoutWithConfig(root, config) {
   const checkout = join(root, "dms-frontend");
-  const skill = join(checkout, ".agents", "skills", "verify-dms-frontend");
-  mkdirSync(skill, { recursive: true });
-  writeFileSync(join(skill, "verify.config.ts"), `export default ${config};\n`);
+  mkdirSync(join(checkout, "e2e"), { recursive: true });
+  writeFileSync(
+    join(checkout, "e2e", "journeys.config.ts"),
+    `export default ${JSON.stringify({ prepare: [], smoke: "smoke", ...config })};\n`,
+  );
   git(["init", "--quiet"], checkout);
   git(["add", "."], checkout);
   git(
@@ -188,32 +190,29 @@ function checkoutWithSkill(root, config) {
       "commit",
       "--quiet",
       "-m",
-      "skill",
+      "journeys",
     ],
     checkout,
   );
   return checkout;
 }
 
-const EMPTY_CONFIG = `prepare: [], userFacing: [], smoke: "", smokeJourney: "", doors: {}, formal: []`;
-
-await test("up takes the playground and the renderer from the skill's config, relative ones from its repository", async (t) => {
-  const root = scratch(t);
-  const checkout = checkoutWithSkill(
-    root,
-    `{ playground: "/dms/playground", renderer: ".", ${EMPTY_CONFIG} }`,
-  );
+await test("a run takes the playground and the renderer from the journeys config, relative ones from its repository", async (t) => {
+  const checkout = checkoutWithConfig(scratch(t), {
+    playground: "/dms/playground",
+    renderer: ".",
+  });
   assert.deepEqual(await targetOf({}, checkout), {
     playground: resolve(checkout, "/dms/playground"),
     renderer: checkout,
   });
 });
 
-await test("--renderer and --playground win over the skill's config", async (t) => {
-  const checkout = checkoutWithSkill(
-    scratch(t),
-    `{ playground: "/dms/playground", renderer: ".", ${EMPTY_CONFIG} }`,
-  );
+await test("the renderer and playground options win over the journeys config", async (t) => {
+  const checkout = checkoutWithConfig(scratch(t), {
+    playground: "/dms/playground",
+    renderer: ".",
+  });
   assert.deepEqual(
     await targetOf(
       { playground: "/other/playground", renderer: "/other/ui" },
@@ -223,41 +222,22 @@ await test("--renderer and --playground win over the skill's config", async (t) 
   );
 });
 
-await test("a skill without a renderer serves the published one", async (t) => {
-  const checkout = checkoutWithSkill(
-    scratch(t),
-    `{ playground: "packages/dms/playground", ${EMPTY_CONFIG} }`,
-  );
+await test("a journeys config without a renderer serves the published one", async (t) => {
+  const checkout = checkoutWithConfig(scratch(t), {
+    playground: "packages/dms/playground",
+  });
   assert.deepEqual(await targetOf({}, checkout), {
     playground: resolve(checkout, "packages/dms/playground"),
     renderer: undefined,
   });
 });
 
-const CONFIG = {
-  playground: "p",
-  prepare: [],
-  userFacing: [],
-  smoke: "",
-  smokeJourney: "",
-  doors: {},
-  formal: [],
-};
-
-await test("a skill config keeps its renderer, and refuses one that is not a path", () => {
-  assert.equal(
-    decodeSkillConfig({ ...CONFIG, renderer: "." }, "verify.config.ts")
-      .renderer,
-    ".",
-  );
-  assert.equal(
-    decodeSkillConfig(CONFIG, "verify.config.ts").renderer,
-    undefined,
-  );
-  assert.throws(
-    () => decodeSkillConfig({ ...CONFIG, renderer: 3 }, "verify.config.ts"),
-    /verify\.config\.ts/,
-  );
+await test("a journeys config refuses a renderer that is not a path", async (t) => {
+  const checkout = checkoutWithConfig(scratch(t), {
+    playground: "p",
+    renderer: 3,
+  });
+  await assert.rejects(loadSuiteConfig(checkout), /journeys\.config\.ts/);
 });
 
 await test("a run with a renderer has no base backend", async () => {

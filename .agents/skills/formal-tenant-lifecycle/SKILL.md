@@ -38,11 +38,11 @@ One run each, Docker Java 21, load near 40. The two-owner healthy run takes most
 
 The lines that name a changed rule match `^(?:BROKEN|CHANGED|HOLDS) +(\w+)`. A rule that still holds prints as lowercase `holds`.
 
-No rule has a recorded finding now. If one is recorded, it is judged by the length of its shortest counterexample alone, so a longer new counterexample exits 0; while a finding stands, `dms-control formal` prints `VIOLATED` for this check. A `BROKEN` trace comes from a run on every core, so its length, and which of two broken rules it names, can vary. Findings run on one worker, so their lengths are stable.
+No rule has a recorded finding now. If one is recorded, it is judged by the length of its shortest counterexample alone, so a longer new counterexample exits 0. A `BROKEN` trace comes from a run on every core, so its length, and which of two broken rules it names, can vary. Findings run on one worker, so their lengths are stable.
 
 ## When to run it
 
-Run `--full` when a change touches a file in the coverage record below, or this folder. A changed rule (exit 1) makes `dms-control formal` print `ERROR` or `VIOLATED`, and the verifier explains it in the reply (`verify-dms` verdict rule 5). CI runs the CI configuration on every push.
+Run `--full` when a change touches a file in the coverage record below, or this folder. A changed rule exits 1. Explain it in the reply. CI runs the CI configuration on every push.
 
 ## The rules
 

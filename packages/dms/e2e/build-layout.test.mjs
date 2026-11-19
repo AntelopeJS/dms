@@ -34,7 +34,7 @@ const REGISTRY = "generated-frontend-modules.json";
  */
 function fixture(t) {
   const dir = realpathSync(
-    mkdtempSync(join(tmpdir(), "dms-control-build-layout-test-")),
+    mkdtempSync(join(tmpdir(), "dms-e2e-build-layout-test-")),
   );
   t.after(() => rmSync(dir, { recursive: true, force: true }));
   setEnv(t, { XDG_CACHE_HOME: join(dir, "xdg") });
@@ -235,7 +235,7 @@ await test("without the cache, or when the workspace cannot be prepared, the run
   );
   assert.equal(forced.frontendBuild?.key, null);
   assert.equal(
-    namesIn(join(dir, "xdg", "dms-control", "frontend")).length,
+    namesIn(join(dir, "xdg", "dms-e2e", "frontend")).length,
     1,
     "--no-build-cache stores what it built",
   );
@@ -272,7 +272,7 @@ await test("an install record the key cannot read is a miss that builds as ajs d
     reason: `its inputs could not be keyed (${record} is neither the JSON nor the YAML layout the build cache reads (line 1))`,
   });
   assert.equal(
-    namesIn(join(dir, "xdg", "dms-control", "frontend")).length,
+    namesIn(join(dir, "xdg", "dms-e2e", "frontend")).length,
     1,
     "a build whose inputs were not all keyed is stored under no key",
   );
@@ -301,7 +301,7 @@ await test("a build that refuses its prepared workspace builds again as ajs dms 
     /refused its prepared workspace \(frontend-build exited with 75\)/u,
   );
   assert.equal(
-    treeOf(join(dir, "xdg", "dms-control", "frontend")),
+    treeOf(join(dir, "xdg", "dms-e2e", "frontend")),
     null,
     "a build outside the prepared workspace is stored under the key of sources it did not read",
   );
@@ -350,7 +350,7 @@ await test("a run records the VITE_ and NODE_ENV variables it keyed on, so anoth
 
 await test("an install record above TMPDIR that the key cannot read leaves the runs cached, through a linked TMPDIR too", async (t) => {
   const outer = realpathSync(
-    mkdtempSync(join(tmpdir(), "dms-control-build-layout-outer-")),
+    mkdtempSync(join(tmpdir(), "dms-e2e-build-layout-outer-")),
   );
   t.after(() => rmSync(outer, { recursive: true, force: true }));
   const record = join(outer, "node_modules", ".modules.yaml");

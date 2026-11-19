@@ -1,19 +1,16 @@
-import { existsSync } from "node:fs";
 import { join, relative } from "node:path";
 import { launchBrowser } from "./browser.mjs";
 import { judge } from "./journey-judge.mjs";
 import { JourneyContext } from "./journey.mjs";
-import { frontendRefusal, loadJourneys } from "./journey-load.mjs";
-import { readRecordList, writeJson } from "./json.mjs";
+import { writeJson } from "./json.mjs";
 import { resolutionFolders } from "./launch.mjs";
-import { saveRun } from "./run-state.mjs";
 import { onboard } from "./session.mjs";
 import { ensureMail } from "./stack.mjs";
-import { assertForwardedRun, freshDatabase } from "./backend.mjs";
+import { freshDatabase } from "./backend.mjs";
 import { recordTiming, stopwatch, timed } from "./timing.mjs";
 
 /**
- * @typedef {import("./verify/types.mjs").FeatureResult} FeatureResult
+ * @typedef {import("./types.mjs").FeatureResult} FeatureResult
  * @typedef {import("./journey-load.mjs").Journey} Journey
  * @typedef {Pick<Journey, "id" | "database" | "onboard" | "backend" | "standby">} JourneyPreparation What a journey asks of the run before it starts
  */
@@ -190,48 +187,4 @@ export async function timedJourney(state, detail, drive) {
   const timedResult = { ...result, ms: lap.ms };
   writeJson(join(state.evidence, result.folder, "result.json"), timedResult);
   return timedResult;
-}
-
-/**
- * Runs a feature's journeys, all or those named, and merges their results
- * into `<feature>/feature.json` so a partial run never drops earlier ones.
- *
- * @param {import("./run-state.mjs").RunState} state The run
- * @param {{ file: string, feature: string, ids: string[], config: import("./journeys-config.mjs").SuiteConfig }} request Which journeys, and the journeys config they belong to
- * @returns {Promise<FeatureResult[]>} The results of this run
- */
-export async function runJourneyFile(state, request) {
-  assertForwardedRun(state);
-  const journeys = await loadJourneys(request.file);
-  const unknown = request.ids.filter(
-    (id) => !journeys.some((journey) => journey.id === id),
-  );
-  if (unknown.length > 0) {
-    throw new Error(
-      `Unknown journeys of ${request.feature}: ${unknown.join(", ")}`,
-    );
-  }
-  const selected =
-    request.ids.length > 0
-      ? journeys.filter((journey) => request.ids.includes(journey.id))
-      : journeys;
-  const refusal = frontendRefusal(selected, state.frontendMode);
-  if (refusal) throw new Error(refusal);
-  /** @type {FeatureResult[]} */
-  const results = [];
-  for (const journey of selected)
-    results.push(
-      await runJourney(state, request.feature, journey, request.config),
-    );
-  const file = join(state.evidence, request.feature, "feature.json");
-  const earlier = existsSync(file) ? readRecordList(file) : [];
-  const merged = journeys.flatMap((journey) => {
-    const fresh = results.filter((result) => result.journey === journey.id);
-    return fresh.length > 0
-      ? fresh
-      : earlier.filter((result) => result.journey === journey.id);
-  });
-  writeJson(file, merged);
-  saveRun(state);
-  return results;
 }

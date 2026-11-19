@@ -153,7 +153,7 @@ async function servingCredential(ctx, projectRoot) {
 export async function withBridge(ctx, action) {
   const projectRoot = ctx.state.runPlayground ?? ctx.state.playground;
   const credential = await servingCredential(ctx, projectRoot);
-  const folder = mkdtempSync(join(tmpdir(), "verify-dms-mcp-"));
+  const folder = mkdtempSync(join(tmpdir(), "dms-e2e-mcp-"));
   copyFileSync(join(projectRoot, BRIDGE_LAUNCHER), join(folder, "mcp-bridge.cjs"));
   /** @param {{ url: string, token: string }} held */
   const hold = (held) => writeFileSync(join(folder, "mcp.json"), JSON.stringify(held), { mode: OWNER_ONLY_MODE });
@@ -186,7 +186,7 @@ export async function withBridge(ctx, action) {
     });
   };
   try {
-    await request("initialize", { protocolVersion: "2025-06-18", capabilities: {}, clientInfo: { name: "verify-dms", version: "1" } });
+    await request("initialize", { protocolVersion: "2025-06-18", capabilities: {}, clientInfo: { name: "dms-e2e", version: "1" } });
     child.stdin.write(`${JSON.stringify({ jsonrpc: "2.0", method: "notifications/initialized" })}\n`);
     return await action({
       request,

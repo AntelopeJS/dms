@@ -34,7 +34,7 @@ const control = process.argv[1];
 const { restartablePort } = await import(join(control, "processes.mjs"));
 const { serveForwarder } = await import(join(control, "forwarder.mjs"));
 const RANGE_SIZE = 8;
-const dir = mkdtempSync(join(tmpdir(), "dms-control-forwarder-restart-"));
+const dir = mkdtempSync(join(tmpdir(), "dms-e2e-forwarder-restart-"));
 const file = join(dir, "api-target");
 const port = await restartablePort();
 const first = await serveForwarder(port, file);
@@ -129,7 +129,7 @@ async function backend(t, name) {
  * @returns {Promise<{ port: number, file: string }>} Its port and target file
  */
 async function forwarder(t) {
-  const dir = mkdtempSync(join(tmpdir(), "dms-control-forwarder-test-"));
+  const dir = mkdtempSync(join(tmpdir(), "dms-e2e-forwarder-test-"));
   const file = join(dir, "api-target");
   const port = await freePort();
   const server = await serveForwarder(port, file);

@@ -27,7 +27,7 @@ const PACKAGE_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
  * @returns {{ root: string, mongo: string, logs: string, teardown: () => Promise<void> }} The folders, and what to run before they are removed
  */
 function runFolders(t) {
-  const root = mkdtempSync(join(tmpdir(), "dms-control-mongod-test-"));
+  const root = mkdtempSync(join(tmpdir(), "dms-e2e-mongod-test-"));
   const paths = {
     root,
     mongo: join(root, "mongo"),

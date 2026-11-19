@@ -24,7 +24,7 @@ function kitWithoutBin(t) {
   return kit;
 }
 
-await test("a copy of the kit with no bin/ beside it starts a run's mail sink (catches a stack that runs its services through dms-control)", async (t) => {
+await test("a copy of the kit with no bin/ beside it starts a run's mail sink (catches a stack that runs its services through a script outside the kit)", async (t) => {
   const kit = kitWithoutBin(t);
   const state = await newRun(t);
   state.smtpPort = await restartablePort();

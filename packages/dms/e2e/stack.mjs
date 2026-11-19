@@ -49,7 +49,7 @@ import { appendTiming, recordTiming, stopwatch, timed } from "./timing.mjs";
 
 /**
  * @typedef {import("./run-state.mjs").RunState} RunState
- * @typedef {{ playground: string, renderer?: string, runs?: string, mongoUrl?: string, env?: string[], base?: string, skill?: string, prepared?: import("./timing.mjs").TimingEntry[], noStandby?: boolean, buildCache?: boolean, frontendMode?: import("./run-state.mjs").FrontendMode, backendMode?: BackendMode }} UpOptions Where the playground and the runs are, the `prepare` entries to record once the run exists, whether fresh databases start their backend on the spot, whether the frontend build may come from the build cache (it may unless `buildCache` is false), how the dashboard is served (a build unless `frontendMode` is `dev`), and how the backends run unless a journey says otherwise (production unless `backendMode` is `dev`)
+ * @typedef {{ playground: string, renderer?: string, runs?: string, mongoUrl?: string, env?: string[], base?: string, prepared?: import("./timing.mjs").TimingEntry[], noStandby?: boolean, buildCache?: boolean, frontendMode?: import("./run-state.mjs").FrontendMode, backendMode?: BackendMode }} UpOptions Where the playground and the runs are, the `prepare` entries to record once the run exists, whether fresh databases start their backend on the spot, whether the frontend build may come from the build cache (it may unless `buildCache` is false), how the dashboard is served (a build unless `frontendMode` is `dev`), and how the backends run unless a journey says otherwise (production unless `backendMode` is `dev`)
  * @typedef {import("./run-state.mjs").BackendMode} BackendMode
  */
 
@@ -131,7 +131,6 @@ async function initialState(options) {
     repo: checkout.root,
     headSha: verified.head,
     baseRef: options.base ?? "origin/main",
-    skill: options.skill ?? null,
     apiPort,
     webPort,
     smtpPort,

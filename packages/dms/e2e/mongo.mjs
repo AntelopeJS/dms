@@ -41,7 +41,7 @@ const PRIMARY_POLL_MS = 100;
 const ALREADY_INITIALIZED = 23;
 
 /** The single-node replica set the run's mongod serves, so change streams work on it. */
-const REPLICA_SET = "dms-control";
+const REPLICA_SET = "dms-e2e";
 
 /**
  * @param {unknown} value
@@ -202,9 +202,9 @@ function missingPackage(name) {
     "optionalDependencies of version ranges",
   );
   if (!Object.hasOwn(optionalDependencies, name))
-    return `dms-control needs ${name}: add it to the playground's devDependencies.`;
+    return `the e2e kit needs ${name}: add it to the playground's devDependencies.`;
   const spec = `${name}@${optionalDependencies[name]}`;
-  return `dms-control needs ${name}, an optional dependency of @antelopejs/dms that this install skipped: run \`npm install --save-dev ${spec}\` (or \`pnpm add --save-dev ${spec}\`) in the module that runs dms-control.`;
+  return `the e2e kit needs ${name}, an optional dependency of @antelopejs/dms that this install skipped: run \`npm install --save-dev ${spec}\` (or \`pnpm add --save-dev ${spec}\`) in the module that runs the e2e suite.`;
 }
 
 /**
@@ -258,7 +258,7 @@ export async function mongodBinary(from) {
  * under the run folder, as the only member of a replica set, so change
  * streams work. A mongod that does not become primary is stopped before the
  * error is thrown. A binary that is a JavaScript file runs on this Node, as
- * every other process dms-control starts does, since Windows runs no script
+ * every other process the kit starts does, since Windows runs no script
  * by its path alone.
  *
  * @param {{ mongo: string, logs: string }} paths The run's folders

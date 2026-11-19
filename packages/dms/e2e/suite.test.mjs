@@ -11,28 +11,22 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 import { declareSuite, declaredSuite, suiteJourneys } from "./suite.mjs";
-import { frontendRefusal } from "./journey-load.mjs";
 import { startOptions } from "./start.mjs";
-import { loadSkill } from "./verify/skill.mjs";
 
 const CONFIG = `export default ${JSON.stringify({
   playground: "p",
   prepare: [],
-  userFacing: ["src/**"],
   smoke: "smoke",
-  smokeJourney: "",
-  doors: {},
-  formal: [],
 })};\n`;
 
 /**
- * A git checkout holding two verify skills, as dms-assistant does, with the
- * process inside its `e2e/` folder, where Playwright loads a config.
+ * A git checkout holding two journeys configs, as dms-assistant does, with
+ * the process inside its `e2e/` folder, where Playwright loads a config.
  *
  * @param {import("node:test").TestContext} t The test
  * @returns {string} The checkout root
  */
-function twoSkillCheckout(t) {
+function twoSuiteCheckout(t) {
   const root = realpathSync(mkdtempSync(join(tmpdir(), "dms-e2e-suite-")));
   const cwd = process.cwd();
   const recorded = process.env.DMS_E2E_SUITE;
@@ -47,18 +41,14 @@ function twoSkillCheckout(t) {
     rmSync(root, { recursive: true, force: true });
   });
   spawnSync("git", ["init", "-q"], { cwd: root });
-  for (const skill of ["verify-dms-assistant", "verify-dms-builder"]) {
-    mkdirSync(join(root, ".agents", "skills", skill), { recursive: true });
-    writeFileSync(
-      join(root, ".agents", "skills", skill, "verify.config.ts"),
-      CONFIG,
-    );
+  for (const folder of [join(root, "e2e"), join(root, "e2e", "builder")]) {
+    mkdirSync(folder, { recursive: true });
+    writeFileSync(join(folder, "journeys.config.ts"), CONFIG);
   }
-  mkdirSync(join(root, "e2e"));
   spawnSync("git", ["add", "-A"], { cwd: root });
   spawnSync(
     "git",
-    ["-c", "user.name=t", "-c", "user.email=t@t", "commit", "-qm", "skills"],
+    ["-c", "user.name=t", "-c", "user.email=t@t", "commit", "-qm", "suites"],
     { cwd: root },
   );
   process.chdir(join(root, "e2e"));
@@ -74,57 +64,50 @@ function journey(id, fields = {}) {
   return { id, title: id, entryPoint: "/", async run() {}, ...fields };
 }
 
-await test("a suite that names one of two skills loads it from e2e/ and starts its run on it (catches a global setup or registerJourneys that discovers the skill, which throws on two)", async (t) => {
-  const root = twoSkillCheckout(t);
-  await assert.rejects(
-    loadSkill(undefined, process.cwd()),
-    /found 2; pass --skill/,
-  );
-  declareSuite({ skill: ".agents/skills/verify-dms-assistant" });
-  const suite = declaredSuite();
-  const skill = await loadSkill(suite.skill, process.cwd());
-  assert.equal(skill.name, "verify-dms-assistant");
-  const { skill: folder, frontend } = suite;
-  assert.deepEqual(startOptions({ skill: folder, frontend }, process.cwd()), {
+await test("a suite that names the second journeys config from e2e/ starts its run on it (catches a config option resolved against the e2e/ folder)", (t) => {
+  const root = twoSuiteCheckout(t);
+  declareSuite({ config: "e2e/builder/journeys.config.ts" });
+  const { config, frontend } = declaredSuite();
+  assert.equal(config, join(root, "e2e", "builder", "journeys.config.ts"));
+  assert.deepEqual(startOptions({ config, frontend }, process.cwd()), {
     prepare: true,
-    skill: join(root, ".agents", "skills", "verify-dms-assistant"),
+    config,
     frontendMode: "build",
   });
 });
 
 await test("a frontend: dev suite starts its run on the development dashboard, and a prepared one skips the prepare commands (catches a global setup that always serves a build)", (t) => {
-  const root = twoSkillCheckout(t);
-  declareSuite({ skill: ".agents/skills/verify-dms-builder", frontend: "dev" });
-  const { skill, frontend } = declaredSuite();
+  twoSuiteCheckout(t);
+  declareSuite({ frontend: "dev" });
+  const { config, frontend } = declaredSuite();
   process.env.DMS_E2E_PREBUILT = "1";
-  assert.deepEqual(startOptions({ skill, frontend }, process.cwd()), {
+  assert.deepEqual(startOptions({ config, frontend }, process.cwd()), {
     prepare: false,
-    skill: join(root, ".agents", "skills", "verify-dms-builder"),
     frontendMode: "dev",
   });
 });
 
-await test("startRun resolves its skill against the repository root, builds a dashboard unless told otherwise, and prepares when asked whatever DMS_E2E_PREBUILT says (catches a node:test file whose skill resolves against its own folder)", (t) => {
-  const root = twoSkillCheckout(t);
+await test("startRun resolves its config against the repository root, builds a dashboard unless told otherwise, and prepares when asked whatever DMS_E2E_PREBUILT says (catches a node:test file whose config resolves against its own folder)", (t) => {
+  const root = twoSuiteCheckout(t);
   process.env.DMS_E2E_PREBUILT = "1";
-  const skill = ".agents/skills/verify-dms-assistant";
-  assert.deepEqual(startOptions({ skill, prepare: true }, process.cwd()), {
+  const config = "e2e/builder/journeys.config.ts";
+  assert.deepEqual(startOptions({ config, prepare: true }, process.cwd()), {
     prepare: true,
-    skill: join(root, skill),
+    config: join(root, config),
     frontendMode: "build",
   });
 });
 
-await test('a suite option e2eConfig does not take is refused (catches a typo such as frontend: "development" silently serving a build)', (t) => {
-  const root = twoSkillCheckout(t);
-  assert.throws(() => declareSuite({ skill: ".agents/skills/verify-nope" }), {
-    message: `e2eConfig's skill ${join(root, ".agents/skills/verify-nope")} holds no verify.config.ts`,
+await test('a suite option e2eConfig does not take is refused (catches a typo such as frontend: "development" silently serving a build, or a kit that still takes the verify skill)', (t) => {
+  const root = twoSuiteCheckout(t);
+  assert.throws(() => declareSuite({ config: "e2e/nope.config.ts" }), {
+    message: `e2eConfig's config ${join(root, "e2e/nope.config.ts")} does not exist`,
   });
   for (const options of [
     { frontend: "development" },
     { frontend: "build" },
-    { skill: "" },
-    { skills: "x" },
+    { config: "" },
+    { skill: "e2e" },
   ]) {
     assert.throws(
       () => declareSuite(options),
@@ -181,15 +164,4 @@ await test("a build suite leaves out the journeys that need the development dash
       ),
     /b-1/,
   );
-});
-
-await test("dms-control journey refuses a journey that needs the development dashboard on a run that serves a build (catches a run that fails it on a missing launcher instead of saying why)", () => {
-  const journeys = [journey("plain"), journey("launcher", { frontend: "dev" })];
-  assert.match(
-    frontendRefusal(journeys, "build") ?? "",
-    /^launcher need the development dashboard: start the run with up --dev-frontend$/,
-  );
-  assert.match(frontendRefusal(journeys, undefined) ?? "", /launcher/);
-  assert.equal(frontendRefusal(journeys, "dev"), null);
-  assert.equal(frontendRefusal([journey("plain")], "build"), null);
 });

@@ -20,7 +20,7 @@ const SUMMARY = {
  * @returns {string} The sink's folder
  */
 function sink(t, summary) {
-  const folder = mkdtempSync(join(tmpdir(), "dms-control-mail-test-"));
+  const folder = mkdtempSync(join(tmpdir(), "dms-e2e-mail-test-"));
   t.after(() => rmSync(folder, { recursive: true, force: true }));
   writeFileSync(join(folder, "001.json"), JSON.stringify(summary));
   return folder;
@@ -42,10 +42,7 @@ await test("a stored summary whose recipients are no list is refused", (t) => {
 });
 
 await test("a folder that does not exist holds no mail", () => {
-  assert.deepEqual(
-    capturedMail(join(tmpdir(), "dms-control-no-such-sink")),
-    [],
-  );
+  assert.deepEqual(capturedMail(join(tmpdir(), "dms-e2e-no-such-sink")), []);
 });
 
 await test("a stored summary without its links is refused", (t) => {

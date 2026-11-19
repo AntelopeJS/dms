@@ -26,7 +26,7 @@ import { describeFailure } from "./failure.mjs";
 import { PREPARED_WORKSPACE_REFUSED } from "./frontend-workspace.mjs";
 import { ExitError } from "./processes.mjs";
 
-const READY_MARK = ".dms-control-ready";
+const READY_MARK = ".dms-e2e-ready";
 const OUTPUTS = "outputs";
 const INPUTS = "inputs.json";
 const PENDING_PREFIX = ".pending-";
@@ -43,14 +43,14 @@ export const KEPT_BUILDS = 5;
  */
 
 /**
- * Where frontend builds are cached: `dms-control/frontend` under
+ * Where frontend builds are cached: `dms-e2e/frontend` under
  * `XDG_CACHE_HOME`, else `~/.cache`.
  *
  * @returns {string} The cache folder
  */
 function frontendCache() {
   const cacheHome = process.env.XDG_CACHE_HOME ?? join(homedir(), ".cache");
-  return join(cacheHome, "dms-control", "frontend");
+  return join(cacheHome, "dms-e2e", "frontend");
 }
 
 /**

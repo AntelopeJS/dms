@@ -40,12 +40,12 @@ export async function startRun(options = {}) {
 async function stopRun(dir) {
   const lines = await down(loadRun(dir));
   for (const line of lines.filter((entry) => entry.startsWith("could not")))
-    process.stderr.write(`dms-control: ${line}\n`);
+    process.stderr.write(`dms-e2e: ${line}\n`);
 }
 
 /**
  * @typedef {import("./journey-load.mjs").Journey} Journey A journey: its preparation fields and its `run(ctx)` body
- * @typedef {import("./verify/types.mjs").FeatureResult} FeatureResult The judged result: `status`, `error` and `steps[].checks[].verdict`
+ * @typedef {import("./types.mjs").FeatureResult} FeatureResult The judged result: `status`, `error` and `steps[].checks[].verdict`
  */
 
 /** A browser that refuses to open anything, so a browserless journey fails when it asks for a tab. */

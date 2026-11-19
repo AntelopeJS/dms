@@ -81,7 +81,7 @@ export function buildInPreparedWorkspace(frontendPackage) {
   const prepared = (options) => {
     const workspaceDir = resolve(options.workspaceDir);
     if (!existsSync(join(workspaceDir, INSTALL_MARK))) {
-      process.stderr.write(`dms-control: ${workspaceDir} is not prepared\n`);
+      process.stderr.write(`dms-e2e: ${workspaceDir} is not prepared\n`);
       process.exit(PREPARED_WORKSPACE_REFUSED);
     }
     return Promise.resolve({ workspaceDir, layers: [] });

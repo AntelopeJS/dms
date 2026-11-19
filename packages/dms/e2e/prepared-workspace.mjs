@@ -15,6 +15,6 @@ import {
 try {
   buildInPreparedWorkspace(join(dirname(process.argv[1] ?? ""), ".."));
 } catch (error) {
-  process.stderr.write(`dms-control: ${describeFailure(error)}\n`);
+  process.stderr.write(`dms-e2e: ${describeFailure(error)}\n`);
   process.exit(PREPARED_WORKSPACE_REFUSED);
 }

@@ -88,16 +88,3 @@ export async function loadJourneys(file) {
     );
   return journeys;
 }
-
-/**
- * @param {Journey[]} journeys The journeys a command would run
- * @param {import("./run-state.mjs").FrontendMode | undefined} mode How the run serves its dashboard
- * @returns {string | null} Why the run cannot serve some of them, or `null` when it serves them all
- */
-export function frontendRefusal(journeys, mode) {
-  if (mode === "dev") return null;
-  const dev = journeys.filter((journey) => journey.frontend === "dev");
-  return dev.length === 0
-    ? null
-    : `${dev.map((journey) => journey.id).join(", ")} need the development dashboard: start the run with up --dev-frontend`;
-}

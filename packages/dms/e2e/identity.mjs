@@ -130,8 +130,7 @@ function pidInProc() {
 
 /**
  * Whether this system has a /proc at all. Without one, as on macOS, nothing
- * records start times and a process is told apart by its pid alone, as
- * dms-control always did there.
+ * records start times and a process is told apart by its pid alone.
  *
  * @returns {boolean} True when `/proc/self` exists
  */
@@ -158,7 +157,7 @@ export function assertOwnProc() {
       ? "/proc/self/stat cannot be read"
       : `/proc shows this process as pid ${shown}, not ${process.pid}`;
   throw new Error(
-    `${seen}: /proc is not this PID namespace's, so no process the run recorded can be told from another that holds its pid now; nothing was started or signalled. Run dms-control where /proc belongs to its PID namespace, such as under unshare --mount-proc`,
+    `${seen}: /proc is not this PID namespace's, so no process the run recorded can be told from another that holds its pid now; nothing was started or signalled. Run the suite where /proc belongs to its PID namespace, such as under unshare --mount-proc`,
   );
 }
 
@@ -189,7 +188,7 @@ export function currentNamespaces() {
  * started. Each pid and start time the run recorded names a process only in
  * those namespaces: elsewhere every record would look gone, and a command
  * would forget processes that still run. A run that recorded none, as an
- * earlier dms-control or a system with no /proc wrote it, passes.
+ * older e2e kit or a system with no /proc wrote it, passes.
  *
  * @param {Namespaces | undefined} recorded The namespaces the run was started in
  * @throws When one of them is not this process's
@@ -232,7 +231,7 @@ function startedAround(ticks, startedAt) {
 /**
  * Whether a process the kernel started `ticks` after boot is the one
  * `record` names: the start time recorded with it, or, for a record with no
- * start time, as an earlier dms-control wrote, a start within a few seconds
+ * start time, as an older e2e kit wrote, a start within a few seconds
  * of the record's `startedAt`.
  *
  * @param {{ startTime?: number | null, startedAt?: string }} record A process the run recorded

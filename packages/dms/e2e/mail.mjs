@@ -121,8 +121,7 @@ function saveMessage(folder, envelope, raw) {
  */
 function command(state, socket, line) {
   const verb = line.slice(0, 4).toUpperCase();
-  if (verb === "EHLO" || verb === "HELO")
-    return reply(socket, "250 dms-control");
+  if (verb === "EHLO" || verb === "HELO") return reply(socket, "250 dms-e2e");
   if (verb === "MAIL") {
     state.envelope = { from: line.slice(line.indexOf(":") + 1).trim(), to: [] };
     return reply(socket, "250 OK");
@@ -147,7 +146,7 @@ function session(folder) {
   return (/** @type {import("node:net").Socket} */ socket) => {
     /** @type {SmtpSession} */
     const state = { buffer: "", inData: false, envelope: { from: "", to: [] } };
-    reply(socket, "220 dms-control mail sink");
+    reply(socket, "220 dms-e2e mail sink");
     socket.on("data", (/** @type {Buffer} */ chunk) => {
       state.buffer += chunk.toString("latin1");
       while (state.buffer.length > 0) {

@@ -1,8 +1,8 @@
 /**
- * @typedef {import("./verify/types.mjs").JourneyCheck} Check
- * @typedef {import("./verify/types.mjs").JourneyStep} Step
- * @typedef {import("./verify/types.mjs").JudgedCheck} JudgedCheck
- * @typedef {import("./verify/types.mjs").JudgedStep} JudgedStep
+ * @typedef {import("./types.mjs").JourneyCheck} Check
+ * @typedef {import("./types.mjs").JourneyStep} Step
+ * @typedef {import("./types.mjs").JudgedCheck} JudgedCheck
+ * @typedef {import("./types.mjs").JudgedStep} JudgedStep
  */
 
 /**
