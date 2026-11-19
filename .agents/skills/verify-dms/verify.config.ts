@@ -313,6 +313,7 @@ const config: VerifyConfig = {
       ],
       files: [
         ".agents/skills/formal-ai-answers-no-row-values/**",
+        ".agents/formal/generated-check.mjs",
         "packages/dms/src/test/formal/ai-answers-no-row-values.test.ts",
         "packages/dms/src/test/formal/helpers/**",
       ],
@@ -332,6 +333,7 @@ const config: VerifyConfig = {
       ],
       files: [
         ".agents/skills/formal-block-writes-judge-request-targets/**",
+        ".agents/formal/generated-check.mjs",
         "packages/dms/src/test/formal/block-writes-judge-request-targets.test.ts",
         "packages/dms/src/test/formal/helpers/**",
       ],

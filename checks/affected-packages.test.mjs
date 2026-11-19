@@ -340,9 +340,9 @@ await test("the docs-playground job runs on the queue and nightly tiers only (ca
   assert.equal(jobsFor("nightly", undefined).includes("docs-playground"), true);
 });
 
-await test("the dependents job runs on the nightly and none tiers only (catches it on every tier)", () => {
+await test("the dependents job runs on the nightly tier only, and a push to main runs nothing (catches dependents on every merge)", () => {
   assert.equal(jobsFor("nightly", undefined).includes("dependents"), true);
-  assert.deepEqual(jobsFor("none", undefined), ["dependents"]);
+  assert.deepEqual(jobsFor("none", undefined), []);
   assert.equal(jobsFor("queue", undefined).includes("dependents"), false);
   assert.equal(jobsFor("full", undefined).includes("dependents"), false);
 });

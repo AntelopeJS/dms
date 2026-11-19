@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, sep } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 import { shardOf, testFiles } from "./test-files.mjs";
@@ -105,6 +105,7 @@ await test("reads the weights of --weights from the command line, so the CI shar
   const root = mkdtempSync(join(tmpdir(), "dms-test-weights-"));
   try {
     mkdirSync(join(root, "tests"));
+    const posixRoot = root.split(sep).join("/");
     for (const file of ["a", "b", "c"]) {
       writeFileSync(join(root, "tests", `${file}.test.js`), "");
     }
@@ -112,9 +113,9 @@ await test("reads the weights of --weights from the command line, so the CI shar
     writeFileSync(
       weights,
       JSON.stringify({
-        [`${root}/tests/a.test.js`]: 1,
-        [`${root}/tests/b.test.js`]: 1,
-        [`${root}/tests/c.test.js`]: 9,
+        [`${posixRoot}/tests/a.test.js`]: 1,
+        [`${posixRoot}/tests/b.test.js`]: 1,
+        [`${posixRoot}/tests/c.test.js`]: 9,
       }),
     );
     const shard = (/** @type {number} */ index) =>
@@ -128,10 +129,10 @@ await test("reads the weights of --weights from the command line, so the CI shar
         ],
         { encoding: "utf8" },
       );
-    assert.equal(shard(1), `-f ${root}/tests/c.test.js`);
+    assert.equal(shard(1), `-f ${posixRoot}/tests/c.test.js`);
     assert.equal(
       shard(2),
-      `-f ${root}/tests/a.test.js -f ${root}/tests/b.test.js`,
+      `-f ${posixRoot}/tests/a.test.js -f ${posixRoot}/tests/b.test.js`,
     );
   } finally {
     rmSync(root, { recursive: true, force: true });

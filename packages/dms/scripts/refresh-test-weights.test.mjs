@@ -37,21 +37,30 @@ await test("exits nonzero with a usage line and leaves the weights alone when gi
   assert.equal(statSync(WEIGHTS).mtimeMs, before);
 });
 
-await test("exits nonzero when the runs carry no durations file, so a run without artifacts cannot empty the weights", () => {
-  const bin = mkdtempSync(join(tmpdir(), "dms-fake-gh-"));
-  try {
-    const gh = join(bin, "gh");
-    writeFileSync(gh, "#!/bin/sh\nexit 0\n");
-    chmodSync(gh, 0o755);
-    const before = statSync(WEIGHTS).mtimeMs;
-    const run = spawnSync(process.execPath, [SCRIPT, "123"], {
-      encoding: "utf8",
-      env: { ...process.env, PATH: `${bin}${delimiter}${process.env["PATH"]}` },
-    });
-    assert.notEqual(run.status, 0);
-    assert.match(run.stderr, /usage: /);
-    assert.equal(statSync(WEIGHTS).mtimeMs, before);
-  } finally {
-    rmSync(bin, { recursive: true, force: true });
-  }
-});
+await test(
+  "exits nonzero when the runs carry no durations file, so a run without artifacts cannot empty the weights",
+  {
+    skip: process.platform === "win32" && "the fake gh is a POSIX shell script",
+  },
+  () => {
+    const bin = mkdtempSync(join(tmpdir(), "dms-fake-gh-"));
+    try {
+      const gh = join(bin, "gh");
+      writeFileSync(gh, "#!/bin/sh\nexit 0\n");
+      chmodSync(gh, 0o755);
+      const before = statSync(WEIGHTS).mtimeMs;
+      const run = spawnSync(process.execPath, [SCRIPT, "123"], {
+        encoding: "utf8",
+        env: {
+          ...process.env,
+          PATH: `${bin}${delimiter}${process.env["PATH"]}`,
+        },
+      });
+      assert.notEqual(run.status, 0);
+      assert.match(run.stderr, /usage: /);
+      assert.equal(statSync(WEIGHTS).mtimeMs, before);
+    } finally {
+      rmSync(bin, { recursive: true, force: true });
+    }
+  },
+);

@@ -297,7 +297,7 @@ const JOB_RULES = [
   },
   {
     job: "dependents",
-    when: ({ tier }) => tier === "nightly" || tier === "none",
+    when: ({ tier }) => tier === "nightly",
   },
   { job: "formal", when: ({ formal }) => formal.length > 0 },
   {
