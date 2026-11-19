@@ -22,7 +22,7 @@ Then `cd demo && docker compose up` starts AntelopeJS DMS and a sample coffee sh
 
 ## One connection string, one agent run
 
-<img src="./docs/media/hero-mockup-run.gif" width="100%" data-illustration alt="A PostgreSQL connection string is pasted and analysed. The AI drafts a mockup of the shop back office, page by page, then the built pages show: the Overview dashboard with its KPI cards and the Orders table with its status tabs.">
+<img src="./docs/media/hero-mockup-run.gif" width="100%" data-illustration alt="A connection string is pasted, the AI drafts a mockup, then the built Overview and Orders pages show.">
 
 We ran it on the connect demo, a sample coffee shop on PostgreSQL.
 
@@ -137,7 +137,7 @@ Mix them on the same project. The assistant is a development tool and does not r
 
 A mockup is `mockups/<name>/spec.json` in your repo, drawn by the real renderer on the `/mockup` page. A change redraws at once, with no typecheck and no reload, and blocks read sample data, so you settle the layout before wiring a table or a query. Pin a comment on any block and press **Resolve with AI**, then **Build it** writes the real pages once.
 
-<img src="./docs/media/mockup.gif" width="100%" data-illustration alt="The mockup fills up while the AI writes it. A comment pinned on the New customers card asks for a Repeat customers KPI. Resolve with AI adds the card, and the change set reads Typecheck and Undo.">
+<img src="./docs/media/mockup.gif" width="100%" data-illustration alt="The mockup fills up, a comment asks for a Repeat customers KPI, and Resolve with AI adds it.">
 
 ### Ask the assistant
 
@@ -159,7 +159,7 @@ codex plugin add antelopejs@antelopejs
 
 Then run `ajs project dev` once. It adds a `dms` server to the project's `.mcp.json`, so Claude Code gets the builder, database and page tools the dashboard assistant uses. [MCP server](https://dms.antelopejs.com/docs/ai-and-claude-code/mcp-server) shows the Codex setup.
 
-<img src="./docs/media/harness.gif" width="100%" data-illustration alt="Claude Code runs in a terminal with the antelopejs plugin. The prompt Mock up a support desk for our tickets is typed, the skill antelopejs:dms-mockup loads, and Claude Code reports a mockup with a ticket board, a customers list and a page per customer. The mockup then shows in the AntelopeJS DMS dashboard.">
+<img src="./docs/media/harness.gif" width="100%" data-illustration alt="Claude Code in a terminal mocks up a support desk, and the mockup opens in the dashboard.">
 
 ## See it in action
 
