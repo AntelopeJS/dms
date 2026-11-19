@@ -6,7 +6,7 @@
 
 **The open-source back office for your product.**<br>
 Paste your PostgreSQL, MySQL, MariaDB, MongoDB or RethinkDB connection string.<br>
-One run of your coding agent later, you have the admin pages and dashboards, as TypeScript in your repo.
+Your coding agent drafts a live mockup you comment on, then builds the admin pages and dashboards as TypeScript in your repo.
 
 [Quick start](#quick-start) · [Live demo](https://dms-demo.antelopejs.com) · [Docs](https://dms.antelopejs.com/docs) · [Discord](https://discord.gg/g4pFt6eXqu)
 
@@ -20,7 +20,17 @@ Then `cd demo && docker compose up` starts AntelopeJS DMS and a sample coffee sh
 
 </div>
 
-## One connection string, one agent run
+## Mock it up, then build it
+
+<img src="./docs/media/mockup.gif" width="100%" data-illustration alt="The mockup fills up, a comment asks for a Repeat customers KPI, and Resolve with AI adds it.">
+
+The assistant drafts the back office as a mockup first, drawn with the real blocks on the `/mockup` page:
+
+- A change redraws at once, with no typecheck and no reload.
+- Blocks read sample data, so you settle the dashboard before wiring a table or a query.
+- Pin a comment on any block and press **Resolve with AI**. Once you approve the mockup, **Build it** writes the real code once.
+
+### One connection string, one agent run
 
 <img src="./docs/media/hero-mockup-run.gif" width="100%" data-illustration alt="A connection string is pasted, the AI drafts a mockup, then the built Overview and Orders pages show.">
 
@@ -135,9 +145,7 @@ Mix them on the same project. The assistant is a development tool and does not r
 
 ### Mock it up first
 
-A mockup is `mockups/<name>/spec.json` in your repo, drawn by the real renderer on the `/mockup` page. A change redraws at once, with no typecheck and no reload, and blocks read sample data, so you settle the layout before wiring a table or a query. Pin a comment on any block and press **Resolve with AI**, then **Build it** writes the real pages once.
-
-<img src="./docs/media/mockup.gif" width="100%" data-illustration alt="The mockup fills up, a comment asks for a Repeat customers KPI, and Resolve with AI adds it.">
+A mockup is `mockups/<name>/spec.json` in your repo. See [Mock it up, then build it](#mock-it-up-then-build-it).
 
 ### Ask the assistant
 
