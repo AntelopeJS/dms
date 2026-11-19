@@ -31,6 +31,7 @@ function isSuiteOptions(value) {
  * that loaded the config.
  *
  * @param {unknown} options The options of `e2eConfig`
+ * @returns {Suite} The suite
  * @throws When an option is unknown, its value is not one the suite takes, or `skill` holds no `verify.config.ts`
  */
 export function declareSuite(options) {
@@ -52,6 +53,7 @@ export function declareSuite(options) {
     );
   }
   process.env[SUITE] = JSON.stringify(suite);
+  return suite;
 }
 
 /**

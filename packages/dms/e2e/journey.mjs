@@ -32,6 +32,8 @@ import { recordTiming, stopwatch, timed } from "./timing.mjs";
  * @typedef {import("./verify/types.mjs").FeatureResult} FeatureResult
  * @typedef {import("./journey-load.mjs").Journey} Journey
  * @typedef {import("./verify/types.mjs").JourneyStep} Step
+ * @typedef {{ error: string | null, abortedAt: string | null }} JourneyEnd How a journey ended early: `abortedAt` names the critical step whose failure ended it, `error` what it threw
+ * @typedef {Pick<Journey, "id" | "database" | "onboard" | "backend" | "standby">} JourneyPreparation What a journey asks of the run before it starts
  */
 
 const EXPECT_TIMEOUT_MS = 15_000;
@@ -140,6 +142,8 @@ export class JourneyContext {
     /** @type {Tab | undefined} */
     this.lastTab = undefined;
     this.databaseStopped = false;
+    /** @type {JourneyEnd} */
+    this.end = { error: null, abortedAt: null };
     this.startedAt = new Date().toISOString();
     this.equal = equal;
     this.status = status;
@@ -376,6 +380,45 @@ export class JourneyContext {
     return { folder, messages, match: messages.findLast(accept) };
   }
 
+  /** Whether a critical step or an error ended the journey early. */
+  get ended() {
+    return this.end.error !== null || this.end.abortedAt !== null;
+  }
+
+  /**
+   * Runs a part of the journey unless the journey already ended. A critical
+   * step that fails in it, or an error it throws, ends the journey, and
+   * {@link judgeJourney} reads how.
+   *
+   * @param {() => Promise<unknown>} part The part
+   * @returns {Promise<void>} Resolves once it ran, whatever its outcome
+   */
+  async attempt(part) {
+    if (this.ended) return;
+    try {
+      await part();
+    } catch (failure) {
+      if (failure instanceof JourneyAbort) this.end.abortedAt = failure.step;
+      else this.end.error = String(failure?.stack ?? failure);
+    }
+  }
+
+  /**
+   * Drives a journey's body in this context, timed as `journey-run`, as
+   * {@link JourneyContext.attempt} runs a part: what ends it early is the
+   * judge's to read, so a critical step that fails at a known failure ends
+   * it without failing it.
+   *
+   * @param {(context: JourneyContext) => Promise<void>} run The body
+   * @returns {Promise<void>} Resolves once it ran, whatever its outcome
+   */
+  drive(run) {
+    const detail = { feature: this.feature, journey: this.journey };
+    return this.attempt(() =>
+      timed(this.state, "journey-run", () => run(this), detail),
+    );
+  }
+
   async close() {
     for (const context of this.contexts.values()) {
       await context.close().catch(() => undefined);
@@ -387,7 +430,7 @@ export class JourneyContext {
 /**
  * @param {import("./run-state.mjs").RunState} state The run
  * @param {string} feature The feature the journey belongs to
- * @param {Journey} journey The journey
+ * @param {JourneyPreparation} journey What the journey asks of the run
  * @param {JourneyContext} context The journey's context
  */
 async function prepare(state, feature, journey, context) {
@@ -448,43 +491,42 @@ async function prepare(state, feature, journey, context) {
  * @param {import("playwright-core").Browser} [browser] The browser to open its contexts in, such as Playwright Test's
  * @returns {Promise<FeatureResult>} The result
  */
-export async function runJourney(state, feature, journey, skill, browser) {
-  const stop = stopwatch();
+export function runJourney(state, feature, journey, skill, browser) {
   const detail = { feature, journey: journey.id };
-  /** @type {Omit<FeatureResult, "ms"> | undefined} */
-  let result;
-  let lap = { ms: 0, startedAt: "" };
-  try {
-    result = await driveJourney(state, feature, journey, skill, browser);
-  } finally {
-    lap = stop();
-    recordTiming(state, "journey", lap, result?.status === "PASS", detail);
-  }
-  const timedResult = { ...result, ms: lap.ms };
-  writeJson(join(state.evidence, result.folder, "result.json"), timedResult);
-  return timedResult;
+  return timedJourney(state, detail, async () => {
+    const opened =
+      browser ??
+      (await timed(
+        state,
+        "browser-launch",
+        () => launchBrowser(resolutionFolders(state)),
+        detail,
+      ));
+    try {
+      const context = await openJourney(state, feature, journey, skill, opened);
+      await context.drive(journey.run);
+      return await judgeJourney(context, journey);
+    } finally {
+      if (browser === undefined) await opened.close();
+    }
+  });
 }
 
 /**
- * Drives one journey from its browser launch to its closed contexts.
+ * Opens a journey's context in `browser` and prepares the run as the
+ * journey asks: by default a fresh database with a backend of its own and
+ * an onboarded administrator (`database: "shared"` keeps the current one,
+ * `onboard: false` skips the administrator). A preparation that fails ends
+ * the journey before its body.
  *
  * @param {import("./run-state.mjs").RunState} state The run
  * @param {string} feature The feature it belongs to
- * @param {Journey} journey The journey
- * @param {import("./verify/skill.mjs").Skill} skill The skill the journey belongs to
- * @param {import("playwright-core").Browser | undefined} given The browser to open its contexts in, or none to launch one
- * @returns {Promise<Omit<FeatureResult, "ms">>} The result, without its duration
+ * @param {JourneyPreparation} journey What it asks of the run
+ * @param {import("./verify/skill.mjs").Skill} skill The skill it belongs to
+ * @param {import("playwright-core").Browser} browser The browser to open its contexts in
+ * @returns {Promise<JourneyContext>} Its context, ended when the preparation failed
  */
-async function driveJourney(state, feature, journey, skill, given) {
-  const detail = { feature, journey: journey.id };
-  const browser =
-    given ??
-    (await timed(
-      state,
-      "browser-launch",
-      () => launchBrowser(resolutionFolders(state)),
-      detail,
-    ));
+export async function openJourney(state, feature, journey, skill, browser) {
   const context = new JourneyContext(
     state,
     feature,
@@ -492,41 +534,65 @@ async function driveJourney(state, feature, journey, skill, given) {
     browser,
     skill,
   );
-  /** @type {string | null} */
-  let error = null;
-  /** @type {string | null} */
-  let abortedAt = null;
+  await context.attempt(() => prepare(state, feature, journey, context));
+  return context;
+}
+
+/**
+ * Closes a journey's browser contexts, starting the run's mongod again when
+ * the journey left it stopped, then judges the steps it recorded and how it
+ * ended against its known failures.
+ *
+ * @param {JourneyContext} context The journey's context
+ * @param {Pick<Journey, "id" | "title" | "entryPoint" | "knownFailures">} journey The journey
+ * @returns {Promise<Omit<FeatureResult, "ms">>} The result, without its duration
+ */
+export async function judgeJourney(context, journey) {
   try {
-    await prepare(state, feature, journey, context);
-    await timed(state, "journey-run", () => journey.run(context), detail);
+    await context.close();
   } catch (failure) {
-    if (failure instanceof JourneyAbort) abortedAt = failure.step;
-    else error = String(failure?.stack ?? failure);
-  } finally {
-    try {
-      await context.close();
-    } catch (failure) {
-      const closing = `closing the journey failed: ${String(failure?.stack ?? failure)}`;
-      error = error === null ? closing : `${error}\n${closing}`;
-    }
-    if (given === undefined) await browser.close();
+    const closing = `closing the journey failed: ${String(failure?.stack ?? failure)}`;
+    const { error } = context.end;
+    context.end.error = error === null ? closing : `${error}\n${closing}`;
   }
-  const judged = judge(
-    context.steps,
-    { error, abortedAt },
-    journey.knownFailures ?? {},
-  );
+  const judged = judge(context.steps, context.end, journey.knownFailures ?? {});
   return {
-    feature,
+    feature: context.feature,
     journey: journey.id,
     title: journey.title,
     entryPoint: journey.entryPoint,
     status: judged.status,
-    database: state.database,
+    database: context.state.database,
     steps: judged.steps,
     error: judged.error,
-    folder: relative(state.evidence, context.folder),
+    folder: relative(context.state.evidence, context.folder),
   };
+}
+
+/**
+ * Times a journey as `journey`, from the start of `drive` to its judged
+ * result, and writes the result with its duration to the journey's
+ * result.json.
+ *
+ * @param {import("./run-state.mjs").RunState} state The run
+ * @param {{ feature: string, journey: string }} detail The feature and the journey id
+ * @param {() => Promise<Omit<FeatureResult, "ms">>} drive Opens, drives and judges the journey
+ * @returns {Promise<FeatureResult>} The result
+ */
+export async function timedJourney(state, detail, drive) {
+  const stop = stopwatch();
+  /** @type {Omit<FeatureResult, "ms"> | undefined} */
+  let result;
+  let lap = { ms: 0, startedAt: "" };
+  try {
+    result = await drive();
+  } finally {
+    lap = stop();
+    recordTiming(state, "journey", lap, result?.status === "PASS", detail);
+  }
+  const timedResult = { ...result, ms: lap.ms };
+  writeJson(join(state.evidence, result.folder, "result.json"), timedResult);
+  return timedResult;
 }
 
 /**

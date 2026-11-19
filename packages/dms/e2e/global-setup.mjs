@@ -1,7 +1,10 @@
+import { assertForwardedRun } from "./backend.mjs";
 import { declaredSuite, startOptions } from "./suite.mjs";
 import { loadRun } from "./run-state.mjs";
 import { down } from "./stack.mjs";
 import { startRun } from "./start.mjs";
+
+/** @typedef {import("./suite.mjs").Suite} Suite */
 
 const RUN = "DMS_E2E_RUN";
 
@@ -23,12 +26,7 @@ export default async function globalSetup() {
   const suite = declaredSuite();
   const adopted = process.env[RUN];
   if (adopted) {
-    const mode = loadRun(adopted).frontendMode ?? "build";
-    if (mode !== suite.frontend) {
-      throw new Error(
-        `${RUN} serves a ${mode} dashboard, and this suite runs the journeys of a ${suite.frontend} one`,
-      );
-    }
+    assertServes(loadRun(adopted), suite);
     return undefined;
   }
   const state = await startRun(
@@ -44,18 +42,38 @@ export default async function globalSetup() {
 }
 
 /**
- * The run this `playwright test` drives, read again for each test: tests run
- * one at a time, and each saves the run before the next reads it.
- *
- * @returns {import("./run-state.mjs").RunState} The run
- * @throws When no global setup published a run
+ * @param {import("./run-state.mjs").RunState} state A run
+ * @param {Suite} suite The suite that drives it
+ * @throws When the run serves its dashboard another way than the suite asks
  */
-export function currentRun() {
+function assertServes(state, suite) {
+  const mode = state.frontendMode ?? "build";
+  if (mode !== suite.frontend) {
+    throw new Error(
+      `${RUN} serves a ${mode} dashboard, and this suite runs the journeys of a ${suite.frontend} one`,
+    );
+  }
+}
+
+/**
+ * The run this `playwright test` drives, which its global setup published.
+ * A worker reads it once: tests run one at a time, each saves the run when
+ * it ends, and the worker Playwright starts after a failed test reads it
+ * again.
+ *
+ * @param {Suite} suite The suite that drives it
+ * @returns {import("./run-state.mjs").RunState} The run
+ * @throws When no global setup published a run, an earlier dms-control started it, or it serves its dashboard another way than the suite asks
+ */
+export function currentRun(suite) {
   const dir = process.env[RUN];
   if (!dir) {
     throw new Error(
       `${RUN} is not set: run the suite through its config, whose global setup starts a run, or set it to a run of dms-control up`,
     );
   }
-  return loadRun(dir);
+  const state = loadRun(dir);
+  assertServes(state, suite);
+  assertForwardedRun(state);
+  return state;
 }
