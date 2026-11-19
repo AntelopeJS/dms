@@ -371,6 +371,9 @@ jobs:
         run: pnpm e2e --shard=${{ matrix.shard }}/${{ strategy.job-total }} --reporter=blob
         env:
           PLAYWRIGHT_BLOB_OUTPUT_DIR: e2e/blob-report
+      # The run helper of @antelopejs/dms/e2e/run, on the playground the suite prepared.
+      - if: matrix.shard == 'smoke' || matrix.shard == 1
+        run: node --test packages/dms/e2e/run.test.mjs
       # The declarations @antelopejs/dms/e2e publishes, built by the run's prepare.
       - if: success() || failure()
         run: pnpm exec tsc --noEmit -p e2e

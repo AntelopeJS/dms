@@ -11,5 +11,5 @@
     "outDir": "../dist/e2e"
   },
   "include": [],
-  "files": ["index.mjs"]
+  "files": ["index.mjs", "run.mjs"]
 }

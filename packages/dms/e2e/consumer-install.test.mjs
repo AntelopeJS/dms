@@ -84,3 +84,36 @@ await test("dms-control names the install command when the install of @antelopej
     `the error names the pnpm command: ${message}`,
   );
 });
+
+/**
+ * Imports `specifier` from this package in a process that refuses to load
+ * `@playwright/test`, as a `node:test` file of a repository without it does.
+ *
+ * @param {string} specifier The kit entry
+ * @returns {import("node:child_process").SpawnSyncReturns<string>} The process
+ */
+function importWithoutPlaywrightTest(specifier) {
+  return spawnSync(
+    process.execPath,
+    [
+      "--input-type=module",
+      "--eval",
+      `import { registerHooks } from "node:module";
+registerHooks({
+  resolve(name, context, next) {
+    if (name.startsWith("@playwright/test")) throw new Error("loaded " + name);
+    return next(name, context);
+  },
+});
+await import(${JSON.stringify(specifier)});`,
+    ],
+    { cwd: PACKAGE_ROOT, encoding: "utf8" },
+  );
+}
+
+await test("a node:test file imports the run helper without @playwright/test, which the kit's index loads (catches a helper that imports the index or the fixtures)", () => {
+  const run = importWithoutPlaywrightTest("@antelopejs/dms/e2e/run");
+  assert.equal(run.status, 0, run.stderr);
+  const index = importWithoutPlaywrightTest("@antelopejs/dms/e2e");
+  assert.match(index.stderr, /loaded @playwright\/test/);
+});

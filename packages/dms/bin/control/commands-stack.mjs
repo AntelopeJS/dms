@@ -9,7 +9,7 @@ import { loadRun, readRun } from "../../e2e/run-state.mjs";
 import { apiRequest, isOk, onboard } from "../../e2e/session.mjs";
 import { resolutionFolders } from "../../e2e/launch.mjs";
 import { down } from "../../e2e/stack.mjs";
-import { startRun } from "../../e2e/start.mjs";
+import { startStack } from "../../e2e/start.mjs";
 import { freshDatabase } from "../../e2e/backend.mjs";
 import { runService } from "../../e2e/services.mjs";
 import {
@@ -37,7 +37,7 @@ export function print(text) {
  * @returns {Promise<number>}
  */
 async function commandUp(values) {
-  const state = await startRun(
+  const state = await startStack(
     {
       prepare: values.prepare,
       skill: values.skill,

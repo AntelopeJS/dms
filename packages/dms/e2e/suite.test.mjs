@@ -10,13 +10,9 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
-import {
-  declareSuite,
-  declaredSuite,
-  startOptions,
-  suiteJourneys,
-} from "./suite.mjs";
+import { declareSuite, declaredSuite, suiteJourneys } from "./suite.mjs";
 import { frontendRefusal } from "./journey-load.mjs";
+import { startOptions } from "./start.mjs";
 import { loadSkill } from "./verify/skill.mjs";
 
 const CONFIG = `export default ${JSON.stringify({
@@ -40,10 +36,14 @@ function twoSkillCheckout(t) {
   const root = realpathSync(mkdtempSync(join(tmpdir(), "dms-e2e-suite-")));
   const cwd = process.cwd();
   const recorded = process.env.DMS_E2E_SUITE;
+  const prebuilt = process.env.DMS_E2E_PREBUILT;
+  delete process.env.DMS_E2E_PREBUILT;
   t.after(() => {
     process.chdir(cwd);
     if (recorded === undefined) delete process.env.DMS_E2E_SUITE;
     else process.env.DMS_E2E_SUITE = recorded;
+    if (prebuilt === undefined) delete process.env.DMS_E2E_PREBUILT;
+    else process.env.DMS_E2E_PREBUILT = prebuilt;
     rmSync(root, { recursive: true, force: true });
   });
   spawnSync("git", ["init", "-q"], { cwd: root });
@@ -84,7 +84,8 @@ await test("a suite that names one of two skills loads it from e2e/ and starts i
   const suite = declaredSuite();
   const skill = await loadSkill(suite.skill, process.cwd());
   assert.equal(skill.name, "verify-dms-assistant");
-  assert.deepEqual(startOptions(suite, false), {
+  const { skill: folder, frontend } = suite;
+  assert.deepEqual(startOptions({ skill: folder, frontend }, process.cwd()), {
     prepare: true,
     skill: join(root, ".agents", "skills", "verify-dms-assistant"),
     frontendMode: "build",
@@ -94,10 +95,23 @@ await test("a suite that names one of two skills loads it from e2e/ and starts i
 await test("a frontend: dev suite starts its run on the development dashboard, and a prepared one skips the prepare commands (catches a global setup that always serves a build)", (t) => {
   const root = twoSkillCheckout(t);
   declareSuite({ skill: ".agents/skills/verify-dms-builder", frontend: "dev" });
-  assert.deepEqual(startOptions(declaredSuite(), true), {
+  const { skill, frontend } = declaredSuite();
+  process.env.DMS_E2E_PREBUILT = "1";
+  assert.deepEqual(startOptions({ skill, frontend }, process.cwd()), {
     prepare: false,
     skill: join(root, ".agents", "skills", "verify-dms-builder"),
     frontendMode: "dev",
+  });
+});
+
+await test("startRun resolves its skill against the repository root, builds a dashboard unless told otherwise, and prepares when asked whatever DMS_E2E_PREBUILT says (catches a node:test file whose skill resolves against its own folder)", (t) => {
+  const root = twoSkillCheckout(t);
+  process.env.DMS_E2E_PREBUILT = "1";
+  const skill = ".agents/skills/verify-dms-assistant";
+  assert.deepEqual(startOptions({ skill, prepare: true }, process.cwd()), {
+    prepare: true,
+    skill: join(root, skill),
+    frontendMode: "build",
   });
 });
 

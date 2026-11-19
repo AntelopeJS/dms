@@ -86,19 +86,6 @@ function isSuite(value) {
 }
 
 /**
- * @param {Suite} suite The suite
- * @param {boolean} prepared Whether the skill's prepare commands already ran
- * @returns {import("./start.mjs").StartOptions} How its global setup starts its run
- */
-export function startOptions(suite, prepared) {
-  return {
-    prepare: !prepared,
-    skill: suite.skill,
-    frontendMode: suite.frontend,
-  };
-}
-
-/**
  * The journeys a suite runs: those of the `smoke` feature first, then the
  * others in the order of their features, and those marked `last` after all
  * others. A `frontend: "dev"` suite runs the journeys that ask for the

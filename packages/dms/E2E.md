@@ -60,9 +60,40 @@ Playwright's own `page` opens the run's dashboard on the database the previous t
 - `frontend: "dev"`: the journey needs the development dashboard, for UI that only `import.meta.env.DEV` renders. `dms-control journey` refuses it on a run started without `--dev-frontend`.
 - `database`, `onboard`, `backend` and `standby`: how the run is prepared for the journey, as `dmsOptions` does for a spec.
 
+## Start a run from node:test
+
+`@antelopejs/dms/e2e/run` starts the same run as the global setup, for a test runner without Playwright. It loads no `@playwright/test`. `startRun` takes the options of `e2eConfig` plus `prepare`, which runs the skill's prepare commands unless `DMS_E2E_PREBUILT=1`. It returns the ready `run` and `stop`, which stops every process the run started. `onboard(run, {})` creates and signs in the administrator, and `apiRequest(run, { method, path, body, as })` calls the backend as `admin`, another account of `run.accounts`, or `anon`. Each request and its answer go to the run's `evidence/` folder.
+
+`test/cli.test.mjs`:
+
+```js
+import assert from "node:assert/strict";
+import { after, before, test } from "node:test";
+import { apiRequest, onboard, startRun } from "@antelopejs/dms/e2e/run";
+
+/** @type {Awaited<ReturnType<typeof startRun>>} */
+let started;
+before(async () => {
+  started = await startRun();
+  await onboard(started.run, {});
+});
+after(() => started?.stop());
+
+test("the administrator reads the onboarding state", async () => {
+  const answer = await apiRequest(started.run, {
+    method: "GET",
+    path: "/api/onboarding/informations",
+    as: "admin",
+  });
+  assert.deepEqual(answer.body, { has_onboarded: true });
+});
+```
+
+`run.apiUrl` and `run.webUrl` are the backend's and the dashboard's addresses, for a CLI or an HTTP client of the test's own.
+
 ## Environment
 
-- `DMS_E2E_PREBUILT=1`: the global setup skips the skill's prepare commands (install and build), for a checkout an earlier run prepared.
+- `DMS_E2E_PREBUILT=1`: the global setup and `startRun` skip the skill's prepare commands (install and build), for a checkout an earlier run prepared.
 - `DMS_E2E_RUN=<run folder>`: the tests drive that run, such as one `dms-control up` started, and the suite stops nothing. A run whose dashboard is not served the way the suite asks is refused.
 - `DMS_CONTROL_RUNS`: the folder the run folders go to.
 - `DMS_CONTROL_NO_STANDBY=1`: each fresh database's backend starts when the test needs it, rather than one ahead.

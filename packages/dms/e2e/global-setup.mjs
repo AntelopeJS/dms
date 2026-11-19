@@ -1,8 +1,7 @@
 import { assertForwardedRun } from "./backend.mjs";
-import { declaredSuite, startOptions } from "./suite.mjs";
+import { declaredSuite } from "./suite.mjs";
 import { loadRun } from "./run-state.mjs";
-import { down } from "./stack.mjs";
-import { startRun } from "./start.mjs";
+import { startRun } from "./run.mjs";
 
 /** @typedef {import("./suite.mjs").Suite} Suite */
 
@@ -12,11 +11,11 @@ const RUN = "DMS_E2E_RUN";
  * Playwright's global setup of a journeys suite, once per `playwright test`.
  * With `DMS_E2E_RUN` set, the tests drive that run and it stops nothing; a
  * run whose dashboard is not served the way the suite asks is refused.
- * Otherwise it starts a run on the config's skill: the skill's prepare
- * commands (none with `DMS_E2E_PREBUILT=1`), then the stack, whose
- * dashboard is the development one for a `frontend: "dev"` suite. It
- * publishes the run's folder in `DMS_E2E_RUN` for the workers, and returns
- * the teardown that stops it.
+ * Otherwise it starts a run on the config's skill through `startRun`: the
+ * skill's prepare commands (none with `DMS_E2E_PREBUILT=1`), then the
+ * stack, whose dashboard is the development one for a `frontend: "dev"`
+ * suite. It publishes the run's folder in `DMS_E2E_RUN` for the workers,
+ * and returns the teardown that stops it.
  * The run outlives the worker Playwright replaces after a failed test.
  *
  * @returns {Promise<(() => Promise<void>) | undefined>} The teardown of the run it started
@@ -29,16 +28,12 @@ export default async function globalSetup() {
     assertServes(loadRun(adopted), suite);
     return undefined;
   }
-  const state = await startRun(
-    startOptions(suite, process.env.DMS_E2E_PREBUILT === "1"),
-    process.cwd(),
-  );
-  process.env[RUN] = state.dir;
-  return async () => {
-    const lines = await down(loadRun(state.dir));
-    for (const line of lines.filter((entry) => entry.startsWith("could not")))
-      process.stderr.write(`dms-control: ${line}\n`);
-  };
+  const { run, stop } = await startRun({
+    skill: suite.skill,
+    frontend: suite.frontend,
+  });
+  process.env[RUN] = run.dir;
+  return stop;
 }
 
 /**

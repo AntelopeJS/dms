@@ -213,6 +213,10 @@
       "types": "./dist/e2e/index.d.mts",
       "default": "./e2e/index.mjs"
     },
+    "./e2e/run": {
+      "types": "./dist/e2e/run.d.mts",
+      "default": "./e2e/run.mjs"
+    },
     "./interfaces/*": null
   },
   "publishConfig": {
