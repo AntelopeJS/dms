@@ -423,12 +423,13 @@ jobs:
           retention-days: 14
 
   # The checks the selector plans: those the change touches on a pull request,
-  # all of them in the queue and on the nightly run.
+  # all of them in the queue and on the nightly run. The nightly and manual
+  # runs check their full configurations (--full).
   formal:
     needs: select
     if: contains(fromJSON(needs.select.outputs.jobs), 'formal')
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: ${{ (needs.select.outputs.tier == 'nightly' || github.event_name == 'workflow_dispatch') && 60 || 15 }}
     strategy:
       fail-fast: false
       matrix:
@@ -448,7 +449,7 @@ jobs:
         with:
           path: ~/.cache/antelopejs-formal
           key: tla2tools-1.7.4
-      - run: node .agents/skills/${{ matrix.check }}/check.mjs
+      - run: node .agents/skills/${{ matrix.check }}/check.mjs ${{ (needs.select.outputs.tier == 'nightly' || github.event_name == 'workflow_dispatch') && '--full' || '' }}
       - run: |
           history=".agents/skills/${CHECK}/history.mjs"
           if [[ -f "$history" ]]; then node "$history"; fi

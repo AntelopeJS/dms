@@ -36,7 +36,7 @@ export default {
 } satisfies JourneysConfig;
 ```
 
-- `playground`: the playground folder, relative to the repository root.
+- `playground`: the playground folder, relative to the repository root, or absolute for a playground in another checkout.
 - `renderer`: the built `@antelopejs/dms-frontend` checkout the run serves, for the repository that is the renderer. Without it, the playground's installed one.
 - `prepare`: the install and build commands the global setup runs before the run starts.
 - `smoke`: the feature whose journeys run first.
@@ -45,7 +45,7 @@ Each `*.mjs` file of `e2e/journeys/` is a feature, named after the file, and exp
 
 `e2eConfig` takes two options:
 
-- `skill`: for a repository without `e2e/journeys.config.ts`, the verify skill folder whose `verify.config.ts` and `features/` the kit reads instead, relative to the repository root. A repository with one `.agents/skills/verify-*` folder leaves it out. Once `e2e/journeys.config.ts` exists, the kit refuses `skill`.
+- `skill`: for a repository without `e2e/journeys.config.ts`, the verify skill folder whose `verify.config.ts` and `features/` the kit reads instead, relative to the repository root. A repository with one `.agents/skills/verify-*` folder leaves it out. A `skill` wins over `e2e/journeys.config.ts`, so a migrated suite drops it.
 - `frontend: "dev"`: the run serves the dashboard with `ajs dms dev`, and the suite runs only the journeys that set `frontend: "dev"`. A suite without it serves a build and leaves those journeys out. Its test output and report folders end in `-dev`.
 
 `registerJourneys()` reads both from the config that loaded it.
@@ -133,4 +133,4 @@ test("the administrator reads the onboarding state", async () => {
 
 ## Move off verify.config.ts
 
-A suite that still reads `.agents/skills/verify-*/verify.config.ts`: copy its `playground`, `renderer`, `prepare` and `smoke` into `e2e/journeys.config.ts`, move its journeys to `e2e/journeys/` if they are not there yet, and drop `skill` from `e2eConfig`.
+A suite that still reads `.agents/skills/verify-*/verify.config.ts`: copy its `playground`, `renderer`, `prepare` and `smoke` into `e2e/journeys.config.ts`, move its journeys to `e2e/journeys/` and a playground that lives in the skill folder to `e2e/`, and drop `skill` from `e2eConfig`.

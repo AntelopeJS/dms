@@ -32,7 +32,9 @@ const JOURNEY = "export const journeys = [];\n";
  * @returns {string} The checkout root
  */
 function checkout(t) {
-  const root = realpathSync(mkdtempSync(join(tmpdir(), "dms-e2e-config-")));
+  const root = realpathSync.native(
+    mkdtempSync(join(tmpdir(), "dms-e2e-config-")),
+  );
   t.after(() => rmSync(root, { recursive: true, force: true }));
   spawnSync("git", ["init", "-q"], { cwd: root });
   write(join(root, SKILL, "verify.config.ts"), SKILL_CONFIG);
@@ -103,12 +105,16 @@ await test("a repository without e2e/journeys.config.ts keeps its verify skill's
   assert.deepEqual(config.features, ["alpha", "skill-smoke"]);
 });
 
-await test("a config that still names a skill beside e2e/journeys.config.ts is refused (catches a migrated repository that silently keeps reading the old config)", async (t) => {
+await test("a skill named beside e2e/journeys.config.ts still reads that skill (catches dms-control journey on a run up --skill recorded, or a second suite of the repository, losing its playground)", async (t) => {
   const root = checkout(t);
   ownConfig(root, { playground: "p", prepare: [], smoke: "alpha" });
 
-  await assert.rejects(loadSuiteConfig(join(root, SKILL), root), {
-    message: `${join(root, "e2e", "journeys.config.ts")} declares the journeys suite: remove the skill option of e2eConfig`,
+  const config = await loadSuiteConfig(join(root, SKILL), root);
+
+  assert.equal(config.source, join(root, SKILL, "verify.config.ts"));
+  assert.deepEqual(await targetOf({ skill: join(root, SKILL) }, root), {
+    playground: join(root, "skill-playground"),
+    renderer: undefined,
   });
 });
 

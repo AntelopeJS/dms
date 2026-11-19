@@ -57,7 +57,7 @@ async function commandJourney(dir, feature, ids, values) {
   const state = loadRun(dir);
   const config = await loadSuiteConfig(
     values.skill ?? state.skill ?? undefined,
-    state.repo,
+    state.repo ?? process.cwd(),
   );
   const results = await runJourneyFile(state, {
     file: journeysFile(config, feature),

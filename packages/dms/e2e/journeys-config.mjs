@@ -66,26 +66,18 @@ async function loadOwnConfig(file, repo) {
 }
 
 /**
- * The journeys suite of the checkout holding `cwd`: its
- * `e2e/journeys.config.ts`, or, in a repository that has not moved to it,
- * the verify skill's `verify.config.ts` and feature files.
+ * The journeys suite of the checkout holding `cwd`: the verify skill `skill`
+ * names, else its `e2e/journeys.config.ts`, else its one verify skill.
  *
- * @param {string | undefined} skill The verify skill folder `e2eConfig` names, for a repository without `e2e/journeys.config.ts`
+ * @param {string | undefined} skill A verify skill folder, which a repository that has not moved to `e2e/journeys.config.ts` names in `e2eConfig` or `dms-control up --skill`
  * @param {string} cwd Where the suite runs
  * @returns {Promise<SuiteConfig>} The suite
- * @throws When the repository has `e2e/journeys.config.ts` and `skill` is set too, or when neither config loads
+ * @throws When the config it picks does not load
  */
 export async function loadSuiteConfig(skill, cwd) {
-  const repo = checkoutOf(cwd).root ?? cwd;
+  const repo = resolve(checkoutOf(cwd).root ?? cwd);
   const own = join(repo, JOURNEYS_CONFIG);
-  if (existsSync(own)) {
-    if (skill !== undefined) {
-      throw new Error(
-        `${own} declares the journeys suite: remove the skill option of e2eConfig`,
-      );
-    }
-    return loadOwnConfig(own, repo);
-  }
+  if (skill === undefined && existsSync(own)) return loadOwnConfig(own, repo);
   const legacy = await loadSkill(skill, cwd);
   return {
     source: join(legacy.dir, "verify.config.ts"),

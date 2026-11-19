@@ -5,10 +5,8 @@ import { apiRequest, onboard, startRun } from "./run.mjs";
 import { loadRun, recordedBackends } from "./run-state.mjs";
 import { down } from "./stack.mjs";
 
-const SKILL = ".agents/skills/verify-dms";
-
 await test("a node:test file starts the checkout's playground, calls its backend anonymously and as the onboarded administrator, and leaves no process once it stops (catches a stop that leaves the backend, the mail sink or mongod running)", async (t) => {
-  const { run, stop } = await startRun({ skill: SKILL, prepare: false });
+  const { run, stop } = await startRun({ prepare: false });
   t.after(async () => {
     await down(loadRun(run.dir));
   });
