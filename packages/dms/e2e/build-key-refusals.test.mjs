@@ -21,16 +21,13 @@ function linkedFixture(t) {
   return { ...keyed, side, shared };
 }
 
-await test("a .modules.yaml that is not pnpm 10's YAML refuses the key instead of keying none of its layout", (t) => {
+await test("a .modules.yaml that is neither pnpm 12's JSON nor pnpm 10's YAML refuses the key instead of keying none of its layout", (t) => {
   const { frontend, checkout, prepare } = fixture(t);
   const side = prepare("run", 1001);
   const record = join(checkout, "node_modules", ".modules.yaml");
   for (const [text, where] of [
-    [
-      `${JSON.stringify({ hoistPattern: ["*"], layoutVersion: 5 }, null, 2)}\n`,
-      "line 1",
-    ],
-    [`{"hoistPattern":[],"layoutVersion":5}\n`, "line 1"],
+    [`{"hoistPattern":[]}\n`, "line 1"],
+    ['[{"layoutVersion":5}]\n', "line 1"],
     ["\"layoutVersion\": 5\nhoistPattern:\n  - '*'\n", "line 1"],
     ['layoutVersion: 5\n"hoistPattern": []\n', "line 2"],
     ["hoistPattern:\n  - '*'\n", "no layoutVersion field"],
@@ -39,10 +36,10 @@ await test("a .modules.yaml that is not pnpm 10's YAML refuses the key instead o
     assert.throws(
       () => keyOf(frontend, side),
       new RegExp(
-        `\\.modules\\.yaml is not the YAML layout the build cache reads \\(${where}\\)`,
+        `\\.modules\\.yaml is neither the JSON nor the YAML layout the build cache reads \\(${where}\\)`,
         "u",
       ),
-      "a line reader keys none of pnpm 12's JSON fields, so toggling hoistPattern there keeps the key and serves a build that resolved otherwise",
+      "a line reader keys none of the fields of a record it cannot split, so toggling hoistPattern there keeps the key and serves a build that resolved otherwise",
     );
   }
 });
