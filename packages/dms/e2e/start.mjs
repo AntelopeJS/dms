@@ -4,7 +4,7 @@ import { up } from "./stack.mjs";
 import { loadSuiteConfig, runPrepare } from "./journeys-config.mjs";
 
 /**
- * @typedef {Omit<import("./stack.mjs").UpOptions, "playground" | "prepared"> & { playground?: string, prepare?: boolean, config?: string }} StartOptions How to start a run: `config` is the absolute path of a journeys config file, `prepare` first runs the journeys config's install and build commands, `playground` and `renderer` win over the journeys config, and `noStandby` is also on with `DMS_CONTROL_NO_STANDBY=1`
+ * @typedef {Omit<import("./stack.mjs").UpOptions, "playground" | "prepared"> & { playground?: string, prepare?: boolean, config?: string }} StartOptions How to start a run: `config` is the absolute path of a journeys config file, `prepare` first runs the journeys config's install and build commands, `playground` and `renderer` win over the journeys config, and `noStandby` is also on with `DMS_E2E_NO_STANDBY=1`
  * @typedef {{ config?: string, frontend?: "build" | "dev", prepare?: boolean }} RunOptions How a test starts a run: `config` is a journeys config file, relative to the repository root, whose journeys folder is `journeys/` beside it (`e2e/journeys.config.ts` by default); `frontend: "dev"` serves the dashboard with `ajs dms dev` instead of a build; `prepare` runs the journeys config's install and build commands first, which it does unless `DMS_E2E_PREBUILT=1`
  */
 
@@ -68,7 +68,7 @@ export async function startStack(options, cwd) {
     ...(await targetOf(options, cwd)),
     prepared,
     noStandby:
-      options.noStandby === true || process.env.DMS_CONTROL_NO_STANDBY === "1",
+      options.noStandby === true || process.env.DMS_E2E_NO_STANDBY === "1",
   });
   if (state.frontendBuild?.reason) {
     process.stderr.write(

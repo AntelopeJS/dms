@@ -270,8 +270,8 @@ async function runOwningMongod(t) {
     writeFileSync(join(root, "package.json"), `{"name":"${name}"}`);
     writeFileSync(join(root, "index.js"), source);
   }
-  const previous = process.env.DMS_CONTROL_MONGOD;
-  process.env.DMS_CONTROL_MONGOD = binary;
+  const previous = process.env.DMS_E2E_MONGOD;
+  process.env.DMS_E2E_MONGOD = binary;
   const paths = { mongo: join(dir, "mongo"), logs: dir };
   const mongod = await startMongod(paths, [dir]);
   const state = {
@@ -286,8 +286,8 @@ async function runOwningMongod(t) {
   };
   t.after(async () => {
     await stopRecorded([...state.processes, ...liveBackends(state)]);
-    if (previous === undefined) delete process.env.DMS_CONTROL_MONGOD;
-    else process.env.DMS_CONTROL_MONGOD = previous;
+    if (previous === undefined) delete process.env.DMS_E2E_MONGOD;
+    else process.env.DMS_E2E_MONGOD = previous;
     rmSync(dir, { recursive: true, force: true });
   });
   const context = new JourneyContext(state, "feat", "j1", undefined, undefined);

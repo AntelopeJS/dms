@@ -228,16 +228,16 @@ function mongodOnPath() {
 }
 
 /**
- * The mongod binary: `DMS_CONTROL_MONGOD`, else `mongod` on PATH, else the
+ * The mongod binary: `DMS_E2E_MONGOD`, else `mongod` on PATH, else the
  * one mongodb-memory-server-core caches (and downloads once). A
- * `DMS_CONTROL_MONGOD` that names a JavaScript file, such as a stand-in,
+ * `DMS_E2E_MONGOD` that names a JavaScript file, such as a stand-in,
  * runs on this Node (see {@link startMongod}).
  *
  * @param {string[]} from Folders to resolve mongodb-memory-server-core from
  * @returns {Promise<string>} The binary path
  */
 export async function mongodBinary(from) {
-  const configured = process.env.DMS_CONTROL_MONGOD ?? mongodOnPath();
+  const configured = process.env.DMS_E2E_MONGOD ?? mongodOnPath();
   if (configured) return configured;
   const namespace = await importNamespace("mongodb-memory-server-core", from);
   const binary = namespace.MongoBinary;

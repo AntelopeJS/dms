@@ -118,8 +118,8 @@ test("the administrator reads the onboarding state", async () => {
 
 - `DMS_E2E_PREBUILT=1`: the global setup and `startRun` skip the config's `prepare` commands (install and build), for a checkout an earlier run prepared.
 - `DMS_E2E_RUN=<run folder>`: the tests drive that run, such as one `startRun` started, and the suite stops nothing. A run whose dashboard is not served the way the suite asks is refused.
-- `DMS_CONTROL_RUNS`: the folder the run folders go to.
-- `DMS_CONTROL_NO_STANDBY=1`: each fresh database's backend starts when the test needs it, rather than one ahead.
+- `DMS_E2E_RUNS`: the folder the run folders go to.
+- `DMS_E2E_NO_STANDBY=1`: each fresh database's backend starts when the test needs it, rather than one ahead.
 
 ## Port recipe
 
