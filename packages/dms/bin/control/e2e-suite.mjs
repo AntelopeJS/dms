@@ -86,14 +86,14 @@ function isSuite(value) {
 /**
  * @param {Suite} suite The suite
  * @param {boolean} prepared Whether the skill's prepare commands already ran
- * @returns {string[]} The options of `dms-control up` that start its run
+ * @returns {import("./start.mjs").StartOptions} How its global setup starts its run
  */
-export function upArgs(suite, prepared) {
-  return [
-    ...(prepared ? [] : ["--prepare"]),
-    ...(suite.skill ? ["--skill", suite.skill] : []),
-    ...(suite.frontend === "dev" ? ["--dev-frontend"] : []),
-  ];
+export function startOptions(suite, prepared) {
+  return {
+    prepare: !prepared,
+    skill: suite.skill,
+    frontendMode: suite.frontend,
+  };
 }
 
 /**

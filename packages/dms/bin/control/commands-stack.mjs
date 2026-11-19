@@ -1,5 +1,5 @@
 import { writeFileSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { join } from "node:path";
 import { browserCommand } from "./browser-client.mjs";
 import { ACTION_NAMES, describeTarget } from "./browser.mjs";
 import { serveBrowser } from "./browser-server.mjs";
@@ -9,11 +9,11 @@ import { capturedMail, serveMail } from "./mail.mjs";
 import { loadRun, readRun } from "./run-state.mjs";
 import { apiRequest, isOk, onboard } from "./session.mjs";
 import { resolutionFolders } from "./launch.mjs";
-import { down, up } from "./stack.mjs";
+import { down } from "./stack.mjs";
+import { startRun } from "./start.mjs";
 import { freshDatabase } from "./backend.mjs";
 import { apiTargetFile, serveForwarder } from "./forwarder.mjs";
 import { formatTimings, readTimings, summarize, timed } from "./timing.mjs";
-import { loadSkill, runPrepare } from "./verify/skill.mjs";
 
 /** @typedef {import("./options.mjs").Values} Values */
 
@@ -29,73 +29,28 @@ export function print(text) {
 }
 
 /**
- * The playground and the renderer checkout `up` starts: the options, then
- * the skill's `verify.config.ts`.
- *
- * @param {Pick<Values, "playground" | "renderer" | "skill">} values
- * @param {string} cwd Where the command runs, which finds the skill
- * @returns {Promise<{ playground: string, renderer: string | undefined }>}
- */
-export async function targetOf(values, cwd) {
-  const skill =
-    values.playground && values.renderer
-      ? null
-      : await loadSkill(values.skill, cwd).catch(() => null);
-  const fromSkill = (/** @type {string | undefined} */ folder) =>
-    skill && folder ? resolve(skill.repo, folder) : undefined;
-  return {
-    playground:
-      values.playground ?? fromSkill(skill?.config.playground) ?? "playground",
-    renderer: values.renderer ?? fromSkill(skill?.config.renderer),
-  };
-}
-
-/**
- * Starts a run the way `up` does: with `prepare`, the skill's install and
- * build commands first, then the stack on the skill's playground and
- * renderer.
- *
- * @param {Values} values The options of `up`
- * @param {string} cwd Where the command runs, which finds the skill
- * @returns {Promise<import("./run-state.mjs").RunState>} The run
- */
-export async function startRun(values, cwd) {
-  const skill = values.skill ? resolve(values.skill) : undefined;
-  /** @type {import("./timing.mjs").TimingEntry[]} */
-  let prepared = [];
-  if (values.prepare) {
-    const loaded = await loadSkill(skill, cwd);
-    prepared = runPrepare(loaded, loaded.repo);
-  }
-  const state = await up({
-    ...(await targetOf(values, cwd)),
-    runs: values.runs,
-    mongoUrl: values["mongo-url"],
-    env: values.env,
-    base: values.base,
-    skill,
-    prepared,
-    noStandby:
-      values["no-standby"] === true ||
-      process.env.DMS_CONTROL_NO_STANDBY === "1",
-    buildCache: !values["no-build-cache"],
-    frontendMode: values["dev-frontend"] ? "dev" : "build",
-    backendMode: values["dev-backend"] ? "dev" : "production",
-  });
-  if (state.frontendBuild?.reason) {
-    process.stderr.write(
-      `dms-control: the frontend build was not cached: ${state.frontendBuild.reason}\n`,
-    );
-  }
-  return state;
-}
-
-/**
  * @param {Values} values
  * @returns {Promise<number>}
  */
 async function commandUp(values) {
-  print((await startRun(values, process.cwd())).dir);
+  const state = await startRun(
+    {
+      prepare: values.prepare,
+      skill: values.skill,
+      playground: values.playground,
+      renderer: values.renderer,
+      runs: values.runs,
+      mongoUrl: values["mongo-url"],
+      env: values.env,
+      base: values.base,
+      noStandby: values["no-standby"],
+      buildCache: !values["no-build-cache"],
+      frontendMode: values["dev-frontend"] ? "dev" : "build",
+      backendMode: values["dev-backend"] ? "dev" : "production",
+    },
+    process.cwd(),
+  );
+  print(state.dir);
   return 0;
 }
 

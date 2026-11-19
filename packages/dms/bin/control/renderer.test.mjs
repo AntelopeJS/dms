@@ -11,7 +11,7 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import test from "node:test";
 import { withBaseBackend } from "./base.mjs";
-import { targetOf } from "./commands-stack.mjs";
+import { targetOf } from "./start.mjs";
 import { git } from "./git.mjs";
 import { resolveRenderer } from "./renderer.mjs";
 import { decodeSkillConfig } from "./verify/decode.mjs";
