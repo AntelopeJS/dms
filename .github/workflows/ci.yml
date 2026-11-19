@@ -133,14 +133,12 @@ jobs:
       matrix:
         os: ${{ fromJSON(needs.select.outputs.os) }}
         suite:
-          [
-            unit,
-            integration,
-            "builder:1/4",
-            "builder:2/4",
-            "builder:3/4",
-            "builder:4/4",
-          ]
+          - unit
+          - integration
+          - builder:1/4
+          - builder:2/4
+          - builder:3/4
+          - builder:4/4
     defaults:
       run:
         shell: bash
@@ -163,31 +161,22 @@ jobs:
       # Also the compile gate: the separate `build` step this job replaces
       # had nothing else to check.
       - run: pnpm --dir packages/dms build
-      - name: Name the builder shard of the suite
-        id: suite
-        env:
+      # Needs no service: the harness starts an in-memory MongoDB replica set
+      # and lets the OS pick the api port. A builder shard takes its files by
+      # the seconds in scripts/test-weights.json and records this run's.
+      - env:
           SUITE: ${{ matrix.suite }}
+          DMS_TEST_DURATIONS: ${{ runner.temp }}/builder-durations.json
         run: |
           if [[ "$SUITE" == builder:* ]]; then
-            shard="${SUITE#builder:}"
-            echo "shard=${shard}" >> "$GITHUB_OUTPUT"
-            echo "index=${shard%/*}" >> "$GITHUB_OUTPUT"
+            export DMS_TEST_SHARD="${SUITE#builder:}"
+            SUITE=builder:shard
           fi
-      # Needs no service: the harness starts an in-memory MongoDB replica set
-      # and lets the OS pick the api port.
-      - if: steps.suite.outputs.shard == ''
-        run: pnpm --dir packages/dms test:${{ matrix.suite }}
-      # The weights in scripts/test-weights.json balance the four shards, and
-      # the durations of this run feed the next refresh.
-      - if: steps.suite.outputs.shard != ''
-        run: pnpm --dir packages/dms test:builder:shard
-        env:
-          DMS_TEST_SHARD: ${{ steps.suite.outputs.shard }}
-          DMS_TEST_DURATIONS: ${{ runner.temp }}/builder-durations.json
-      - if: success() && runner.os == 'Linux' && steps.suite.outputs.shard != ''
+          pnpm --dir packages/dms "test:${SUITE}"
+      - if: ${{ !cancelled() && runner.os == 'Linux' && startsWith(matrix.suite, 'builder:') }}
         uses: actions/upload-artifact@v4
         with:
-          name: builder-durations-${{ steps.suite.outputs.index }}
+          name: builder-durations-${{ strategy.job-index }}
           path: ${{ runner.temp }}/builder-durations.json
           retention-days: 14
 
