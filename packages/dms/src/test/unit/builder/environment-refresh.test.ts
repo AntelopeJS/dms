@@ -50,15 +50,27 @@ function installLabels(version: string): void {
   fs.writeFileSync(nodeModules(".modules.yaml"), `layoutVersion: ${version}\n`);
 }
 
-function writeTsconfig(paths?: Record<string, string[]>): void {
-  const tsconfig = {
-    ...TSCONFIG,
-    compilerOptions: { ...TSCONFIG.compilerOptions, ...(paths && { paths }) },
+/** A `tsconfig.json` as this suite writes it. */
+interface Tsconfig {
+  extends?: string;
+  compilerOptions?: Partial<typeof TSCONFIG.compilerOptions> & {
+    paths?: Record<string, string[]>;
   };
+  include?: string[];
+}
+
+function writeConfig(name: string, config: Tsconfig): void {
   fs.writeFileSync(
-    path.join(app.root, "tsconfig.json"),
-    `${JSON.stringify(tsconfig, null, 2)}\n`,
+    path.join(app.root, name),
+    `${JSON.stringify(config, null, 2)}\n`,
   );
+}
+
+function writeTsconfig(paths: Record<string, string[]>): void {
+  writeConfig("tsconfig.json", {
+    ...TSCONFIG,
+    compilerOptions: { ...TSCONFIG.compilerOptions, paths },
+  });
 }
 
 async function addBanner() {
@@ -154,5 +166,25 @@ describe("[unit] the install state or the tsconfig changed between two builder o
 
     expectOk(await addBanner(), "AddBlock after the alias");
     expect(indexedProject().project).to.not.equal(indexed);
+  });
+
+  it("reads a config the tsconfig extends again once it changed", async function () {
+    this.timeout(OP_TIMEOUT);
+    writeConfig("tsconfig.base.json", {
+      compilerOptions: { paths: { "@labels": ["./src/labels.ts"] } },
+    });
+    writeConfig("tsconfig.json", {
+      ...TSCONFIG,
+      extends: "./tsconfig.base.json",
+    });
+    expectOk(await addBanner(), "AddBlock with the alias in the base");
+
+    writeConfig("tsconfig.base.json", {
+      compilerOptions: { paths: { "@labels": ["./src/missing.ts"] } },
+    });
+
+    expect(failedFiles(await addBanner())).to.deep.equal([
+      path.join(app.root, "src", "aliased.ts"),
+    ]);
   });
 });

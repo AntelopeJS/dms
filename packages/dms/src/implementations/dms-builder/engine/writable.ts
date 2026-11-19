@@ -24,14 +24,25 @@ import {
   createModulesProject,
   targetModule,
 } from "./modules";
+import {
+  readResolutionInputs,
+  type ResolutionInputs,
+  resolutionInputsChanged,
+} from "./resolution-inputs";
 
-let writable: Project | undefined;
+let writable: { project: Project; inputs: ResolutionInputs } | undefined;
 
+/**
+ * The project every operation edits and typechecks, kept across operations. It is built again
+ * once a {@link ResolutionInputs} file has changed, since its module resolutions and compiler
+ * options are read only when it is built.
+ */
 export function getWritableProject(): Project {
-  if (!writable) {
-    writable = createModulesProject();
+  if (!writable || resolutionInputsChanged(writable.inputs)) {
+    const inputs = readResolutionInputs();
+    writable = { project: createModulesProject(), inputs };
   }
-  return writable;
+  return writable.project;
 }
 
 /**
