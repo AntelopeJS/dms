@@ -2,7 +2,7 @@ import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { test as base, expect } from "@playwright/test";
 import { currentRun } from "./global-setup.mjs";
-import { judgeJourney, openJourney, timedJourney } from "./journey.mjs";
+import { judgeJourney, openJourney, timedJourney } from "./journey-run.mjs";
 import { saveRun } from "./run-state.mjs";
 import { featureOf, journeyOf } from "./test-journey.mjs";
 import { loadSkill } from "./verify/skill.mjs";

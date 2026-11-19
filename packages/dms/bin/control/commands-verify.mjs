@@ -1,6 +1,6 @@
 import { join } from "node:path";
 import { print } from "./commands-stack.mjs";
-import { runJourneyFile } from "../../e2e/journey.mjs";
+import { runJourneyFile } from "../../e2e/journey-run.mjs";
 import { loadRun } from "../../e2e/run-state.mjs";
 import { timed } from "../../e2e/timing.mjs";
 import { doorLine, flaggedDoors, patchFiles } from "./verify/doors.mjs";

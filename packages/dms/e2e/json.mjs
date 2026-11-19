@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 
 /**
  * Reads of JSON a program received, narrowed through checks instead of typed
@@ -226,4 +226,14 @@ export function objectOf(required, optional) {
 export function decode(guard, value, source, expected) {
   if (guard(value)) return value;
   throw new Error(`${source} is malformed: expected ${expected}`);
+}
+
+/**
+ * Writes `value` to `file` as indented JSON with a final newline.
+ *
+ * @param {string} file The file
+ * @param {unknown} value The value
+ */
+export function writeJson(file, value) {
+  writeFileSync(file, `${JSON.stringify(value, null, 2)}\n`);
 }
