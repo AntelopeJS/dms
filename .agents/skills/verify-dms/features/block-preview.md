@@ -26,7 +26,12 @@ The public `/dms-preview` page renders a tree of registered blocks from `?state=
 - `preview-empty-and-unreadable`: empty and error path: no state says "Nothing to preview yet", a malformed one "The preview state could not be read."
 - `preview-postmessage-render`: an embedding page receives `ready`, posts `render` on the `dms-preview` channel, and the frame draws the tree and reports its height.
 - `preview-renders-every-starter`: every node the `/mockup` Add tab starts a block as (`frontend-vue/tests/fixtures/mockup-starters/nodes.json`, but those reading a mockup fixture) draws with no page error and no error screen.
-- `block-types-api-members-only`: Exposure: the types API answers a member and refuses a visitor.
+
+## Checked by the integration suite
+
+These checks make no browser tab, so they run in the backend suite (`pnpm --dir packages/dms test:integration`), not as journeys.
+
+- `block-types-api-members-only`: `GET /api/block-preview/types` answers a member with the block catalog (`KpiCard` among it) and refuses a visitor with 401. Held by `packages/dms/src/test/integration/block-preview-types.test.ts`.
 
 ## How to get to it (user POV)
 

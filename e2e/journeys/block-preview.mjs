@@ -166,19 +166,4 @@ export const journeys = [
       ]);
     },
   },
-  {
-    id: "block-types-api-members-only",
-    title: "GET /api/block-preview/types lists the registered blocks to a member and refuses a visitor",
-    entryPoint: "GET /api/block-preview/types",
-    async run(/** @type {Ctx} */ ctx) {
-      const member = await ctx.api("list the block types as the admin", { method: "GET", path: "/api/block-preview/types" });
-      const visitor = await ctx.api("list the block types anonymously", { method: "GET", path: "/api/block-preview/types", as: "anon" });
-      const text = JSON.stringify(member.body ?? "");
-      await ctx.verify("members read the catalog, visitors do not", [
-        ctx.status(member, 200),
-        ctx.holds("KpiCard is listed", text.includes("KpiCard"), text.slice(0, 300)),
-        ctx.holds("a visitor is refused", [401, 403].includes(visitor.status), visitor.status),
-      ]);
-    },
-  },
 ];

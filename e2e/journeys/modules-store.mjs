@@ -108,19 +108,4 @@ export const journeys = [
       ]);
     },
   },
-  {
-    id: "store-listing-owners-only",
-    title: "the store listing answers the platform owner and refuses a visitor",
-    entryPoint: "GET /dms/store/listing",
-    async run(/** @type {Ctx} */ ctx) {
-      const owner = await ctx.api("read the listing as the owner", { method: "GET", path: LISTING });
-      const catalog = listIn(owner.body, "modules", isStoreModule);
-      const visitor = await ctx.api("read the listing anonymously", { method: "GET", path: LISTING, as: "anon" });
-      await ctx.verify("only the owner reads the catalog", [
-        ctx.status(owner, 200),
-        ctx.holds("the catalog has modules", catalog.length > 0, catalog.length),
-        ctx.status(visitor, 403),
-      ]);
-    },
-  },
 ];

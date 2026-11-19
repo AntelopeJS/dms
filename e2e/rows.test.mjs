@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { booleanIn, isInviteRow, isMemberRow, isNotificationRow, isRoleOverviewRow, isRoleRow, isStoreModule, isUserRow, issuePaths, listIn, listOf, numberIn, rowsOf, requiredStringIn, stringIn, stringsIn } from "./rows.mjs";
+import { booleanIn, isInviteRow, isMemberRow, isNotificationRow, isRoleOverviewRow, isRoleRow, isStoreModule, isUserRow, listIn, listOf, numberIn, rowsOf, requiredStringIn, stringIn, stringsIn } from "./rows.mjs";
 
 const MEMBER = { _id: "default:u1", email: "a@example.com", name: "Ada", isTenantOwner: true, roleIds: [{ _id: "r1" }] };
 const INVITE = { _id: "i1", email: "b@example.com", asTenantOwner: false, roles_ids: [{ _id: "r1" }] };
@@ -109,16 +109,6 @@ await test("numberIn reads a number field and refuses a present value that is no
   assert.equal(numberIn(null, "all"), undefined);
   assert.throws(() => numberIn({ all: "3" }, "all"), /all/);
   assert.throws(() => numberIn({ all: Number.NaN }, "all"), /all/);
-});
-
-await test("issuePaths names the field of each validation issue and leaves other answers empty", () => {
-  assert.deepEqual(issuePaths([{ path: ["email"], message: "bad" }, { path: ["address", "street"] }]), ["email", "address.street"]);
-  assert.deepEqual(issuePaths([{ message: "no path" }]), [undefined]);
-  assert.deepEqual(issuePaths("error.admin_already_set"), []);
-  assert.deepEqual(issuePaths(undefined), []);
-  assert.deepEqual(issuePaths({ path: ["email"] }), []);
-  assert.throws(() => issuePaths([{ path: "email" }]), /path/);
-  assert.throws(() => issuePaths([{ path: [{}] }]), /path/);
 });
 
 await test("booleanIn reads a boolean field and refuses a present value that is not one", () => {

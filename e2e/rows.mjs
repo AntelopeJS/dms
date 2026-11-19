@@ -235,29 +235,6 @@ export function stringsIn(body, key) {
 }
 
 /**
- * @param {unknown} body The answer's body
- * @returns {(string | undefined)[]} The dotted `path` of each validation issue; an answer that is not a list of issues holds none
- */
-export function issuePaths(body) {
-  if (!Array.isArray(body)) return [];
-  /** @type {unknown[]} */
-  const issues = body;
-  return issues.map((issue) => {
-    const path = isRecord(issue) ? own(issue, "path") : undefined;
-    if (path === undefined || path === null) return undefined;
-    if (!Array.isArray(path)) throw new Error("an issue path is not a list");
-    /** @type {unknown[]} */
-    const steps = path;
-    return steps
-      .map((step) => {
-        if (!isString(step) && !isNumber(step)) throw new Error("an issue path step is not a string or a number");
-        return String(step);
-      })
-      .join(".");
-  });
-}
-
-/**
  * @template T
  * @param {unknown} body The answer's body
  * @param {(row: unknown) => row is T} isRow Whether an item is a row

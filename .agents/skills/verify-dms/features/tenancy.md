@@ -23,9 +23,14 @@ Which workspace a request is bound to, who may enter it, and the tenant access g
 
 ## Sub-features
 
-- `default-workspace-membership`: onboarding makes the owner the default workspace's only member; `POST /api/auth/switch-tenant` to a workspace the owner is not in answers 403 `error.not_a_member`, and back to `default` returns new tokens.
 - `suspended-workspace-gate`: Exposure: Suspend / restore the workspace on `/tenancy` makes gated routes answer 403 with the gate's code while the recovery page still opens; restoring reopens the members page.
 - `tenant-routes-refuse-visitors`: error path: tenant routes refuse a caller without a session, and an anonymous toggle changes nothing.
+
+## Checked by the integration suite
+
+These checks make no browser tab, so they run in the backend suite (`pnpm --dir packages/dms test:integration`), not as journeys.
+
+- `default-workspace-membership`: onboarding makes the owner the default workspace's only member; `POST /api/auth/switch-tenant` to a workspace the owner is not in answers 403 `error.not_a_member`, and back to `default` returns new tokens. Held by `packages/dms/src/test/integration/tenancy-default-workspace.test.ts`.
 
 ## How to get to it (user POV)
 

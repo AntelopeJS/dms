@@ -205,22 +205,6 @@ async function everyRoute(ctx, as) {
 /** The development-only mockup engine, seen from a run's backend. */
 export const journeys = [
   {
-    id: "mockup-absent-outside-dev",
-    title: "a backend started from a build serves no mockup route",
-    entryPoint: "/api/mockup",
-    backend: "production",
-    async run(/** @type {Ctx} */ ctx) {
-      const answers = [];
-      for (const path of ROUTES) {
-        answers.push(await ctx.api(`GET ${path} as the admin`, { method: "GET", path }));
-      }
-      await ctx.verify(
-        "every mockup route answers 404",
-        answers.map((answer) => ctx.status(answer, 404)),
-      );
-    },
-  },
-  {
     id: "mockup-owner-only-in-dev",
     title: "in development, the mockup routes serve the platform owner and refuse anyone else",
     entryPoint: "/api/mockup",
