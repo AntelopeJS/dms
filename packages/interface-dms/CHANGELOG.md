@@ -1,5 +1,21 @@
 # Changelog
 
+## v0.14.6
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/interface-v0.14.5...interface-v0.14.6)
+
+### 🚀 Enhancements
+
+- **dms:** Mockup workbench, builder sections and column presentation, Safe-mode MCP access ([#1156](https://github.com/AntelopeJS/dms/pull/1156))
+
+### 🩹 Fixes
+
+- **deps:** Require the latest @antelopejs dependencies ([#1157](https://github.com/AntelopeJS/dms/pull/1157))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli
+
 ## v0.14.5
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/interface-v0.14.4...interface-v0.14.5)
