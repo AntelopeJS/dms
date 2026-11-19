@@ -41,7 +41,7 @@ import { runQueryPreview } from "./query-preview";
 import { requestIssues } from "./request-targets";
 import { stageQuery } from "./query-ops-emit";
 import { stringLiteralValue } from "./literals";
-import { isPlainObject } from "./value";
+import { isPlainObject } from "./plain-object";
 import {
   findPageClass,
   getWritableProject,

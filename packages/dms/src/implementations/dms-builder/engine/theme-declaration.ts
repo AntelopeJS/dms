@@ -5,7 +5,7 @@ import type {
   ThemeLayerDeclaration,
 } from "@antelopejs/interface-dms-builder";
 import { isString } from "./scalar-guards";
-import { isPlainObject } from "./value";
+import { isPlainObject } from "./plain-object";
 
 /** The `package.json` field `@antelopejs/dms-frontend` reads a module's frontend registration from. */
 const DECLARATION_FIELD = "dmsFrontend";

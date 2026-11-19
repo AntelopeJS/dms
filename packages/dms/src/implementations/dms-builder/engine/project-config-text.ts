@@ -1,5 +1,5 @@
 import type { ConfigValue } from "@antelopejs/interface-dms-builder";
-import { isPlainObject } from "./value";
+import { isPlainObject } from "./plain-object";
 
 const IDENTIFIER = /^[A-Za-z_$][\w$]*$/;
 

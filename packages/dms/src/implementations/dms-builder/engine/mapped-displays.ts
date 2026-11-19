@@ -8,7 +8,7 @@ import { badgeTabs } from "@antelopejs/interface-dms/base/internal/column-badges
 import { displayOfDataType } from "./column-display";
 import { presentationOf } from "./column-presentation";
 import { isString } from "./scalar-guards";
-import { isPlainObject } from "./value";
+import { isPlainObject } from "./plain-object";
 import { TABLE_BLOCK } from "./map-resources-pages";
 import { buildPageStructure } from "./page-structure";
 import type { ResourceRecord } from "./resource-index";

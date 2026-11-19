@@ -39,6 +39,7 @@ export * from "./options-patch";
 export * from "./own-connections";
 export * from "./page-access";
 export * from "./page-structure";
+export * from "./plain-object";
 export * from "./probe-answer";
 export * from "./project";
 export { StepRefusal } from "./project-config";

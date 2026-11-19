@@ -26,7 +26,7 @@ import {
   tableFieldDeclarations,
 } from "./resource-structure";
 import type { PageRecord } from "./scan";
-import { isPlainObject } from "./value";
+import { isPlainObject } from "./plain-object";
 
 /** The rule every choice read back from a mapped module cites: it is what the module holds. */
 const MAPPED_RULE = "mapped";

@@ -17,7 +17,7 @@ import {
   writtenModules,
 } from "./project-config-readers";
 import { isString } from "./scalar-guards";
-import { isPlainObject } from "./value";
+import { isPlainObject } from "./plain-object";
 
 const DMS_DATABASE_ID = "dms-database";
 const DMS_DATABASE_PACKAGE = "@antelopejs/dms-database";

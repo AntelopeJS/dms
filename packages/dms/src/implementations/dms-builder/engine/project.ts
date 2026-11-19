@@ -3,7 +3,7 @@ import path from "node:path";
 import { IndentationText, Project, ts } from "ts-morph";
 import { getBuilderConfig } from "../../../config";
 import { isNumber } from "./scalar-guards";
-import { isPlainObject } from "./value";
+import { isPlainObject } from "./plain-object";
 
 /**
  * The compiler options of the DMS project template, for a project that has no `tsconfig.json`: a

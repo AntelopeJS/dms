@@ -26,7 +26,7 @@ import {
   unvalidatedParam,
 } from "./query-template";
 import { isString } from "./scalar-guards";
-import { isPlainObject } from "./value";
+import { isPlainObject } from "./plain-object";
 
 /** One conjunct of the plan's row selection. Filters combine with AND. */
 export interface PlanFilter {

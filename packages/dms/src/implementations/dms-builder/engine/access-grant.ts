@@ -20,7 +20,7 @@ import {
   stringOf,
 } from "./project-config";
 import { isString } from "./scalar-guards";
-import { isPlainObject } from "./value";
+import { isPlainObject } from "./plain-object";
 
 const CONNECTIONS = "externalConnections";
 const ACCESS_PATH = /(^|\.)config\.externalConnections(\.|$)/;
