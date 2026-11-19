@@ -303,25 +303,6 @@ jobs:
           echo "The built playground did not become ready" >&2
           exit 1
 
-  verify-map:
-    needs: select
-    if: contains(fromJSON(needs.select.outputs.jobs), 'verify-map')
-    runs-on: ${{ matrix.os }}
-    timeout-minutes: 5
-    strategy:
-      fail-fast: false
-      matrix:
-        os: ${{ fromJSON(needs.select.outputs.os) }}
-    defaults:
-      run:
-        shell: bash
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version-file: .nvmrc
-      - run: node packages/dms/bin/dms-control.mjs map
-
   # The Playwright suite of e2e/, when the plan selects it: its global setup
   # prepares the playground and starts one run of the @antelopejs/dms/e2e kit.
   # A pull request runs the @smoke tests. The merge queue runs the whole suite
@@ -355,9 +336,9 @@ jobs:
           key: e2e-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml', 'packages/dms/playground/antelope.config.ts') }}
       - uses: actions/cache@v4
         with:
-          path: ~/.cache/dms-control/frontend
-          key: dms-control-frontend-${{ github.sha }}
-          restore-keys: dms-control-frontend-
+          path: ~/.cache/dms-e2e/frontend
+          key: dms-e2e-frontend-${{ github.sha }}
+          restore-keys: dms-e2e-frontend-
       - run: pnpm exec playwright install --only-shell chromium
       - if: matrix.shard == 'smoke'
         run: pnpm e2e --grep @smoke
@@ -457,7 +438,6 @@ jobs:
       - frontend-test
       - frontend-verify
       - docs-playground
-      - verify-map
       - formal
       - e2e
       - formal-generated

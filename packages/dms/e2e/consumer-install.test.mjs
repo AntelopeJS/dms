@@ -28,10 +28,10 @@ function consumerEnv() {
  *
  * @param {import("node:test").TestContext} t
  * @param {Record<string, string>[]} installed Each dependency list of the manifest the install honours
- * @returns {string} The output of resolving playwright-core the way dms-control does, or its error
+ * @returns {string} The output of resolving playwright-core the way the kit does, or its error
  */
 function resolveFromConsumer(t, installed) {
-  const moduleRoot = mkdtempSync(join(tmpdir(), "dms-control-consumer-"));
+  const moduleRoot = mkdtempSync(join(tmpdir(), "dms-e2e-consumer-"));
   t.after(() => rmSync(moduleRoot, { recursive: true, force: true }));
   const dms = join(moduleRoot, "node_modules", "@antelopejs", "dms");
   mkdirSync(dms, { recursive: true });
@@ -62,7 +62,7 @@ try {
   return run.stdout;
 }
 
-await test("dms-control resolves playwright-core for a module whose install of @antelopejs/dms keeps optional dependencies", (t) => {
+await test("the kit resolves playwright-core for a module whose install of @antelopejs/dms keeps optional dependencies", (t) => {
   assert.equal(
     resolveFromConsumer(t, [
       manifest.dependencies,
@@ -72,7 +72,7 @@ await test("dms-control resolves playwright-core for a module whose install of @
   );
 });
 
-await test("dms-control names the install command when the install of @antelopejs/dms omitted optional dependencies", (t) => {
+await test("the kit names the install command when the install of @antelopejs/dms omitted optional dependencies", (t) => {
   const spec = `playwright-core@${manifest.optionalDependencies["playwright-core"]}`;
   const message = resolveFromConsumer(t, [manifest.dependencies]);
   assert.ok(

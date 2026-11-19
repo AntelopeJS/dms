@@ -191,7 +191,7 @@ function fakePage(url, options = {}) {
  * @returns {JourneyContext} A journey context over a scratch evidence folder, with an `admin` account
  */
 function journeyContext(t) {
-  const dir = mkdtempSync(join(tmpdir(), "dms-control-evidence-test-"));
+  const dir = mkdtempSync(join(tmpdir(), "dms-e2e-evidence-test-"));
   t.after(() => rmSync(dir, { recursive: true, force: true }));
   return new JourneyContext(
     {

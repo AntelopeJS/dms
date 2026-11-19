@@ -23,7 +23,6 @@ const STEP_EVIDENCE = [
 
 /** @type {Suite} */
 const UNDECLARED_SUITE = {
-  skill: undefined,
   config: undefined,
   frontend: "build",
 };
@@ -37,7 +36,7 @@ const UNDECLARED_SUITE = {
  * the serving backend's log and names its evidence folder. The judged error
  * is thrown last.
  *
- * @param {import("./verify/types.mjs").FeatureResult} result The judged test
+ * @param {import("./types.mjs").FeatureResult} result The judged test
  * @param {import("./run-state.mjs").RunState} state The run
  * @param {import("@playwright/test").TestInfo} testInfo The test
  * @returns {Promise<void>}
@@ -101,9 +100,7 @@ const FIXTURES = {
   ],
   journeysConfig: [
     async ({ dmsSuite }, use) => {
-      await use(
-        await loadSuiteConfig(dmsSuite.skill, process.cwd(), dmsSuite.config),
-      );
+      await use(await loadSuiteConfig(process.cwd(), dmsSuite.config));
     },
     { scope: "worker" },
   ],

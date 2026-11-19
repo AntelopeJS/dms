@@ -32,16 +32,16 @@ const RUNTIME_ENTRIES = [
 /**
  * Development files of this repository: the compiled backend suites, the Vue
  * layer's Vitest suites and its standalone tooling, and the Node tests, test
- * helpers and TypeScript configs of the e2e kit and of dms-control. The
+ * helpers and TypeScript configs of the e2e kit. The
  * renderer installs the layer from its generated workspace's lockfile and
  * excludes tests, Vitest and ESLint configs from its type check, so none of
  * them reaches a consumer.
  */
 const DEVELOPMENT_ONLY = [
   /^dist\/test\//,
-  /^(?:e2e|bin)\/.*\.test\.mjs$/,
+  /^e2e\/.*\.test\.mjs$/,
   /^e2e\/helpers\//,
-  /^(?:e2e|bin)\/tsconfig[^/]*\.json$/,
+  /^e2e\/tsconfig[^/]*\.json$/,
   /^frontend-vue\/tests\//,
   /^frontend-vue\/vitest\.config\.ts$/,
   /^frontend-vue\/eslint\.config\.mjs$/,

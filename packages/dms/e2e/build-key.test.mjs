@@ -432,7 +432,7 @@ await test("links of one name and one link text in two node_modules are keyed by
 
 await test("an install record above TMPDIR that the key cannot read leaves the fixture's keys unchanged", (t) => {
   const outer = realpathSync.native(
-    mkdtempSync(join(tmpdir(), "dms-control-build-key-outer-")),
+    mkdtempSync(join(tmpdir(), "dms-e2e-build-key-outer-")),
   );
   t.after(() => rmSync(outer, { recursive: true, force: true }));
   write(join(outer, "node_modules", ".modules.yaml"), '"layoutVersion": 5\n');

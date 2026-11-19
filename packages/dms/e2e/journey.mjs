@@ -20,9 +20,9 @@ import { Tab } from "./tab.mjs";
 import { timed } from "./timing.mjs";
 
 /**
- * @typedef {import("./verify/types.mjs").JourneyCheck} Check
+ * @typedef {import("./types.mjs").JourneyCheck} Check
  * @typedef {ReturnType<typeof capturedMail>[number]} CapturedMail
- * @typedef {import("./verify/types.mjs").JourneyStep} Step
+ * @typedef {import("./types.mjs").JourneyStep} Step
  * @typedef {{ error: string | null, abortedAt: string | null }} JourneyEnd How a journey ended early: `abortedAt` names the critical step whose failure ended it, `error` what it threw
  */
 

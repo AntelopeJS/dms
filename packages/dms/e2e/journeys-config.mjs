@@ -5,7 +5,6 @@ import { pathToFileURL } from "node:url";
 import { checkoutOf } from "./git.mjs";
 import { arrayOf, decode, isRecord, isString, objectOf } from "./json.mjs";
 import { stopwatch } from "./timing.mjs";
-import { loadSkill, readFeatures } from "./verify/skill.mjs";
 
 /**
  * @typedef {{ playground: string, renderer?: string, prepare: string[][], smoke: string }} JourneysConfig The default export of a repository's `e2e/journeys.config.ts`: the playground folder and the built renderer checkout the run serves, relative to the repository root; the install and build commands that prepare a run; and the feature whose journeys run first. Each `*.mjs` file of `e2e/journeys/` is a feature, named after the file
@@ -66,39 +65,21 @@ async function loadOwnConfig(file, repo) {
 }
 
 /**
- * The journeys suite of the checkout holding `cwd`: the verify skill `skill`
- * names, else the journeys config `config` names or `e2e/journeys.config.ts`,
- * else its one verify skill.
+ * The journeys suite of the checkout holding `cwd`: the journeys config
+ * `config` names, else `e2e/journeys.config.ts`.
  *
- * @param {string | undefined} skill A verify skill folder, which a repository that has not moved to `e2e/journeys.config.ts` names in `e2eConfig` or `dms-control up --skill`
  * @param {string} cwd Where the suite runs
  * @param {string} [config] A journeys config file, relative to the repository root, whose journeys are in `journeys/` beside it; `e2e/journeys.config.ts` by default
  * @returns {Promise<SuiteConfig>} The suite
- * @throws When the config it picks does not load, or `config` names no file
+ * @throws When the config does not exist or does not load
  */
-export async function loadSuiteConfig(skill, cwd, config) {
+export async function loadSuiteConfig(cwd, config) {
   const repo = resolve(checkoutOf(cwd).root ?? cwd);
   const own = resolve(repo, config ?? JOURNEYS_CONFIG);
-  if (config !== undefined && !existsSync(own)) {
+  if (!existsSync(own)) {
     throw new Error(`the journeys config ${own} does not exist`);
   }
-  if (skill === undefined && existsSync(own)) return loadOwnConfig(own, repo);
-  const legacy = await loadSkill(skill, cwd);
-  return {
-    source: join(legacy.dir, "verify.config.ts"),
-    repo: legacy.repo,
-    playground: resolve(legacy.repo, legacy.config.playground),
-    renderer:
-      legacy.config.renderer === undefined
-        ? undefined
-        : resolve(legacy.repo, legacy.config.renderer),
-    prepare: legacy.config.prepare,
-    smoke: legacy.config.smoke,
-    journeysDir: legacy.journeysDir,
-    features: existsSync(legacy.featuresDir)
-      ? readFeatures(legacy).map((feature) => feature.name)
-      : [],
-  };
+  return loadOwnConfig(own, repo);
 }
 
 /**

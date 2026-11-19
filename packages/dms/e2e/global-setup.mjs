@@ -29,7 +29,6 @@ export default async function globalSetup() {
     return undefined;
   }
   const { run, stop } = await startRun({
-    skill: suite.skill,
     config: suite.config,
     frontend: suite.frontend,
   });
@@ -59,13 +58,13 @@ function assertServes(state, suite) {
  *
  * @param {Suite} suite The suite that drives it
  * @returns {import("./run-state.mjs").RunState} The run
- * @throws When no global setup published a run, an earlier dms-control started it, or it serves its dashboard another way than the suite asks
+ * @throws When no global setup published a run, an older e2e kit started it, or it serves its dashboard another way than the suite asks
  */
 export function currentRun(suite) {
   const dir = process.env[RUN];
   if (!dir) {
     throw new Error(
-      `${RUN} is not set: run the suite through its config, whose global setup starts a run, or set it to a run of dms-control up`,
+      `${RUN} is not set: run the suite through its config, whose global setup starts a run, or set it to a run startRun started`,
     );
   }
   const state = loadRun(dir);

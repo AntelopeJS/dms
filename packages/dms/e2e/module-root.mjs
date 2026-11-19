@@ -20,9 +20,9 @@ function isAntelopeModule(folder) {
 
 /**
  * The module a playground verifies: the nearest folder above it whose
- * `package.json` declares `antelopeJs`, so a playground in a verification
- * skill (`.agents/skills/<skill>/playground`) verifies the repository's
- * module, not the skill folder. The search stops at the playground's
+ * `package.json` declares `antelopeJs`, so a playground in a subfolder of
+ * the repository (`e2e/playground`) verifies the repository's module, not
+ * that folder. The search stops at the playground's
  * checkout, so a module above the checkout is never its module. Its parent
  * when no folder in that range declares one.
  *

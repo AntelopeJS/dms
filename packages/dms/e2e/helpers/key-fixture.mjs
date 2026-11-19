@@ -19,7 +19,7 @@ import { write } from "./repo.mjs";
  */
 export function fixture(t) {
   const dir = realpathSync.native(
-    mkdtempSync(join(tmpdir(), "dms-control-build-key-test-")),
+    mkdtempSync(join(tmpdir(), "dms-e2e-build-key-test-")),
   );
   t.after(() => rmSync(dir, { recursive: true, force: true }));
   const frontend = join(dir, "dms-frontend");

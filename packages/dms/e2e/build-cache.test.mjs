@@ -42,7 +42,7 @@ const OUTPUTS = ["components.d.ts", "dist"];
  * @param {import("node:test").TestContext} t The test
  */
 function fixture(t) {
-  const dir = mkdtempSync(join(tmpdir(), "dms-control-build-cache-test-"));
+  const dir = mkdtempSync(join(tmpdir(), "dms-e2e-build-cache-test-"));
   t.after(() => rmSync(dir, { recursive: true, force: true }));
   const built = join(dir, "built");
   write(join(built, "main.ts"), SOURCES["main.ts"]);
@@ -185,7 +185,7 @@ await test("the cache keeps the most recently used builds", (t) => {
   const old = new Date("2026-01-01T00:00:00Z");
   for (let index = 0; index < KEPT_BUILDS; index += 1) {
     assert.equal(storeBuild(cache, `k${index}`, {}, build), null);
-    utimesSync(join(cache, `k${index}`, ".dms-control-ready"), old, old);
+    utimesSync(join(cache, `k${index}`, ".dms-e2e-ready"), old, old);
   }
   assert.equal(restoreBuild(cache, "k0", prepared("used")), true);
   assert.equal(storeBuild(cache, "new", {}, build), null);
@@ -257,7 +257,7 @@ await test("a restore that fails part-way leaves the run's sources alone, and on
   );
   if (!existsSync(UNTOUCHABLE)) return;
   assert.equal(storeBuild(cache, "k2", {}, build), null);
-  const mark = join(cache, "k2", ".dms-control-ready");
+  const mark = join(cache, "k2", ".dms-e2e-ready");
   rmSync(mark);
   symlinkSync(UNTOUCHABLE, mark);
   const whole = prepared("whole");

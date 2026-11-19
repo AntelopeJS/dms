@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync } from "node:fs";
+import { writeFileSync } from "node:fs";
 
 /**
  * Reads of JSON a program received, narrowed through checks instead of typed
@@ -47,24 +47,6 @@ export function firstString(body) {
   /** @type {unknown} */
   const first = body.at(0);
   return isString(first) ? first : undefined;
-}
-
-/**
- * The objects a JSON file lists, kept as written.
- *
- * @param {string} file The JSON file
- * @returns {Record<string, unknown>[]} The listed objects
- * @throws When the file holds anything but a list of objects
- */
-export function readRecordList(file) {
-  /** @type {unknown} */
-  const stored = JSON.parse(readFileSync(file, "utf8"));
-  if (!Array.isArray(stored))
-    throw new Error(`${file} is not a list of objects`);
-  const records = stored.filter(isRecord);
-  if (records.length !== stored.length)
-    throw new Error(`${file} is not a list of objects`);
-  return records;
 }
 
 /**
@@ -157,19 +139,6 @@ export function oneOf(names) {
    * @returns {value is Name} True for one of the names
    */
   return (value) => isString(value) && names.some((name) => name === value);
-}
-
-/**
- * @template T
- * @param {new (...args: never[]) => T} constructor The class
- * @returns {Guard<T>} A guard for its instances
- */
-export function instanceOf(constructor) {
-  /**
-   * @param {unknown} value A value
-   * @returns {value is T} True for an instance
-   */
-  return (value) => value instanceof constructor;
 }
 
 /**

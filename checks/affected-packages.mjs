@@ -19,9 +19,8 @@ import { formal } from "./formal-checks.ts";
  *   the docs examples through the mockup compile test.
  * - `frontend-vue` reads `packages/dms/data`, `packages/dms/checks`,
  *   `packages/dms/package.json` and the playground layer.
- * - `verify-dms` is the verify-map check: its features name documentation
- *   pages, its config names playground files, and its journeys and their
- *   Playwright suite live in `e2e/`.
+ * - `e2e` is the Playwright suite and its journeys, which drive the
+ *   playground.
  * - `agents` holds the TLA+ formal models, which cover code in every package.
  *
  * @type {TestPackage[]}
@@ -74,9 +73,9 @@ export const PACKAGES = [
     dependsOn: ["interface-dms", "dms", "frontend-vue"],
   },
   {
-    name: "verify-dms",
-    root: ".agents/skills/verify-dms",
-    reads: ["packages/*/docs/**", "e2e/**"],
+    name: "e2e",
+    root: "e2e",
+    reads: [],
     dependsOn: [
       "interface-dms",
       "interface-dms-builder",
@@ -288,8 +287,7 @@ const JOB_RULES = [
     job: "frontend-verify",
     when: ({ packages }) => packages.has("frontend-vue"),
   },
-  { job: "verify-map", when: ({ packages }) => packages.has("verify-dms") },
-  { job: "e2e", when: ({ packages }) => packages.has("verify-dms") },
+  { job: "e2e", when: ({ packages }) => packages.has("e2e") },
   {
     job: "docs-playground",
     when: ({ tier }) => tier === "queue" || tier === "nightly",

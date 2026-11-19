@@ -20,12 +20,12 @@ import { recordTiming, stopwatch, timed } from "./timing.mjs";
 /** @typedef {import("./run-state.mjs").BackendMode} BackendMode */
 
 /**
- * Refuses a run whose backend holds the API port itself: an earlier
- * dms-control started it, with no forwarder to move the API between
+ * Refuses a run whose backend holds the API port itself: an older e2e kit
+ * started it, with no forwarder to move the API between
  * backends.
  *
  * @param {RunState} state The run
- * @throws When an earlier dms-control started the run
+ * @throws When an older e2e kit started the run
  */
 export function assertForwardedRun(state) {
   if (
@@ -34,7 +34,7 @@ export function assertForwardedRun(state) {
     )
   ) {
     throw new Error(
-      "this run was started by an older dms-control; run `up` again",
+      "this run was started by an older e2e kit; start a new run",
     );
   }
 }
@@ -191,7 +191,7 @@ async function backendOn(state, wanted) {
  * @param {string} suffix What tells the database apart, such as `j003`
  * @param {{ backend?: BackendMode, standby?: boolean }} [pins] How its backend runs, the run's mode by default, and whether a standby takes it and starts after it, true by default
  * @returns {Promise<string>} The database now in use
- * @throws When an earlier dms-control started the run, or a folder of the run's build is missing (a build runs), before it starts or stops anything
+ * @throws When an older e2e kit started the run, or a folder of the run's build is missing (a build runs), before it starts or stops anything
  */
 export async function freshDatabase(
   state,

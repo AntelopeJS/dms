@@ -2,15 +2,6 @@ import { spawnSync } from "node:child_process";
 import { gitChangedFiles, selectPackages } from "./affected-packages.mjs";
 
 const DMS_TESTS = [
-  "bin/control/backend-records",
-  "bin/control/backend",
-  "bin/control/browser-wire",
-  "bin/control/identity",
-  "bin/control/namespaces",
-  "bin/control/pid-guard",
-  "bin/control/verify/doors",
-  "bin/control/verify/formal",
-  "bin/control/verify/map",
   "e2e/backend-mode",
   "e2e/base",
   "e2e/build-cache",
@@ -40,7 +31,6 @@ const DMS_TESTS = [
   "e2e/tab",
   "e2e/test-journey",
   "e2e/timing",
-  "e2e/verify/decode",
   "scripts/backend-automation",
   "scripts/dms-dev",
   "scripts/playground-api",
@@ -83,7 +73,7 @@ const STEPS = [
     command: "node --test .agents/formal/maps.test.mjs",
   },
   {
-    when: (selected) => selected.has("verify-dms"),
+    when: (selected) => selected.has("e2e"),
     command: "node --test e2e/rows.test.mjs e2e/weighted-shards.test.mjs",
   },
   {

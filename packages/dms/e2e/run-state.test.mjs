@@ -32,7 +32,6 @@ const RUN = {
   repo: "/repo",
   headSha: null,
   baseRef: "origin/main",
-  skill: null,
   apiPort: 5010,
   webPort: 5011,
   smtpPort: 5012,
@@ -58,7 +57,7 @@ const RUN = {
  * @returns {string} The run folder
  */
 function savedRun(t, fields) {
-  const dir = mkdtempSync(join(tmpdir(), "dms-control-run-state-test-"));
+  const dir = mkdtempSync(join(tmpdir(), "dms-e2e-run-state-test-"));
   t.after(() => rmSync(dir, { recursive: true, force: true }));
   mkdirSync(dir, { recursive: true });
   writeFileSync(
@@ -93,7 +92,7 @@ await test("saving a loaded run again keeps its server record", (t) => {
 
 await test("a run.json that holds no run is refused", (t) => {
   for (const text of ["null", "[]", "5", '"s"', "{}"]) {
-    const dir = mkdtempSync(join(tmpdir(), "dms-control-run-state-test-"));
+    const dir = mkdtempSync(join(tmpdir(), "dms-e2e-run-state-test-"));
     t.after(() => rmSync(dir, { recursive: true, force: true }));
     writeFileSync(join(dir, "run.json"), text);
     assert.throws(
@@ -148,7 +147,7 @@ await test("keys of a run.json that the schema does not name are written back", 
 });
 
 await test("a new run's folders hold no browser folder, and loading a fresh run has no server", (t) => {
-  const parent = mkdtempSync(join(tmpdir(), "dms-control-run-state-test-"));
+  const parent = mkdtempSync(join(tmpdir(), "dms-e2e-run-state-test-"));
   t.after(() => rmSync(parent, { recursive: true, force: true }));
   const dir = join(parent, "run");
   const paths = createRunFolders(dir);

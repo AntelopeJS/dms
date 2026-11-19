@@ -5,8 +5,8 @@
  * @antelopejs/tooling-configs. Each fixed bug must still break its rules with
  * the counterexample length recorded in SKILL.md, so the model stays able to
  * catch it. Exits 0 when every configuration matches its record, 1 when one
- * changed, and 2 when TLC could not run. `dms-control formal` does not run
- * this file: its findings describe old code, not the code at HEAD.
+ * changed, and 2 when TLC could not run. Its findings describe old code,
+ * not the code at HEAD.
  */
 import path from "node:path";
 import { fileURLToPath } from "node:url";

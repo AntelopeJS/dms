@@ -33,15 +33,9 @@
     "directory": "packages/dms"
   },
   "main": "dist/index.js",
-  "bin": {
-    "dms-control": "bin/dms-control.mjs"
-  },
   "types": "dist/index.d.ts",
   "dmsFrontend": "dist/frontend-module.js",
   "files": [
-    "bin",
-    "!bin/tsconfig.json",
-    "!bin/**/*.test.mjs",
     "e2e",
     "!e2e/tsconfig.json",
     "!e2e/tsconfig.types.json",

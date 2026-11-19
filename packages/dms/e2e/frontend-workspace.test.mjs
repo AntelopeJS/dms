@@ -25,7 +25,7 @@ const OWN_SETUP =
  * @param {"export" | "re-export"} stepExport How the step is exported
  */
 function frontendPackage(t, stepExport) {
-  const dir = mkdtempSync(join(tmpdir(), "dms-control-frontend-workspace-"));
+  const dir = mkdtempSync(join(tmpdir(), "dms-e2e-frontend-workspace-"));
   t.after(() => rmSync(dir, { recursive: true, force: true }));
   const frontend = join(dir, "dms-frontend");
   write(join(frontend, "package.json"), '{"version":"0.10.0"}');

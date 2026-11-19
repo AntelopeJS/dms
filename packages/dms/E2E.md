@@ -1,6 +1,6 @@
 # The e2e kit
 
-`@antelopejs/dms/e2e` is a Playwright setup for a DMS repository. The global setup of its config prepares the playground and starts one run for the whole invocation: a copy of the playground on free ports, its own MongoDB, a mail sink and the built dashboard. It stops the run after the last test. A spec is ordinary Playwright: it imports `test` and `expect` from the kit, and its fixtures give it a fresh database, an administrator and the run's dashboard as `baseURL`. `registerJourneys()` turns the journeys of `e2e/journeys/` into tests on the same fixtures. Nothing in the kit runs `dms-control`.
+`@antelopejs/dms/e2e` is a Playwright setup for a DMS repository. The global setup of its config prepares the playground and starts one run for the whole invocation: a copy of the playground on free ports, its own MongoDB, a mail sink and the built dashboard. It stops the run after the last test. A spec is ordinary Playwright: it imports `test` and `expect` from the kit, and its fixtures give it a fresh database, an administrator and the run's dashboard as `baseURL`. `registerJourneys()` turns the journeys of `e2e/journeys/` into tests on the same fixtures.
 
 ## Configure a suite
 
@@ -46,7 +46,6 @@ Each `*.mjs` file of `e2e/journeys/` is a feature, named after the file, and exp
 `e2eConfig` and `startRun` of `@antelopejs/dms/e2e/run` take these options:
 
 - `config`: a journeys config file relative to the repository root, whose journeys are the `*.mjs` files of `journeys/` beside it, for a second suite (`e2eConfig({ config: "e2e/builder/journeys.config.ts" })`). It defaults to `e2e/journeys.config.ts`.
-- `skill`: for a repository without `e2e/journeys.config.ts`, the verify skill folder whose `verify.config.ts` and `features/` the kit reads instead, relative to the repository root. A repository with one `.agents/skills/verify-*` folder leaves it out. A `skill` wins over `e2e/journeys.config.ts`, so a migrated suite drops it.
 - `frontend: "dev"`: the run serves the dashboard with `ajs dms dev`, and the suite runs only the journeys that set `frontend: "dev"`. A suite without it serves a build and leaves those journeys out. Its test output and report folders end in `-dev`.
 
 `registerJourneys()` reads both from the config that loaded it.
@@ -81,7 +80,7 @@ Playwright's own `page` opens the run's dashboard on the database the previous t
 - `tag`: Playwright tags, such as `@smoke`.
 - `knownFailures`: the name of each check that fails today, mapped to the finding that makes it fail. A listed check that fails does not fail the journey. A listed check that passes does.
 - `last: true`: runs the journey after all others, for a journey that changes the run's playground for later backends.
-- `frontend: "dev"`: the journey needs the development dashboard, for UI that only `import.meta.env.DEV` renders. `dms-control journey` refuses it on a run started without `--dev-frontend`.
+- `frontend: "dev"`: the journey needs the development dashboard, for UI that only `import.meta.env.DEV` renders. A suite without `frontend: "dev"` leaves it out.
 - `database`, `onboard`, `backend` and `standby`: how the run is prepared for the journey, as `dmsOptions` does for a spec.
 
 ## Start a run from node:test
@@ -118,7 +117,7 @@ test("the administrator reads the onboarding state", async () => {
 ## Environment
 
 - `DMS_E2E_PREBUILT=1`: the global setup and `startRun` skip the config's `prepare` commands (install and build), for a checkout an earlier run prepared.
-- `DMS_E2E_RUN=<run folder>`: the tests drive that run, such as one `dms-control up` started, and the suite stops nothing. A run whose dashboard is not served the way the suite asks is refused.
+- `DMS_E2E_RUN=<run folder>`: the tests drive that run, such as one `startRun` started, and the suite stops nothing. A run whose dashboard is not served the way the suite asks is refused.
 - `DMS_CONTROL_RUNS`: the folder the run folders go to.
 - `DMS_CONTROL_NO_STANDBY=1`: each fresh database's backend starts when the test needs it, rather than one ahead.
 
@@ -134,4 +133,4 @@ test("the administrator reads the onboarding state", async () => {
 
 ## Move off verify.config.ts
 
-A suite that still reads `.agents/skills/verify-*/verify.config.ts`: copy its `playground`, `renderer`, `prepare` and `smoke` into `e2e/journeys.config.ts`, move its journeys to `e2e/journeys/` and a playground that lives in the skill folder to `e2e/`, and drop `skill` from `e2eConfig`.
+The kit reads only `e2e/journeys.config.ts`, or the file `config` names. A suite whose config is still a verify skill's `verify.config.ts` moves before it upgrades: copy its `playground`, `renderer`, `prepare` and `smoke` into `e2e/journeys.config.ts`, move its journeys to `e2e/journeys/` and a playground that lives in the skill folder to `e2e/`, and drop `skill` from `e2eConfig`, which now refuses it.

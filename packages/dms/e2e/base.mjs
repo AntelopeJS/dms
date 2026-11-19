@@ -10,16 +10,16 @@ import { cliPaths, ENVIRONMENT, spec } from "./launch.mjs";
 import { restartBackend } from "./backend.mjs";
 import { moduleRootOf } from "./module-root.mjs";
 
-const READY_MARK = ".dms-control-ready";
+const READY_MARK = ".dms-e2e-ready";
 
 function baseCache() {
   const cacheHome = process.env.XDG_CACHE_HOME ?? join(homedir(), ".cache");
-  return join(cacheHome, "dms-control", "base");
+  return join(cacheHome, "dms-e2e", "base");
 }
 
 /**
  * A prepared worktree of the run's base ref, built once per commit under
- * `~/.cache/dms-control/base/<sha>` with the journeys config's `prepare` commands.
+ * `~/.cache/dms-e2e/base/<sha>` with the journeys config's `prepare` commands.
  * When the base ref has no playground folder, as in the change that adds
  * it, the worktree gets a copy of the run's playground before `prepare`,
  * and is built again on every call so the copy follows the run's.

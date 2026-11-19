@@ -15,7 +15,7 @@ await test("every package runs every step, the backend checks before the playgro
 });
 
 await test("a playground-only selection builds interface-dms before the playground test; a runner that relies on check:backend for it fails it", () => {
-  const commands = testCommands(["playground", "verify-dms", "agents"]);
+  const commands = testCommands(["playground", "e2e", "agents"]);
   assert.deepEqual(commands.slice(0, 2), [BUILD_INTERFACE, PLAYGROUND]);
   assert.equal(
     commands.some((command) => command.includes("check:backend")),

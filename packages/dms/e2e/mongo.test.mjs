@@ -19,7 +19,7 @@ const isDriverLog = objectOf({
  * @returns {string} The folder whose `node_modules` holds them
  */
 function project(t, packages) {
-  const folder = mkdtempSync(join(tmpdir(), "dms-control-mongo-test-"));
+  const folder = mkdtempSync(join(tmpdir(), "dms-e2e-mongo-test-"));
   t.after(() => rmSync(folder, { recursive: true, force: true }));
   writeFileSync(join(folder, "package.json"), "{}");
   for (const [name, source] of Object.entries(packages)) {
@@ -228,7 +228,7 @@ await test("a missing driver names the devDependency to add", async (t) => {
   const folder = project(t, {});
   await assert.rejects(dropDatabase("mongodb://x", "a", [folder]), {
     message:
-      "dms-control needs mongodb: add it to the playground's devDependencies.",
+      "the e2e kit needs mongodb: add it to the playground's devDependencies.",
   });
 });
 

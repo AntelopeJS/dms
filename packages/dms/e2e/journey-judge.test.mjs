@@ -8,7 +8,7 @@ const FINDING = "dms#1: the restart never finishes";
 /**
  * @param {string} name The step name
  * @param {[string, boolean][]} checks Each check's name and whether it passed
- * @returns {import("./verify/types.mjs").JourneyStep} The step
+ * @returns {import("./types.mjs").JourneyStep} The step
  */
 function step(name, checks) {
   return {
