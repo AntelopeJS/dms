@@ -43,8 +43,9 @@ export default {
 
 Each `*.mjs` file of `e2e/journeys/` is a feature, named after the file, and exports its `journeys`. The helpers they import live in subfolders or outside `e2e/journeys/`.
 
-`e2eConfig` takes two options:
+`e2eConfig` and `startRun` of `@antelopejs/dms/e2e/run` take these options:
 
+- `config`: a journeys config file relative to the repository root, whose journeys are the `*.mjs` files of `journeys/` beside it, for a second suite (`e2eConfig({ config: "e2e/builder/journeys.config.ts" })`). It defaults to `e2e/journeys.config.ts`.
 - `skill`: for a repository without `e2e/journeys.config.ts`, the verify skill folder whose `verify.config.ts` and `features/` the kit reads instead, relative to the repository root. A repository with one `.agents/skills/verify-*` folder leaves it out. A `skill` wins over `e2e/journeys.config.ts`, so a migrated suite drops it.
 - `frontend: "dev"`: the run serves the dashboard with `ajs dms dev`, and the suite runs only the journeys that set `frontend: "dev"`. A suite without it serves a build and leaves those journeys out. Its test output and report folders end in `-dev`.
 

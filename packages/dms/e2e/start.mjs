@@ -4,8 +4,8 @@ import { up } from "./stack.mjs";
 import { loadSuiteConfig, runPrepare } from "./journeys-config.mjs";
 
 /**
- * @typedef {Omit<import("./stack.mjs").UpOptions, "playground" | "prepared"> & { playground?: string, prepare?: boolean }} StartOptions How to start a run: `prepare` first runs the journeys config's install and build commands, `skill` is the verify skill folder of a repository without `e2e/journeys.config.ts`, `playground` and `renderer` win over the journeys config, and `noStandby` is also on with `DMS_CONTROL_NO_STANDBY=1`
- * @typedef {{ skill?: string, frontend?: "build" | "dev", prepare?: boolean }} RunOptions How a test starts a run: `skill` is the verify skill folder, relative to the repository root, for a repository with several; `frontend: "dev"` serves the dashboard with `ajs dms dev` instead of a build; `prepare` runs the journeys config's install and build commands first, which it does unless `DMS_E2E_PREBUILT=1`
+ * @typedef {Omit<import("./stack.mjs").UpOptions, "playground" | "prepared"> & { playground?: string, prepare?: boolean, config?: string }} StartOptions How to start a run: `config` is the absolute path of a journeys config file, `prepare` first runs the journeys config's install and build commands, `skill` is the verify skill folder of a repository without `e2e/journeys.config.ts`, `playground` and `renderer` win over the journeys config, and `noStandby` is also on with `DMS_CONTROL_NO_STANDBY=1`
+ * @typedef {{ skill?: string, config?: string, frontend?: "build" | "dev", prepare?: boolean }} RunOptions How a test starts a run: `config` is a journeys config file, relative to the repository root, whose journeys folder is `journeys/` beside it (`e2e/journeys.config.ts` by default); `skill` is the verify skill folder, relative to the repository root, for a repository with several; `frontend: "dev"` serves the dashboard with `ajs dms dev` instead of a build; `prepare` runs the journeys config's install and build commands first, which it does unless `DMS_E2E_PREBUILT=1`
  */
 
 /**
@@ -18,19 +18,23 @@ import { loadSuiteConfig, runPrepare } from "./journeys-config.mjs";
  */
 export function startOptions(options, cwd) {
   const root = checkoutOf(cwd).root ?? cwd;
-  return {
+  /** @type {StartOptions} */
+  const start = {
     prepare: options.prepare ?? process.env.DMS_E2E_PREBUILT !== "1",
     skill:
       options.skill === undefined ? undefined : resolve(root, options.skill),
     frontendMode: options.frontend ?? "build",
   };
+  if (options.config !== undefined)
+    start.config = resolve(root, options.config);
+  return start;
 }
 
 /**
  * The playground and the renderer checkout a run starts: the options, then
  * the journeys config.
  *
- * @param {Pick<StartOptions, "playground" | "renderer" | "skill">} options
+ * @param {Pick<StartOptions, "playground" | "renderer" | "skill" | "config">} options
  * @param {string} cwd Where the run starts from, which finds the journeys config
  * @returns {Promise<{ playground: string, renderer: string | undefined }>}
  */
@@ -38,7 +42,9 @@ export async function targetOf(options, cwd) {
   const config =
     options.playground && options.renderer
       ? null
-      : await loadSuiteConfig(options.skill, cwd).catch(() => null);
+      : await loadSuiteConfig(options.skill, cwd, options.config).catch(
+          () => null,
+        );
   return {
     playground: options.playground ?? config?.playground ?? "playground",
     renderer: options.renderer ?? config?.renderer,
@@ -54,12 +60,12 @@ export async function targetOf(options, cwd) {
  * @returns {Promise<import("./run-state.mjs").RunState>} The ready run
  */
 export async function startStack(options, cwd) {
-  const { prepare, ...upOptions } = options;
+  const { prepare, config: journeysConfig, ...upOptions } = options;
   const skill = options.skill ? resolve(options.skill) : undefined;
   /** @type {import("./timing.mjs").TimingEntry[]} */
   let prepared = [];
   if (prepare) {
-    const config = await loadSuiteConfig(skill, cwd);
+    const config = await loadSuiteConfig(skill, cwd, journeysConfig);
     prepared = runPrepare(config, config.repo);
   }
   const state = await up({

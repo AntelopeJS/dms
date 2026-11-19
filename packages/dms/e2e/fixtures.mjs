@@ -22,7 +22,11 @@ const STEP_EVIDENCE = [
 ];
 
 /** @type {Suite} */
-const UNDECLARED_SUITE = { skill: undefined, frontend: "build" };
+const UNDECLARED_SUITE = {
+  skill: undefined,
+  config: undefined,
+  frontend: "build",
+};
 
 /**
  * Replays a judged test into the Playwright report: a step per recorded
@@ -97,7 +101,9 @@ const FIXTURES = {
   ],
   journeysConfig: [
     async ({ dmsSuite }, use) => {
-      await use(await loadSuiteConfig(dmsSuite.skill, process.cwd()));
+      await use(
+        await loadSuiteConfig(dmsSuite.skill, process.cwd(), dmsSuite.config),
+      );
     },
     { scope: "worker" },
   ],

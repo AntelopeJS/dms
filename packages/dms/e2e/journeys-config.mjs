@@ -1,6 +1,6 @@
 import { spawnSync } from "node:child_process";
 import { existsSync, readdirSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { checkoutOf } from "./git.mjs";
 import { arrayOf, decode, isRecord, isString, objectOf } from "./json.mjs";
@@ -49,7 +49,7 @@ async function loadOwnConfig(file, repo) {
     file,
     "a journeys config",
   );
-  const journeysDir = join(repo, "e2e", "journeys");
+  const journeysDir = join(dirname(file), "journeys");
   return {
     source: file,
     repo,
@@ -67,16 +67,21 @@ async function loadOwnConfig(file, repo) {
 
 /**
  * The journeys suite of the checkout holding `cwd`: the verify skill `skill`
- * names, else its `e2e/journeys.config.ts`, else its one verify skill.
+ * names, else the journeys config `config` names or `e2e/journeys.config.ts`,
+ * else its one verify skill.
  *
  * @param {string | undefined} skill A verify skill folder, which a repository that has not moved to `e2e/journeys.config.ts` names in `e2eConfig` or `dms-control up --skill`
  * @param {string} cwd Where the suite runs
+ * @param {string} [config] A journeys config file, relative to the repository root, whose journeys are in `journeys/` beside it; `e2e/journeys.config.ts` by default
  * @returns {Promise<SuiteConfig>} The suite
- * @throws When the config it picks does not load
+ * @throws When the config it picks does not load, or `config` names no file
  */
-export async function loadSuiteConfig(skill, cwd) {
+export async function loadSuiteConfig(skill, cwd, config) {
   const repo = resolve(checkoutOf(cwd).root ?? cwd);
-  const own = join(repo, JOURNEYS_CONFIG);
+  const own = resolve(repo, config ?? JOURNEYS_CONFIG);
+  if (config !== undefined && !existsSync(own)) {
+    throw new Error(`the journeys config ${own} does not exist`);
+  }
   if (skill === undefined && existsSync(own)) return loadOwnConfig(own, repo);
   const legacy = await loadSkill(skill, cwd);
   return {

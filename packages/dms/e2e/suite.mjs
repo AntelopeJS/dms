@@ -5,8 +5,8 @@ import { isRecord, isString } from "./json.mjs";
 
 /**
  * @typedef {import("./journey-load.mjs").Journey} Journey
- * @typedef {{ skill?: string, frontend?: "dev" }} SuiteOptions What a journeys suite runs: `skill` is the verify skill folder, relative to the repository root, for a repository with several and no `e2e/journeys.config.ts`; `frontend: "dev"` serves the dashboard with `ajs dms dev` and runs only the journeys that ask for it
- * @typedef {{ skill: string | undefined, frontend: "build" | "dev" }} Suite The suite a config declared, its skill folder absolute
+ * @typedef {{ skill?: string, config?: string, frontend?: "dev" }} SuiteOptions What a journeys suite runs: `config` is a journeys config file, relative to the repository root, whose journeys folder is `journeys/` beside it (`e2e/journeys.config.ts` by default); `skill` is the verify skill folder, relative to the repository root, for a repository with several and no `e2e/journeys.config.ts`; `frontend: "dev"` serves the dashboard with `ajs dms dev` and runs only the journeys that ask for it
+ * @typedef {{ skill: string | undefined, config: string | undefined, frontend: "build" | "dev" }} Suite The suite a config declared, its skill folder and journeys config absolute
  */
 
 const SUITE = "DMS_E2E_SUITE";
@@ -18,9 +18,13 @@ const SUITE = "DMS_E2E_SUITE";
 function isSuiteOptions(value) {
   return (
     isRecord(value) &&
-    Object.keys(value).every((key) => key === "skill" || key === "frontend") &&
+    Object.keys(value).every(
+      (key) => key === "skill" || key === "config" || key === "frontend",
+    ) &&
     (value.skill === undefined ||
       (isString(value.skill) && value.skill !== "")) &&
+    (value.config === undefined ||
+      (isString(value.config) && value.config !== "")) &&
     (value.frontend === undefined || value.frontend === "dev")
   );
 }
@@ -37,7 +41,7 @@ function isSuiteOptions(value) {
 export function declareSuite(options) {
   if (!isSuiteOptions(options)) {
     throw new Error(
-      `e2eConfig takes { skill?: <the verify skill folder>, frontend?: "dev" }, got ${JSON.stringify(options)}`,
+      `e2eConfig takes { skill?: <the verify skill folder>, config?: <a journeys config file>, frontend?: "dev" }, got ${JSON.stringify(options)}`,
     );
   }
   const root = checkoutOf(process.cwd()).root ?? process.cwd();
@@ -45,8 +49,13 @@ export function declareSuite(options) {
   const suite = {
     skill:
       options.skill === undefined ? undefined : resolve(root, options.skill),
+    config:
+      options.config === undefined ? undefined : resolve(root, options.config),
     frontend: options.frontend ?? "build",
   };
+  if (suite.config && !existsSync(suite.config)) {
+    throw new Error(`e2eConfig's config ${suite.config} does not exist`);
+  }
   if (suite.skill && !existsSync(join(suite.skill, "verify.config.ts"))) {
     throw new Error(
       `e2eConfig's skill ${suite.skill} holds no verify.config.ts`,
@@ -81,6 +90,7 @@ function isSuite(value) {
   return (
     isRecord(value) &&
     (value.skill === undefined || isString(value.skill)) &&
+    (value.config === undefined || isString(value.config)) &&
     (value.frontend === "build" || value.frontend === "dev")
   );
 }

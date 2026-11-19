@@ -79,7 +79,11 @@ export function e2eConfig(options = {}) {
  */
 export async function registerJourneys() {
   const suite = declaredSuite();
-  const config = await loadSuiteConfig(suite.skill, process.cwd());
+  const config = await loadSuiteConfig(
+    suite.skill,
+    process.cwd(),
+    suite.config,
+  );
   const features = await Promise.all(
     config.features.map(async (name) => ({
       name,
