@@ -1,5 +1,26 @@
 # Changelog
 
+## v0.21.3
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/v0.21.2...v0.21.3)
+
+### 🚀 Enhancements
+
+- **layout:** Add a copy button to the error page's message ([#1153](https://github.com/AntelopeJS/dms/pull/1153))
+- **dms:** Mockup workbench, builder sections and column presentation, Safe-mode MCP access ([#1156](https://github.com/AntelopeJS/dms/pull/1156))
+
+### 🩹 Fixes
+
+- **ui:** Use an email input type for email fields ([#1147](https://github.com/AntelopeJS/dms/pull/1147))
+- **ui:** Name the table toolbar's icon-only buttons for screen readers ([#1152](https://github.com/AntelopeJS/dms/pull/1152))
+- **deps:** Require the latest @antelopejs dependencies ([#1157](https://github.com/AntelopeJS/dms/pull/1157))
+
+### ❤️ Contributors
+
+- Oikantik Basu
+- İsmail Duran
+- Antony Rizzitelli
+
 ## v0.21.2
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/v0.21.1...v0.21.2)
