@@ -1,0 +1,96 @@
+/** @vitest-environment jsdom */
+/**
+ * A live table whose rows open in a drawer holds its rows while one is open,
+ * and says why ("Table on hold · row open"), as it does with a side panel.
+ */
+import { afterEach, beforeEach, expect, it, vi } from "vitest";
+import { defineComponent } from "vue";
+import {
+  mountTableView,
+  settleTable,
+  tableViewRuntime,
+} from "./helpers/table-view-runtime";
+import {
+  createPageLiveController,
+  type PageLiveController,
+} from "../layers/dms-ui/app/entries/composables/live/pageLiveController";
+import { setCurrentPageLive } from "../layers/dms-ui/app/entries/composables/live/currentPageLive";
+
+const ROW_OPEN_NOTICE = "dms.live.table_held · dms.live.held_row_open";
+
+const apps: Array<{ unmount: () => void }> = [];
+const openDrawers: Array<() => void> = [];
+let live: PageLiveController;
+
+beforeEach(async () => {
+  await tableViewRuntime(async () => ({
+    results: [{ _id: "r1", name: "Order", secret: "kept" }],
+    total: 1,
+    offset: 0,
+    limit: 10,
+  }));
+  vi.stubGlobal("useOverlay", () => ({
+    create: () => ({
+      open: () =>
+        new Promise<void>((resolve) => {
+          openDrawers.push(resolve);
+        }),
+      close: () => {},
+      patch: () => {},
+    }),
+  }));
+  vi.stubGlobal("resolveDmsComponent", () =>
+    defineComponent({ render: () => null }),
+  );
+  live = createPageLiveController("sales", {});
+  setCurrentPageLive(live);
+});
+
+afterEach(() => {
+  apps.forEach((app) => app.unmount());
+  apps.length = 0;
+  openDrawers.length = 0;
+  live.dispose();
+  setCurrentPageLive(null);
+  vi.unstubAllGlobals();
+});
+
+function notice(host: HTMLElement): string | undefined {
+  return host
+    .querySelector(".dms-live-hold-banner__reason")
+    ?.textContent?.trim();
+}
+
+it("says the table is on hold while a drawer has one of its rows open, and stops once the drawer closes (fails when only a side panel counts as a row open)", async () => {
+  const { app, container } = await mountTableView({
+    liveHold: { whileOnScreen: false, whileRowOpen: true },
+    rowClick: "single",
+    rowActions: {
+      custom: [
+        {
+          label: "Order",
+          isDefault: true,
+          target: {
+            type: "drawer",
+            direction: "right",
+            component: { componentName: "OrderPanel" },
+          },
+        },
+      ],
+    },
+  });
+  apps.push(app);
+  await settleTable();
+  expect(notice(container)).toBeUndefined();
+
+  const cell = container.querySelector('tr[data-row-id="r1"] td');
+  if (!(cell instanceof HTMLElement)) throw new Error("The row is not drawn");
+  cell.dispatchEvent(new MouseEvent("click", { bubbles: true, detail: 1 }));
+  await vi.waitFor(() => expect(openDrawers).toHaveLength(1));
+  await settleTable();
+  expect(notice(container)).toBe(ROW_OPEN_NOTICE);
+
+  openDrawers[0]!();
+  await settleTable();
+  expect(notice(container)).toBeUndefined();
+});
