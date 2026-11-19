@@ -72,7 +72,9 @@ async function validateUserToken(
     ACCESS_TOKEN_PURPOSE,
   );
 
-  const session = await readBeforeDeadline(loadTokenSession(claims.sessionId));
+  const session = await readBeforeDeadline(() =>
+    loadTokenSession(claims.sessionId),
+  );
   try {
     assertTokenSessionAlive(claims.sessionId, session, user);
   } catch (error: unknown) {
@@ -157,7 +159,7 @@ async function verifiedSession(
   if (!claims || !isSessionPayload(claims, purpose)) {
     throw new HTTPResult(HTTP_UNAUTHORIZED, INVALID_SESSION_TOKEN_ERROR);
   }
-  const user = await readBeforeDeadline(loadTokenUser(claims));
+  const user = await readBeforeDeadline(() => loadTokenUser(claims));
   if (!user) {
     throw new HTTPResult(HTTP_UNAUTHORIZED, INVALID_SESSION_TOKEN_ERROR);
   }
@@ -370,7 +372,7 @@ async function verifyPurposeToken(
   if (!isPurposeClaims(claims, purpose)) {
     throw new HTTPResult(HTTP_UNAUTHORIZED, refusal);
   }
-  const user = await readBeforeDeadline(loadTokenUser(claims));
+  const user = await readBeforeDeadline(() => loadTokenUser(claims));
   if (!user) {
     throw new HTTPResult(HTTP_UNAUTHORIZED, refusal);
   }

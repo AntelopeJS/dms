@@ -274,4 +274,36 @@ export const sessionLifecycleJourneys = [
       ]);
     },
   },
+  {
+    id: "database-down-unavailable",
+    title: "with the database down, a signed-in request answers 503 within seconds, the dashboard says the service is unavailable, a session older than its reconfirm age keeps its user, and the session works again once the database is back",
+    entryPoint: "the members page after the database stops, with a fresh and with an aged session cookie",
+    async run(/** @type {Ctx} */ ctx) {
+      const sealed = codec(ctx);
+      const tab = await ctx.tab("admin");
+      await tab.signIn("admin");
+      const jar = await readJar(ctx, tab);
+      const opened = sealed.open(jar.session.name, jar.session.value);
+      if (!isRecord(opened) || !isNumber(opened.updatedAt)) throw new Error("the session cookie does not open with the run's DMS_SESSION_SECRET");
+      await ctx.stopDatabase();
+      const started = Date.now();
+      const me = await ctx.api("read the signed-in account with the database down", { method: "GET", path: "/api/auth/me" });
+      const elapsedMs = Date.now() - started;
+      await ctx.verify("the API refuses the session it cannot verify, within seconds", [
+        ctx.status(me, 503),
+        ctx.holds("answered within 10 s", elapsedMs < 10_000, `${elapsedMs} ms`),
+      ]);
+      await tab.goto(MEMBERS);
+      await ctx.verify("the dashboard says the service is unavailable", [tab.visible({ role: "heading", name: "Service unavailable" })]);
+      const aged = { name: jar.session.name, value: sealed.seal(jar.session.name, { ...opened, updatedAt: Date.now() - 10 * 60 * 1000 }) };
+      const agedTab = await visitWith(ctx, jar, [aged], "aged-session");
+      await ctx.verify("a session written 10 minutes ago, which the frontend reconfirms, stays signed in and shows the same page", [
+        agedTab.at(ON_MEMBERS),
+        agedTab.visible({ role: "heading", name: "Service unavailable" }),
+      ]);
+      await ctx.startDatabase();
+      await tab.goto(MEMBERS);
+      await ctx.verify("the session survives the outage", [tab.at(ON_MEMBERS), tab.visible({ role: "heading", name: "Members", exact: true })]);
+    },
+  },
 ];

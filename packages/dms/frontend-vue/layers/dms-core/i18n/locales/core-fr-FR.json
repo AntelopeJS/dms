@@ -39,8 +39,8 @@
       "description": "Une erreur inattendue s'est produite. Veuillez réessayer plus tard."
     },
     "503": {
-      "title": "Base de données indisponible",
-      "description": "La base de données ne répond pas pour le moment. Réessayez dans un instant."
+      "title": "Service indisponible",
+      "description": "Le serveur ou sa base de données ne répond pas pour le moment. Réessayez dans un instant."
     },
     "request_refused": {
       "title": "Requête refusée"
@@ -53,6 +53,7 @@
       "title": "Connexion perdue",
       "description": "Le serveur est injoignable. Vérifiez votre connexion et réessayez."
     },
+    "database_unavailable": "La base de données ne répond pas pour le moment. Réessayez dans un instant.",
     "switch_account_failed": "Échec du changement de compte",
     "email_already_requested": "Cette adresse e-mail a déjà été demandée. Veuillez attendre avant de réessayer.",
     "email_already_used": "Cette adresse e-mail est déjà utilisée.",

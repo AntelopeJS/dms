@@ -9,7 +9,14 @@ const TEST_TIMEOUT_MS = 240_000;
 const SETUP_TOKEN = "auth-outage-setup-token-0123456789abcdef";
 const OWNER = { email: "owner@outage.test", password: "OutagePassw0rd!" };
 const NO_PROVISIONING_HOLD_MS = 0;
-const ANSWER_WITHIN_MS = 10_000;
+const ANSWER_WITHIN_MS = 8000;
+const SIGNED_IN_ROUTES = [
+  "/api/auth/me",
+  "/dms/sitelayout",
+  "/dms/permissions",
+  "/dms/page?path=/settings/workspace/members",
+  "/api/tables/roles/select",
+];
 const HTTP_OK = 200;
 const HTTP_UNAUTHORIZED = 401;
 const HTTP_SERVICE_UNAVAILABLE = 503;
@@ -22,9 +29,9 @@ function replicaClient(replica: ReplicaProcess): AxiosInstance {
   });
 }
 
-async function timedMe(client: AxiosInstance, token: string) {
+async function timedGet(client: AxiosInstance, path: string, token: string) {
   const started = Date.now();
-  const response = await client.get("/api/auth/me", {
+  const response = await client.get(path, {
     headers: { authorization: `Bearer ${token}` },
   });
   return { status: response.status, elapsedMs: Date.now() - started };
@@ -63,7 +70,11 @@ describe("[integration] auth while the database is down", function () {
     accessToken = parseAuthBody(
       await client.post("/api/auth/login", OWNER),
     ).access_token;
-    expect((await timedMe(client, accessToken)).status).to.equal(HTTP_OK);
+    for (const path of SIGNED_IN_ROUTES) {
+      expect((await timedGet(client, path, accessToken)).status, path).to.equal(
+        HTTP_OK,
+      );
+    }
 
     await mongod.stop({ doCleanup: false });
   });
@@ -73,19 +84,21 @@ describe("[integration] auth while the database is down", function () {
     await mongod?.stop();
   });
 
-  it("refuses a signed-in user's request with a 503 within a few seconds", async () => {
-    const { status, elapsedMs } = await timedMe(client, accessToken);
+  for (const path of SIGNED_IN_ROUTES) {
+    it(`refuses a signed-in GET ${path} with a 503 within a few seconds`, async () => {
+      const { status, elapsedMs } = await timedGet(client, path, accessToken);
 
-    expect(
-      { status, inTime: elapsedMs < ANSWER_WITHIN_MS },
-      `answered after ${elapsedMs} ms`,
-    ).to.deep.equal({ status: HTTP_SERVICE_UNAVAILABLE, inTime: true });
-  });
+      expect(
+        { status, inTime: elapsedMs < ANSWER_WITHIN_MS },
+        `answered after ${elapsedMs} ms`,
+      ).to.deep.equal({ status: HTTP_SERVICE_UNAVAILABLE, inTime: true });
+    });
+  }
 
   it("still refuses a token whose signature does not check out with a 401", async () => {
     const forged = `${accessToken.slice(0, -4)}AAAA`;
 
-    const { status } = await timedMe(client, forged);
+    const { status } = await timedGet(client, "/api/auth/me", forged);
 
     expect(status).to.equal(HTTP_UNAUTHORIZED);
   });
