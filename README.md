@@ -159,6 +159,8 @@ codex plugin add antelopejs@antelopejs
 
 Then run `ajs project dev` once. It adds a `dms` server to the project's `.mcp.json`, so Claude Code gets the builder, database and page tools the dashboard assistant uses. [MCP server](https://dms.antelopejs.com/docs/ai-and-claude-code/mcp-server) shows the Codex setup.
 
+<img src="./docs/media/harness.gif" width="100%" data-illustration alt="Claude Code runs in a terminal with the antelopejs plugin. The prompt Mock up a support desk for our tickets is typed, the skill antelopejs:dms-mockup loads, and Claude Code reports a mockup with a ticket board, a customers list and a page per customer. The mockup then shows in the AntelopeJS DMS dashboard.">
+
 ## See it in action
 
 **One field, one full screen.** From the [docs tutorial](https://dms.antelopejs.com/docs/getting-started/tutorial).
