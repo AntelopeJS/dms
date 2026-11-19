@@ -2,6 +2,7 @@
 FROM node:24-bookworm-slim AS deps
 
 ENV PNPM_HOME=/pnpm
+ENV CI=true
 ENV PATH=/pnpm:$PATH
 ENV HOME=/opt/dms-home
 ENV NODE_OPTIONS=--max-old-space-size=6144
