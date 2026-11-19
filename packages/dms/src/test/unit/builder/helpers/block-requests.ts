@@ -140,6 +140,11 @@ export async function destroyShop(): Promise<void> {
   recordLaunchEnvironment(undefined);
 }
 
+/** The root of the shop's app, which holds its `tsconfig.json` and `src`. */
+export function shopRoot(): string {
+  return app.root;
+}
+
 /** An emitted file of the shop's app, relative to its `src`. */
 export function readShop(relativePath: string): string {
   return app.read(relativePath);

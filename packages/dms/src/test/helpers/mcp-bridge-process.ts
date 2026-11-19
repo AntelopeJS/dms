@@ -3,6 +3,7 @@ import { copyFile, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createInterface } from "node:readline";
+import type { JsonValue } from "@antelopejs/interface-dms/json";
 import { z } from "zod";
 import { getBaseUrl } from "./http";
 import { readBridgeConfig } from "./mcp";
@@ -23,11 +24,11 @@ const AnswerSchema = z.object({
 /** One JSON-RPC answer, as the bridge writes it on its stdout. */
 export type BridgeAnswer = z.infer<typeof AnswerSchema>;
 
-/** The params of the requests the tests send: `initialize` names a protocol version, `tools/call` a tool without arguments. */
+/** The params of the requests the tests send: `initialize` names a protocol version, `tools/call` a tool and its arguments. */
 export interface BridgeParams {
   protocolVersion?: string;
   name?: string;
-  arguments?: Record<string, never>;
+  arguments?: Record<string, JsonValue>;
 }
 
 /** A stdio bridge a coding agent would launch, pointed at the test API. */
@@ -35,6 +36,31 @@ export interface BridgeProcess {
   /** Sends one request and resolves with the line that answers it. */
   request(method: string, params?: BridgeParams): Promise<BridgeAnswer>;
   close(): Promise<void>;
+}
+
+const ToolResultSchema = z.object({
+  content: z.array(z.object({ text: z.string() })),
+  isError: z.boolean().optional(),
+});
+
+/** What a tool answered through the bridge: its text blocks joined, and whether it reported a failure. */
+export interface ToolAnswer {
+  text: string;
+  isError: boolean;
+}
+
+/** Calls a tool through the bridge as a coding agent does, failing on a JSON-RPC error instead of a tool result. */
+export async function callTool(
+  bridge: BridgeProcess,
+  name: string,
+  args: Record<string, JsonValue> = {},
+): Promise<ToolAnswer> {
+  const answer = await bridge.request("tools/call", { name, arguments: args });
+  const { content, isError } = ToolResultSchema.parse(answer.result);
+  return {
+    text: content.map(({ text }) => text).join(""),
+    isError: isError === true,
+  };
 }
 
 /**

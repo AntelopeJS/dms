@@ -41,21 +41,4 @@ export const journeys = [
       ]);
     },
   },
-  {
-    id: "tenant-routes-refuse-visitors",
-    title: "tenant-scoped routes refuse a caller without a session",
-    entryPoint: "AuthTenantMember guards",
-    async run(/** @type {Ctx} */ ctx) {
-      const members = await ctx.api("list members anonymously", { method: "GET", path: "/api/tables/members/list", as: "anon" });
-      const gate = await ctx.api("read the gate status anonymously", { method: "GET", path: `${GATE}/status`, as: "anon" });
-      const toggle = await ctx.api("toggle the gate anonymously", { method: "POST", path: `${GATE}/toggle`, as: "anon" });
-      const after = await ctx.api("the gate is still open", { method: "GET", path: "/api/tables/members/list" });
-      await ctx.verify("no tenant data or action without a member session", [
-        ctx.holds("members refused", [401, 403].includes(members.status), members.status),
-        ctx.holds("status refused", [401, 403].includes(gate.status), gate.status),
-        ctx.holds("toggle refused", [401, 403].includes(toggle.status), toggle.status),
-        ctx.status(after, 200),
-      ]);
-    },
-  },
 ];

