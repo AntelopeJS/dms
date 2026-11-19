@@ -25,7 +25,7 @@
 - Declares pages as TypeScript classes: forms, tables, charts and layouts are blocks the shared Vue renderer draws, with no Vue to write for standard screens.
 - Handles sign-in, members, roles and permissions down to each block, multi-tenancy and a SaaS mode.
 - Manages data through data controllers and table views, with file uploads, notifications and realtime updates.
-- Grows with installable modules: an AI assistant, a page builder, database and API consoles, automations, SaaS billing, translations, mailing, marketing analytics and a media library.
+- Grows with installable modules: an AI assistant with live mockups, database and API consoles, automations, SaaS billing, translations, mailing, marketing analytics and a media library.
 - Ships Claude Code skills (`dms`, `dms-project`, `dms-auth`, `dms-module`) so coding agents use its API the way the DMS expects. The `antelopejs` plugin adds the page-building skills.
 
 Its public contracts live in a separate package, [`@antelopejs/interface-dms`](https://www.npmjs.com/package/@antelopejs/interface-dms): modules import them from there, never from this runtime.

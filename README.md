@@ -22,22 +22,23 @@ Then `cd demo && docker compose up` starts AntelopeJS DMS and a sample coffee sh
 
 ## One connection string, one agent run
 
-<img src="./docs/media/hero-one-run.gif" width="100%" data-illustration alt="The Builder connects a shop database and proposes its 12 tables as 7 pages, 4 for statistics and 2 questions. The assistant then builds two dashboards, an orders table, a kanban board of tickets and shipments by week.">
+<img src="./docs/media/hero-mockup-run.gif" width="100%" data-illustration alt="A connection string is pasted, the AI drafts a mockup, then the built Overview and Orders pages show.">
 
 We ran it on the connect demo, a sample coffee shop on PostgreSQL.
 
 1. In the assistant's popup, choose **Start from an existing database**, paste the connection string and press **Connect and analyse**.
-2. Choose **Generate a first mockup**. The assistant runs Claude Code or Codex on your own account.
-3. Approve its plan. We approved it as written and changed nothing after that.
+2. Choose **Generate a first mockup**. The assistant runs Claude Code or Codex on your own account, and the mockup fills up while it writes it.
+3. Press **Build it**. We approved the mockup as written, and took the assistant's suggested answer to each of its three questions about the plan.
 
-| What     | Result                                                     |
-| -------- | ---------------------------------------------------------- |
-| Database | 12 tables, about 3,000 orders                              |
-| Pages    | 2 dashboards and 10 table pages                            |
-| Code     | About 3,000 lines of TypeScript in 50 files, in one module |
-| Result   | The project typechecks                                     |
+| What     | Result                                                                     |
+| -------- | -------------------------------------------------------------------------- |
+| Database | 12 tables, about 3,000 orders                                              |
+| Mockup   | 12 pages, approved without changes                                         |
+| Pages    | 1 dashboard and 11 table pages                                             |
+| Code     | About 2,100 lines of TypeScript in 50 files, in one module                 |
+| Result   | The project typechecks, and all 12 pages pass the check against the mockup |
 
-**What it got wrong.** Saved views that filter on a list of statuses, such as "Awaiting shipment", came back empty. Charts that need a second relation, such as revenue by product, were skipped, and the assistant said so in its report. That was one run with no follow-up prompt. [Run it yourself](#quick-start).
+That was one run with no follow-up prompt. [Run it yourself](#quick-start).
 
 ### A finished back office
 
@@ -128,17 +129,19 @@ It also needs an API module, a database module and an authentication module. The
 
 </details>
 
-## Two ways to build
+## Ways to build
 
 Mix them on the same project. The assistant is a development tool and does not run in production.
+
+### Mock it up first
+
+A mockup is `mockups/<name>/spec.json` in your repo, drawn by the real renderer on the `/mockup` page. A change redraws at once, with no typecheck and no reload, and blocks read sample data, so you settle the layout before wiring a table or a query. Pin a comment on any block and press **Resolve with AI**, then **Build it** writes the real pages once.
+
+<img src="./docs/media/mockup.gif" width="100%" data-illustration alt="The mockup fills up, a comment asks for a Repeat customers KPI, and Resolve with AI adds it.">
 
 ### Ask the assistant
 
 Press <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>K</kbd> in the dashboard and describe what you want. Chats start in Safe mode, which changes pages, tables and queries through the builder tools only, and writes nothing unless the whole project still compiles. Code mode can also edit any file and run commands.
-
-<img src="./docs/media/ai-from-scratch.gif" width="100%" data-illustration alt="In Safe mode, the assistant chat builds a Roasting batches table and a page with a tab per roast level, and the page then lists sample batches.">
-
-The sample rows took a second request in Code mode, because Safe mode has no tool that writes seed data.
 
 ### Use your own coding agent
 
@@ -155,6 +158,8 @@ codex plugin add antelopejs@antelopejs
 ```
 
 Then run `ajs project dev` once. It adds a `dms` server to the project's `.mcp.json`, so Claude Code gets the builder, database and page tools the dashboard assistant uses. [MCP server](https://dms.antelopejs.com/docs/ai-and-claude-code/mcp-server) shows the Codex setup.
+
+<img src="./docs/media/harness.gif" width="100%" data-illustration alt="Claude Code in a terminal mocks up a support desk, and the mockup opens in the dashboard.">
 
 ## See it in action
 
