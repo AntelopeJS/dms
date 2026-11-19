@@ -50,6 +50,13 @@ describe("[unit] mcp bridge publication", function () {
     await publishMcpBridge(target);
   }
 
+  /** The warnings the bridge publication logs, which all name the MCP server; `Logging.Warn` is module-wide, so a stray timer's warning must not count. */
+  function bridgeWarnings(): string[] {
+    return warn.mock.calls
+      .map((call) => String(call.arguments[0]))
+      .filter((text) => text.includes("MCP"));
+  }
+
   function written(file: string): string | undefined {
     return readOptionalText(join(projectPath, file));
   }
@@ -72,7 +79,8 @@ describe("[unit] mcp bridge publication", function () {
       url: "http://127.0.0.1:5123/dms/mcp",
       token: TOKEN,
     });
-    expect(warn.mock.callCount()).to.equal(0);
+    const all = warn.mock.calls.map((call) => String(call.arguments[0]));
+    expect(bridgeWarnings(), all.join("\n")).to.deep.equal([]);
   });
 
   it("falls back to a loopback apiBaseUrl when no backendUrl is set", async () => {
