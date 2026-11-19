@@ -2,7 +2,7 @@
   "name": "dms-workspace",
   "private": true,
   "type": "module",
-  "packageManager": "pnpm@10.2.0",
+  "packageManager": "pnpm@10.34.9",
   "devDependencies": {
     "@antelopejs/core": "~1.24.5",
     "@antelopejs/dms": "workspace:*",

@@ -67,7 +67,7 @@
     "LICENSE"
   ],
   "license": "Apache-2.0",
-  "packageManager": "pnpm@10.2.0",
+  "packageManager": "pnpm@10.34.9",
   "engines": {
     "node": "^20.19.0 || >=22.12.0"
   },

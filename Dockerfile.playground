@@ -9,7 +9,7 @@ WORKDIR /opt/dms
 
 RUN apt-get update && apt-get install -y --no-install-recommends git ca-certificates libcurl4 \
     && rm -rf /var/lib/apt/lists/*
-RUN corepack enable && corepack prepare pnpm@10.2.0 --activate
+RUN corepack enable && corepack prepare pnpm@10.34.9 --activate
 
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml .npmrc ./
 RUN pnpm fetch --store-dir=/pnpm/store

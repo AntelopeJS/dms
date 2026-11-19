@@ -4,7 +4,7 @@
   "private": true,
   "main": "dist/index.js",
   "dmsFrontend": "dist/frontend-module.js",
-  "packageManager": "pnpm@10.2.0",
+  "packageManager": "pnpm@10.34.9",
   "scripts": {
     "build": "rimraf dist && tsc",
     "test": "pnpm build && node --test dist/prototype-keys.test.js dist/form/demo-forms.test.js checks/client-lint.test.mjs && node --import ./checks/resolve-ts.mjs --test checks/docs-fixtures.test.mjs",
