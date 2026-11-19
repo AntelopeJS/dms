@@ -322,9 +322,12 @@ jobs:
           node-version-file: .nvmrc
       - run: node packages/dms/bin/dms-control.mjs map
 
-  # The journeys of e2e/ as a Playwright suite: the @smoke ones on the fast and
-  # full tiers, every journey in 4 shards on the queue tier and in 2 on the
-  # nightly tier. Its global setup prepares and starts one dms-control run.
+  # The Playwright suite of e2e/, when the plan selects it: its global setup
+  # prepares the playground and starts one run of the @antelopejs/dms/e2e kit.
+  # A pull request runs the @smoke tests. The merge queue runs the whole suite
+  # in four shards; a manual run, a pull request labelled ci:full and the
+  # nightly schedule in three. e2e-report merges the shards into one report.
+  # The shard list carries the choice: ["smoke"], or the shard numbers.
   e2e:
     needs: select
     if: contains(fromJSON(needs.select.outputs.jobs), 'e2e')
@@ -333,9 +336,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: ${{ fromJSON(needs.select.outputs.tier == 'nightly' && '[1, 2]' || needs.select.outputs.tier == 'queue' && '[1, 2, 3, 4]' || '[1]') }}
-    env:
-      TIER: ${{ needs.select.outputs.tier }}
+        shard: ${{ fromJSON(needs.select.outputs.tier == 'queue' && '[1, 2, 3, 4]' || (needs.select.outputs.tier == 'nightly' || github.event_name == 'workflow_dispatch' || contains(github.event.pull_request.labels.*.name, 'ci:full')) && '[1, 2, 3]' || '["smoke"]') }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -364,18 +365,16 @@ jobs:
           fi
           echo "::warning::Chromium's system packages did not install: installing the browser alone"
           pnpm exec playwright install --only-shell chromium
-      - if: env.TIER == 'fast' || env.TIER == 'full'
+      - if: matrix.shard == 'smoke'
         run: pnpm e2e --grep @smoke
-      - if: env.TIER == 'queue'
-        run: pnpm e2e --shard=${{ matrix.shard }}/${{ strategy.job-total }}
-      - if: env.TIER == 'nightly'
-        run: pnpm e2e --shard=${{ matrix.shard }}/2 --reporter=blob
+      - if: matrix.shard != 'smoke'
+        run: pnpm e2e --shard=${{ matrix.shard }}/${{ strategy.job-total }} --reporter=blob
         env:
           PLAYWRIGHT_BLOB_OUTPUT_DIR: e2e/blob-report
       # The declarations @antelopejs/dms/e2e publishes, built by the run's prepare.
       - if: success() || failure()
         run: pnpm exec tsc --noEmit -p e2e
-      - if: always() && env.TIER == 'nightly'
+      - if: always() && matrix.shard != 'smoke'
         uses: actions/upload-artifact@v4
         with:
           name: blob-report-${{ matrix.shard }}
@@ -392,10 +391,10 @@ jobs:
             ${{ runner.temp }}/dms-runs/*/logs
           retention-days: 7
 
-  # One HTML and JSON report of the nightly shards.
+  # One HTML and JSON report of the shards, whenever the whole suite ran.
   e2e-report:
     needs: [select, e2e]
-    if: always() && needs.select.outputs.tier == 'nightly'
+    if: always() && needs.e2e.result != 'skipped' && (needs.select.outputs.tier == 'queue' || needs.select.outputs.tier == 'nightly' || github.event_name == 'workflow_dispatch' || contains(github.event.pull_request.labels.*.name, 'ci:full'))
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
