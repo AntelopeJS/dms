@@ -370,7 +370,7 @@ jobs:
       - if: matrix.shard == 'smoke' || matrix.shard == 1
         run: node --test packages/dms/e2e/run.test.mjs
       # The journeys that open no tab, through runJourney of @antelopejs/dms/e2e/run.
-      - if: matrix.shard == 1
+      - if: (success() || failure()) && matrix.shard == 1
         run: node --test e2e/integration/journeys.test.mjs
       # The declarations @antelopejs/dms/e2e publishes, built by the run's prepare.
       - if: success() || failure()

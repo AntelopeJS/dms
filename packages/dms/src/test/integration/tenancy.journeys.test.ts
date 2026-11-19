@@ -7,10 +7,11 @@ const HTTP_OK = 200;
 const HTTP_UNAUTHORIZED = 401;
 
 /**
- * A data controller's list, a controller guarded by `AuthTenantMember`, and the attachment host's
+ * Two data controllers' lists, a controller guarded by `AuthTenantMember`, and the attachment host's
  * routes whose `AuthTenantMember` and `AuthTenantOwner` pass the tenant access gate by.
  */
 const TENANT_ROUTES = [
+  { method: "GET", url: "/api/tables/members/list" },
   { method: "GET", url: "/api/tables/admin-invites/list" },
   { method: "GET", url: "/api/tenant-guarded-roles/names" },
   { method: "GET", url: "/api/tenant-gate-bypass/member" },

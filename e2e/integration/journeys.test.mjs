@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { after, before, test } from "node:test";
+import test from "node:test";
 import { runJourney, startRun } from "@antelopejs/dms/e2e/run";
 import { commandLineJourneys as databaseConnect } from "../journeys/database-connect.mjs";
 import { commandLineJourneys as mcpServer } from "../journeys/mcp-server.mjs";
@@ -14,13 +14,6 @@ const FEATURES = [
   { feature: "database-connect", journeys: databaseConnect },
 ];
 
-/** @type {Awaited<ReturnType<typeof startRun>>} */
-let started;
-before(async () => {
-  started = await startRun({ prepare: false });
-});
-after(() => started?.stop());
-
 /**
  * @param {import("@antelopejs/dms/e2e/run").FeatureResult} result A judged journey
  * @returns {string} Its error and the checks that failed
@@ -34,12 +27,17 @@ function failures(result) {
   return [result.error, ...failed].filter(Boolean).join("\n");
 }
 
-for (const { feature, journeys } of FEATURES) {
-  for (const journey of journeys) {
-    await test(`${feature} › ${journey.id}`, async () => {
-      const result = await runJourney(started.run, feature, journey);
+await test("the journeys that open no tab, on one run", async (t) => {
+  const { run, stop } = await startRun({ prepare: false });
+  t.after(stop);
 
-      assert.equal(result.status, "PASS", failures(result));
-    });
+  for (const { feature, journeys } of FEATURES) {
+    for (const journey of journeys) {
+      await t.test(`${feature} › ${journey.id}`, async () => {
+        const result = await runJourney(run, feature, journey);
+
+        assert.equal(result.status, "PASS", failures(result));
+      });
+    }
   }
-}
+});
