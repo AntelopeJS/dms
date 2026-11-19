@@ -315,14 +315,33 @@ const JOB_RULES = [
 export const requiredJobs = (plan) =>
   JOB_RULES.filter(({ when }) => when(plan)).map(({ job }) => job);
 
+/** How many jobs share the builder suite, balanced by `scripts/test-weights.json`. */
+const BUILDER_SHARDS = 4;
+
+/**
+ * The suites of the `backend` job's matrix: `unit`, `integration` and one
+ * `builder:<index>/<count>` per builder shard.
+ *
+ * @type {string[]}
+ */
+const BACKEND_SUITES = [
+  "unit",
+  "integration",
+  ...Array.from(
+    { length: BUILDER_SHARDS },
+    (_, index) => `builder:${index + 1}/${BUILDER_SHARDS}`,
+  ),
+];
+
 /**
  * What a run executes: the selected packages, the formal checks of each formal
- * job and the `ci.yml` jobs those need. The keys are the select step's outputs.
+ * job, the `ci.yml` jobs those need and the backend suites. The keys are the
+ * select step's outputs.
  *
  * @param {{ tier?: string, base?: string }} env
  * @param {FormalCheck[]} checks
  * @param {(base: string) => string[]} changedFiles
- * @returns {{ packages: string[], formal: string[], "formal-generated": string[], jobs: string[] }}
+ * @returns {{ packages: string[], formal: string[], "formal-generated": string[], jobs: string[], "backend-suites": string[] }}
  */
 export const planRun = (env, checks, changedFiles) => {
   const packages = selectPackages(env, changedFiles);
@@ -333,7 +352,13 @@ export const planRun = (env, checks, changedFiles) => {
     formal,
     formalGenerated,
   });
-  return { packages, formal, "formal-generated": formalGenerated, jobs };
+  return {
+    packages,
+    formal,
+    "formal-generated": formalGenerated,
+    jobs,
+    "backend-suites": BACKEND_SUITES,
+  };
 };
 
 /**

@@ -386,11 +386,23 @@ await test("the queue tier needs every job but dependents (catches a queue run t
   ]);
 });
 
-await test("the output keys are the four the select step appends, in order (catches a renamed or dropped key)", () => {
+await test("the output keys are the five the select step appends, in order (catches a renamed or dropped key)", () => {
   assert.deepEqual(Object.keys(planFor("queue", undefined)), [
     "packages",
     "formal",
     "formal-generated",
     "jobs",
+    "backend-suites",
+  ]);
+});
+
+await test("the backend suites are unit, integration and four builder shards as index/count (catches a shard count changed without a decision, or a shard test-files.mjs refuses)", () => {
+  assert.deepEqual(planFor("queue", undefined)["backend-suites"], [
+    "unit",
+    "integration",
+    "builder:1/4",
+    "builder:2/4",
+    "builder:3/4",
+    "builder:4/4",
   ]);
 });

@@ -60,6 +60,7 @@ jobs:
       formal: ${{ steps.plan.outputs.formal }}
       formal-generated: ${{ steps.plan.outputs.formal-generated }}
       jobs: ${{ steps.plan.outputs.jobs }}
+      backend-suites: ${{ steps.plan.outputs.backend-suites }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -123,13 +124,7 @@ jobs:
       fail-fast: false
       matrix:
         os: ${{ fromJSON(needs.select.outputs.os) }}
-        suite:
-          - unit
-          - integration
-          - builder:1/4
-          - builder:2/4
-          - builder:3/4
-          - builder:4/4
+        suite: ${{ fromJSON(needs.select.outputs.backend-suites) }}
     defaults:
       run:
         shell: bash
