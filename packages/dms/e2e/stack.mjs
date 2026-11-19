@@ -37,10 +37,10 @@ import { resolveRenderer } from "./renderer.mjs";
 import { moduleRootOf } from "./module-root.mjs";
 import {
   cliPaths,
-  CONTROL_BIN,
   ENVIRONMENT,
   frontendPackage,
   resolutionFolders,
+  SERVICE_BIN,
   spec,
 } from "./launch.mjs";
 import { layOutCopy } from "./run-copy.mjs";
@@ -189,7 +189,7 @@ async function ensureService(state, name, port) {
   const service = startDetached({
     name,
     program: process.execPath,
-    args: [CONTROL_BIN, `serve-${name}`, state.dir],
+    args: [SERVICE_BIN, name, state.dir],
     cwd: state.dir,
     env: process.env,
     logs: state.logs,
@@ -382,7 +382,7 @@ export function workspaceSetup(state, name, project, install) {
       spec(
         state,
         name,
-        CONTROL_BIN,
+        SERVICE_BIN,
         [
           "prepare-frontend",
           frontendPackage(state.playground, state.renderer),

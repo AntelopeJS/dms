@@ -99,6 +99,18 @@ const INTERFACE_ROOT_PATTERNS = [
   },
 ];
 
+/**
+ * The e2e kit and the Playwright suite run without dms-control: `bin/` may
+ * import the kit, never the other way.
+ */
+const NO_CONTROL_IMPORT = [
+  {
+    regex: String.raw`^(?:\.\./)+(?:packages/dms/)?bin(?:/|$)|^@antelopejs/dms/bin(?:/|$)`,
+    message:
+      "The e2e kit and the Playwright suite run without dms-control. Move what you need from packages/dms/bin into packages/dms/e2e, and import it from there.",
+  },
+];
+
 /** A discarded promise must handle its own rejection before it reaches Node. */
 const FLOATING_PROMISES = ["error", { ignoreVoid: false }] as const;
 
@@ -142,6 +154,27 @@ export default defineConfig({
         "eslint/no-restricted-imports": [
           "error",
           { paths: DMS_ROOT_PATHS, patterns: DMS_ROOT_PATTERNS },
+        ],
+      },
+    },
+    {
+      files: ["packages/dms/e2e/**"],
+      rules: {
+        "eslint/no-restricted-imports": [
+          "error",
+          {
+            paths: DMS_ROOT_PATHS,
+            patterns: [...DMS_ROOT_PATTERNS, ...NO_CONTROL_IMPORT],
+          },
+        ],
+      },
+    },
+    {
+      files: ["e2e/**"],
+      rules: {
+        "eslint/no-restricted-imports": [
+          "error",
+          { patterns: NO_CONTROL_IMPORT },
         ],
       },
     },

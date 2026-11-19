@@ -1,12 +1,13 @@
+import { join } from "node:path";
 import { isOutcome } from "./browser-wire.mjs";
 import { decode } from "../../e2e/json.mjs";
-import { CONTROL_BIN } from "../../e2e/launch.mjs";
 import { isSameProcess } from "../../e2e/identity.mjs";
 import { freePort, startDetached, waitForOk } from "../../e2e/processes.mjs";
 import { saveRun } from "../../e2e/run-state.mjs";
 import { nextFolder } from "../../e2e/session.mjs";
 
 const READY_TIMEOUT_MS = 60_000;
+const CONTROL_BIN = join(import.meta.dirname, "..", "dms-control.mjs");
 
 /**
  * @param {import("../../e2e/run-state.mjs").RunState} state The run

@@ -4,15 +4,14 @@ import { browserCommand } from "./browser-client.mjs";
 import { ACTION_NAMES, describeTarget } from "../../e2e/browser.mjs";
 import { serveBrowser } from "./browser-server.mjs";
 import { doctor } from "./doctor.mjs";
-import { setUpFrontendWorkspace } from "../../e2e/frontend-workspace.mjs";
-import { capturedMail, serveMail } from "../../e2e/mail.mjs";
+import { capturedMail } from "../../e2e/mail.mjs";
 import { loadRun, readRun } from "../../e2e/run-state.mjs";
 import { apiRequest, isOk, onboard } from "../../e2e/session.mjs";
 import { resolutionFolders } from "../../e2e/launch.mjs";
 import { down } from "../../e2e/stack.mjs";
 import { startRun } from "../../e2e/start.mjs";
 import { freshDatabase } from "../../e2e/backend.mjs";
-import { apiTargetFile, serveForwarder } from "../../e2e/forwarder.mjs";
+import { runService } from "../../e2e/services.mjs";
 import {
   formatTimings,
   readTimings,
@@ -228,23 +227,14 @@ export async function runStackCommand(command, rest, values) {
       return 0;
     }
     case "prepare-frontend":
-      await setUpFrontendWorkspace(
-        rest[0] ?? "",
-        rest[1] ?? "",
-        rest[2] ?? "",
-        rest[3] === "install",
-      );
+      await runService("prepare-frontend", rest);
       return 0;
-    case "serve-mail": {
-      const state = loadRun(rest[0]);
-      await serveMail(state.mail, state.smtpPort);
+    case "serve-mail":
+      await runService("mail", rest);
       return 0;
-    }
-    case "serve-api": {
-      const state = loadRun(rest[0]);
-      await serveForwarder(state.apiPort, apiTargetFile(state.dir));
+    case "serve-api":
+      await runService("api", rest);
       return 0;
-    }
     case "serve-browser":
       await serveBrowser(
         rest[0],

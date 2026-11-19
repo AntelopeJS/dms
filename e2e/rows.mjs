@@ -15,7 +15,7 @@
  * @param {unknown} value
  * @returns {value is Record<string, unknown>} Whether it is a JSON object, not an array, a primitive or `null`
  */
-function isRecord(value) {
+export function isRecord(value) {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
@@ -31,7 +31,7 @@ function isString(value) {
  * @param {unknown} value
  * @returns {value is number} Whether it is a finite number, the only kind JSON holds
  */
-function isNumber(value) {
+export function isNumber(value) {
   return typeof value === "number" && Number.isFinite(value);
 }
 
