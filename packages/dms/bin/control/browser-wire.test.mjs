@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { createServer } from "node:http";
 import test from "node:test";
-import { answerRequest } from "./browser.mjs";
+import { answerRequest } from "./browser-server.mjs";
 import { postAction } from "./browser-client.mjs";
 import { isOutcome } from "./browser-wire.mjs";
 import { decode } from "./json.mjs";

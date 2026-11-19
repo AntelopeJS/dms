@@ -15,7 +15,7 @@ import {
 const isRoleName = { role: isString };
 const isRoleOptions = { name: isString, exact: isBoolean };
 
-/** @type {import("./json.mjs").Guard<import("./browser.mjs").BrowserRequest>} One browser action, as the client posts it */
+/** @type {import("./json.mjs").Guard<import("./browser-server.mjs").BrowserRequest>} One browser action, as the client posts it */
 export const isBrowserRequest = objectOf(
   { do: isString, account: isString, tab: isString, folder: isString },
   {

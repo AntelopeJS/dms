@@ -1,7 +1,8 @@
 import { writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { browserCommand } from "./browser-client.mjs";
-import { ACTION_NAMES, describeTarget, serveBrowser } from "./browser.mjs";
+import { ACTION_NAMES, describeTarget } from "./browser.mjs";
+import { serveBrowser } from "./browser-server.mjs";
 import { doctor } from "./doctor.mjs";
 import { setUpFrontendWorkspace } from "./frontend-workspace.mjs";
 import { capturedMail, serveMail } from "./mail.mjs";

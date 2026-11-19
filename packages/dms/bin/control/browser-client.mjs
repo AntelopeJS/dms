@@ -37,7 +37,7 @@ async function browserServer(state) {
  * the action failed or is `screenshot`.
  *
  * @param {import("./run-state.mjs").RunState} state The run
- * @param {Omit<import("./browser.mjs").BrowserRequest, "folder">} request The action: `do`, `account`, `tab`, and the action's target, value, key or path
+ * @param {Omit<import("./browser-server.mjs").BrowserRequest, "folder">} request The action: `do`, `account`, `tab`, and the action's target, value, key or path
  * @param {string} label What the step does
  * @returns {Promise<{ ok: boolean, url: string, error: string | null, aria: string, folder: string }>} The outcome
  */
@@ -50,7 +50,7 @@ export async function browserCommand(state, request, label) {
 
 /**
  * @param {number} port The browser server's port
- * @param {import("./browser.mjs").BrowserRequest} request The action
+ * @param {import("./browser-server.mjs").BrowserRequest} request The action
  * @returns {Promise<import("./browser.mjs").Outcome>} The server's answer
  * @throws When the answer is not an outcome
  */
