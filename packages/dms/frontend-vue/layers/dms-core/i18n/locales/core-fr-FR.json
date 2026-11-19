@@ -38,6 +38,10 @@
       "title": "Erreur serveur",
       "description": "Une erreur inattendue s'est produite. Veuillez réessayer plus tard."
     },
+    "503": {
+      "title": "Base de données indisponible",
+      "description": "La base de données ne répond pas pour le moment. Réessayez dans un instant."
+    },
     "request_refused": {
       "title": "Requête refusée"
     },

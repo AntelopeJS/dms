@@ -38,6 +38,10 @@
       "title": "Server error",
       "description": "An unexpected error occurred. Please try again later."
     },
+    "503": {
+      "title": "Database unavailable",
+      "description": "The database is not answering right now. Try again in a moment."
+    },
     "request_refused": {
       "title": "Request refused"
     },
