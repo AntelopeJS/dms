@@ -1,7 +1,7 @@
 import { spawnSync } from "node:child_process";
 import { matchesGlob } from "node:path/posix";
-import { decodeSkillConfig } from "../packages/dms/bin/control/verify/decode.mjs";
-import { isRecord } from "../packages/dms/bin/control/json.mjs";
+import { decodeSkillConfig } from "../packages/dms/e2e/verify/decode.mjs";
+import { isRecord } from "../packages/dms/e2e/json.mjs";
 
 /** @typedef {{ name: string, root: string, reads: string[], dependsOn: string[] }} TestPackage */
 
