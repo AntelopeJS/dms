@@ -234,6 +234,34 @@ export const journeys = [
       await ctx.verify("the owner signs in through the form", [tab.visible({ role: "button", name: "Verify Admin" })]);
     },
   },
+  {
+    id: "database-down-unavailable",
+    title: "with the database down, a signed-in request answers 503 within seconds, the dashboard says the database is unavailable, and the session comes back with it",
+    entryPoint: "a dashboard page after the database stops",
+    async run(/** @type {Ctx} */ ctx) {
+      const tab = await ctx.tab("admin");
+      await tab.signIn("admin");
+      await ctx.verify("the dashboard shows the signed-in account", [tab.visible({ role: "button", name: "Verify Admin" })]);
+      await ctx.stopDatabase();
+      const started = Date.now();
+      const me = await ctx.api("read the signed-in account with the database down", { method: "GET", path: "/api/auth/me" });
+      const elapsedMs = Date.now() - started;
+      await ctx.verify("the API refuses the session it cannot verify, within seconds", [
+        ctx.status(me, 503),
+        ctx.holds("answered within 10 s", elapsedMs < 10_000, `${elapsedMs} ms`),
+      ]);
+      await tab.goto(MEMBERS);
+      await ctx.verify("the dashboard says the database is unavailable", [
+        tab.visible({ role: "heading", name: "Database unavailable" }),
+      ]);
+      await ctx.startDatabase();
+      await tab.goto(MEMBERS);
+      await ctx.verify("the session survives the outage", [
+        tab.at(new RegExp(`^${MEMBERS}$`)),
+        tab.visible({ role: "heading", name: "Members", exact: true }),
+      ]);
+    },
+  },
   ...accountJourneys,
   ...storedAccountJourneys,
   ...sessionLifecycleJourneys,
