@@ -57,7 +57,7 @@ export async function launchBrowser(from) {
  * A new browser context: one per account, so cookies never leak between
  * the users a journey plays.
  *
- * @param {Browser} browser The Playwright browser
+ * @param {Pick<Browser, "newContext">} browser The Playwright browser
  * @returns {Promise<BrowserContext>} The context
  */
 export function newContext(browser) {

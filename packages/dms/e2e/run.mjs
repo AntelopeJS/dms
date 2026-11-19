@@ -1,3 +1,4 @@
+import { runJourney as driveJourney } from "./journey-run.mjs";
 import { loadRun } from "./run-state.mjs";
 import { down } from "./stack.mjs";
 import { startOptions, startStack } from "./start.mjs";
@@ -40,4 +41,36 @@ async function stopRun(dir) {
   const lines = await down(loadRun(dir));
   for (const line of lines.filter((entry) => entry.startsWith("could not")))
     process.stderr.write(`dms-control: ${line}\n`);
+}
+
+/**
+ * @typedef {import("./journey-load.mjs").Journey} Journey A journey: its preparation fields and its `run(ctx)` body
+ * @typedef {import("./verify/types.mjs").FeatureResult} FeatureResult The judged result: `status`, `error` and `steps[].checks[].verdict`
+ */
+
+/** A browser that refuses to open anything, so a browserless journey fails when it asks for a tab. */
+const NO_BROWSER = {
+  close: () => Promise.resolve(),
+  newContext() {
+    return Promise.reject(
+      new Error(
+        "ctx.tab() needs a browser and runJourney of @antelopejs/dms/e2e/run opens none: drive the backend with ctx.api() instead",
+      ),
+    );
+  },
+};
+
+/**
+ * Runs one journey without a browser, as the Playwright `dms` fixture runs
+ * it: the run's fresh database, backend mode, standby and administrator
+ * come from the journey's `database`, `backend`, `standby` and `onboard`
+ * fields. A `ctx.tab()` call fails the journey with a message saying so.
+ *
+ * @param {RunState} run The run `startRun` returned
+ * @param {string} feature The feature the journey belongs to
+ * @param {Journey} journey The journey
+ * @returns {Promise<FeatureResult>} The judged result
+ */
+export function runJourney(run, feature, journey) {
+  return driveJourney(run, feature, journey, undefined, NO_BROWSER);
 }
