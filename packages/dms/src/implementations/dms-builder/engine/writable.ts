@@ -45,28 +45,48 @@ export function resetWritableProject(): void {
 }
 
 /**
- * Bring the project's source files in line with the disk, adding the ones
- * created since and dropping the ones that are gone. Changed files are
- * reapplied as a text change: ts-morph's own refresh prints them through a
- * writer that normalizes CRLF before the editor can preserve source
- * expressions.
+ * Bring the project's source files and the declaration files its program read
+ * in line with the disk, adding the sources created since and dropping the
+ * files that are gone. Only a file whose text differs is parsed again, so a
+ * refresh keeps every unchanged declaration it holds.
  */
 export function refreshFromDisk(project: Project): void {
   addModuleSources(project);
   for (const sourceFile of project.getSourceFiles()) {
     if (!sourceFile.isInNodeModules()) {
-      const filepath = sourceFile.getFilePath();
-      if (!fs.existsSync(filepath)) {
-        project.removeSourceFile(sourceFile);
-        continue;
-      }
-      const text = fs.readFileSync(filepath, "utf8");
-      if (text !== sourceFile.getFullText()) {
-        sourceFile.applyTextChanges([
-          { span: { start: 0, length: sourceFile.getEnd() }, newText: text },
-        ]);
-      }
+      matchDisk(project, sourceFile);
     }
+  }
+  const program = project.getProgram().compilerObject;
+  for (const file of program.getSourceFiles()) {
+    const sourceFile = project.getSourceFile(file.fileName);
+    if (
+      sourceFile &&
+      file.isDeclarationFile &&
+      !program.isSourceFileDefaultLibrary(file)
+    ) {
+      matchDisk(project, sourceFile);
+    }
+  }
+}
+
+/**
+ * Reapply a file's text from the disk when it differs, or drop the file when
+ * it is gone. The text goes in as one change: ts-morph's own refresh prints it
+ * through a writer that normalizes CRLF before the editor can preserve source
+ * expressions.
+ */
+function matchDisk(project: Project, sourceFile: SourceFile): void {
+  const filepath = sourceFile.getFilePath();
+  if (!fs.existsSync(filepath)) {
+    project.removeSourceFile(sourceFile);
+    return;
+  }
+  const text = fs.readFileSync(filepath, "utf8");
+  if (text !== sourceFile.getFullText()) {
+    sourceFile.applyTextChanges([
+      { span: { start: 0, length: sourceFile.getEnd() }, newText: text },
+    ]);
   }
 }
 
