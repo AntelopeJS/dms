@@ -8,7 +8,12 @@ covers:
   - packages/dms/frontend-vue/layers/dms-ui/app/build/components/block-preview/MockupOverview*.vue
 docs:
   - packages/dms/docs/08.ai-and-claude-code/9.mockups.md
-  - packages/dms/docs/08.ai-and-claude-code/11.mockup-annotations.md
+  - packages/dms/docs/08.ai-and-claude-code/10.mockup-nodes.md
+  - packages/dms/docs/08.ai-and-claude-code/11.mockup-controller-blocks.md
+  - packages/dms/docs/08.ai-and-claude-code/12.mockup-viewer.md
+  - packages/dms/docs/08.ai-and-claude-code/13.mockup-review.md
+  - packages/dms/docs/08.ai-and-claude-code/14.mockup-http-api.md
+  - packages/dms/docs/08.ai-and-claude-code/17.mockup-annotations.md
 ---
 
 # Mockups
