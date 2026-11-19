@@ -1,4 +1,5 @@
-<script setup lang="ts" generic="T extends Record<string, unknown>">
+<script setup lang="ts" generic="T extends DataTypeRow">
+import type { DataTypeRow } from "#dms-core/app/types/data-type";
 import { defineComponent, markRaw, type Component } from "vue";
 import { get } from "@nuxt/ui/runtime/utils/index.js";
 import { isObject, isString } from "#dms-core/app/utils/type-check";
@@ -29,7 +30,7 @@ import {
 } from "../../composables/table-view/useReorderHandles";
 import { useCardFields } from "../../composables/table-view/useCardFields";
 
-export interface CardsDisplayProps<T extends Record<string, unknown>> {
+export interface CardsDisplayProps<T extends DataTypeRow> {
   context: TableViewDisplayContext<T>;
 }
 

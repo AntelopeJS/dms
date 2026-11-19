@@ -9,6 +9,7 @@ import {
 import type { SaveStatusState } from "../../../components/save-bar/SaveStatus.vue";
 import { combineSaveStates } from "#dms-ui/app/composables/layout/useInstantSaveHeader";
 import { sameFormValue } from "../unsaved-changes/formValue";
+import type { DataTypeValue } from "#dms-core/app/types/data-type";
 
 /** How long typing pauses before a text saves. */
 export const INSTANT_SAVE_DEBOUNCE_MS = 500;
@@ -22,7 +23,7 @@ type InstantSaveKey<V> = Extract<keyof V, string>;
  * and where they are kept (`save`: a request to the server, or nothing more
  * than the write for a value kept in a cookie).
  */
-export interface InstantSaveSource<V extends object> {
+export interface InstantSaveSource<V extends Record<keyof V, DataTypeValue>> {
   /** The value a key shows now. */
   read: <K extends InstantSaveKey<V>>(key: K) => V[K];
   /** Shows a value: the one picked, or the one a failed save puts back. */
@@ -38,7 +39,7 @@ export interface InstantChangeOptions {
   debounce?: boolean;
 }
 
-export interface InstantSave<V extends object> {
+export interface InstantSave<V extends Record<keyof V, DataTypeValue>> {
   /** The save state of each key changed so far. */
   states: Partial<Record<InstantSaveKey<V>, SaveStatusState>>;
   /** The page's one state, for its header pill. */
@@ -71,14 +72,16 @@ export interface InstantSave<V extends object> {
 
 type Timer = ReturnType<typeof setTimeout>;
 
-function saveKeys<V extends object>(values: Partial<V>): InstantSaveKey<V>[] {
+function saveKeys<V extends Record<keyof V, DataTypeValue>>(
+  values: Partial<V>,
+): InstantSaveKey<V>[] {
   return Object.keys(values).filter((key): key is InstantSaveKey<V> =>
     Object.hasOwn(values, key),
   );
 }
 
 /** The saves of one page: what waits, what runs, what the server holds. */
-class InstantSaveQueue<V extends object> {
+class InstantSaveQueue<V extends Record<keyof V, DataTypeValue>> {
   readonly states: Partial<Record<InstantSaveKey<V>, SaveStatusState>> =
     reactive({});
   readonly failed: Ref<Partial<V> | null> = ref(null);
@@ -229,7 +232,7 @@ class InstantSaveQueue<V extends object> {
  * last confirmed and keeps the change for `retry`. Changes of a key made while
  * its save runs follow once it ends, so the last one always wins.
  */
-export function useInstantSave<V extends object>(
+export function useInstantSave<V extends Record<keyof V, DataTypeValue>>(
   source: InstantSaveSource<V>,
 ): InstantSave<V> {
   const saves = new InstantSaveQueue(source);

@@ -54,7 +54,6 @@
     "frontend-vue",
     "!frontend-vue/tests",
     "!frontend-vue/jsconfig.json",
-    "!frontend-vue/.oxlint-pending",
     "!frontend-vue/scripts/eslint-globals.mjs",
     "!frontend-vue/scripts/layer-auto-imports.mjs",
     "!frontend-vue/vitest.config.ts",

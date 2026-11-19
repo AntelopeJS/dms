@@ -1,5 +1,7 @@
 import { onMounted, shallowRef, watch } from "vue";
 import type { DataTypeSelectSource } from "#dms-core/app/composables/data-types/useDataType";
+import type { DataTypeValue } from "#dms-core/app/types/data-type";
+import { textOf } from "#dms-core/app/build/utils/dataTypeValue";
 import { unlabeledRelationIds } from "../data-types/relationValue";
 import {
   notFoundRelationIds,
@@ -10,7 +12,7 @@ import {
 
 /** A relation filter of a table: where its rows are read, and its value. */
 export interface RelationFilterSource extends DataTypeSelectSource {
-  value: unknown;
+  value: DataTypeValue;
 }
 
 const labelKey = (searchUrl: string, id: string) => `${searchUrl}\n${id}`;
@@ -47,7 +49,7 @@ export function useRelationFilterLabels(sources: () => RelationFilterSource[]) {
       const id = relationRowValue(source, row);
       const label = relationRowLabel(source, row);
       if (id === undefined || label === undefined) continue;
-      found[labelKey(source.searchUrl, String(id))] = String(label);
+      found[labelKey(source.searchUrl, textOf(id))] = textOf(label);
     }
     if (Object.keys(found).length) {
       labels.value = { ...labels.value, ...found };

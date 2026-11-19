@@ -4,6 +4,7 @@ import type {
   DataTypeSelectSource,
 } from "#dms-core/app/composables/data-types/useDataType";
 import { isString } from "#dms-core/app/utils/type-check";
+import { textOf } from "#dms-core/app/build/utils/dataTypeValue";
 import { pageRequestUrl } from "../page/pageUrlValues";
 import { relationIdsQuery } from "./relationValue";
 
@@ -56,6 +57,7 @@ export function relationRowLabel(
  * found", never as "Deleted", with the id itself in its tooltip.
  */
 export class NotFoundRelation {
+  [field: string]: Parameters<DataTypeFormatter>[0];
   constructor(readonly id: string) {}
 }
 
@@ -66,7 +68,7 @@ export function notFoundRelationIds(
   rows: RelationRow[],
 ): string[] {
   const answered = new Set(
-    rows.map((row) => String(relationRowValue(source, row))),
+    rows.map((row) => textOf(relationRowValue(source, row))),
   );
   return ids.filter((id) => !answered.has(id));
 }
