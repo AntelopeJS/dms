@@ -306,7 +306,7 @@ jobs:
   # The Playwright suite of e2e/, when the plan selects it: its global setup
   # prepares the playground and starts one run of the @antelopejs/dms/e2e kit.
   # A pull request runs the @smoke tests. The merge queue runs the whole suite
-  # in five shards; a manual run, a pull request labelled ci:full and the
+  # in nine shards; a manual run, a pull request labelled ci:full and the
   # nightly schedule in three. e2e-report merges the shards into one report.
   # The shard list carries the choice: ["smoke"], or the shard numbers.
   e2e:
@@ -317,7 +317,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: ${{ fromJSON(needs.select.outputs.tier == 'queue' && '[1, 2, 3, 4, 5]' || (needs.select.outputs.tier == 'nightly' || github.event_name == 'workflow_dispatch' || contains(github.event.pull_request.labels.*.name, 'ci:full')) && '[1, 2, 3]' || '["smoke"]') }}
+        shard: ${{ fromJSON(needs.select.outputs.tier == 'queue' && '[1, 2, 3, 4, 5, 6, 7, 8, 9]' || (needs.select.outputs.tier == 'nightly' || github.event_name == 'workflow_dispatch' || contains(github.event.pull_request.labels.*.name, 'ci:full')) && '[1, 2, 3]' || '["smoke"]') }}
     steps:
       - uses: actions/checkout@v4
         with:
