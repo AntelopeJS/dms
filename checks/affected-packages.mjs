@@ -1,7 +1,6 @@
 import { spawnSync } from "node:child_process";
 import { matchesGlob } from "node:path/posix";
-import { decodeSkillConfig } from "../packages/dms/e2e/verify/decode.mjs";
-import { isRecord } from "../packages/dms/e2e/json.mjs";
+import { formal } from "./formal-checks.ts";
 
 /** @typedef {{ name: string, root: string, reads: string[], dependsOn: string[] }} TestPackage */
 
@@ -362,27 +361,12 @@ export const planRun = (env, checks, changedFiles) => {
 };
 
 /**
- * The formal checks the verification skill lists.
+ * The formal checks `checks/formal-checks.ts` lists.
  *
  * @returns {Promise<FormalCheck[]>}
  */
-export const loadFormalChecks = async () => {
-  const config = new URL(
-    "../.agents/skills/verify-dms/verify.config.ts",
-    import.meta.url,
-  );
-  /** @type {unknown} */
-  const loaded = await import(config.href);
-  const { formal } = decodeSkillConfig(
-    isRecord(loaded) ? loaded.default : undefined,
-    config.pathname,
-  );
-  return formal.map(({ name, covers, files = [] }) => ({
-    name,
-    covers,
-    files,
-  }));
-};
+export const loadFormalChecks = async () =>
+  formal.map(({ name, covers, files }) => ({ name, covers, files }));
 
 if (import.meta.main) {
   const run = planRun(

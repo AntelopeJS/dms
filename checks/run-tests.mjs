@@ -24,6 +24,7 @@ const DMS_TESTS = [
   "e2e/frontend-workspace",
   "e2e/journey",
   "e2e/journey-judge",
+  "e2e/journeys-config",
   "e2e/json",
   "e2e/mail",
   "e2e/module-root",

@@ -3,6 +3,7 @@
   "compilerOptions": {
     "allowJs": true,
     "noEmit": true,
+    "allowImportingTsExtensions": true,
     "incremental": false,
     "module": "nodenext",
     "moduleResolution": "nodenext",

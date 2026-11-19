@@ -11,8 +11,8 @@ const RUN = "DMS_E2E_RUN";
  * Playwright's global setup of a journeys suite, once per `playwright test`.
  * With `DMS_E2E_RUN` set, the tests drive that run and it stops nothing; a
  * run whose dashboard is not served the way the suite asks is refused.
- * Otherwise it starts a run on the config's skill through `startRun`: the
- * skill's prepare commands (none with `DMS_E2E_PREBUILT=1`), then the
+ * Otherwise it starts a run on the journeys config through `startRun`: its
+ * prepare commands (none with `DMS_E2E_PREBUILT=1`), then the
  * stack, whose dashboard is the development one for a `frontend: "dev"`
  * suite. It publishes the run's folder in `DMS_E2E_RUN` for the workers,
  * and returns the teardown that stops it.

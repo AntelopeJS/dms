@@ -6,7 +6,8 @@ import { timed } from "../../e2e/timing.mjs";
 import { doorLine, flaggedDoors, patchFiles } from "./verify/doors.mjs";
 import { runFormalCheck, touchedFormalChecks } from "./verify/formal.mjs";
 import { checkMap, planFor } from "./verify/map.mjs";
-import { journeysFile, loadSkill } from "../../e2e/verify/skill.mjs";
+import { journeysFile, loadSuiteConfig } from "../../e2e/journeys-config.mjs";
+import { loadSkill } from "../../e2e/verify/skill.mjs";
 
 /**
  * @typedef {import("./options.mjs").Values} Values
@@ -54,12 +55,15 @@ async function commandPlan(values) {
  */
 async function commandJourney(dir, feature, ids, values) {
   const state = loadRun(dir);
-  const skill = await skillOf(values, state);
+  const config = await loadSuiteConfig(
+    values.skill ?? state.skill ?? undefined,
+    state.repo,
+  );
   const results = await runJourneyFile(state, {
-    file: journeysFile(skill, feature),
+    file: journeysFile(config, feature),
     feature,
     ids,
-    skill,
+    config,
   });
   for (const result of results.filter((entry) => entry.status === "FAIL")) {
     print(
