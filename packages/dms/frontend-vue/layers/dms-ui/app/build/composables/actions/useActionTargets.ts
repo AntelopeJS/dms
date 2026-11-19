@@ -41,6 +41,11 @@ export interface ActionTargetsConfig {
    */
   onRecordShown?: (id?: string) => void;
   /**
+   * Told a drawer opened on a row; the function it returns is called once
+   * that drawer closed.
+   */
+  onRowDrawerOpen?: () => () => void;
+  /**
    * The field a row's id is read from (`_id` by default): it fills `{{row.id}}` in
    * the `from` URL of a row action's confirmation, as on a built-in action.
    */

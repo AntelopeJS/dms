@@ -13,6 +13,7 @@ export function useTableViewRowActions<T extends Data>(
     | "listState"
     | "rowLocator"
     | "arrival"
+    | "liveHold"
     | "props"
     | "deferred"
   >,
@@ -88,6 +89,7 @@ export function useTableViewRowActions<T extends Data>(
     },
     recordScope: urlScope,
     onRecordShown: (id) => deferred.recordLink?.shown(id),
+    onRowDrawerOpen: scope.liveHold.openRowDrawer,
   });
   return {
     handleBulkCustomAction,

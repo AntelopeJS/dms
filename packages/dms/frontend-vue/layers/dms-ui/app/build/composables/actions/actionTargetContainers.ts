@@ -148,9 +148,12 @@ export function handleComponentTarget(
     headerComponentOptions: headerFor(run.rowData),
   });
   recordRow(run.rowData);
+  const closeRow =
+    drawerTarget && run.rowData ? config.onRowDrawerOpen?.() : undefined;
   const stopSteps = source ? listenRowSteps(() => navigation) : undefined;
   const settle = () => {
     closed = true;
+    closeRow?.();
     stopSteps?.();
     stopNavigation?.();
     recordRow(undefined);
