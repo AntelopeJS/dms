@@ -315,7 +315,7 @@ export const requiredJobs = (plan) =>
   JOB_RULES.filter(({ when }) => when(plan)).map(({ job }) => job);
 
 /** How many jobs share the builder suite, balanced by `scripts/test-weights.json`. */
-const BUILDER_SHARDS = 4;
+const BUILDER_SHARDS = 5;
 
 /**
  * The suites of the `backend` job's matrix: `unit`, `integration` and one
