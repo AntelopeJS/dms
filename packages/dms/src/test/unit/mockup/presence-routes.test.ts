@@ -57,22 +57,24 @@ const SPEC_URL = `${BASE}/desk/spec`;
 const ADA = "Test User";
 const BEA = "Bea";
 
-const presenceSchema = z.object({
-  viewers: z.array(z.object({ viewer: z.string(), name: z.string() })),
-  locks: z.array(
-    z.object({
-      viewer: z.string(),
-      name: z.string(),
-      page: z.string(),
-      path: z.string(),
-    }),
-  ),
-});
+const presenceSchema = z
+  .object({
+    viewers: z.array(z.object({ name: z.string(), mine: z.boolean() })),
+    locks: z.array(
+      z.object({
+        name: z.string(),
+        mine: z.boolean(),
+        page: z.string(),
+        path: z.string(),
+      }),
+    ),
+  })
+  .strict();
 
 const sourceSchema = z.object({
   spec: jsonObjectSchema,
   digest: z.string(),
-  writtenBy: z.object({ viewer: z.string(), name: z.string() }).optional(),
+  writtenBy: z.object({ name: z.string() }).strict().optional(),
 });
 
 const writeSchema = z.object({
@@ -410,12 +412,12 @@ describe("[unit] mockup presence: who a viewer is", () => {
     await writeFile(specPath, JSON.stringify({ ...SPEC, title: "Outside" }));
     const afterOutside = await source(bea);
 
-    expect(afterEditor.writtenBy).to.deep.equal({ viewer: a, name: ADA });
+    expect(afterEditor.writtenBy).to.deep.equal({ name: ADA });
     expect(afterOutside.writtenBy).to.equal(undefined);
   });
 
   it("still serves a stream that names no viewer, which is no one's and holds nothing (fails when a stream without ?viewer is refused)", async () => {
-    const { adaToken, a, b, open } = viewers();
+    const { adaToken, open } = viewers();
     const follower = await open(adaToken);
 
     expect(
@@ -423,11 +425,40 @@ describe("[unit] mockup presence: who a viewer is", () => {
         follower.frames.some((frame) => frame.event === "presence"),
       ),
     ).to.equal(true);
+    expect(lastPresence(follower)?.viewers).to.have.length(2);
     expect(
-      lastPresence(follower)
-        ?.viewers.map((viewer) => viewer.viewer)
-        .sort(),
-    ).to.deep.equal([a, b].sort());
+      lastPresence(follower)?.viewers.map((viewer) => viewer.mine),
+    ).to.deep.equal([false, false]);
+  });
+
+  it("marks on each stream which viewer and which lock are its own, and sends no viewer id to anyone else, so one user cannot take another's id (fails when the event carries the ids)", async () => {
+    const { ada, bea, a, b, adaStream, beaStream } = viewers();
+    await lock(ada, a, KPI_A);
+    await lock(bea, b, KPI_C);
+    await write(ada, a, (spec) => retitle(spec, KPI_A, "Alpha"));
+    const heard = (stream: FollowedStream, name: string) =>
+      lastPresence(stream)?.locks.find((held) => held.name === name);
+
+    expect(
+      await eventually(
+        () =>
+          heard(adaStream, BEA)?.path === KPI_C &&
+          heard(beaStream, ADA)?.path === KPI_A,
+      ),
+    ).to.equal(true);
+
+    expect(heard(adaStream, ADA)?.mine).to.equal(true);
+    expect(heard(adaStream, BEA)?.mine).to.equal(false);
+    expect(heard(beaStream, BEA)?.mine).to.equal(true);
+    expect(heard(beaStream, ADA)?.mine).to.equal(false);
+    expect(
+      lastPresence(beaStream)?.viewers.filter((viewer) => viewer.mine),
+    ).to.deep.equal([{ name: BEA, mine: true }]);
+    const beaSaw = JSON.stringify([
+      ...beaStream.frames,
+      (await bea.get(SPEC_URL)).data,
+    ]);
+    expect(beaSaw).to.not.contain(a);
   });
 });
 

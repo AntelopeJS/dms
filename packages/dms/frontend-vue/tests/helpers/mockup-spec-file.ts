@@ -32,8 +32,8 @@ export class FakeSpecFile {
   isInvalid = false;
   /** Holds the answer of the next write that lands until it settles. */
   answerGate: Promise<void> | undefined;
-  /** The viewer of an editor that wrote this very file, as the read answers it. */
-  writtenBy: { viewer: string; name: string } | undefined;
+  /** The name of the viewer of an editor that wrote this very file, as the read answers it. */
+  writtenBy: { name: string } | undefined;
   readonly writes: Array<{
     spec: MockupSpecDocument;
     digest?: string;
@@ -46,7 +46,7 @@ export class FakeSpecFile {
 
   writeFromOutside(
     spec: MockupSpecDocument,
-    writtenBy?: { viewer: string; name: string },
+    writtenBy?: { name: string },
   ): void {
     this.spec = spec;
     this.version += 1;

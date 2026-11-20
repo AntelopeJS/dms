@@ -55,7 +55,7 @@ const RECTS = [
   { path: "block-0", rect: { x: 0, y: 40, width: 400, height: 100 } },
   { path: "block-1", rect: { x: 0, y: 160, width: 400, height: 100 } },
 ];
-const BEA = { viewer: "v-bea", name: "Bea", page: "orders", path: FIRST };
+const BEA = { name: "Bea", mine: false, page: "orders", path: FIRST };
 
 let runtime: MockupRuntime;
 let viewer: MountedViewer;
@@ -175,7 +175,7 @@ describe("the lock of the selected block", () => {
 describe("a block another viewer holds", () => {
   beforeEach(async () => {
     await viewer.publish("presence", {
-      viewers: [{ viewer: "v-bea", name: "Bea" }],
+      viewers: [{ name: "Bea", mine: false }],
       locks: [BEA],
     });
   });
@@ -220,6 +220,17 @@ describe("a block another viewer holds", () => {
     expect(runtime.file.spec.pages[0]?.tree[0]?.options?.title).toBe("Mine");
   });
 
+  it("never blocks this session when the stream marks the lock as its own (fails when every lock of the event blocks)", async () => {
+    await viewer.publish("presence", {
+      viewers: [{ name: "Me", mine: true }],
+      locks: [{ ...BEA, name: "Me", mine: true }],
+    });
+    await pick("block-0");
+
+    expect(find("[data-dms-mockup-locked]")).toBeNull();
+    expect(taken()).toHaveLength(1);
+  });
+
   it("leaves another block of the page editable (fails when one held block locks the whole page)", async () => {
     await pick("block-1");
 
@@ -231,10 +242,7 @@ describe("a block another viewer holds", () => {
 });
 
 describe("a change from another viewer", () => {
-  async function outsideWrites(
-    title: string,
-    by?: { viewer: string; name: string },
-  ) {
+  async function outsideWrites(title: string, by?: { name: string }) {
     const theirs = spec();
     const second = theirs.pages[0]?.tree[1];
     if (second?.options) second.options.title = title;
@@ -251,7 +259,7 @@ describe("a change from another viewer", () => {
   }
 
   it("is taken in without the notice of a file changed on disk, which an AI's change still gets (fails when every outside change toasts)", async () => {
-    await outsideWrites("Sales", { viewer: "v-bea", name: "Bea" });
+    await outsideWrites("Sales", { name: "Bea" });
     expect(runtime.toasts).toEqual([]);
 
     await outsideWrites("Marketing");

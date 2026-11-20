@@ -299,7 +299,7 @@ export interface MockupRuntime {
   file: {
     spec: MockupSpecDocument;
     version: number;
-    writtenBy?: { viewer: string; name: string };
+    writtenBy?: { name: string };
   };
   /** The lock requests the viewer sent: taking (`PUT`) and freeing (`DELETE`) the lock on a block. */
   locks: Array<{ method: string; viewer: string; path?: string }>;

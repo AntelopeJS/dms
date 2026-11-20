@@ -59,10 +59,15 @@ export interface MockupPresence {
   locks: readonly NodeLock[];
 }
 
-/** What the `presence` event sends: the viewers and the blocks held, with where each block is now. */
+/**
+ * What the `presence` event sends one stream: the viewers and the blocks held,
+ * with where each block is now. A viewer id is the key to that viewer's locks
+ * and writes, so none is sent: `mine` marks the viewer and the lock of the
+ * stream's own session.
+ */
 export interface PresenceSnapshot {
-  viewers: Array<{ viewer: ViewerId; name: string }>;
-  locks: Array<{ viewer: ViewerId; name: string; page: string; path: string }>;
+  viewers: Array<{ name: string; mine: boolean }>;
+  locks: Array<{ name: string; mine: boolean; page: string; path: string }>;
 }
 
 /** A mockup nobody is on. */
@@ -209,20 +214,23 @@ export function released(
   return sameLocks(locks, table.locks) ? table : { ...table, locks };
 }
 
-/** What a `presence` event sends for `table`. */
-export function describe(table: MockupPresence): PresenceSnapshot {
+/** What a `presence` event sends for `table` to a stream of the viewer `own`, or to one that follows only. */
+export function describe(
+  table: MockupPresence,
+  own?: ViewerId,
+): PresenceSnapshot {
   return {
     viewers: [...table.viewers.values()].map(({ id, name }) => ({
-      viewer: id,
       name,
+      mine: id === own,
     })),
     locks: table.locks.flatMap((lock) => {
       const holder = table.viewers.get(lock.viewer);
       return holder
         ? [
             {
-              viewer: lock.viewer,
               name: holder.name,
+              mine: lock.viewer === own,
               page: lock.site.page,
               path: lock.site.path,
             },

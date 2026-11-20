@@ -40,16 +40,19 @@ export type PresenceViewer = Who & { id: ViewerId };
 /** The editor that wrote the `spec.json` of digest `digest`. */
 interface LastWrite {
   digest: SpecDigest;
-  viewer: ViewerId;
   name: string;
+}
+
+/** One stream hearing a mockup: the viewer it is the stream of, if any, and the snapshot it last heard, as JSON. */
+interface Hearer {
+  viewer: ViewerId | undefined;
+  sent: string;
 }
 
 /** A mockup with someone on it: its table, those who hear it, and what keeps it current. */
 interface Entry {
   table: MockupPresence;
-  listeners: Set<PresenceListener>;
-  /** The snapshot the listeners last heard, as JSON. */
-  sent: string;
+  hearers: Map<PresenceListener, Hearer>;
   timer: NodeJS.Timeout;
   unfollow?: () => void;
 }
@@ -74,9 +77,11 @@ export class PresenceBoard {
 
   /**
    * Starts hearing the presence of `name`, `listener` first getting it as it
-   * is. With a `viewer`, the session counts as on the mockup until the
-   * returned function is called, and a viewer id that another user holds
-   * follows without counting. Calling the returned function again does nothing.
+   * is, with the viewer's own lock and viewer marked as `mine`. With a
+   * `viewer`, the session counts as on the mockup until the returned function
+   * is called, and a viewer id that another user holds follows without
+   * counting, and owns nothing. Calling the returned function again does
+   * nothing.
    */
   open(
     name: MockupName,
@@ -86,13 +91,18 @@ export class PresenceBoard {
     const entry = this.entries.get(name) ?? this.start(name);
     const table = viewer && joined(entry.table, viewer.id, viewer);
     if (table) this.apply(entry, table);
-    entry.listeners.add(listener);
-    listener(describe(entry.table));
+    const own = table && viewer?.id;
+    const snapshot = describe(entry.table, own);
+    entry.hearers.set(listener, {
+      viewer: own,
+      sent: JSON.stringify(snapshot),
+    });
+    listener(snapshot);
     let isOpen = true;
     return () => {
       if (!isOpen) return;
       isOpen = false;
-      this.leave(name, entry, listener, table && viewer?.id);
+      this.leave(name, entry, listener, own);
     };
   }
 
@@ -161,19 +171,17 @@ export class PresenceBoard {
   ): void {
     const holder = viewer && this.entries.get(name)?.table.viewers.get(viewer);
     if (holder) {
-      this.writes.set(name, { digest, viewer: holder.id, name: holder.name });
+      this.writes.set(name, { digest, name: holder.name });
     } else this.writes.delete(name);
   }
 
-  /** The editor whose write made the spec of `name` that has `digest`, if the last write was one. */
+  /** The name of the editor whose write made the spec of `name` that has `digest`, if the last write was one. */
   writtenBy(
     name: MockupName,
     digest: SpecDigest,
-  ): { viewer: ViewerId; name: string } | undefined {
+  ): { name: string } | undefined {
     const written = this.writes.get(name);
-    return written?.digest === digest
-      ? { viewer: written.viewer, name: written.name }
-      : undefined;
+    return written?.digest === digest ? { name: written.name } : undefined;
   }
 
   /** Stops every timer and subscription: the board hears and sends nothing more. */
@@ -190,9 +198,9 @@ export class PresenceBoard {
     id: ViewerId | undefined,
   ): void {
     if (this.entries.get(name) !== entry) return;
-    entry.listeners.delete(listener);
+    entry.hearers.delete(listener);
     if (id) entry.table = left(entry.table, id);
-    if (!entry.listeners.size) {
+    if (!entry.hearers.size) {
       this.stop(entry);
       this.entries.delete(name);
     } else this.publish(entry);
@@ -201,8 +209,7 @@ export class PresenceBoard {
   private start(name: MockupName): Entry {
     const entry: Entry = {
       table: NO_PRESENCE,
-      listeners: new Set(),
-      sent: JSON.stringify(describe(NO_PRESENCE)),
+      hearers: new Map(),
       timer: setInterval(
         () => this.apply(entry, unexpired(entry.table, this.clock.now())),
         this.clock.sweepMs,
@@ -263,10 +270,12 @@ export class PresenceBoard {
   }
 
   private publish(entry: Entry): void {
-    const snapshot = describe(entry.table);
-    const text = JSON.stringify(snapshot);
-    if (text === entry.sent) return;
-    entry.sent = text;
-    for (const listener of entry.listeners) listener(snapshot);
+    for (const [listener, hearer] of entry.hearers) {
+      const snapshot = describe(entry.table, hearer.viewer);
+      const text = JSON.stringify(snapshot);
+      if (text === hearer.sent) continue;
+      hearer.sent = text;
+      listener(snapshot);
+    }
   }
 }

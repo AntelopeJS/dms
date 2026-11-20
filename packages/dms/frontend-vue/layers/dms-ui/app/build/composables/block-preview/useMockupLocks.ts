@@ -64,16 +64,10 @@ export function useMockupLocks(options: MockupLocksOptions): MockupLocks {
   const endpoint = mockupEndpoint(options.name, "/locks");
   const blocker = computed(() =>
     options.selection.value
-      ? blockerOf(
-          options.presence.value,
-          options.viewer,
-          options.selection.value,
-        )
+      ? blockerOf(options.presence.value, options.selection.value)
       : undefined,
   );
-  const holders = computed(() =>
-    holdersOf(options.presence.value, options.viewer),
-  );
+  const holders = computed(() => holdersOf(options.presence.value));
   let lastTaken = 0;
   let isRunning = false;
   let isDue = false;
@@ -155,6 +149,6 @@ export function useMockupLocks(options: MockupLocksOptions): MockupLocks {
     blocker,
     holders,
     isHeld: (pointer) =>
-      blockerOf(options.presence.value, options.viewer, pointer) !== undefined,
+      blockerOf(options.presence.value, pointer) !== undefined,
   };
 }

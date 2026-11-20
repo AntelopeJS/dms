@@ -6,10 +6,10 @@ import { isWithinPointer } from "./mockupSpec";
 /** Event of the mockup stream carrying `{ viewers, locks }`: who is on the mockup and the blocks held. */
 export const MOCKUP_PRESENCE_EVENT = "presence";
 
-/** A browser session on the mockup, by the name its user goes by. */
+/** A browser session on the mockup, by the name its user goes by, and whether it is this session. */
 export interface MockupViewer {
-  viewer: string;
   name: string;
+  mine: boolean;
 }
 
 /** The block a viewer is editing: where it is in the spec now. */
@@ -60,7 +60,11 @@ export function newViewerId(): string {
 function isViewer(
   value: JsonValue | undefined,
 ): value is JsonValue & MockupViewer {
-  return isObjectValue(value) && isString(value.viewer) && isString(value.name);
+  return (
+    isObjectValue(value) &&
+    isString(value.name) &&
+    typeof value.mine === "boolean"
+  );
 }
 
 function isLock(value: JsonValue | undefined): value is JsonValue & MockupLock {
@@ -87,31 +91,27 @@ export function parseMockupPresence(
 }
 
 /**
- * The lock of another viewer than `viewer` that keeps the block at `pointer`
- * from being edited: one on that block, on a block it sits in, or on a block
- * inside it, as the backend refuses to give two viewers.
+ * The lock of another viewer than this session that keeps the block at
+ * `pointer` from being edited: one on that block, on a block it sits in, or on
+ * a block inside it, as the backend refuses to give two viewers.
  */
 export function blockerOf(
   presence: MockupPresence,
-  viewer: string,
   pointer: string,
 ): MockupLock | undefined {
   return presence.locks.find(
     (lock) =>
-      lock.viewer !== viewer &&
+      !lock.mine &&
       (isWithinPointer(lock.path, pointer) ||
         isWithinPointer(pointer, lock.path)),
   );
 }
 
-/** The name of whoever holds each block other than `viewer`'s own, by the block's pointer. */
-export function holdersOf(
-  presence: MockupPresence,
-  viewer: string,
-): Map<string, string> {
+/** The name of whoever holds each block other than this session's own, by the block's pointer. */
+export function holdersOf(presence: MockupPresence): Map<string, string> {
   return new Map(
     presence.locks
-      .filter((lock) => lock.viewer !== viewer)
+      .filter((lock) => !lock.mine)
       .map((lock) => [lock.path, lock.name]),
   );
 }

@@ -118,8 +118,8 @@ const HTTP_CONFLICT = 409;
 interface SpecSource {
   spec: MockupSpecDocument;
   digest: string;
-  /** The viewer of an editor whose write made this very file. */
-  writtenBy?: { viewer: string; name: string };
+  /** The name of the viewer of an editor whose write made this very file. */
+  writtenBy?: { name: string };
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -131,14 +131,8 @@ function parseSource(value: JsonValue | undefined): SpecSource | undefined {
   const spec = parseMockupSpec(value.spec);
   if (!spec) return undefined;
   const { writtenBy } = value;
-  return isObjectValue(writtenBy) &&
-    isString(writtenBy.viewer) &&
-    isString(writtenBy.name)
-    ? {
-        spec,
-        digest: value.digest,
-        writtenBy: { viewer: writtenBy.viewer, name: writtenBy.name },
-      }
+  return isObjectValue(writtenBy) && isString(writtenBy.name)
+    ? { spec, digest: value.digest, writtenBy: { name: writtenBy.name } }
     : { spec, digest: value.digest };
 }
 

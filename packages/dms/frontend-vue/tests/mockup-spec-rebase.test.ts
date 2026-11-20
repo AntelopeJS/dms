@@ -111,7 +111,7 @@ describe("what a write from outside says", () => {
     await mountEditor();
     const other = twoBlocks();
     other.title = "From Bea";
-    file.writeFromOutside(other, { viewer: "v-bea", name: "Bea" });
+    file.writeFromOutside(other, { name: "Bea" });
 
     await streamSaysTheFileChanged();
 

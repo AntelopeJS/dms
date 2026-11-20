@@ -16,7 +16,7 @@ import { jsonObjectSchema, type JsonObject, parseMockupName } from "./model";
 import { MockupOwnerController } from "./owner-controller";
 import { viewOf } from "./anchor";
 import type { PresenceBoard } from "./presence-board";
-import { type ViewerId, viewerIdSchema } from "./presence";
+import { viewerIdSchema } from "./presence";
 import {
   readSpecSource,
   type SpecDigest,
@@ -47,8 +47,8 @@ export interface BlockCatalogAnswer {
 export interface SpecSourceAnswer {
   spec: JsonObject;
   digest: SpecDigest;
-  /** The editor whose write made this very file, when the last write was an editor's. */
-  writtenBy?: { viewer: ViewerId; name: string };
+  /** The editor whose write made this very file, when the last write was an editor's: by name, as a viewer id is that viewer's alone. */
+  writtenBy?: { name: string };
 }
 
 /**
