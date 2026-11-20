@@ -39,6 +39,10 @@ import {
 const OP_TIMEOUT = 120_000;
 const HTTP_OK = 200;
 const APP_MODULE = "builder-postgres-journeys-app";
+/**
+ * The core picks a default database provider by sorting module ids, so this id sorts after the
+ * harness's `mongodb` and leaves the DMS on MongoDB.
+ */
 const POSTGRES_MODULE = "postgres";
 const ORDER_SCHEMA = "builder-postgres-journeys";
 const POSTGRES_PORT = 5432;
@@ -144,38 +148,43 @@ async function saveStatsQueries({ shop, bridge }: BuilderSession) {
 
 /**
  * Compiles the app, loads `@antelopejs/postgres` against the server and loads the app with its
- * database interface bound to it.
- *
- * @returns The ids of the modules loaded, in the order they were
+ * database interface bound to it. Adds each module's ids to `loaded` as soon as that module
+ * loads, so a later failure still unloads it.
  */
 async function loadAppOnPostgres(
   { shop }: BuilderSession,
   url: string,
-): Promise<string[]> {
+  loaded: string[],
+): Promise<void> {
   shop.writeShop("register-schema.ts", REGISTER_SCHEMA);
   shop.writeShop(
     "index.ts",
     `${shop.readShop("index.ts")}export * from "./register-schema";\n`,
   );
   compileApp(shop.shopRoot(), APP_MODULE, APP_DEPENDENCIES);
-  const database = await LoadModule(
-    POSTGRES_MODULE,
-    {
-      source: { type: "local", path: "node_modules/@antelopejs/postgres" },
-      config: { url, migrations: "safe" },
-    },
-    true,
+  loaded.push(
+    ...(await LoadModule(
+      POSTGRES_MODULE,
+      {
+        source: { type: "local", path: "node_modules/@antelopejs/postgres" },
+        config: { url, migrations: "safe" },
+      },
+      true,
+    )),
   );
-  const app = await LoadModule(
-    APP_MODULE,
-    {
-      source: { type: "local", path: shop.shopRoot() },
-      config: {},
-      importOverrides: { "@antelopejs/interface-database": [POSTGRES_MODULE] },
-    },
-    true,
+  loaded.push(
+    ...(await LoadModule(
+      APP_MODULE,
+      {
+        source: { type: "local", path: shop.shopRoot() },
+        config: {},
+        importOverrides: {
+          "@antelopejs/interface-database": [POSTGRES_MODULE],
+        },
+      },
+      true,
+    )),
   );
-  return [...database, ...app];
 }
 
 async function read(route: string, params: Record<string, string>) {
@@ -225,7 +234,7 @@ suite(
 
     before(async () => {
       Object.assign(routes, await saveStatsQueries(session()));
-      loaded.push(...(await loadAppOnPostgres(session(), postgres())));
+      await loadAppOnPostgres(session(), postgres(), loaded);
     });
 
     it("order-dates-are-timestamp-columns-in-postgres", async () => {
