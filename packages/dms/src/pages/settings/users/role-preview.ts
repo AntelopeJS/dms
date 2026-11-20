@@ -214,7 +214,7 @@ function classifyNode(
  *
  * @param titleOf Title of a permission, shown for withheld actions.
  */
-export function classifyPreviewBlocks(
+export function classifyRoleBlocks(
   nodes: RolePreviewLayoutNode[],
   grants: RolePreviewGrants,
   pageHidden: boolean,

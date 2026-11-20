@@ -73,7 +73,7 @@ import {
 } from "./role-editor-store";
 import { declarePermissionWarning } from "./permission-warnings";
 import {
-  classifyPreviewBlocks,
+  classifyRoleBlocks,
   collectPreviewLayout,
   countOutOfScope,
   listPermissionChildren,
@@ -274,7 +274,7 @@ async function classifyPagePreview(
     grantedAmong(new Set(), ids),
     titleOf?.(ids),
   ]);
-  return classifyPreviewBlocks(
+  return classifyRoleBlocks(
     nodes,
     { real, preview: granted, universal },
     page.hiddenInPreview,

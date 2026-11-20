@@ -2,7 +2,7 @@ import { expect } from "chai";
 import type { ComponentInfoSerialized } from "@antelopejs/interface-dms/component";
 import type { PermissionTree } from "@antelopejs/interface-dms/permissions";
 import {
-  classifyPreviewBlocks,
+  classifyRoleBlocks,
   collectPreviewLayout,
   countOutOfScope,
   findPermissionNode,
@@ -137,10 +137,10 @@ function registerPreviewLookupCases(): void {
   });
 }
 
-function registerClassifyPreviewBlocksCases(): void {
-  describe("classifyPreviewBlocks", () => {
+function registerClassifyRoleBlocksCases(): void {
+  describe("classifyRoleBlocks", () => {
     it("changes nothing when the role holds what the viewer holds", () => {
-      const blocks = classifyPreviewBlocks(
+      const blocks = classifyRoleBlocks(
         layout(),
         { real: ALL_IDS, preview: ALL_IDS },
         false,
@@ -149,7 +149,7 @@ function registerClassifyPreviewBlocksCases(): void {
     });
 
     it("hides a withheld block once, without veiling its children again", () => {
-      const blocks = classifyPreviewBlocks(
+      const blocks = classifyRoleBlocks(
         layout(),
         { real: ALL_IDS, preview: without("sales.orders.kpis") },
         false,
@@ -158,7 +158,7 @@ function registerClassifyPreviewBlocksCases(): void {
     });
 
     it("hides a child component inside a visible parent", () => {
-      const blocks = classifyPreviewBlocks(
+      const blocks = classifyRoleBlocks(
         layout(),
         { real: ALL_IDS, preview: without("sales.orders.kpis.revenue") },
         false,
@@ -167,7 +167,7 @@ function registerClassifyPreviewBlocksCases(): void {
     });
 
     it("marks a block read only when every action is withheld", () => {
-      const blocks = classifyPreviewBlocks(
+      const blocks = classifyRoleBlocks(
         layout(),
         {
           real: ALL_IDS,
@@ -186,7 +186,7 @@ function registerClassifyPreviewBlocksCases(): void {
     });
 
     it("marks a block read only when only reading actions are left", () => {
-      const blocks = classifyPreviewBlocks(
+      const blocks = classifyRoleBlocks(
         layout(),
         {
           real: ALL_IDS,
@@ -206,7 +206,7 @@ function registerClassifyPreviewBlocksCases(): void {
     });
 
     it("marks a block limited when only a reading action is withheld", () => {
-      const blocks = classifyPreviewBlocks(
+      const blocks = classifyRoleBlocks(
         layout(),
         { real: ALL_IDS, preview: without("sales.orders.table.list") },
         false,
@@ -217,7 +217,7 @@ function registerClassifyPreviewBlocksCases(): void {
     });
 
     it("marks a block limited when only some actions are withheld", () => {
-      const blocks = classifyPreviewBlocks(
+      const blocks = classifyRoleBlocks(
         layout(),
         { real: ALL_IDS, preview: without("sales.orders.table.delete") },
         false,
@@ -229,7 +229,7 @@ function registerClassifyPreviewBlocksCases(): void {
 
     it("leaves out actions every member holds", () => {
       const universal = new Set(["sales.orders.table.delete"]);
-      const blocks = classifyPreviewBlocks(
+      const blocks = classifyRoleBlocks(
         layout(),
         {
           real: ALL_IDS,
@@ -245,7 +245,7 @@ function registerClassifyPreviewBlocksCases(): void {
 
     it("ignores actions the viewer does not hold", () => {
       const real = without("sales.orders.table.delete");
-      const blocks = classifyPreviewBlocks(
+      const blocks = classifyRoleBlocks(
         layout(),
         { real, preview: without("sales.orders.table.delete") },
         false,
@@ -254,7 +254,7 @@ function registerClassifyPreviewBlocksCases(): void {
     });
 
     it("hides every top-level block of a page the role cannot open", () => {
-      const blocks = classifyPreviewBlocks(
+      const blocks = classifyRoleBlocks(
         layout(),
         { real: ALL_IDS, preview: ALL_IDS },
         true,
@@ -270,7 +270,7 @@ function registerClassifyPreviewBlocksCases(): void {
 function registerPreviewScopeCases(): void {
   describe("losesOnPreviewPage", () => {
     it("keeps a page whole when no block and no header action changes", () => {
-      const blocks = classifyPreviewBlocks(
+      const blocks = classifyRoleBlocks(
         layout(),
         { real: ALL_IDS, preview: ALL_IDS },
         false,
@@ -279,7 +279,7 @@ function registerPreviewScopeCases(): void {
     });
 
     it("finds a loss in a read-only block (list and view only)", () => {
-      const blocks = classifyPreviewBlocks(
+      const blocks = classifyRoleBlocks(
         layout(),
         {
           real: ALL_IDS,
@@ -294,7 +294,7 @@ function registerPreviewScopeCases(): void {
     });
 
     it("finds a loss in a hidden nested block or a hidden header action", () => {
-      const blocks = classifyPreviewBlocks(
+      const blocks = classifyRoleBlocks(
         layout(),
         { real: ALL_IDS, preview: without("sales.orders.kpis.revenue") },
         false,
@@ -305,7 +305,7 @@ function registerPreviewScopeCases(): void {
 
     it("finds no loss in actions the viewer does not hold either", () => {
       const real = without("sales.orders.table.delete");
-      const blocks = classifyPreviewBlocks(
+      const blocks = classifyRoleBlocks(
         layout(),
         { real, preview: real },
         false,
@@ -326,6 +326,6 @@ function registerPreviewScopeCases(): void {
 
 describe("[unit] pages/settings/users/role-preview", () => {
   registerPreviewLookupCases();
-  registerClassifyPreviewBlocksCases();
+  registerClassifyRoleBlocksCases();
   registerPreviewScopeCases();
 });
