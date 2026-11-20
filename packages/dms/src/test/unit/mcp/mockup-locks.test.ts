@@ -125,8 +125,8 @@ function useViewer(): Viewer {
 }
 
 describe("[unit] mockup MCP writes while another viewer holds a block", () => {
-  const workspace = useWorkspace();
   const viewer = useViewer();
+  const workspace = useWorkspace();
 
   it("refuses mockup_write_spec a change to the held block, naming the holder at the block's path, and leaves the file as it was; a change elsewhere lands (fails when the tool writes over a held block)", async () => {
     await viewer.hold(held());

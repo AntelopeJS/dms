@@ -2,15 +2,17 @@ import type { JsonValue } from "@antelopejs/interface-dms/json";
 import { z } from "zod";
 import {
   MAX_SUMMARY_LENGTH,
+  mockupLockRefusals,
   type MockupIssue,
   mockupWriteGroupSchema,
   type MockupName,
   parseMockupName,
+  readSpecSource,
   type SpecWriteMeta,
   type SpecWriteResult,
-  writeSpec,
+  withSpecLock,
 } from "../../mockup";
-import { JsonObjectSchema } from "../json";
+import { type JsonObject, JsonObjectSchema } from "../json";
 import { jsonResult, type McpToolResult, textResult } from "../tool";
 
 /** The `mockup` argument every mockup tool takes. */
@@ -90,17 +92,38 @@ export function reportWrite(written: SpecWriteResult): McpToolResult {
 }
 
 /**
- * Writes `mockups/<name>/spec.json` through {@link writeSpec} as the AI's,
- * with the summary and the write group of its version, answering
- * `{ ok, errors }`. A refused spec leaves the file as it was.
+ * The answer that refuses writing `next` over the `current` spec of `name`
+ * while a viewer of the /mockup page holds a block it changes or removes,
+ * naming the holder at the block's path; undefined when nothing is held that
+ * it touches. Call it inside the spec lock, with the file just read.
  */
-export async function saveSpec(
+export function refusedByLocks(
+  name: MockupName,
+  current: JsonObject | undefined,
+  next: JsonValue,
+): McpToolResult | undefined {
+  const errors = current ? mockupLockRefusals(name, current, next) : [];
+  return errors.length
+    ? reportWrite({ ok: false, errors, warnings: [] })
+    : undefined;
+}
+
+/**
+ * Writes `mockups/<name>/spec.json` as the AI's, with the summary and the
+ * write group of its version, answering `{ ok, errors }`. A refused spec, or
+ * one that changes a block another viewer holds, leaves the file as it was.
+ */
+export function saveSpec(
   mockupsDir: string,
   name: MockupName,
   spec: JsonValue,
   version: Pick<SpecWriteMeta, "summary" | "group">,
 ): Promise<McpToolResult> {
-  return reportWrite(
-    await writeSpec(mockupsDir, name, spec, { by: "ai", ...version }),
-  );
+  return withSpecLock(mockupsDir, name, async (write) => {
+    const current = await readSpecSource(mockupsDir, name);
+    return (
+      refusedByLocks(name, current?.spec, spec) ??
+      reportWrite(await write(spec, { by: "ai", ...version }))
+    );
+  });
 }
