@@ -203,7 +203,7 @@ function readsParametersAsTheQueryStringGivesThem(): void {
       "AddQuery",
     );
     expect(app.read(PAGE_FILE)).to.contain(
-      "model.revenueInPeriod(new Date(String(from)), new Date(String(to)))",
+      'model.revenueInPeriod(from === undefined ? new Date("0001-01-01T00:00:00.000Z") : new Date(String(from)), to === undefined ? new Date("9999-12-31T23:59:59.999Z") : new Date(String(to)))',
     );
     const query = await queryNamed("revenueInPeriod");
     expect(
@@ -271,7 +271,7 @@ function comparesAgainstThePeriodBefore(): void {
 
     const page = app.read(PAGE_FILE);
     expect(page).to.contain(
-      "chartCardData(await model.revenueTrend(new Date(String(from)), new Date(String(to))).run()",
+      'chartCardData(await model.revenueTrend(from === undefined ? new Date("0001-01-01T00:00:00.000Z") : new Date(String(from)), to === undefined ? new Date("9999-12-31T23:59:59.999Z") : new Date(String(to))).run()',
     );
     expect(page).to.contain(
       "previous: compareFrom && compareTo ? await model.revenueTrend(new Date(String(compareFrom)), new Date(String(compareTo))).run() : undefined",

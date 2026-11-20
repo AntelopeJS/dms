@@ -313,7 +313,7 @@ describe("the route of a scalar query", () => {
 
     expect(text).to.contain("): Promise<KpiCardData> {");
     expect(text).to.contain(
-      "return kpiValueData(await model.utilisation(new Date(String(from)), new Date(String(to))).run(), { previous: compareFrom && compareTo ? await model.utilisation(new Date(String(compareFrom)), new Date(String(compareTo))).run() : undefined });",
+      'return kpiValueData(await model.utilisation(from === undefined ? new Date("0001-01-01T00:00:00.000Z") : new Date(String(from)), to === undefined ? new Date("9999-12-31T23:59:59.999Z") : new Date(String(to))).run(), { previous: compareFrom && compareTo ? await model.utilisation(new Date(String(compareFrom)), new Date(String(compareTo))).run() : undefined });',
     );
     expect(text).to.contain(
       '@Parameter("compareFrom", "query") compareFrom: string | true | undefined,',
@@ -340,7 +340,7 @@ describe("the route of a scalar query", () => {
 
     expect(ratio).to.contain("): Promise<KpiCardData> {");
     expect(ratio).to.contain(
-      "return kpiValueData(await model.utilisation(new Date(String(from)), new Date(String(to))).run());",
+      'return kpiValueData(await model.utilisation(from === undefined ? new Date("0001-01-01T00:00:00.000Z") : new Date(String(from)), to === undefined ? new Date("9999-12-31T23:59:59.999Z") : new Date(String(to))).run());',
     );
     expect(ratio).to.not.contain("{ value:");
     expect(ratio).to.not.contain("compareFrom");

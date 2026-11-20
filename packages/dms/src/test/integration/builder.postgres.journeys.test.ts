@@ -211,6 +211,9 @@ async function read(route: string, params: Record<string, string>) {
  *   `compareFrom` and `compareTo`: PostgreSQL refuses the Invalid Date it serializes and the route
  *   answers 500 "invalid input syntax for type timestamp", where the `comparison=none` request
  *   of the dashboard needs the period's own figures.
+ * - `stats-route-answers-every-order-without-period-bounds` fails when a route binds
+ *   `new Date(String(from))` for the "All" period, whose request carries no `from` and `to`:
+ *   PostgreSQL refuses the Invalid Date and the route answers 500, where every order is due.
  * - `stats-route-answers-the-previous-period-with-comparison-bounds` fails when the route drops
  *   the comparison, or skips it for a request that does carry both bounds.
  * - `stats-series-route-answers-the-period-over-a-timestamp-column` fails when a route over
@@ -258,6 +261,20 @@ suite(
 
       const card = parseBody(UncomparedCardBody, answered);
       expect([card.value, totalOf(card.series)]).to.deep.equal([705, 705]);
+    });
+
+    it("stats-route-answers-every-order-without-period-bounds", async () => {
+      const everything = await read(routes.seriesRoute, {});
+
+      expect(pointsOf(parseBody(SeriesBody, everything))).to.equal(
+        "paid=6,pending=1,refunded=2",
+      );
+      const card = parseBody(
+        UncomparedCardBody,
+        await read(routes.cardRoute, {}),
+      );
+      expect(card.value).to.equal(totalOf(card.series));
+      expect(card.value).to.equal(1920);
     });
 
     it("stats-route-answers-the-previous-period-with-comparison-bounds", async () => {
