@@ -5,7 +5,15 @@
  * the same way: an `api` or `exportJob` target as a `page` one, a
  * confirmation's `from`, a block's links, a form's `backTo`.
  */
-import { createApp, defineComponent, h, inject, reactive, type App } from "vue";
+import {
+  createApp,
+  defineComponent,
+  h,
+  inject,
+  reactive,
+  ref,
+  type App,
+} from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fetchClientMock } from "./fixtures/unusedApi";
 import type { useExportJob } from "../layers/dms-ui/app/composables/useExportJob";
@@ -76,9 +84,13 @@ beforeEach(() => {
   vi.stubGlobal("HttpMethod", HttpMethod);
   vi.stubGlobal("useDmsRoute", () => route);
   vi.stubGlobal("findPageRoute", () => ({ params: { id: "s1" } }));
+  vi.stubGlobal("servedQuickActions", () => undefined);
   vi.stubGlobal("useSiteLayout", () => {
     inject("toast-max", undefined);
-    return { findMatchingRoute: () => ({ params: { id: "s1" } }) };
+    return {
+      findMatchingRoute: () => ({ params: { id: "s1" } }),
+      quickActions: ref(null),
+    };
   });
 });
 
@@ -220,6 +232,17 @@ describe("an action target's URL", () => {
     mountTargets().handleCustomButton(button);
     await vi.waitFor(() => expect(api).toHaveBeenCalled());
     expect(api.mock.calls[0]![0]).toBe("/api/stores/s1/sync?period=7d");
+  });
+
+  it("runs a quick action button from its click without a Vue warning", () => {
+    const targets = mountTargets();
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    targets.handleCustomButton({
+      id: "invoice",
+      label: "New invoice",
+      target: { type: "quickAction", id: "billing:new-invoice" },
+    });
+    expect(warn).not.toHaveBeenCalled();
   });
 
   it("fills an export job's start, status and download URLs", async () => {

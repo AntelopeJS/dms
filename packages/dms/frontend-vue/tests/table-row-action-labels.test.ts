@@ -23,6 +23,7 @@ import {
 } from "vue";
 import { createTable, getCoreRowModel } from "@tanstack/vue-table";
 import UApp from "@nuxt/ui/components/App.vue";
+import UTooltip from "@nuxt/ui/components/Tooltip.vue";
 import { useTableColumns } from "../layers/dms-ui/app/entries/composables/table/useTableColumns";
 import * as ruleEvaluator from "../layers/dms-core/app/utils/row-action-rule-evaluator";
 import * as colors from "../layers/dms-core/app/types/color";
@@ -128,6 +129,7 @@ function actionsCell({ custom, menuLabel, labelKey }: ActionsCellOptions) {
 
 function renderCell(cell: VNode) {
   const app = createApp({ render: () => h(UApp, null, () => cell) });
+  app.component("UTooltip", UTooltip);
   const host = document.createElement("div");
   document.body.append(host);
   app.mount(host);
