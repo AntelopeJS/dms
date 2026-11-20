@@ -80,6 +80,12 @@ export type Acquisition =
   | { kind: "unknown_viewer" }
   | { kind: "no_node" };
 
+/** What renewing a lock answers: the id of the block it holds, which a client finds that block by wherever it moves. */
+export type Renewal =
+  | { kind: "renewed"; table: MockupPresence; id: string }
+  | { kind: "unknown_viewer" }
+  | { kind: "no_lock" };
+
 function isWithin(pointer: string, ancestor: string): boolean {
   return pointer === ancestor || pointer.startsWith(`${ancestor}/`);
 }
@@ -202,6 +208,39 @@ export function acquired(
       ...current,
       locks: [...current.locks.filter((lock) => lock.viewer !== viewer), own],
     },
+  };
+}
+
+/**
+ * The id the block `anchor` names carries in a spec: its own, which a client
+ * finds it by when a write moves it.
+ */
+export function blockIdOf(anchor: BlockAnchor): string {
+  return anchor.steps.at(-1) ?? anchor.block;
+}
+
+/**
+ * `table` once the lock `viewer` holds lasts {@link LOCK_IDLE_MS} more from
+ * `now`, wherever its block is: a renewal names no block. A viewer that holds
+ * no lock, or whose lock ran out at `now`, renews nothing.
+ */
+export function renewed(
+  table: MockupPresence,
+  request: { viewer: ViewerId; now: number },
+): Renewal {
+  const { viewer, now } = request;
+  if (!table.viewers.has(viewer)) return { kind: "unknown_viewer" };
+  const own = table.locks.find(
+    (lock) => lock.viewer === viewer && lock.expiresAt > now,
+  );
+  if (!own) return { kind: "no_lock" };
+  const locks = table.locks.map((lock) =>
+    lock === own ? { ...own, expiresAt: now + LOCK_IDLE_MS } : lock,
+  );
+  return {
+    kind: "renewed",
+    table: { ...table, locks },
+    id: blockIdOf(own.anchor),
   };
 }
 

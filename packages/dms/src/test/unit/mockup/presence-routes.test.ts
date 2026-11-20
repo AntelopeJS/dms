@@ -77,6 +77,8 @@ const sourceSchema = z.object({
   writtenBy: z.object({ name: z.string() }).strict().optional(),
 });
 
+const lockAnswerSchema = z.object({ ok: z.literal(true), id: z.string() });
+
 const writeSchema = z.object({
   ok: z.boolean(),
   errors: z
@@ -95,6 +97,9 @@ function heldPaths(stream: FollowedStream): string[] {
 
 const lock = (client: AxiosInstance, viewer: string, path: string) =>
   client.put(LOCKS, { viewer, path });
+
+const renew = (client: AxiosInstance, viewer: string) =>
+  client.put(LOCKS, { viewer });
 
 const unlock = (client: AxiosInstance, viewer: string) =>
   client.delete(`${LOCKS}?viewer=${viewer}`);
@@ -217,6 +222,67 @@ describe("[unit] mockup presence: locks over HTTP", () => {
     expect(inside.status).to.equal(409);
     expect(elsewhere.status).to.equal(200);
     expect((await lock(ada, a, ROW)).status).to.equal(200);
+  });
+
+  it("answers the id of the block it holds, and renews it on a request that names no block, wherever a write of another viewer moved the block (fails when a renewal names the block by its place, or no id is answered)", async () => {
+    const { ada, bea, a, b, adaStream } = viewers();
+    const taken = lockAnswerSchema.parse((await lock(ada, a, KPI_C)).data);
+    await write(bea, b, (spec) => {
+      tree(spec).splice(1, 0, kpi("New"));
+    });
+    const moved = "/pages/0/tree/2";
+    expect(
+      await eventually(() => heldPaths(adaStream).includes(moved)),
+    ).to.equal(true);
+
+    const renewal = await renew(ada, a);
+
+    expect(renewal.status).to.equal(200);
+    expect(lockAnswerSchema.parse(renewal.data).id).to.equal(taken.id);
+    expect(specValueAt((await source(ada)).spec, `${moved}/id`)).to.equal(
+      taken.id,
+    );
+    expect(heldPaths(adaStream)).to.deep.equal([moved]);
+    expect((await lock(bea, b, KPI_C)).status).to.equal(200);
+  });
+
+  it("answers the id the block has on its own: an id an author wrote on a block under a stamped one (fails when the id of an ancestor is answered)", async () => {
+    const { ada, a, specPath } = viewers();
+    const authored: JsonObject = structuredClone(SPEC);
+    const [grid] = tree(authored);
+    if (!isJsonObject(grid) || !Array.isArray(grid.children)) {
+      throw new Error("the spec has no grid");
+    }
+    const [row] = grid.children;
+    if (!isJsonObject(row) || !Array.isArray(row.children)) {
+      throw new Error("the spec has no row");
+    }
+    const [first] = row.children;
+    if (!isJsonObject(first)) throw new Error("the spec has no block");
+    first.id = "revenue";
+    await writeFile(specPath, JSON.stringify(authored));
+
+    const taken = lockAnswerSchema.parse((await lock(ada, a, KPI_A)).data);
+
+    expect(taken.id).to.equal("revenue");
+  });
+
+  it("refuses a renewal from a viewer that holds no lock with 404, and from one with no stream or another user's with 403 (fails when a renewal is granted without a lock)", async () => {
+    const { ada, bea, a, b } = viewers();
+    await lock(ada, a, KPI_A);
+
+    const none = await renew(bea, b);
+    const stranger = await renew(ada, randomUUID());
+    const theirs = await renew(bea, a);
+    await unlock(ada, a);
+    const freed = await renew(ada, a);
+
+    expect([
+      none.status,
+      stranger.status,
+      theirs.status,
+      freed.status,
+    ]).to.deep.equal([404, 403, 403, 404]);
   });
 
   it("holds one block per viewer: taking another frees the first (fails when both stay held)", async () => {
@@ -470,7 +536,10 @@ describe("[unit] mockup presence: a lock runs out when it was not renewed", () =
   });
   const streams: FollowedStream[] = [];
 
-  after(() => streams.forEach((stream) => stream.close()));
+  afterEach(async () => {
+    streams.splice(0).forEach((stream) => stream.close());
+    await eventually(() => served().engine.streams.size === 0);
+  });
 
   it("holds a block until LOCK_IDLE_MS after its last renewal, then frees it and says so (fails when a renewal is ignored or a lock never expires)", async () => {
     const a = randomUUID();
@@ -493,5 +562,27 @@ describe("[unit] mockup presence: a lock runs out when it was not renewed", () =
     expect([early.status, renewed.status]).to.deep.equal([409, 409]);
     expect(freed).to.equal(true);
     expect(taken.status).to.equal(200);
+  });
+
+  it("pushes back the expiry of a lock on a request that names no block, and no longer renews one that ran out (fails when a renewal is ignored, or revives a lock that ran out)", async () => {
+    const a = randomUUID();
+    const b = randomUUID();
+    const { owner: ada, ownerToken } = served();
+    streams.push(await followEvents("desk", ownerToken, a));
+    const watcher = await followEvents("desk", ownerToken, b);
+    streams.push(watcher);
+    await lock(ada, a, KPI_B);
+
+    now += LOCK_IDLE_MS - 1;
+    const renewed = await renew(ada, a);
+    now += LOCK_IDLE_MS - 1;
+    const stillHeld = await lock(ada, b, KPI_B);
+    now += 2;
+    const freed = await eventually(() => heldPaths(watcher).length === 0);
+    const lateRenewal = await renew(ada, a);
+
+    expect([renewed.status, stillHeld.status]).to.deep.equal([200, 409]);
+    expect(freed).to.equal(true);
+    expect(lateRenewal.status).to.equal(404);
   });
 });

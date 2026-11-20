@@ -1,11 +1,13 @@
 import { expect } from "chai";
 import {
   acquired,
+  blockIdOf,
   joined,
   left,
   LOCK_IDLE_MS,
   NO_PRESENCE,
   parseViewerId,
+  renewed,
   settled,
   viewerOf,
 } from "../../../mockup";
@@ -95,5 +97,61 @@ describe("[unit] mockup presence: the table", () => {
     expect(
       known.kind === "granted" && known.table.locks[0]?.expiresAt,
     ).to.equal(1 + LOCK_IDLE_MS);
+  });
+
+  it("renews the lock a viewer holds wherever its block is, and renews none for a viewer that holds none or whose lock ran out (fails when a renewal needs the block's place, or revives an expired lock)", () => {
+    const { ada, bea } = viewers();
+    const now = 1000;
+    const table = joined(NO_PRESENCE, ada, ADA);
+    const withBea = table && joined(table, bea, BEA);
+    const taken =
+      withBea &&
+      acquired(withBea, { viewer: ada, anchor: SECOND, tree: TREE, now });
+    if (taken?.kind !== "granted") throw new Error("the lock was not granted");
+    const moved = settled(
+      taken.table,
+      {
+        pages: [
+          {
+            id: "home",
+            tree: [
+              { id: "b-aaaaaaaa", children: [] },
+              { id: "b-inserted", children: [] },
+              { id: "b-bbbbbbbb", children: [] },
+            ],
+          },
+        ],
+      },
+      now,
+    );
+
+    const later = renewed(moved, { viewer: ada, now: now + LOCK_IDLE_MS - 1 });
+    const none = renewed(moved, { viewer: bea, now });
+    const ranOut = renewed(moved, { viewer: ada, now: now + LOCK_IDLE_MS });
+    const stranger = renewed(NO_PRESENCE, { viewer: ada, now });
+
+    expect(later.kind).to.equal("renewed");
+    expect(later.kind === "renewed" && later.id).to.equal("b-bbbbbbbb");
+    expect(
+      later.kind === "renewed" && later.table.locks[0]?.site.path,
+    ).to.equal("/pages/0/tree/2");
+    expect(
+      later.kind === "renewed" && later.table.locks[0]?.expiresAt,
+    ).to.equal(now + LOCK_IDLE_MS - 1 + LOCK_IDLE_MS);
+    expect(none.kind).to.equal("no_lock");
+    expect(ranOut.kind).to.equal("no_lock");
+    expect(stranger.kind).to.equal("unknown_viewer");
+  });
+
+  it("names a block by its own id: the last step of its anchor, else the anchor's block (fails when an ancestor's id names the block)", () => {
+    expect(blockIdOf({ block: "b-aaaaaaaa", steps: [] })).to.equal(
+      "b-aaaaaaaa",
+    );
+    expect(blockIdOf({ block: "b-aaaaaaaa", steps: ["row", "cell"] })).to.equal(
+      "cell",
+    );
+    expect(blockIdOf({ block: "cell", steps: [], page: "home" })).to.equal(
+      "cell",
+    );
   });
 });

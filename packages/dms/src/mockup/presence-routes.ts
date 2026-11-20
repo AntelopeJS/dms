@@ -17,7 +17,9 @@ import { MockupOwnerController } from "./owner-controller";
 import type { PresenceBoard } from "./presence-board";
 import {
   type Acquisition,
+  blockIdOf,
   parseViewerId,
+  type Renewal,
   type ViewerId,
   viewerIdSchema,
 } from "./presence";
@@ -32,16 +34,24 @@ const MAX_POINTER = 2048;
 const lockBodySchema = z
   .object({
     viewer: viewerIdSchema,
-    /** The spec JSON pointer of the node the viewer is about to edit. */
+    /** The spec JSON pointer of the node the viewer is about to edit; none renews the lock the viewer holds, wherever its block is. */
     path: z
       .string()
       .max(MAX_POINTER)
-      .regex(/^(?:\/[^/]*)*$/),
+      .regex(/^(?:\/[^/]*)*$/)
+      .optional(),
   })
   .strict();
 
-/** What taking or freeing a lock answers when it worked. */
+/** What taking or renewing a lock answers when it worked. */
 export interface LockAnswer {
+  ok: true;
+  /** The id the locked block carries in the spec, which a client finds it by after a write moves it. */
+  id: string;
+}
+
+/** What freeing a lock answers when it worked. */
+export interface ReleaseAnswer {
   ok: true;
 }
 
@@ -58,6 +68,7 @@ function notOnMockup(): HTTPResult {
 /** What the lock routes answer when they refuse. */
 type Refusal =
   | Exclude<Acquisition, { kind: "granted" }>
+  | Exclude<Renewal, { kind: "renewed" }>
   | { kind: "no_mockup" }
   | { kind: "ambiguous" }
   | { kind: "spec_invalid"; errors: Array<{ path: string; message: string }> };
@@ -68,6 +79,8 @@ function refused(refusal: Refusal): HTTPResult {
       return notFound("mockup");
     case "no_node":
       return notFound("node at this path");
+    case "no_lock":
+      return notFound("lock");
     case "unknown_viewer":
       return notOnMockup();
     case "held":
@@ -104,9 +117,11 @@ export function registerPresenceRoutes(
     /**
      * Takes the lock on the node at `path` for `viewer`, who holds no other
      * after it, or renews the one it holds there. The node gets an id when it
-     * has none, as a note pinned on it would give it. Answers 409 with the
-     * holder's name while another viewer holds that node, an ancestor of it or
-     * a descendant.
+     * has none, as a note pinned on it would give it, and the answer names the
+     * id. Answers 409 with the holder's name while another viewer holds that
+     * node, an ancestor of it or a descendant. With no `path`, it pushes back
+     * the expiry of the lock `viewer` holds wherever its block is now, and
+     * answers 404 when it holds none.
      */
     @Put(":name/locks")
     async acquire(
@@ -124,6 +139,11 @@ export function registerPresenceRoutes(
       }
       const { viewer, path } = parsed.data;
       if (!board.viewerOf(name, viewer, owner.userId)) throw notOnMockup();
+      if (path === undefined) {
+        const renewal = board.renew(name, { id: viewer, userId: owner.userId });
+        if (renewal.kind !== "renewed") throw refused(renewal);
+        return { ok: true, id: renewal.id };
+      }
       const answer = await withSpecLock(
         mockupsDir,
         name,
@@ -152,7 +172,7 @@ export function registerPresenceRoutes(
               throw error;
             }
           }
-          return { ok: true };
+          return { ok: true, id: blockIdOf(anchored.anchor) };
         },
       );
       if ("kind" in answer) throw refused(answer);
@@ -164,7 +184,7 @@ export function registerPresenceRoutes(
     async release(
       @Parameter("name") rawName: string,
       @Context() context: RequestContext,
-    ): Promise<LockAnswer> {
+    ): Promise<ReleaseAnswer> {
       const owner = await this.owner();
       const name = parseMockupName(rawName);
       if (!name) throw notFound("mockup");

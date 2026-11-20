@@ -12,6 +12,8 @@ import {
   type MockupPresence,
   type PresenceSnapshot,
   released,
+  type Renewal,
+  renewed,
   settled,
   unexpired,
   type Viewer,
@@ -131,6 +133,23 @@ export class PresenceBoard {
     });
     if (taken.kind === "granted") this.apply(entry, taken.table);
     return taken;
+  }
+
+  /**
+   * Pushes back the expiry of the lock the viewer `id` of `userId` holds,
+   * wherever its block is now.
+   */
+  renew(name: MockupName, who: { id: ViewerId; userId: string }): Renewal {
+    const entry = this.entries.get(name);
+    if (!entry || !viewerOf(entry.table, who.id, who.userId)) {
+      return { kind: "unknown_viewer" };
+    }
+    const renewal = renewed(entry.table, {
+      viewer: who.id,
+      now: this.clock.now(),
+    });
+    if (renewal.kind === "renewed") this.apply(entry, renewal.table);
+    return renewal;
   }
 
   /** Frees the lock the viewer `id` of `userId` holds; false when it is not on `name`. */
