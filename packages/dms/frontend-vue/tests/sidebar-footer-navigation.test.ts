@@ -14,22 +14,39 @@ import {
 } from "vue";
 import type { NavigationMenuItem } from "@nuxt/ui";
 import { stubModuleReads } from "./helpers/installed-modules-runtime";
+import {
+  applyMenuRouteState,
+  translateMenuItems,
+} from "../layers/dms-core/app/utils/menu";
 import Sidebar from "../layers/dms-layout/app/entries/components/layout/DashboardSidebar";
 
 const route = reactive({ path: "/modules/automation/runs", query: {} });
+const siteLayoutTree = ref<SiteLayoutTree>();
 let app: App;
 let host: HTMLDivElement;
 
+const flatten = (
+  items: ReadonlyArray<NavigationMenuItem | NavigationMenuItem[]>,
+): NavigationMenuItem[] =>
+  items.flatMap((item) =>
+    Array.isArray(item)
+      ? flatten(item)
+      : [item, ...flatten(item.children ?? [])],
+  );
+
 const Navigation = defineComponent({
   props: {
-    items: { type: Array<NavigationMenuItem>, required: true },
+    items: {
+      type: Array<NavigationMenuItem | NavigationMenuItem[]>,
+      required: true,
+    },
   },
   setup: (props) => () =>
     h(
       "nav",
-      props.items.map((item) =>
+      flatten(props.items).map((item) =>
         h(
-          "a",
+          item.type === "label" ? "span" : "a",
           {
             href: item.to,
             "data-exact": String(item.exact),
@@ -69,9 +86,12 @@ function installRuntime() {
   );
   vi.stubGlobal("useSiteLayout", () => ({
     siteLayout: ref({}),
-    siteLayoutTree: ref(),
+    siteLayoutTree,
     findMatchingRoute: () => null,
-    findMatchingRouteOrCategory: () => null,
+    findMatchingRouteOrCategory: (path: string) => {
+      const fullId = path.split("/").filter(Boolean).join(".");
+      return fullId ? { metadata: { fullId } } : null;
+    },
   }));
   vi.stubGlobal("useFavoritePages", () => ({
     cleanupInvalidFavorites: vi.fn(),
@@ -81,7 +101,10 @@ function installRuntime() {
   vi.stubGlobal("useCurrentModule", () =>
     computed(() =>
       route.path.startsWith("/modules/automation")
-        ? { id: "automation" }
+        ? {
+            id: "automation",
+            info: { icon: "i-ph-robot", title: "Automation" },
+          }
         : null,
     ),
   );
@@ -99,9 +122,12 @@ function installRuntime() {
   vi.stubGlobal("SETTINGS_ROUTE", "/settings");
   vi.stubGlobal("ACCOUNT_MENU_ENTRIES", []);
   vi.stubGlobal("collectOpenItemIds", () => []);
+  vi.stubGlobal("translateMenuItems", translateMenuItems);
+  vi.stubGlobal("applyMenuRouteState", applyMenuRouteState);
 }
 
 beforeEach(() => {
+  siteLayoutTree.value = undefined;
   installRuntime();
   host = document.createElement("div");
 });
@@ -110,26 +136,135 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
+function mountSidebar(): void {
+  app = createApp(Sidebar);
+  app.component(
+    "UDashboardSidebar",
+    defineComponent({
+      setup:
+        (_, { slots }) =>
+        () => [
+          h(
+            "div",
+            { "data-part": "menu" },
+            slots.default?.({ collapsed: false }),
+          ),
+          h(
+            "div",
+            { "data-part": "footer" },
+            slots.footer?.({ collapsed: false }),
+          ),
+        ],
+    }),
+  );
+  app.component("DmsNavigationMenu", Navigation);
+  app.component("DmsDashboardSearch", defineComponent({ render: () => null }));
+  app.mount(host);
+}
+
+interface NodeFixture {
+  id: string;
+  type?: "label" | "link";
+  placement?: "footer";
+  hasAccess?: boolean;
+  children?: NodeFixture[];
+}
+
+function node(
+  { children = [], ...fixture }: NodeFixture,
+  parent = "",
+): SiteLayoutTree {
+  const fullId = parent ? `${parent}.${fixture.id}` : fixture.id;
+  return {
+    displayName: fixture.id,
+    fullSlug: `/${fullId.replaceAll(".", "/")}`,
+    hasAccess: true,
+    layoutUrl: fixture.type === "label" ? undefined : `/${fullId}/pagelayout`,
+    ...fixture,
+    fullId,
+    children: Object.fromEntries(
+      children.map((child) => [child.id, node(child, fullId)]),
+    ),
+    childrenOrders: children.map((child) => child.id),
+  };
+}
+
+const root = (children: NodeFixture[]) => node({ id: "", children });
+
+const labels = (part: "menu" | "footer") =>
+  [...host.querySelectorAll(`[data-part="${part}"] nav > *`)].map(
+    (entry) => entry.textContent,
+  );
+
+it.each(["/reports", "/modules/automation/runs"])(
+  "draws a pinned entry in the footer above Back and Modules, out of the menu, on %s",
+  (path) => {
+    route.path = path;
+    siteLayoutTree.value = root([
+      { id: "reports" },
+      { id: "admin", placement: "footer" },
+    ]);
+    mountSidebar();
+
+    expect(labels("menu")).not.toContain("admin");
+    expect(labels("footer")).toEqual(
+      path === "/reports"
+        ? ["admin", "menu.modules"]
+        : ["admin", "menu.back", "menu.modules"],
+    );
+  },
+);
+
+it("draws a pinned label category as its heading and its pages", () => {
+  route.path = "/reports";
+  siteLayoutTree.value = root([
+    { id: "reports" },
+    {
+      id: "admin",
+      type: "label",
+      placement: "footer",
+      children: [{ id: "general" }, { id: "integrations" }],
+    },
+  ]);
+  mountSidebar();
+
+  expect(labels("menu")).toEqual(["reports"]);
+  expect(labels("footer")).toEqual([
+    "admin",
+    "general",
+    "integrations",
+    "menu.modules",
+  ]);
+});
+
+it("draws no pinned entry the user may not open", () => {
+  route.path = "/reports";
+  siteLayoutTree.value = root([
+    { id: "reports" },
+    { id: "admin", placement: "footer", hasAccess: false },
+  ]);
+  mountSidebar();
+
+  expect(labels("footer")).toEqual(["menu.modules"]);
+});
+
+it("marks the pinned entry of the current page active", () => {
+  route.path = "/admin";
+  siteLayoutTree.value = root([{ id: "admin", placement: "footer" }]);
+  mountSidebar();
+
+  expect(
+    host
+      .querySelector('[data-part="footer"] a[href="/admin"]')
+      ?.getAttribute("data-active"),
+  ).toBe("true");
+});
+
 it.each(["/modules/automation/runs", "/modules", "/settings/user/profile"])(
   "keeps exact footer destinations and no Settings entry on %s",
   (path) => {
     route.path = path;
-    app = createApp(Sidebar);
-    app.component(
-      "UDashboardSidebar",
-      defineComponent({
-        setup:
-          (_, { slots }) =>
-          () =>
-            slots.footer?.({ collapsed: false }),
-      }),
-    );
-    app.component("DmsNavigationMenu", Navigation);
-    app.component(
-      "DmsDashboardSearch",
-      defineComponent({ render: () => null }),
-    );
-    app.mount(host);
+    mountSidebar();
     const modules = [...host.querySelectorAll('a[href="/modules"]')];
     expect(modules).toHaveLength(
       path.startsWith("/modules/automation") ? 2 : 1,

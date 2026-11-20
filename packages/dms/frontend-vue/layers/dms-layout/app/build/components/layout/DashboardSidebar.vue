@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { NavigationMenuItem } from "@nuxt/ui";
 import {
+  convertSiteLayoutTreeToFooterItems,
   convertSiteLayoutTreeToTreeItems,
   convertSiteLayoutTreeToTreeItemsForModule,
 } from "#dms-ui/app/entries/types/tree";
@@ -235,10 +236,26 @@ const items = computed((): NavigationMenuItem[][] => {
   );
 });
 
+const pinnedItems = computed((): NavigationMenuItem[][] => {
+  if (isMockup.value || !siteLayout.siteLayoutTree.value) {
+    return [];
+  }
+
+  const menuItems = convertSiteLayoutTreeToFooterItems(
+    siteLayout.siteLayoutTree.value,
+  );
+  const translatedItems = translateMenuItems(menuItems, processI18n);
+  return applyMenuRouteState(
+    translatedItems,
+    currentFullId.value,
+    currentRoute.value,
+  );
+});
+
 const openCategories = ref<string[]>([]);
 
 watch(
-  () => items.value,
+  () => [...items.value, ...pinnedItems.value],
   (menuItems) => {
     const requiredIds = collectOpenItemIds(menuItems);
     const current = new Set(openCategories.value);
@@ -292,6 +309,10 @@ const footerItems = computed((): NavigationMenuItem[] => {
 
   return result;
 });
+
+const footerGroups = computed((): NavigationMenuItem[][] =>
+  [...pinnedItems.value, footerItems.value].filter((group) => group.length > 0),
+);
 </script>
 
 <template>
@@ -442,10 +463,11 @@ const footerItems = computed((): NavigationMenuItem[] => {
 
     <template #footer="{ collapsed: sidebarRail }">
       <DmsNavigationMenu
-        v-if="footerItems.length > 0"
+        v-if="footerGroups.length > 0"
+        v-model="openCategories"
         v-bind="chromeAttrs"
         :collapsed="isRail(sidebarRail)"
-        :items="footerItems"
+        :items="footerGroups"
         orientation="vertical"
         class="w-full"
       />

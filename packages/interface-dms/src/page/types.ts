@@ -297,6 +297,8 @@ export interface MenuOptions {
    * status dot — the badge wins.
    */
   badge?: string;
+  /** Draws a first-level entry in the sidebar footer, above "Modules". */
+  placement?: "footer";
   /**
    * Default layout of the entry and of every page and sub-category declared
    * under it that sets none of its own (`Category("billing", { category,

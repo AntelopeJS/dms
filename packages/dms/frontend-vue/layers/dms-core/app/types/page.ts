@@ -30,6 +30,7 @@ export interface MenuOptions {
   variant?: MenuItemVariant;
   status?: MenuItemStatus;
   badge?: string;
+  placement?: "footer";
   bypassTenantAccessGate?: boolean;
   /** The page's Direct / Pause valve (see `PageLiveOptions`). */
   live?: PageLiveOptions;
