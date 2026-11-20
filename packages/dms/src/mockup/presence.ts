@@ -45,7 +45,7 @@ export interface Viewer extends Who {
  * The block a viewer is editing: found again through `anchor` after every
  * spec change, `site` being where it was last found.
  */
-export interface NodeLock {
+interface NodeLock {
   anchor: BlockAnchor;
   site: NodeSite;
   viewer: ViewerId;
