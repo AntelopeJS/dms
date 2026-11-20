@@ -308,6 +308,15 @@ export function ancestorPointers(pointer: string): string[] {
   );
 }
 
+/** The one pointer `id` has in `spec`; undefined when no node or several carry it. */
+export function pointerOfId(
+  spec: MockupSpecDocument,
+  id: string,
+): string | undefined {
+  const [only, ...others] = pointersOfId(spec, id);
+  return others.length === 0 ? only : undefined;
+}
+
 /** The pointer of each node of `spec` whose id is `id`, in document order. */
 export function pointersOfId(spec: MockupSpecDocument, id: string): string[] {
   const found: string[] = [];

@@ -9,11 +9,8 @@ import {
   type ShallowRef,
 } from "vue";
 import type { JsonValue } from "../../../../../dms-core/app/types/json";
-import {
-  isNumber,
-  isObject,
-  isString,
-} from "../../../../../dms-core/app/utils/type-check";
+import { isString } from "../../../../../dms-core/app/utils/type-check";
+import { fetchStatus } from "../../utils/fetchStatus";
 import { isObjectValue } from "../../utils/json";
 import {
   mockupEndpoint,
@@ -33,7 +30,7 @@ import {
   undo,
   type MockupHistory,
 } from "../../utils/mockupHistory";
-import { type RebasedEdit, rebasedEdit } from "../../utils/mockupRebase";
+import { rebasedEdit } from "../../utils/mockupRebase";
 import {
   parseMockupSpec,
   type MockupSpecDocument,
@@ -78,11 +75,11 @@ interface MockupSpecOptions {
   /** This browser session's viewer id, which each write names: its own locks do not refuse it. */
   viewer?: string;
   /**
-   * The pointer of the block this session holds the lock of, while it holds
-   * one. An outside change that moves the block moves it here too, once the
-   * edit inside it is kept on top of that change.
+   * The id of the block this session holds the lock of, while it holds one:
+   * the editor finds the block by it, wherever an edit or an outside change
+   * put it, and never writes it.
    */
-  held?: Ref<string | undefined>;
+  held?: Readonly<Ref<string | undefined>>;
 }
 
 /** The spec the `/mockup` editor changes, and its undo history. */
@@ -134,10 +131,6 @@ interface SpecSource {
   writtenBy?: { name: string };
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return isObject(value) && value !== null && !Array.isArray(value);
-}
-
 function parseSource(value: JsonValue | undefined): SpecSource | undefined {
   if (!isObjectValue(value) || !isString(value.digest)) return undefined;
   const spec = parseMockupSpec(value.spec);
@@ -165,12 +158,6 @@ function parseWriteAnswer(
   return isString(path) && isString(message)
     ? { ok: false, issue: { path, message } }
     : undefined;
-}
-
-function statusOf(cause: unknown): number | undefined {
-  if (!isRecord(cause)) return undefined;
-  const response = isRecord(cause.response) ? cause.response : {};
-  return [cause.status, cause.statusCode, response.status].find(isNumber);
 }
 
 function sameSpec(
@@ -281,7 +268,7 @@ class MockupSpecSync {
    * The file with the edit not written yet put back on it, when the edit is
    * all inside the block this session holds: see {@link rebasedEdit}.
    */
-  private keptEdit(source: SpecSource): RebasedEdit | undefined {
+  private keptEdit(source: SpecSource): MockupSpecDocument | undefined {
     const present = this.history.value?.present;
     const held = this.options.held?.value;
     const written = this.written.value;
@@ -294,22 +281,25 @@ class MockupSpecSync {
   /**
    * Takes the file in place of the spec held, starting the history over. An
    * edit inside the block this session holds is kept and written on top.
+   * Another viewer's file is no news to tell by its author when it takes an
+   * edit not written yet with it: that edit is told as lost.
    */
   adopt(source: SpecSource, isNews: boolean): void {
     const previous = this.history.value?.present;
     const kept = isNews ? this.keptEdit(source) : undefined;
+    const isLosing =
+      previous !== undefined && previous !== this.written.value && !kept;
     this.stopTimers();
     this.landed();
     this.digest = source.digest;
     this.written.value = source.spec;
     this.history.value = kept
-      ? commit(reset(source.spec), kept.spec)
+      ? commit(reset(source.spec), kept)
       : reset(source.spec);
-    if (kept && this.options.held) this.options.held.value = kept.held;
     if (!isNews) return;
-    this.adoption.value = { previous, next: kept?.spec ?? source.spec };
+    this.adoption.value = { previous, next: kept ?? source.spec };
     this.options.onNotice(
-      source.writtenBy
+      source.writtenBy && !isLosing
         ? { kind: "adopted", by: source.writtenBy.name }
         : { kind: "adopted" },
     );
@@ -380,7 +370,7 @@ class MockupSpecSync {
     cause: unknown,
     sent: MockupSpecDocument,
   ): Promise<void> {
-    if (statusOf(cause) !== HTTP_CONFLICT) {
+    if (fetchStatus(cause) !== HTTP_CONFLICT) {
       if (!this.unconfirmed.includes(sent)) this.unconfirmed.push(sent);
       this.failed(cause);
       return;

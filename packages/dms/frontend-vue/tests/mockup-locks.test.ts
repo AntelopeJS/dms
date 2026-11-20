@@ -78,6 +78,11 @@ async function pick(path: string): Promise<void> {
   await viewer.say({ type: "layout", blocks: RECTS });
 }
 
+async function click(selector: string): Promise<void> {
+  find(selector)?.click();
+  await flush();
+}
+
 async function type(title: string): Promise<void> {
   const field = titleField();
   if (!field) throw new Error("no title field");
@@ -169,6 +174,100 @@ describe("the lock of the selected block", () => {
     await type("Tur");
     await type("Turn");
     expect(taken()).toHaveLength(2);
+  });
+
+  it("is renewed without naming a block, which another viewer's write may have moved (fails when a renewal sends the pointer the lock was taken at)", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    await pick("block-0");
+
+    vi.setSystemTime(Date.now() + MOCKUP_LOCK_RENEW_MS + 1);
+    await type("T");
+
+    expect(taken()).toHaveLength(2);
+    expect(taken()[1]?.path).toBeUndefined();
+  });
+
+  it("is taken again once the edit is written, when a renewal finds it gone (fails when a lock that ran out stays lost until another block is selected)", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    await pick("block-0");
+    runtime.holding.clear();
+
+    vi.setSystemTime(Date.now() + MOCKUP_LOCK_RENEW_MS + 1);
+    await type("T");
+    await settled();
+
+    expect(taken().map((request) => request.path)).toEqual([
+      FIRST,
+      undefined,
+      FIRST,
+    ]);
+    expect(runtime.holding.size).toBe(1);
+  });
+});
+
+describe("the edit under a lock while another viewer writes", () => {
+  const titles = () =>
+    runtime.file.spec.pages[0]?.tree.map((node) => node.options?.title);
+
+  async function theyWrite(change: (theirs: MockupSpecDocument) => void) {
+    const theirs = structuredClone(runtime.file.spec);
+    change(theirs);
+    runtime.file.spec = theirs;
+    runtime.file.version += 1;
+    runtime.file.writtenBy = { name: "Bea" };
+    await viewer.publish(
+      "state",
+      mockupState({ revision: 100 + runtime.file.version, pages: STATE.pages }),
+    );
+  }
+
+  async function landed(): Promise<void> {
+    await new Promise((resolve) =>
+      setTimeout(resolve, MOCKUP_WRITE_DELAY_MS * 3 + 100),
+    );
+    await flush();
+  }
+
+  it("is kept when another viewer inserted a block above the held one and took it, the lock having been renewed meanwhile (fails when a renewal moves the lock to the block now at the old pointer, which the other viewer holds, and the typing is dropped)", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    await pick("block-0");
+    vi.setSystemTime(Date.now() + MOCKUP_LOCK_RENEW_MS + 1);
+    await type("Tu");
+
+    await theyWrite((theirs) => {
+      theirs.pages[0]?.tree.unshift({
+        id: "b-new00001",
+        type: "KpiCard",
+        options: { title: "New" },
+      });
+    });
+    runtime.rivals.add("b-new00001");
+    vi.setSystemTime(Date.now() + MOCKUP_LOCK_RENEW_MS + 1);
+    await type("Tur");
+    await landed();
+
+    expect(titles()).toEqual(["New", "Tur", "Orders"]);
+    expect(runtime.toasts).toEqual([]);
+  });
+
+  it("is kept when this session moved the held block and typed in it before the stream sent the state of the move (fails when the held block is looked for at the pointer it was taken at)", async () => {
+    await pick("block-0");
+    await click("[data-dms-mockup-move-down]");
+    await new Promise((resolve) =>
+      setTimeout(resolve, MOCKUP_WRITE_DELAY_MS + 50),
+    );
+    await flush();
+    expect(titles()).toEqual(["Orders", "Revenue"]);
+    expect(titleField()?.value).toBe("Revenue");
+
+    await type("Mine");
+    await theyWrite((theirs) => {
+      const [first] = theirs.pages[0]?.tree ?? [];
+      if (first?.options) first.options.title = "Sales";
+    });
+    await landed();
+
+    expect(titles()).toEqual(["Sales", "Mine"]);
   });
 });
 

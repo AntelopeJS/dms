@@ -37,6 +37,7 @@ import type {
 } from "../../layers/dms-ui/app/entries/utils/mockup";
 import type { MockupBlockType } from "../../layers/dms-ui/app/entries/utils/mockupCatalog";
 import type { MockupSpecDocument } from "../../layers/dms-ui/app/entries/utils/mockupSpec";
+import { FakeLocks, type LockRequest } from "./mockup-locks-backend";
 import {
   annotation,
   answerAnnotations,
@@ -301,8 +302,12 @@ export interface MockupRuntime {
     version: number;
     writtenBy?: { name: string };
   };
-  /** The lock requests the viewer sent: taking (`PUT`) and freeing (`DELETE`) the lock on a block. */
-  locks: Array<{ method: string; viewer: string; path?: string }>;
+  /** The lock requests the viewer sent: taking (`PUT` with a `path`), renewing (`PUT` without) and freeing (`DELETE`) the lock on a block. */
+  locks: LockRequest[];
+  /** The id of the block the fake backend holds for each viewer; deleting an entry makes the lock run out. */
+  holding: FakeLocks["holding"];
+  /** The ids of the blocks other viewers hold: taking one answers 409. */
+  rivals: FakeLocks["rivals"];
   /** Holds the answer of every lock request sent from now on; the returned function lets them answer. */
   holdLocks: () => () => void;
   /** The toasts the viewer raised. */
@@ -326,18 +331,7 @@ export function stubMockupRuntime(options: RuntimeOptions = {}): MockupRuntime {
     spec: options.spec ?? mockupSpec(),
     version: 1,
   };
-  const locks: MockupRuntime["locks"] = [];
-  let lockGate: Promise<void> | undefined;
-  const holdLocks: MockupRuntime["holdLocks"] = () => {
-    let release = () => {};
-    lockGate = new Promise<void>((resolve) => {
-      release = resolve;
-    });
-    return () => {
-      release();
-      lockGate = undefined;
-    };
-  };
+  const lockTable = new FakeLocks();
   const authFetch = vi.fn(async (url: string, init?: FakeRequest) => {
     if (url === "/api/mockup") {
       const results = (options.mockups ?? []).map((mockup) => ({
@@ -350,6 +344,12 @@ export function stubMockupRuntime(options: RuntimeOptions = {}): MockupRuntime {
     }
     if (url === CATALOG_URL) return { blocks: options.blocks ?? [] };
     if (url === SPEC_URL && init?.method === "PUT" && init.body?.spec) {
+      if (
+        init.body.digest !== undefined &&
+        init.body.digest !== `d${file.version}`
+      ) {
+        throw Object.assign(new Error("conflict"), { status: 409 });
+      }
       file.spec = structuredClone(init.body.spec);
       file.version += 1;
       file.writtenBy = undefined;
@@ -362,18 +362,8 @@ export function stubMockupRuntime(options: RuntimeOptions = {}): MockupRuntime {
         writtenBy: file.writtenBy,
       };
     }
-    if (url.startsWith(LOCKS_URL)) {
-      locks.push({
-        method: init?.method ?? "GET",
-        viewer:
-          init?.body?.viewer ??
-          new URL(url, "http://backend").searchParams.get("viewer") ??
-          "",
-        path: init?.body?.path,
-      });
-      await lockGate;
-      return { ok: true };
-    }
+    if (url.startsWith(LOCKS_URL))
+      return lockTable.answer(url, init, file.spec);
     return answerAnnotations(notes, url, init);
   });
   for (const [name, value] of Object.entries({
@@ -428,7 +418,18 @@ export function stubMockupRuntime(options: RuntimeOptions = {}): MockupRuntime {
   );
   vi.stubGlobal("useDmsUserSession", () => ({ loggedIn: ref(true) }));
   vi.stubGlobal("isDmsHydrating", () => false);
-  return { authFetch, notes, file, locks, holdLocks, toasts, route, pushes };
+  return {
+    authFetch,
+    notes,
+    file,
+    locks: lockTable.requests,
+    holding: lockTable.holding,
+    rivals: lockTable.rivals,
+    holdLocks: () => lockTable.hold(),
+    toasts,
+    route,
+    pushes,
+  };
 }
 
 type WithoutChannel<Message> = Message extends unknown

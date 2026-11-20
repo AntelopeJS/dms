@@ -38,6 +38,7 @@ export interface FakeRequest {
   method?: string;
   body?: Record<string, string> & {
     spec?: MockupSpecDocument;
+    digest?: string;
     offset?: MockupAnnotation["offset"];
     place?: Pick<MockupAnnotation, "page" | "path" | "offset" | "state">;
   };

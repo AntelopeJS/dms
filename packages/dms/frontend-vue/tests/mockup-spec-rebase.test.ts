@@ -4,7 +4,6 @@ import { describe, expect, it } from "vitest";
 import { MOCKUP_WRITE_DELAY_MS } from "../layers/dms-ui/app/entries/composables/block-preview/useMockupSpec";
 import type { MockupSpecDocument } from "../layers/dms-ui/app/entries/utils/mockupSpec";
 import {
-  TITLE,
   editor,
   file,
   mountEditor,
@@ -18,6 +17,7 @@ import {
 useSpecEditor();
 
 const SECOND = "/pages/0/tree/1";
+const REVENUE = "b-revenue";
 
 function twoBlocks(): MockupSpecDocument {
   return {
@@ -49,7 +49,7 @@ function theirs(title: string): MockupSpecDocument {
 describe("a write from outside while the editor holds a block", () => {
   it("keeps an edit made inside the held block and writes it on top of the other writer's file (fails when the edit is discarded with the adopted file)", async () => {
     file.spec = twoBlocks();
-    await mountEditor({ held: shallowRef(TITLE) });
+    await mountEditor({ held: shallowRef(REVENUE) });
     retitle("Mine");
     file.writeFromOutside(theirs("Theirs"));
 
@@ -62,7 +62,7 @@ describe("a write from outside while the editor holds a block", () => {
 
   it("takes the other writer's file and drops an edit made outside the held block (fails when every unwritten edit is kept)", async () => {
     file.spec = twoBlocks();
-    await mountEditor({ held: shallowRef(TITLE) });
+    await mountEditor({ held: shallowRef(REVENUE) });
     editor.apply({
       kind: "setOption",
       pointer: SECOND,
@@ -90,7 +90,7 @@ describe("a write from outside while the editor holds a block", () => {
 
   it("keeps the edit when the stream reports the file before the edit is written, undo then going back to the other writer's file (fails when the history keeps steps the other file does not have)", async () => {
     file.spec = twoBlocks();
-    await mountEditor({ held: shallowRef(TITLE) });
+    await mountEditor({ held: shallowRef(REVENUE) });
     file.failures = 1;
     retitle("Mine");
     await settle(MOCKUP_WRITE_DELAY_MS);
@@ -107,8 +107,6 @@ describe("a write from outside while the editor holds a block", () => {
 });
 
 describe("a write from outside that moves the held block", () => {
-  const MOVED = "/pages/0/tree/1";
-
   function withNewFirst(title: string): MockupSpecDocument {
     const written = theirs(title);
     written.pages[0]?.tree.unshift({
@@ -119,15 +117,13 @@ describe("a write from outside that moves the held block", () => {
     return written;
   }
 
-  it("keeps the edit through a second write from outside that lands before the first rebase is written, the held block now being where the first write put it (fails when the held pointer stays on the old place)", async () => {
+  it("keeps the edit through a second write from outside that lands before the first rebase is written, the held block now being where the first write put it (fails when the held block is looked for at the place it had before the first write)", async () => {
     file.spec = twoBlocks();
-    const held = shallowRef<string | undefined>(TITLE);
-    await mountEditor({ held });
+    await mountEditor({ held: shallowRef(REVENUE) });
     retitle("Mine");
     file.writeFromOutside(withNewFirst("Theirs"));
 
     await settle(MOCKUP_WRITE_DELAY_MS);
-    expect(held.value).toBe(MOVED);
     expect(titles(editor.spec.value)).toEqual(["New", "Mine", "Theirs"]);
     const again = withNewFirst("Theirs, again");
     file.writeFromOutside(again);
@@ -135,6 +131,17 @@ describe("a write from outside that moves the held block", () => {
 
     expect(titles(file.spec)).toEqual(["New", "Mine", "Theirs, again"]);
     expect(titles(editor.spec.value)).toEqual(["New", "Mine", "Theirs, again"]);
+  });
+
+  it("takes the other writer's file when the id held names no block (fails when the edit is put back on some other block)", async () => {
+    file.spec = twoBlocks();
+    await mountEditor({ held: shallowRef("b-gone0001") });
+    retitle("Mine");
+    file.writeFromOutside(theirs("Theirs"));
+
+    await settle(MOCKUP_WRITE_DELAY_MS * 3);
+
+    expect(titles(file.spec)).toEqual(["Revenue", "Theirs"]);
   });
 });
 
@@ -167,7 +174,7 @@ describe("a write from outside that stamps an id inside the held block", () => {
 
   it("writes the held block's edit with the id a note pinned on its child, when that comes in the same read as another change (fails when the rebase puts the held block back without the stamp)", async () => {
     file.spec = nested();
-    await mountEditor({ held: shallowRef(GRID) });
+    await mountEditor({ held: shallowRef("b-grid0001") });
     editor.apply({
       kind: "setOption",
       pointer: CELL,
@@ -192,7 +199,7 @@ describe("a write from outside that stamps an id inside the held block", () => {
 
   it("gives the id to the child it was stamped on only, when the edit removed a sibling and added a block of the same type at that sibling's place (fails when the new block is taken for the stamped one and the two share the id)", async () => {
     file.spec = nested();
-    await mountEditor({ held: shallowRef(GRID) });
+    await mountEditor({ held: shallowRef("b-grid0001") });
     editor.apply({ kind: "removeNode", pointer: CELL });
     editor.apply({
       kind: "insertNode",
@@ -233,6 +240,18 @@ describe("what a write from outside says", () => {
     await streamSaysTheFileChanged();
 
     expect(notices).toEqual([{ kind: "adopted", by: "Bea" }]);
+  });
+
+  it("names no one either when taking the file drops an edit not written yet, so that the dropped edit is told (fails when a file another viewer wrote is taken in silence over an edit)", async () => {
+    file.spec = twoBlocks();
+    await mountEditor({ held: shallowRef(undefined) });
+    retitle("Mine");
+    file.writeFromOutside(theirs("Theirs"), { name: "Bea" });
+
+    await settle(MOCKUP_WRITE_DELAY_MS * 3);
+
+    expect(titles(file.spec)).toEqual(["Revenue", "Theirs"]);
+    expect(notices).toEqual([{ kind: "adopted" }]);
   });
 
   it("names no one for a file the AI wrote (fails when every adoption is attributed)", async () => {

@@ -11,8 +11,8 @@ interface DocumentOptions {
   onNotice: () => void;
   /** This browser session's viewer id: see {@link MockupSpecEditor}. */
   viewer: string;
-  /** The pointer of the block this session holds the lock of, while it holds one. */
-  held: Ref<string | undefined>;
+  /** The id of the block this session holds the lock of, while it holds one. */
+  held: Readonly<Ref<string | undefined>>;
 }
 
 /**
