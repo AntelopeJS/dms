@@ -76,6 +76,8 @@ export interface ProposalSummary {
   resources: ResourceSummary[];
   excluded: Array<Pick<ProposedExclusion, "relation" | "reason">>;
   open: OpenItemSummary[];
+  /** The relations read that the module maps already, which the proposal leaves out. */
+  mapped: string[];
   detail?: AnalysisDetail;
   hint: string;
 }
@@ -87,6 +89,16 @@ export type AnalysisSummary = Omit<AnalysisState, "proposal"> & {
 
 const HINT =
   'Compact: each relation lists its columns with types, relations and where each is used. Pass `detail: ["schema.name"]` to read the named relations in full: every choice with its rule, each column\'s profile, and the open items of those relations.';
+
+const ALL_MAPPED_HINT =
+  "Every relation read is mapped already, so nothing is left to propose: say so, and offer to open the pages that show them, or to start a new mockup over them (mockup_write_spec).";
+
+/** The hint for a proposal: what to do when every relation read is mapped already, else how to read more. */
+function hintOf(proposal: RedactedProposal): string {
+  const nothingLeft =
+    proposal.resources.length === 0 && proposal.open.length === 0;
+  return nothingLeft && proposal.mapped.length > 0 ? ALL_MAPPED_HINT : HINT;
+}
 
 function screenOf(resource: RedactedResource): ScreenKind {
   if (!resource.tableView.value) return "stats";
@@ -189,7 +201,8 @@ export function summariseAnalysis(
       reason,
     })),
     open: proposal.open.map(openItemOf),
-    hint: HINT,
+    mapped: proposal.mapped,
+    hint: hintOf(proposal),
   };
   if (detail.length) summary.detail = detailOf(proposal, detail);
   return { ...rest, proposal: summary };
