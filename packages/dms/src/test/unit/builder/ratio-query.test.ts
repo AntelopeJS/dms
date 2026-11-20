@@ -10,7 +10,11 @@ import {
   GetPageStructure,
   RemoveQuery,
 } from "../../../implementations/dms-builder";
-import type { AddQueryInput } from "@antelopejs/interface-dms-builder";
+import type {
+  AddQueryInput,
+  OpResult,
+  ValidationIssue,
+} from "@antelopejs/interface-dms-builder";
 import {
   createFixture,
   destroyFixture,
@@ -44,6 +48,19 @@ const UTILISATION: AddQueryInput = {
   response: "value",
   compare: true,
 };
+
+/**
+ * The issues of an `invalid_config` refusal. Any other outcome throws, so the
+ * assertions over the issues are never skipped by a refusal of another shape.
+ */
+function refusedIssues(result: OpResult<unknown>): ValidationIssue[] {
+  if (result.ok || result.error.code !== "invalid_config") {
+    throw new Error(
+      `expected an invalid_config refusal, got ${JSON.stringify(result)}`,
+    );
+  }
+  return result.error.issues;
+}
 
 async function queryNamed(name: string) {
   const structure = expectOk(await GetPageStructure(PAGE), "GetPageStructure");
@@ -266,54 +283,43 @@ function refusesWhatTheInstalledInterfaceCannotServe(): void {
 
   it("refuses a ratio when the interface has no percentOf", async function () {
     this.timeout(OP_TIMEOUT);
-    const refused = await AddQuery(PAGE, {
-      ...UTILISATION,
-      name: "old",
-      compare: false,
-    });
+    const issues = refusedIssues(
+      await AddQuery(PAGE, { ...UTILISATION, name: "old", compare: false }),
+    );
 
-    expect(refused.ok).to.equal(false);
-    if (!refused.ok && "issues" in refused.error) {
-      expect(refused.error.issues).to.have.length(1);
-      expect(refused.error.issues[0].pointer).to.equal("/template");
-      expect(refused.error.issues[0].message).to.contain("percentOf");
-      expect(refused.error.issues[0].message).to.contain(
-        "update @antelopejs/interface-dms",
-      );
-    }
+    expect(issues).to.have.length(1);
+    expect(issues[0].pointer).to.equal("/template");
+    expect(issues[0].message).to.contain("percentOf");
+    expect(issues[0].message).to.contain("update @antelopejs/interface-dms");
     expect(app.read(PAGE_FILE)).to.not.contain("old(");
   });
 
   it("names both helpers for a ratio that also compares", async function () {
     this.timeout(OP_TIMEOUT);
-    const refused = await AddQuery(PAGE, { ...UTILISATION, name: "older" });
+    const issues = refusedIssues(
+      await AddQuery(PAGE, { ...UTILISATION, name: "older" }),
+    );
 
-    expect(refused.ok).to.equal(false);
-    if (!refused.ok && "issues" in refused.error) {
-      expect(refused.error.issues.map((found) => found.pointer)).to.deep.equal([
-        "/template",
-        "/compare",
-      ]);
-    }
+    expect(issues.map((found) => found.pointer)).to.deep.equal([
+      "/template",
+      "/compare",
+    ]);
   });
 
   it("refuses a scalar that compares when the interface has no kpiValueData", async function () {
     this.timeout(OP_TIMEOUT);
-    const refused = await AddQuery(PAGE, {
-      name: "oldCount",
-      resource: "bike",
-      template: "count",
-      params: { where: PERIOD },
-      compare: true,
-    });
+    const issues = refusedIssues(
+      await AddQuery(PAGE, {
+        name: "oldCount",
+        resource: "bike",
+        template: "count",
+        params: { where: PERIOD },
+        compare: true,
+      }),
+    );
 
-    expect(refused.ok).to.equal(false);
-    if (!refused.ok && "issues" in refused.error) {
-      expect(refused.error.issues.map((found) => found.pointer)).to.deep.equal([
-        "/compare",
-      ]);
-      expect(refused.error.issues[0].message).to.contain("kpiValueData");
-    }
+    expect(issues.map((found) => found.pointer)).to.deep.equal(["/compare"]);
+    expect(issues[0].message).to.contain("kpiValueData");
   });
 }
 
