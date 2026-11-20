@@ -46,7 +46,9 @@ describe("live render", () => {
 
   it("opens the mockup's event stream on the backend", async () => {
     viewer = await mountViewer();
-    expect(viewer.stream.url).toBe("http://backend/api/mockup/demo/events");
+    expect(viewer.stream.url).toMatch(
+      /^http:\/\/backend\/api\/mockup\/demo\/events\?viewer=[0-9a-f-]{36}$/,
+    );
   });
 
   it("posts the page's tree, theme and locale on each state, leaving the iframe alone", async () => {

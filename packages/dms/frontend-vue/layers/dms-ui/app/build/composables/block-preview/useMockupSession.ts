@@ -16,6 +16,11 @@ import {
   type MockupAnnotationPatch,
   type MockupState,
 } from "../../utils/mockup";
+import {
+  newViewerId,
+  NO_PRESENCE,
+  type MockupPresence,
+} from "../../utils/mockupPresence";
 import { openMockupStream, type MockupStream } from "../../utils/mockupStream";
 
 type AuthFetch = ReturnType<typeof useAuthFetch>["$authFetch"];
@@ -35,6 +40,10 @@ export interface MockupSession {
    */
   state: Readonly<ShallowRef<MockupState | undefined>>;
   annotations: Ref<MockupAnnotation[]>;
+  /** The id this browser session goes by on the stream, which its locks and spec writes name. */
+  viewer: string;
+  /** Who is on the mockup and which blocks they hold. */
+  presence: Readonly<ShallowRef<MockupPresence>>;
   isConnected: Ref<boolean>;
   /** Whether the last annotation request failed. */
   hasRequestFailed: Ref<boolean>;
@@ -45,13 +54,16 @@ export interface MockupSession {
 }
 
 /**
- * Follows a mockup: opens its event stream while the component lives, so each
- * save of the spec lands in `state` and each change of the notes in
- * `annotations`, and sends the viewer's annotation requests.
+ * Follows a mockup: opens its event stream while the component lives, naming
+ * this browser session `viewer`, so each save of the spec lands in `state`,
+ * each change of the notes in `annotations` and each change of who is on the
+ * mockup in `presence`, and sends the viewer's annotation requests.
  */
 export function useMockupSession(options: MockupSessionOptions): MockupSession {
   const state = shallowRef<MockupState>();
   const annotations = ref<MockupAnnotation[]>([]);
+  const viewer = newViewerId();
+  const presence = shallowRef<MockupPresence>(NO_PRESENCE);
   const isConnected = ref(false);
   const hasRequestFailed = ref(false);
   const annotationsEndpoint = mockupEndpoint(options.name, "/annotations");
@@ -95,13 +107,16 @@ export function useMockupSession(options: MockupSessionOptions): MockupSession {
 
   onMounted(() => {
     stream = openMockupStream(
-      `${options.baseURL}${mockupEndpoint(options.name, "/events")}`,
+      `${options.baseURL}${mockupEndpoint(options.name, "/events")}?viewer=${viewer}`,
       {
         onState: (next) => {
           state.value = next;
         },
         onAnnotations: (next) => {
           annotations.value = next;
+        },
+        onPresence: (next) => {
+          presence.value = next;
         },
         onConnection: (connected) => {
           isConnected.value = connected;
@@ -115,6 +130,8 @@ export function useMockupSession(options: MockupSessionOptions): MockupSession {
   return {
     state,
     annotations,
+    viewer,
+    presence,
     isConnected,
     hasRequestFailed,
     addAnnotation: (draft) =>
