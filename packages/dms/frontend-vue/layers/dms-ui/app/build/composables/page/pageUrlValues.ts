@@ -13,7 +13,7 @@ import {
 export function currentPageUrlValues(): ReplaceUrlVariablesContext {
   const route = useDmsRoute();
   return {
-    routeParams: useSiteLayout().findMatchingRoute(route.path)?.params,
+    routeParams: findPageRoute(route.path)?.params,
     routeQuery: route.query,
   };
 }

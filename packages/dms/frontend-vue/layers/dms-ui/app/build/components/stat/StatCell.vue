@@ -36,8 +36,7 @@ interface StatCellProps {
   refreshing?: boolean;
   /**
    * `md` only. Under 28rem of the enclosing `@container` (two cards side by
-   * side on a phone) the well goes on top and the lines wrap. Without it, the
-   * label wraps on phones only.
+   * side on a phone) the well goes on top of the lines.
    */
   stack?: boolean;
 }
@@ -71,9 +70,6 @@ const MD_STACK = "@max-md:flex-col @max-md:items-start @max-md:gap-2.5";
 const SM_CELL = "flex min-w-0 items-start gap-3 px-4 py-3.5";
 
 const isMd = computed(() => props.size === "md");
-const wraps = computed(() =>
-  props.stack ? "@max-md:whitespace-normal" : "max-sm:whitespace-normal",
-);
 const cellClass = computed(() => {
   if (!isMd.value) {
     return [SM_CELL, props.to && "hover:bg-elevated transition-colors"];
@@ -124,12 +120,7 @@ const { t } = useI18n();
         />
       </div>
       <div v-else class="grid min-w-0 flex-1 gap-[3px]">
-        <DmsEyebrowLabel
-          tone="muted"
-          truncate
-          :class="wraps"
-          :label="props.eyebrow"
-        />
+        <DmsEyebrowLabel tone="muted" :label="props.eyebrow" />
         <USkeleton
           v-if="props.loading"
           :aria-label="t('dms.a11y.loading')"

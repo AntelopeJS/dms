@@ -1,5 +1,6 @@
 import type { Data } from "../../components/table/TableRoot.vue";
 import Button from "@nuxt/ui/components/Button.vue";
+import Tooltip from "@nuxt/ui/components/Tooltip.vue";
 import DropdownMenu, {
   type DropdownMenuItem,
 } from "@nuxt/ui/components/DropdownMenu.vue";
@@ -15,11 +16,27 @@ import {
   menuLabel,
   buildRowActionDescriptors,
   isDestructive,
+  isOffered,
   descriptorToMenuItem,
 } from "./tableColumnActionDescriptors";
 
+/** A disabled button fires no pointer event: its reason hangs on a focusable wrapper. */
+const withDisabledReason = (
+  descriptor: RowActionDescriptor,
+  button: ReturnType<typeof h>,
+) => {
+  if (!descriptor.disabledReason) return button;
+  return h(
+    Tooltip,
+    { text: descriptor.disabledReason },
+    {
+      default: () => h("span", { tabindex: 0, class: "inline-flex" }, [button]),
+    },
+  );
+};
+
 const renderActionButton = (descriptor: RowActionDescriptor, rowId: string) => {
-  return h(Button, {
+  const button = h(Button, {
     id: `row-action-${rowId}-${descriptor.icon || descriptor.label}`,
     "aria-label": descriptor.label,
     title: descriptor.showLabel ? undefined : descriptor.label,
@@ -28,11 +45,13 @@ const renderActionButton = (descriptor: RowActionDescriptor, rowId: string) => {
     color: descriptor.color || Color.neutral,
     variant: descriptor.variant ?? ButtonVariant.ghost,
     size: Size.tiny,
+    disabled: descriptor.disabled,
     onClick: (event: Event) => {
       event.stopPropagation();
       descriptor.onSelect();
     },
   });
+  return withDisabledReason(descriptor, button);
 };
 
 const renderActionsDropdown = <T extends Data>(
@@ -67,18 +86,20 @@ const renderRestoreButton = (
   descriptor: RowActionDescriptor,
   rowId: string,
 ) => {
-  return h(Button, {
+  const button = h(Button, {
     id: `row-action-${rowId}-restore`,
     label: descriptor.label,
     icon: descriptor.icon,
     color: Color.neutral,
     variant: ButtonVariant.ghost,
     size: Size.tiny,
+    disabled: descriptor.disabled,
     onClick: (event: Event) => {
       event.stopPropagation();
       descriptor.onSelect();
     },
   });
+  return withDisabledReason(descriptor, button);
 };
 
 export const renderActionsCell = <T extends Data>(
@@ -88,7 +109,7 @@ export const renderActionsCell = <T extends Data>(
   const { config } = context;
 
   const descriptors = buildRowActionDescriptors(context, row.original).filter(
-    (d) => !d.disabled && !isOffMode(context, d),
+    (d) => isOffered(d) && !isOffMode(context, d),
   );
   const restoreDescriptor = isShowingArchived(context)
     ? descriptors.find((d) => d.key === "restore")

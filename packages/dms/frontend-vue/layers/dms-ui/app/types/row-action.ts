@@ -22,6 +22,8 @@ export interface CustomRowAction {
   /** Asked before the target runs: a fixed dialog, or `{ from }`. */
   confirm?: ActionConfirm;
   rule?: RowActionRule;
+  /** Shown on a row `rule` keeps the action off, which then stays disabled (`$`: i18n key). */
+  disabledReason?: string;
   /** Inline button instead of a menu entry (the backend serializes `isVisible`). */
   isVisible?: boolean;
   /**

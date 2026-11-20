@@ -393,6 +393,16 @@ function patternPageRoute(
   return null;
 }
 
+/**
+ * The page of the site layout a path matches, with its route parameters, or
+ * `null` before the layout loads. It reads the layout state only, so a click
+ * handler may call it outside a component's setup.
+ */
+export function findPageRoute(path: string): MatchRouteResult<PageInfo> | null {
+  const layout = useSiteLayoutState().siteLayout.value;
+  return layout ? matchPageRoute(path, layout) : null;
+}
+
 export const useSiteLayout = () => {
   const {
     state,
@@ -454,19 +464,6 @@ export const useSiteLayout = () => {
     }
   };
 
-  const findMatchingRoute = (
-    path: string,
-  ): {
-    pattern: string;
-    metadata: PageInfo;
-    params: Record<string, string>;
-  } | null => {
-    const layout = siteLayout.value;
-    if (!layout) return null;
-
-    return matchPageRoute(path, layout);
-  };
-
   const findMatchingRouteOrCategory = (
     path: string,
   ): {
@@ -512,7 +509,7 @@ export const useSiteLayout = () => {
     refresh,
     resync,
     refreshIfStale,
-    findMatchingRoute,
+    findMatchingRoute: findPageRoute,
     findMatchingRouteOrCategory,
     probeAndCommitRoute,
   };
