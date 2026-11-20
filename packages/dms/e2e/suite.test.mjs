@@ -27,7 +27,9 @@ const CONFIG = `export default ${JSON.stringify({
  * @returns {string} The checkout root
  */
 function twoSuiteCheckout(t) {
-  const root = realpathSync(mkdtempSync(join(tmpdir(), "dms-e2e-suite-")));
+  const root = realpathSync.native(
+    mkdtempSync(join(tmpdir(), "dms-e2e-suite-")),
+  );
   const cwd = process.cwd();
   const recorded = process.env.DMS_E2E_SUITE;
   const prebuilt = process.env.DMS_E2E_PREBUILT;
