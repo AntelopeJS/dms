@@ -287,7 +287,7 @@ export function registerMockupRoutes(engine: MockupEngine) {
   registerRecordRoutes(store);
   registerSpecRoutes(store.mockupsDir, engine.presence);
   registerPresenceRoutes(engine.presence, store.mockupsDir);
-  registerHistoryRoutes(store.mockupsDir);
+  registerHistoryRoutes(store.mockupsDir, engine.presence);
   registerManageRoutes(store.mockupsDir);
   registerFromPageRoute(store.mockupsDir, engine.presence, engine.pages);
   return MockupController;
