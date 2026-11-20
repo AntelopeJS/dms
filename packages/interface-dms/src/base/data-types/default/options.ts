@@ -154,7 +154,17 @@ export type UrlTypeOptions = {
 
 export type PhoneTypeOptions = {
   placeholder?: string;
+  /**
+   * Only international numbers ("+32 ...", "0032 ...") are valid; a national
+   * number is refused. Valid values are stored in E.164 ("+32494669443").
+   */
   requiredPrefix?: boolean;
+  /**
+   * ISO 3166-1 alpha-2 code ("BE") a number typed without a "+" or "00"
+   * prefix is read in, and the country the input selects first. Valid values
+   * are stored in E.164 ("+32494669443").
+   */
+  defaultCountry?: string;
   fallback?: string;
 };
 

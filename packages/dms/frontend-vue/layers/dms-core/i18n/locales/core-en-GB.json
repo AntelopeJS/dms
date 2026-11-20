@@ -411,6 +411,7 @@
       "required": "This field is required.",
       "invalid": "This value isn’t valid.",
       "invalid_email": "Enter a valid email address.",
+      "invalid_phone": "Enter a valid phone number, with its country.",
       "too_long": "This value is too long.",
       "too_short": "This value is too short.",
       "too_small": "This value is too small.",

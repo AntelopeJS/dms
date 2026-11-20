@@ -10,6 +10,9 @@ import {
   UrlTypeOptions,
   PhoneTypeOptions,
 } from "./options";
+import { ToE164 } from "../internal/phone-number";
+
+const INVALID_PHONE_MESSAGE = "$dms.field_errors.invalid_phone";
 
 /**
  * The `email` data type.
@@ -164,14 +167,23 @@ export class PhoneType extends DataType {
     return FormComponents.InputPhone({
       placeholder: this.options.placeholder,
       requiredPrefix: this.options.requiredPrefix,
+      defaultCountry: this.options.defaultCountry,
     });
   }
 
   getValidation() {
-    if (this.options.requiredPrefix) {
-      return z.string().regex(/^\+[1-9]\d{1,14}$/);
-    }
+    const { requiredPrefix, defaultCountry } = this.options;
+    if (!requiredPrefix && !defaultCountry) return z.string();
 
-    return z.string();
+    const country = requiredPrefix ? undefined : defaultCountry;
+    return z.string().transform(async (value, context) => {
+      const number = await ToE164(value, country);
+      if (number) return number;
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: INVALID_PHONE_MESSAGE,
+      });
+      return z.NEVER;
+    });
   }
 }

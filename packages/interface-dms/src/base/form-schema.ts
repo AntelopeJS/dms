@@ -300,6 +300,7 @@ export namespace FormComponents {
   export interface InputPhoneOptions {
     placeholder?: string;
     requiredPrefix?: boolean;
+    defaultCountry?: string;
   }
 
   export interface InputTextOptions {
