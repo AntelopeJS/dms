@@ -579,7 +579,7 @@
       },
       "appearance": {
         "theme_title": "Interface theme",
-        "theme_description": "Adapt your color theme for your Antelope DMS",
+        "theme_description": "Adapt your color theme for your AntelopeJS DMS",
         "system": "System",
         "light": "Light",
         "dark": "Dark",

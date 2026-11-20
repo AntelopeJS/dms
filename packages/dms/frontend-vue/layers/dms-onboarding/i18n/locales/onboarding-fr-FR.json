@@ -11,7 +11,7 @@
       },
       "platform": {
         "duration": "environ 1 min",
-        "title": "Bienvenue dans Antelope DMS",
+        "title": "Bienvenue dans AntelopeJS DMS",
         "description": "Nommez la plateforme et choisissez sa langue par défaut. Le nom apparaît dans l'onglet du navigateur et sur la page de connexion.",
         "name_help": "Affiché dans l'onglet du navigateur et sur la page de connexion.",
         "language": "Langue par défaut",
@@ -45,7 +45,7 @@
         "modules_title": "Passez en revue les modules installés",
         "modules_description": "Découvrez ce que chaque module installé apporte à la plateforme.",
         "docs_title": "Lire la documentation",
-        "docs_description": "Antelope DMS et le framework Antelope.",
+        "docs_description": "AntelopeJS DMS et le framework Antelope.",
         "submit": "Ouvrir le tableau de bord",
         "recap_platform": "Plateforme",
         "recap_language": "Langue par défaut"
