@@ -327,11 +327,12 @@ export namespace FormComponents {
     deselectable?: boolean;
   }
 
-  export type RelationFilterBy = RelationPickers.RelationFilterBy;
-  export type RelationOptions = RelationPickers.RelationOptions;
-  export type CascaderRelationKeyMapping =
-    RelationPickers.CascaderRelationKeyMapping;
-  export type CascaderRelationOptions = RelationPickers.CascaderRelationOptions;
+  export interface RelationFilterBy extends RelationPickers.RelationFilterBy {}
+  export interface RelationOptions extends RelationPickers.RelationOptions {}
+  export interface CascaderRelationKeyMapping
+    extends RelationPickers.CascaderRelationKeyMapping {}
+  export interface CascaderRelationOptions
+    extends RelationPickers.CascaderRelationOptions {}
 
   export interface SliderOptions {
     min?: number;
