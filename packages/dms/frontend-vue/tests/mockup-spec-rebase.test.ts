@@ -106,6 +106,59 @@ describe("a write from outside while the editor holds a block", () => {
   });
 });
 
+describe("a write from outside that stamps an id inside the held block", () => {
+  const GRID = "/pages/0/tree/0";
+  const CELL = `${GRID}/children/0`;
+
+  function nested(): MockupSpecDocument {
+    return {
+      version: 1,
+      pages: [
+        {
+          id: "orders",
+          title: "Orders",
+          tree: [
+            {
+              id: "b-grid0001",
+              type: "Grid",
+              children: [
+                { type: "KpiCard", options: { title: "Revenue" } },
+                { type: "KpiCard", options: { title: "Margin" } },
+              ],
+            },
+            { id: "b-orders1", type: "KpiCard", options: { title: "Orders" } },
+          ],
+        },
+      ],
+    };
+  }
+
+  it("writes the held block's edit with the id a note pinned on its child, when that comes in the same read as another change (fails when the rebase puts the held block back without the stamp)", async () => {
+    file.spec = nested();
+    await mountEditor({ held: shallowRef(GRID) });
+    editor.apply({
+      kind: "setOption",
+      pointer: CELL,
+      key: "title",
+      value: "Mine",
+    });
+    const theirs = nested();
+    const [grid, orders] = theirs.pages[0]?.tree ?? [];
+    const [cell] = grid?.children ?? [];
+    if (!cell || !orders?.options) throw new Error("the spec has no cell");
+    cell.id = "b-cell0001";
+    orders.options.title = "Theirs";
+    file.writeFromOutside(theirs);
+
+    await settle(MOCKUP_WRITE_DELAY_MS * 3);
+
+    const written = file.spec.pages[0]?.tree[0]?.children?.[0];
+    expect(written?.options?.title).toBe("Mine");
+    expect(written?.id).toBe("b-cell0001");
+    expect(file.spec.pages[0]?.tree[1]?.options?.title).toBe("Theirs");
+  });
+});
+
 describe("what a write from outside says", () => {
   it("names the viewer of an editor that wrote the file, which the toast then leaves out (fails when the notice carries no author)", async () => {
     await mountEditor();

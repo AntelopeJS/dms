@@ -53,6 +53,60 @@ function uniquePointer(
 }
 
 /**
+ * The node of `base` the `child` of an edited list is: the very object, which
+ * an edit keeps for a child it does not change, else the child at its own
+ * place when the edit changed no list length and the types still agree.
+ */
+function originIndex(
+  edited: readonly MockupSpecNode[],
+  child: MockupSpecNode,
+  index: number,
+  base: readonly MockupSpecNode[],
+): number | undefined {
+  const same = base.indexOf(child);
+  if (same !== -1) return same;
+  return edited.length === base.length && base[index]?.type === child.type
+    ? index
+    : undefined;
+}
+
+/**
+ * `held`, an edit of the node `base`, with the ids `outside`, the file's copy
+ * of `base`, gave to nodes that had none, as a note pinned on one does. A node
+ * of `held` that cannot be told to be one of them keeps none, so that an id
+ * goes on no block rather than on the wrong one.
+ */
+function withStampsOf(
+  held: MockupSpecNode,
+  base: MockupSpecNode,
+  outside: MockupSpecNode,
+): MockupSpecNode {
+  const id =
+    held.id === undefined && base.id === undefined ? outside.id : undefined;
+  const children = held.children?.map((child, index) => {
+    const origin = originIndex(
+      held.children ?? [],
+      child,
+      index,
+      base.children ?? [],
+    );
+    const before = origin === undefined ? undefined : base.children?.[origin];
+    const after = origin === undefined ? undefined : outside.children?.[origin];
+    return before && after && before.type === after.type
+      ? withStampsOf(child, before, after)
+      : child;
+  });
+  const isChanged =
+    id !== undefined ||
+    children?.some((child, index) => child !== held.children?.[index]);
+  if (!isChanged) return held;
+  const stamped: MockupSpecNode = { ...held };
+  if (id !== undefined) stamped.id = id;
+  if (children !== undefined) stamped.children = children;
+  return stamped;
+}
+
+/**
  * The spec that keeps an edit on top of a file someone else wrote: `outside`,
  * with the block at `held` of `present` put back in the place its id has there.
  * `written` is the spec the editor last wrote or read, so that `present`
@@ -76,8 +130,13 @@ export function rebasedEdit(
     return undefined;
   }
   const writtenNode = nodeAt(written, before);
+  const outsideNode = nodeAt(outside, after);
   const restored = writtenNode && withNodeAt(present, held, writtenNode);
-  return restored && sameSpec(restored, written)
-    ? withNodeAt(outside, after, heldNode)
+  return writtenNode && outsideNode && restored && sameSpec(restored, written)
+    ? withNodeAt(
+        outside,
+        after,
+        withStampsOf(heldNode, writtenNode, outsideNode),
+      )
     : undefined;
 }
