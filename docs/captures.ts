@@ -190,7 +190,45 @@ export default defineScenes([
   {
     id: "mockups-page",
     route: "/mockups",
-    steps: [{ action: "wait", selector: 'text="New mockup"' }],
+    steps: [{ action: "wait", selector: 'text="Helio operations"' }],
     output: "packages/dms/docs/images/captures/mockups-page.webp",
+  },
+  {
+    id: "mockup-overview",
+    route: "/mockup?name=helio-ops",
+    steps: [{ action: "wait", selector: "[data-dms-mockup-overview-frame]" }],
+    output: "packages/dms/docs/images/captures/mockup-overview.webp",
+  },
+  {
+    id: "mockup-page",
+    route: "/mockup?name=helio-ops&page=overview",
+    steps: [
+      {
+        action: "wait",
+        selector: '[data-dms-mockup-pin="split-installations"]',
+      },
+    ],
+    output: "packages/dms/docs/images/captures/mockup-page.webp",
+  },
+  {
+    id: "mockup-comment",
+    route: "/mockup?name=helio-ops&page=overview",
+    steps: [
+      {
+        action: "click",
+        selector: '[data-dms-mockup-pin="split-installations"]',
+      },
+      { action: "wait", selector: "[data-dms-mockup-pin-card]" },
+    ],
+    output: "packages/dms/docs/images/captures/mockup-comment.webp",
+  },
+  {
+    id: "mockup-history",
+    route: "/mockup?name=helio-ops&page=overview",
+    steps: [
+      { action: "click", selector: "[data-dms-mockup-history]" },
+      { action: "wait", selector: '[data-dms-mockup-version="1"]' },
+    ],
+    output: "packages/dms/docs/images/captures/mockup-history.webp",
   },
 ]);
