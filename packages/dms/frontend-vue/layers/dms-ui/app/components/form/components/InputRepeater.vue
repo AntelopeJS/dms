@@ -120,7 +120,7 @@ function setCell(
     ),
     false,
   );
-  formBus?.emit({ type: "change", name: rowName(index) });
+  if (fieldName.value) formBus?.emit({ type: "change", name: rowName(index) });
 }
 
 function addRow(): void {
