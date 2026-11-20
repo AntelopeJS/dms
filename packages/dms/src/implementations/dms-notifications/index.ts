@@ -7,11 +7,13 @@ import { UserModel } from "@antelopejs/interface-dms/auth/db";
 import type {
   DeliveryOptions,
   NotificationCategoryInfo,
+  NotificationEmailChannelInfo,
   NotificationData,
   NotificationSubjectInfo,
   ReadScope,
   RoleSendOptions,
 } from "@antelopejs/interface-dms/notifications/types";
+import { internal as interfaceInternal } from "@antelopejs/interface-dms/notifications/internal";
 import {
   UserNotificationPreferencesModel,
   type UserNotificationCounts,
@@ -24,6 +26,8 @@ import { getRealtimeBroker, buildUserNotificationTopic } from "../../realtime";
 import { runInBatches } from "../../utils/run-in-batches/index";
 import {
   categoryRegistry,
+  emailChannelSlot,
+  isEmailOn,
   isSubjectLocked,
   subjectRegistry,
 } from "../../utils/notification-registry/index";
@@ -167,6 +171,34 @@ async function store(
   );
 }
 
+/**
+ * Hands a stored notification to the registered e-mail channel when the
+ * recipient has e-mail on for its subject. A channel that throws is logged
+ * and the in-app delivery stands.
+ */
+async function deliverByEmail(
+  userId: string,
+  data: NotificationData,
+  notification: UserNotification,
+  preferences: () => Promise<Record<string, boolean>>,
+): Promise<void> {
+  const channel = emailChannelSlot.channel;
+  const subject = subjectRegistry.get(
+    `${data.subject.category.id}:${data.subject.id}`,
+  );
+  if (!channel || !subject || !isEmailOn(subject, await preferences())) {
+    return;
+  }
+  try {
+    await channel.deliver(userId, data, notification._id);
+  } catch (error) {
+    Logging.Error(
+      `[DMS] Notification e-mail channel failed to deliver "${data.title}" to "${userId}"`,
+      error,
+    );
+  }
+}
+
 /** Tells the user's open tabs the whole feed is read, with its counts after it. */
 export async function publishAllNotificationsRead(
   userId: string,
@@ -193,6 +225,22 @@ export namespace internal {
     },
   };
 
+  export const RegisterNotificationEmailChannel = {
+    register: (channel: NotificationEmailChannelInfo) => {
+      emailChannelSlot.channel = channel;
+    },
+    unregister: (channel: NotificationEmailChannelInfo) => {
+      if (
+        interfaceInternal.emailChannelIdentity.isSame(
+          emailChannelSlot.channel,
+          channel,
+        )
+      ) {
+        emailChannelSlot.channel = undefined;
+      }
+    },
+  };
+
   export const RegisterNotificationSubject = {
     register: (info: NotificationSubjectInfo) => {
       if (!categoryRegistry.has(info.category.id)) {
@@ -215,26 +263,28 @@ export namespace internal {
     },
   };
 
-  const buildPreferenceKey = (
-    categoryId: string,
-    subjectId: string,
-  ): string => {
-    return `${categoryId}:${subjectId}`;
-  };
+  /** A user's stored preferences, read once per delivery and only when needed. */
+  function preferencesReader(
+    userId: string,
+  ): () => Promise<Record<string, boolean>> {
+    let read: Promise<Record<string, boolean>> | undefined;
+    return () => {
+      read ??= GetModel(UserNotificationPreferencesModel)
+        .getOrCreatePreferences(userId)
+        .then((stored) => stored.preferences ?? {});
+      return read;
+    };
+  }
 
   async function canSendNotification(
-    userId: string,
-    categoryId: string,
-    subjectId: string,
+    data: NotificationData,
+    preferences: () => Promise<Record<string, boolean>>,
   ): Promise<boolean> {
-    const preferenceKey = buildPreferenceKey(categoryId, subjectId);
+    const preferenceKey = `${data.subject.category.id}:${data.subject.id}`;
     const subject = subjectRegistry.get(preferenceKey);
     if (!subject) return false;
     if (isSubjectLocked(subject)) return true;
-
-    const preferencesModel = GetModel(UserNotificationPreferencesModel);
-    const preferences = await preferencesModel.getOrCreatePreferences(userId);
-    return preferences.preferences?.[preferenceKey] ?? true;
+    return (await preferences())[preferenceKey] ?? true;
   }
 
   export async function SendToUser(
@@ -246,15 +296,8 @@ export namespace internal {
   ): Promise<void> {
     if (!isDeliverable(data, `"${userId}"`)) return;
 
-    const isAllowed = await canSendNotification(
-      userId,
-      data.subject.category.id,
-      data.subject.id,
-    );
-
-    if (!isAllowed) {
-      return;
-    }
+    const preferences = preferencesReader(userId);
+    if (!(await canSendNotification(data, preferences))) return;
 
     const created = await store(userId, data, {
       groupId,
@@ -266,6 +309,7 @@ export namespace internal {
     await publishNotificationEvent(userId, NOTIFICATION_NEW_EVENT, {
       notification: created,
     });
+    await deliverByEmail(userId, data, created, preferences);
   }
 
   export async function SendToUsers(

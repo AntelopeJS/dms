@@ -28,6 +28,9 @@ const {
   toggleableSubjectsOf,
   toggleSubject,
   toggleCategory,
+  hasEmailChannel,
+  isEmailEnabled,
+  toggleEmail,
   retry,
   load,
 } = useNotificationPreferences();
@@ -91,6 +94,7 @@ const failureMessage = computed(() => {
         >
           {{ t("page.settings.notifications.column_email") }}
           <UBadge
+            v-if="!hasEmailChannel"
             color="neutral"
             size="sm"
             class="tracking-[0.04em]"
@@ -160,7 +164,9 @@ const failureMessage = computed(() => {
                 :subject="subject"
                 :enabled="isEnabled(subject)"
                 :state="rowState(subject)"
+                :email-enabled="isEmailEnabled(subject)"
                 @toggle="(enabled) => toggleSubject(subject, enabled)"
+                @toggle-email="(enabled) => toggleEmail(subject, enabled)"
                 @retry="retry"
               />
             </div>
@@ -187,7 +193,11 @@ const failureMessage = computed(() => {
       </template>
       <span v-else class="flex items-center gap-1.5 text-xs">
         <UIcon name="i-ph-info" class="text-dimmed size-3.5" />
-        {{ t("page.settings.notifications.email_hint") }}
+        {{
+          hasEmailChannel
+            ? t("page.settings.notifications.email_hint_active")
+            : t("page.settings.notifications.email_hint")
+        }}
       </span>
     </template>
   </DmsSectionPanel>

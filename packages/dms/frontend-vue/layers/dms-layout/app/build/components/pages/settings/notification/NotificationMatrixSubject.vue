@@ -10,17 +10,34 @@ interface NotificationMatrixSubjectProps {
   subject: NotificationSubject;
   enabled: boolean;
   state: SaveStatusState;
+  emailEnabled?: boolean;
 }
 
 const props = defineProps<NotificationMatrixSubjectProps>();
-const emit = defineEmits<{ toggle: [enabled: boolean]; retry: [] }>();
+const emit = defineEmits<{
+  toggle: [enabled: boolean];
+  "toggle-email": [enabled: boolean];
+  retry: [];
+}>();
 const { t } = useI18n();
 
 const label = computed(() => t(props.subject.labelKey));
 const isLocked = computed(() => props.subject.locked === true);
+/** E-mail follows the in-app notification: none is sent without it. */
+const isEmailDisabled = computed(() => isLocked.value || !props.enabled);
+const emailTitle = computed(() => {
+  if (isLocked.value) return t("page.settings.notifications.locked_hint");
+  return props.enabled
+    ? undefined
+    : t("page.settings.notifications.email_needs_in_app");
+});
 
 const onToggle = (value: boolean) => {
   if (props.state !== "saving") emit("toggle", value);
+};
+
+const onToggleEmail = (value: boolean) => {
+  if (props.state !== "saving") emit("toggle-email", value);
 };
 </script>
 
@@ -68,7 +85,21 @@ const onToggle = (value: boolean) => {
         @update:model-value="onToggle"
       />
     </div>
+    <div v-if="props.subject.email" class="flex justify-center" role="cell">
+      <USwitch
+        :model-value="props.emailEnabled"
+        :disabled="isEmailDisabled"
+        :title="emailTitle"
+        :aria-label="
+          t('page.settings.notifications.email_switch', { name: label })
+        "
+        :aria-busy="props.state === 'saving'"
+        data-channel="email"
+        @update:model-value="onToggleEmail"
+      />
+    </div>
     <div
+      v-else
       class="text-dimmed flex justify-center font-mono text-xs font-medium"
       role="cell"
     >

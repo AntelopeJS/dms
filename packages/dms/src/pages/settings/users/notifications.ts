@@ -45,7 +45,10 @@ import {
   parseNotificationFeedQuery,
 } from "../../../db/models";
 import {
-  findSubjectByPreferenceKey,
+  type EmailOffer,
+  emailChannelSlot,
+  emailOffer,
+  findPreferenceSubject,
   getRegisteredCategories,
   getRegisteredSubjects,
   isSubjectLocked,
@@ -64,15 +67,24 @@ const HTTP_FORBIDDEN = 403;
 const HTTP_NOT_FOUND = 404;
 
 /** A registered subject as the settings screen lists it. */
-export interface NotificationSubjectView extends NotificationSubjectInfo {
-  /** The user may not turn this subject off. */
+export interface NotificationSubjectView extends Omit<
+  NotificationSubjectInfo,
+  "email"
+> {
+  /** The user may not turn this subject off, in the app or by e-mail. */
   locked: boolean;
+  /** Set when the subject offers e-mail and a module registered the channel. */
+  email?: EmailOffer;
 }
 
 function toSubjectView(
   subject: NotificationSubjectInfo,
 ): NotificationSubjectView {
-  return { ...subject, locked: isSubjectLocked(subject) };
+  return {
+    ...subject,
+    locked: isSubjectLocked(subject),
+    email: emailOffer(subject),
+  };
 }
 
 function parsePageSize(value: QueryValue): number {
@@ -208,17 +220,20 @@ function readFeedFilter(context: RequestContext): NotificationFeedFilter {
   return filter;
 }
 
-/** Refuses keys that name no registered subject, and turning a locked subject off. */
+/**
+ * Refuses keys that name no registered subject, or an e-mail switch the
+ * subject does not offer, and turning a locked subject off.
+ */
 function assertChangesAllowed(changes: Record<string, boolean>): void {
   for (const key of Object.keys(changes)) {
     assert(
-      findSubjectByPreferenceKey(key),
+      findPreferenceSubject(key),
       HTTP_BAD_REQUEST,
       "error.request_refused",
     );
   }
   for (const [key, enabled] of Object.entries(changes)) {
-    const subject = findSubjectByPreferenceKey(key);
+    const subject = findPreferenceSubject(key);
     assert(
       enabled || !subject || !isSubjectLocked(subject),
       HTTP_FORBIDDEN,
@@ -296,11 +311,20 @@ export class NotificationsApiController extends Controller(NOTIFICATIONS_API) {
     return preferencesModel.mergePreferences(this.user._id, changes);
   }
 
+  /**
+   * The registered categories and subjects, and whether a module registered
+   * the e-mail channel (`emailChannel`): the screen draws e-mail switches
+   * only then.
+   */
   @Get("/categories")
   async getCategories() {
     const categories = getRegisteredCategories();
     const subjects = getRegisteredSubjects().map(toSubjectView);
-    return { categories, subjects };
+    return {
+      categories,
+      subjects,
+      emailChannel: emailChannelSlot.channel !== undefined,
+    };
   }
 
   /**

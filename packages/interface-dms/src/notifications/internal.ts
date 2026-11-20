@@ -5,11 +5,13 @@ import {
 import type {
   DeliveryOptions,
   NotificationCategoryInfo,
+  NotificationEmailChannelInfo,
   NotificationData,
   NotificationSubjectInfo,
   ReadScope,
   RoleSendOptions,
 } from "./types";
+import { RegistrationIdentity } from "../page/internal/registry";
 
 /**
  * @internal
@@ -21,6 +23,16 @@ export namespace internal {
   export const RegisterNotificationSubject = new RegisteringProxy<
     (info: NotificationSubjectInfo) => void
   >();
+
+  export const RegisterNotificationEmailChannel = new RegisteringProxy<
+    (info: NotificationEmailChannelInfo) => void
+  >();
+
+  /** Tells the registration a module unloads from the one that replaced it. */
+  export const emailChannelIdentity =
+    new RegistrationIdentity<NotificationEmailChannelInfo>(
+      "notification-email-channel",
+    );
 
   export const SendToUser =
     InterfaceFunction<
