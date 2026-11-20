@@ -7,6 +7,7 @@
  */
 
 import { stringLiteralValue } from "./literals";
+import { ratioTemplate } from "./query-template-ratio";
 import { seriesTemplate } from "./query-template-series";
 import { checkFilters, whereSchema } from "./query-where";
 import { planFilters } from "./query-plan";
@@ -135,4 +136,5 @@ export function registerBuiltinQueryTemplates(): void {
   registerQueryTemplate(countTemplate());
   registerQueryTemplate(aggregateTemplate());
   registerQueryTemplate(seriesTemplate());
+  registerQueryTemplate(ratioTemplate());
 }

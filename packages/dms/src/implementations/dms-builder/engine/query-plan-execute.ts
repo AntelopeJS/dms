@@ -8,6 +8,7 @@
  * into the text the other produces.
  */
 
+import { percentOf } from "@antelopejs/interface-dms/base/query-response";
 import type {
   ConfigValue,
   QueryPoint,
@@ -16,11 +17,14 @@ import type {
 import {
   DAYS_PER_YEAR,
   DAYS_TO_UNIX_EPOCH,
+  isRatioPlan,
   LEAP_CYCLES,
+  type MeasurePlan,
   type PlanFilter,
   type PlanGroup,
   type PlanMeasure,
   type QueryPlan,
+  type ScalarPlan,
 } from "./query-plan";
 import { checkField, isParamBinding } from "./query-template";
 
@@ -125,11 +129,11 @@ interface ResolvedFilter {
  * predicate only reaches the caller if the adapter happens to evaluate it eagerly.
  */
 function resolveFilters(
-  plan: QueryPlan,
+  filters: PlanFilter[],
   fields: ResourceFieldStructure[],
   args: PlanArguments,
 ): ResolvedFilter[] {
-  return plan.filters.map((filter) => {
+  return filters.map((filter) => {
     const resolved = checkField(fields, filter.field, "");
     const ts = "ts" in resolved ? resolved.ts : "string";
     if (!isParamBinding(filter.value)) {
@@ -226,7 +230,7 @@ export interface GroupedPoint {
 
 function applyGroup(
   stream: PlanStream,
-  plan: QueryPlan,
+  plan: MeasurePlan,
   group: PlanGroup,
 ): PlanPoints {
   const bucketed = group.bucket !== undefined;
@@ -261,10 +265,28 @@ function applyGroup(
   return plan.limit === undefined ? ordered : ordered.slice(0, plan.limit);
 }
 
+/** The one measure of a plan over the rows its filters select. */
+function measureScalar(
+  table: PlanStream,
+  plan: ScalarPlan,
+  fields: ResourceFieldStructure[],
+  args: PlanArguments,
+): PlanQuery<number> {
+  return measureOver(
+    applyFilters(table, resolveFilters(plan.filters, fields, args)),
+    plan.measure,
+    plan.measure.kind === "aggregate" ? plan.measure.field : "",
+  );
+}
+
 /**
  * Build the plan against a table handle. The result is what the database's own
- * chain answers once run, a number for a scalar plan and one point per group
- * for a grouped one, so a caller runs it as it would any query.
+ * chain answers once run: a number for a scalar plan, one point per group for a
+ * grouped one, and for a ratio the percentage its two sides make — null when no
+ * share can be stated — so a caller runs it as it would any query.
+ *
+ * A ratio is divided by the helper its emitted body calls, so a preview and the
+ * route cannot disagree on what a side that measured nothing answers.
  *
  * Throws when an argument a filter binds was not supplied, rather than running a
  * query with a missing bound value in it.
@@ -274,14 +296,19 @@ export function executePlan(
   plan: QueryPlan,
   fields: ResourceFieldStructure[],
   args: PlanArguments = {},
-): PlanQuery<number | QueryPoint[]> {
-  const narrowed = applyFilters(table, resolveFilters(plan, fields, args));
+): PlanQuery<number | null | QueryPoint[]> {
+  if (isRatioPlan(plan)) {
+    return percentOf(
+      measureScalar(table, plan.numerator, fields, args),
+      measureScalar(table, plan.denominator, fields, args),
+    );
+  }
   if (plan.group) {
+    const narrowed = applyFilters(
+      table,
+      resolveFilters(plan.filters, fields, args),
+    );
     return applyGroup(narrowed, plan, plan.group);
   }
-  return measureOver(
-    narrowed,
-    plan.measure,
-    plan.measure.kind === "aggregate" ? plan.measure.field : "",
-  );
+  return measureScalar(table, plan, fields, args);
 }

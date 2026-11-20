@@ -38,8 +38,8 @@ export interface RawFilter {
   value: RawValue;
 }
 
-/** A model method's body decomposed into `this.table.filter(...)*.<terminal>(...)`. */
-interface RawChain {
+/** A chain decomposed into `this.table.filter(...)*.<terminal>(...)`. */
+export interface RawChain {
   filters: RawFilter[];
   terminalName: string;
   terminalArgs: Node[];
@@ -174,21 +174,27 @@ export function readFilter(
   return { field, op, value };
 }
 
+/** The names of a model method's parameters, which a filter's value may reference. */
+export function parameterNames(method: MethodDeclaration): Set<string> {
+  return new Set(method.getParameters().map((p) => p.getName()));
+}
+
 /**
- * Reads a model method body as an AQL chain: `this.table`, a run of `.filter`
- * hops, and a terminal call. Returns `undefined` for anything outside that
- * grammar — the signal a template uses to reject a method it did not shape.
+ * Reads an expression as an AQL chain: `this.table`, a run of `.filter` hops,
+ * and a terminal call. Returns `undefined` for anything outside that grammar —
+ * the signal a template uses to reject what it did not shape.
  */
-export function readChain(method: MethodDeclaration): RawChain | undefined {
-  const outer = returnedCall(method);
-  if (!outer) {
+export function readChainFrom(
+  outer: Node | undefined,
+  params: Set<string>,
+): RawChain | undefined {
+  if (!outer || !Node.isCallExpression(outer)) {
     return undefined;
   }
   const terminalName = propName(outer);
   if (terminalName === undefined) {
     return undefined;
   }
-  const params = new Set(method.getParameters().map((p) => p.getName()));
   const filters: RawFilter[] = [];
   let node: Node | undefined = receiver(outer);
   while (node && Node.isCallExpression(node) && propName(node) === "filter") {
@@ -203,6 +209,11 @@ export function readChain(method: MethodDeclaration): RawChain | undefined {
     return undefined;
   }
   return { filters, terminalName, terminalArgs: outer.getArguments() };
+}
+
+/** Reads a model method's body as an AQL chain, see {@link readChainFrom}. */
+export function readChain(method: MethodDeclaration): RawChain | undefined {
+  return readChainFrom(returnedCall(method), parameterNames(method));
 }
 
 /**

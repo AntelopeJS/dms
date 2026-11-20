@@ -12,6 +12,7 @@ import type {
 import { pageRoutePath } from "@antelopejs/interface-dms/page";
 import { type ClassDeclaration, type SourceFile, SyntaxKind } from "ts-morph";
 import { applyImportRef } from "./emit";
+import { CHAIN_IMPORT_NAMES } from "./query-plan";
 import {
   checkVersion,
   commit,
@@ -80,6 +81,10 @@ export function emitQuery({
       target.name,
       queryModelMethodText(spec, target.name),
     );
+    for (const symbol of spec.chain.imports ?? []) {
+      applyImportRef(opened.databaseFile, symbol);
+    }
+    pruneUnusedImports(opened.databaseFile, CHAIN_IMPORT_NAMES);
   }
   const pageClassName = pageClass.getName();
   if (!pageClassName) {
@@ -436,4 +441,5 @@ export function dropOrphanedModelMethod(
   }
   transaction.track(opened.databaseFile);
   method.remove();
+  pruneUnusedImports(opened.databaseFile, CHAIN_IMPORT_NAMES);
 }
