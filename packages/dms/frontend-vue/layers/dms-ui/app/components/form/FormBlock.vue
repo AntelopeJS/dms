@@ -147,9 +147,11 @@ const { localizedSchema, errorNames, clearServerErrors } =
     },
     revalidateChangedField(field) {
       if (!form.value || serverErrors.has(field.id)) return;
-      const pattern = fieldErrorPattern(field.id);
-      if (!form.value.getErrors(pattern).length) return;
-      void form.value.validate({ name: errorNames(field), silent: true });
+      const shown = form.value
+        .getErrors(fieldErrorPattern(field.id))
+        .flatMap(({ name }: { name?: string }) => (name ? [name] : []));
+      if (!shown.length) return;
+      void form.value.validate({ name: shown, silent: true });
     },
   });
 
