@@ -24,7 +24,7 @@ export const ROW_ACTIONS: PlaygroundFeature[] = [
   ),
   feature(
     "Row actions gated by rules",
-    "rowActions.delete: { isEnabled, rule: { and: [...] } }",
+    "rowActions.delete: { isEnabled, rule: { and: [...] }, disabledReason }",
     PAGES.rules,
   ),
   feature(

@@ -66,8 +66,7 @@ function formatAddress(value: CellValue): string {
   const parts = [
     street,
     addr.addressLine2,
-    addr.postalCode,
-    addr.city,
+    [addr.postalCode, addr.city].filter(Boolean).join(" "),
     addr.countrySubdivision,
     countryName,
   ].filter(Boolean);

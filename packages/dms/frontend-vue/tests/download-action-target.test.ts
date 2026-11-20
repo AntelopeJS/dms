@@ -78,9 +78,7 @@ beforeEach(() => {
   }));
   vi.stubGlobal("interpolateUrl", interpolateUrl);
   vi.stubGlobal("useDmsRoute", () => route);
-  vi.stubGlobal("useSiteLayout", () => ({
-    findMatchingRoute: () => ({ params: { locale: "de" } }),
-  }));
+  vi.stubGlobal("findPageRoute", () => ({ params: { locale: "de" } }));
   vi.stubGlobal(
     "URL",
     Object.assign(URL, {

@@ -113,6 +113,7 @@ beforeEach(() => {
       params: { locale: "de" },
     }),
   }));
+  vi.stubGlobal("findPageRoute", () => ({ params: { locale: "de" } }));
   host = document.createElement("div");
   document.body.append(host);
 });

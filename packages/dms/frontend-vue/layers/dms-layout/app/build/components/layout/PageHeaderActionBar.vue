@@ -15,6 +15,7 @@ import { PREVIEW_LOCK_ICON } from "#dms-ui/app/entries/utils/permissionPreview";
 import { runMountedQuickAction } from "#dms-ui/app/entries/utils/quickActionTargets";
 import { useActionTargets } from "#dms-ui/app/entries/composables/actions/useActionTargets";
 import { refreshPageBlocks } from "#dms-ui/app/utils/blockRefresh";
+import DmsDisabledReason from "#dms-ui/app/entries/components/button/DisabledReason";
 import {
   hasUrlVariables,
   resolveLinkVariables,
@@ -291,16 +292,11 @@ const entries = computed<HeaderBarEntry[]>(() => {
 <template>
   <template v-for="{ key, action } in entries" :key="key">
     <slot v-if="!action" />
-    <!-- A disabled button fires no pointer event: the tooltip hangs on a
-      focusable wrapper, so the reason also reaches keyboard users. -->
     <UTooltip v-else-if="action.previewLocked" :text="action.previewLocked">
       <UButton v-bind="action.button" />
     </UTooltip>
-    <UTooltip v-else-if="action.disabledReason" :text="action.disabledReason">
-      <span tabindex="0" class="inline-flex">
-        <UButton v-bind="action.button" />
-      </span>
-    </UTooltip>
-    <UButton v-else v-bind="action.button" />
+    <DmsDisabledReason v-else :reason="action.disabledReason">
+      <UButton v-bind="action.button" />
+    </DmsDisabledReason>
   </template>
 </template>

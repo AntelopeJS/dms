@@ -9,6 +9,7 @@ import type {
 import {
   isCustomActionInline,
   isOffMode,
+  isOffered,
   buildRowActionDescriptors,
   BUILTIN_ROW_ACTION_KEYS,
 } from "./tableColumnActionDescriptors";
@@ -81,7 +82,7 @@ const shownActionsWidth = <T extends Data>(
 ): number => {
   return actionsCellWidth(
     buildRowActionDescriptors(context, row).filter(
-      (d) => !d.disabled && !isOffMode(context, d),
+      (d) => isOffered(d) && !isOffMode(context, d),
     ),
   );
 };

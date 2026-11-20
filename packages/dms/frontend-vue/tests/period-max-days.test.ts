@@ -104,6 +104,12 @@ describe("the range calendar with maxDays", () => {
     expect(day(host, "2026-09-03").hasAttribute("data-disabled")).toBe(true);
   });
 
+  it("names the calendar in the user's language, not the library's English default", () => {
+    const host = mountCalendar();
+    expect(host.textContent).toContain("dms.period.popover.custom_range");
+    expect(host.textContent).not.toContain("Event Date");
+  });
+
   it("leaves every day enabled without a limit", async () => {
     const host = mountCalendar();
     day(host, "2026-09-10").click();

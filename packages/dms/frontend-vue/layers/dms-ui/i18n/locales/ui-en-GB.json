@@ -215,7 +215,7 @@
     },
     "pagination": {
       "label": "Navigation",
-      "count": "{count} items",
+      "count": "{count} item | {count} items",
       "size": "Displayed per {pageSize}",
       "current_page": "Page {currentPage} of {totalPages}",
       "first_page": "First page",

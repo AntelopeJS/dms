@@ -100,6 +100,12 @@ export interface RowActionConfig<
   isEnabled?: boolean;
   isVisible?: boolean;
   rule?: RowActionRule<T>;
+  /**
+   * Why `rule` keeps the action off a row (`$`: i18n key, receiving the row's
+   * fields as parameters). With it a table row keeps the action, disabled,
+   * and shows this text; without it the row hides the action.
+   */
+  disabledReason?: string;
   /** Label in place of the built-in one ("Change roles"). `$`: i18n key. */
   label?: string;
   /** Icon in place of the built-in one. */

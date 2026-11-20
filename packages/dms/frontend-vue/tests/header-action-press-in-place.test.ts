@@ -76,6 +76,7 @@ beforeEach(() => {
       },
     }),
   }));
+  vi.stubGlobal("servedQuickActions", () => undefined);
   host = document.createElement("div");
   document.body.append(host);
 });

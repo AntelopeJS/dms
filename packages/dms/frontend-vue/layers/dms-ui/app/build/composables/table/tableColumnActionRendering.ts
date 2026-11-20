@@ -1,5 +1,6 @@
 import type { Data } from "../../components/table/TableRoot.vue";
 import Button from "@nuxt/ui/components/Button.vue";
+import DisabledReason from "../../components/button/DisabledReason.vue";
 import DropdownMenu, {
   type DropdownMenuItem,
 } from "@nuxt/ui/components/DropdownMenu.vue";
@@ -15,11 +16,22 @@ import {
   menuLabel,
   buildRowActionDescriptors,
   isDestructive,
+  isOffered,
   descriptorToMenuItem,
 } from "./tableColumnActionDescriptors";
 
+const withDisabledReason = (
+  descriptor: RowActionDescriptor,
+  button: ReturnType<typeof h>,
+) =>
+  h(
+    DisabledReason,
+    { reason: descriptor.disabledReason },
+    { default: () => button },
+  );
+
 const renderActionButton = (descriptor: RowActionDescriptor, rowId: string) => {
-  return h(Button, {
+  const button = h(Button, {
     id: `row-action-${rowId}-${descriptor.icon || descriptor.label}`,
     "aria-label": descriptor.label,
     title: descriptor.showLabel ? undefined : descriptor.label,
@@ -28,11 +40,13 @@ const renderActionButton = (descriptor: RowActionDescriptor, rowId: string) => {
     color: descriptor.color || Color.neutral,
     variant: descriptor.variant ?? ButtonVariant.ghost,
     size: Size.tiny,
+    disabled: descriptor.disabled,
     onClick: (event: Event) => {
       event.stopPropagation();
       descriptor.onSelect();
     },
   });
+  return withDisabledReason(descriptor, button);
 };
 
 const renderActionsDropdown = <T extends Data>(
@@ -67,18 +81,20 @@ const renderRestoreButton = (
   descriptor: RowActionDescriptor,
   rowId: string,
 ) => {
-  return h(Button, {
+  const button = h(Button, {
     id: `row-action-${rowId}-restore`,
     label: descriptor.label,
     icon: descriptor.icon,
     color: Color.neutral,
     variant: ButtonVariant.ghost,
     size: Size.tiny,
+    disabled: descriptor.disabled,
     onClick: (event: Event) => {
       event.stopPropagation();
       descriptor.onSelect();
     },
   });
+  return withDisabledReason(descriptor, button);
 };
 
 export const renderActionsCell = <T extends Data>(
@@ -88,7 +104,7 @@ export const renderActionsCell = <T extends Data>(
   const { config } = context;
 
   const descriptors = buildRowActionDescriptors(context, row.original).filter(
-    (d) => !d.disabled && !isOffMode(context, d),
+    (d) => isOffered(d) && !isOffMode(context, d),
   );
   const restoreDescriptor = isShowingArchived(context)
     ? descriptors.find((d) => d.key === "restore")
