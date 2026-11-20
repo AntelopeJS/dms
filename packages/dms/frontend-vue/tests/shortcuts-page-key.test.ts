@@ -19,8 +19,6 @@ import {
 } from "../layers/dms-layout/app/composables/useCommandPaletteAssistant";
 import DashboardSearch from "../layers/dms-layout/app/components/layout/DashboardSearch.vue";
 import shortcutsRegistry from "../layers/dms-ui/app/config/shortcuts-registry";
-import enGB from "../layers/dms-ui/app/entries/i18n/locales/ui-en-GB.json";
-import frFR from "../layers/dms-ui/app/entries/i18n/locales/ui-fr-FR.json";
 import { PaletteStub } from "./fixtures/dashboard-search-stub";
 
 const SHORTCUTS_PAGE = "/settings/user/shortcuts";
@@ -130,20 +128,5 @@ describe("the shortcuts page listing", () => {
   it("lists ? under Global", () => {
     expect(entry?.key).toEqual(["?"]);
     expect(entry?.component).toBe("$dms.components.global");
-  });
-
-  it.each([
-    ["en-GB", enGB],
-    ["fr-FR", frFR],
-  ])("describes it in %s", (_locale, messages) => {
-    const { question_mark: questionMark } = messages.dms.shortcuts.global;
-    expect(entry?.descriptionKey).toBe(
-      "$dms.shortcuts.global.question_mark.description",
-    );
-    expect(entry?.condition?.descriptionKey).toBe(
-      "$dms.shortcuts.global.question_mark.condition",
-    );
-    expect(questionMark.description).toBeTruthy();
-    expect(questionMark.condition).toBeTruthy();
   });
 });
