@@ -1,7 +1,6 @@
-import { mkdirSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
 import { fieldOf, itemsOf, parseJson } from "../mcp-bridge.mjs";
 import { createRole, joinedMember } from "./settings-members/steps.mjs";
+import { compiledPages, writeSpec } from "./mockups/spec.mjs";
 
 /**
  * @typedef {import("@antelopejs/dms/e2e").Ctx} Ctx
@@ -63,19 +62,6 @@ const ZOOM_SETTLE_MS = 400;
 const MARKER_WHOLE_FROM_PX = 64;
 
 /**
- * Writes a mockup's spec under the run's `mockups/`, which the development backend watches.
- *
- * @param {Ctx} ctx
- * @param {string} name
- * @param {{ title: string, pages: unknown[] }} spec
- */
-function writeSpec(ctx, name, spec) {
-  const folder = join(ctx.state.runPlayground ?? ctx.state.playground, "mockups", name);
-  mkdirSync(folder, { recursive: true });
-  writeFileSync(join(folder, "spec.json"), JSON.stringify({ version: 1, ...spec }));
-}
-
-/**
  * Writes the sample mockup's spec.
  *
  * @param {Ctx} ctx
@@ -124,23 +110,6 @@ async function previewStates(page) {
   }
   await page.waitForTimeout(SETTLE_MS);
   return states;
-}
-
-/**
- * Waits until the backend compiled `count` pages of the mockup `name`.
- *
- * @param {Ctx} ctx
- * @param {string} name
- * @param {number} count
- */
-async function compiledPages(ctx, name, count) {
-  const deadline = Date.now() + DRAW_TIMEOUT_MS;
-  for (;;) {
-    const state = await ctx.api(`GET the ${name} mockup`, { method: "GET", path: `/api/mockup/${name}` });
-    const pages = itemsOf(fieldOf(state.body, "pages"));
-    if (pages.length === count || Date.now() > deadline) return pages.length;
-    await new Promise((resolve) => setTimeout(resolve, POLL_MS));
-  }
 }
 
 /**
