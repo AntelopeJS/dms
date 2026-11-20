@@ -30,7 +30,7 @@ function viewerUrl(origin: string, target: MockupTarget): string {
 }
 
 /** The blocks of the preview frame, the frame's own host component left out. */
-async function previewBlocks(frame: Frame): Promise<ProbedBlock[]> {
+async function frameBlocks(frame: Frame): Promise<ProbedBlock[]> {
   const probe = await probePage(frame).catch(() => undefined);
   return (probe?.blocks ?? []).filter(
     (block) => block.componentName !== PREVIEW_HOST,
@@ -49,7 +49,7 @@ async function drawnPreview(page: Page): Promise<ProbedBlock[] | undefined> {
     const frame = page
       .frames()
       .find((candidate) => candidate.url().includes(PREVIEW_PATH));
-    const blocks = frame ? await previewBlocks(frame) : [];
+    const blocks = frame ? await frameBlocks(frame) : [];
     const drawn = blocks.map((block) => block.path).join(" ");
     if (frame && blocks.length > 0 && drawn === previous) return blocks;
     previous = drawn;
