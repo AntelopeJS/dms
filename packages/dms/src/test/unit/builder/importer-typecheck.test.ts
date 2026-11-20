@@ -20,6 +20,23 @@ const PAGE_FILE = "board/page.ts";
 const OP_TIMEOUT = 60_000;
 
 let app: Fixture;
+let pageClass: string | undefined;
+let written: string[] = [];
+let banners = 0;
+
+/** Write a file under the app's `src` that the next test no longer finds. */
+function write(relativePath: string, content: string): void {
+  app.write(relativePath, content);
+  written.push(relativePath);
+}
+
+function remove(relativePath: string): void {
+  fs.rmSync(path.join(app.root, "src", relativePath), { force: true });
+}
+
+function source(relativePath: string): string {
+  return path.join(app.root, "src", relativePath);
+}
 
 function failedFiles(result: OpResult<unknown>): string[] {
   return !result.ok && result.error.code === "typecheck_failed"
@@ -27,22 +44,22 @@ function failedFiles(result: OpResult<unknown>): string[] {
     : [];
 }
 
-async function addBanner(name: string) {
+async function addBanner() {
+  banners += 1;
   return AddBlock({
     page: PAGE,
-    name,
+    name: `banner${banners}`,
     type: "Banner",
-    config: { title: name },
+    config: { title: `Banner ${banners}` },
   });
 }
 
 /**
  * Once a typecheck of the app found no error, a save checks only what it could
- * have broken. A file that reaches the page through another file still breaks
- * with it, and an engine that checks the saved files and their direct
- * importers alone writes the save.
+ * have broken. Each case starts from a clean save, so the save under test goes
+ * through that narrower check, and fails on a file a full check fails on.
  */
-describe("[unit] a save that breaks a file importing the page", () => {
+describe("[unit] a save that breaks a file the save did not write", () => {
   before(async function () {
     this.timeout(120_000);
     app = createFixture();
@@ -58,31 +75,52 @@ describe("[unit] a save that breaks a file importing the page", () => {
       }),
       "CreatePage",
     );
-    expectOk(await addBanner("first"), "AddBlock first");
-    const pageClass = /export class (\w+)/.exec(app.read(PAGE_FILE))?.[1];
-    app.write(
-      "board-ref.ts",
-      `import { ${pageClass} } from "./board/page";\n\nexport const board = ${pageClass};\n`,
-    );
-    app.write(
-      "board-reader.ts",
-      `import { board } from "./board-ref";\n\nexport const banner = board.first;\n`,
-    );
-    expectOk(await addBanner("second"), "AddBlock with the importers on disk");
+    expectOk(await addBanner(), "AddBlock");
+    pageClass = /export class (\w+)/.exec(app.read(PAGE_FILE))?.[1];
+  });
+
+  afterEach(() => {
+    written.forEach(remove);
+    written = [];
   });
 
   after(() => destroyFixture());
 
   it("fails on the importer of an importer and leaves the page as it was", async function () {
     this.timeout(OP_TIMEOUT);
+    write(
+      "board-ref.ts",
+      `import { ${pageClass} } from "./board/page";\n\nexport const board = ${pageClass};\n`,
+    );
+    write(
+      "board-reader.ts",
+      `import { board } from "./board-ref";\n\nexport const banner = board.banner1;\n`,
+    );
+    expectOk(await addBanner(), "AddBlock with the importers on disk");
     const before = app.read(PAGE_FILE);
 
-    const result = await RemoveBlock(`${PAGE}#first`);
+    const result = await RemoveBlock(`${PAGE}#banner1`);
 
-    expect(failedFiles(result)).to.deep.equal([
-      path.join(app.root, "src", "board-reader.ts"),
-    ]);
+    expect(failedFiles(result)).to.deep.equal([source("board-reader.ts")]);
     expect(app.read(PAGE_FILE)).to.equal(before);
+  });
+
+  /**
+   * The page changes, and a module importing it declares a global from its
+   * type: the readers of that global import neither.
+   */
+  it("fails on a reader of a global declared from the page's type", async function () {
+    this.timeout(OP_TIMEOUT);
+    write(
+      "board-global.ts",
+      `import type { ${pageClass} } from "./board/page";\n\ndeclare global {\n  const BOARD: typeof ${pageClass};\n}\n`,
+    );
+    write("board-use.ts", `export const banner = BOARD.banner1;\n`);
+    expectOk(await addBanner(), "AddBlock with the global on disk");
+
+    const result = await RemoveBlock(`${PAGE}#banner1`);
+
+    expect(failedFiles(result)).to.deep.equal([source("board-use.ts")]);
   });
 
   /**
@@ -91,36 +129,61 @@ describe("[unit] a save that breaks a file importing the page", () => {
    */
   it("fails on the importer of a file deleted outside the builder", async function () {
     this.timeout(OP_TIMEOUT);
-    app.write("labels.ts", `export const label = "draft";\n`);
-    app.write(
+    write("labels.ts", `export const label = "draft";\n`);
+    write(
       "labels-user.ts",
       `import { label } from "./labels";\n\nexport const shown = label;\n`,
     );
-    expectOk(await addBanner("third"), "AddBlock with the labels on disk");
+    expectOk(await addBanner(), "AddBlock with the labels on disk");
 
-    fs.rmSync(path.join(app.root, "src", "labels.ts"));
-    const result = await addBanner("fourth");
+    remove("labels.ts");
+    const result = await addBanner();
 
-    expect(failedFiles(result)).to.deep.equal([
-      path.join(app.root, "src", "labels-user.ts"),
-    ]);
+    expect(failedFiles(result)).to.deep.equal([source("labels-user.ts")]);
+  });
+
+  it("fails on a file whose `/// <reference path>` was deleted outside the builder", async function () {
+    this.timeout(OP_TIMEOUT);
+    write("referenced.ts", `export {};\n`);
+    write(
+      "referrer.ts",
+      `/// <reference path="./referenced.ts" />\nexport const referrer = 1;\n`,
+    );
+    expectOk(await addBanner(), "AddBlock with the reference on disk");
+
+    remove("referenced.ts");
+    const result = await addBanner();
+
+    expect(failedFiles(result)).to.deep.equal([source("referrer.ts")]);
   });
 
   /** A global reaches every file without an import, so its change checks them all. */
   it("fails on a reader of a global edited outside the builder", async function () {
     this.timeout(OP_TIMEOUT);
-    fs.rmSync(path.join(app.root, "src", "labels-user.ts"));
     const declareTone = (tone: string) =>
       `declare global {\n  const TONE: "${tone}";\n}\n\nexport {};\n`;
-    app.write("tone.ts", declareTone("draft"));
-    app.write("tone-user.ts", `export const tone: "draft" = TONE;\n`);
-    expectOk(await addBanner("fifth"), "AddBlock with the global on disk");
+    write("tone.ts", declareTone("draft"));
+    write("tone-user.ts", `export const tone: "draft" = TONE;\n`);
+    expectOk(await addBanner(), "AddBlock with the global on disk");
 
-    app.write("tone.ts", declareTone("published"));
-    const result = await addBanner("sixth");
+    write("tone.ts", declareTone("published"));
+    const result = await addBanner();
 
-    expect(failedFiles(result)).to.deep.equal([
-      path.join(app.root, "src", "tone-user.ts"),
-    ]);
+    expect(failedFiles(result)).to.deep.equal([source("tone-user.ts")]);
+  });
+
+  /** An `export as namespace` declares a global as well, read here by a script. */
+  it("fails on a reader of a namespace a module exports as a global", async function () {
+    this.timeout(OP_TIMEOUT);
+    const declareLib = (tone: string) =>
+      `export declare const tone: "${tone}";\nexport as namespace Lib;\n`;
+    write("lib.d.ts", declareLib("draft"));
+    write("lib-user.ts", `const libTone: "draft" = Lib.tone;\n`);
+    expectOk(await addBanner(), "AddBlock with the namespace on disk");
+
+    write("lib.d.ts", declareLib("published"));
+    const result = await addBanner();
+
+    expect(failedFiles(result)).to.deep.equal([source("lib-user.ts")]);
   });
 });

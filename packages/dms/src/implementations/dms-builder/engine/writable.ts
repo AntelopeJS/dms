@@ -323,41 +323,53 @@ const cleanChecks = new WeakMap<Project, CleanCheck>();
 
 /**
  * Whether a file declares into a scope other files share: a script, or a module
- * with a `declare global` or a `declare module "…"` block.
+ * with a `declare global` block, a `declare module "…"` block or an
+ * `export as namespace`.
  */
 function reachesPastModule(file: ts.SourceFile): boolean {
   return (
     !ts.isExternalModule(file) ||
     file.statements.some(
       (statement) =>
-        ts.isModuleDeclaration(statement) &&
-        (ts.isStringLiteral(statement.name) ||
-          (statement.flags & ts.NodeFlags.GlobalAugmentation) !== 0),
+        ts.isNamespaceExportDeclaration(statement) ||
+        (ts.isModuleDeclaration(statement) &&
+          (ts.isStringLiteral(statement.name) ||
+            (statement.flags & ts.NodeFlags.GlobalAugmentation) !== 0)),
     )
   );
 }
 
-/** The files that import each file of the program, by path. */
+/**
+ * The files that import each file of the program, by path, through a module
+ * specifier or a `/// <reference path>`.
+ */
 function importGraph(
   project: Project,
   files: readonly ts.SourceFile[],
 ): Map<string, string[]> {
   const checker = project.getTypeChecker().compilerObject;
   const importers = new Map<string, string[]>();
-  for (const { fileName: importer } of files) {
+  for (const file of files) {
+    const importer = file.fileName;
     const literals =
       project.getSourceFile(importer)?.getImportStringLiterals() ?? [];
-    for (const literal of literals) {
-      for (const declaration of checker.getSymbolAtLocation(
-        literal.compilerNode,
-      )?.declarations ?? []) {
-        const imported = declaration.getSourceFile().fileName;
-        const known = importers.get(imported);
-        if (known) {
-          known.push(importer);
-        } else {
-          importers.set(imported, [importer]);
-        }
+    const imported = literals
+      .flatMap(
+        (literal) =>
+          checker.getSymbolAtLocation(literal.compilerNode)?.declarations ?? [],
+      )
+      .map((declaration) => declaration.getSourceFile().fileName);
+    for (const name of [
+      ...imported,
+      ...file.referencedFiles.map((reference) =>
+        ts.resolveTripleslashReference(reference.fileName, importer),
+      ),
+    ]) {
+      const known = importers.get(name);
+      if (known) {
+        known.push(importer);
+      } else {
+        importers.set(name, [importer]);
       }
     }
   }
@@ -384,11 +396,6 @@ function affectedFiles(
       (name) => !present.has(name),
     ),
   ]);
-  if (
-    [...affected].some((name) => global.has(name) || clean.global.has(name))
-  ) {
-    return files;
-  }
   for (const name of affected) {
     for (const importer of [
       ...(importers.get(name) ?? []),
@@ -397,7 +404,11 @@ function affectedFiles(
       affected.add(importer);
     }
   }
-  return files.filter((file) => affected.has(file.fileName));
+  return [...affected].some(
+    (name) => global.has(name) || clean.global.has(name),
+  )
+    ? files
+    : files.filter((file) => affected.has(file.fileName));
 }
 
 /**
