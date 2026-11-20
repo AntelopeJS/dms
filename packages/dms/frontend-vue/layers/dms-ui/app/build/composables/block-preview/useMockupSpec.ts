@@ -280,9 +280,9 @@ class MockupSpecSync {
 
   /**
    * Takes the file in place of the spec held, starting the history over. An
-   * edit inside the block this session holds is kept and written on top.
-   * Another viewer's file is no news to tell by its author when it takes an
-   * edit not written yet with it: that edit is told as lost.
+   * edit inside the block this session holds is kept and written on top. The
+   * notice names the viewer who wrote the file only when no edit not written
+   * yet goes with it: an edit it drops is never dropped in silence.
    */
   adopt(source: SpecSource, isNews: boolean): void {
     const previous = this.history.value?.present;
