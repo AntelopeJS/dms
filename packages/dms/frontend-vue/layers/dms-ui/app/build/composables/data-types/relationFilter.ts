@@ -1,5 +1,10 @@
 import { isEmptyFormValue, sameFormValue } from "../unsaved-changes/formValue";
 import { isBoolean, isNumber, isString } from "#dms-core/app/utils/type-check";
+import type { TableFilter } from "../../components/table/Table.types";
+import {
+  buildFiltersQuery,
+  combineFilters,
+} from "../table-view/utils/tableQuery";
 
 /**
  * A relation picker narrowed by another field of its form: the related
@@ -24,15 +29,23 @@ function isFilterValue(
 
 /**
  * The query narrowing the picker's search: the related table's filter
- * syntax (`filter_<field>=is:<value>`), the one its funnel sends. Nothing
- * while the source field holds no single value: every row is offered.
+ * syntax (`filter_<field>=<mode>:<value>`), the one its funnel sends. The
+ * fixed `filter` always applies, `filterBy` only while its source field
+ * holds a single value; a field both name gets both conditions.
  */
 export function relationFilterParams(
   filterBy: RelationFilterBy | undefined,
   sourceValue: RelationPickChange["source"],
+  filter?: TableFilter,
 ) {
-  if (!filterBy || !isFilterValue(sourceValue)) return {};
-  return { [`filter_${filterBy.field}`]: `${FILTER_MODE}:${sourceValue}` };
+  const narrowing: TableFilter[] =
+    filterBy && isFilterValue(sourceValue)
+      ? [{ accessorKey: filterBy.field, mode: FILTER_MODE, value: sourceValue }]
+      : [];
+  return combineFilters(
+    buildFiltersQuery(filter ? [filter] : []),
+    buildFiltersQuery(narrowing),
+  );
 }
 
 /** The source field and the pick, before and after a change of either. */

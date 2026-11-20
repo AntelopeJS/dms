@@ -37,7 +37,9 @@ export const isFilterEffective = (filter: TableFilter): boolean => {
   return true;
 };
 
-const buildFiltersQuery = (filters: TableFilter[]): Record<string, string> => {
+export const buildFiltersQuery = (
+  filters: TableFilter[],
+): Record<string, string> => {
   return filters
     .filter(isFilterEffective)
     .reduce<Record<string, string>>((acc, val) => {
@@ -53,7 +55,7 @@ const buildFiltersQuery = (filters: TableFilter[]): Record<string, string> => {
  * (AND), so a tab never lists rows it excludes, and two filters no row can
  * pass list nothing.
  */
-const combineFilters = (
+export const combineFilters = (
   hidden: Record<string, string>,
   column: Record<string, string>,
 ) => {

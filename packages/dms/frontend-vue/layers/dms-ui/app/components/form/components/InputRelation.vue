@@ -26,6 +26,7 @@ import {
 import type { FormProps } from "../../../composables/form/types";
 import { sameFormValue } from "../../../build/composables/unsaved-changes/formValue";
 import { FORM_ENTRY_CONTEXT_KEY } from "../../../build/composables/form/formEntryContext";
+import type { TableFilter } from "../../../build/components/table/Table.types";
 import {
   type RelationFilterBy,
   relationFilterParams,
@@ -56,6 +57,11 @@ export interface RelationProps<
    * field `from`; ignored outside a form (a filter's picker).
    */
   filterBy?: RelationFilterBy;
+  /**
+   * Lists only the related rows meeting a fixed condition; ignored outside a
+   * form (a filter's picker).
+   */
+  filter?: TableFilter;
   addForm?: { componentName: string; options?: FormProps };
   addPermissionIds?: string[];
   /**
@@ -88,6 +94,7 @@ const forwardedProps = computed(() => {
     addPermissionIds: _______,
     addFormTexts: ________,
     filterBy: _________,
+    filter: __________,
     ...rest
   } = props;
   return rest;
@@ -124,7 +131,13 @@ const filterSourceValue = computed(() =>
     : undefined,
 );
 const filterParams = computed(() =>
-  relationFilterParams(props.filterBy, filterSourceValue.value),
+  formContext
+    ? relationFilterParams(
+        props.filterBy,
+        filterSourceValue.value,
+        props.filter,
+      )
+    : {},
 );
 // A string, so a recomputed but equal filter does not search again.
 const filterKey = computed(() => JSON.stringify(filterParams.value));
