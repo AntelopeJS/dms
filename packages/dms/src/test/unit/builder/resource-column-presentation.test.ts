@@ -69,6 +69,7 @@ function writesEachOption(): void {
       display: {
         type: "identity",
         options: {
+          avatarFrame: "square",
           subtitleField: "title",
           badges: [{ field: "title", label: "VIP", tone: "primary" }],
         },
@@ -159,6 +160,13 @@ function refusesWhatItCannotWrite(): void {
         }),
       ),
     ).to.match(/two_line display refuses its options: options\.subField: /);
+    expect(
+      refusalOf(
+        await ConfigureField("ticket#title", {
+          display: { type: "identity", options: { avatarFrame: "oval" } },
+        }),
+      ),
+    ).to.match(/identity display refuses its options: options\.avatarFrame: /);
     expect(
       refusalOf(
         await ConfigureField("ticket#title", {
