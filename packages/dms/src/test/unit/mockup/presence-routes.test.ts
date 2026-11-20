@@ -27,6 +27,7 @@ import {
   lastPresence,
   lock,
   lockAnswerSchema,
+  lockAt,
   renew,
   ROW,
   SPEC,
@@ -44,6 +45,8 @@ const sourceSchema = z.object({
   digest: z.string(),
   writtenBy: z.object({ name: z.string() }).strict().optional(),
 });
+
+const staleSchema = z.object({ message: z.string(), digest: z.string() });
 
 const writeSchema = z.object({
   ok: z.boolean(),
@@ -486,5 +489,43 @@ describe("[unit] mockup presence: who a viewer is", () => {
       (await bea.get(SPEC_URL)).data,
     ]);
     expect(beaSaw).to.not.contain(a);
+  });
+});
+
+describe("[unit] mockup presence: a lock take names its block in the file the client read", () => {
+  const viewers = useViewers();
+
+  it("refuses a take whose digest is not the file's, with 409 and the current digest, granting and stamping nothing, so a write that landed first cannot move the lock to another block (fails when the pointer is resolved against whatever the file is now)", async () => {
+    const { ada, bea, b, a, adaStream, specPath } = viewers();
+    const read = await source(ada);
+    await write(bea, b, (spec) => {
+      tree(spec).splice(1, 0, kpi("New"));
+    });
+    const current = await source(ada);
+    const before = await readFile(specPath, "utf8");
+
+    const stale = await lockAt(ada, a, KPI_C, read.digest);
+
+    expect(stale.status).to.equal(409);
+    expect(staleSchema.parse(stale.data).digest).to.equal(current.digest);
+    expect(staleSchema.parse(stale.data).message).to.contain(
+      "changed since it was read",
+    );
+    expect(await readFile(specPath, "utf8")).to.equal(before);
+    expect(heldPaths(adaStream)).to.deep.equal([]);
+    expect((await lock(bea, b, KPI_C)).status).to.equal(200);
+  });
+
+  it("grants a take whose digest is the file's, and requires the digest whenever a path is given, while a renewal names none (fails when a take without a digest is granted)", async () => {
+    const { ada, a } = viewers();
+    const read = await source(ada);
+
+    const unread = await lockAt(ada, a, KPI_A, undefined);
+    const taken = await lockAt(ada, a, KPI_A, read.digest);
+    const renewal = await renew(ada, a);
+
+    expect(unread.status).to.equal(400);
+    expect(taken.status).to.equal(200);
+    expect(renewal.status).to.equal(200);
   });
 });

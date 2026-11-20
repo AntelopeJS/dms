@@ -65,6 +65,14 @@ export function heldPaths(stream: FollowedStream): string[] {
 export const lock = (client: AxiosInstance, viewer: string, path: string) =>
   client.put(LOCKS, { viewer, path });
 
+/** Takes the lock as a client that read the spec at `digest` does. */
+export const lockAt = (
+  client: AxiosInstance,
+  viewer: string,
+  path: string,
+  digest: string | undefined,
+) => client.put(LOCKS, { viewer, path, digest });
+
 export const renew = (client: AxiosInstance, viewer: string) =>
   client.put(LOCKS, { viewer });
 
