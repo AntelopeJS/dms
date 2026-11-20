@@ -1002,6 +1002,8 @@
       "copied": "Copié",
       "close": "Fermer",
       "section_default": "Pages",
+      "modules": "Modules",
+      "modules_hint": "Construire la maquette installe ces modules DMS.",
       "section_new": "Nouvelle section",
       "section_name": "Nom de la section",
       "section_actions": "Actions de la section",

@@ -175,6 +175,7 @@ function compileVersion(
     state.categories = compiled.categories;
   }
   if (compiled.sidebar !== undefined) state.sidebar = compiled.sidebar;
+  if (compiled.modules !== undefined) state.modules = compiled.modules;
   return { version, state, fixtures: compiled.fixtures };
 }
 

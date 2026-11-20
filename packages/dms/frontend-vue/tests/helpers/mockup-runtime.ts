@@ -416,6 +416,7 @@ export function stubMockupRuntime(options: RuntimeOptions = {}): MockupRuntime {
   vi.stubGlobal("useI18n", () => ({
     t: (key: string, params?: Record<string, number>) =>
       params ? `${key} ${Object.values(params).join(",")}` : key,
+    te: () => false,
   }));
   const route = reactive({
     path: "/mockup",

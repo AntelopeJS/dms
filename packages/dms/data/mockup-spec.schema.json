@@ -163,6 +163,25 @@
         }
       }
     },
+    "modules": {
+      "type": "array",
+      "maxItems": 50,
+      "uniqueItems": true,
+      "description": "The DMS modules the app needs, by their ids in the module store catalog. Building the mockup installs each one (`ajs project modules add <package>`), and the viewer lists them.",
+      "items": {
+        "enum": [
+          "ai",
+          "api",
+          "automation",
+          "database",
+          "lang",
+          "mailing",
+          "marketing",
+          "media",
+          "saas"
+        ]
+      }
+    },
     "pages": {
       "type": "array",
       "maxItems": 50,

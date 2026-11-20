@@ -1,4 +1,5 @@
 import { expect } from "chai";
+import { z } from "zod";
 import { isToolAllowed } from "../../../mcp/access";
 import {
   mockupTool,
@@ -11,6 +12,16 @@ import {
 
 const read = mockupTool("mockup_read_spec");
 const write = mockupTool("mockup_write_spec");
+
+async function readNote(
+  tool: typeof read,
+  args: { mockup: string; path?: string },
+): Promise<string | undefined> {
+  const { content } = z
+    .object({ content: z.array(z.object({ text: z.string() })) })
+    .parse(await tool.call(args));
+  return content[1]?.text;
+}
 
 const TREE = [sketch("<p>a</p>"), sketch("<p>b</p>")];
 
@@ -42,6 +53,25 @@ describe("[unit] mockup_read_spec", () => {
     expect(block.isError).to.equal(false);
     expect(JSON.parse(block.text)).to.deep.equal(TREE[1]);
     expect(JSON.parse(title.text)).to.equal("Home");
+  });
+
+  it("names the package of each listed module beside the spec, and only when the read reaches them (fails when the build skill sees bare ids or every read carries the note)", async () => {
+    await write.call({
+      mockup: NAME,
+      spec: {
+        version: 1,
+        modules: ["mailing", "saas"],
+        pages: [{ id: "home", title: "Home", tree: TREE }],
+      },
+    });
+    const note = (path?: string) =>
+      readNote(read, { mockup: NAME, ...(path !== undefined && { path }) });
+
+    expect(await note()).to.contain(
+      "mailing is @antelopejs/dms-mailing, saas is @antelopejs/dms-saas",
+    );
+    expect(await note("/modules")).to.contain("@antelopejs/dms-saas");
+    expect(await note("/pages/0/title")).to.equal(undefined);
   });
 
   it("changes nothing", async () => {

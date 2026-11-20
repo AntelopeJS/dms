@@ -1002,6 +1002,8 @@
       "copied": "Copied",
       "close": "Close",
       "section_default": "Pages",
+      "modules": "Modules",
+      "modules_hint": "Building the mockup installs these DMS modules.",
       "section_new": "New section",
       "section_name": "Section name",
       "section_actions": "Section actions",

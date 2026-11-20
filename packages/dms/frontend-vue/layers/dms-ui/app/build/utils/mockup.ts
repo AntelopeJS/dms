@@ -94,6 +94,15 @@ export interface MockupSidebar {
   widgets: MockupSidebarWidget[];
 }
 
+/** A DMS module the mockup's app needs: its entry in the module store catalog. */
+export interface MockupModule {
+  /** The module's id in the catalog. */
+  id: string;
+  /** The npm package building the mockup installs. */
+  package: string;
+  icon: string;
+}
+
 export interface MockupState {
   name: string;
   title?: string;
@@ -103,6 +112,8 @@ export interface MockupState {
   categories?: MockupCategory[];
   /** Absent when the spec adds nothing to the sidebar. */
   sidebar?: MockupSidebar;
+  /** Absent when the spec lists no module. */
+  modules?: MockupModule[];
   pages: MockupPageState[];
   issues: MockupIssue[];
 }
@@ -361,6 +372,17 @@ function isSidebar(
   );
 }
 
+function isModule(
+  value: Parameters<typeof isObject>[0],
+): value is MockupModule {
+  return (
+    isRecord(value) &&
+    isString(value.id) &&
+    isString(value.package) &&
+    isString(value.icon)
+  );
+}
+
 function isMockupState(
   value: Parameters<typeof isObject>[0],
 ): value is MockupState {
@@ -373,6 +395,8 @@ function isMockupState(
       (Array.isArray(value.categories) &&
         value.categories.every(isMockupCategory))) &&
     (value.sidebar === undefined || isSidebar(value.sidebar)) &&
+    (value.modules === undefined ||
+      (Array.isArray(value.modules) && value.modules.every(isModule))) &&
     Array.isArray(value.pages) &&
     value.pages.every(isPageState) &&
     Array.isArray(value.issues) &&
