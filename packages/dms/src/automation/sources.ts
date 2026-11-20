@@ -35,7 +35,11 @@ const onMemberAdded: HookHandler<Hook.MEMBER_ADDED> = (payload) => {
     at: now(),
   };
   if (payload.deliveryId) event.deliveryId = payload.deliveryId;
-  emitAutomationEvent("dms.member-added", event);
+  emitOriginatedEvent(
+    "dms.member-added",
+    `${payload.tenantId}:${payload.userId}`,
+    event,
+  );
   return undefined;
 };
 
@@ -116,7 +120,11 @@ const onInviteCreated: HookHandler<Hook.INVITE_CREATED> = (payload) => {
     at: now(),
   };
   if (payload.deliveryId) event.deliveryId = payload.deliveryId;
-  emitAutomationEvent("dms.invite-created", event);
+  emitOriginatedEvent(
+    "dms.invite-created",
+    `${payload.tenantId}:${payload.email}`,
+    event,
+  );
   return undefined;
 };
 

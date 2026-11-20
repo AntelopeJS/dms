@@ -5,7 +5,7 @@ import type {
 } from "@antelopejs/interface-dms/hooks";
 import type { AutomationOriginFields } from "./origin";
 
-export type MemberAddedEvent = {
+export type MemberAddedEvent = AutomationOriginFields & {
   tenantId: string;
   userId: string;
   isTenantOwner: boolean;
@@ -20,7 +20,7 @@ export type MemberRemovedEvent = AutomationOriginFields & {
   at: string;
 };
 
-export type InviteCreatedEvent = {
+export type InviteCreatedEvent = AutomationOriginFields & {
   tenantId: string;
   inviteId: string;
   email: string;

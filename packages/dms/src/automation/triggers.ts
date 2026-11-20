@@ -212,6 +212,7 @@ export const TRIGGERS: TriggerType[] = [
       isTenantOwner: BOOLEAN,
       deliveryId: STRING,
     },
+    automationWrites: true,
   }),
   createEventTrigger({
     event: "dms.member-removed",
@@ -233,6 +234,7 @@ export const TRIGGERS: TriggerType[] = [
       roleIds: STRINGS,
       deliveryId: STRING,
     },
+    automationWrites: true,
   }),
   createEventTrigger({
     event: "dms.user-registered",

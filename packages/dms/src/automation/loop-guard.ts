@@ -58,6 +58,8 @@ function admitAutomationEvent(event: string, subject: string): boolean {
 }
 
 type OriginatedEventName =
+  | "dms.member-added"
+  | "dms.invite-created"
   | "dms.member-removed"
   | "dms.invite-resolved"
   | "dms.member-roles-changed";
