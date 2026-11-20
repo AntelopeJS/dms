@@ -13,7 +13,10 @@ import {
 import { UserModel } from "@antelopejs/interface-dms/auth/db";
 import type { ActionType } from "@antelopejs/interface-dms-automation";
 import { fieldHint, nodeText, titledProperties } from "./i18n";
+import { MEMBER_ACTIONS } from "./member-actions";
 import { sendNotificationAction } from "./send-notification";
+import { TENANT_ACTIONS } from "./tenants";
+import { USER_ACTIONS } from "./users";
 import { isString } from "@antelopejs/interface-dms/utils/internal/type-check";
 
 export const SEND_EMAIL_ACTION_ID = "dms.send-email";
@@ -279,4 +282,7 @@ export const ACTIONS: ActionType[] = [
   sendEmailAction,
   sendNotificationAction,
   inviteUserAction,
+  ...USER_ACTIONS,
+  ...TENANT_ACTIONS,
+  ...MEMBER_ACTIONS,
 ];

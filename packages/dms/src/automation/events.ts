@@ -1,4 +1,9 @@
 import type { TriggerType } from "@antelopejs/interface-dms-automation";
+import type {
+  InviteDeletedReason,
+  UserDeletionReason,
+} from "@antelopejs/interface-dms/hooks";
+import type { AutomationOriginFields } from "./origin";
 
 export type MemberAddedEvent = {
   tenantId: string;
@@ -9,7 +14,7 @@ export type MemberAddedEvent = {
   at: string;
 };
 
-export type MemberRemovedEvent = {
+export type MemberRemovedEvent = AutomationOriginFields & {
   tenantId: string;
   userIds: string[];
   at: string;
@@ -35,11 +40,75 @@ export type UserRegisteredEvent = {
 };
 
 export type RecordMutationEvent = {
+  /** Absent for a table of the schema every tenant shares. */
+  tenantId?: string;
   /** Data controller location of the mutated table, e.g. "/api/tables/members". */
   location: string;
   ids: string[];
+  deliveryId: string;
   actorId?: string;
   actorName?: string;
+  at: string;
+};
+
+export type InviteResolvedEvent = AutomationOriginFields & {
+  tenantId: string;
+  inviteId: string;
+  email: string;
+  reason: InviteDeletedReason;
+  /** The resolution's identity: a resumed resolution repeats it. */
+  deliveryId: string;
+  at: string;
+};
+
+/** The write site a member's roles or owner flag changed through. */
+export type MemberChangeOrigin =
+  | "member-edit"
+  | "ownership"
+  | "role-deleted"
+  | "automation";
+
+export type MemberRolesChangedEvent = AutomationOriginFields & {
+  tenantId: string;
+  userId: string;
+  roleIds: string[];
+  previousRoleIds: string[];
+  addedRoleIds: string[];
+  removedRoleIds: string[];
+  isTenantOwner: boolean;
+  previousIsTenantOwner: boolean;
+  origin: MemberChangeOrigin;
+  actorId?: string;
+  deliveryId: string;
+  at: string;
+};
+
+export type UserDeletedEvent = {
+  userId: string;
+  email: string;
+  tenantIds: string[];
+  reason: UserDeletionReason;
+  deliveryId: string;
+  at: string;
+};
+
+export type TenantCreatedEvent = {
+  tenantId: string;
+  name?: string;
+  userId?: string;
+  isDefault: boolean;
+  deliveryId: string;
+  at: string;
+};
+
+export type TenantDeletedEvent = {
+  tenantId: string;
+  name?: string;
+  ownerUserId?: string;
+  ownerUserIds: string[];
+  ownerEmail?: string;
+  operationId?: string;
+  deliveryId: string;
   at: string;
 };
 
@@ -51,9 +120,17 @@ interface AutomationEventPayloads {
   "dms.record-created": RecordMutationEvent;
   "dms.record-updated": RecordMutationEvent;
   "dms.record-deleted": RecordMutationEvent;
+  "dms.invite-resolved": InviteResolvedEvent;
+  "dms.member-roles-changed": MemberRolesChangedEvent;
+  "dms.user-deleted": UserDeletedEvent;
+  "dms.tenant-created": TenantCreatedEvent;
+  "dms.tenant-deleted": TenantDeletedEvent;
 }
 
 export type AutomationEventName = keyof AutomationEventPayloads;
+
+export type AutomationEventPayload<E extends AutomationEventName> =
+  AutomationEventPayloads[E];
 
 /** The events a record mutation fires, each carrying a RecordMutationEvent. */
 export type RecordEventName =
@@ -77,6 +154,11 @@ const eventListeners: AutomationEventListeners = {
   "dms.record-created": new Set(),
   "dms.record-updated": new Set(),
   "dms.record-deleted": new Set(),
+  "dms.invite-resolved": new Set(),
+  "dms.member-roles-changed": new Set(),
+  "dms.user-deleted": new Set(),
+  "dms.tenant-created": new Set(),
+  "dms.tenant-deleted": new Set(),
 };
 
 export function listenersFor<E extends AutomationEventName>(

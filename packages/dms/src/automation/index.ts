@@ -113,6 +113,10 @@ function cleanupAutomationNodes(
   return errors;
 }
 export * from "./actions";
+export * from "./member-actions";
 export * from "./registration-lifecycle";
 export * from "./send-notification";
+export * from "./sources";
+export * from "./tenants";
 export * from "./triggers";
+export * from "./users";

@@ -550,20 +550,52 @@
         },
         "recordCreated": {
           "name": "Record created",
-          "description": "Fires when rows are created in a TableView-backed table"
+          "description": "Fires when rows are created in a TableView-backed table. It carries the workspace the write was made in."
         },
         "recordUpdated": {
           "name": "Record updated",
-          "description": "Fires when rows are updated in a TableView-backed table"
+          "description": "Fires when rows are updated in a TableView-backed table. It carries the workspace the write was made in."
         },
         "recordDeleted": {
           "name": "Record deleted",
-          "description": "Fires when rows are deleted in a TableView-backed table"
+          "description": "Fires when rows are deleted in a TableView-backed table. It carries the workspace the write was made in."
         },
         "record": {
           "fields": {
             "location": "Data controller location to watch, e.g. \"/api/tables/members\". Leave empty to fire for every table."
           }
+        },
+        "shared": {
+          "fields": {
+            "tenantId": "Fire only for this workspace. Leave empty for every workspace.",
+            "includeAutomationWrites": "Also fire for changes made by procedures (off by default, so a procedure does not trigger itself)"
+          }
+        },
+        "inviteResolved": {
+          "name": "Invite resolved",
+          "description": "Fires when an invitation is accepted, cancelled, expired, replaced or reissued",
+          "fields": {
+            "reasons": "Fire only for these reasons. Leave empty for all; resent and replaced reissue the invitation rather than end it"
+          }
+        },
+        "memberRolesChanged": {
+          "name": "Member roles changed",
+          "description": "Fires when a member's roles, or their owner flag, change in a workspace",
+          "fields": {
+            "includeOwnership": "Also fire when only the owner flag changed"
+          }
+        },
+        "userDeleted": {
+          "name": "User deleted",
+          "description": "Fires when a user account is deleted, after the DMS removed what it keeps about them"
+        },
+        "tenantCreated": {
+          "name": "Workspace created",
+          "description": "Fires while a workspace is provisioned; a workspace whose provisioning fails later is followed by Workspace deleted, or retried"
+        },
+        "tenantDeleted": {
+          "name": "Workspace deleted",
+          "description": "Fires when a workspace is deleted, with its name and owners as they were before deletion"
         }
       },
       "actions": {
@@ -596,46 +628,135 @@
             "language": "Language of the invitation email and of the account it creates; defaults to en",
             "inviterName": "Who the invitation email says it comes from"
           }
+        },
+        "getUser": {
+          "name": "Get user",
+          "description": "Read a user by ID or email address, and their membership in a workspace",
+          "fields": {
+            "userId": "User ID; wins over the email when both are set",
+            "email": "Email address, in any letter case",
+            "tenantId": "Workspace whose membership is read; defaults to the default workspace"
+          }
+        },
+        "listMembers": {
+          "name": "List members",
+          "description": "List a workspace's members with their email, name and roles, a page at a time",
+          "fields": {
+            "tenantId": "Workspace to list; defaults to the default workspace",
+            "roleIds": "Only members holding any of these roles"
+          }
+        },
+        "getTenant": {
+          "name": "Get workspace",
+          "description": "Read a workspace's name, owners and member count",
+          "fields": {
+            "tenantId": "Workspace to read; defaults to the default workspace"
+          }
+        },
+        "setMemberRoles": {
+          "name": "Set member roles",
+          "description": "Set, add or remove a member's roles, and optionally their owner flag, with the same checks as the members page",
+          "fields": {
+            "tenantId": "Workspace of the member; defaults to the default workspace",
+            "roleIds": "Roles to set, add or remove; leave unset to keep the roles",
+            "mode": "replace sets exactly these roles, add and remove change the stored ones",
+            "isTenantOwner": "Leave unset to keep the owner flag"
+          }
+        },
+        "cancelInvite": {
+          "name": "Cancel invite",
+          "description": "Cancel a pending invitation, as the Revoke action of the invitations page does",
+          "fields": {
+            "tenantId": "Workspace of the invitation; defaults to the default workspace",
+            "inviteId": "Invite ID, e.g. from an Invite created trigger"
+          }
+        },
+        "removeMember": {
+          "name": "Remove member",
+          "description": "Remove a member from a workspace, with the same checks as the members page",
+          "fields": {
+            "tenantId": "Workspace to remove the member from; defaults to the default workspace"
+          }
         }
       },
       "fields": {
         "actorId": "Actor ID",
         "actorName": "Actor name",
+        "addedRoleIds": "Added roles",
         "asTenantOwner": "Workspace owner",
         "at": "Date",
+        "cancelled": "Cancelled",
+        "changed": "Changed",
+        "closed": "Closed",
+        "createdAt": "Created",
         "deliveryId": "Delivery ID",
         "description": "Description",
         "email": "Email",
         "error": "Error",
         "firstname": "First name",
+        "found": "Found",
+        "hasMore": "More pages",
         "html": "HTML",
         "icon": "Icon",
         "idempotencyKey": "Replay key",
         "ids": "Record IDs",
+        "includeAutomationWrites": "Include procedure changes",
+        "includeOwnership": "Include owner changes",
         "inviteId": "Invite ID",
         "inviterName": "Inviter name",
+        "isDefault": "Default workspace",
+        "isMember": "Member",
+        "isPlatformOwner": "Platform owner",
         "isTenantOwner": "Workspace owner",
+        "isValidated": "Email verified",
         "kind": "Result",
         "language": "Language",
+        "lastActiveAt": "Last active",
         "lastname": "Last name",
+        "limit": "Page size",
         "linkTo": "Link",
         "location": "Table",
+        "memberCount": "Members",
+        "members": "Members",
         "messageId": "Message ID",
+        "mode": "Mode",
         "name": "Name",
+        "offset": "Offset",
         "ok": "Sent",
+        "operationId": "Operation ID",
+        "origin": "Origin",
+        "originProcedureId": "Origin procedure",
+        "originRunId": "Origin run",
+        "ownerEmail": "Owner email",
+        "ownerUserId": "Owner",
+        "ownerUserIds": "Owners",
+        "ownersOnly": "Owners only",
         "params": "Parameters",
+        "previousIsTenantOwner": "Was workspace owner",
+        "previousRoleIds": "Previous roles",
         "props": "Template props",
+        "provisioningPending": "Provisioning pending",
+        "reason": "Reason",
+        "reasons": "Reasons",
+        "removed": "Removed",
+        "removedRoleIds": "Removed roles",
         "roleIds": "Roles",
         "sendEmail": "Send the email",
+        "status": "Status",
         "subject": "Subject",
         "success": "Success",
         "template": "Template",
         "tenantId": "Workspace",
+        "tenantIds": "Workspaces",
+        "timeZone": "Time zone",
         "title": "Title",
         "to": "To",
         "tone": "Tone",
+        "total": "Total",
+        "updatedAt": "Updated",
         "userId": "User",
-        "userIds": "Users"
+        "userIds": "Users",
+        "wasTenantOwner": "Was workspace owner"
       }
     }
   }

@@ -8,6 +8,7 @@ import {
 } from "@antelopejs/interface-dms/db";
 import { notifyMenuAccessChanged } from "../../../implementations/dms/page";
 import { haveSameMembers } from "../../../utils";
+import { announceMemberChanges } from "../../../automation/member-events";
 import {
   type NotificationActor,
   notifyMemberRemoved,
@@ -20,7 +21,10 @@ async function requestActor(ctx: RequestContext): Promise<NotificationActor> {
   return { id: user._id, name: user.name || user.email };
 }
 
-type MemberBeforeEdit = Pick<TenantMember, "_id" | "roleIds" | "isTenantOwner">;
+type MemberBeforeEdit = Pick<
+  TenantMember,
+  "_id" | "userId" | "roleIds" | "isTenantOwner"
+>;
 
 async function announceEdit(
   tenantId: string,
@@ -38,6 +42,7 @@ async function announceEdit(
   const ownershipChanged = (before.isTenantOwner === true) !== isOwner;
   if (rolesChanged || ownershipChanged)
     notifyMenuAccessChanged(tenantId, [after.userId]);
+  announceMemberChanges(tenantId, [{ before, after }], "member-edit", actor.id);
 
   if (after.userId === actor.id) return;
   if (rolesChanged) {

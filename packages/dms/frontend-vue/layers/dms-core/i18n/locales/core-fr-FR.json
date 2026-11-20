@@ -550,20 +550,52 @@
         },
         "recordCreated": {
           "name": "Enregistrement créé",
-          "description": "Se déclenche quand des lignes sont créées dans une table adossée à une TableView"
+          "description": "Se déclenche quand des lignes sont créées dans une table adossée à une TableView. Indique l'espace de travail où l'écriture a eu lieu."
         },
         "recordUpdated": {
           "name": "Enregistrement modifié",
-          "description": "Se déclenche quand des lignes sont modifiées dans une table adossée à une TableView"
+          "description": "Se déclenche quand des lignes sont modifiées dans une table adossée à une TableView. Indique l'espace de travail où l'écriture a eu lieu."
         },
         "recordDeleted": {
           "name": "Enregistrement supprimé",
-          "description": "Se déclenche quand des lignes sont supprimées dans une table adossée à une TableView"
+          "description": "Se déclenche quand des lignes sont supprimées dans une table adossée à une TableView. Indique l'espace de travail où l'écriture a eu lieu."
         },
         "record": {
           "fields": {
             "location": "Emplacement du contrôleur de données à surveiller, par ex. \"/api/tables/members\". Laissez vide pour réagir à toutes les tables."
           }
+        },
+        "shared": {
+          "fields": {
+            "tenantId": "Ne réagir que pour cet espace de travail. Laissez vide pour tous les espaces.",
+            "includeAutomationWrites": "Réagir aussi aux changements faits par des procédures (désactivé par défaut, pour qu'une procédure ne se déclenche pas elle-même)"
+          }
+        },
+        "inviteResolved": {
+          "name": "Invitation résolue",
+          "description": "Se déclenche quand une invitation est acceptée, annulée, expirée, remplacée ou renvoyée",
+          "fields": {
+            "reasons": "Ne réagir qu'à ces motifs. Laissez vide pour tous ; resent et replaced réémettent l'invitation sans y mettre fin"
+          }
+        },
+        "memberRolesChanged": {
+          "name": "Rôles du membre modifiés",
+          "description": "Se déclenche quand les rôles d'un membre, ou son statut de propriétaire, changent dans un espace de travail",
+          "fields": {
+            "includeOwnership": "Réagir aussi quand seul le statut de propriétaire change"
+          }
+        },
+        "userDeleted": {
+          "name": "Utilisateur supprimé",
+          "description": "Se déclenche quand un compte utilisateur est supprimé, après que le DMS a effacé ce qu'il conserve à son sujet"
+        },
+        "tenantCreated": {
+          "name": "Espace de travail créé",
+          "description": "Se déclenche pendant la mise en service d'un espace de travail ; un espace dont la mise en service échoue ensuite est suivi d'Espace de travail supprimé, ou réessayé"
+        },
+        "tenantDeleted": {
+          "name": "Espace de travail supprimé",
+          "description": "Se déclenche quand un espace de travail est supprimé, avec son nom et ses propriétaires d'avant la suppression"
         }
       },
       "actions": {
@@ -596,46 +628,135 @@
             "language": "Langue de l'e-mail d'invitation et du compte qu'il crée ; en par défaut",
             "inviterName": "Nom de l'expéditeur indiqué dans l'e-mail d'invitation"
           }
+        },
+        "getUser": {
+          "name": "Lire un utilisateur",
+          "description": "Lire un utilisateur par ID ou adresse e-mail, et son appartenance à un espace de travail",
+          "fields": {
+            "userId": "ID de l'utilisateur ; prioritaire sur l'e-mail si les deux sont renseignés",
+            "email": "Adresse e-mail, majuscules ou minuscules",
+            "tenantId": "Espace de travail dont l'appartenance est lue ; par défaut l'espace par défaut"
+          }
+        },
+        "listMembers": {
+          "name": "Lister les membres",
+          "description": "Lister les membres d'un espace de travail avec leur e-mail, nom et rôles, page par page",
+          "fields": {
+            "tenantId": "Espace de travail à lister ; par défaut l'espace par défaut",
+            "roleIds": "Seulement les membres ayant l'un de ces rôles"
+          }
+        },
+        "getTenant": {
+          "name": "Lire un espace de travail",
+          "description": "Lire le nom, les propriétaires et le nombre de membres d'un espace de travail",
+          "fields": {
+            "tenantId": "Espace de travail à lire ; par défaut l'espace par défaut"
+          }
+        },
+        "setMemberRoles": {
+          "name": "Définir les rôles d'un membre",
+          "description": "Définir, ajouter ou retirer les rôles d'un membre, et éventuellement son statut de propriétaire, avec les mêmes contrôles que la page des membres",
+          "fields": {
+            "tenantId": "Espace de travail du membre ; par défaut l'espace par défaut",
+            "roleIds": "Rôles à définir, ajouter ou retirer ; laissez vide pour garder les rôles",
+            "mode": "replace définit exactement ces rôles, add et remove modifient les rôles enregistrés",
+            "isTenantOwner": "Laissez vide pour garder le statut de propriétaire"
+          }
+        },
+        "cancelInvite": {
+          "name": "Annuler une invitation",
+          "description": "Annuler une invitation en attente, comme l'action Révoquer de la page des invitations",
+          "fields": {
+            "tenantId": "Espace de travail de l'invitation ; par défaut l'espace par défaut",
+            "inviteId": "ID de l'invitation, par ex. d'un déclencheur Invitation créée"
+          }
+        },
+        "removeMember": {
+          "name": "Retirer un membre",
+          "description": "Retirer un membre d'un espace de travail, avec les mêmes contrôles que la page des membres",
+          "fields": {
+            "tenantId": "Espace de travail dont retirer le membre ; par défaut l'espace par défaut"
+          }
         }
       },
       "fields": {
         "actorId": "ID de l'auteur",
         "actorName": "Nom de l'auteur",
+        "addedRoleIds": "Rôles ajoutés",
         "asTenantOwner": "Propriétaire de l'espace",
         "at": "Date",
+        "cancelled": "Annulée",
+        "changed": "Modifié",
+        "closed": "Fermé",
+        "createdAt": "Créé le",
         "deliveryId": "ID de livraison",
         "description": "Description",
         "email": "E-mail",
         "error": "Erreur",
         "firstname": "Prénom",
+        "found": "Trouvé",
+        "hasMore": "Autres pages",
         "html": "HTML",
         "icon": "Icône",
         "idempotencyKey": "Clé de rejeu",
         "ids": "ID des enregistrements",
+        "includeAutomationWrites": "Inclure les changements des procédures",
+        "includeOwnership": "Inclure les changements de propriétaire",
         "inviteId": "ID de l'invitation",
         "inviterName": "Nom de l'invitant",
+        "isDefault": "Espace par défaut",
+        "isMember": "Membre",
+        "isPlatformOwner": "Propriétaire de la plateforme",
         "isTenantOwner": "Propriétaire de l'espace",
+        "isValidated": "E-mail vérifié",
         "kind": "Résultat",
         "language": "Langue",
+        "lastActiveAt": "Dernière activité",
         "lastname": "Nom",
+        "limit": "Taille de page",
         "linkTo": "Lien",
         "location": "Table",
+        "memberCount": "Membres",
+        "members": "Membres",
         "messageId": "ID du message",
+        "mode": "Mode",
         "name": "Nom",
+        "offset": "Décalage",
         "ok": "Envoyée",
+        "operationId": "ID d'opération",
+        "origin": "Origine",
+        "originProcedureId": "Procédure d'origine",
+        "originRunId": "Exécution d'origine",
+        "ownerEmail": "E-mail du propriétaire",
+        "ownerUserId": "Propriétaire",
+        "ownerUserIds": "Propriétaires",
+        "ownersOnly": "Propriétaires seulement",
         "params": "Paramètres",
+        "previousIsTenantOwner": "Était propriétaire de l'espace",
+        "previousRoleIds": "Rôles précédents",
         "props": "Propriétés du modèle",
+        "provisioningPending": "Mise en service en attente",
+        "reason": "Motif",
+        "reasons": "Motifs",
+        "removed": "Retiré",
+        "removedRoleIds": "Rôles retirés",
         "roleIds": "Rôles",
         "sendEmail": "Envoyer l'e-mail",
+        "status": "Statut",
         "subject": "Objet",
         "success": "Succès",
         "template": "Modèle",
         "tenantId": "Espace de travail",
+        "tenantIds": "Espaces de travail",
+        "timeZone": "Fuseau horaire",
         "title": "Titre",
         "to": "Destinataire",
         "tone": "Ton",
+        "total": "Total",
+        "updatedAt": "Modifié le",
         "userId": "Utilisateur",
-        "userIds": "Utilisateurs"
+        "userIds": "Utilisateurs",
+        "wasTenantOwner": "Était propriétaire de l'espace"
       }
     }
   }

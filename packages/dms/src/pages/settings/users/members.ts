@@ -16,7 +16,6 @@ import {
   TenantMemberModel,
 } from "@antelopejs/interface-dms/db";
 import { AuthUserWithPermission } from "@antelopejs/interface-dms/guards";
-import { ExecuteHooks, Hook } from "@antelopejs/interface-dms/hooks";
 import { ResolveInviteAvailability } from "@antelopejs/interface-dms/invite-extensions/internal/availability";
 import { CollectInviteExtensionPayloads } from "@antelopejs/interface-dms/invite-extensions/internal/delivery";
 import {
@@ -26,7 +25,6 @@ import {
   workspaceSettingsCategory,
 } from "@antelopejs/interface-dms/page";
 import { getRequestTenantId } from "@antelopejs/interface-dms/request-tenant";
-import { clearPlatformOwnerOnMemberRemoval } from "@antelopejs/interface-dms/tenant-ownership";
 import { type User, UserModel } from "@antelopejs/interface-dms/auth/db";
 import { TableView } from "@antelopejs/interface-dms/base";
 import type { AfterWrite } from "@antelopejs/interface-dms/base/types/guards";
@@ -35,7 +33,6 @@ import type {
   FormContainerPageTexts,
   ConfirmDialogSerialized,
 } from "@antelopejs/interface-dms/base/table-view";
-import { isSaasMode } from "@antelopejs/interface-dms/utils/saas-mode";
 import { requestEmailVerification } from "../../../utils";
 import { memberInviteSchema, memberOwnershipSchema } from "../../../validation";
 import { MEMBER_EDIT_FORM_SLOT_ID } from "./member-roles-field";
@@ -58,6 +55,7 @@ import {
   buildMemberRemovalImpact,
   type MemberRemovalImpact,
   memberRemovalConfirm,
+  prepareMemberRemoval,
   prepareOwnerChange,
   requireMember,
   setMemberOwnership,
@@ -68,6 +66,7 @@ import {
   announceMemberRemovals,
 } from "./member-change-notifications";
 import { notifyOwnershipChanged } from "../../../hooks";
+import { announceMemberChanges } from "../../../automation/member-events";
 import { notifyMenuAccessChanged } from "../../../implementations/dms/page";
 import { fireAndForget } from "@antelopejs/interface-dms/utils/fire-and-forget";
 
@@ -81,7 +80,6 @@ export const INVITES_API_LOCATION = "/api/tables/admin-invites";
 export const MEMBER_INVITE_BUTTON_ID = "invite";
 
 const HTTP_NOT_FOUND = 404;
-const HTTP_CONFLICT = 409;
 const USER_NOT_FOUND = "$page.settings.members.error.user_not_found";
 
 /**
@@ -144,28 +142,6 @@ export interface MemberInviteResponse {
   warning?: string;
 }
 
-/**
- * Outside SaaS mode the platform owners are the default tenant's owners, so
- * removing the last of them would leave the platform without one. In SaaS mode
- * tenant owners are customers and platform ownership is managed separately.
- */
-export async function assertNotLastPlatformOwnerOnDelete(
-  targets: TenantMember[],
-): Promise<void> {
-  if (await isSaasMode()) return;
-  const userModel = GetModel(UserModel);
-  const removedOwnerUserIds = targets
-    .filter((target) => target.isTenantOwner === true)
-    .map((target) => target.userId);
-  if (removedOwnerUserIds.length === 0) return;
-  const remaining = await userModel.countOwnersExcluding(removedOwnerUserIds);
-  assert(
-    remaining > 0,
-    HTTP_CONFLICT,
-    "$page.settings.members.error.last_owner_delete",
-  );
-}
-
 async function guardMemberRemoval(
   ctx: RequestContext,
   tenantId: string,
@@ -174,27 +150,7 @@ async function guardMemberRemoval(
   const memberModel = GetModel(TenantMemberModel, tenantId);
   const targets = await Promise.all(ids.map((id) => memberModel.get(id)));
   const tenantTargets = targets.filter((m): m is TenantMember => !!m);
-  const excludedUserIds = tenantTargets.map((m) => m.userId);
-  const remaining = await memberModel.countOwnersExcluding(excludedUserIds);
-  assert(
-    remaining > 0,
-    HTTP_CONFLICT,
-    "$page.settings.members.error.last_owner_delete",
-  );
-  await assertNotLastPlatformOwnerOnDelete(tenantTargets);
-  const userModel = GetModel(UserModel);
-  for (const target of tenantTargets) {
-    await clearPlatformOwnerOnMemberRemoval(
-      userModel,
-      target.userId,
-      tenantId,
-      target.isTenantOwner,
-    );
-  }
-  await ExecuteHooks(Hook.MEMBER_REMOVED, {
-    tenantId,
-    userIds: excludedUserIds,
-  });
+  await prepareMemberRemoval(tenantId, tenantTargets);
   return announceMemberRemovals(ctx, tenantId, tenantTargets);
 }
 
@@ -501,10 +457,16 @@ export class MembersSettingsController extends PageController("members", {
     const { isTenantOwner } = assertValidation(body, (v) =>
       memberOwnershipSchema.parse(v),
     );
-    const { member, change } = await setMemberOwnership(
+    const { member, change, before } = await setMemberOwnership(
       getRequestTenantId(ctx),
       memberId,
       isTenantOwner,
+    );
+    announceMemberChanges(
+      getRequestTenantId(ctx),
+      [{ before, after: member }],
+      "ownership",
+      user._id,
     );
 
     if (change !== null)

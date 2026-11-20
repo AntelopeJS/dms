@@ -25,6 +25,8 @@ import {
 import { AddFrontendModule } from "@antelopejs/interface-dms/page";
 import type { ScheduledTask } from "node-cron";
 import {
+  connectTenantProvisioningSource,
+  disconnectTenantProvisioningSource,
   registerAutomationNodes,
   unregisterAutomationNodes,
 } from "./automation";
@@ -288,6 +290,7 @@ export function destroy(): void {
 }
 
 function onModulesStarted(): void {
+  connectTenantProvisioningSource();
   if (defaultTenantProvisioning) return;
   provisioningWait = new AbortController();
   defaultTenantProvisioning = provisionDefaultTenant(
@@ -330,6 +333,7 @@ export async function stop(): Promise<void> {
   stopPendingExtensionReport();
   await stopModuleUpdateWatcher();
   await unregisterAutomationNodes();
+  disconnectTenantProvisioningSource();
   try {
     const teardowns = await Promise.allSettled(
       cronTasks.map(async (task) => task.destroy()),
