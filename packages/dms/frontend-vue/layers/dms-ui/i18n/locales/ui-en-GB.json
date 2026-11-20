@@ -526,6 +526,10 @@
           "description": "Focus the page's own search",
           "condition": "Settings pages with a search of their own, such as this one"
         },
+        "question_mark": {
+          "description": "Open the keyboard shortcuts page",
+          "condition": "Outside a text field"
+        },
         "escape": {
           "description": "Close dialogs, menus and the palette"
         }

@@ -121,19 +121,29 @@ export function useMockupViewerShortcuts(
     return matchShortcuts(event, view.value).some((id) => actions[id]());
   }
 
-  /** Whether the viewer takes a key: one pressed outside a field, or an Escape a field of the inspector left, with a block selected to step back from. */
-  function takesKey(event: KeyboardEvent): boolean {
-    if (!isFieldKey(event.target)) return true;
-    return editing.selection.value !== undefined && isInspectorEscape(event);
-  }
-
+  /** A key pressed outside a field, seen before the page's other listeners: once a shortcut acts, none of them sees it. */
   function onKeydown(event: KeyboardEvent): void {
-    if (!takesKey(event)) return;
-    if (run(event)) event.preventDefault();
+    if (isFieldKey(event.target) || !run(event)) return;
+    event.preventDefault();
+    event.stopPropagation();
   }
 
-  onMounted(() => window.addEventListener("keydown", onKeydown));
-  onBeforeUnmount(() => window.removeEventListener("keydown", onKeydown));
+  /** An Escape a field of the inspector left, with a block selected to step back from, once the field had its turn. */
+  function onFieldEscape(event: KeyboardEvent): void {
+    if (!isFieldKey(event.target) || editing.selection.value === undefined) {
+      return;
+    }
+    if (isInspectorEscape(event) && run(event)) event.preventDefault();
+  }
+
+  onMounted(() => {
+    window.addEventListener("keydown", onKeydown, true);
+    window.addEventListener("keydown", onFieldEscape);
+  });
+  onBeforeUnmount(() => {
+    window.removeEventListener("keydown", onKeydown, true);
+    window.removeEventListener("keydown", onFieldEscape);
+  });
 
   return { undo, redo, run };
 }
