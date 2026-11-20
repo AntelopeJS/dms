@@ -29,6 +29,12 @@ describe("labelInitials", () => {
     expect(labelInitials("🎉Party")).toBe("PA");
   });
 
+  it("skips leading punctuation in each word of a longer name", () => {
+    expect(labelInitials("(Acme) Corp")).toBe("AC");
+    expect(labelInitials("Acme (Corp)")).toBe("AC");
+    expect(labelInitials("'Ada' \"Lovelace\"")).toBe("AL");
+  });
+
   it("keeps an accented letter whole, even when its accent is a combining mark", () => {
     expect(labelInitials("Ñandú")).toBe("ÑA");
     expect(labelInitials("Ñandu")).toBe("ÑA");
