@@ -1,4 +1,4 @@
-import { bundledCatalog } from "../store/catalog";
+import { bundledCatalog } from "../store";
 
 /** A DMS module a mockup's app needs, as the viewer draws it: its catalog entry. */
 export interface MockupModule {
