@@ -25,7 +25,6 @@ import {
 } from "./source";
 
 const HTTP_BAD_REQUEST = 400;
-const HTTP_FORBIDDEN = 403;
 const HTTP_NOT_FOUND = 404;
 const HTTP_CONFLICT = 409;
 
@@ -34,7 +33,7 @@ const writeBodySchema = z
     spec: jsonObjectSchema,
     /** The digest the editor read: refused when the file changed since. */
     digest: z.string().optional(),
-    /** The viewer writing, whose own lock does not refuse the write. */
+    /** The viewer writing, whose own lock does not refuse the write; one with no event stream open writes as none. */
     viewer: viewerIdSchema.optional(),
   })
   .strict();
@@ -117,12 +116,12 @@ export function registerSpecRoutes(
           message: parsed.error.message,
         });
       }
-      const { spec, digest, viewer } = parsed.data;
-      if (viewer && !presence.viewerOf(name, viewer, owner.userId)) {
-        throw new HTTPResult(HTTP_FORBIDDEN, {
-          message: "this viewer has no event stream open on the mockup",
-        });
-      }
+      const { spec, digest } = parsed.data;
+      const viewer =
+        parsed.data.viewer &&
+        presence.viewerOf(name, parsed.data.viewer, owner.userId)
+          ? parsed.data.viewer
+          : undefined;
       return withSpecLock(mockupsDir, name, async (write) => {
         const current = await readSpecSource(mockupsDir, name);
         if (digest !== undefined && current && current.digest !== digest) {

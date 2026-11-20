@@ -359,24 +359,47 @@ describe("[unit] mockup presence: a lock guards its block against another viewer
 describe("[unit] mockup presence: who a viewer is", () => {
   const viewers = useViewers();
 
-  it("refuses a lock or a write naming a viewer that has no stream or belongs to another user (fails when the viewer id is taken on trust)", async () => {
+  it("refuses a lock naming a viewer that has no stream or belongs to another user (fails when the viewer id is taken on trust)", async () => {
     const { ada, bea, a, specPath } = viewers();
     const stranger = randomUUID();
 
     const noStream = await lock(ada, stranger, KPI_A);
     const theirs = await lock(bea, a, KPI_A);
     const releaseTheirs = await unlock(bea, a);
-    const writeAs = await write(bea, a, (spec) =>
-      retitle(spec, KPI_B, "Theirs"),
-    );
 
     expect([
       noStream.status,
       theirs.status,
       releaseTheirs.status,
-      writeAs.status,
-    ]).to.deep.equal([403, 403, 403, 403]);
+    ]).to.deep.equal([403, 403, 403]);
     expect(await readFile(specPath, "utf8")).to.equal(JSON.stringify(SPEC));
+  });
+
+  it("writes a spec naming a viewer that has no stream as a write naming none, so an edit sent as the stream closes is not lost (fails when a viewer whose stream is gone is answered 403)", async () => {
+    const { ada, bea, a, b, adaStream, beaStream } = viewers();
+    await lock(bea, b, KPI_A);
+    adaStream.close();
+    expect(
+      await eventually(() => lastPresence(beaStream)?.viewers.length === 1),
+    ).to.equal(true);
+
+    const unheld = await write(ada, a, (spec) => retitle(spec, KPI_C, "Last"));
+    const held = await write(ada, a, (spec) => retitle(spec, KPI_A, "Late"));
+    const theirs = await write(ada, b, (spec) =>
+      retitle(spec, KPI_A, "Stolen"),
+    );
+
+    expect(unheld.status).to.equal(200);
+    expect(writeSchema.parse(unheld.data).ok).to.equal(true);
+    expect(writeSchema.parse(held.data)).to.deep.equal({
+      ok: false,
+      errors: [{ path: KPI_A, message: `${BEA} is editing this block` }],
+    });
+    expect(writeSchema.parse(theirs.data).ok).to.equal(false);
+    const written = (await source(bea)).spec;
+    expect(specValueAt(written, `${KPI_C}/options/title`)).to.equal("Last");
+    expect(specValueAt(written, `${KPI_A}/options/title`)).to.equal("A");
+    expect(specValueAt(written, `${KPI_B}/options/title`)).to.equal("B");
   });
 
   it("names who wrote the file in the read that follows an editor's write, and no one after a write from outside (fails when every digest is attributed)", async () => {
