@@ -99,8 +99,8 @@ Finish(a, answer) ==
 
 (* ---- yieldToWinner and yieldOrCreateAgain (invites.ts:392-415) ----------- *)
 
-(* invites.ts:392-404: the winner's token when it carries the content of the
-   lost invite, else HTTP 409. *)
+(* invites.ts:392-404: the winner, by its id and without its token, when it
+   carries the content of the lost invite, else HTTP 409. *)
 YieldTo(a, winner, lost) ==
   Finish(a, IF SameContent(winner, lost) THEN winner ELSE Conflict)
 

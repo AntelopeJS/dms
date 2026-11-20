@@ -62,7 +62,7 @@ NoWithdrawnToken ==
   AllDone => \A a \in Returned : Pending(res[a]) \/ (dec[res[a]].on /\ ~dec[res[a]].wd)
 
 (* When nothing retired an invite, a caller that returned leaves exactly one
-   pending invite, and every caller that returned holds its token. *)
+   pending invite, and every caller that returned answers with it. *)
 OneKeptToken ==
   (AllDone /\ Returned # {} /\ \A i \in Ids : ~dec[i].on \/ dec[i].wd) =>
     /\ Cardinality(PendingSet) = 1

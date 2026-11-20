@@ -15,7 +15,7 @@ import type { InviteExtensionPayloads } from "./invite-extensions";
 import { DeliverInviteExtensions } from "./invite-extensions/internal/delivery";
 import { completeAdmittedInviteResolution } from "./internal/invite-resolution";
 import { isSameInviteContent } from "./internal/invite-content";
-import { decideInvite } from "./invite-resolution";
+import { decideInvite, loadInviteForAction } from "./invite-resolution";
 import type { InviteResolution } from "./db/tables/inviteResolutions.table";
 import { changeTenantMembers, type TenantMembersWrite } from "./tenant-members";
 import { applyAdmittedTenantOwnership } from "./internal/tenant-ownership";
@@ -66,7 +66,7 @@ export interface InvitedUserResult {
   token?: string;
   /**
    * Outcome of the invitation email. Set only when the call passed both
-   * `sendEmail` and `awaitEmailDelivery`, and received the token.
+   * `sendEmail` and `awaitEmailDelivery`.
    */
   emailDelivery?: InviteEmailDelivery;
 }
@@ -97,24 +97,44 @@ export async function inviteUserToTenant(
   const result = await changeTenantMembers(options.tenantId, () =>
     planInvite(options),
   );
-  if (
-    !options.sendEmail ||
-    result.kind !== "invited" ||
-    result.token === undefined
-  )
-    return result;
-  const invite = { ...options, token: result.token };
+  if (!options.sendEmail || result.kind !== "invited") return result;
+  const invited = await withToken(options, result);
+  if (!invited) return result;
+  const invite = { ...options, token: invited.token };
   if (!options.awaitEmailDelivery) {
     fireAndForget(
       sendTenantInviteEmail(invite),
       `invite email to "${options.email}"`,
     );
-    return result;
+    return invited;
   }
   return {
-    ...result,
+    ...invited,
     emailDelivery: await deliverTenantInviteEmail(invite),
   };
+}
+
+/**
+ * The invitation to email, with its token. A call that yielded to an
+ * invitation it did not create holds no token, and its creator may never
+ * email it (a call that failed after storing its decision), so this
+ * reissues it.
+ *
+ * @returns The invitation, or undefined when it was retired meanwhile
+ */
+async function withToken(
+  options: InviteUserToTenantOptions,
+  result: InvitedUserResult,
+): Promise<(InvitedUserResult & { token: string }) | undefined> {
+  if (result.token !== undefined) return { ...result, token: result.token };
+  const yielded = await loadInviteForAction(options.tenantId, result.inviteId);
+  if (!yielded) return undefined;
+  const reissued = await reissueUserInvite(
+    options.tenantId,
+    yielded,
+    options.invitedBy,
+  );
+  return { kind: "invited", ...reissued };
 }
 
 async function planInvite(
@@ -245,6 +265,39 @@ export async function createUserInviteToken(
     changes: [],
     write: () => createAdmittedInviteToken(options),
   }));
+}
+
+/**
+ * Reissue a pending invitation under a fresh token, which retires its earlier
+ * link. Only the digest of a token is stored, so this is how to get a new
+ * link for an invitation. A call that loses to a concurrent reissue reissues
+ * the winner in turn, so it always returns a token that works.
+ *
+ * @param invitedBy Id of the user who reissues it, recorded as its inviter
+ * @throws HTTPResult(409) when the invitation it lost to was retired meanwhile
+ */
+export async function reissueUserInvite(
+  tenantId: string,
+  invite: UserInvite,
+  invitedBy?: string | null,
+): Promise<Required<CreateUserInviteTokenResult>> {
+  const { inviteId, token } = await createUserInviteToken({
+    tenantId,
+    replacesInvite: invite,
+    email: invite.email,
+    firstname: invite.firstname,
+    lastname: invite.lastname,
+    language: invite.language,
+    roleIds: invite.roles_ids,
+    asTenantOwner: invite.asTenantOwner,
+    extensions: invite.extensions ?? undefined,
+    replacementReason: "resent",
+    invitedBy,
+  });
+  if (token !== undefined) return { inviteId, token };
+  const winner = await loadInviteForAction(tenantId, inviteId);
+  assert(winner, HTTP_CONFLICT, "Invitation was retired while it was reissued");
+  return reissueUserInvite(tenantId, winner, invitedBy);
 }
 
 async function createAdmittedInviteToken(

@@ -3,11 +3,18 @@ import { GetModel } from "@antelopejs/interface-database-decorators";
 import { UserInviteModel } from "@antelopejs/interface-dms/db";
 import { InviteResolutionsModel } from "@antelopejs/interface-dms/db/internal/inviteResolutions.model";
 import {
+  Hook,
+  RegisterHook,
+  UnregisterHook,
+} from "@antelopejs/interface-dms/hooks";
+import {
   type CreateUserInviteTokenOptions,
   createUserInviteToken,
+  inviteUserToTenant,
 } from "@antelopejs/interface-dms/invites";
 import { copyInviteLink } from "../../pages/members";
 import { resetDatabase } from "../helpers/db";
+import { captureEmailsInSuite, renderedEmails } from "../helpers/emails";
 
 const TENANT = "invite-token-at-rest-tenant";
 
@@ -36,8 +43,22 @@ async function invitationHolding(token: string): Promise<string | undefined> {
   return (await GetModel(UserInviteModel, TENANT).getByToken(token))?._id;
 }
 
+/** The tokens of the invitation emails the suite captured, oldest first. */
+function emailedTokens(): string[] {
+  return renderedEmails.flatMap(({ template, props }) => {
+    if (template !== "EmailAdminInvite" || !("signupLink" in props)) return [];
+    const link = String(props.signupLink);
+    return new URL(link, "http://dms.test").searchParams.get("token") ?? [];
+  });
+}
+
 describe("[integration] invitation tokens at rest", () => {
-  beforeEach(resetDatabase);
+  captureEmailsInSuite();
+
+  beforeEach(async () => {
+    await resetDatabase();
+    renderedEmails.length = 0;
+  });
 
   it("stores no token in clear, and finds the invitation by the token its link carries", async () => {
     const { inviteId, token } = await created();
@@ -73,5 +94,35 @@ describe("[integration] invitation tokens at rest", () => {
     assert.notEqual(copied, emailed.token);
     assert.ok(await invitationHolding(copied));
     assert.equal(await invitationHolding(emailed.token), undefined);
+  });
+
+  it("emails a working link when a retry yields to the invitation a failed call stored", async () => {
+    await created();
+    const failCreated = () => {
+      throw new Error("creation hook failed");
+    };
+    RegisterHook(Hook.INVITE_CREATED, failCreated);
+    try {
+      await assert.rejects(
+        inviteUserToTenant({ ...OPTIONS, sendEmail: true }),
+        /creation hook failed/,
+      );
+    } finally {
+      UnregisterHook(Hook.INVITE_CREATED, failCreated);
+    }
+
+    const retried = await inviteUserToTenant({
+      ...OPTIONS,
+      sendEmail: true,
+      awaitEmailDelivery: true,
+    });
+
+    assert.equal(retried.kind, "invited");
+    const tokens = emailedTokens();
+    assert.equal(tokens.length, 1);
+    assert.equal(
+      await invitationHolding(tokens[0] ?? ""),
+      retried.kind === "invited" ? retried.inviteId : undefined,
+    );
   });
 });
