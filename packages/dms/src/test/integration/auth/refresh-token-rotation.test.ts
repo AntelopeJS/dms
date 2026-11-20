@@ -76,6 +76,22 @@ describe("[integration] auth/refresh token rotation", () => {
     ).to.equal(HTTP_UNAUTHORIZED);
   });
 
+  it("deletes the session when the original token comes back after an attacker refreshed twice", async () => {
+    const stolen = await renew(login.refreshToken);
+    const attacker = await renew(stolen.refreshToken);
+
+    expect((await refresh(login.refreshToken)).status).to.equal(
+      HTTP_UNAUTHORIZED,
+    );
+
+    expect((await refresh(attacker.refreshToken)).status).to.equal(
+      HTTP_UNAUTHORIZED,
+    );
+    expect(
+      (await authorizedClient(attacker.accessToken).get("/api/auth/me")).status,
+    ).to.equal(HTTP_UNAUTHORIZED);
+  });
+
   it("gives the refreshes racing inside the grace the same successor", async () => {
     const racing = await Promise.all(
       Array.from({ length: CONCURRENT_REFRESHES }, () =>
