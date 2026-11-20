@@ -8,6 +8,9 @@ import type {
   DataTypeFormatter,
 } from "#dms-core/app/composables/data-types/useDataType";
 import StatusPill from "../../../components/status-pill/StatusPill.vue";
+import { isObject } from "#dms-core/app/utils/type-check";
+import { readRelationLabel } from "./relationBadges";
+import { DEFAULT_RELATION_VALUE_KEY } from "./relationValue";
 import MonoCell from "../../components/table/MonoCell.vue";
 import { getAppComposedText } from "../../../../../dms-core/app/composables/translation/useComposedText";
 import {
@@ -272,6 +275,30 @@ function renderDuration(
  */
 interface MonoOptions {
   copy?: boolean;
+  /** The column's own type options: a relation's key mapping names its label. */
+  typeOptions?: {
+    keyMapping?: { label?: string; value?: string };
+  };
+}
+
+const MONO_RELATION_LABEL_KEY = "name";
+
+/** The text a mono cell shows: a related row reads as its label, not as an object. */
+function monoText(
+  value: Parameters<DataTypeFormatter>[0],
+  opts: MonoOptions,
+): string {
+  if (Array.isArray(value)) {
+    const items: unknown[] = value;
+    return items.map((item) => monoText(item, opts)).join(", ");
+  }
+  if (!isObject(value) || value === null) return String(value);
+  const mapping = opts.typeOptions?.keyMapping;
+  return readRelationLabel(
+    value,
+    mapping?.label || MONO_RELATION_LABEL_KEY,
+    mapping?.value || DEFAULT_RELATION_VALUE_KEY,
+  );
 }
 
 export const registerMetricCellTypes = (
@@ -317,7 +344,7 @@ export const registerMetricCellTypes = (
       default: (value, _locale, options) => {
         const opts: MonoOptions = options ?? {};
         return h(MonoCell, {
-          value: String(value),
+          value: monoText(value, opts),
           copy: !!opts.copy,
           class: CELL_TEXT_CLASS,
         });
