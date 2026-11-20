@@ -1,10 +1,11 @@
+import { GetModel } from "@antelopejs/interface-database-decorators";
+import { TenantMemberModel } from "@antelopejs/interface-dms/db";
 import type { JsonValue } from "@antelopejs/interface-dms/json";
 import type { PageInfo } from "@antelopejs/interface-dms/page";
 import { expect } from "chai";
 import { isToolAllowed } from "../../../mcp/access";
 import {
   listFailures,
-  type MemberRoles,
   pickMember,
   type PageProbe,
   type PageReport,
@@ -211,22 +212,55 @@ function namesSourcesAndJudgesOpeners(): void {
 }
 
 function checksRolesAndListsFailures(): void {
-  it("checks a role only through a member holding that role alone, never through an owner or a member with more roles", () => {
+  it("checks a role only through a member of the workspace holding that role alone, never through an owner or a member with more roles", async () => {
+    const tenant = "page-verify-pick-member";
     const member = (
       userId: string,
       roleIds: string[],
       isTenantOwner = false,
-    ): MemberRoles => ({ userId, roleIds, isTenantOwner });
-    const members = [
+    ) => ({
+      _id: `${tenant}-${userId}`,
+      userId,
+      roleIds,
+      isTenantOwner,
+      joinedAt: new Date("2026-06-01T00:00:00Z"),
+      invitedBy: null,
+    });
+    const members = GetModel(TenantMemberModel, tenant);
+    await members.insert([
       member("both", ["nobody", "viewer"]),
       member("owner", ["viewer"], true),
       member("platform", ["viewer"]),
       member("viewer-only", ["viewer"]),
-    ];
+      member("auditor-only", ["auditor"]),
+    ]);
+    await members.table
+      .insert({
+        _id: `${tenant}-unflagged`,
+        userId: "unflagged",
+        roleIds: ["editor"],
+        joinedAt: new Date("2026-06-01T00:00:00Z"),
+        invitedBy: null,
+      })
+      .run();
+    await GetModel(TenantMemberModel, `${tenant}-other`).insert([
+      member("elsewhere", ["solo"]),
+    ]);
     const owners = new Set(["platform"]);
-    expect(pickMember(members, "nobody", owners)).to.equal(undefined);
-    expect(pickMember(members, "viewer", owners)?.userId).to.equal(
+
+    expect(await pickMember(members, "nobody", owners)).to.equal(undefined);
+    expect(await pickMember(members, "solo", new Set())).to.equal(undefined);
+    expect((await pickMember(members, "viewer", owners))?.userId).to.equal(
       "viewer-only",
+    );
+    expect((await pickMember(members, "auditor", new Set()))?.userId).to.equal(
+      "auditor-only",
+    );
+    expect(
+      await pickMember(members, "auditor", new Set(["auditor-only"])),
+    ).to.equal(undefined);
+    expect((await pickMember(members, "editor", owners))?.userId).to.equal(
+      "unflagged",
     );
   });
 

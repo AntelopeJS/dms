@@ -32,9 +32,15 @@ const CAPABILITIES = { canAdd: true, canEdit: true, canDelete: true };
 
 const ROLE_KEYS = ["support", "admin", "ops-1", "ops-2", "unheld"];
 
+/** The fields of a membership the in-memory answers read. */
+type StoredMember = Pick<
+  TenantMember,
+  "_id" | "userId" | "roleIds" | "isTenantOwner"
+>;
+
 interface Fixture {
   roles: Role[];
-  members: TenantMember[];
+  members: StoredMember[];
   invites: UserInvite[];
 }
 
@@ -136,7 +142,7 @@ function isInvitePending(invite: UserInvite, now: Date): boolean {
   return new Date(invite.expiresAt).getTime() > now.getTime();
 }
 
-function holdsRole(roleId: string, member: TenantMember): boolean {
+function holdsRole(roleId: string, member: StoredMember): boolean {
   return (member.roleIds ?? []).includes(roleId);
 }
 
@@ -153,7 +159,7 @@ function pendingInvitesFor(
 
 function countRoleHoldersInJs(
   roleId: string,
-  members: TenantMember[],
+  members: StoredMember[],
   invites: UserInvite[],
   now: Date,
 ): number {
@@ -163,7 +169,7 @@ function countRoleHoldersInJs(
   );
 }
 
-function previewInJs(members: TenantMember[], userNames: Map<string, string>) {
+function previewInJs(members: StoredMember[], userNames: Map<string, string>) {
   return members.slice(0, ROLE_MEMBER_PREVIEW_LIMIT).map((member) => ({
     userId: member.userId,
     name: userNames.get(member.userId) ?? "",
@@ -196,7 +202,9 @@ function summarizeRolesInJs(
 
 async function storedRows(tenantId: string) {
   const [members, invites] = await Promise.all([
-    GetModel(TenantMemberModel, tenantId).listAll(),
+    GetModel(TenantMemberModel, tenantId)
+      .table.pluck("_id", "userId", "roleIds", "isTenantOwner")
+      .run(),
     GetModel(UserInviteModel, tenantId).getAll(),
   ]);
   return { members, invites };

@@ -44,7 +44,10 @@ async function recipients(): Promise<string[]> {
   return rows.map((row) => row.userId).sort();
 }
 
-function holdersInJs(members: TenantMember[], roleIds: string[]): string[] {
+function holdersInJs(
+  members: Pick<TenantMember, "userId" | "roleIds">[],
+  roleIds: string[],
+): string[] {
   const wanted = new Set(roleIds);
   const userIds = new Set<string>();
   for (const row of members) {
@@ -86,7 +89,9 @@ describe("Notification recipients (MongoDB adapter)", () => {
   });
 
   it("sends to a role the members of one tenant the in-memory filter picked", async () => {
-    const members = await GetModel(TenantMemberModel, "recipients-a").listAll();
+    const members = await GetModel(TenantMemberModel, "recipients-a")
+      .table.pluck("userId", "roleIds")
+      .run();
 
     await internal.SendToRoles([ADMIN, SUPPORT], data, {
       tenantId: "recipients-a",
@@ -99,7 +104,9 @@ describe("Notification recipients (MongoDB adapter)", () => {
   });
 
   it("sends once to a user holding the role in several tenants when read across them", async () => {
-    const members = await GetModel(TenantMemberModel, CROSS_INSTANCE).listAll();
+    const members = await GetModel(TenantMemberModel, CROSS_INSTANCE)
+      .table.pluck("userId", "roleIds")
+      .run();
 
     await internal.SendToRoles([ADMIN, SUPPORT], data, { dedupe: false });
 

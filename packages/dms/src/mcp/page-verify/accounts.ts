@@ -1,4 +1,4 @@
-import { CROSS_INSTANCE } from "@antelopejs/interface-database";
+import { CROSS_INSTANCE, ValueProxy } from "@antelopejs/interface-database";
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import { createSession } from "@antelopejs/interface-dms/auth";
 import {
@@ -81,38 +81,51 @@ async function ownerTenantId(owner: User): Promise<string> {
 }
 
 /**
- * A member holding `roleId` and nothing more: any other role, or owning the
- * workspace or the platform, could open what the role alone does not.
+ * A member of `model`'s instance holding `roleId` and nothing more: any other
+ * role, or owning the workspace or the platform, could open what the role
+ * alone does not.
  */
-export function pickMember(
-  members: readonly MemberRoles[],
+export async function pickMember(
+  model: TenantMemberModel,
   roleId: string,
   ownerIds: ReadonlySet<string>,
-): MemberRoles | undefined {
-  return members.find(
-    (member) =>
-      member.roleIds.length === 1 &&
-      member.roleIds[0] === roleId &&
-      !member.isTenantOwner &&
-      !ownerIds.has(member.userId),
-  );
+): Promise<MemberRoles | undefined> {
+  const member = await model.table
+    .filter((row) =>
+      row
+        .key("roleIds", [])
+        .eq([roleId])
+        .and(row.key("isTenantOwner").eq(true).not())
+        .and(
+          ValueProxy.constant<string[]>([...ownerIds])
+            .includes(row.key("userId"))
+            .not(),
+        ),
+    )
+    .pluck("userId", "roleIds", "isTenantOwner")
+    .nth(0)
+    .default(null)
+    .run();
+  return member ?? undefined;
 }
 
 /** The owner's workspace, its roles, and a member to sign in as for each role. */
 export async function loadWorkspace(): Promise<Workspace> {
   const owner = await findOwner();
   const tenantId = await ownerTenantId(owner);
-  const [roles, members, owners] = await Promise.all([
+  const [roles, owners] = await Promise.all([
     GetModel(RoleModel, tenantId).getAll(),
-    GetModel(TenantMemberModel, tenantId).listAll(),
     GetModel(UserModel).getOwners(),
   ]);
   const ownerIds = new Set(owners.map((user) => user._id));
-  const memberByRole = new Map<string, MemberRoles>();
-  for (const role of roles) {
-    const member = pickMember(members, role._id, ownerIds);
-    if (member !== undefined) memberByRole.set(role._id, member);
-  }
+  const members = GetModel(TenantMemberModel, tenantId);
+  const picked = await Promise.all(
+    roles.map(async (role): Promise<Array<[string, MemberRoles]>> => {
+      const member = await pickMember(members, role._id, ownerIds);
+      return member === undefined ? [] : [[role._id, member]];
+    }),
+  );
+  const memberByRole = new Map(picked.flat());
   return { tenantId, owner, roles, memberByRole };
 }
 

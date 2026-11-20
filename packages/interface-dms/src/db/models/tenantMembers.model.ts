@@ -21,13 +21,6 @@ export class TenantMemberModel extends BasicDataModel(
     return count > 0;
   }
 
-  async listAll(): Promise<TenantMember[]> {
-    const rows = await this.table.run();
-    return rows
-      .map((row) => TenantMemberModel.fromDatabase(row))
-      .filter((member): member is TenantMember => member !== undefined);
-  }
-
   async listOwners(): Promise<TenantMember[]> {
     const rows = await this.table
       .filter((row) => row.key("isTenantOwner").eq(true))
