@@ -129,7 +129,9 @@ describe("the lock of the selected block", () => {
     const id = new URL(viewer.stream.url).searchParams.get("viewer");
 
     await pick("block-0");
-    expect(taken()).toEqual([{ method: "PUT", viewer: id, path: FIRST }]);
+    expect(taken()).toEqual([
+      expect.objectContaining({ method: "PUT", viewer: id, path: FIRST }),
+    ]);
 
     await press("Escape");
     expect(freed()).toEqual([{ method: "DELETE", viewer: id }]);
@@ -202,6 +204,45 @@ describe("the lock of the selected block", () => {
       FIRST,
     ]);
     expect(runtime.holding.size).toBe(1);
+  });
+});
+
+describe("the lock take names the spec the editor shows", () => {
+  it("carries the digest of the file the editor last read or wrote, never the first one it read (fails when the take sends no digest, or one that is never updated)", async () => {
+    await pick("block-0");
+    expect(taken().map((request) => request.digest)).toEqual(["d1"]);
+
+    await type("Turnover");
+    await settled();
+    await pick("block-1");
+
+    expect(taken().map((request) => request.digest)).toEqual(["d1", "d2"]);
+  });
+
+  it("is taken again once the refresh arrives, on the block the selection followed, when a write that landed first refused the take as stale (fails when the stale take is never retried, or is retried before the selection followed its block)", async () => {
+    const theirs = spec();
+    theirs.pages[0]?.tree.unshift({
+      id: "b-new00001",
+      type: "KpiCard",
+      options: { title: "New" },
+    });
+    runtime.file.spec = theirs;
+    runtime.file.version += 1;
+    runtime.file.writtenBy = { name: "Bea" };
+
+    await pick("block-0");
+    expect(runtime.holding.size).toBe(0);
+
+    await viewer.publish(
+      "state",
+      mockupState({ revision: 100 + runtime.file.version, pages: STATE.pages }),
+    );
+
+    expect(taken().map(({ path, digest }) => ({ path, digest }))).toEqual([
+      { path: FIRST, digest: "d1" },
+      { path: "/pages/0/tree/1", digest: "d2" },
+    ]);
+    expect([...runtime.holding.values()]).toEqual(["revenue"]);
   });
 });
 
