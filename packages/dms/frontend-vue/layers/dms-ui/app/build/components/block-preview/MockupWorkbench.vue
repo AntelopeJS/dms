@@ -372,6 +372,18 @@ const { showsLeft, showsInspector, gridClass } = useMockupGridLayout({
           :data-mode="choice"
           @open="openPage"
         />
+        <div
+          v-if="state && !isConnected"
+          class="bg-muted/80 absolute inset-0 z-40 flex items-center justify-center gap-2 backdrop-blur-sm"
+          role="status"
+          data-dms-mockup-reconnecting
+        >
+          <UIcon
+            name="i-ph-arrows-clockwise"
+            class="text-muted size-5 animate-spin motion-reduce:animate-none"
+          />
+          <p class="text-muted text-sm">{{ t("dms.mockup.disconnected") }}</p>
+        </div>
         <MockupCanvasChrome
           :has-open-page="!isOverview && pages.length > 0"
           :is-locked="isReadOnly || isPreviewing"
