@@ -9,13 +9,12 @@ import type { MockupModule } from "../../utils/mockup";
  */
 defineProps<{ modules: readonly MockupModule[] }>();
 
-const { t } = useI18n();
+const { t, te } = useI18n();
 
 /** The module's name from the store's catalog strings; its id when the dashboard has none. */
 function nameOf(module: MockupModule): string {
   const key = `modules.store.catalog.${module.id}.title`;
-  const name = t(key);
-  return name === key ? module.id : name;
+  return te(key) ? t(key) : module.id;
 }
 </script>
 
