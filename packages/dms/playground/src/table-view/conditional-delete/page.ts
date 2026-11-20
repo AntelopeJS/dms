@@ -85,6 +85,7 @@ export class PageTableViewConditionalDelete extends PageController(
             { field: "priority", notEquals: "high" },
           ],
         },
+        disabledReason: "A completed or high-priority task stays on record",
       },
       details: {
         isEnabled: true,
