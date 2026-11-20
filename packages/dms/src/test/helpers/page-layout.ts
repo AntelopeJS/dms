@@ -41,10 +41,6 @@ class UnqueriedMemberModel extends TenantMemberModel {
     return refuse("memberships");
   }
 
-  override async listAll(): Promise<never> {
-    return refuse("memberships");
-  }
-
   override async listOwners(): Promise<never> {
     return refuse("memberships");
   }
