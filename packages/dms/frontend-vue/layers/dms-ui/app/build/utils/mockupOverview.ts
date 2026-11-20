@@ -102,7 +102,21 @@ export function layoutFrames(pages: readonly OverviewPage[]): OverviewFrame[] {
 }
 
 /** The space above a labelled section's first row, which holds its label over its pages' titles. */
-const SECTION_GAP = 600;
+export const SECTION_GAP = 800;
+
+/** What a section's label takes above its first row on the screen: its text, and the clearance that leaves the row's page titles free. */
+export const SECTION_LABEL_SCREEN_HEIGHT = 64;
+
+/**
+ * The factor a section's label is drawn at on the canvas: its own size on
+ * the screen, `1 / zoom`, until that would reach into the section above,
+ * then the most the room between the two sections holds, so the label never
+ * overlaps a frame.
+ */
+export function sectionLabelScale(zoom: number): number {
+  const room = SECTION_GAP + ROW_GAP;
+  return Math.min(1 / zoom, room / SECTION_LABEL_SCREEN_HEIGHT);
+}
 
 /** A group of pages laid out together, under a label when it has one. */
 export interface OverviewSection<Label> {

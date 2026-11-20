@@ -4,11 +4,14 @@ import {
   fitCamera,
   framesBounds,
   layoutFrames,
+  layoutSections,
   nearbyFrames,
   OVERVIEW_FRAME_WIDTH,
   OVERVIEW_MIN_HEIGHT,
   OVERVIEW_ZOOM,
   pageAt,
+  SECTION_LABEL_SCREEN_HEIGHT,
+  sectionLabelScale,
   revealCamera,
   toWorld,
   wheelPixels,
@@ -285,5 +288,36 @@ describe("the frames drawn live", () => {
 
   it("leaves a slot drawing its page while nothing needs it, ready for a pan back", () => {
     expect(assignSlots(["p1", "p2"], ["p2"], 4)).toEqual(["p1", "p2"]);
+  });
+});
+
+describe("a section's label at low zoom", () => {
+  it.each([0.06, 0.1, 0.15, 0.5, 1])(
+    "stays clear of the frames of the section above at %f zoom (fails when the label keeps its screen size past the room the layout leaves)",
+    (zoom) => {
+      const { frames, labels } = layoutSections([
+        { label: "Sales", pages: pages(2) },
+        { label: "Fulfilment", pages: [{ id: "q1" }] },
+      ]);
+      const above = Math.max(
+        ...frames
+          .filter((frame) => frame.id.startsWith("p"))
+          .map(({ rect }) => rect.y + rect.height),
+      );
+      const second = labels[1];
+      const top =
+        second.y - SECTION_LABEL_SCREEN_HEIGHT * sectionLabelScale(zoom);
+      expect(top).toBeGreaterThanOrEqual(above);
+    },
+  );
+
+  it("keeps its screen size where it fits and shrinks below, never growing past it (fails when the scale ignores the zoom)", () => {
+    expect(sectionLabelScale(0.5)).toBeCloseTo(2);
+    expect(sectionLabelScale(OVERVIEW_ZOOM.min)).toBeLessThan(
+      1 / OVERVIEW_ZOOM.min,
+    );
+    expect(sectionLabelScale(0.02)).toBeLessThanOrEqual(
+      sectionLabelScale(0.04),
+    );
   });
 });
