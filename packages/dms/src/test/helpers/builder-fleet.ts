@@ -102,8 +102,8 @@ async function saveFleetQueries({
 }
 
 /**
- * A ratio saved through the builder tools, then served: the fraction a KpiCard with
- * `valueFormat: "percent"` reads, with its delta over the period before, and null
+ * A ratio saved through the builder tools, then served: the percentage a KpiCard with
+ * `valueFormat: "percent"` shows, with its delta over the period before, and null
  * where the denominator is 0.
  */
 export async function servesARatioKpi(

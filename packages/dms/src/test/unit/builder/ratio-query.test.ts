@@ -57,10 +57,10 @@ function writesARatio(): void {
 
     const model = app.read(MODEL_FILE);
     expect(model).to.contain(
-      "utilisation(minCreatedAt: Date, maxCreatedAt: Date) {\n    return ratioOf(",
+      "utilisation(minCreatedAt: Date, maxCreatedAt: Date) {\n    return percentOf(",
     );
     expect(model, "the helper is imported where the model uses it").to.contain(
-      'import { ratioOf } from "@antelopejs/interface-dms/base/query-response";',
+      'import { percentOf } from "@antelopejs/interface-dms/base/query-response";',
     );
   });
 
@@ -209,7 +209,7 @@ function leavesNoImportBehind(): void {
     this.timeout(OP_TIMEOUT);
     expectOk(await RemoveQuery(`${PAGE}@overallRate`), "RemoveQuery");
     expect(app.read(MODEL_FILE), "another ratio still calls it").to.contain(
-      "ratioOf",
+      "percentOf",
     );
 
     expectOk(
@@ -220,7 +220,7 @@ function leavesNoImportBehind(): void {
       "ConfigureQuery",
     );
 
-    expect(app.read(MODEL_FILE)).to.not.contain("ratioOf");
+    expect(app.read(MODEL_FILE)).to.not.contain("percentOf");
   });
 
   it("imports it again for the next ratio and drops it with the last one removed", async function () {
@@ -230,11 +230,11 @@ function leavesNoImportBehind(): void {
       "AddQuery after",
     );
     expect(app.read(MODEL_FILE)).to.contain(
-      'import { ratioOf } from "@antelopejs/interface-dms/base/query-response";',
+      'import { percentOf } from "@antelopejs/interface-dms/base/query-response";',
     );
 
     expectOk(await RemoveQuery(`${PAGE}@freshRate`), "RemoveQuery");
-    expect(app.read(MODEL_FILE)).to.not.contain("ratioOf");
+    expect(app.read(MODEL_FILE)).to.not.contain("percentOf");
   });
 }
 
@@ -264,7 +264,7 @@ function refusesWhatTheInstalledInterfaceCannotServe(): void {
     });
   });
 
-  it("refuses a ratio when the interface has no ratioOf", async function () {
+  it("refuses a ratio when the interface has no percentOf", async function () {
     this.timeout(OP_TIMEOUT);
     const refused = await AddQuery(PAGE, {
       ...UTILISATION,
@@ -276,7 +276,7 @@ function refusesWhatTheInstalledInterfaceCannotServe(): void {
     if (!refused.ok && "issues" in refused.error) {
       expect(refused.error.issues).to.have.length(1);
       expect(refused.error.issues[0].pointer).to.equal("/template");
-      expect(refused.error.issues[0].message).to.contain("ratioOf");
+      expect(refused.error.issues[0].message).to.contain("percentOf");
       expect(refused.error.issues[0].message).to.contain(
         "update @antelopejs/interface-dms",
       );
@@ -318,7 +318,7 @@ function refusesWhatTheInstalledInterfaceCannotServe(): void {
 }
 
 /**
- * A card with `valueFormat: "percent"` reads a fraction: the template that makes
+ * A card with `valueFormat: "percent"` reads a percentage: the template that makes
  * one is written, read back and reconfigured like every other, and a count that
  * compares answers what a card reads.
  */

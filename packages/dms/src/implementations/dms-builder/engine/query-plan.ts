@@ -97,7 +97,7 @@ export interface MeasurePlan extends ScalarPlan {
 }
 
 /**
- * One scalar calculation over another, as a fraction. Each side selects its own
+ * One scalar calculation over another, as a percentage. Each side selects its own
  * rows of the same resource; a value a route supplies per request is one value
  * for both.
  */
@@ -121,9 +121,9 @@ export function allPlanFilters(plan: QueryPlan): PlanFilter[] {
 }
 
 /** The helper a ratio's body wraps its two sides in, and where the model imports it from. */
-export const RATIO_HELPER = "ratioOf";
-const RATIO_IMPORT: ImportRef = {
-  name: RATIO_HELPER,
+export const PERCENT_HELPER = "percentOf";
+const PERCENT_IMPORT: ImportRef = {
+  name: PERCENT_HELPER,
   module: "@antelopejs/interface-dms/base/query-response",
 };
 
@@ -131,7 +131,7 @@ const RATIO_IMPORT: ImportRef = {
  * The symbols a chain's text may need imported, so the pruning that follows a
  * removed method knows which imports it may have left unused.
  */
-export const CHAIN_IMPORT_NAMES = [RATIO_IMPORT.name];
+export const CHAIN_IMPORT_NAMES = [PERCENT_IMPORT.name];
 
 /**
  * Read a template's `where` parameter as the plan's filters. A template plans
@@ -538,7 +538,7 @@ function measureText(
   return chainText(hops, indent, RETURN_LINE);
 }
 
-/** Both sides as the arguments of `ratioOf`, on the line they fit on or one to a line. */
+/** Both sides as the arguments of `percentOf`, on the line they fit on or one to a line. */
 function ratioText(
   plan: RatioPlan,
   fields: ResourceFieldStructure[],
@@ -548,7 +548,7 @@ function ratioText(
   const sides = [plan.numerator, plan.denominator].map((side) =>
     scalarHops(side, emitFilters(side.filters, fields, scope)),
   );
-  const inline = `${RATIO_HELPER}(${sides.map(inlineChain).join(", ")})`;
+  const inline = `${PERCENT_HELPER}(${sides.map(inlineChain).join(", ")})`;
   if (fitsOneLine(indent, RETURN_DEPTH, `return ${inline};`)) {
     return inline;
   }
@@ -556,7 +556,7 @@ function ratioText(
     (hops) =>
       `${bodyIndent(indent, HOP_DEPTH)}${chainText(hops, indent, ARGUMENT_LINE)},`,
   );
-  return `${RATIO_HELPER}(\n${lines.join("\n")}\n${bodyIndent(indent, RETURN_DEPTH)})`;
+  return `${PERCENT_HELPER}(\n${lines.join("\n")}\n${bodyIndent(indent, RETURN_DEPTH)})`;
 }
 
 /**
@@ -578,7 +578,7 @@ export function emitPlan(
     warnings: scope.warnings,
   };
   if (isRatioPlan(plan)) {
-    chain.imports = [RATIO_IMPORT];
+    chain.imports = [PERCENT_IMPORT];
   }
   return chain;
 }

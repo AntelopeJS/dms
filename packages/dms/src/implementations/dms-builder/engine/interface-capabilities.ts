@@ -53,7 +53,7 @@ export function interfaceNamesBuckets(
 
 /**
  * Whether the `@antelopejs/interface-dms` a file is compiled against exports a response
- * helper by that name. An older interface lacks the newer ones, such as `ratioOf` and
+ * helper by that name. An older interface lacks the newer ones, such as `percentOf` and
  * `kpiValueData`, and code importing them would fail to typecheck.
  */
 export function interfaceExportsHelper(

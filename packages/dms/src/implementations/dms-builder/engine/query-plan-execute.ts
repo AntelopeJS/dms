@@ -8,7 +8,7 @@
  * into the text the other produces.
  */
 
-import { ratioOf } from "@antelopejs/interface-dms/base/query-response";
+import { percentOf } from "@antelopejs/interface-dms/base/query-response";
 import type {
   ConfigValue,
   QueryPoint,
@@ -282,7 +282,7 @@ function measureScalar(
 /**
  * Build the plan against a table handle. The result is what the database's own
  * chain answers once run: a number for a scalar plan, one point per group for a
- * grouped one, and for a ratio the fraction its two sides make — null when no
+ * grouped one, and for a ratio the percentage its two sides make — null when no
  * share can be stated — so a caller runs it as it would any query.
  *
  * A ratio is divided by the helper its emitted body calls, so a preview and the
@@ -298,7 +298,7 @@ export function executePlan(
   args: PlanArguments = {},
 ): PlanQuery<number | null | QueryPoint[]> {
   if (isRatioPlan(plan)) {
-    return ratioOf(
+    return percentOf(
       measureScalar(table, plan.numerator, fields, args),
       measureScalar(table, plan.denominator, fields, args),
     );

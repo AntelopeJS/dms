@@ -112,7 +112,7 @@ function bound(name: string): QueryParamValue {
 describe("the model method of a ratio", () => {
   before(() => registerBuiltinQueryTemplates());
 
-  it("is one return of ratioOf over a chain per side, importing the helper", () => {
+  it("is one return of percentOf over a chain per side, importing the helper", () => {
     const chain = chainOf("ratio", {
       numerator: { where: [RENTED] },
       denominator: {},
@@ -121,7 +121,7 @@ describe("the model method of a ratio", () => {
     expect(chain.body).to.equal(
       [
         "{",
-        "  return ratioOf(",
+        "  return percentOf(",
         '    this.table.filter((row) => row.key("status").eq("rented")).count(),',
         "    this.table.count(),",
         "  );",
@@ -130,7 +130,7 @@ describe("the model method of a ratio", () => {
     );
     expect(chain.imports).to.deep.equal([
       {
-        name: "ratioOf",
+        name: "percentOf",
         module: "@antelopejs/interface-dms/base/query-response",
       },
     ]);
@@ -147,7 +147,7 @@ describe("the model method of a ratio", () => {
     expect(chain.body).to.equal(
       [
         "{",
-        "  return ratioOf(",
+        "  return percentOf(",
         "    this.table",
         '      .filter((row) => row.key("status").eq("rented"))',
         '      .filter((row) => row.key("amount").gt(10))',
@@ -163,7 +163,7 @@ describe("the model method of a ratio", () => {
     const chain = chainOf("ratio", { numerator: {}, denominator: {} });
 
     expect(chain.body).to.equal(
-      "{\n  return ratioOf(this.table.count(), this.table.count());\n}",
+      "{\n  return percentOf(this.table.count(), this.table.count());\n}",
     );
   });
 
@@ -226,7 +226,7 @@ describe("the model method of a ratio", () => {
       "database.ts",
       `class BikeModel {
   utilisation() {
-    return ratioOf(
+    return percentOf(
       this.table
         .filter((row) => row.key("status").eq("rented"))
         .count(),
@@ -270,7 +270,7 @@ describe("which template reads a model method", () => {
       "database.ts",
       `class BikeModel {
   utilisation() {
-    return ratioOf(this.table.count(), this.table.avg("amount"));
+    return percentOf(this.table.count(), this.table.avg("amount"));
   }
 }`,
     );

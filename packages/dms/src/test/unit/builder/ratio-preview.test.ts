@@ -86,8 +86,8 @@ async function previewed(
 }
 
 /**
- * A KpiCard with `valueFormat: "percent"` reads a fraction, so 1 bike rented of 4
- * has to arrive as 0.25: an implementation that scales it to 25 shows 2500 %.
+ * A KpiCard with `valueFormat: "percent"` reads percent units, so 1 bike rented of
+ * 4 has to arrive as 25: an implementation that answers the fraction 0.25 shows 0.3 %.
  */
 describe("previewing a ratio query", () => {
   before(() => registerBuiltinQueryTemplates());
@@ -104,11 +104,11 @@ describe("previewing a ratio query", () => {
     ]);
   });
 
-  it("answers the fraction, 1 bike rented of 4 reading 0.25", async () => {
+  it("answers the percentage, 1 bike rented of 4 reading 25", async () => {
     const answer = await previewed(JANUARY_BIKES, RENTED_BIKES);
 
     expect(answer.output).to.equal("scalar");
-    expect(answer.body).to.deep.equal({ value: 0.25 });
+    expect(answer.body).to.deep.equal({ value: 25 });
   });
 
   it("answers null, not 0 or NaN, when the denominator is 0", async () => {
@@ -129,16 +129,16 @@ describe("previewing a ratio query", () => {
       },
     );
 
-    expect(answer.body).to.deep.equal({ value: 0.75 });
+    expect(answer.body).to.deep.equal({ value: 75 });
   });
 
-  it("answers the fraction with its delta over the preceding period, binding the period on both sides", async () => {
+  it("answers the percentage with its delta over the preceding period, binding the period on both sides", async () => {
     const answer = await previewed(FLEET, IN_PERIOD, BOTH_PERIODS);
 
     expect(answer.response).to.equal("value");
     expect(answer.body).to.deep.equal({
-      value: 0.5,
-      previousValue: 0.25,
+      value: 50,
+      previousValue: 25,
       delta: 100,
     });
   });
@@ -146,13 +146,13 @@ describe("previewing a ratio query", () => {
   it("states no previous figure when the preceding period had no denominator", async () => {
     const answer = await previewed(FEBRUARY_BIKES, IN_PERIOD, BOTH_PERIODS);
 
-    expect(answer.body).to.deep.equal({ value: 0.5 });
+    expect(answer.body).to.deep.equal({ value: 50 });
   });
 
   it("answers a plain value when no comparison bounds came with the request", async () => {
     const answer = await previewed(FLEET, IN_PERIOD, FEBRUARY);
 
-    expect(answer.body).to.deep.equal({ value: 0.5 });
+    expect(answer.body).to.deep.equal({ value: 50 });
   });
 
   it("compares a count the same way, since the rule belongs to the scalar output", async () => {

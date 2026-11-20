@@ -86,20 +86,23 @@ describe("naming the periods of a bucketed series", () => {
 
   it("finds out whether the declarations export a helper as a function, not merely name it", () => {
     const exporting = interfaceWith(
-      "export declare function ratioOf(top: unknown, bottom: unknown): unknown;",
+      "export declare function percentOf(top: unknown, bottom: unknown): unknown;",
     );
     const mentioning = interfaceWith(
-      "export interface RatioOptions { ratioOf?: boolean }\n/** Replaces ratioOfOld. */\nexport declare function ratioOfOld(): void;",
+      "export interface PercentOptions { percentOf?: boolean }\n/** Replaces percentOfOld. */\nexport declare function percentOfOld(): void;",
     );
 
-    expect(interfaceExportsHelper(exporting, "ratioOf")).to.equal(true);
+    expect(interfaceExportsHelper(exporting, "percentOf")).to.equal(true);
     expect(interfaceExportsHelper(exporting, "kpiValueData")).to.equal(false);
-    expect(interfaceExportsHelper(mentioning, "ratioOf")).to.equal(false);
+    expect(interfaceExportsHelper(mentioning, "percentOf")).to.equal(false);
   });
 
   it("takes an interface it cannot find for one that exports nothing", () => {
     expect(
-      interfaceExportsHelper("/nonexistent/src/orders/data-api.ts", "ratioOf"),
+      interfaceExportsHelper(
+        "/nonexistent/src/orders/data-api.ts",
+        "percentOf",
+      ),
     ).to.equal(false);
   });
 
