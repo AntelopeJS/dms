@@ -78,7 +78,16 @@ function recoverSuccessor(
 }
 
 export class SessionModel extends BasicDataModel(Session, SESSIONS_TABLE_NAME) {
-  /** Atomically rotates a token or resolves its immediate predecessor. */
+  /**
+   * Atomically rotates a token or resolves its immediate predecessor within
+   * the rotation grace window. Any other token is a replay of a superseded
+   * one: the session is deleted.
+   *
+   * @param presentedToken A token whose signature the caller verified and
+   * whose claims name `sessionId`
+   * @returns The session's current token, or `null` when the presented one
+   * is refused
+   */
   async rotateRefreshToken(
     sessionId: string,
     presentedToken: string,
@@ -101,13 +110,14 @@ export class SessionModel extends BasicDataModel(Session, SESSIONS_TABLE_NAME) {
     if (modified > 0) return refreshToken;
 
     const session = await this.get(sessionId);
+    if (!session) return null;
     if (
-      !session ||
-      !isImmediateRefreshTokenPredecessor(session, presentedToken, rotatedAt)
+      isImmediateRefreshTokenPredecessor(session, presentedToken, rotatedAt)
     ) {
-      return null;
+      return recoverSuccessor(session, presentedToken);
     }
-    return recoverSuccessor(session, presentedToken);
+    await this.delete(sessionId);
+    return null;
   }
 
   /** Replaces a refresh token without retaining predecessor eligibility. */

@@ -300,6 +300,7 @@ export function generateRefreshToken(
       tenantId,
       sessionId: requireSessionId(sessionId),
       purpose: REFRESH_TOKEN_PURPOSE,
+      jti: randomUUID(),
     },
     Math.floor(config.refreshTokenLifetime / 1000),
   );
