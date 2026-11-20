@@ -1,13 +1,11 @@
-import type {
-  PlanOperand,
-  PlanRow,
-  PlanStream,
-  PlanValue,
-} from "../../../../implementations/dms-builder/engine";
 import {
   isNumber,
   isString,
-} from "../../../../implementations/dms-builder/engine/scalar-guards";
+  type PlanOperand,
+  type PlanRow,
+  type PlanStream,
+  type PlanValue,
+} from "../../../../implementations/dms-builder/engine";
 
 /** What a stored row holds in one field. */
 export type TableCell = string | number | boolean | Date | null;

@@ -10,13 +10,11 @@ import {
   parseQueryRouteCall,
   queryRouteMethodText,
   registerBuiltinQueryTemplates,
-} from "../../../implementations/dms-builder/engine";
-import {
   type CompiledChain,
   getQueryTemplate,
   parseModelMethod,
   type QueryParams,
-} from "../../../implementations/dms-builder/engine/query-template";
+} from "../../../implementations/dms-builder/engine";
 
 function field(name: string, dataType: string): ResourceFieldStructure {
   return { name, dataType: { $dataType: dataType } };
