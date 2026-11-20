@@ -14,6 +14,9 @@ import { z } from "zod";
 import { MOCKUP_API } from "./fixtures";
 import { jsonObjectSchema, type JsonObject, parseMockupName } from "./model";
 import { MockupOwnerController } from "./owner-controller";
+import { viewOf } from "./anchor";
+import type { PresenceBoard } from "./presence-board";
+import { type ViewerId, viewerIdSchema } from "./presence";
 import {
   readSpecSource,
   type SpecDigest,
@@ -22,6 +25,7 @@ import {
 } from "./source";
 
 const HTTP_BAD_REQUEST = 400;
+const HTTP_FORBIDDEN = 403;
 const HTTP_NOT_FOUND = 404;
 const HTTP_CONFLICT = 409;
 
@@ -30,6 +34,8 @@ const writeBodySchema = z
     spec: jsonObjectSchema,
     /** The digest the editor read: refused when the file changed since. */
     digest: z.string().optional(),
+    /** The viewer writing, whose own lock does not refuse the write. */
+    viewer: viewerIdSchema.optional(),
   })
   .strict();
 
@@ -42,6 +48,8 @@ export interface BlockCatalogAnswer {
 export interface SpecSourceAnswer {
   spec: JsonObject;
   digest: SpecDigest;
+  /** The editor whose write made this very file, when the last write was an editor's. */
+  writtenBy?: { viewer: ViewerId; name: string };
 }
 
 /**
@@ -50,7 +58,10 @@ export interface SpecSourceAnswer {
  * block catalog its inspector reads. Development only, and platform owners
  * only, like the rest of the mockup API.
  */
-export function registerSpecRoutes(mockupsDir: string) {
+export function registerSpecRoutes(
+  mockupsDir: string,
+  presence: PresenceBoard,
+) {
   function nameOf(raw: string) {
     const name = parseMockupName(raw);
     if (!name) {
@@ -74,7 +85,8 @@ export function registerSpecRoutes(mockupsDir: string) {
       @Parameter("name") rawName: string,
     ): Promise<SpecSourceAnswer> {
       await this.assertOwner();
-      const source = await readSpecSource(mockupsDir, nameOf(rawName));
+      const name = nameOf(rawName);
+      const source = await readSpecSource(mockupsDir, name);
       if (!source) {
         throw new HTTPResult(HTTP_NOT_FOUND, { message: "mockup not found" });
       }
@@ -83,7 +95,13 @@ export function registerSpecRoutes(mockupsDir: string) {
           message: "spec.json holds no JSON object",
         });
       }
-      return { spec: source.spec, digest: source.digest };
+      const answer: SpecSourceAnswer = {
+        spec: source.spec,
+        digest: source.digest,
+      };
+      const writtenBy = presence.writtenBy(name, source.digest);
+      if (writtenBy) answer.writtenBy = writtenBy;
+      return answer;
     }
 
     @Put(":name/spec")
@@ -91,7 +109,7 @@ export function registerSpecRoutes(mockupsDir: string) {
       @Parameter("name") rawName: string,
       @JSONBody() body: unknown,
     ): Promise<SpecWriteResult> {
-      await this.assertOwner();
+      const owner = await this.owner();
       const name = nameOf(rawName);
       const parsed = writeBodySchema.safeParse(body);
       if (!parsed.success) {
@@ -99,18 +117,30 @@ export function registerSpecRoutes(mockupsDir: string) {
           message: parsed.error.message,
         });
       }
-      const { spec, digest } = parsed.data;
+      const { spec, digest, viewer } = parsed.data;
+      if (viewer && !presence.viewerOf(name, viewer, owner.userId)) {
+        throw new HTTPResult(HTTP_FORBIDDEN, {
+          message: "this viewer has no event stream open on the mockup",
+        });
+      }
       return withSpecLock(mockupsDir, name, async (write) => {
-        if (digest !== undefined) {
-          const current = await readSpecSource(mockupsDir, name);
-          if (current && current.digest !== digest) {
-            throw new HTTPResult(HTTP_CONFLICT, {
-              message: "spec.json changed since it was read",
-              digest: current.digest,
-            });
-          }
+        const current = await readSpecSource(mockupsDir, name);
+        if (digest !== undefined && current && current.digest !== digest) {
+          throw new HTTPResult(HTTP_CONFLICT, {
+            message: "spec.json changed since it was read",
+            digest: current.digest,
+          });
         }
-        return write(spec, { by: "you" });
+        const errors = current?.spec
+          ? presence.refusals(name, viewer, current.spec, spec)
+          : [];
+        if (errors.length) return { ok: false, errors, warnings: [] };
+        const written = await write(spec, { by: "you" });
+        if (written.ok) {
+          presence.noteWrite(name, written.digest, viewer);
+          presence.settle(name, viewOf(spec));
+        }
+        return written;
       });
     }
   }

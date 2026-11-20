@@ -9,8 +9,11 @@ import type { AxiosInstance } from "axios";
 import { expect } from "chai";
 import {
   closeMockupStreams,
+  createMockupEngine,
   type MockupEngine,
   MockupStore,
+  PresenceBoard,
+  type PresenceClock,
   registerMockupRoutes,
 } from "../../mockup";
 import { authorizedClient, registerUser } from "./auth";
@@ -37,9 +40,13 @@ function mockupRouteIds(): number[] {
 /**
  * Serves `spec` as the mockup `desk` through `/api/mockup` routes registered
  * for the enclosing suite, signs a platform owner up, and removes the routes
- * and the files after the suite.
+ * and the files after the suite. `clock` replaces the time the viewers' locks
+ * run out by.
  */
-export function serveMockupRoutes(spec: string): () => ServedMockups {
+export function serveMockupRoutes(
+  spec: string,
+  clock?: PresenceClock,
+): () => ServedMockups {
   let served: ServedMockups | undefined;
 
   before(async () => {
@@ -48,10 +55,8 @@ export function serveMockupRoutes(spec: string): () => ServedMockups {
     const dir = await mkdtemp(join(tmpdir(), "dms-mockup-routes-"));
     await mkdir(join(dir, "mockups", "desk"), { recursive: true });
     await writeFile(join(dir, "mockups", "desk", "spec.json"), spec);
-    const engine: MockupEngine = {
-      store: new MockupStore(join(dir, "mockups")),
-      streams: new Set(),
-    };
+    const store = new MockupStore(join(dir, "mockups"));
+    const engine = createMockupEngine(store, new PresenceBoard(store, clock));
     registerMockupRoutes(engine);
     served = { dir, engine, owner: authorizedClient(ownerToken), ownerToken };
   });

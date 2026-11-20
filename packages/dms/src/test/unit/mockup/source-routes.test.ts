@@ -16,6 +16,7 @@ import {
 import { z } from "zod";
 import {
   closeMockupStreams,
+  createMockupEngine,
   type MockupEngine,
   MockupStore,
   registerMockupRoutes,
@@ -69,10 +70,7 @@ describe("[unit] mockup spec source routes", () => {
     base = await mkdtemp(join(tmpdir(), "dms-mockup-source-"));
     await mkdir(join(base, "mockups", "desk"), { recursive: true });
     specPath = join(base, "mockups", "desk", "spec.json");
-    engine = {
-      store: new MockupStore(join(base, "mockups")),
-      streams: new Set(),
-    };
+    engine = createMockupEngine(new MockupStore(join(base, "mockups")));
     registerMockupRoutes(engine);
     routeIds.push(
       ...getRegisteredRoutes()
