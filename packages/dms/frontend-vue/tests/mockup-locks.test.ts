@@ -172,6 +172,52 @@ describe("the lock of the selected block", () => {
   });
 });
 
+describe("the lock after the last edit of its holder", () => {
+  it("is not renewed by a write of another viewer, so a holder who walked away lets it run out (fails when every change of the spec renews it)", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    await pick("block-0");
+    expect(taken()).toHaveLength(1);
+
+    vi.setSystemTime(Date.now() + MOCKUP_LOCK_RENEW_MS + 1);
+    const theirs = spec();
+    const second = theirs.pages[0]?.tree[1];
+    if (second?.options) second.options.title = "Sales";
+    runtime.file.spec = theirs;
+    runtime.file.version += 1;
+    runtime.file.writtenBy = { name: "Bea" };
+    await viewer.publish(
+      "state",
+      mockupState({ revision: 100 + runtime.file.version, pages: STATE.pages }),
+    );
+
+    expect(taken()).toHaveLength(1);
+  });
+
+  it("is renewed before it is freed, never after: a renewal still on its way holds the release back (fails when a renewal runs beside the lock requests and can put the block back after the release)", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    await pick("block-0");
+    vi.setSystemTime(Date.now() + MOCKUP_LOCK_RENEW_MS + 1);
+    const answer = runtime.holdLocks();
+
+    await type("Turnover");
+    await press("Escape");
+    await settled();
+    expect(taken()).toHaveLength(2);
+    expect(freed()).toHaveLength(0);
+
+    answer();
+    await flush();
+    await flush();
+
+    expect(freed()).toHaveLength(1);
+    expect(runtime.locks.map((request) => request.method)).toEqual([
+      "PUT",
+      "PUT",
+      "DELETE",
+    ]);
+  });
+});
+
 describe("a block another viewer holds", () => {
   beforeEach(async () => {
     await viewer.publish("presence", {

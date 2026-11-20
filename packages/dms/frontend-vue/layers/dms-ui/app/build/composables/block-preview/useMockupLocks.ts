@@ -12,7 +12,8 @@ import {
   type MockupLock,
   type MockupPresence,
 } from "../../utils/mockupPresence";
-import type { MockupSpecDocument } from "../../utils/mockupSpec";
+import { nodeAt } from "../../utils/mockupSpec";
+import type { MockupOwnEdit } from "./useMockupSpec";
 
 type AuthFetch = ReturnType<typeof useAuthFetch>["$authFetch"];
 
@@ -26,8 +27,8 @@ interface MockupLocksOptions {
   viewer: string;
   presence: Readonly<Ref<MockupPresence>>;
   isConnected: Readonly<Ref<boolean>>;
-  /** The spec as the editor holds it: each change of it is an edit, or someone else's. */
-  spec: Readonly<Ref<MockupSpecDocument | undefined>>;
+  /** The last change this session made to its own spec: only its own edits keep the lock alive. */
+  ownEdit: Readonly<Ref<MockupOwnEdit | undefined>>;
   /** The pointer of the selected block. */
   selection: Readonly<Ref<string | undefined>>;
   /** Whether an edit is not written yet: a lock changes hands once it is. */
@@ -57,9 +58,11 @@ function ignoreRejection(task: Promise<void>): void {
 /**
  * Holds the lock of the block selected in the editor, so that no other viewer
  * edits it meanwhile. The lock is taken when a block is selected that no one
- * else holds, kept while the viewer edits it, renewed by the edits at most
- * once every {@link MOCKUP_LOCK_RENEW_MS}, and freed once the viewer selects
- * another block or none, after the last edit is written. It is taken again when
+ * else holds, kept while the viewer edits it, renewed by the viewer's own edits
+ * of that block, an undo or a redo included, at most once every
+ * {@link MOCKUP_LOCK_RENEW_MS}, never by a change another viewer wrote, and
+ * freed once the viewer selects another block or none, after the last edit is
+ * written. Every request runs one after the other. It is taken again when
  * the stream reopens, the backend having freed it with the stream, and freed
  * when the editor closes. A block someone else holds is never locked: it shows
  * as the `blocker` of the selection.
@@ -75,6 +78,7 @@ export function useMockupLocks(options: MockupLocksOptions): MockupLocks {
   let lastTaken = 0;
   let isRunning = false;
   let isDue = false;
+  let isRenewDue = false;
 
   async function take(pointer: string): Promise<void> {
     try {
@@ -98,11 +102,23 @@ export function useMockupLocks(options: MockupLocksOptions): MockupLocks {
       .catch(() => undefined);
   }
 
+  async function renew(): Promise<void> {
+    isRenewDue = false;
+    const pointer = options.held.value;
+    if (
+      pointer !== undefined &&
+      Date.now() - lastTaken >= MOCKUP_LOCK_RENEW_MS
+    ) {
+      await take(pointer);
+    }
+  }
+
   async function step(): Promise<void> {
     if (!options.isConnected.value) {
       options.held.value = undefined;
       return;
     }
+    if (isRenewDue) await renew();
     if (options.isPending.value) return;
     const wanted = blocker.value ? undefined : options.selection.value;
     if (wanted === options.held.value) return;
@@ -136,15 +152,18 @@ export function useMockupLocks(options: MockupLocksOptions): MockupLocks {
     ],
     sync,
   );
-  watch(options.spec, () => {
-    const pointer = options.held.value;
-    if (
-      pointer !== undefined &&
-      Date.now() - lastTaken >= MOCKUP_LOCK_RENEW_MS
-    ) {
-      ignoreRejection(take(pointer));
-    }
-  });
+  watch(
+    options.ownEdit,
+    (edit) => {
+      const pointer = options.held.value;
+      if (!edit || pointer === undefined) return;
+      const before = JSON.stringify(nodeAt(edit.previous, pointer));
+      if (before === JSON.stringify(nodeAt(edit.next, pointer))) return;
+      isRenewDue = true;
+      sync();
+    },
+    { flush: "sync" },
+  );
   onBeforeUnmount(() => {
     if (options.held.value !== undefined) ignoreRejection(free());
   });

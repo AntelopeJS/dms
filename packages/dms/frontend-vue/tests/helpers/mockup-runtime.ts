@@ -303,6 +303,8 @@ export interface MockupRuntime {
   };
   /** The lock requests the viewer sent: taking (`PUT`) and freeing (`DELETE`) the lock on a block. */
   locks: Array<{ method: string; viewer: string; path?: string }>;
+  /** Holds the answer of every lock request sent from now on; the returned function lets them answer. */
+  holdLocks: () => () => void;
   /** The toasts the viewer raised. */
   toasts: RaisedToast[];
   /** The viewer's route, which the router's pushes move, as Inertia moves the page's URL. */
@@ -325,6 +327,17 @@ export function stubMockupRuntime(options: RuntimeOptions = {}): MockupRuntime {
     version: 1,
   };
   const locks: MockupRuntime["locks"] = [];
+  let lockGate: Promise<void> | undefined;
+  const holdLocks: MockupRuntime["holdLocks"] = () => {
+    let release = () => {};
+    lockGate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    return () => {
+      release();
+      lockGate = undefined;
+    };
+  };
   const authFetch = vi.fn(async (url: string, init?: FakeRequest) => {
     if (url === "/api/mockup") {
       const results = (options.mockups ?? []).map((mockup) => ({
@@ -358,6 +371,7 @@ export function stubMockupRuntime(options: RuntimeOptions = {}): MockupRuntime {
           "",
         path: init?.body?.path,
       });
+      await lockGate;
       return { ok: true };
     }
     return answerAnnotations(notes, url, init);
@@ -414,7 +428,7 @@ export function stubMockupRuntime(options: RuntimeOptions = {}): MockupRuntime {
   );
   vi.stubGlobal("useDmsUserSession", () => ({ loggedIn: ref(true) }));
   vi.stubGlobal("isDmsHydrating", () => false);
-  return { authFetch, notes, file, locks, toasts, route, pushes };
+  return { authFetch, notes, file, locks, holdLocks, toasts, route, pushes };
 }
 
 type WithoutChannel<Message> = Message extends unknown

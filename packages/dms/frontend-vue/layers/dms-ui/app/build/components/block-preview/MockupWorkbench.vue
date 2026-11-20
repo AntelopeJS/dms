@@ -131,7 +131,7 @@ const locks = useMockupLocks({
   viewer: session.viewer,
   presence: session.presence,
   isConnected,
-  spec,
+  ownEdit: editor.ownEdit,
   selection,
   isPending: editor.isPending,
   held: heldBlock,

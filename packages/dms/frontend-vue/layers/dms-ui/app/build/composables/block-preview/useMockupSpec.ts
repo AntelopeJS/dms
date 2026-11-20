@@ -63,6 +63,12 @@ export interface MockupAdoption {
   next: MockupSpecDocument;
 }
 
+/** A change the editor made to its own spec: an edit, an undo or a redo. */
+export interface MockupOwnEdit {
+  previous: MockupSpecDocument;
+  next: MockupSpecDocument;
+}
+
 interface MockupSpecOptions {
   name: string;
   authFetch: AuthFetch;
@@ -87,6 +93,8 @@ export interface MockupSpecEditor {
   canRedo: ComputedRef<boolean>;
   /** The last change from outside the editor took over its own spec. */
   adoption: Readonly<ShallowRef<MockupAdoption | undefined>>;
+  /** The last change the editor made to its own spec: never one that came from outside, nor one that took ids a note stamped. */
+  ownEdit: Readonly<ShallowRef<MockupOwnEdit | undefined>>;
   /** Whether the last write failed and is being retried: true until one lands. */
   hasFailed: ComputedRef<boolean>;
   /**
@@ -181,6 +189,7 @@ class MockupSpecSync {
   readonly history = shallowRef<MockupHistory<MockupSpecDocument>>();
   readonly written = shallowRef<MockupSpecDocument>();
   readonly adoption = shallowRef<MockupAdoption>();
+  readonly ownEdit = shallowRef<MockupOwnEdit>();
   readonly hasFailed = shallowRef(false);
   readonly isAwaitingState = shallowRef(false);
   isClosed = false;
@@ -442,8 +451,10 @@ class MockupSpecSync {
   }
 
   move(next: MockupHistory<MockupSpecDocument>): void {
-    if (next === this.history.value) return;
+    const previous = this.history.value?.present;
+    if (!previous || next === this.history.value) return;
     this.history.value = next;
+    this.ownEdit.value = { previous, next: next.present };
     this.schedule();
   }
 
@@ -501,6 +512,7 @@ export function useMockupSpec(options: MockupSpecOptions): MockupSpecEditor {
     canUndo: computed(() => !!history.value?.past.length),
     canRedo: computed(() => !!history.value?.future.length),
     adoption: sync.adoption,
+    ownEdit: sync.ownEdit,
     hasFailed: computed(() => sync.hasFailed.value),
     isPending: computed(
       () =>
