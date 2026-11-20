@@ -200,6 +200,7 @@ const forwarded = useForwardPropsEmits(convertedProps, wrappedEmits);
 <template>
   <UCalendar
     v-bind="{ ...forwarded, ...ariaAttrs }"
+    :calendar-label="$t('dms.form.select_date')"
     :week-starts-on="props.weekStartsOn ?? weekStartsOn"
     :min-value="minValue"
     :max-value="maxValue"

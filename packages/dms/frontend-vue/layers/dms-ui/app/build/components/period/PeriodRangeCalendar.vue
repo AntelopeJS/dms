@@ -209,6 +209,7 @@ const weekStart = computed(
     v-slot="{ grid, weekDays }"
     :model-value="rekaValue"
     :placeholder="placeholder"
+    :calendar-label="$t('dms.period.popover.custom_range')"
     :locale="locale"
     :week-starts-on="weekStart"
     :number-of-months="numberOfMonths"

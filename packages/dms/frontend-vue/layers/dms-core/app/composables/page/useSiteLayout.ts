@@ -403,6 +403,15 @@ export function findPageRoute(path: string): MatchRouteResult<PageInfo> | null {
   return layout ? matchPageRoute(path, layout) : null;
 }
 
+/**
+ * The quick actions the site layout serves the user, or `undefined` before it
+ * loads. It reads the layout state only, so a click handler may call it
+ * outside a component's setup.
+ */
+export function servedQuickActions(): QuickActionsPayload | undefined {
+  return useSiteLayoutState().quickActions.value;
+}
+
 export const useSiteLayout = () => {
   const {
     state,

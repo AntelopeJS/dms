@@ -93,7 +93,7 @@ export function createTargetHandlers(
     quickAction: (target) => {
       const { id } = target;
       const quickAction = findServedQuickAction(
-        useSiteLayout().quickActions.value?.actions,
+        servedQuickActions()?.actions,
         id,
       );
       if (quickAction) dispatchQuickActionTarget(quickAction.target);

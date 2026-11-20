@@ -1,6 +1,6 @@
 import type { Data } from "../../components/table/TableRoot.vue";
 import Button from "@nuxt/ui/components/Button.vue";
-import Tooltip from "@nuxt/ui/components/Tooltip.vue";
+import DisabledReason from "../../components/button/DisabledReason.vue";
 import DropdownMenu, {
   type DropdownMenuItem,
 } from "@nuxt/ui/components/DropdownMenu.vue";
@@ -20,20 +20,15 @@ import {
   descriptorToMenuItem,
 } from "./tableColumnActionDescriptors";
 
-/** A disabled button fires no pointer event: its reason hangs on a focusable wrapper. */
 const withDisabledReason = (
   descriptor: RowActionDescriptor,
   button: ReturnType<typeof h>,
-) => {
-  if (!descriptor.disabledReason) return button;
-  return h(
-    Tooltip,
-    { text: descriptor.disabledReason },
-    {
-      default: () => h("span", { tabindex: 0, class: "inline-flex" }, [button]),
-    },
+) =>
+  h(
+    DisabledReason,
+    { reason: descriptor.disabledReason },
+    { default: () => button },
   );
-};
 
 const renderActionButton = (descriptor: RowActionDescriptor, rowId: string) => {
   const button = h(Button, {
