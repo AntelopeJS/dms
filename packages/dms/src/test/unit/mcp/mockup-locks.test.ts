@@ -3,7 +3,7 @@ import type { JsonValue } from "@antelopejs/interface-dms/json";
 import type { AxiosInstance } from "axios";
 import { expect } from "chai";
 import { z } from "zod";
-import { createMockupFromPageTool } from "../../../mcp/tools/mockup-from-page";
+import { createMockupFromPageTool } from "../../../mcp/tools";
 import {
   defaultMockupsDir,
   endMockupEngine,
