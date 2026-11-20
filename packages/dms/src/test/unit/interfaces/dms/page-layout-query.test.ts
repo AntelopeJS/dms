@@ -345,6 +345,7 @@ function registerRecordCases(): void {
     const options = headerOptions(await servedLayout("s1", formPattern));
     expect(options.headerActions.map((action) => action.id)).to.deep.equal([
       "rename",
+      "notes",
       "help",
     ]);
     expect(byId(options, "rename")?.target?.component).to.deep.equal({
@@ -369,6 +370,14 @@ function registerRecordCases(): void {
         },
       ],
     });
+  });
+
+  it("fills a child of the component when only the child names the record", async () => {
+    const options = headerOptions(await servedLayout("s1", formPattern));
+    expect(
+      byId(options, "notes")?.target?.component?.children?.[0]?.component
+        .options,
+    ).to.deep.equal({ fetchUrl: "/api/notes?site=s1" });
   });
 
   it("leaves a modal button naming the record out when there is none", async () => {
@@ -499,6 +508,19 @@ describe("[unit] interfaces/dms/page — the page's record, read with its layout
                     ],
                   }),
                 ),
+            },
+          },
+          {
+            id: "notes",
+            label: "Notes",
+            target: {
+              type: "drawer",
+              component: new ComponentBuilder("lq-panel").child(
+                "list",
+                new ComponentBuilder("lq-list").options({
+                  fetchUrl: "/api/notes?site={{record._id}}",
+                }),
+              ),
             },
           },
           { id: "help", label: "Help", target: { type: "page", url: "/help" } },

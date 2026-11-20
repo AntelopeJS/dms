@@ -5,14 +5,10 @@ import type {
 } from "../../component-options/internal/page-layout";
 import type { ComponentFilterContext, ComponentInfo } from "../../component";
 import {
-  isBoolean,
-  isDate,
   isFunction,
-  isNull,
   isNumber,
-  isObject,
+  isPlainObject,
   isString,
-  isUndefined,
 } from "../../utils/internal/type-check";
 
 const RECORD_TOKEN = /\{\{\s*record\.([\w.-]+)\s*\}\}/g;
@@ -121,38 +117,16 @@ function fillRecordTokens(
   });
 }
 
-/** A node of a serialized options tree: JSON data, and the dates it may hold. */
-type OptionsNode =
-  | string
-  | number
-  | boolean
-  | null
-  | undefined
-  | Date
-  | OptionsNode[]
-  | { [key: string]: OptionsNode };
+type OptionsNode = DeclaredComponent["options"];
 
-const isPlainObject = (value: unknown): value is Record<string, unknown> =>
-  Object.prototype.toString.call(value) === "[object Object]";
-
-const isOptionsNode = (value: unknown): value is OptionsNode => {
-  if (Array.isArray(value)) return value.every(isOptionsNode);
-  if (isPlainObject(value)) return Object.values(value).every(isOptionsNode);
-  return (
-    isString(value) ||
-    isNumber(value) ||
-    isBoolean(value) ||
-    isNull(value) ||
-    isUndefined(value) ||
-    isDate(value)
-  );
-};
+const isList = (value: OptionsNode): value is OptionsNode[] =>
+  Array.isArray(value);
 
 /**
  * The options of a component a target opens with the `{{record.X}}` tokens of
- * every string in them filled in, down their lists and objects: percent-encoded
- * under a key that names a URL (as the client reads a row's `{{row.X}}`), raw
- * under any other.
+ * every string in them filled in, down their lists and object literals:
+ * percent-encoded under a key ending in `url`, or named `to` or `href`, raw
+ * under any other. Any other value is left as it is.
  */
 function fillRecordOptions(
   node: OptionsNode,
@@ -163,10 +137,10 @@ function fillRecordOptions(
     const encode = URL_OPTION.test(key) ? encodeURIComponent : keepRaw;
     return fillRecordTokens(node, record, encode);
   }
-  if (Array.isArray(node)) {
+  if (isList(node)) {
     return node.map((item) => fillRecordOptions(item, key, record));
   }
-  if (!isObject(node) || isDate(node)) return node;
+  if (!isPlainObject(node)) return node;
   return Object.fromEntries(
     Object.entries(node).map(([name, item]) => [
       name,
@@ -181,9 +155,7 @@ function fillRecordComponent(
 ): DeclaredComponent {
   return {
     ...component,
-    options: isOptionsNode(component.options)
-      ? fillRecordOptions(component.options, ROOT_KEY, record)
-      : component.options,
+    options: fillRecordOptions(component.options, ROOT_KEY, record),
     children: component.children?.map((child) => ({
       ...child,
       component: fillRecordComponent(child.component, record),

@@ -80,6 +80,20 @@ export const isPrimitive = (value: unknown): value is PrimitiveValue => {
 /** @internal */
 export const isNull = (value: unknown): value is null => value === null;
 
+/**
+ * Whether `value` is an object literal (its prototype `Object.prototype` or
+ * `null`), not an array, a date or a class instance.
+ *
+ * @internal
+ */
+export const isPlainObject = (
+  value: unknown,
+): value is Record<string, unknown> =>
+  !!value &&
+  typeof value === "object" &&
+  (Object.getPrototypeOf(value) === Object.prototype ||
+    Object.getPrototypeOf(value) === null);
+
 /** @internal */
 export const isDate = (value: unknown): value is Date =>
   value instanceof Date && !Number.isNaN(value.getTime());
