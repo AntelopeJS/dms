@@ -224,6 +224,16 @@ export type ActionTarget =
        * share link, a token).
        */
       copy?: string;
+      /**
+       * Page of the dashboard opened once the request succeeded, after the
+       * success toast: a path starting with `/` (an absolute URL is refused
+       * when the target is serialized). Takes the tokens of `url`, plus
+       * `{{response.<field>}}`, a field of the JSON response (a dotted path
+       * reads a nested one). A field the response lacks leaves the user on
+       * the page, with a console warning.
+       * @example "/sales/invoices/{{response._id}}"
+       */
+      redirect?: string;
       successMessage: string;
     }
   | {
@@ -316,6 +326,16 @@ export type ActionTargetSerialized =
        * share link, a token).
        */
       copy?: string;
+      /**
+       * Page of the dashboard opened once the request succeeded, after the
+       * success toast: a path starting with `/` (an absolute URL is refused
+       * when the target is serialized). Takes the tokens of `url`, plus
+       * `{{response.<field>}}`, a field of the JSON response (a dotted path
+       * reads a nested one). A field the response lacks leaves the user on
+       * the page, with a console warning.
+       * @example "/sales/invoices/{{response._id}}"
+       */
+      redirect?: string;
       successMessage: string;
     }
   | {
