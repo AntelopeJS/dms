@@ -121,8 +121,12 @@ const render = (content: () => ReturnType<DataTypeFormatter>): HTMLElement => {
           {
             "data-avatar": "",
             "data-src": props.src,
-            "data-ui-root": props.ui?.root,
-            "data-ui-image": props.ui?.image,
+            "data-ui-root": isString(props.ui?.root)
+              ? props.ui.root
+              : undefined,
+            "data-ui-image": isString(props.ui?.image)
+              ? props.ui.image
+              : undefined,
           },
           props.text,
         ),
@@ -400,6 +404,7 @@ describe("IdentityCell", () => {
     expect(avatar?.getAttribute("data-src")).toBe(logo);
     expect(avatar?.getAttribute("data-ui-root")).toContain("rounded-[7px]");
     expect(avatar?.getAttribute("data-ui-root")).toContain("bg-accented");
+    expect(avatar?.getAttribute("data-ui-root")).toContain("bg-none");
     expect(avatar?.getAttribute("data-ui-image")).toContain("object-contain");
     expect(text(avatar)).toBe("AC");
   });

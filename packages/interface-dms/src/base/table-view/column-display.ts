@@ -115,9 +115,6 @@ export namespace DefaultDisplays {
     tone?: Tone;
   }
 
-  /** How an identity cell draws its avatar. */
-  export type IdentityAvatarFrame = "circle" | "square";
-
   export interface IdentityDisplayOptions {
     /** Row field holding the avatar (an image value or a URL). */
     avatarField?: string;
@@ -126,7 +123,7 @@ export namespace DefaultDisplays {
      * person's photo; `square` draws it whole, contained in the rounded tile
      * an icon gets, as a company's logo.
      */
-    avatarFrame?: IdentityAvatarFrame;
+    avatarFrame?: "circle" | "square";
     /** Icon drawn in a tile instead of an avatar. */
     icon?: string;
     /**

@@ -98,8 +98,9 @@ const avatarSrc = computed(() => {
 const initials = computed(() => labelInitials(label.value));
 
 const SQUARE_FRAME = {
-  root: "rounded-[7px] bg-accented",
+  root: "rounded-[7px] bg-accented bg-none",
   image: "object-contain",
+  fallback: "font-sans font-semibold text-toned",
 };
 </script>
 
