@@ -3,9 +3,11 @@ import type { ConnectionAccess } from "@antelopejs/interface-dms/connection-acce
 import { TONES } from "@antelopejs/interface-dms/base/types/tone";
 import { z } from "zod";
 import { generatedFixtureSchema, holdsGenerate } from "./generate";
+import { type MockupModule, moduleIssues } from "./modules";
 import { liveRouteSchema, relativeRouteSchema } from "./route-patterns";
 
 export * from "./route-patterns";
+export * from "./modules";
 import {
   SKETCH_MAX_CAPTION,
   SIDEBAR_WIDGET_MAX_HEIGHT,
@@ -356,6 +358,7 @@ export const specSchema = z
     data: specDataSchema.optional(),
     categories: z.array(categorySchema).max(MAX_PAGES).optional(),
     sidebar: sidebarSchema.optional(),
+    modules: z.array(z.string()).max(MAX_PAGES).optional(),
     pages: z.array(pageSchema).max(MAX_PAGES),
   })
   .strict()
@@ -384,6 +387,9 @@ export const specSchema = z
       }
       widgets.add(widget.id);
     });
+    for (const { index, message } of moduleIssues(spec.modules ?? [])) {
+      issue(["modules", index], message);
+    }
     const known = categories.size
       ? `the categories are ${[...categories].join(", ")}`
       : "the spec has no categories";
@@ -481,6 +487,8 @@ export interface MockupState {
   categories?: MockupCategory[];
   /** The sketches the sidebar draws below its own widgets; absent when the spec has none. */
   sidebar?: MockupSidebarState;
+  /** The DMS modules the app needs, from the store catalog; absent when the spec lists none. */
+  modules?: MockupModule[];
   pages: MockupPageState[];
   /** Empty when the spec is valid. */
   issues: MockupIssue[];

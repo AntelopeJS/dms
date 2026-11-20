@@ -24,6 +24,7 @@ import type {
   Json,
   JsonObject,
   MockupCategory,
+  MockupModule,
   MockupIssue,
   MockupName,
   MockupPageState,
@@ -101,6 +102,7 @@ interface Entry {
   title?: string;
   categories?: MockupCategory[];
   sidebar?: MockupState["sidebar"];
+  modules?: MockupModule[];
   pages: MockupPageState[];
   fixtures: Map<string, JsonObject>;
   issues: MockupIssue[];
@@ -149,6 +151,7 @@ function lastGood(
     title: previous?.title,
     categories: previous?.categories,
     sidebar: previous?.sidebar,
+    modules: previous?.modules,
     pages: previous?.pages ?? [],
     fixtures: previous?.fixtures ?? new Map<string, JsonObject>(),
     issues,
@@ -465,6 +468,7 @@ export class MockupStore {
     if (entry.title !== undefined) state.title = entry.title;
     if (entry.categories !== undefined) state.categories = entry.categories;
     if (entry.sidebar !== undefined) state.sidebar = entry.sidebar;
+    if (entry.modules !== undefined) state.modules = entry.modules;
     return state;
   }
 

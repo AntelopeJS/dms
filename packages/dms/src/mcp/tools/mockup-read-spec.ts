@@ -1,5 +1,11 @@
 import { z } from "zod";
-import { defaultMockupsDir, parseSpecObject, readSpecText } from "../../mockup";
+import {
+  compileModules,
+  type JsonObject,
+  defaultMockupsDir,
+  parseSpecObject,
+  readSpecText,
+} from "../../mockup";
 import { defineTool, jsonResult, textResult } from "../tool";
 import { readPointer } from "./json-patch";
 import { mockupArgument, withMockup } from "./mockup-support";
@@ -11,6 +17,16 @@ function listMembers(members: string[]): string {
   const shown = members.slice(0, MAX_LISTED_MEMBERS).join(", ");
   const more = members.length - MAX_LISTED_MEMBERS;
   return `its members are: ${shown}${more > 0 ? `, and ${more} more` : ""}`;
+}
+
+/** Which package installs each module the spec lists; empty when it lists none. */
+function packageNote(spec: JsonObject): string {
+  const modules = compileModules(
+    z.array(z.string()).catch([]).parse(spec.modules),
+  );
+  if (modules.length === 0) return "";
+  const named = modules.map((entry) => `${entry.id} is ${entry.package}`);
+  return `Building the mockup installs its modules with \`ajs project modules add <package>\`: ${named.join(", ")}.`;
 }
 
 /** `mockup_read_spec`: reads a mockup's spec, whole or at one JSON pointer. */
@@ -47,7 +63,12 @@ export const mockupReadSpecTool = defineTool({
         );
       }
       const read = readPointer(spec, path ?? "");
-      if (read.ok) return jsonResult(read.value);
+      if (read.ok) {
+        const answer = jsonResult(read.value);
+        const note = !path || path === "/modules" ? packageNote(spec) : "";
+        if (note) answer.content.push({ type: "text", text: note });
+        return answer;
+      }
       return textResult(
         `Cannot read "${path}": ${read.message}. The deepest value that exists on the way is at "${read.parent}": ${listMembers(read.members)}.`,
         true,
