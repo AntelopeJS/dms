@@ -20,6 +20,7 @@ import {
   SeriesBody,
   totalOf,
 } from "../helpers/builder-orders";
+import { servesARatioKpi } from "../helpers/builder-fleet";
 import { useBuilderSession } from "../helpers/builder-session";
 import { type BridgeProcess, callTool } from "../helpers/mcp-bridge-process";
 import { parseBody } from "../helpers/parse-body";
@@ -130,6 +131,12 @@ describe("[integration] builder journeys: pages through the bridge", function ()
  *   of its own, which the test registers once the app is loaded, since the DMS registers its
  *   core schema once, at its start. The page's declaration of its bounds is
  *   `unit/builder/query-response.test.ts`'s to check.
+ * - `builder-ratio-kpi-answers-fraction-with-its-delta-and-null-over-http` fails when a ratio
+ *   route answers 25 for 1 bike rented of 4 instead of 0.25, carries no delta over the period
+ *   before, runs the comparison when the request carries no comparison bounds, answers 0
+ *   instead of null for a denominator of 0, or when builder_configure_query leaves the route on
+ *   its old sides. The fleet resource names a schema of its own for the same reason as the
+ *   order one.
  * - `builder-survives-the-reload-its-write-triggers` fails when a reload of the app leaves the
  *   builder interface without its provider, which happens when the DMS does not declare it in
  *   `antelopeJs.implements`, or when the reload does not register the page the write added.
@@ -226,6 +233,36 @@ describe("[integration] builder journeys: the app the builder writes, served", f
       530, 530,
     ]);
     expect(card.delta).to.be.closeTo(((705 - 530) / 530) * 100, 0.001);
+  });
+
+  it("builder-ratio-kpi-answers-fraction-with-its-delta-and-null-over-http", async () => {
+    const answered = await servesARatioKpi(session(), runApp);
+
+    expect(
+      answered.compared,
+      "1 bike rented of 4, against 2 of 4 the period before",
+    ).to.deep.equal({ value: 0.25, previousValue: 0.5, delta: -50 });
+    expect(answered.uncompared, "no comparison bounds sent").to.deep.equal({
+      value: 0.25,
+    });
+    expect(answered.overall, "3 bikes rented of 8").to.deep.equal({
+      value: 0.375,
+    });
+    expect(answered.retired, "no retired bike to divide by").to.deep.equal({
+      value: null,
+    });
+    expect(
+      answered.previewed,
+      "the shape of 0.375, never the figure",
+    ).to.deep.equal({
+      status: "ok",
+      body: { value: "number" },
+      truncated: false,
+    });
+    expect(
+      answered.reconfigured,
+      "3 bikes rented over 5 free, after configure_query",
+    ).to.deep.equal({ value: 0.6 });
   });
 
   it("builder-survives-the-reload-its-write-triggers", async () => {
