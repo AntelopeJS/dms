@@ -83,7 +83,7 @@ export interface SendOptions extends DeliveryOptions {
 }
 
 /** Options of `toRoles`: a send to the holders of roles. */
-export type RoleSendOptions = SendOptions;
+export interface RoleSendOptions extends SendOptions {}
 
 export interface NotificationData {
   icon: string;
