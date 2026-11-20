@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { registerMetricCellTypes } from "../layers/dms-ui/app/build/composables/data-types/metricCells";
+import { registerMetricCellTypes } from "../layers/dms-ui/app/entries/composables/data-types/metricCells";
 import { isObject } from "#dms-core/app/utils/type-check";
 import type {
   DataType,
