@@ -19,6 +19,7 @@ import type {
 import { mockupPageIcon } from "../../utils/mockupFrame";
 import {
   OVERVIEW_FRAME_WIDTH,
+  sectionLabelScale,
   wheelPixels,
   wheelZoomFactor,
 } from "../../utils/mockupOverview";
@@ -92,11 +93,14 @@ const labelStyle = computed(() => ({
 }));
 const lineStyle = computed(() => ({ "--dms-line": `${1 / zoom.value}px` }));
 /** Draws a section's title at its own size on the screen, above its first row's page titles. */
-const sectionStyle = computed(() => ({
-  width: `${OVERVIEW_FRAME_WIDTH * 2 * zoom.value}px`,
-  transform: `scale(${1 / zoom.value})`,
-  transformOrigin: "bottom left",
-}));
+const sectionStyle = computed(() => {
+  const scale = sectionLabelScale(zoom.value);
+  return {
+    width: `${(OVERVIEW_FRAME_WIDTH * 2) / scale}px`,
+    transform: `scale(${scale})`,
+    transformOrigin: "bottom left",
+  };
+});
 
 const pageById = computed(
   () => new Map(props.pages.map((page) => [page.id, page])),
