@@ -44,7 +44,7 @@ const REQUEST_FREE_INPUTS: ReadonlyMap<string, ReadonlySet<string>> = new Map(
     "dms-input-email": ["placeholder"],
     "dms-input-number": NUMBER_KEYS,
     "dms-input-percentage": NUMBER_KEYS,
-    "dms-input-phone": ["placeholder", "requiredPrefix"],
+    "dms-input-phone": ["placeholder", "requiredPrefix", "defaultCountry"],
     "dms-input-password": [
       "placeholder",
       "minLength",

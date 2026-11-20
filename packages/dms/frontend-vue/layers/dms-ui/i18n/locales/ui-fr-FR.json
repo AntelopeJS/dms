@@ -444,6 +444,10 @@
         "invalid_email": "{value} n’est pas une adresse e-mail valide. | {value} ne sont pas des adresses e-mail valides.",
         "remove": "Retirer {value}"
       },
+      "phone": {
+        "country": "Pays",
+        "country_search": "Rechercher un pays ou un indicatif"
+      },
       "code": {
         "completion_footer": "↵ insérer · Échap fermer",
         "complete": "compléter",

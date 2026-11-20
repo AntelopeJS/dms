@@ -123,6 +123,7 @@ export class PageFormProfileEdit extends PageController(
         description: "Your phone number",
         type: new DefaultDataTypes.PhoneType({
           placeholder: "+1-555-123-4567",
+          defaultCountry: "US",
         }),
       },
       {

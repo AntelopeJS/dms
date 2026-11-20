@@ -444,6 +444,10 @@
         "invalid_email": "{value} isn’t a valid email address. | {value} aren’t valid email addresses.",
         "remove": "Remove {value}"
       },
+      "phone": {
+        "country": "Country",
+        "country_search": "Search a country or a code"
+      },
       "code": {
         "completion_footer": "↵ insert · Esc close",
         "complete": "complete",
