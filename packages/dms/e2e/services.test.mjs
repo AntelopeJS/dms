@@ -6,6 +6,7 @@ import { join } from "node:path";
 import test from "node:test";
 import { pathToFileURL } from "node:url";
 import { newRun } from "./helpers/fake-run.mjs";
+import { hasProc } from "./identity.mjs";
 import { listenersOf, restartablePort } from "./processes.mjs";
 import { readRun, saveRun } from "./run-state.mjs";
 
@@ -24,28 +25,34 @@ function kitWithoutBin(t) {
   return kit;
 }
 
-await test("a copy of the kit with no bin/ beside it starts a run's mail sink (catches a stack that runs its services through a script outside the kit)", async (t) => {
-  const kit = kitWithoutBin(t);
-  const state = await newRun(t);
-  state.smtpPort = await restartablePort();
-  saveRun(state);
-  const started = spawnSync(
-    process.execPath,
-    [
-      "--input-type=module",
-      "--eval",
-      `const { ensureMail } = await import(${JSON.stringify(pathToFileURL(join(kit, "stack.mjs")).href)});
+await test(
+  "a copy of the kit with no bin/ beside it starts a run's mail sink (catches a stack that runs its services through a script outside the kit)",
+  {
+    skip: !hasProc() && "the process that listens on a port is read from /proc",
+  },
+  async (t) => {
+    const kit = kitWithoutBin(t);
+    const state = await newRun(t);
+    state.smtpPort = await restartablePort();
+    saveRun(state);
+    const started = spawnSync(
+      process.execPath,
+      [
+        "--input-type=module",
+        "--eval",
+        `const { ensureMail } = await import(${JSON.stringify(pathToFileURL(join(kit, "stack.mjs")).href)});
 const { loadRun } = await import(${JSON.stringify(pathToFileURL(join(kit, "run-state.mjs")).href)});
 await ensureMail(loadRun(${JSON.stringify(state.dir)}));`,
-    ],
-    { encoding: "utf8" },
-  );
-  assert.equal(started.status, 0, started.stderr);
-  const mail = readRun(state.dir).processes.find(
-    (entry) => entry.name === "mail",
-  );
-  assert.deepEqual(listenersOf(state.smtpPort), [mail?.pid]);
-});
+      ],
+      { encoding: "utf8" },
+    );
+    assert.equal(started.status, 0, started.stderr);
+    const mail = readRun(state.dir).processes.find(
+      (entry) => entry.name === "mail",
+    );
+    assert.deepEqual(listenersOf(state.smtpPort), [mail?.pid]);
+  },
+);
 
 await test("the service entry refuses a name it does not serve and names those it does (catches an entry that exits 0 on a typo, leaving the stack to wait on a port nothing listens on)", () => {
   const entry = spawnSync(
