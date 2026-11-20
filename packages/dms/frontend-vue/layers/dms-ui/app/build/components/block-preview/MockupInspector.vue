@@ -183,6 +183,7 @@ function setOption(key: string, value: JsonValue | undefined): void {
         </p>
         <div
           class="space-y-4"
+          :class="{ 'opacity-60': lockedBy }"
           :inert="lockedBy ? true : undefined"
           :aria-disabled="lockedBy ? 'true' : undefined"
           data-dms-mockup-inspector-fields
