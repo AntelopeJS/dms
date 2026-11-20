@@ -49,7 +49,6 @@ export const TSCONFIG = {
     strict: true,
     skipLibCheck: true,
     esModuleInterop: true,
-    preserveSymlinks: true,
     rootDir: "src",
   },
   include: ["src"],

@@ -7,8 +7,6 @@ import type {
 import { type StructuredPatchHunk, structuredPatch } from "diff";
 import {
   type ClassDeclaration,
-  type Diagnostic,
-  DiagnosticMessageChain,
   type ExportDeclaration,
   type ImportDeclaration,
   type ImportSpecifier,
@@ -29,6 +27,7 @@ import {
   type ResolutionInputs,
   resolutionInputsChanged,
 } from "./resolution-inputs";
+import { relevantDiagnostics } from "./save-check";
 
 let writable: { project: Project; inputs: ResolutionInputs } | undefined;
 
@@ -294,40 +293,6 @@ export function findPageClass(
     }
   }
   return undefined;
-}
-
-function diagnosticToError(diagnostic: Diagnostic): TypecheckError {
-  const message = diagnostic.getMessageText();
-  return {
-    file: diagnostic.getSourceFile()?.getFilePath() ?? "",
-    line: diagnostic.getLineNumber() ?? 0,
-    message:
-      message instanceof DiagnosticMessageChain
-        ? message.getMessageText()
-        : message,
-  };
-}
-
-/**
- * The diagnostics of the program's own files, imported ones included. Each
- * file is checked on its own: the whole program's diagnostics would also check
- * every declaration file in `node_modules`, whose errors are never reported.
- */
-function relevantDiagnostics(project: Project): TypecheckError[] {
-  return project
-    .getProgram()
-    .compilerObject.getSourceFiles()
-    .flatMap((file) => {
-      const sourceFile = project.getSourceFile(file.fileName);
-      return sourceFile && !sourceFile.isInNodeModules()
-        ? sourceFile.getPreEmitDiagnostics()
-        : [];
-    })
-    .filter((diagnostic) => {
-      const file = diagnostic.getSourceFile();
-      return file !== undefined && !file.isInNodeModules();
-    })
-    .map(diagnosticToError);
 }
 
 const DIFF_CONTEXT_LINES = 3;
