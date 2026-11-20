@@ -165,7 +165,7 @@ describe("[unit] a save that breaks a file the save did not write", () => {
     write("referenced.ts", `export {};\n`);
     write(
       "referrer.ts",
-      `/// <reference path="./referenced.ts" />\nexport const referrer = 1;\n`,
+      `/// <reference path="./referenced" />\nexport const referrer = 1;\n`,
     );
     expectOk(await addBanner(), "AddBlock with the reference on disk");
 

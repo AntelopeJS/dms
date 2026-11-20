@@ -344,6 +344,27 @@ function inNodeModules(fileName: string): boolean {
   return fileName.includes("/node_modules/");
 }
 
+/** The extensions TypeScript tries, in order, on a `/// <reference path>` written without one. */
+const REFERENCE_EXTENSIONS = [".ts", ".tsx", ".d.ts", ".js", ".jsx"];
+
+/**
+ * The program's file a `/// <reference path>` names: the path as written when
+ * the program holds it, else with the first extension that names one. A file
+ * the program does not hold keeps the path as written.
+ */
+function referencedFile(
+  reference: string,
+  importer: string,
+  present: Set<string>,
+): string {
+  const named = ts.resolveTripleslashReference(reference, importer);
+  return (
+    [named, ...REFERENCE_EXTENSIONS.map((extension) => named + extension)].find(
+      (candidate) => present.has(candidate),
+    ) ?? named
+  );
+}
+
 /**
  * The files outside `node_modules` that import each file of the program, by
  * path, through a module specifier or a `/// <reference path>`. The imports of
@@ -355,6 +376,7 @@ function importGraph(
   files: readonly ts.SourceFile[],
 ): Map<string, string[]> {
   const checker = project.getTypeChecker().compilerObject;
+  const present = new Set(files.map((file) => file.fileName));
   const importers = new Map<string, string[]>();
   for (const file of files) {
     const importer = file.fileName;
@@ -372,7 +394,7 @@ function importGraph(
     for (const name of [
       ...imported,
       ...file.referencedFiles.map((reference) =>
-        ts.resolveTripleslashReference(reference.fileName, importer),
+        referencedFile(reference.fileName, importer, present),
       ),
     ]) {
       const known = importers.get(name);
