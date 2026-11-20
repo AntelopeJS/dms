@@ -241,6 +241,7 @@ export const formal: FormalCheck[] = [
       "packages/interface-dms/src/internal/invite-resolution.ts",
       "packages/interface-dms/src/internal/invite-replacement.ts",
       "packages/interface-dms/src/internal/invite-content.ts",
+      "packages/interface-dms/src/internal/invite-handout.ts",
       "packages/interface-dms/src/db/internal/inviteResolutions.model.ts",
       "packages/interface-dms/src/db/models/user_invites.model.ts",
       "packages/interface-dms/src/db/tables/user_invites.table.ts",

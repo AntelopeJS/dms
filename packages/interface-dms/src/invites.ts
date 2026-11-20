@@ -14,7 +14,11 @@ import { ExecuteHooks, Hook, type InviteReplacementReason } from "./hooks";
 import type { InviteExtensionPayloads } from "./invite-extensions";
 import { DeliverInviteExtensions } from "./invite-extensions/internal/delivery";
 import { completeAdmittedInviteResolution } from "./internal/invite-resolution";
-import { isSameInviteContent } from "./internal/invite-content";
+import {
+  type MintedInvite,
+  resultFor,
+  yieldToWinner,
+} from "./internal/invite-handout";
 import { decideInvite, loadInviteForAction } from "./invite-resolution";
 import type { InviteResolution } from "./db/tables/inviteResolutions.table";
 import { changeTenantMembers, type TenantMembersWrite } from "./tenant-members";
@@ -522,33 +526,6 @@ async function followUndecided(
   if (resolution.replacement) return resolution.replacement;
   await invites.delete(invite._id);
   return currentInviteOf(options, invite);
-}
-
-function yieldToWinner(
-  winner: UserInvite | undefined,
-  lost: MintedInvite,
-): CreateUserInviteTokenResult {
-  assert(
-    winner && isSameInviteContent(winner, lost.invite),
-    HTTP_CONFLICT,
-    "Invitation for this email was created concurrently with other content",
-  );
-  return resultFor(winner, lost);
-}
-
-/** An invitation snapshot, and the token whose digest it stores. */
-interface MintedInvite {
-  invite: UserInvite;
-  token: string;
-}
-
-/** Hands out the token only with the invitation it was minted for. */
-function resultFor(
-  invite: UserInvite,
-  minted: MintedInvite,
-): CreateUserInviteTokenResult {
-  if (invite._id !== minted.invite._id) return { inviteId: invite._id };
-  return { inviteId: invite._id, token: minted.token };
 }
 
 function mintInvite(options: CreateUserInviteTokenOptions): MintedInvite {

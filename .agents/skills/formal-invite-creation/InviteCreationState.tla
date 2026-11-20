@@ -97,7 +97,7 @@ Finish(a, answer) ==
   /\ Move(a, "done")
   /\ Set(res, a, answer)
 
-(* ---- yieldToWinner and yieldOrCreateAgain (invites.ts:392-415) ----------- *)
+(* ---- yieldToWinner (internal/invite-handout.ts), yieldOrCreateAgain ------ *)
 
 (* invites.ts:392-404: the winner, by its id and without its token, when it
    carries the content of the lost invite, else HTTP 409. *)
