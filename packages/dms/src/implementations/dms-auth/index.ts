@@ -28,6 +28,7 @@ import {
 } from "@antelopejs/interface-dms/utils/internal/type-check";
 import { loadTokenUser, signUserToken, verifyUserToken } from "./token-secret";
 import { assertTokenSessionAlive, loadTokenSession } from "./token-session";
+import { DatabaseUnavailable, readBeforeDeadline } from "./database-deadline";
 import { INVITE_EXPIRY_DAYS } from "@antelopejs/interface-dms/invites";
 
 const HTTP_FORBIDDEN = 403;
@@ -60,6 +61,7 @@ interface TokenResult {
  * @param checkEmailValidation Whether to enforce email validation requirement
  * @returns Validated user
  * @throws HTTPResult(401) if validation fails
+ * @throws HTTPResult(503) when the database cannot be read to verify the session
  */
 async function validateUserToken(
   data: TenantTokenInput,
@@ -70,14 +72,21 @@ async function validateUserToken(
     ACCESS_TOKEN_PURPOSE,
   );
 
-  const session = await loadTokenSession(claims.sessionId);
+  const session = await readBeforeDeadline(() =>
+    loadTokenSession(claims.sessionId),
+  );
   try {
     assertTokenSessionAlive(claims.sessionId, session, user);
   } catch (error: unknown) {
     throw new HTTPResult(HTTP_UNAUTHORIZED, getErrorMessage(error));
   }
 
-  await recordUserActivity(GetModel(UserModel), user);
+  void recordUserActivity(GetModel(UserModel), user).catch((error: unknown) => {
+    Logging.Warn(
+      `[DMS-AUTH] could not record the activity of "${user._id}"`,
+      error,
+    );
+  });
 
   if (checkEmailValidation) {
     const config = getAuthConfig();
@@ -140,6 +149,7 @@ function decodedClaims(token: string): DecodedAuthPayload | undefined {
  * same 401.
  *
  * @throws HTTPResult(401) for any token that is not a live `purpose` token
+ * @throws HTTPResult(503) when the database cannot be read to verify it
  */
 async function verifiedSession(
   token: string,
@@ -149,7 +159,7 @@ async function verifiedSession(
   if (!claims || !isSessionPayload(claims, purpose)) {
     throw new HTTPResult(HTTP_UNAUTHORIZED, INVALID_SESSION_TOKEN_ERROR);
   }
-  const user = await loadTokenUser(claims);
+  const user = await readBeforeDeadline(() => loadTokenUser(claims));
   if (!user) {
     throw new HTTPResult(HTTP_UNAUTHORIZED, INVALID_SESSION_TOKEN_ERROR);
   }
@@ -192,7 +202,8 @@ export namespace internal {
     }
     try {
       return await validateUserToken(data, true);
-    } catch {
+    } catch (error: unknown) {
+      if (error instanceof DatabaseUnavailable) throw error;
       return undefined;
     }
   };
@@ -216,6 +227,7 @@ const BEARER_SCHEME = /^Bearer\s+(\S+)$/i;
  * An unvalidated e-mail is not a rejection — the token itself is still good.
  *
  * @param authorization The raw `authorization` header, possibly absent
+ * @throws HTTPResult(503) when the database cannot be read to verify the token
  */
 export async function isRejectedBearerToken(
   authorization: string | undefined,
@@ -231,7 +243,8 @@ export async function isRejectedBearerToken(
   try {
     await validateUserToken(data, false);
     return false;
-  } catch {
+  } catch (error: unknown) {
+    if (error instanceof DatabaseUnavailable) throw error;
     return true;
   }
 }
@@ -359,7 +372,7 @@ async function verifyPurposeToken(
   if (!isPurposeClaims(claims, purpose)) {
     throw new HTTPResult(HTTP_UNAUTHORIZED, refusal);
   }
-  const user = await loadTokenUser(claims);
+  const user = await readBeforeDeadline(() => loadTokenUser(claims));
   if (!user) {
     throw new HTTPResult(HTTP_UNAUTHORIZED, refusal);
   }

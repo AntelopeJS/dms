@@ -166,7 +166,10 @@ function signOut(event: DmsServerEvent, session: DmsSession | undefined) {
 /**
  * Renews `session` with its refresh token, writes it and returns it; the rest
  * of the request runs with it. A refused refresh signs the browser out of that
- * account, its stored account included.
+ * account, its stored account included. A refresh that fails otherwise, the
+ * backend or its database being unavailable, keeps `session` as it is: the
+ * backend still verifies every request made with it, and answers why it
+ * cannot.
  * The frontend server calls it when the backend refuses a signed-in page
  * visit, and `POST /api/_auth/session` when the browser asks.
  */
@@ -190,7 +193,11 @@ export async function renewSession(
     event.session.useForRequest(refreshed);
     return refreshed;
   } catch (error) {
-    if (isRefusal(error)) signOut(event, session);
+    if (!isRefusal(error)) {
+      event.session.useForRequest(session);
+      return session;
+    }
+    signOut(event, session);
     event.session.useForRequest(undefined);
     return undefined;
   }

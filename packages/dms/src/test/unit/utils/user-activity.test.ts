@@ -73,6 +73,20 @@ describe("[unit] utils/user-activity", () => {
       expect(stored?.testHash("password", PASSWORD)).to.equal(true);
     });
 
+    it("keeps a change the request stored before the activity write landed", async () => {
+      const model = GetModel(UserModel);
+      const rotated = randomUUID();
+      const current = await model.get(user._id);
+      if (!current) throw new Error("activity-test user is gone");
+      current.authKey = rotated;
+      await model.update(current);
+
+      await recordUserActivity(model, user, NOW);
+
+      const stored = await model.get(user._id);
+      expect(stored?.authKey).to.equal(rotated);
+    });
+
     it("skips the write while the last one is recent", async () => {
       const model = GetModel(UserModel);
       await recordUserActivity(model, user, NOW);

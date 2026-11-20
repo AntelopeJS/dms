@@ -14,6 +14,7 @@ import ErrorPage from "../layers/dms-layout/app/error.vue";
 import {
   HTTP_FORBIDDEN,
   HTTP_NOT_FOUND,
+  HTTP_SERVICE_UNAVAILABLE,
   HTTP_UNAUTHORIZED,
 } from "../layers/dms-core/app/utils/http-status";
 
@@ -38,6 +39,7 @@ function installRuntime() {
     onMounted,
     HTTP_FORBIDDEN,
     HTTP_NOT_FOUND,
+    HTTP_SERVICE_UNAVAILABLE,
     HTTP_UNAUTHORIZED,
   }).forEach(([key, value]) => vi.stubGlobal(key, value));
   vi.stubGlobal("useI18n", () => ({ t: (key: string) => key }));
@@ -82,7 +84,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-it.each([HTTP_NOT_FOUND, HTTP_FORBIDDEN])(
+it.each([HTTP_NOT_FOUND, HTTP_FORBIDDEN, HTTP_SERVICE_UNAVAILABLE])(
   "keeps the technical cause off the %i card",
   (statusCode) => {
     const text = mountError(statusCode);
@@ -126,7 +128,7 @@ it("copies the status code followed by the message", async () => {
   expect(copied).toEqual([`500 ${TECHNICAL_MESSAGE}`]);
 });
 
-it.each([HTTP_NOT_FOUND, HTTP_FORBIDDEN])(
+it.each([HTTP_NOT_FOUND, HTTP_FORBIDDEN, HTTP_SERVICE_UNAVAILABLE])(
   "offers no copy button on the %i card",
   (statusCode) => {
     mountError(statusCode);
