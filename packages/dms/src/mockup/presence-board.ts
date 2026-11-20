@@ -182,16 +182,14 @@ export class PresenceBoard {
     if (entry) this.apply(entry, settled(entry.table, tree, this.clock.now()));
   }
 
-  /** Remembers that the viewer `viewer` wrote the spec of `name` that has `digest`; no viewer clears it. */
+  /** Remembers that an editor of the user named `by` wrote the spec of `name` that has `digest`; no one clears it. */
   noteWrite(
     name: MockupName,
     digest: SpecDigest,
-    viewer: ViewerId | undefined,
+    by: string | undefined,
   ): void {
-    const holder = viewer && this.entries.get(name)?.table.viewers.get(viewer);
-    if (holder) {
-      this.writes.set(name, { digest, name: holder.name });
-    } else this.writes.delete(name);
+    if (by === undefined) this.writes.delete(name);
+    else this.writes.set(name, { digest, name: by });
   }
 
   /** The name of the editor whose write made the spec of `name` that has `digest`, if the last write was one. */

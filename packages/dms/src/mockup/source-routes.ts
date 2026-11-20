@@ -33,7 +33,7 @@ const writeBodySchema = z
     spec: jsonObjectSchema,
     /** The digest the editor read: refused when the file changed since. */
     digest: z.string().optional(),
-    /** The viewer writing, whose own lock does not refuse the write; one with no event stream open writes as none. */
+    /** The viewer writing, whose own lock does not refuse the write; one with no event stream open writes as none, but the file is still said to be its user's. */
     viewer: viewerIdSchema.optional(),
   })
   .strict();
@@ -136,7 +136,11 @@ export function registerSpecRoutes(
         if (errors.length) return { ok: false, errors, warnings: [] };
         const written = await write(spec, { by: "you" });
         if (written.ok) {
-          presence.noteWrite(name, written.digest, viewer);
+          presence.noteWrite(
+            name,
+            written.digest,
+            parsed.data.viewer === undefined ? undefined : owner.name,
+          );
           presence.settle(name, viewOf(spec));
         }
         return written;

@@ -415,6 +415,22 @@ describe("[unit] mockup presence: who a viewer is", () => {
     expect(specValueAt(written, `${KPI_B}/options/title`)).to.equal("B");
   });
 
+  it("names the user who wrote the file when the viewer named has no stream left, as an edit sent while leaving is, and no one when no viewer is named (fails when the last write of a viewer that just left is attributed to no one)", async () => {
+    const { ada, bea, a, adaStream, beaStream } = viewers();
+    adaStream.close();
+    expect(
+      await eventually(() => lastPresence(beaStream)?.viewers.length === 1),
+    ).to.equal(true);
+
+    await write(ada, a, (spec) => retitle(spec, KPI_C, "Last"));
+    const afterLeaving = await source(bea);
+    await write(ada, undefined, (spec) => retitle(spec, KPI_C, "Anonymous"));
+    const afterAnonymous = await source(bea);
+
+    expect(afterLeaving.writtenBy).to.deep.equal({ name: ADA });
+    expect(afterAnonymous.writtenBy).to.equal(undefined);
+  });
+
   it("names who wrote the file in the read that follows an editor's write, and no one after a write from outside (fails when every digest is attributed)", async () => {
     const { ada, bea, a, specPath } = viewers();
     await write(ada, a, (spec) => retitle(spec, KPI_A, "Alpha"));
