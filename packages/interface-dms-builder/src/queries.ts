@@ -14,7 +14,7 @@ export type QueryRef = string;
 /**
  * The shape a query's route responds with: one number as `{ value }`, or one
  * point per group as `{ series }`, each point carrying its group as `x` and what
- * was measured as `y`.
+ * was measured as `y`. A ratio's `value` is null where its denominator is 0.
  */
 export type QueryOutputKind = "scalar" | "series";
 
@@ -137,12 +137,14 @@ export interface AddQueryInput {
    * template computes: a number for a scalar, its points for a series.
    *
    * A grouped calculation feeds a bare chart, a card with a headline figure, or
-   * a ranked list without being described three times.
+   * a ranked list without being described three times. A scalar that also
+   * `compare`s is answered as a KPI card's figure and change, whatever is asked.
    */
   response?: QueryArrangement;
   /**
    * Answer the preceding period alongside the current one, so a card can show a
-   * variation. Only meaningful when the query binds a period.
+   * variation. Only meaningful when the query binds a period, and for a scalar
+   * or a series alike.
    */
   compare?: boolean;
   /**
