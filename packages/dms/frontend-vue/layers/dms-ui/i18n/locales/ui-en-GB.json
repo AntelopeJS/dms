@@ -446,7 +446,8 @@
       },
       "phone": {
         "country": "Country",
-        "country_search": "Search a country or a code"
+        "country_search": "Search a country or a code",
+        "country_none": "No country matches “{search}”."
       },
       "code": {
         "completion_footer": "↵ insert · Esc close",

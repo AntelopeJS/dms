@@ -2,6 +2,7 @@
 import { useFormField } from "@nuxt/ui/composables/useFormField";
 import type { CountryCode } from "libphonenumber-js/min";
 import { useControlError } from "../../../composables/form/useControlError";
+import PhoneFlag from "../../../build/components/form/PhoneFlag.vue";
 import {
   formatPhone,
   moveToCountry,
@@ -140,12 +141,16 @@ const selected = computed(() =>
       data-phone-country
       @update:model-value="onCountry"
     >
-      <span v-if="selected" class="tabular-nums">
-        {{ selected.flag }} {{ selected.code }}
+      <span v-if="selected" class="flex items-center gap-1.5 tabular-nums">
+        <PhoneFlag :code="selected.value" :name="selected.label" />
+        {{ selected.code }}
       </span>
       <UIcon v-else name="i-ph-globe" class="size-4" />
       <template #item-leading="{ item }">
-        <span aria-hidden="true">{{ item.flag }}</span>
+        <PhoneFlag :code="item.value" name="" />
+      </template>
+      <template #empty="{ searchTerm }">
+        {{ t("dms.form.phone.country_none", { search: searchTerm }) }}
       </template>
       <template #item-trailing="{ item }">
         <span class="text-dimmed text-[11px] tabular-nums">

@@ -8,12 +8,26 @@ import {
   h,
   inject,
   nextTick,
+  onMounted,
   provide,
   ref,
   watch,
 } from "vue";
+import { defu } from "defu";
+import { createI18n } from "vue-i18n";
+import coreEn from "../layers/dms-core/app/entries/i18n/locales/core-en-GB.json";
+import coreFr from "../layers/dms-core/app/entries/i18n/locales/core-fr-FR.json";
+import uiEn from "../layers/dms-ui/app/entries/i18n/locales/ui-en-GB.json";
+import uiFr from "../layers/dms-ui/app/entries/i18n/locales/ui-fr-FR.json";
 import { formFieldInjectionKey } from "@nuxt/ui/composables/useFormField";
 import { FORM_CONTROL_ERRORS_KEY } from "../layers/dms-ui/app/entries/composables/form/formControlErrors";
+
+const i18n = createI18n({
+  legacy: false,
+  locale: "en-GB",
+  fallbackLocale: "en-GB",
+  messages: { "en-GB": defu(uiEn, coreEn), "fr-FR": defu(uiFr, coreFr) },
+});
 
 const model = ref<string | null | undefined>();
 const reported = new Map<string, string | undefined>();
@@ -37,17 +51,36 @@ const UInputStub = defineComponent({
   },
 });
 
+interface CountryItem {
+  value: string;
+  label: string;
+}
+
 const USelectMenuStub = defineComponent({
-  props: { modelValue: { type: String, default: undefined } },
+  props: {
+    modelValue: { type: String, default: undefined },
+    items: { type: Array<CountryItem>, default: () => [] },
+  },
   emits: ["update:modelValue"],
   setup(props, { emit, slots }) {
     pickCountry = (code) => emit("update:modelValue", code);
-    return () =>
+    return () => [
       h(
         "button",
         { "data-country": props.modelValue ?? "" },
         slots.default?.(),
-      );
+      ),
+      h(
+        "ul",
+        props.items.map((item) =>
+          h("li", { "data-item": item.value }, [
+            slots["item-leading"]?.({ item }),
+            item.label,
+          ]),
+        ),
+      ),
+      h("p", { "data-empty": "" }, slots.empty?.({ searchTerm: "zz" })),
+    ];
   },
 });
 
@@ -90,6 +123,8 @@ const shown = () =>
   host.querySelector<HTMLInputElement>("[data-number]")?.value;
 const selected = () =>
   host.querySelector("[data-country]")?.getAttribute("data-country");
+const selectedFlag = () =>
+  host.querySelector<HTMLImageElement>("[data-country] img");
 
 beforeEach(() => {
   for (const [name, value] of Object.entries({
@@ -97,13 +132,12 @@ beforeEach(() => {
     ref,
     watch,
     inject,
+    onMounted,
   })) {
     vi.stubGlobal(name, value);
   }
-  vi.stubGlobal("useI18n", () => ({
-    t: (key: string) => key,
-    locale: ref("en-GB"),
-  }));
+  vi.stubGlobal("useI18n", () => i18n.global);
+  i18n.global.locale.value = "en-GB";
   model.value = undefined;
   reported.clear();
   host = document.createElement("div");
@@ -154,7 +188,9 @@ it("keeps a number it cannot read as typed and refuses it on blur", async () => 
   blurNumber();
   await flush();
   expect(model.value).toBe("12");
-  expect(reported.get("phone")).toBe("dms.field_errors.invalid_phone");
+  expect(reported.get("phone")).toBe(
+    "Enter a valid phone number, with its country.",
+  );
 
   typeNumber("0494669443");
   await flush();
@@ -190,4 +226,35 @@ it("keeps what the user deleted instead of formatting it back", async () => {
   typeNumber(formatted.slice(0, -1));
   await flush();
   expect(shown()).toBe(formatted.slice(0, -1));
+});
+
+it("draws the selected country's flag as an image named after the country", async () => {
+  await mount({ defaultCountry: "BE" });
+  await vi.waitFor(() => expect(selectedFlag()).not.toBeNull());
+  expect(selectedFlag()?.alt).toBe("Belgium");
+  expect(selectedFlag()?.src).toMatch(/^data:image\/svg\+xml/);
+  expect(host.querySelector("[data-country]")?.textContent).toContain("+32");
+
+  const listed = host.querySelector('[data-item="BE"] img');
+  await vi.waitFor(() => expect(listed).not.toBeNull());
+  expect(listed?.getAttribute("alt")).toBe("");
+  expect(listed?.getAttribute("aria-hidden")).toBe("true");
+});
+
+it("speaks the user's language: French message and country names", async () => {
+  i18n.global.locale.value = "fr-FR";
+  await mount({ defaultCountry: "BE" });
+  await vi.waitFor(() => expect(selectedFlag()?.alt).toBe("Belgique"));
+  expect(host.querySelector('[data-item="DE"]')?.textContent).toBe("Allemagne");
+  expect(host.querySelector("[data-empty]")?.textContent).toBe(
+    "Aucun pays ne correspond à « zz ».",
+  );
+
+  typeNumber("12");
+  await flush();
+  blurNumber();
+  await flush();
+  expect(reported.get("phone")).toBe(
+    "Saisissez un numéro de téléphone valide, avec son pays.",
+  );
 });

@@ -13,17 +13,11 @@ const INTERNATIONAL_PREFIX = /^(\+|00)/;
 
 const E164 = /^\+[1-9]\d{1,14}$/;
 
-const REGIONAL_INDICATOR_A = 0x1f1e6;
-
-const LETTER_A = 65;
-
 /** A country the phone input offers: its ISO code and calling code. */
 export interface PhoneCountry {
   code: CountryCode;
   /** Without its "+": "32". */
   callingCode: string;
-  /** The country's flag emoji: "🇧🇪". */
-  flag: string;
 }
 
 /** What the user typed into a phone input, read in its selected country. */
@@ -46,18 +40,10 @@ export function phoneCountry(
   return upper && isSupportedCountry(upper) ? upper : undefined;
 }
 
-function flagOf(code: CountryCode): string {
-  return String.fromCodePoint(
-    REGIONAL_INDICATOR_A + code.charCodeAt(0) - LETTER_A,
-    REGIONAL_INDICATOR_A + code.charCodeAt(1) - LETTER_A,
-  );
-}
-
 export function phoneCountries(): PhoneCountry[] {
   return getCountries().map((code) => ({
     code,
     callingCode: getCountryCallingCode(code),
-    flag: flagOf(code),
   }));
 }
 
