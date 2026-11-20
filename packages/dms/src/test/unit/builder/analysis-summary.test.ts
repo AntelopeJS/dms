@@ -417,3 +417,104 @@ describe("[unit] builder_analyse_database: detail of named relations", () => {
     expect(bytes(every)).to.be.greaterThan(bytes(summariseAnalysis(STATE)));
   });
 });
+
+describe("[unit] builder_analyse_database: tables grouped past 30", () => {
+  const [TEMPLATE] = PROPOSAL.resources;
+  const PURPOSE = PROPOSAL.open.find((item) => item.kind === "purpose");
+
+  /** The compact answer of a proposal mapping `relations`, and asking the purpose of `asked`. */
+  function grouped(relations: string[], asked: string[] = []) {
+    if (!PURPOSE) throw new Error("the ERP proposal asks no purpose");
+    return summariseAnalysis(
+      redactAnalysis({
+        ...STATE,
+        proposal: {
+          ...PROPOSAL,
+          resources: relations.map((relation) => ({ ...TEMPLATE, relation })),
+          open: asked.map((relation) => ({ ...PURPOSE, relation })),
+        },
+      }),
+    ).proposal;
+  }
+
+  function named(schema: string, prefix: string, count: number): string[] {
+    return Array.from(
+      { length: count },
+      (_, at) => `${schema}.${prefix}${String(at).padStart(2, "0")}`,
+    );
+  }
+
+  it("keeps the flat list at 30 tables and groups the 31st", () => {
+    const thirty = [...named("sales", "t", 15), ...named("hr", "t", 15)];
+
+    const flat = grouped(thirty);
+    expect(flat).to.not.have.property("groups");
+    expect(flat?.hint).to.not.contain("groups");
+
+    const split = grouped(thirty.slice(1), ["sales.extra", "hr.extra"]);
+    expect(split?.groups?.map((group) => group.name)).to.deep.equal([
+      "hr",
+      "sales",
+    ]);
+    expect(split?.hint).to.contain("31 tables");
+    expect(split?.hint).to.contain("pick or skip each group whole");
+  });
+
+  it("groups by schema when the tables span several, a purpose item's table with its schema", () => {
+    const groups = grouped(
+      [...named("sales", "t", 20), ...named("hr", "t", 10), "audit.log"],
+      ["sales.legacy"],
+    )?.groups;
+
+    expect(groups?.map(({ name, by }) => ({ name, by }))).to.deep.equal([
+      { name: "audit", by: "schema" },
+      { name: "hr", by: "schema" },
+      { name: "sales", by: "schema" },
+    ]);
+    expect(groups?.[2].relations).to.include("sales.legacy");
+    expect(groups?.[2].relations).to.have.length(21);
+  });
+
+  it("groups one schema's tables by the prefix past the one they all share, the rest together", () => {
+    const groups = grouped([
+      ...named("public", "wp_shop_", 12),
+      ...named("public", "wp_blog_", 12),
+      ...named("public", "wp_user_", 6),
+      "public.wp_options",
+      "public.wp_links",
+    ])?.groups;
+
+    expect(groups?.map(({ name, by }) => ({ name, by }))).to.deep.equal([
+      { name: "wp_blog", by: "prefix" },
+      { name: "wp_shop", by: "prefix" },
+      { name: "wp_user", by: "prefix" },
+      { name: null, by: "prefix" },
+    ]);
+    expect(groups?.[1].relations).to.have.length(12);
+    expect(groups?.[3].relations).to.deep.equal([
+      "public.wp_links",
+      "public.wp_options",
+    ]);
+  });
+
+  it("puts a table named as a prefix in that prefix's group", () => {
+    const groups = grouped([
+      "app.orders",
+      ...named("app", "orders_", 15),
+      ...named("app", "users_", 15),
+    ])?.groups;
+
+    expect(groups?.[0].name).to.equal("orders");
+    expect(groups?.[0].relations).to.include("app.orders");
+    expect(groups?.[0].relations).to.have.length(16);
+  });
+
+  it("keeps the flat list when one schema's tables share no prefix", () => {
+    const loners = Array.from(
+      { length: 31 },
+      (_, at) => `app.${String.fromCharCode(97 + (at % 26))}${at}`,
+    );
+
+    expect(grouped(loners)).to.not.have.property("groups");
+  });
+});

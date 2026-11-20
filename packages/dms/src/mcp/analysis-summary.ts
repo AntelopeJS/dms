@@ -10,6 +10,7 @@ import type {
   RedactedProposal,
   RedactedResource,
 } from "./redact";
+import { groupRelations, type RelationGroup } from "./relation-groups";
 
 /** How a proposed screen shows its table. */
 export type ScreenKind = "table" | "status" | "tabs" | "stats";
@@ -78,6 +79,11 @@ export interface ProposalSummary {
   open: OpenItemSummary[];
   /** The relations read that the module maps already, which the proposal leaves out. */
   mapped: string[];
+  /**
+   * The tables to choose from (resources and `purpose` items), grouped once there are more than
+   * the grouping threshold, so the user picks or skips a group at once before refining inside it.
+   */
+  groups?: RelationGroup[];
   detail?: AnalysisDetail;
   hint: string;
 }
@@ -93,11 +99,35 @@ const HINT =
 const ALL_MAPPED_HINT =
   "Every relation read is mapped already, so nothing is left to propose: say so, and offer to open the pages that show them, or to start a new mockup over them (mockup_write_spec).";
 
-/** The hint for a proposal: what to do when every relation read is mapped already, else how to read more. */
-function hintOf(proposal: RedactedProposal): string {
+function groupedHint(tables: number): string {
+  return `The proposal holds ${tables} tables, too many to choose one by one: show the user \`groups\` first and let them pick or skip each group whole, then open a picked group to refine its tables. Use only the tables picked. ${HINT}`;
+}
+
+/** The tables a user chooses from: the relations proposed and those a `purpose` item asks about. */
+function tablesOf(proposal: RedactedProposal): string[] {
+  return [
+    ...proposal.resources.map((resource) => resource.relation),
+    ...proposal.open.flatMap((item) =>
+      item.kind === "purpose" && item.relation !== undefined
+        ? [item.relation]
+        : [],
+    ),
+  ];
+}
+
+/**
+ * The hint for a proposal: what to do when every relation read is mapped already, how to choose
+ * among grouped tables, else how to read more.
+ */
+function hintOf(
+  proposal: RedactedProposal,
+  tables: number,
+  grouped: boolean,
+): string {
   const nothingLeft =
     proposal.resources.length === 0 && proposal.open.length === 0;
-  return nothingLeft && proposal.mapped.length > 0 ? ALL_MAPPED_HINT : HINT;
+  if (nothingLeft && proposal.mapped.length > 0) return ALL_MAPPED_HINT;
+  return grouped ? groupedHint(tables) : HINT;
 }
 
 function screenOf(resource: RedactedResource): ScreenKind {
@@ -191,6 +221,8 @@ export function summariseAnalysis(
 ): AnalysisSummary {
   const { proposal, ...rest } = state;
   if (!proposal) return rest;
+  const tables = tablesOf(proposal);
+  const groups = groupRelations(tables);
   const summary: ProposalSummary = {
     connection: proposal.connection,
     module: proposal.module,
@@ -202,8 +234,9 @@ export function summariseAnalysis(
     })),
     open: proposal.open.map(openItemOf),
     mapped: proposal.mapped,
-    hint: hintOf(proposal),
+    hint: hintOf(proposal, tables.length, groups !== undefined),
   };
+  if (groups) summary.groups = groups;
   if (detail.length) summary.detail = detailOf(proposal, detail);
   return { ...rest, proposal: summary };
 }
