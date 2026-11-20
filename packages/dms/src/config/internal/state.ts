@@ -278,10 +278,14 @@ export interface BuilderConfig {
 
 /**
  * The `htmlRender` block. Without `renderEndpoint`, `GenerateHtml` posts to
- * the dashboard's `/api/html/render`, under `getClientBaseUrl()`.
+ * the dashboard's `/api/html/render`, under `getClientBaseUrl()`. A render
+ * that takes longer than `renderTimeout` milliseconds (default 10 seconds)
+ * fails.
  */
 export type DmsHtmlRenderConfig = Omit<HtmlRenderConfig, "renderEndpoint"> &
-  Partial<Pick<HtmlRenderConfig, "renderEndpoint">>;
+  Partial<Pick<HtmlRenderConfig, "renderEndpoint">> & {
+    renderTimeout?: number;
+  };
 
 export interface Config {
   auth?: AuthConfig;
@@ -330,6 +334,7 @@ let globalHtmlRenderConfig: DmsHtmlRenderConfig = {
 };
 
 const HTML_RENDER_PATH = "/api/html/render";
+const DEFAULT_HTML_RENDER_TIMEOUT_MS = 10_000;
 
 const BYTES_IN_KILOBYTE = 1024;
 const KILOBYTES_IN_MEGABYTE = 1024;
@@ -432,6 +437,10 @@ export function getHtmlRenderEndpoint(): string | undefined {
   if (configured) return configured;
   const clientBaseUrl = getClientBaseUrl();
   return clientBaseUrl && new URL(HTML_RENDER_PATH, clientBaseUrl).href;
+}
+
+export function getHtmlRenderTimeout(): number {
+  return globalHtmlRenderConfig.renderTimeout ?? DEFAULT_HTML_RENDER_TIMEOUT_MS;
 }
 
 export function getUploadsConfig(): UploadsConfig {
