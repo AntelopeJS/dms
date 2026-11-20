@@ -84,9 +84,7 @@ beforeEach(() => {
   }));
   vi.stubGlobal("interpolateUrl", interpolateUrl);
   vi.stubGlobal("useDmsRoute", () => route);
-  vi.stubGlobal("useSiteLayout", () => ({
-    findMatchingRoute: () => ({ params: { id: "q1" } }),
-  }));
+  vi.stubGlobal("findPageRoute", () => ({ params: { id: "q1" } }));
 });
 
 afterEach(() => {
