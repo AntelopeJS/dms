@@ -1,6 +1,3 @@
-import { spawnSync } from "node:child_process";
-import { writeFileSync } from "node:fs";
-import { join } from "node:path";
 import { RegisterSchema } from "@antelopejs/interface-database-decorators";
 import {
   DestroyModule,
@@ -8,10 +5,21 @@ import {
   ReloadModule,
   StopModule,
 } from "@antelopejs/interface-core/modules";
-import type { JsonValue } from "@antelopejs/interface-dms/json";
 import { expect } from "chai";
 import { z } from "zod";
 import { authorizedClient, registerUser } from "../helpers/auth";
+import {
+  CardBody,
+  compileApp,
+  daysAgo,
+  ORDER_FIELDS,
+  ORDER_SEEDS,
+  PERIOD_BOUNDS,
+  pointsOf,
+  savedQueryRoute,
+  SeriesBody,
+  totalOf,
+} from "../helpers/builder-orders";
 import { useBuilderSession } from "../helpers/builder-session";
 import { type BridgeProcess, callTool } from "../helpers/mcp-bridge-process";
 import { parseBody } from "../helpers/parse-body";
@@ -20,7 +28,6 @@ const OP_TIMEOUT = 120_000;
 const HELD = /^builder_delete_page was not run: no one has confirmed it yet\./;
 const APP_MODULE = "builder-journeys-app";
 const ORDER_SCHEMA = "builder-journeys";
-const DAY_MS = 24 * 60 * 60 * 1000;
 const HTTP_OK = 200;
 
 const ListedPagesSchema = z.object({
@@ -40,57 +47,11 @@ const RefusalSchema = z.object({
   ok: z.literal(false),
   error: z.object({ code: z.string() }),
 });
-const SavedSchema = z.object({
-  ok: z.literal(true),
-  data: z.object({ route: z.string() }),
-});
 const CreatedPageSchema = z.object({
   ok: z.literal(true),
   data: z.object({ ref: z.string() }),
 });
 const RegisteredPagesSchema = z.array(z.object({ path: z.string() }));
-const SeriesBody = z.object({
-  series: z.array(z.object({ x: z.string(), y: z.number() })),
-});
-const PointsSchema = z.array(
-  z.object({ data: z.array(z.object({ y: z.number() })) }),
-);
-const CardBody = z.object({
-  value: z.number(),
-  previousValue: z.number(),
-  delta: z.number(),
-  series: PointsSchema,
-  comparisonSeries: PointsSchema,
-});
-
-function daysAgo(ago: number): string {
-  return new Date(Date.now() - ago * DAY_MS).toISOString();
-}
-
-const PERIOD_BOUNDS: JsonValue = [
-  { field: "createdAt", op: "ge", value: { $param: { name: "from" } } },
-  { field: "createdAt", op: "le", value: { $param: { name: "to" } } },
-];
-
-/** One paid, refunded or pending order per row, placed `ago` days back. */
-const ORDER_SEEDS: JsonValue = (
-  [
-    ["o1", "paid", 420, 35],
-    ["o2", "paid", 230, 30],
-    ["o3", "refunded", 55, 25],
-    ["o4", "paid", 380, 15],
-    ["o5", "paid", 195, 5],
-    ["o6", "pending", 110, 3],
-    ["o7", "paid", 260, 70],
-    ["o8", "paid", 180, 65],
-    ["o9", "refunded", 90, 60],
-  ] as const
-).map(([_id, status, amount, ago]) => ({
-  _id,
-  status,
-  amount,
-  createdAt: daysAgo(ago),
-}));
 
 async function listedRefs(bridge: BridgeProcess): Promise<string[]> {
   const listed = await callTool(bridge, "builder_list_pages");
@@ -106,57 +67,6 @@ async function registeredPaths(bridge: BridgeProcess): Promise<string[]> {
   return RegisteredPagesSchema.parse(JSON.parse(listed.text)).map(
     ({ path }) => path,
   );
-}
-
-/** The route of the query the builder saved for the page. */
-async function savedQueryRoute(
-  bridge: BridgeProcess,
-  args: Record<string, JsonValue>,
-): Promise<string> {
-  const saved = await callTool(bridge, "builder_add_query", args);
-  expect(saved.isError, saved.text).to.equal(false);
-  return SavedSchema.parse(JSON.parse(saved.text)).data.route;
-}
-
-/**
- * Compiles the app the builder wrote to CommonJS, which the core loads, and gives it the manifest
- * a module needs.
- */
-function compileApp(root: string): void {
-  const compiled = spawnSync(
-    process.execPath,
-    [
-      require.resolve("typescript/bin/tsc"),
-      "-p",
-      join(root, "tsconfig.json"),
-      "--module",
-      "commonjs",
-      "--outDir",
-      join(root, "dist"),
-    ],
-    { encoding: "utf8" },
-  );
-  expect(compiled.status, `${compiled.stdout}${compiled.stderr}`).to.equal(0);
-  writeFileSync(
-    join(root, "package.json"),
-    JSON.stringify({
-      name: APP_MODULE,
-      version: "0.0.0",
-      main: "dist/index.js",
-    }),
-  );
-}
-
-/** The points of a series answer as `x=y`, sorted. */
-function pointsOf(body: z.infer<typeof SeriesBody>): string {
-  return body.series
-    .map(({ x, y }) => `${x}=${y}`)
-    .sort()
-    .join(",");
-}
-
-function totalOf(series: z.infer<typeof PointsSchema>): number {
-  return series.flatMap(({ data }) => data).reduce((sum, { y }) => sum + y, 0);
 }
 
 /**
@@ -237,7 +147,7 @@ describe("[integration] builder journeys: the app the builder writes, served", f
   /** Compiles the app and starts it as a module the first time, then reloads that module. */
   async function runApp(): Promise<void> {
     const root = session().shop.shopRoot();
-    compileApp(root);
+    compileApp(root, APP_MODULE);
     if (appLoaded) {
       await ReloadModule(APP_MODULE);
       return;
@@ -255,11 +165,7 @@ describe("[integration] builder journeys: the app the builder writes, served", f
     const created = await callTool(bridge, "builder_create_resource", {
       name: "order",
       schema: ORDER_SCHEMA,
-      fields: [
-        { name: "status", dataType: { $dataType: "string" } },
-        { name: "amount", dataType: { $dataType: "number" } },
-        { name: "createdAt", dataType: { $dataType: "date" } },
-      ],
+      fields: ORDER_FIELDS,
       seeds: ORDER_SEEDS,
     });
     expect(created.isError, created.text).to.equal(false);
