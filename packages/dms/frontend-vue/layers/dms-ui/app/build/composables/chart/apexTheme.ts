@@ -1,5 +1,6 @@
 import type { ApexOptions } from "apexcharts";
 import { isNumber } from "../../../../../dms-core/app/utils/type-check";
+import { categoryLabelFormatter, isHorizontalBar } from "./apexCategoryFormat";
 import type { ApexTypeConfig } from "../../../composables/chart/apexTypeConfigs";
 import type { ChartSeries, ChartType } from "../../../composables/chart/types";
 import type { UseApexChartInput } from "../../../composables/chart/useApexChart.types";
@@ -116,7 +117,13 @@ export function buildTooltip(
     intersect: !config.sharedTooltip,
     marker: { show: true },
   };
-  if (input.xaxisType === "datetime") {
+  if (isHorizontalBar(input)) {
+    const categories = categoryLabelFormatter(input);
+    tooltip.x = {
+      formatter: (value: string | number) =>
+        categories ? categories(value) : String(value ?? ""),
+    };
+  } else if (input.xaxisType === "datetime") {
     tooltip.x = { format: TOOLTIP_DATETIME_FORMAT };
   }
   if (input.yAxisFormatter) {
