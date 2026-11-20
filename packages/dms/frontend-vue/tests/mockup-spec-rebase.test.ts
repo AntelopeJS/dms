@@ -98,6 +98,7 @@ describe("a write from outside while the editor holds a block", () => {
 
     await streamSaysTheFileChanged();
     await settle(MOCKUP_WRITE_DELAY_MS * 3);
+    expect(titles(file.spec)).toEqual(["Mine", "Theirs"]);
     editor.undo();
     await settle(MOCKUP_WRITE_DELAY_MS);
 
