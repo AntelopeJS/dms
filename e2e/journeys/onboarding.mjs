@@ -23,7 +23,7 @@ async function openWizard(/** @type {Ctx} */ ctx, /** @type {string} */ platform
   await tab.goto("/");
   await ctx.verify("a fresh platform opens the setup wizard", [
     tab.at(/^\/onboarding/),
-    tab.visible({ role: "heading", name: "Welcome to Antelope DMS" }),
+    tab.visible({ role: "heading", name: "Welcome to AntelopeJS DMS" }),
   ]);
   await tab.fill({ role: "textbox", name: "Platform name" }, platformName);
   await tab.click({ role: "button", name: "Continue to administrator" });

@@ -52,7 +52,7 @@ export const CELL_DISPLAY = z
         `The id of one of the DMS's cell displays: ${CELL_DISPLAY_IDS}.`,
       ),
     options: JsonObjectSchema.optional().describe(
-      "The options of that display's DefaultDisplays class (identity: avatarField, subtitleField, badges…; two_line: primaryField, subField…; status_pill: tones, toneField…; progress: doneField and totalField). An option the class does not take is refused.",
+      "The options of that display's DefaultDisplays class (identity: avatarField, avatarFrame, subtitleField, badges…; two_line: primaryField, subField…; status_pill: tones, toneField…; progress: doneField and totalField). An option the class does not take is refused.",
     ),
   })
   .describe(

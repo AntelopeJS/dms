@@ -110,8 +110,26 @@ const render = (content: () => ReturnType<DataTypeFormatter>): HTMLElement => {
   app.component(
     "UAvatar",
     defineComponent({
-      props: { text: { type: String, default: "" } },
-      setup: (props) => () => h("span", { "data-avatar": "" }, props.text),
+      props: {
+        text: { type: String, default: "" },
+        src: { type: String, default: undefined },
+        ui: { type: Object, default: undefined },
+      },
+      setup: (props) => () =>
+        h(
+          "span",
+          {
+            "data-avatar": "",
+            "data-src": props.src,
+            "data-ui-root": isString(props.ui?.root)
+              ? props.ui.root
+              : undefined,
+            "data-ui-image": isString(props.ui?.image)
+              ? props.ui.image
+              : undefined,
+          },
+          props.text,
+        ),
     }),
   );
   app.component("UBadge", defineComponent({ setup: () => () => h("b") }));
@@ -370,6 +388,27 @@ describe("IdentityCell", () => {
     expect(cell.querySelector("[data-icon]")).toBeNull();
   });
 
+  it("frames a square avatar in the icon's tile with the image contained, a circle by default", () => {
+    const logo = "https://example.com/logo.png";
+    const round = mountIdentity({ title: "Acme", avatar: logo });
+    expect(
+      round.querySelector("[data-avatar]")?.hasAttribute("data-ui-root"),
+    ).toBe(false);
+
+    const square = mountIdentity({
+      title: "Acme Corp",
+      avatar: logo,
+      avatarFrame: "square",
+    });
+    const avatar = square.querySelector("[data-avatar]");
+    expect(avatar?.getAttribute("data-src")).toBe(logo);
+    expect(avatar?.getAttribute("data-ui-root")).toContain("rounded-[7px]");
+    expect(avatar?.getAttribute("data-ui-root")).toContain("bg-accented");
+    expect(avatar?.getAttribute("data-ui-root")).toContain("bg-none");
+    expect(avatar?.getAttribute("data-ui-image")).toContain("object-contain");
+    expect(text(avatar)).toBe("AC");
+  });
+
   it("draws the subtitle under the empty label, in its tone", () => {
     const cell = mountIdentity({
       title: "",
@@ -386,6 +425,11 @@ describe("IdentityCell", () => {
     const cell = mountIdentity({ title: "", subtitle: "ada@example.com" });
     expect(text(cell.querySelector(".truncate"))).toBe("ada@example.com");
     expect(cell.querySelector(".text-xs")).toBeNull();
+  });
+
+  it("draws two initials for a one-word name", () => {
+    const cell = mountIdentity({ title: "EduLoop" });
+    expect(text(cell.querySelector("[data-avatar]"))).toBe("ED");
   });
 });
 
@@ -439,6 +483,28 @@ describe("identity sub-line", () => {
     const sub = cell.querySelector(".text-xs");
     expect(text(sub)).toBe("$29 a month");
     expect(sub?.className).toContain("text-muted");
+  });
+
+  it("passes avatarFrame through, drawing a square logo off the row", () => {
+    const identity = identityFormatter();
+    const cellOf = (options: {
+      avatarField: string;
+      avatarFrame?: "circle" | "square";
+    }) =>
+      render(() =>
+        identity.default("Acme", "en", options, {
+          logo: "https://example.com/logo.png",
+        }),
+      );
+
+    const square = cellOf({ avatarField: "logo", avatarFrame: "square" });
+    expect(
+      square.querySelector("[data-avatar]")?.getAttribute("data-ui-image"),
+    ).toContain("object-contain");
+    const round = cellOf({ avatarField: "logo" });
+    expect(
+      round.querySelector("[data-avatar]")?.hasAttribute("data-ui-root"),
+    ).toBe(false);
   });
 
   it("reads each row's tile icon from iconField, falling back to icon", () => {

@@ -1,7 +1,9 @@
 import { pageRoutePath } from "#dms-core/app/utils/pageRoutes";
 import type { SaveStatusState } from "#dms-ui/app/components/save-bar/SaveStatus.vue";
 import { useInstantSave } from "#dms-ui/app/entries/composables/instant-save/useInstantSave";
+import { combineSaveStates } from "#dms-ui/app/composables/layout/useInstantSaveHeader";
 import {
+  emailPreferenceKey,
   hasFailed,
   type NotificationCategory,
   type NotificationSubject,
@@ -51,8 +53,23 @@ export const useNotificationPreferences = (
     () => !(isStoredRead.value && catalog.isLoaded.value) && !loadFailed.value,
   );
 
+  /** What an e-mail switch the user never touched reads, by its key. */
+  const emailDefaults = computed<PreferenceMap>(() =>
+    Object.fromEntries(
+      catalog.subjects.value.flatMap((subject) =>
+        subject.email
+          ? [[emailPreferenceKey(subject), subject.email.defaultOn]]
+          : [],
+      ),
+    ),
+  );
+
+  /** What a switch reads: the stored choice, else its default. */
+  const read = (key: string) =>
+    preferences.value[key] ?? emailDefaults.value[key] ?? true;
+
   const instant = useInstantSave<PreferenceMap>({
-    read: (key) => preferences.value[key] ?? true,
+    read,
     write: (key, enabled) => {
       preferences.value = { ...preferences.value, [key]: enabled };
     },
@@ -61,16 +78,31 @@ export const useNotificationPreferences = (
   });
 
   const isEnabled = (subject: NotificationSubject) =>
-    preferences.value[subjectPreferenceKey(subject)] ?? true;
+    read(subjectPreferenceKey(subject));
 
+  /**
+   * As the server sends it: a locked subject is mailed whatever is stored,
+   * and a subject off in the app is not mailed at all.
+   */
+  const isEmailEnabled = (subject: NotificationSubject) =>
+    subject.locked === true ||
+    (isEnabled(subject) && read(emailPreferenceKey(subject)));
+
+  /** The row's state cell sums up its in-app and e-mail switches. */
   const rowState = (subject: NotificationSubject): SaveStatusState =>
-    instant.states[subjectPreferenceKey(subject)] ?? "idle";
+    combineSaveStates([
+      instant.states[subjectPreferenceKey(subject)],
+      instant.states[emailPreferenceKey(subject)],
+    ]);
 
   const toggleableSubjectsOf = (category: NotificationCategory) =>
     catalog.subjectsOf(category.id).filter((subject) => !subject.locked);
 
   const toggleSubject = (subject: NotificationSubject, enabled: boolean) =>
     instant.change(subjectPreferenceKey(subject), enabled);
+
+  const toggleEmail = (subject: NotificationSubject, enabled: boolean) =>
+    instant.change(emailPreferenceKey(subject), enabled);
 
   const toggleCategory = (category: NotificationCategory, enabled: boolean) =>
     instant.changeMany(
@@ -95,6 +127,9 @@ export const useNotificationPreferences = (
   return {
     categories: catalog.categories,
     subjectsOf: catalog.subjectsOf,
+    hasEmailChannel: catalog.hasEmailChannel,
+    isEmailEnabled,
+    toggleEmail,
     preferences,
     failedChanges: instant.failed,
     saveState: instant.state,

@@ -119,3 +119,21 @@ await test("a model row the loader resolves is found, and fills the record token
     "https://maps.test/?q=1%20Main%20St",
   );
 });
+
+await test("an api header button's redirect takes the record tokens, and acts on the record", async () => {
+  const button = {
+    id: "invoice",
+    label: "Invoice",
+    target: {
+      type: "api",
+      url: "/api/quotes/invoice",
+      redirect: "/invoices/{{response._id}}?customer={{record.customer}}",
+      successMessage: "Created",
+    },
+  };
+  assert.equal(
+    withPageRecord(button, true, { customer: "Ada L" })?.target.redirect,
+    "/invoices/{{response._id}}?customer=Ada%20L",
+  );
+  assert.equal(withPageRecord(button, true, undefined), undefined);
+});

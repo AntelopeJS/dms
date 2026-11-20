@@ -6,6 +6,7 @@ import {
 } from "../../../composables/chart/apexYRange";
 import { thinnedCategoryFormatter } from "../../../composables/chart/apexCategoryLabels";
 import type { ChartType } from "../../../composables/chart/types";
+import { categoryLabelFormatter, isHorizontalBar } from "./apexCategoryFormat";
 import type { UseApexChartInput } from "../../../composables/chart/useApexChart.types";
 import {
   readThemeBorderAccented,
@@ -43,6 +44,12 @@ export function buildYAxis(
     yaxis.min = input.yRange.min;
     yaxis.max = input.yRange.max;
   }
+  if (isHorizontalBar(input)) {
+    const categories = categoryLabelFormatter(input);
+    if (categories)
+      yaxis.labels.formatter = (value: number | string) => categories(value);
+    return yaxis;
+  }
   const valueFormatter = CATEGORY_YAXIS_TYPES.includes(input.type)
     ? undefined
     : input.yAxisFormatter;
@@ -73,6 +80,9 @@ export function thinsOwnXLabels(
 }
 
 function xLabelFormatter(input: UseApexChartInput) {
+  const valueFormatter = input.yAxisFormatter;
+  if (isHorizontalBar(input))
+    return valueFormatter && ((value: string) => valueFormatter(Number(value)));
   if (thinsOwnXLabels(input))
     return thinnedCategoryFormatter(input.xAxisFormatter);
   return input.xAxisFormatter;
@@ -85,7 +95,7 @@ export function buildXAxis(
   const settings = input.xAxis;
   const formatter = xLabelFormatter(input);
   const xaxis: ReturnType<typeof buildXAxis> = {
-    type: input.xaxisType ?? "category",
+    type: isHorizontalBar(input) ? "category" : (input.xaxisType ?? "category"),
     axisBorder: { show: false },
     axisTicks: { show: false },
     tooltip: { enabled: false },

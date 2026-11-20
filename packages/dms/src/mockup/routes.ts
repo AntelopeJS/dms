@@ -37,6 +37,9 @@ import { readExampleSpec } from "./example";
 import { buildMockupSchema } from "./json-schema";
 import type { Json, JsonObject, MockupName, MockupState } from "./model";
 import { MockupOwnerController } from "./owner-controller";
+import { parseViewerId } from "./presence";
+import { PresenceBoard } from "./presence-board";
+import { registerPresenceRoutes } from "./presence-routes";
 import {
   annotationIdSchema,
   fixtureKeySchema,
@@ -45,6 +48,7 @@ import {
   parseMockupName,
 } from "./model";
 import { registerFromPageRoute } from "./from-page-routes";
+import { BUILDER_PAGES, type LivePages } from "./live-page";
 import { registerHistoryRoutes } from "./history-routes";
 import type {
   MockupCreated,
@@ -65,10 +69,21 @@ const SSE_HELLO = `retry: ${SSE_RECONNECT_MS}\n: connected\n\n`;
 /** The bulk routes a table in archive mode sends its rows to. */
 const ARCHIVE_CHANGES: ReadonlySet<string> = new Set(["archive", "restore"]);
 
-/** The mockup files and the event streams open on them. */
+/** The mockup files, the event streams open on them, who is on each mockup, and the live pages a conversion reads. */
 export interface MockupEngine {
   store: MockupStore;
   streams: Set<PassThrough>;
+  presence: PresenceBoard;
+  pages: LivePages;
+}
+
+/** An engine over `store` with no stream open and nobody on any mockup. */
+export function createMockupEngine(
+  store: MockupStore,
+  presence = new PresenceBoard(store),
+  pages: LivePages = BUILDER_PAGES,
+): MockupEngine {
+  return { store, streams: new Set(), presence, pages };
 }
 
 function notFound(what: string): HTTPResult {
@@ -193,15 +208,18 @@ export function registerMockupRoutes(engine: MockupEngine) {
       @WriteStream(SSE_CONTENT_TYPE) out: PassThrough,
       @Context() context: RequestContext,
     ): Promise<void> {
-      await this.assertOwner();
+      const owner = await this.owner();
       const name = nameOf(rawName);
+      const id = parseViewerId(context.url.searchParams.get("viewer"));
       let unsubscribe: (() => void) | undefined;
+      let leave: (() => void) | undefined;
       let open = !context.rawRequest.socket.destroyed;
       const drop = () => {
         if (!open) return;
         open = false;
         engine.streams.delete(out);
         unsubscribe?.();
+        leave?.();
         out.end();
       };
       context.rawRequest.once("close", drop);
@@ -223,6 +241,11 @@ export function registerMockupRoutes(engine: MockupEngine) {
       );
       if (!unsubscribe) out.end();
       else if (!open) unsubscribe();
+      else {
+        leave = engine.presence.open(name, id && { id, ...owner }, (presence) =>
+          write(out, formatEvent({ event: "presence", data: presence })),
+        );
+      }
     }
 
     @Get(":name/pages/:page/fixtures/:key")
@@ -262,10 +285,11 @@ export function registerMockupRoutes(engine: MockupEngine) {
   registerCreatedRoute(engine);
   registerAnnotationRoutes(store);
   registerRecordRoutes(store);
-  registerSpecRoutes(store.mockupsDir);
-  registerHistoryRoutes(store.mockupsDir);
+  registerSpecRoutes(store.mockupsDir, engine.presence);
+  registerPresenceRoutes(engine.presence, store.mockupsDir);
+  registerHistoryRoutes(store.mockupsDir, engine.presence);
   registerManageRoutes(store.mockupsDir);
-  registerFromPageRoute(store.mockupsDir);
+  registerFromPageRoute(store.mockupsDir, engine.presence, engine.pages);
   return MockupController;
 }
 
@@ -493,9 +517,13 @@ function registerAnnotationRoutes(store: MockupStore) {
   return MockupAnnotationController;
 }
 
-/** Ends every open event stream; a browser's EventSource reconnects later. */
+/**
+ * Ends every open event stream, and with them the viewers and the locks they
+ * held; a browser's EventSource reconnects later.
+ */
 export function closeMockupStreams(engine: MockupEngine): void {
   const streams = [...engine.streams];
   engine.streams.clear();
+  engine.presence.close();
   for (const stream of streams) stream.end();
 }

@@ -9,3 +9,6 @@ export const HARNESS_MODULES = {
   "file-storage-local": "0.2.2",
   nodemailer: "0.0.13",
 } as const;
+
+/** The MongoDB server the harness runs its in-memory replica sets on. */
+export const MONGO_BINARY_VERSION = "8.0.8";

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { MockupOutlineRow } from "../../utils/mockupOutline";
 
-/** The page's nodes as a tree; picking a row selects its block. */
+/** The page's nodes as a tree; picking a row selects its block. A row names the viewer holding its block when another does. */
 defineProps<{
   rows: readonly MockupOutlineRow[];
   selection: string | undefined;
@@ -38,6 +38,15 @@ const { t } = useI18n();
           class="text-muted size-3.5 shrink-0"
         />
         <span class="truncate">{{ row.label }}</span>
+        <span
+          v-if="row.heldBy"
+          class="text-dimmed ms-auto flex shrink-0 items-center gap-1 text-[11px]"
+          :title="t('dms.mockup.locked_by', { name: row.heldBy })"
+          data-dms-mockup-layer-holder
+        >
+          <UIcon name="i-ph-lock-simple" class="size-3" />
+          {{ row.heldBy }}
+        </span>
       </button>
     </li>
   </ul>

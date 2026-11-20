@@ -20,9 +20,9 @@ import { Tab } from "./tab.mjs";
 import { timed } from "./timing.mjs";
 
 /**
- * @typedef {import("./verify/types.mjs").JourneyCheck} Check
+ * @typedef {import("./types.mjs").JourneyCheck} Check
  * @typedef {ReturnType<typeof capturedMail>[number]} CapturedMail
- * @typedef {import("./verify/types.mjs").JourneyStep} Step
+ * @typedef {import("./types.mjs").JourneyStep} Step
  * @typedef {{ error: string | null, abortedAt: string | null }} JourneyEnd How a journey ended early: `abortedAt` names the critical step whose failure ended it, `error` what it threw
  */
 
@@ -107,11 +107,11 @@ export class JourneyContext {
    * @param {string} feature The feature the journey belongs to
    * @param {string} journey The journey id
    * @param {Pick<import("playwright-core").Browser, "newContext">} browser The Playwright browser
-   * @param {import("./verify/skill.mjs").Skill | undefined} skill The skill the journey belongs to, none for a browserless run
+   * @param {import("./journeys-config.mjs").SuiteConfig | undefined} config The journeys config the journey belongs to, none for a browserless run
    */
-  constructor(state, feature, journey, browser, skill) {
+  constructor(state, feature, journey, browser, config) {
     this.state = state;
-    this.skill = skill;
+    this.config = config;
     this.feature = feature;
     this.journey = journey;
     this.browser = browser;
@@ -310,12 +310,12 @@ export class JourneyContext {
    * @returns {Promise<string>} The base commit
    */
   async withBaseBackend(action) {
-    if (!this.skill) {
+    if (!this.config) {
       throw new Error(
-        "ctx.withBaseBackend() needs a verify skill, and a browserless runJourney has none",
+        "ctx.withBaseBackend() needs a journeys config, and a browserless runJourney has none",
       );
     }
-    const sha = await withBaseBackend(this.state, this.skill, action);
+    const sha = await withBaseBackend(this.state, this.config, action);
     writeJson(join(this.step("base version"), "base.json"), {
       baseRef: this.state.baseRef,
       sha,

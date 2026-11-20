@@ -30,7 +30,7 @@ export function calendarToDate(
   calendar: CalendarDate,
   asEndOfDay: boolean,
 ): Date {
-  const native = new Date(calendar.year, calendar.month - 1, calendar.day);
+  const native = calendar.toDate(getLocalTimeZone());
   if (asEndOfDay) {
     native.setHours(
       END_OF_DAY_HOURS,

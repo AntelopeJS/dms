@@ -1,4 +1,7 @@
-import { interfaceNamesBuckets } from "./interface-capabilities";
+import {
+  interfaceExportsHelper,
+  interfaceNamesBuckets,
+} from "./interface-capabilities";
 import type {
   AddQueryInput,
   OpResult,
@@ -16,8 +19,11 @@ import { isIdentifier } from "./paths";
 import { canonicalBody } from "./query-chain";
 import { emitPlan } from "./query-plan";
 import {
+  answersNull,
+  comparesScalar,
   type CompiledQuery,
   defaultEndpoint,
+  KPI_VALUE_RESPONSE,
   type ModelTarget,
   seriesNaming,
 } from "./query-emit";
@@ -289,6 +295,54 @@ function checkParamSegments(
     }));
 }
 
+interface HelperNeed {
+  helper: string;
+  /** The part of the query that needs it. */
+  pointer: string;
+  for: string;
+}
+
+/**
+ * The helper that arranges a scalar answering through `kpiValueData`, and what asked
+ * for it: comparing against the period before, or a template that may answer no figure.
+ */
+function kpiValueNeed(spec: CompiledQuery): HelperNeed | undefined {
+  const { helper } = KPI_VALUE_RESPONSE;
+  if (comparesScalar(spec)) {
+    return { helper, pointer: "/compare", for: "comparing a scalar query" };
+  }
+  return answersNull(spec.template)
+    ? { helper, pointer: "/template", for: `the "${spec.template}" template` }
+    : undefined;
+}
+
+/**
+ * What the installed `@antelopejs/interface-dms` has to export for the code this
+ * query writes to compile: the helper a chain calls, and the one that arranges a
+ * scalar answering through `kpiValueData`. Refused rather than written, because
+ * the page would not typecheck.
+ */
+function missingHelperIssues(
+  spec: CompiledQuery,
+  record: ResourceRecord,
+): ValidationIssue[] {
+  const arranging = kpiValueNeed(spec);
+  const needs: HelperNeed[] = [
+    ...(spec.chain.imports ?? []).map((ref) => ({
+      helper: ref.name,
+      pointer: "/template",
+      for: `the "${spec.template}" template`,
+    })),
+    ...(arranging ? [arranging] : []),
+  ];
+  return needs
+    .filter((need) => !interfaceExportsHelper(record.dataApiFile, need.helper))
+    .map((need) => ({
+      pointer: need.pointer,
+      message: `the installed @antelopejs/interface-dms does not export ${need.helper}, which ${need.for} needs; update @antelopejs/interface-dms`,
+    }));
+}
+
 export function compileQuery(
   input: AddQueryInput,
   record: ResourceRecord,
@@ -332,7 +386,7 @@ export function compileQuery(
   if (segmentIssues.length > 0) {
     return invalidIssues<never>(segmentIssues);
   }
-  return {
+  const spec: CompiledQuery = {
     name: input.name,
     endpoint,
     template: input.template,
@@ -347,6 +401,8 @@ export function compileQuery(
     response: input.response,
     compare: input.compare,
   };
+  const missing = missingHelperIssues(spec, record);
+  return missing.length > 0 ? invalidIssues<never>(missing) : spec;
 }
 
 /**

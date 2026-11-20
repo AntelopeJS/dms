@@ -4,7 +4,10 @@ import { join } from "node:path";
 import { defineConfig } from "@antelopejs/interface-core/config";
 import { MongoClient } from "mongodb";
 import { MongoMemoryReplSet } from "mongodb-memory-server-core";
-import { HARNESS_MODULES } from "./helpers/harness-modules";
+import {
+  HARNESS_MODULES,
+  MONGO_BINARY_VERSION,
+} from "./helpers/harness-modules";
 
 const ANY_FREE_PORT = 0;
 
@@ -15,7 +18,6 @@ const JWT_SECRET = "test-jwt-secret";
 const CLIENT_BASE_URL = "http://localhost:3001";
 const HTML_RENDER_SECRET = "test-html-render-secret";
 const BOOTSTRAP_SECRET = "test-bootstrap-secret";
-const MONGO_BINARY_VERSION = "8.0.8";
 
 const UNREACHABLE_SMTP_HOST = "127.0.0.1";
 const CLOSED_SMTP_PORT = 1;

@@ -2,6 +2,7 @@
 import { computed, watch } from "vue";
 import { isObject, isString } from "#dms-core/app/utils/type-check";
 import { useFileReadUrls } from "../../../composables/useFileReadUrls";
+import { labelInitials } from "../../utils/initials";
 
 /**
  * The `identity` cell of a table: an avatar (or an icon tile), a name with an
@@ -25,6 +26,11 @@ interface IdentityCellProps {
   subtitleClass?: string;
   /** Image value (`{ key }`, resolved through the file API) or a URL. */
   avatar?: { key: string; alt?: string } | string | null;
+  /**
+   * `circle` crops the avatar round; `square` draws it whole in the icon's
+   * rounded tile, so a wide logo keeps its edges.
+   */
+  avatarFrame?: "circle" | "square";
   /** Icon drawn in a tile instead of an avatar. */
   icon?: string;
   /** User id the row stands for: the signed-in user's row gets `selfLabel`. */
@@ -46,6 +52,7 @@ const props = withDefaults(defineProps<IdentityCellProps>(), {
   subtitle: "",
   subtitleClass: "text-dimmed",
   avatar: null,
+  avatarFrame: "circle",
   icon: undefined,
   selfId: undefined,
   selfLabel: undefined,
@@ -57,9 +64,6 @@ const props = withDefaults(defineProps<IdentityCellProps>(), {
 
 const { user } = useCurrentUser();
 const { getUrl, resolve } = useFileReadUrls(props.storage);
-
-const MAX_INITIALS = 2;
-const INITIALS_SPLIT = /[\s.@_-]+/;
 
 const isEmpty = computed(
   () => !props.title && !!(props.emptyLabel || props.emptyIcon),
@@ -91,14 +95,13 @@ const avatarSrc = computed(() => {
   return avatarKey.value ? getUrl(avatarKey.value) : undefined;
 });
 
-const initials = computed(() =>
-  label.value
-    .split(INITIALS_SPLIT)
-    .filter(Boolean)
-    .slice(0, MAX_INITIALS)
-    .map((word) => word[0]!.toLocaleUpperCase())
-    .join(""),
-);
+const initials = computed(() => labelInitials(label.value));
+
+const SQUARE_FRAME = {
+  root: "rounded-[7px] bg-accented bg-none",
+  image: "object-contain",
+  fallback: "font-sans font-semibold text-toned",
+};
 </script>
 
 <template>
@@ -117,6 +120,7 @@ const initials = computed(() =>
       :alt="label"
       :text="initials"
       size="sm"
+      :ui="props.avatarFrame === 'square' ? SQUARE_FRAME : undefined"
       class="shrink-0"
     />
     <div class="min-w-0">

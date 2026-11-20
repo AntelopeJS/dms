@@ -8,7 +8,10 @@ import {
   settledRenderedBellCounts,
   type UserNotification,
 } from "../../../composables/notification/useNotifications";
-import { resolveNotificationTone } from "../pages/settings/notification/notificationDisplay";
+import {
+  formatNotificationFullTime,
+  resolveNotificationTone,
+} from "../pages/settings/notification/notificationDisplay";
 import { DMS_TONE_SOLID, iconWellToneOf } from "#dms-ui/app/entries/utils/tone";
 import DmsRowSkeleton from "#dms-ui/app/entries/components/skeleton/RowSkeleton";
 
@@ -227,7 +230,12 @@ const goToNotifications = () => {
                 }}
               </div>
               <div class="text-muted mt-1 text-[10px]">
-                {{ formatRelativeTime(notification.createdAt, t, locale) }}
+                <time
+                  :datetime="notification.createdAt"
+                  :title="formatNotificationFullTime(notification.createdAt, locale)"
+                >
+                  {{ formatRelativeTime(notification.createdAt, t, locale) }}
+                </time>
               </div>
             </template>
 

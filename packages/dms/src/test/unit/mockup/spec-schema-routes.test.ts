@@ -39,4 +39,15 @@ describe("mockup spec JSON Schema routes", () => {
       "/built/pages/0/path",
     );
   });
+
+  it("accepts the catalog's modules and refuses an unknown or a repeated one in the shipped schema", () => {
+    const withModules = (modules: string[]) => ({
+      ...specWith(PLAIN_ROUTE, PLAIN_ROUTE),
+      modules,
+    });
+
+    expect(validate(withModules(["mailing", "media"]))).to.equal(true);
+    expect(validate(withModules(["billing"]))).to.equal(false);
+    expect(validate(withModules(["media", "media"]))).to.equal(false);
+  });
 });

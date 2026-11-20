@@ -37,7 +37,19 @@ function freePort(): Promise<number> {
   });
 }
 
-function projectConfig(database: string, port: number, directory: string) {
+/** Where a replica keeps its rows, and what else its process is handed. */
+export interface ReplicaOptions {
+  /** The MongoDB it connects to, the harness's own by default. */
+  mongoUrl?: string;
+  env?: Record<string, string>;
+}
+
+function projectConfig(
+  database: string,
+  mongoUrl: string | undefined,
+  port: number,
+  directory: string,
+) {
   const baseUrl = `http://127.0.0.1:${port}`;
   const provider = (name: keyof typeof HARNESS_MODULES) => ({
     source: {
@@ -68,7 +80,7 @@ function projectConfig(database: string, port: number, directory: string) {
       },
       mongodb: {
         ...provider("mongodb"),
-        config: { url: process.env.TEST_MONGO_URL, database },
+        config: { url: mongoUrl, database },
       },
       "auth-jwt": { ...provider("auth-jwt"), config: { secret: SECRET } },
       api: {
@@ -117,22 +129,33 @@ export class ReplicaProcess {
   static async start(
     database: string,
     holdMs: number,
+    options: ReplicaOptions = {},
   ): Promise<ReplicaProcess> {
     const directory = await mkdtemp(join(tmpdir(), "dms-replica-"));
     const port = await freePort();
+    const mongoUrl = options.mongoUrl ?? process.env.TEST_MONGO_URL;
     await writeFile(
       join(directory, "antelope.config.ts"),
-      `export default ${JSON.stringify(projectConfig(database, port, directory))};\n`,
+      `export default ${JSON.stringify(projectConfig(database, mongoUrl, port, directory))};\n`,
     );
     const child = spawn(
       process.execPath,
       [AJS, "project", "run", "--project", directory],
       {
         cwd: directory,
-        env: { ...process.env, REPLICA_HOST_HOLD_MS: String(holdMs) },
+        env: {
+          ...process.env,
+          ...options.env,
+          REPLICA_HOST_HOLD_MS: String(holdMs),
+        },
       },
     );
     return new ReplicaProcess(child, directory, port);
+  }
+
+  /** The base URL its API answers on. */
+  get baseUrl(): string {
+    return `http://127.0.0.1:${this.port}`;
   }
 
   get running(): boolean {

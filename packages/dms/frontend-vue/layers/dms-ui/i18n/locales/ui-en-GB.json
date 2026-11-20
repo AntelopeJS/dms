@@ -215,7 +215,7 @@
     },
     "pagination": {
       "label": "Navigation",
-      "count": "{count} items",
+      "count": "{count} item | {count} items",
       "size": "Displayed per {pageSize}",
       "current_page": "Page {currentPage} of {totalPages}",
       "first_page": "First page",
@@ -443,6 +443,11 @@
       "tags": {
         "invalid_email": "{value} isn’t a valid email address. | {value} aren’t valid email addresses.",
         "remove": "Remove {value}"
+      },
+      "phone": {
+        "country": "Country",
+        "country_search": "Search a country or a code",
+        "country_none": "No country matches “{search}”."
       },
       "code": {
         "completion_footer": "↵ insert · Esc close",
@@ -947,6 +952,7 @@
       "group_visualization": "Charts",
       "group_other": "Other",
       "layers_empty": "This page has no blocks yet.",
+      "locked_by": "{name} is editing this block",
       "page_home": "home",
       "add_page": "Add page",
       "new_page_title": "New page",
@@ -1006,6 +1012,8 @@
       "copied": "Copied",
       "close": "Close",
       "section_default": "Pages",
+      "modules": "Modules",
+      "modules_hint": "Building the mockup installs these DMS modules.",
       "section_new": "New section",
       "section_name": "Section name",
       "section_actions": "Section actions",

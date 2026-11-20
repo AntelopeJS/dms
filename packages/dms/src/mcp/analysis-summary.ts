@@ -10,6 +10,7 @@ import type {
   RedactedProposal,
   RedactedResource,
 } from "./redact";
+import { groupRelations, type RelationGroup } from "./relation-groups";
 
 /** How a proposed screen shows its table. */
 export type ScreenKind = "table" | "status" | "tabs" | "stats";
@@ -76,6 +77,13 @@ export interface ProposalSummary {
   resources: ResourceSummary[];
   excluded: Array<Pick<ProposedExclusion, "relation" | "reason">>;
   open: OpenItemSummary[];
+  /** The relations read that the module maps already, which the proposal leaves out. */
+  mapped: string[];
+  /**
+   * The tables to choose from (resources and `purpose` items), grouped once there are more than
+   * the grouping threshold, so the user picks or skips a group at once before refining inside it.
+   */
+  groups?: RelationGroup[];
   detail?: AnalysisDetail;
   hint: string;
 }
@@ -87,6 +95,32 @@ export type AnalysisSummary = Omit<AnalysisState, "proposal"> & {
 
 const HINT =
   'Compact: each relation lists its columns with types, relations and where each is used. Pass `detail: ["schema.name"]` to read the named relations in full: every choice with its rule, each column\'s profile, and the open items of those relations.';
+
+const ALL_MAPPED_HINT =
+  "Every relation read is mapped already, so nothing is left to propose: say so, and offer to open the pages that show them, or to start a new mockup over them (mockup_write_spec).";
+
+function groupedHint(tables: number): string {
+  return `The proposal holds ${tables} tables, too many to choose one by one: show the user \`groups\` first and let them pick or skip each group whole, then open a picked group to refine its tables, passing them to \`detail\` a few at a time, since a full proposal of this many tables does not fit your context. Use only the tables picked. Each relation below lists its columns with types, relations and where each is used.`;
+}
+
+/** The tables a user chooses from: the relations proposed and those a `purpose` item asks about. */
+function tablesOf(proposal: RedactedProposal): string[] {
+  return [
+    ...proposal.resources.map((resource) => resource.relation),
+    ...proposal.open.flatMap((item) =>
+      item.kind === "purpose" && item.relation !== undefined
+        ? [item.relation]
+        : [],
+    ),
+  ];
+}
+
+/** The hint for a proposal: what to do when every relation read is mapped already, else how to read more. */
+function hintOf(proposal: RedactedProposal): string {
+  const nothingLeft =
+    proposal.resources.length === 0 && proposal.open.length === 0;
+  return nothingLeft && proposal.mapped.length > 0 ? ALL_MAPPED_HINT : HINT;
+}
 
 function screenOf(resource: RedactedResource): ScreenKind {
   if (!resource.tableView.value) return "stats";
@@ -179,6 +213,8 @@ export function summariseAnalysis(
 ): AnalysisSummary {
   const { proposal, ...rest } = state;
   if (!proposal) return rest;
+  const tables = tablesOf(proposal);
+  const groups = groupRelations(tables);
   const summary: ProposalSummary = {
     connection: proposal.connection,
     module: proposal.module,
@@ -189,8 +225,10 @@ export function summariseAnalysis(
       reason,
     })),
     open: proposal.open.map(openItemOf),
-    hint: HINT,
+    mapped: proposal.mapped,
+    hint: groups ? groupedHint(tables.length) : hintOf(proposal),
   };
+  if (groups) summary.groups = groups;
   if (detail.length) summary.detail = detailOf(proposal, detail);
   return { ...rest, proposal: summary };
 }

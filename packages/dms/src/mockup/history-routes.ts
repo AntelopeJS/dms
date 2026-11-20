@@ -43,7 +43,14 @@ import {
   parseMockupName,
 } from "./model";
 import { MockupOwnerController } from "./owner-controller";
-import { readSpecText, type SpecWriteResult, withSpecLock } from "./source";
+import { viewOf } from "./anchor";
+import type { PresenceBoard } from "./presence-board";
+import {
+  readSpecSource,
+  readSpecText,
+  type SpecWriteResult,
+  withSpecLock,
+} from "./source";
 
 const HTTP_NOT_FOUND = 404;
 const SEQ_PATTERN = /^[1-9]\d{0,8}$/;
@@ -175,6 +182,7 @@ function compileVersion(
     state.categories = compiled.categories;
   }
   if (compiled.sidebar !== undefined) state.sidebar = compiled.sidebar;
+  if (compiled.modules !== undefined) state.modules = compiled.modules;
   return { version, state, fixtures: compiled.fixtures };
 }
 
@@ -225,12 +233,42 @@ function compiledVersions(mockupsDir: string) {
 }
 
 /**
+ * Writes `version` as the spec of `name`, refused like a write naming no
+ * viewer while another viewer holds a block it changes.
+ */
+function restoreVersion(
+  mockupsDir: string,
+  presence: PresenceBoard,
+  name: MockupName,
+  version: { seq: number; spec: JsonObject },
+): Promise<SpecWriteResult> {
+  return withSpecLock(mockupsDir, name, async (write) => {
+    const current = await readSpecSource(mockupsDir, name);
+    if (!current) throw notFound("mockup");
+    const errors = current.spec
+      ? presence.refusals(name, undefined, current.spec, version.spec)
+      : [];
+    if (errors.length) return { ok: false, errors, warnings: [] };
+    const written = await write(version.spec, {
+      by: "you",
+      summary: `Restored version ${version.seq}`,
+      sealed: true,
+    });
+    if (written.ok) presence.settle(name, viewOf(version.spec));
+    return written;
+  });
+}
+
+/**
  * The routes of a mockup's version history: the versions listed without their
  * specs, one version with the spec and how it draws, the fixtures that
  * version's blocks read, and a restore. Development only, and platform
  * owners only, like the rest of the mockup API.
  */
-export function registerHistoryRoutes(mockupsDir: string) {
+export function registerHistoryRoutes(
+  mockupsDir: string,
+  presence: PresenceBoard,
+) {
   const compiledOf = compiledVersions(mockupsDir);
 
   async function versionOf(rawName: string, rawSeq: string) {
@@ -305,16 +343,7 @@ export function registerHistoryRoutes(mockupsDir: string) {
     ): Promise<SpecWriteResult> {
       await this.assertOwner();
       const { name, version } = await versionOf(rawName, rawSeq);
-      return withSpecLock(mockupsDir, name, async (write) => {
-        if ((await readSpecText(mockupsDir, name)) === undefined) {
-          throw notFound("mockup");
-        }
-        return write(version.spec, {
-          by: "you",
-          summary: `Restored version ${version.seq}`,
-          sealed: true,
-        });
-      });
+      return restoreVersion(mockupsDir, presence, name, version);
     }
 
     @Get(":name/history/:seq/pages/:page/fixtures/:key")

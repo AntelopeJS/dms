@@ -33,15 +33,9 @@
     "directory": "packages/dms"
   },
   "main": "dist/index.js",
-  "bin": {
-    "dms-control": "bin/dms-control.mjs"
-  },
   "types": "dist/index.d.ts",
   "dmsFrontend": "dist/frontend-module.js",
   "files": [
-    "bin",
-    "!bin/tsconfig.json",
-    "!bin/**/*.test.mjs",
     "e2e",
     "!e2e/tsconfig.json",
     "!e2e/tsconfig.types.json",
@@ -73,7 +67,7 @@
     "LICENSE"
   ],
   "license": "Apache-2.0",
-  "packageManager": "pnpm@10.2.0",
+  "packageManager": "pnpm@10.34.9",
   "engines": {
     "node": "^20.19.0 || >=22.12.0"
   },
@@ -136,6 +130,7 @@
     "dompurify": "^3.4.17",
     "jsdom": "^29.1.1",
     "jsonwebtoken": "^9.0.3",
+    "libphonenumber-js": "^1.13.16",
     "mmdb-lib": "^3.0.3",
     "node-cron": "^4.2.1",
     "parse5": "^7.3.0",

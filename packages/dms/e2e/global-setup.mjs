@@ -11,8 +11,8 @@ const RUN = "DMS_E2E_RUN";
  * Playwright's global setup of a journeys suite, once per `playwright test`.
  * With `DMS_E2E_RUN` set, the tests drive that run and it stops nothing; a
  * run whose dashboard is not served the way the suite asks is refused.
- * Otherwise it starts a run on the config's skill through `startRun`: the
- * skill's prepare commands (none with `DMS_E2E_PREBUILT=1`), then the
+ * Otherwise it starts a run on the journeys config through `startRun`: its
+ * prepare commands (none with `DMS_E2E_PREBUILT=1`), then the
  * stack, whose dashboard is the development one for a `frontend: "dev"`
  * suite. It publishes the run's folder in `DMS_E2E_RUN` for the workers,
  * and returns the teardown that stops it.
@@ -29,7 +29,7 @@ export default async function globalSetup() {
     return undefined;
   }
   const { run, stop } = await startRun({
-    skill: suite.skill,
+    config: suite.config,
     frontend: suite.frontend,
   });
   process.env[RUN] = run.dir;
@@ -58,13 +58,13 @@ function assertServes(state, suite) {
  *
  * @param {Suite} suite The suite that drives it
  * @returns {import("./run-state.mjs").RunState} The run
- * @throws When no global setup published a run, an earlier dms-control started it, or it serves its dashboard another way than the suite asks
+ * @throws When no global setup published a run, an older e2e kit started it, or it serves its dashboard another way than the suite asks
  */
 export function currentRun(suite) {
   const dir = process.env[RUN];
   if (!dir) {
     throw new Error(
-      `${RUN} is not set: run the suite through its config, whose global setup starts a run, or set it to a run of dms-control up`,
+      `${RUN} is not set: run the suite through its config, whose global setup starts a run, or set it to a run startRun started`,
     );
   }
   const state = loadRun(dir);

@@ -1,3 +1,4 @@
+import { formatDate } from "#dms-core/app/utils/formatter";
 import { MONO_TAG_CLASS } from "#dms-ui/app/entries/utils/monoChip";
 import {
   formatShortDate,
@@ -81,6 +82,18 @@ export const formatNotificationTime = (
   if (now.getTime() - date.getTime() < DAY_MS) return formatRecent(createdAt);
   return formatShortDate(date, now, locale);
 };
+
+const FULL_TIME_FORMAT: Intl.DateTimeFormatOptions = {
+  dateStyle: "medium",
+  timeStyle: "short",
+};
+
+/** The exact date and time, in the user's language, for a time's hover title. */
+export const formatNotificationFullTime = (
+  createdAt: string,
+  locale: string,
+): string | undefined =>
+  formatDate(createdAt, locale, FULL_TIME_FORMAT) ?? undefined;
 
 /**
  * The matrix lays out from its own width (`@container/matrix` on the table),

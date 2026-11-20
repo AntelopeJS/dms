@@ -20,11 +20,18 @@ export interface NotificationSubject {
   badgeKey?: string;
   /** Set by the server: the user may not turn the subject off. */
   locked?: boolean;
+  /** Set by the server when the subject has an e-mail switch: it offers e-mail and a module delivers it. */
+  email?: {
+    /** E-mail is on for a user who never chose. */
+    defaultOn: boolean;
+  };
 }
 
 interface NotificationCatalogResponse {
   categories: NotificationCategory[];
   subjects: NotificationSubject[];
+  /** A module registered the e-mail channel. */
+  emailChannel?: boolean;
 }
 
 export const buildPreferenceKey = (categoryId: string, subjectId: string) =>
@@ -32,6 +39,10 @@ export const buildPreferenceKey = (categoryId: string, subjectId: string) =>
 
 export const subjectPreferenceKey = (subject: NotificationSubject) =>
   buildPreferenceKey(subject.category.id, subject.id);
+
+/** The key the subject's e-mail switch is stored under. */
+export const emailPreferenceKey = (subject: NotificationSubject) =>
+  `${subjectPreferenceKey(subject)}@email`;
 
 const CATALOG_URL = pageRoutePath(
   "/settings/user/notifications",
@@ -55,6 +66,10 @@ export const useNotificationCatalog = (enabled: () => boolean = () => true) => {
   );
   const categories = computed(() => catalog.data.value?.categories ?? []);
   const subjects = computed(() => catalog.data.value?.subjects ?? []);
+  /** A module registered the e-mail channel: its column holds switches. */
+  const hasEmailChannel = computed(
+    () => catalog.data.value?.emailChannel === true,
+  );
   const isLoaded = computed(() => !!catalog.data.value);
   const loadFailed = computed(() => !isLoaded.value && hasFailed(catalog));
 
@@ -76,6 +91,7 @@ export const useNotificationCatalog = (enabled: () => boolean = () => true) => {
   return {
     categories,
     subjects,
+    hasEmailChannel,
     isLoaded,
     loadFailed,
     loadCatalog,

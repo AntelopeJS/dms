@@ -28,7 +28,6 @@ import {
   decideInvite,
   loadInviteForAction,
 } from "@antelopejs/interface-dms/invite-resolution";
-import { inviteeDisplayName } from "@antelopejs/interface-dms/invites";
 import {
   PageController,
   pageRoutePath,
@@ -40,8 +39,6 @@ import { TenantScopedModel } from "@antelopejs/interface-dms/tenant-scoped-model
 import { AuthUserWithPermission } from "@antelopejs/interface-dms/guards";
 import { User } from "@antelopejs/interface-dms/auth/db";
 import { memberSettingDataAPI } from "@antelopejs/interface-dms/data-controllers";
-import { getClientBaseUrl } from "../../../config";
-import { buildAdminInviteSignupLink } from "../../../utils";
 import {
   Column,
   DefaultDisplays,
@@ -57,7 +54,11 @@ import {
   ReadonlyBehaviorType,
 } from "@antelopejs/interface-dms/base/types";
 import type { InviteEmailOutcome } from "./invite-email-outcome";
-import { resendPendingInvite } from "./invite-resend";
+import {
+  copyInviteLink,
+  type InviteLinkResponse,
+  resendPendingInvite,
+} from "./invite-resend";
 import { inviteEditRoute, inviteGetRoute } from "./invite-extension-routes";
 import { DASHBOARD_LANGUAGE_ITEMS } from "./dashboard-languages";
 import { memberInviteForm } from "./member-invite-form";
@@ -82,18 +83,12 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 
 const INVITES_PAGE_ORDER = 2;
 const HTTP_NOT_FOUND = 404;
-const HTTP_GONE = 410;
 const INVITE_NOT_FOUND = "$page.settings.invites.error.not_found";
 /** Roles the invitation's edit form offers, a route of the invites page. */
 const INVITE_ROLE_OPTIONS_URL = pageRoutePath(
   INVITES_PAGE_PATH,
   "/role-options",
 );
-
-/** A pending invitation's signup link, for the inviter to share by hand. */
-export interface InviteLinkResponse {
-  url: string;
-}
 
 @RegisterDataController()
 export class inviteSettingDataAPI extends DataController(
@@ -389,7 +384,7 @@ export class InvitesSettingsController extends PageController("invites", {
           target: {
             type: "api",
             url: inviteApiTarget("link"),
-            method: "GET",
+            method: "POST",
             copy: "url",
             successMessage: "$page.settings.invites.action.copy_link_success",
           },
@@ -460,26 +455,13 @@ export class InvitesSettingsController extends PageController("invites", {
     });
   }
 
-  @Get("/:id/link")
-  async inviteLink(
+  @Post("/:id/link")
+  inviteLink(
     @Parameter("id", "param") id: string,
     @Context() ctx: RequestContext,
-    @AuthUserWithPermission(InvitesSettingsController) _user: User,
+    @AuthUserWithPermission(InvitesSettingsController) user: User,
   ): Promise<InviteLinkResponse> {
-    const invite = await loadInviteForAction(getRequestTenantId(ctx), id);
-    assert(invite, HTTP_NOT_FOUND, INVITE_NOT_FOUND);
-    assert(
-      new Date(invite.expiresAt) > new Date(),
-      HTTP_GONE,
-      "$page.settings.invites.error.expired",
-    );
-    const url = buildAdminInviteSignupLink(getClientBaseUrl() ?? "", {
-      email: invite.email,
-      token: invite.token,
-      inviteeName: inviteeDisplayName(invite.firstname, invite.lastname),
-      language: invite.language,
-    });
-    return { url };
+    return copyInviteLink(getRequestTenantId(ctx), id, user._id);
   }
 
   @Delete("/:id/cancel")

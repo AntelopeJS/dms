@@ -55,6 +55,7 @@ import {
   cancelScheduledBroadcast,
   closeDevReloadStreams,
   initFrontendBootstrapSecret,
+  registerDevReloadRoute,
 } from "./store/frontend";
 import { publishDevBootstrapCredential } from "./implementations/dms/services";
 import {
@@ -119,6 +120,7 @@ export async function construct(config: Config): Promise<void> {
     registerDocsPreviewPage();
   }
   if (dev) {
+    registerDevReloadRoute();
     startMockupEngine(
       undefined,
       isBuilderEnabled(dev) ? BUILDER_PAGES : undefined,
@@ -213,6 +215,10 @@ async function implementInterfaces(): Promise<void> {
     await import("./implementations/dms-base/distinct-values"),
   );
   void ImplementInterface(
+    await import("@antelopejs/interface-dms/base/data-types/internal/phone-number"),
+    await import("./implementations/dms-base/phone-number"),
+  );
+  void ImplementInterface(
     await import("@antelopejs/interface-dms/base/export-jobs"),
     await import("./implementations/dms-base/export-jobs"),
   );
@@ -297,7 +303,7 @@ export async function start(): Promise<void> {
   await RegisterSchema(CORE_SCHEMA_NAME);
   await RegisterSchema(TENANT_SCHEMA_NAME);
   await ensureDefaultTenantExists();
-  await announceSetupToken();
+  await announceSetupToken((await GetRuntimeInfo()).dev);
   await registerExistingTenantInstances();
   await SettleHook(Hook.DATABASE_INITIALIZED);
 

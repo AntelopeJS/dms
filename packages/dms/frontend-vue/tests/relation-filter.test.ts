@@ -5,6 +5,7 @@ import {
 } from "../layers/dms-ui/app/entries/composables/data-types/relationFilter";
 
 const BY_CUSTOMER = { field: "customer", from: "customer" };
+const ACTIVE = { accessorKey: "isArchived", mode: "ne", value: "true" };
 
 describe("relationFilterParams", () => {
   it("narrows the search with the related table's filter syntax", () => {
@@ -25,6 +26,34 @@ describe("relationFilterParams", () => {
 
   it("adds nothing to a picker without filterBy", () => {
     expect(relationFilterParams(undefined, "c-1")).toEqual({});
+  });
+
+  it("always sends the fixed filter, whatever the source field holds", () => {
+    expect(relationFilterParams(undefined, undefined, ACTIVE)).toEqual({
+      filter_isArchived: "ne:true",
+    });
+    expect(relationFilterParams(BY_CUSTOMER, "c-1", ACTIVE)).toEqual({
+      filter_isArchived: "ne:true",
+      filter_customer: "is:c-1",
+    });
+  });
+
+  it("sends a fixed filter that needs no value", () => {
+    const params = relationFilterParams(undefined, undefined, {
+      accessorKey: "closedAt",
+      mode: "is_empty",
+    });
+    expect(params.filter_closedAt).toMatch(/^is_empty:/);
+  });
+
+  it("keeps both conditions when the fixed filter and filterBy share a field", () => {
+    expect(
+      relationFilterParams(BY_CUSTOMER, "c-1", {
+        accessorKey: "customer",
+        mode: "is_not",
+        value: "c-9",
+      }),
+    ).toEqual({ filter_customer: ["is_not:c-9", "is:c-1"] });
   });
 });
 

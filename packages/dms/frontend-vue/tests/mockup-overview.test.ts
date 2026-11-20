@@ -3,6 +3,7 @@ import { ref } from "vue";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { MockupAnnotation } from "../layers/dms-ui/app/entries/utils/mockup";
 import {
+  FakeEventSource,
   flush,
   mockupState,
   rendered,
@@ -64,6 +65,16 @@ const writes = () =>
 const HOME = { name: "demo" };
 
 describe("opening the overview", () => {
+  it("follows the mockup on one stream, however many pages its Overview draws (fails when each slot of the Overview follows the mockup on a stream of its own)", async () => {
+    await mount(12, { query: HOME });
+    await measure();
+
+    expect(frameIds()).toHaveLength(12);
+    expect(FakeEventSource.instances.map((source) => source.url)).toEqual([
+      viewer.stream.url,
+    ]);
+  });
+
   it("opens a mockup on its Overview, every page a frame in the sidebar's order under its title, with no Overview button (fails when the mockup opens on a page, or a page is missing or out of order)", async () => {
     await mount(5, { query: HOME });
     await measure();

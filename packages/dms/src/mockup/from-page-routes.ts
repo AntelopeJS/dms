@@ -6,9 +6,15 @@ import {
 } from "@antelopejs/interface-api";
 import { z } from "zod";
 import { MOCKUP_API } from "./fixtures";
-import { type EditAsMockupAnswer, editPageAsMockup } from "./live-page";
+import {
+  BUILDER_PAGES,
+  type EditAsMockupAnswer,
+  editPageAsMockup,
+  type LivePages,
+} from "./live-page";
 import { mockupNameSchema } from "./model";
 import { MockupOwnerController } from "./owner-controller";
+import type { PresenceBoard } from "./presence-board";
 
 const HTTP_BAD_REQUEST = 400;
 const HTTP_NOT_FOUND = 404;
@@ -46,8 +52,14 @@ const fromPageBodySchema = z
  * the one it has (see {@link editPageAsMockup}). The dashboard sends the
  * path it shows (`{ path }`); a tool may send a builder ref (`{ pageRef }`).
  * Development only, and platform owners only, like the rest of the mockup API.
+ * A replace never overwrites a block another viewer holds, as `PUT /spec`
+ * would not: it answers 409 with the blocks held.
  */
-export function registerFromPageRoute(mockupsDir: string) {
+export function registerFromPageRoute(
+  mockupsDir: string,
+  presence: PresenceBoard,
+  pages: LivePages = BUILDER_PAGES,
+) {
   class MockupFromPageController extends Controller(
     MOCKUP_API,
     MockupOwnerController,
@@ -62,11 +74,18 @@ export function registerFromPageRoute(mockupsDir: string) {
         });
       }
       const { replace, digest, mockup, ...target } = parsed.data;
-      const answer = await editPageAsMockup(mockupsDir, target, {
-        replace,
-        digest,
-        mockup,
-      });
+      const answer = await editPageAsMockup(
+        mockupsDir,
+        target,
+        {
+          replace,
+          digest,
+          mockup,
+          refusals: (held, current, next) =>
+            presence.refusals(held, undefined, current, next),
+        },
+        pages,
+      );
       if (!answer.ok)
         throw new HTTPResult(FAILURE_STATUS[answer.error], answer);
       return answer;

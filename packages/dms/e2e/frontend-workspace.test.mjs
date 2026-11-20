@@ -8,7 +8,7 @@ import {
   setUpFrontendWorkspace,
 } from "./frontend-workspace.mjs";
 import { write } from "./helpers/repo.mjs";
-import { treeOf } from "./helpers/tree.mjs";
+import { namesIn, treeOf } from "./helpers/tree.mjs";
 import { ExitError, runToEnd } from "./processes.mjs";
 
 const PRELOAD = new URL("prepared-workspace.mjs", import.meta.url).href;
@@ -25,7 +25,7 @@ const OWN_SETUP =
  * @param {"export" | "re-export"} stepExport How the step is exported
  */
 function frontendPackage(t, stepExport) {
-  const dir = mkdtempSync(join(tmpdir(), "dms-control-frontend-workspace-"));
+  const dir = mkdtempSync(join(tmpdir(), "dms-e2e-frontend-workspace-"));
   t.after(() => rmSync(dir, { recursive: true, force: true }));
   const frontend = join(dir, "dms-frontend");
   write(join(frontend, "package.json"), '{"version":"0.10.0"}');
@@ -129,5 +129,100 @@ await test("a dms-frontend whose workspace step cannot be replaced fails the set
     existsSync(reExported.workspace),
     false,
     "a setup check that only reads the step lets up key a build it cannot run",
+  );
+});
+
+/**
+ * Gives `plain` a `setupWorkspace` that fails its first attempts with the
+ * install failure the dms-frontend throws, each with `failures[n]` as the
+ * tail of pnpm's output, and counts its attempts.
+ *
+ * @param {ReturnType<typeof frontendPackage>} plain The dms-frontend
+ * @param {string[]} failures The output tail of each failed attempt
+ * @returns {() => number} How many attempts it saw
+ */
+function failingInstalls(plain, failures) {
+  const attempts = join(plain.frontend, "attempts");
+  mkdirSync(attempts);
+  write(
+    join(plain.frontend, "dist", "workspace-setup.js"),
+    `const fs = require("node:fs");
+const path = require("node:path");
+const failures = ${JSON.stringify(failures)};
+let attempt = 0;
+exports.setupWorkspace = async (options) => {
+  attempt += 1;
+  fs.writeFileSync(path.join(${JSON.stringify(attempts)}, String(attempt)), "");
+  const tail = failures[attempt - 1];
+  if (tail !== undefined) {
+    throw Object.assign(new Error("Dependency install failed"), {
+      problem: { title: "Dependency install failed", details: [tail] },
+    });
+  }
+  fs.mkdirSync(options.workspaceDir, { recursive: true });
+};
+`,
+  );
+  return () => namesIn(attempts).length;
+}
+
+const TARBALL_404 =
+  " ERR_PNPM_FETCH_404  GET https://registry.npmjs.org/prosemirror-inputrules/-/prosemirror-inputrules-1.7.0.tgz: Not Found - 404";
+
+await test("the setup installs again while the registry answers 404 on a tarball it lists, and fails at once on any other install failure", async (t) => {
+  const propagating = frontendPackage(t, "export");
+  const attempts = failingInstalls(propagating, [TARBALL_404, TARBALL_404]);
+  await setUpFrontendWorkspace(
+    propagating.frontend,
+    propagating.workspace,
+    "docs",
+    true,
+    [0, 0, 0],
+  );
+  assert.ok(
+    existsSync(propagating.workspace),
+    "a setup that gives up on the first 404 fails a build the next minute would pass",
+  );
+  assert.equal(attempts(), 3);
+
+  const broken = frontendPackage(t, "export");
+  const brokenAttempts = failingInstalls(broken, [
+    " ERR_PNPM_NO_MATCHING_VERSION  No matching version found for vue@99.0.0",
+  ]);
+  await assert.rejects(
+    setUpFrontendWorkspace(
+      broken.frontend,
+      broken.workspace,
+      "docs",
+      true,
+      [0, 0, 0],
+    ),
+    /Dependency install failed/u,
+  );
+  assert.equal(
+    brokenAttempts(),
+    1,
+    "a setup that retries every install failure delays each real one by minutes",
+  );
+
+  const missing = frontendPackage(t, "export");
+  const missingAttempts = failingInstalls(
+    missing,
+    Array.from({ length: 5 }, () => TARBALL_404),
+  );
+  await assert.rejects(
+    setUpFrontendWorkspace(
+      missing.frontend,
+      missing.workspace,
+      "docs",
+      true,
+      [0, 0],
+    ),
+    /Dependency install failed/u,
+  );
+  assert.equal(
+    missingAttempts(),
+    3,
+    "a setup that keeps retrying a tarball that never comes never fails",
   );
 });

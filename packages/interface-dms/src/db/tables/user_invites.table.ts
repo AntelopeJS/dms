@@ -44,6 +44,11 @@ export class UserInvite extends Table {
   @Field("string")
   declare language: string;
 
+  /**
+   * SHA-256 hex digest of the token the invitation's link carries. The token
+   * itself is never stored: only the call that mints it receives it, and
+   * `UserInviteModel.getByToken` finds the row from it.
+   */
   @Index({ crossInstance: true })
   @Field("string")
   declare token: string;

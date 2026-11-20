@@ -158,7 +158,7 @@ function registerTabGateAndRowActionCases(): void {
     ]);
   });
 
-  it("serializes the look of custom row actions and keeps those without a permission", async () => {
+  it("serializes the look of custom row actions, their disabled reason, and keeps those without a permission", async () => {
     const options = optionsOf(
       TableView(OrderAPI, {
         realtime: false,
@@ -171,6 +171,8 @@ function registerTabGateAndRowActionCases(): void {
               isVisible: true,
               showLabel: true,
               color: "error",
+              rule: { field: "status", notEquals: "sent" },
+              disabledReason: "Already sent",
               target: { type: "page", url: "/x/{{row._id}}" },
             },
           ],
@@ -182,6 +184,7 @@ function registerTabGateAndRowActionCases(): void {
       id: "resend",
       color: "error",
       showLabel: true,
+      disabledReason: "Already sent",
     });
     expect(
       await resolveCustomRowActions(

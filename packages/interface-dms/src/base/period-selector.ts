@@ -99,6 +99,11 @@ export interface PeriodSelectorProps extends BaseComponentProps {
   defaultPreset?: PeriodPreset;
   /** The comparison when neither the URL nor the user's last choice gives one. */
   defaultComparison?: PeriodComparison;
+  /**
+   * The presets offered. With `custom`, the user can type a start and an end
+   * date or pick them in the calendar; without it, the popover's date fields
+   * and calendar only show the selected preset's range.
+   */
   presets?: PeriodPreset[];
   comparisons?: PeriodComparison[];
   presetLabels?: Partial<Record<PeriodPreset, string>>;
@@ -142,9 +147,9 @@ export interface PeriodSelectorProps extends BaseComponentProps {
   /**
    * The longest custom range, in days (both ends included), the user can
    * pick: once a start day is picked, the calendar disables the days past
-   * it, a range typed in the date fields is cut to it, and the popover says
-   * so. Presets are not limited, nor is a range a link puts in the URL: the
-   * endpoint still has to enforce its own limit.
+   * it, a range typed in the date fields is cut to it once focus leaves the
+   * field, and the popover says so. Presets are not limited, nor is a range a
+   * link puts in the URL: the endpoint still has to enforce its own limit.
    */
   maxDays?: number;
 }

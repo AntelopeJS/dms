@@ -57,7 +57,8 @@ export function readCatalogDocument(
   });
 }
 
-function bundledCatalog(): StoreCatalogEntry[] {
+/** The official modules the package ships with, read once and the same on every call. */
+export function bundledCatalog(): StoreCatalogEntry[] {
   bundled ??= readCatalogDocument(
     CatalogDocumentSchema.parse(
       JSON.parse(readFileSync(BUNDLED_CATALOG_PATH, "utf-8")),

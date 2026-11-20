@@ -69,7 +69,7 @@ const internals = new Map(
       "invite-replacement",
       "invite-resolution",
     ],
-    "invites.ts": ["invites"],
+    "invites.ts": ["invite-handout", "invites"],
     "permission-gate.ts": ["permission-gate"],
     "permissions.ts": ["permission-ids", "permission-requirements"],
     "tenant-access.ts": ["tenant-access"],

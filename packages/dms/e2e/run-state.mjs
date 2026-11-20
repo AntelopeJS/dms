@@ -30,19 +30,19 @@ const ID_BYTES = 3;
 const TIMESTAMP_LENGTH = 15;
 
 /**
- * @typedef {{ name: string, pid: number, startTime?: number | null, command: string, cwd: string, log: string, startedAt: string, port?: number, mode?: BackendMode }} ProcessRecord A process the run started. `startTime` is when the kernel started it, in clock ticks since boot: `null` where /proc could not tell, absent in a record an earlier dms-control wrote. Without it, `startedAt` tells the process apart. `mode` is a backend's, absent for production.
+ * @typedef {{ name: string, pid: number, startTime?: number | null, command: string, cwd: string, log: string, startedAt: string, port?: number, mode?: BackendMode }} ProcessRecord A process the run started. `startTime` is when the kernel started it, in clock ticks since boot: `null` where /proc could not tell, absent in a record an older e2e kit wrote. Without it, `startedAt` tells the process apart. `mode` is a backend's, absent for production.
  * @typedef {ProcessRecord & { port: number }} ServerRecord
  * @typedef {ServerRecord & { database: string }} BackendRecord A backend the run started, with the database it serves
  * @typedef {"production" | "dev" | "watch"} BackendMode How a backend runs: `production` runs `ajs project start` on the build, `dev` runs `ajs project dev`, the runtime's development mode, which serves what only development serves, and `watch` runs `ajs project dev -w`, which also reloads a local module when its source changes. A run or a record without one runs production.
  * @typedef {{ email: string, password: string, userId?: string | null }} Account
- * @typedef {{ dir: string, root: string, home: string, logs: string, mongo: string, browser?: ServerRecord, evidence: string, cache: string, id: string, createdAt: string, environment: string, playground: string, moduleRoot: string, repo: string | null, headSha: string | null, renderer?: string, baseRef: string, skill: string | null, apiPort: number, webPort: number, smtpPort: number, mail: string, apiUrl: string, webUrl: string, databasePrefix: string, database: string, mongoUrl: string, ownsMongo: boolean, secrets: Record<string, string>, adminPassword: string, extraEnv: Record<string, string>, processes: ProcessRecord[], namespaces?: import("./identity.mjs").Namespaces, noStandby?: boolean, frontendMode?: FrontendMode, backendMode?: BackendMode, buildRoots?: string[], accounts: Record<string, Account>, tokens: Record<string, string>, ready: boolean, error?: string, runPlayground?: string, baseRoot?: string, resetCount?: number, journeyCount?: number, frontendBuild?: FrontendBuild, bakedEnv?: Record<string, string> }} RunState
+ * @typedef {{ dir: string, root: string, home: string, logs: string, mongo: string, browser?: ServerRecord, evidence: string, cache: string, id: string, createdAt: string, environment: string, playground: string, moduleRoot: string, repo: string | null, headSha: string | null, renderer?: string, baseRef: string, apiPort: number, webPort: number, smtpPort: number, mail: string, apiUrl: string, webUrl: string, databasePrefix: string, database: string, mongoUrl: string, ownsMongo: boolean, secrets: Record<string, string>, adminPassword: string, extraEnv: Record<string, string>, processes: ProcessRecord[], namespaces?: import("./identity.mjs").Namespaces, noStandby?: boolean, frontendMode?: FrontendMode, backendMode?: BackendMode, buildRoots?: string[], accounts: Record<string, Account>, tokens: Record<string, string>, ready: boolean, error?: string, runPlayground?: string, baseRoot?: string, resetCount?: number, journeyCount?: number, frontendBuild?: FrontendBuild, bakedEnv?: Record<string, string> }} RunState
  * @typedef {"build" | "dev"} FrontendMode How the run serves its dashboard: `build` runs `ajs dms build` then `ajs dms start`, `dev` runs `ajs dms dev` on the sources. A run without one serves a build.
  * @typedef {{ key: string | null, cached: boolean, reason?: string }} FrontendBuild The key of the inputs of the run's frontend build (null when it was not keyed), whether the build came from the build cache, and why the cache was not used or not filled when it should have been
  */
 
 /**
- * Where runs are created: `--runs`, else `DMS_CONTROL_RUNS`, else
- * `<tmpdir>/dms-control`. A run holds a playground copy and its frontend
+ * Where runs are created: `--runs`, else `DMS_E2E_RUNS`, else
+ * `<tmpdir>/dms-e2e`. A run holds a playground copy and its frontend
  * build, a few hundred megabytes, so prefer a folder on disk over a tmpfs.
  *
  * @param {string | undefined} option The `--runs` value
@@ -50,7 +50,7 @@ const TIMESTAMP_LENGTH = 15;
  */
 export function runsRoot(option) {
   return resolve(
-    option ?? process.env.DMS_CONTROL_RUNS ?? join(tmpdir(), "dms-control"),
+    option ?? process.env.DMS_E2E_RUNS ?? join(tmpdir(), "dms-e2e"),
   );
 }
 
@@ -170,7 +170,6 @@ const isStoredRun = objectOf(
     repo: nullable(isString),
     headSha: nullable(isString),
     baseRef: isString,
-    skill: nullable(isString),
     apiPort: isNumber,
     webPort: isNumber,
     smtpPort: isNumber,
@@ -227,7 +226,7 @@ export function readRun(dir) {
   const file = join(resolve(dir), RUN_FILE);
   if (!existsSync(file)) {
     throw new Error(
-      `No run at ${dir}: run.json is missing. Start one with dms-control up.`,
+      `No run at ${dir}: run.json is missing. Start one with startRun.`,
     );
   }
   /** @type {unknown} */
@@ -343,7 +342,7 @@ function readBackend(file) {
     if (!isMissing(error) && !reported.has(file)) {
       reported.add(file);
       process.stderr.write(
-        `dms-control: skipped ${file}, which holds no backend record: ${describeFailure(error)}\n`,
+        `dms-e2e: skipped ${file}, which holds no backend record: ${describeFailure(error)}\n`,
       );
     }
     return [];

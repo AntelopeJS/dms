@@ -204,41 +204,37 @@ const favoriteItems = computed((): NavigationMenuItem[][] => {
   ];
 });
 
-const items = computed((): NavigationMenuItem[][] => {
-  if (isInModule.value) {
-    if (!moduleRootNode.value) {
-      return [];
-    }
-    const moduleMenuItems = convertSiteLayoutTreeToTreeItemsForModule(
-      moduleRootNode.value,
-    );
-    const translatedItems = translateMenuItems(moduleMenuItems, processI18n);
-    return applyMenuRouteState(
-      translatedItems,
-      currentFullId.value,
-      currentRoute.value,
-    );
-  }
-
-  if (!siteLayout.siteLayoutTree.value) {
-    return [];
-  }
-
-  const menuItems = convertSiteLayoutTreeToTreeItems(
-    siteLayout.siteLayoutTree.value,
-  );
-  const translatedItems = translateMenuItems(menuItems, processI18n);
+function withRouteState(menuItems: NavigationMenuItem[][]) {
   return applyMenuRouteState(
-    translatedItems,
+    translateMenuItems(menuItems, processI18n),
     currentFullId.value,
     currentRoute.value,
   );
-});
+}
+
+const items = computed((): NavigationMenuItem[][] =>
+  withRouteState(
+    isInModule.value
+      ? convertSiteLayoutTreeToTreeItemsForModule(moduleRootNode.value)
+      : convertSiteLayoutTreeToTreeItems(siteLayout.siteLayoutTree.value),
+  ),
+);
+
+const pinnedItems = computed((): NavigationMenuItem[][] =>
+  isMockup.value
+    ? []
+    : withRouteState(
+        convertSiteLayoutTreeToTreeItems(
+          siteLayout.siteLayoutTree.value,
+          "footer",
+        ),
+      ),
+);
 
 const openCategories = ref<string[]>([]);
 
 watch(
-  () => items.value,
+  () => [...items.value, ...pinnedItems.value],
   (menuItems) => {
     const requiredIds = collectOpenItemIds(menuItems);
     const current = new Set(openCategories.value);
@@ -292,6 +288,10 @@ const footerItems = computed((): NavigationMenuItem[] => {
 
   return result;
 });
+
+const footerGroups = computed((): NavigationMenuItem[][] =>
+  [...pinnedItems.value, footerItems.value].filter((group) => group.length > 0),
+);
 </script>
 
 <template>
@@ -442,10 +442,11 @@ const footerItems = computed((): NavigationMenuItem[] => {
 
     <template #footer="{ collapsed: sidebarRail }">
       <DmsNavigationMenu
-        v-if="footerItems.length > 0"
+        v-if="footerGroups.length > 0"
+        v-model="openCategories"
         v-bind="chromeAttrs"
         :collapsed="isRail(sidebarRail)"
-        :items="footerItems"
+        :items="footerGroups"
         orientation="vertical"
         class="w-full"
       />

@@ -17,7 +17,7 @@ import { moduleRootOf } from "./module-root.mjs";
  */
 function scratch(t) {
   const dir = realpathSync(
-    mkdtempSync(join(tmpdir(), "dms-control-module-root-test-")),
+    mkdtempSync(join(tmpdir(), "dms-e2e-module-root-test-")),
   );
   t.after(() => rmSync(dir, { recursive: true, force: true }));
   return dir;
@@ -41,12 +41,10 @@ const MODULE = {
 };
 const PLAYGROUND = { name: "playground", antelopeJs: { baseUrl: "dist" } };
 
-await test("the module of a playground in a verification skill is the repository's module, not the skill folder", (t) => {
+await test("the module of a playground in a subfolder of the repository is the repository's module, not that folder", (t) => {
   const repo = writePackage(scratch(t), MODULE);
-  const skill = writePackage(join(repo, ".agents", "skills", "verify-dms-x"), {
-    type: "module",
-  });
-  const playground = writePackage(join(skill, "playground"), PLAYGROUND);
+  const folder = writePackage(join(repo, "e2e"), { type: "module" });
+  const playground = writePackage(join(folder, "playground"), PLAYGROUND);
   assert.equal(moduleRootOf(playground, repo), repo);
 });
 

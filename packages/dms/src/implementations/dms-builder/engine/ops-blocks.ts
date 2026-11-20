@@ -48,7 +48,7 @@ import { createImportCollector, InvalidValueError } from "./value";
 import {
   findPageClass,
   getWritableProject,
-  refreshFromDisk,
+  openWritableProject,
   resolveRootBarrel,
   Transaction,
 } from "./writable";
@@ -370,7 +370,6 @@ export function stagePage(
     return misplaced;
   }
   const project = getWritableProject();
-  refreshFromDisk(project);
   const placement = resolvePagePlacement(
     project,
     category,
@@ -399,7 +398,7 @@ export function stagePage(
 export function createPage(
   input: CreatePageInput,
 ): OpResult<{ ref: PageRef; filepath: string }> {
-  const transaction = new Transaction(getWritableProject());
+  const transaction = new Transaction(openWritableProject());
   const staged = stagePage(input, transaction);
   if ("ok" in staged) {
     return staged;

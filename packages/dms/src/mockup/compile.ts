@@ -17,6 +17,7 @@ import type {
   Json,
   JsonObject,
   MockupCategory,
+  MockupModule,
   MockupIssue,
   MockupName,
   MockupNode,
@@ -26,6 +27,7 @@ import type {
   MockupState,
 } from "./model";
 import { CUSTOM_PAGE_FIELDS, specSchema, zodIssues } from "./model";
+import { compileModules } from "./modules";
 import { type LinkedPage, sketchLinks } from "./page-links";
 import { confineToFixtures } from "./sample-routes";
 import { compileSidebar } from "./sidebar";
@@ -463,6 +465,7 @@ export interface CompiledSpec {
   title?: string;
   categories?: MockupCategory[];
   sidebar?: MockupState["sidebar"];
+  modules?: MockupModule[];
   pages: MockupPageState[];
   /** Each page's fixtures, keyed by page id. */
   fixtures: Map<string, JsonObject>;
@@ -512,6 +515,8 @@ export function compileSpec(
       spec.sidebar.widgets.length > 0 && {
         sidebar: compileSidebar(spec.sidebar, scope.issues),
       }),
+    ...(spec.modules &&
+      spec.modules.length > 0 && { modules: compileModules(spec.modules) }),
     pages,
     fixtures,
     issues: [

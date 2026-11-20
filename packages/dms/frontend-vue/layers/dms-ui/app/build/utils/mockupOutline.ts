@@ -17,6 +17,8 @@ export interface MockupOutlineRow {
   depth: number;
   label: string;
   icon?: string;
+  /** The name of the viewer holding this block, when someone else does. */
+  heldBy?: string;
 }
 
 const LABEL_OPTIONS = ["title", "label", "caption", "text"];
@@ -53,21 +55,24 @@ export function blockIcon(
   return catalog.get(node.type ?? "")?.meta.icon;
 }
 
-/** Every node of page `page`, depth first, as the Layers tab lists them. */
+/** Every node of page `page`, depth first, as the Layers tab lists them, each named for its holder in `holders`, by pointer. */
 export function outlineRows(
   spec: MockupSpecDocument,
   page: number,
   catalog: ReadonlyMap<string, MockupBlockType>,
+  holders: ReadonlyMap<string, string> = new Map(),
 ): MockupOutlineRow[] {
   const rows: MockupOutlineRow[] = [];
   function walk(nodes: readonly MockupSpecNode[], steps: number[]): void {
     nodes.forEach((node, index) => {
       const at = [...steps, index];
+      const pointer = nodePointer({ page, steps: at });
       rows.push({
-        pointer: nodePointer({ page, steps: at }),
+        pointer,
         depth: steps.length,
         label: nodeLabel(node, catalog),
         icon: blockIcon(node, catalog),
+        heldBy: holders.get(pointer),
       });
       walk(node.children ?? [], at);
     });

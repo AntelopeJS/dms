@@ -2,7 +2,7 @@ import { fileURLToPath } from "node:url";
 import { test } from "./fixtures.mjs";
 import { loadJourneys } from "./journey-load.mjs";
 import { declareSuite, declaredSuite, suiteJourneys } from "./suite.mjs";
-import { journeysFile, loadSkill, readFeatures } from "./verify/skill.mjs";
+import { journeysFile, loadSuiteConfig } from "./journeys-config.mjs";
 
 export * from "./fixtures.mjs";
 
@@ -12,6 +12,7 @@ export * from "./fixtures.mjs";
  * @typedef {import("./journey.mjs").Check} Check A check a journey records
  * @typedef {import("./journey-load.mjs").Journey} Journey A journey a feature's module exports
  * @typedef {import("./suite.mjs").SuiteOptions} SuiteOptions What a journeys suite runs
+ * @typedef {import("./journeys-config.mjs").JourneysConfig} JourneysConfig The default export of `e2e/journeys.config.ts`
  */
 
 const MINUTE = 60_000;
@@ -22,7 +23,9 @@ const CI = Boolean(process.env.CI);
  * setup starts (parallelism comes from `--shard`), no retries, a test
  * timeout above the kit's own waits, and the CI reporters. It is plain
  * Playwright config, so `defineConfig(e2eConfig(), overrides)` adjusts it.
- * `skill` names the verify skill of a repository that has several.
+ * The suite's journeys come from `e2e/journeys.config.ts` and
+ * `e2e/journeys/`, or the journeys config `config` names and the
+ * `journeys/` folder beside it.
  * `frontend: "dev"` serves the run's dashboard with `ajs dms dev` and
  * registers only the journeys that set `frontend: "dev"`, which every other
  * suite leaves out; its test output and report folders end in `-dev`. The
@@ -62,8 +65,8 @@ export function e2eConfig(options = {}) {
 
 /**
  * Registers the journeys of the suite its config declared: those of the
- * config's verify skill that its `frontend` serves, the skill's `smoke`
- * feature first, then the other feature files in order, and those marked
+ * journeys config that its `frontend` serves, the config's `smoke`
+ * feature first, then the other features in order, and those marked
  * `last` after all others. One test per journey, named by its id under its
  * feature's name, with the
  * journey's `tag` and its title and entry point as annotations. Each test
@@ -76,14 +79,14 @@ export function e2eConfig(options = {}) {
  */
 export async function registerJourneys() {
   const suite = declaredSuite();
-  const skill = await loadSkill(suite.skill, process.cwd());
+  const config = await loadSuiteConfig(process.cwd(), suite.config);
   const features = await Promise.all(
-    readFeatures(skill).map(async (feature) => ({
-      name: feature.name,
-      journeys: await loadJourneys(journeysFile(skill, feature.name)),
+    config.features.map(async (name) => ({
+      name,
+      journeys: await loadJourneys(journeysFile(config, name)),
     })),
   );
-  const journeys = suiteJourneys(features, suite.frontend, skill.config.smoke);
+  const journeys = suiteJourneys(features, suite.frontend, config.smoke);
   for (const { feature, journey } of journeys) {
     const annotation = [
       { type: "title", description: journey.title },

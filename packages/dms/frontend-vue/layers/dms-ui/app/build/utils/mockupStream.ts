@@ -9,12 +9,19 @@ import {
   type MockupAnnotation,
   type MockupState,
 } from "./mockup";
+import {
+  MOCKUP_PRESENCE_EVENT,
+  parseMockupPresence,
+  type MockupPresence,
+} from "./mockupPresence";
 
 const REOPEN_DELAY_MS = 2000;
 
 export interface MockupStreamHandlers {
   onState: (state: MockupState) => void;
   onAnnotations: (annotations: MockupAnnotation[]) => void;
+  /** Who is on the mockup and which blocks they hold, on connect and after each change. */
+  onPresence: (presence: MockupPresence) => void;
   /** Whether the stream is open: false from the first error until it reopens. */
   onConnection: (isConnected: boolean) => void;
 }
@@ -69,12 +76,17 @@ function open(state: StreamState): void {
     const annotations = parseAnnotations(readJson(event));
     if (annotations) state.handlers.onAnnotations(annotations);
   });
+  source.addEventListener(MOCKUP_PRESENCE_EVENT, (event) => {
+    const presence = parseMockupPresence(readJson(event));
+    if (presence) state.handlers.onPresence(presence);
+  });
 }
 
 /**
  * Keeps one stream open to a mockup's `/events` endpoint: its compiled state
  * on connect and after each save of the spec, its annotations after each
- * change of the notes or of the spec, which moves the notes' blocks. The
+ * change of the notes or of the spec, which moves the notes' blocks, and who
+ * is on it and which blocks they hold after each change of either. The
  * browser reconnects a dropped connection by itself; this reopens
  * one the server closed (a restart), and ignores events that are not valid.
  */

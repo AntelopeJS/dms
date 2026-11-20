@@ -34,6 +34,7 @@ export function serializeCustomRowAction<T extends object>(
     label: action.label,
     icon: action.icon,
     rule: eraseRowType(action.rule),
+    disabledReason: action.disabledReason,
     target: serializeActionTarget(action.target),
     isVisible: action.isVisible,
     isDefault: action.isDefault,

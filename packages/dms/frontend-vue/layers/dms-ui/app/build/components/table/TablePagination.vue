@@ -164,6 +164,7 @@ const uiTablePagination = computed(() => uiTablePaginationVariant());
       <i18n-t
         v-else
         keypath="dms.pagination.count"
+        :plural="rowCount"
         scope="global"
         tag="span"
         :class="uiTablePagination.info()"

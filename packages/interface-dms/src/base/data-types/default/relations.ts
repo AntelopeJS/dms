@@ -5,7 +5,10 @@ import type { DecoratorTarget } from "@antelopejs/interface-core/decorators";
 import { DataAPIMeta, Foreign } from "@antelopejs/interface-data-api/metadata";
 import { z } from "zod";
 import { FormComponents } from "../../form-schema";
-import type { FormContainerPageTexts } from "../../table-view/options";
+import type {
+  FormContainerPageTexts,
+  TableViewTabFilter,
+} from "../../table-view/options";
 import { DataType, RegisterDataType } from "../core";
 import { absolutizeJoinedSchemas } from "../internal/compare-types";
 import { buildOutsideCycle } from "../internal/relation-add-form";
@@ -99,6 +102,18 @@ export class RelationType<T extends ControllerClass> extends DataType {
        * controller: declaring it otherwise throws at registration.
        */
       filterBy?: RelationFilterBy<T>;
+      /**
+       * Lists only the related rows meeting a fixed condition, written like
+       * a tab's filter: `{ accessorKey: "isArchived", mode: "ne", value:
+       * "true" }` for the active rows of an `@ArchiveField` table. `mode` is
+       * one the related field's filter takes (`eq` or `ne` for an archive
+       * field, a compare mode such as `is` or `is_not` for a filterable
+       * column). `accessorKey` must be filterable on the related controller:
+       * declaring it otherwise throws at registration.
+       */
+      filter?: TableViewTabFilter & {
+        accessorKey: keyof InstanceType<T> & string;
+      };
     },
   ) {
     super(
@@ -133,6 +148,7 @@ export class RelationType<T extends ControllerClass> extends DataType {
       searchUrl: selectUrl(controller),
       keyMapping: this.options.keyMapping,
       filterBy: this.options.filterBy,
+      filter: this.options.filter,
       addForm: addOptions?.addForm,
       addPermissionIds: addOptions?.addPermissionIds,
       addFormTexts: this.options.addForm,
@@ -143,17 +159,21 @@ export class RelationType<T extends ControllerClass> extends DataType {
     return this.options.multiple ? z.array(z.string()) : z.string();
   }
 
-  private assertFilterByFilterable(key: PropertyKey): void {
-    const field = this.options.filterBy?.field;
-    if (!field) return;
+  private assertFiltersFilterable(key: PropertyKey): void {
     const { filters } = GetMetadata(
       this.options.dataApiController,
       DataAPIMeta,
     );
-    if (filters[field]) return;
-    throw new Error(
-      `Relation "${String(key)}": filterBy.field "${field}" is not filterable on ${this.options.dataApiController.name}; declare it filterable: true there.`,
-    );
+    const fields = {
+      "filterBy.field": this.options.filterBy?.field,
+      "filter.accessorKey": this.options.filter?.accessorKey,
+    };
+    for (const [option, field] of Object.entries(fields)) {
+      if (!field || filters[field]) continue;
+      throw new Error(
+        `Relation "${String(key)}": ${option} "${field}" is not filterable on ${this.options.dataApiController.name}; declare it filterable: true there.`,
+      );
+    }
   }
 
   public decorateField(
@@ -161,7 +181,7 @@ export class RelationType<T extends ControllerClass> extends DataType {
     key: PropertyKey,
     descriptor?: PropertyDescriptor,
   ): void {
-    this.assertFilterByFilterable(key);
+    this.assertFiltersFilterable(key);
     if (this.options.filterOnly) {
       return;
     }

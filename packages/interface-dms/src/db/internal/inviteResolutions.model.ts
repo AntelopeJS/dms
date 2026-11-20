@@ -5,6 +5,7 @@ import {
   InviteResolution,
 } from "../tables/inviteResolutions.table";
 import type { UserInvite } from "../tables/user_invites.table";
+import { hashInviteToken } from "./invite-token";
 import { inviteResolutionsTableName } from "./table-names";
 import type { InviteDecision } from "../models/inviteResolutions.model";
 
@@ -37,7 +38,7 @@ export class InviteResolutionsModel extends BasicDataModel(
    */
   async getForToken(token: string): Promise<InviteResolution | undefined> {
     const row = await this.table
-      .getAll(token, "inviteToken")
+      .getAll(hashInviteToken(token), "inviteToken")
       .nth(0)
       .default(undefined)
       .run();

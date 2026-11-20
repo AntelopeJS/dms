@@ -5,6 +5,7 @@ import { IsDuplicateKeyError } from "@antelopejs/interface-database";
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import { TenantMemberModel, type UserInvite, UserInviteModel } from "./db";
 import { InviteResolutionsModel } from "./db/internal/inviteResolutions.model";
+import { hashInviteToken } from "./db/internal/invite-token";
 import { normalizeEmail, UserModel } from "./auth/db";
 import randomstring from "randomstring";
 import { fireAndForget } from "./utils/fire-and-forget";
@@ -13,8 +14,12 @@ import { ExecuteHooks, Hook, type InviteReplacementReason } from "./hooks";
 import type { InviteExtensionPayloads } from "./invite-extensions";
 import { DeliverInviteExtensions } from "./invite-extensions/internal/delivery";
 import { completeAdmittedInviteResolution } from "./internal/invite-resolution";
-import { isSameInviteContent } from "./internal/invite-content";
-import { decideInvite } from "./invite-resolution";
+import {
+  type MintedInvite,
+  resultFor,
+  yieldToWinner,
+} from "./internal/invite-handout";
+import { decideInvite, loadInviteForAction } from "./invite-resolution";
 import type { InviteResolution } from "./db/tables/inviteResolutions.table";
 import { changeTenantMembers, type TenantMembersWrite } from "./tenant-members";
 import { applyAdmittedTenantOwnership } from "./internal/tenant-ownership";
@@ -61,7 +66,8 @@ export type InviteEmailDelivery = "sent" | "failed";
 export interface InvitedUserResult {
   kind: "invited";
   inviteId: string;
-  token: string;
+  /** See {@link CreateUserInviteTokenResult.token}. */
+  token?: string;
   /**
    * Outcome of the invitation email. Set only when the call passed both
    * `sendEmail` and `awaitEmailDelivery`.
@@ -96,18 +102,43 @@ export async function inviteUserToTenant(
     planInvite(options),
   );
   if (!options.sendEmail || result.kind !== "invited") return result;
-  const invite = { ...options, token: result.token };
+  const invited = await withToken(options, result);
+  if (!invited) return result;
+  const invite = { ...options, token: invited.token };
   if (!options.awaitEmailDelivery) {
     fireAndForget(
       sendTenantInviteEmail(invite),
       `invite email to "${options.email}"`,
     );
-    return result;
+    return invited;
   }
   return {
-    ...result,
+    ...invited,
     emailDelivery: await deliverTenantInviteEmail(invite),
   };
+}
+
+/**
+ * The invitation to email, with its token. A call that yielded to an
+ * invitation it did not create holds no token, and its creator may never
+ * email it (a call that failed after storing its decision), so this
+ * reissues it.
+ *
+ * @returns The invitation, or undefined when it was retired meanwhile
+ */
+async function withToken(
+  options: InviteUserToTenantOptions,
+  result: InvitedUserResult,
+): Promise<(InvitedUserResult & { token: string }) | undefined> {
+  if (result.token !== undefined) return { ...result, token: result.token };
+  const yielded = await loadInviteForAction(options.tenantId, result.inviteId);
+  if (!yielded) return undefined;
+  const reissued = await reissueUserInvite(
+    options.tenantId,
+    yielded,
+    options.invitedBy,
+  );
+  return { kind: "invited", ...reissued };
 }
 
 async function planInvite(
@@ -213,7 +244,12 @@ export interface CreateUserInviteTokenOptions {
 
 export interface CreateUserInviteTokenResult {
   inviteId: string;
-  token: string;
+  /**
+   * The token the invitation's link carries. Only its digest is stored, so
+   * only the call that minted it receives it: a call that yields to an
+   * invitation a concurrent call created gets its `inviteId` alone.
+   */
+  token?: string;
 }
 
 /**
@@ -235,6 +271,39 @@ export async function createUserInviteToken(
   }));
 }
 
+/**
+ * Reissue a pending invitation under a fresh token, which retires its earlier
+ * link. Only the digest of a token is stored, so this is how to get a new
+ * link for an invitation. A call that loses to a concurrent reissue reissues
+ * the winner in turn, so it always returns a token that works.
+ *
+ * @param invitedBy Id of the user who reissues it, recorded as its inviter
+ * @throws HTTPResult(409) when the invitation it lost to was retired meanwhile
+ */
+export async function reissueUserInvite(
+  tenantId: string,
+  invite: UserInvite,
+  invitedBy?: string | null,
+): Promise<Required<CreateUserInviteTokenResult>> {
+  const { inviteId, token } = await createUserInviteToken({
+    tenantId,
+    replacesInvite: invite,
+    email: invite.email,
+    firstname: invite.firstname,
+    lastname: invite.lastname,
+    language: invite.language,
+    roleIds: invite.roles_ids,
+    asTenantOwner: invite.asTenantOwner,
+    extensions: invite.extensions ?? undefined,
+    replacementReason: "resent",
+    invitedBy,
+  });
+  if (token !== undefined) return { inviteId, token };
+  const winner = await loadInviteForAction(tenantId, inviteId);
+  assert(winner, HTTP_CONFLICT, "Invitation was retired while it was reissued");
+  return reissueUserInvite(tenantId, winner, invitedBy);
+}
+
 async function createAdmittedInviteToken(
   options: CreateUserInviteTokenOptions,
 ): Promise<CreateUserInviteTokenResult> {
@@ -242,9 +311,9 @@ async function createAdmittedInviteToken(
   const userInviteModel = GetModel(UserInviteModel, tenantId);
   const existingInvite =
     options.replacesInvite ?? (await userInviteModel.getByEmail(email));
-  const replacement = buildInviteSnapshot(options);
-  if (existingInvite)
-    return replaceInvite(options, existingInvite, replacement);
+  const minted = mintInvite(options);
+  const replacement = minted.invite;
+  if (existingInvite) return replaceInvite(options, existingInvite, minted);
   await ExecuteHooks(Hook.INVITE_BEING_CREATED, {
     tenantId,
     email,
@@ -259,7 +328,7 @@ async function createAdmittedInviteToken(
     return yieldOrCreateAgain(
       options,
       winner && (await currentInviteOf(options, winner)),
-      replacement,
+      minted,
     );
   }
   const rival = await userInviteModel.getOtherByEmail(email, replacement._id);
@@ -268,27 +337,25 @@ async function createAdmittedInviteToken(
       replacement._id,
       "withdrawn",
     );
-    if (outcome !== "kept")
-      return withdrawFreshInvite(options, replacement, rival);
+    if (outcome !== "kept") return withdrawFreshInvite(options, minted, rival);
     const current = await currentInviteOf(options, replacement);
     if (current?._id !== replacement._id)
-      return yieldOrCreateAgain(options, current, replacement);
+      return yieldOrCreateAgain(options, current, minted);
   }
   await ExecuteHooks(Hook.INVITE_CREATED, {
     tenantId,
     inviteId: replacement._id,
-    token: replacement.token,
     email,
     asTenantOwner,
     roleIds,
   });
-  return { inviteId: replacement._id, token: replacement.token };
+  return resultFor(replacement, minted);
 }
 
 async function replaceInvite(
   options: CreateUserInviteTokenOptions,
   invite: UserInvite,
-  replacement: UserInvite,
+  minted: MintedInvite,
 ): Promise<CreateUserInviteTokenResult> {
   let resolution: InviteResolution;
   try {
@@ -296,22 +363,19 @@ async function replaceInvite(
       tenantId: options.tenantId,
       invite,
       reason: options.replacementReason ?? "replaced",
-      replacement,
+      replacement: minted.invite,
     });
   } catch (error) {
     const retry = await retryAfterRefusal(options, invite);
     if (retry === "read the email again")
       return createAdmittedInviteToken(options);
     if (retry === "replace the same invite")
-      return replaceInvite(options, invite, replacement);
+      return replaceInvite(options, invite, minted);
     throw error;
   }
   await completeAdmittedInviteResolution(resolution);
   if (!resolution.replacement) throw new Error("Replacement snapshot missing");
-  return {
-    inviteId: resolution.replacement._id,
-    token: resolution.replacement.token,
-  };
+  return resultFor(resolution.replacement, minted);
 }
 
 /** How a creation that `decideInvite` refused runs again, if it does. */
@@ -372,15 +436,19 @@ async function removeIfCancelled(
  */
 async function withdrawFreshInvite(
   options: CreateUserInviteTokenOptions,
-  fresh: UserInvite,
+  fresh: MintedInvite,
   rival: UserInvite,
 ): Promise<CreateUserInviteTokenResult> {
   const { tenantId } = options;
   const decisions = GetModel(InviteResolutionsModel, tenantId);
-  const { resolution, claimed } = await decisions.withdraw(tenantId, fresh);
+  const { resolution, claimed } = await decisions.withdraw(
+    tenantId,
+    fresh.invite,
+  );
   if (resolution.replacement)
     return yieldToWinner(resolution.replacement, fresh);
-  if (claimed) await GetModel(UserInviteModel, tenantId).delete(fresh._id);
+  if (claimed)
+    await GetModel(UserInviteModel, tenantId).delete(fresh.invite._id);
   return yieldOrCreateAgain(
     options,
     await currentInviteOf(options, rival),
@@ -392,7 +460,7 @@ async function withdrawFreshInvite(
 function yieldOrCreateAgain(
   options: CreateUserInviteTokenOptions,
   current: UserInvite | undefined,
-  lost: UserInvite,
+  lost: MintedInvite,
 ): Promise<CreateUserInviteTokenResult> | CreateUserInviteTokenResult {
   if (!current) return createAdmittedInviteToken(options);
   return yieldToWinner(current, lost);
@@ -460,22 +528,9 @@ async function followUndecided(
   return currentInviteOf(options, invite);
 }
 
-function yieldToWinner(
-  winner: UserInvite | undefined,
-  lost: UserInvite,
-): CreateUserInviteTokenResult {
-  assert(
-    winner && isSameInviteContent(winner, lost),
-    HTTP_CONFLICT,
-    "Invitation for this email was created concurrently with other content",
-  );
-  return { inviteId: winner._id, token: winner.token };
-}
-
-function buildInviteSnapshot(
-  options: CreateUserInviteTokenOptions,
-): UserInvite {
-  return UserInviteModel.fromPlainData({
+function mintInvite(options: CreateUserInviteTokenOptions): MintedInvite {
+  const token = randomstring.generate({ length: INVITE_TOKEN_LENGTH });
+  const invite = UserInviteModel.fromPlainData({
     _id: randomUUID(),
     createdAt: new Date(),
     email: normalizeEmail(options.email),
@@ -483,11 +538,12 @@ function buildInviteSnapshot(
     lastname: options.lastname ?? null,
     roles_ids: options.roleIds,
     language: options.language,
-    token: randomstring.generate({ length: INVITE_TOKEN_LENGTH }),
+    token: hashInviteToken(token),
     asTenantOwner: options.asTenantOwner,
     expiresAt: new Date(Date.now() + INVITE_EXPIRY_DAYS * MILLISECONDS_PER_DAY),
     invitedBy: options.invitedBy ?? null,
     extensions: options.extensions ?? null,
     creationResolutionId: "",
   });
+  return { invite, token };
 }

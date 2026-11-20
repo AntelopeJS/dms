@@ -1,9 +1,10 @@
 import assert from "node:assert/strict";
 import { writeFileSync } from "node:fs";
+import { createServer } from "node:http";
 import { join } from "node:path";
 import test from "node:test";
 import { freshDatabase } from "./backend.mjs";
-import { recordDashboardModules } from "./dashboard.mjs";
+import { awaitDashboard, recordDashboardModules } from "./dashboard.mjs";
 import { newRun } from "./helpers/fake-run.mjs";
 import { freePort, startDetached, waitForOk } from "./processes.mjs";
 import { saveRun } from "./run-state.mjs";
@@ -91,6 +92,32 @@ await test("in a dev-frontend run, a journey backend that serves another module 
   assert.deepEqual(await dashboardModules(state), [
     { name: "fake", priority: 0, path: "/fake" },
   ]);
+});
+
+await test("the dashboard's wait reads the API's module set on a connection of its own, not on one an earlier read left open to a backend the run has since stopped", async (t) => {
+  const state = await newRun(t);
+  state.frontendMode = "dev";
+  state.secrets = { DMS_BOOTSTRAP_SECRET: SECRET };
+  const answered = new WeakSet();
+  const api = createServer((request, response) => {
+    if (answered.has(request.socket)) {
+      request.socket.destroy();
+      return;
+    }
+    answered.add(request.socket);
+    response.setHeader("content-type", "application/json");
+    response.end(JSON.stringify({ version: 1, modules: [{ name: "fake" }] }));
+  });
+  const port = await freePort();
+  await new Promise((resolve) => api.listen(port, "127.0.0.1", resolve));
+  t.after(() => {
+    api.closeAllConnections();
+    api.close();
+  });
+  state.apiUrl = `http://127.0.0.1:${port}`;
+  await recordDashboardModules(state);
+  await new Promise((resolve) => setImmediate(resolve));
+  await assert.doesNotReject(awaitDashboard(state));
 });
 
 await test("in a dev-frontend run, a journey backend that serves the same module set is served without waiting for a rebuild", async (t) => {

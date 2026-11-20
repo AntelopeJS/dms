@@ -74,6 +74,24 @@ export type MockupEdit =
   | { kind: "removePage"; page: string }
   | MockupSectionEdit;
 
+/** The pointers of the blocks an edit changes: the ones it reads, moves or removes, and the one it inserts into. Page edits change no block. */
+export function editTargets(edit: MockupEdit): string[] {
+  switch (edit.kind) {
+    case "setOption":
+    case "setText":
+    case "duplicateNode":
+    case "removeNode":
+    case "replaceNode":
+      return [edit.pointer];
+    case "insertNode":
+      return edit.parent === null ? [] : [edit.parent];
+    case "moveNode":
+      return edit.parent === null ? [edit.from] : [edit.from, edit.parent];
+    default:
+      return [];
+  }
+}
+
 /**
  * What an edit leaves: the new spec, the node it leaves selected and the page
  * it leaves open. An edit that cannot apply answers the very spec it was given.

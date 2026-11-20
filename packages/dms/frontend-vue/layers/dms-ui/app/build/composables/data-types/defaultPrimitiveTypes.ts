@@ -2,7 +2,7 @@ import type {
   DataType,
   DataTypeFormatter,
 } from "#dms-core/app/composables/data-types/useDataType";
-import { isObject } from "#dms-core/app/utils/type-check";
+import { isObject, isString } from "#dms-core/app/utils/type-check";
 import UIcon from "@nuxt/ui/runtime/vue/components/Icon.vue";
 import { childOf, readRowTone, type Row } from "./cellHelpers";
 import {
@@ -11,6 +11,7 @@ import {
 } from "../table/utils/filterEditorValue";
 import { formatDuration } from "#dms-core/app/utils/formatter";
 import { withNumberSuffix } from "./numberSuffix";
+import { formatPhone } from "../../utils/phoneNumber";
 import { DMS_TONE_TEXT } from "../../utils/tone";
 import { getAppTranslation } from "../../../../../dms-core/app/composables/translation/useTranslation";
 
@@ -66,8 +67,7 @@ function formatAddress(value: CellValue): string {
   const parts = [
     street,
     addr.addressLine2,
-    addr.postalCode,
-    addr.city,
+    [addr.postalCode, addr.city].filter(Boolean).join(" "),
     addr.countrySubdivision,
     countryName,
   ].filter(Boolean);
@@ -111,6 +111,15 @@ export const registerPrimitiveTypes = (
   registerDataType({
     id: "string",
     formatter: { default: renderText },
+  });
+  registerDataType({
+    id: "phone",
+    formatter: {
+      default: (value) => {
+        if (value === "") return null;
+        return isString(value) ? formatPhone(value) : value;
+      },
+    },
   });
   registerDataType({
     id: "price",

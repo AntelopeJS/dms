@@ -5,9 +5,17 @@ import {
 import type { PageReader } from "./built-sync";
 import { defaultMockupsDir } from "./files";
 import { MOCKUP_API } from "./fixtures";
+import {
+  isJsonObject,
+  type Json,
+  type JsonObject,
+  type MockupIssue,
+  type MockupName,
+} from "./model";
 import { registerMockupPage } from "./page";
 import {
   closeMockupStreams,
+  createMockupEngine,
   type MockupEngine,
   registerMockupRoutes,
 } from "./routes";
@@ -27,6 +35,9 @@ export * from "./json-schema";
 export * from "./manage";
 export * from "./live-page";
 export * from "./model";
+export * from "./presence";
+export * from "./presence-board";
+export * from "./presence-routes";
 export * from "./routes";
 export * from "./sample-rows";
 export * from "./source";
@@ -45,16 +56,30 @@ export function startMockupEngine(
   livePages?: PageReader,
 ): void {
   if (engine) return;
-  engine = {
-    store: new MockupStore(mockupsDir, livePages),
-    streams: new Set(),
-  };
+  engine = createMockupEngine(new MockupStore(mockupsDir, livePages));
   registerMockupRoutes(engine);
   registerMockupPage();
 }
 
 export function mockupEngineRunning(): boolean {
   return engine !== undefined;
+}
+
+/**
+ * The issues that refuse writing `next` over the `current` spec of `name`
+ * because a viewer of the running engine holds a block it changes or removes,
+ * as `PUT /spec` refuses it: each at the block's path, naming the holder.
+ * None while the engine does not run. Ask it inside the spec lock of `name`,
+ * for a write made outside the engine's routes.
+ */
+export function mockupLockRefusals(
+  name: MockupName,
+  current: JsonObject,
+  next: Json,
+): MockupIssue[] {
+  return engine && isJsonObject(next)
+    ? engine.presence.refusals(name, undefined, current, next)
+    : [];
 }
 
 /**

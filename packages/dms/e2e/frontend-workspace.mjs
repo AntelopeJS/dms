@@ -1,6 +1,7 @@
 import { existsSync } from "node:fs";
 import { createRequire } from "node:module";
 import { join, resolve } from "node:path";
+import { setTimeout as sleep } from "node:timers/promises";
 import { describeFailure } from "./failure.mjs";
 import { isRecord } from "./json.mjs";
 
@@ -19,7 +20,30 @@ const WORKSPACE_STEP = "./dist/commands/workspace-task.js";
  */
 export const PREPARED_WORKSPACE_REFUSED = 75;
 
+/**
+ * How long the setup waits before each new attempt once its install got a
+ * 404 on a tarball. The npm registry lists a version before every mirror
+ * serves its tarball: prosemirror-inputrules 1.7.0, published at 12:47:14Z
+ * on 2026-11-19, still answered 404 at 12:49:30Z.
+ */
+export const REGISTRY_404_RETRY_DELAYS_MS = Object.freeze([
+  30_000, 60_000, 90_000,
+]);
+
+const TARBALL_404 = "ERR_PNPM_FETCH_404";
+
 class StoppedBeforeInstall extends Error {}
+
+/**
+ * @param {unknown} error What the dms-frontend's `setupWorkspace` threw
+ * @returns {boolean} True when it is the install failure of a pnpm that got a 404 on a tarball, whose output tail the failure's `problem.details` holds
+ */
+function fetchedUnpublishedTarball(error) {
+  if (!(error instanceof Error) || !("problem" in error)) return false;
+  const { problem } = error;
+  if (!isRecord(problem) || !Array.isArray(problem.details)) return false;
+  return problem.details.join("\n").includes(TARBALL_404);
+}
 
 /**
  * @param {unknown} value
@@ -81,7 +105,7 @@ export function buildInPreparedWorkspace(frontendPackage) {
   const prepared = (options) => {
     const workspaceDir = resolve(options.workspaceDir);
     if (!existsSync(join(workspaceDir, INSTALL_MARK))) {
-      process.stderr.write(`dms-control: ${workspaceDir} is not prepared\n`);
+      process.stderr.write(`dms-e2e: ${workspaceDir} is not prepared\n`);
       process.exit(PREPARED_WORKSPACE_REFUSED);
     }
     return Promise.resolve({ workspaceDir, layers: [] });
@@ -109,6 +133,7 @@ export function buildInPreparedWorkspace(frontendPackage) {
  * @param {string} workspace The workspace folder
  * @param {string} environment The AntelopeJS environment
  * @param {boolean} install Whether to install the workspace's dependencies
+ * @param {readonly number[]} [retryDelaysMs] How long to wait before each new setup after its install got a 404 on a tarball (see {@link REGISTRY_404_RETRY_DELAYS_MS})
  * @returns {Promise<void>} Resolves once it is set up
  * @throws When this dms-frontend cannot set a workspace up, or build in one set up beforehand
  */
@@ -117,6 +142,7 @@ export async function setUpFrontendWorkspace(
   workspace,
   environment,
   install,
+  retryDelaysMs = REGISTRY_404_RETRY_DELAYS_MS,
 ) {
   buildInPreparedWorkspace(frontendPackage);
   const loadProjectEnv = exported(
@@ -142,9 +168,17 @@ export async function setUpFrontendWorkspace(
   if (!install) {
     options.beforeInstall = () => Promise.reject(new StoppedBeforeInstall());
   }
-  try {
-    await setupWorkspace(options);
-  } catch (error) {
-    if (!(error instanceof StoppedBeforeInstall)) throw error;
+  for (const delay of [...retryDelaysMs, null]) {
+    try {
+      await setupWorkspace(options);
+      return;
+    } catch (error) {
+      if (error instanceof StoppedBeforeInstall) return;
+      if (delay === null || !fetchedUnpublishedTarball(error)) throw error;
+      process.stderr.write(
+        `dms e2e prepare-frontend: the registry answered 404 for a tarball it lists; installing again in ${delay / 1000}s\n`,
+      );
+      await sleep(delay);
+    }
   }
 }

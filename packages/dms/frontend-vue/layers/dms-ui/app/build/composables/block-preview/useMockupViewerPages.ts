@@ -50,6 +50,7 @@ export function useMockupViewerPages(options: ViewerPagesOptions) {
     }),
     pages,
     categories: computed(() => shown.value?.categories ?? []),
+    modules: computed(() => shown.value?.modules ?? []),
     issues: computed(() => shown.value?.issues ?? []),
     requestedPage,
     record,

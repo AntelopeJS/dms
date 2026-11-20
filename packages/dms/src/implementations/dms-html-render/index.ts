@@ -1,6 +1,6 @@
 import { z } from "zod";
 import type { HtmlTemplateRef } from "@antelopejs/interface-dms/html-render";
-import { getHtmlRenderEndpoint } from "../../config";
+import { getHtmlRenderEndpoint, getHtmlRenderTimeout } from "../../config";
 import { SERVICE_JWT_HEADER } from "./constants";
 import { generateServiceToken } from "./service-jwt";
 
@@ -38,6 +38,7 @@ export async function GenerateHtml<TData = unknown>(
   const response = await fetch(renderEndpoint, {
     method: "POST",
     headers,
+    signal: AbortSignal.timeout(getHtmlRenderTimeout()),
     body: JSON.stringify({
       templateName: template.name,
       props,

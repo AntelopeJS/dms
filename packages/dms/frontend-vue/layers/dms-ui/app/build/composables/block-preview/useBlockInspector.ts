@@ -27,7 +27,7 @@ interface InspectorOptions {
   enabled: Readonly<Ref<boolean>>;
   /** Called with the layout path of the block a click landed in. */
   onSelect: (path: string) => void;
-  /** Called when a click landed in the page header, which is the page's own. */
+  /** Called when a click landed on the page and in no block: its header, or the empty space around its blocks. */
   onSelectPage?: () => void;
   /** Called with the layout path and the element of a text double-clicked in a block. */
   onText?: (path: string, element: Element) => void;
@@ -66,7 +66,9 @@ function sameElements(left: Element[], right: Element[]): boolean {
 /**
  * Lets the page's blocks be picked by clicking. While `enabled`, the block
  * under the pointer is outlined and a click selects it instead of reaching it;
- * a Ctrl or ⌘ click on a link follows it instead.
+ * a Ctrl or ⌘ click on a link follows it instead. A click on the page that
+ * lands on no block, its header or the empty space around its blocks, picks the
+ * page.
  * A block is found through the anchors `RecursiveComponent` registers by layout
  * path, so nothing is added to the rendered blocks and nothing runs until the
  * pointer moves.
@@ -105,9 +107,7 @@ export function useBlockInspector(options: InspectorOptions): void {
     if (isFollowClick(event) && options.onFollow?.(event)) return;
     const path = blockAnchorAt(event.target, PREVIEW_ROOT_ID_PREFIX);
     if (!path) {
-      if (event.type === "click" && headerAt(event.target)) {
-        options.onSelectPage?.();
-      }
+      if (event.type === "click") options.onSelectPage?.();
       return;
     }
     if (event.type === "click") options.onSelect(path);

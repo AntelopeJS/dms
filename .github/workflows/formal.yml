@@ -1,0 +1,45 @@
+name: formal
+
+# The TLA+ and property checks ci.yml's selector plans, each with its history
+# check. `full` runs their full configurations (--full).
+on:
+  workflow_call:
+    inputs:
+      checks:
+        description: The check names, as a JSON array
+        required: true
+        type: string
+      full:
+        description: Run each check's full configuration
+        required: true
+        type: boolean
+
+jobs:
+  formal:
+    runs-on: ubuntu-latest
+    timeout-minutes: ${{ inputs.full && 60 || 15 }}
+    strategy:
+      fail-fast: false
+      matrix:
+        check: ${{ fromJSON(inputs.checks) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - run: corepack enable
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/antelopejs-formal
+          key: tla2tools-1.7.4
+      - run: node .agents/skills/${{ matrix.check }}/check.mjs ${{ inputs.full && '--full' || '' }}
+      - run: |
+          history=".agents/skills/${CHECK}/history.mjs"
+          if [[ -f "$history" ]]; then node "$history"; fi
+        env:
+          CHECK: ${{ matrix.check }}

@@ -5,7 +5,7 @@ import { RENDERER_CLI } from "./renderer.mjs";
 
 const DROPPED_PREFIXES = ["ANTELOPEJS_", "npm_", "PNPM_", "DMS_", "MONGO_"];
 
-/** This package's root, which resolves dms-control's own dependencies. */
+/** This package's root, which resolves the kit's own dependencies. */
 export const PACKAGE_ROOT = resolve(import.meta.dirname, "..");
 
 /** The kit's service entry, which runs a service of a run (see `runService`). */
@@ -86,8 +86,8 @@ export function runEnv(state) {
     NO_UPDATE_NOTIFIER: "1",
     COREPACK_HOME:
       process.env.COREPACK_HOME ?? join(cacheHome, "node", "corepack"),
-    npm_config_cache: join(cacheHome, "dms-control", "npm"),
-    npm_config_store_dir: join(cacheHome, "dms-control", "pnpm-store"),
+    npm_config_cache: join(cacheHome, "dms-e2e", "npm"),
+    npm_config_store_dir: join(cacheHome, "dms-e2e", "pnpm-store"),
     PORT: String(state.apiPort),
     DMS_CLIENT_BASE_URL: state.webUrl,
     DMS_API_BASE_URL: state.apiUrl,

@@ -4,18 +4,37 @@ import {
   createApp,
   h,
   nextTick,
+  provide,
   ref,
   shallowRef,
   Suspense,
   type App,
+  type Component,
 } from "vue";
 import SelectMenu from "@nuxt/ui/components/SelectMenu.vue";
 import Button from "@nuxt/ui/components/Button.vue";
 import type { DrawerOptions } from "../layers/dms-ui/app/composables/containers/types";
 import { host, registerFormComponents, t } from "./helpers/form-runtime";
 import { browserRuntime, engine } from "./helpers/api-data-runtime";
+import {
+  FORM_ENTRY_CONTEXT_KEY,
+  type FormEntryContext,
+} from "../layers/dms-ui/app/entries/composables/form/formEntryContext";
+import { FORM_LAYOUT_CLASSES } from "../layers/dms-ui/app/entries/composables/form/formLayout";
+import type { FormData } from "../layers/dms-ui/app/composables/form/types/value";
+import type { TableFilter } from "../layers/dms-ui/app/entries/components/table/TableRoot";
+
+type SearchParams = Record<string, string | string[] | undefined>;
 
 let app: App | undefined;
+let Relation: Component;
+beforeEach(async () => {
+  Relation = (
+    await import(
+      "../layers/dms-ui/app/components/form/components/InputRelation.vue"
+    )
+  ).default;
+}, 60_000);
 beforeEach(() => {
   Object.defineProperty(HTMLElement.prototype, "scrollIntoView", {
     configurable: true,
@@ -27,11 +46,38 @@ afterEach(() => {
   Reflect.deleteProperty(HTMLElement.prototype, "scrollIntoView");
 });
 
-async function mountRelation() {
+interface MountOptions {
+  relationProps?: { filter: TableFilter };
+  hasPermission?: (id: string) => boolean;
+  /** The form the picker fills; none for a table filter's picker. */
+  formContext?: FormEntryContext;
+}
+
+function formContextOf(state: FormData): FormEntryContext {
+  return {
+    state: ref<FormData>(state),
+    initialValues: ref<FormData>(state),
+    loading: ref(false),
+    componentId: "ticket",
+    pageId: "tickets",
+    layoutClasses: () => FORM_LAYOUT_CLASSES.vertical,
+    isFieldHidden: () => false,
+    isFieldRequired: () => false,
+    isReadOnly: ref(false),
+    showsChanges: false,
+    isFieldChanged: () => false,
+    isFieldDisabled: () => false,
+    baselineValue: () => undefined,
+    fieldSaveState: () => "idle",
+    retrySave: () => {},
+  };
+}
+
+async function mountRelation(options: MountOptions = {}) {
   await engine.setupFrontendModules([]);
   vi.stubGlobal("useDmsAsyncData", engine.useDmsAsyncData);
   vi.stubGlobal("usePermissions", () => ({
-    hasPermission: () => true,
+    hasPermission: options.hasPermission ?? (() => true),
     loadPermissions: async () => {},
   }));
   vi.stubGlobal("useFileReadUrls", () => ({
@@ -39,9 +85,13 @@ async function mountRelation() {
     resolve: vi.fn(),
   }));
   vi.stubGlobal("useLeaveGuard", () => ({ clearGuards: vi.fn() }));
-  vi.stubGlobal("useAuthFetch", () => ({
-    $authFetch: vi.fn(async () => ({ results: [], total: 0 })),
-  }));
+  const authFetch = vi.fn(
+    async (_url: string, _request?: { params?: SearchParams }) => ({
+      results: [],
+      total: 0,
+    }),
+  );
+  vi.stubGlobal("useAuthFetch", () => ({ $authFetch: authFetch }));
   const drawer = shallowRef<DrawerOptions>();
   const open = vi.fn((options: DrawerOptions) => {
     expect(host.querySelector('[role="listbox"]')).toBeNull();
@@ -57,14 +107,16 @@ async function mountRelation() {
     };
   });
   vi.stubGlobal("useDrawer", () => ({ open }));
-  const { default: Relation } = await import(
-    "../layers/dms-ui/app/components/form/components/InputRelation.vue"
-  );
   const selected = ref<string | undefined>("ann");
   const updates = vi.fn((value: string | undefined) => {
     selected.value = value;
   });
   app = createApp({
+    setup() {
+      if (options.formContext) {
+        provide(FORM_ENTRY_CONTEXT_KEY, options.formContext);
+      }
+    },
     render: () =>
       h("div", [
         h(Suspense, null, {
@@ -77,6 +129,7 @@ async function mountRelation() {
                 { label: "Bob", value: "bob" },
               ],
               "onUpdate:modelValue": updates,
+              ...options.relationProps,
               addForm: {
                 componentName: "Form",
                 options: {
@@ -115,7 +168,7 @@ async function mountRelation() {
   await vi.waitFor(() =>
     expect(host.querySelector('[aria-haspopup="listbox"]')).not.toBeNull(),
   );
-  return { selected, updates, open };
+  return { selected, updates, open, authFetch };
 }
 
 async function openMenu() {
@@ -164,4 +217,32 @@ it("rejects forwarding a repeated relation pick before its deselection", async (
   );
   await vi.waitFor(() => expect(selected.value).toBeUndefined());
   expect(updates).toHaveBeenCalledExactlyOnceWith(undefined);
+});
+
+const ACTIVE = { accessorKey: "isArchived", mode: "ne", value: "true" };
+
+async function searchParamsOnOpen(options: MountOptions) {
+  const { authFetch } = await mountRelation({
+    ...options,
+    relationProps: { filter: ACTIVE },
+  });
+  await openMenu();
+  await vi.waitFor(() => expect(authFetch).toHaveBeenCalled());
+  return authFetch.mock.calls[0]?.[1]?.params;
+}
+
+it("searches a form's picker with its fixed filter", async () => {
+  const params = await searchParamsOnOpen({ formContext: formContextOf({}) });
+  expect(params).toMatchObject({ filter_isArchived: "ne:true" });
+});
+
+it("leaves the fixed filter out of a table filter's picker", async () => {
+  const params = await searchParamsOnOpen({});
+  expect(params).not.toHaveProperty("filter_isArchived");
+});
+
+it("offers a member no relation add whose table declares no add permission", async () => {
+  await mountRelation({ hasPermission: (id) => id !== "*" });
+  await openMenu();
+  expect(host.textContent).not.toContain(t("dms.form.relation.add_new"));
 });

@@ -38,6 +38,10 @@
       "title": "Erreur serveur",
       "description": "Une erreur inattendue s'est produite. Veuillez réessayer plus tard."
     },
+    "503": {
+      "title": "Service indisponible",
+      "description": "Le serveur ou sa base de données ne répond pas pour le moment. Réessayez dans un instant."
+    },
     "request_refused": {
       "title": "Requête refusée"
     },
@@ -49,6 +53,7 @@
       "title": "Connexion perdue",
       "description": "Le serveur est injoignable. Vérifiez votre connexion et réessayez."
     },
+    "database_unavailable": "La base de données ne répond pas pour le moment. Réessayez dans un instant.",
     "switch_account_failed": "Échec du changement de compte",
     "email_already_requested": "Cette adresse e-mail a déjà été demandée. Veuillez attendre avant de réessayer.",
     "email_already_used": "Cette adresse e-mail est déjà utilisée.",
@@ -406,6 +411,7 @@
       "required": "Ce champ est obligatoire.",
       "invalid": "Cette valeur n’est pas valide.",
       "invalid_email": "Saisissez une adresse e-mail valide.",
+      "invalid_phone": "Saisissez un numéro de téléphone valide, avec son pays.",
       "too_long": "Cette valeur est trop longue.",
       "too_short": "Cette valeur est trop courte.",
       "too_small": "Cette valeur est trop petite.",

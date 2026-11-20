@@ -19,6 +19,7 @@ import type {
 import { mockupPageIcon } from "../../utils/mockupFrame";
 import {
   OVERVIEW_FRAME_WIDTH,
+  sectionLabelScale,
   wheelPixels,
   wheelZoomFactor,
 } from "../../utils/mockupOverview";
@@ -92,11 +93,14 @@ const labelStyle = computed(() => ({
 }));
 const lineStyle = computed(() => ({ "--dms-line": `${1 / zoom.value}px` }));
 /** Draws a section's title at its own size on the screen, above its first row's page titles. */
-const sectionStyle = computed(() => ({
-  width: `${OVERVIEW_FRAME_WIDTH * 2 * zoom.value}px`,
-  transform: `scale(${1 / zoom.value})`,
-  transformOrigin: "bottom left",
-}));
+const sectionStyle = computed(() => {
+  const scale = sectionLabelScale(zoom.value);
+  return {
+    width: `${(OVERVIEW_FRAME_WIDTH * 2) / scale}px`,
+    transform: `scale(${scale})`,
+    transformOrigin: "bottom left",
+  };
+});
 
 const pageById = computed(
   () => new Map(props.pages.map((page) => [page.id, page])),
@@ -105,6 +109,15 @@ const iconById = computed(
   () =>
     new Map(
       props.pages.map((page, index) => [page.id, mockupPageIcon(page, index)]),
+    ),
+);
+const blocksById = computed(
+  () =>
+    new Map(
+      props.overview.canvases.value.map(({ page, blocks }) => [
+        page.id,
+        blocks,
+      ]),
     ),
 );
 const frameById = computed(
@@ -346,7 +359,15 @@ onBeforeUnmount(() => {
           class="bg-default absolute inset-0 grid place-items-center rounded-md"
           data-dms-mockup-overview-placeholder
         >
+          <div
+            v-for="block in blocksById.get(frame.id)"
+            :key="block.path"
+            class="border-default bg-muted absolute rounded-sm border"
+            :style="rectStyle(block.rect)"
+            data-dms-mockup-overview-snapshot-block
+          />
           <UIcon
+            v-if="!blocksById.get(frame.id)?.length"
             :name="pageById.get(frame.id)?.icon ?? 'i-ph-frame-corners-light'"
             class="text-dimmed size-6"
             :style="{ transform: `scale(${1 / zoom})` }"

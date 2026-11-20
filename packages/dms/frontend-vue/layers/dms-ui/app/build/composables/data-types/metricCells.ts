@@ -8,6 +8,9 @@ import type {
   DataTypeFormatter,
 } from "#dms-core/app/composables/data-types/useDataType";
 import StatusPill from "../../../components/status-pill/StatusPill.vue";
+import { isObject } from "#dms-core/app/utils/type-check";
+import { readRelationLabel } from "./relationBadges";
+import { DEFAULT_RELATION_VALUE_KEY } from "./relationValue";
 import MonoCell from "../../components/table/MonoCell.vue";
 import { getAppComposedText } from "../../../../../dms-core/app/composables/translation/useComposedText";
 import {
@@ -32,6 +35,8 @@ interface SelectItemOption {
   value: unknown;
   label?: string;
   icon?: string;
+  textColor?: string;
+  iconColor?: string;
 }
 
 interface StatusPillOptions {
@@ -46,13 +51,24 @@ interface StatusPillOptions {
   typeOptions?: { items?: SelectItemOption[] };
 }
 
-function statusPillTone(opts: StatusPillOptions, key: string, row: Row) {
-  return readRowTone(row, opts.toneField) ?? opts.tones?.[key] ?? "neutral";
+function statusPillTone(
+  opts: StatusPillOptions,
+  key: string,
+  row: Row,
+  item?: SelectItemOption,
+) {
+  return (
+    readRowTone(row, opts.toneField) ??
+    opts.tones?.[key] ??
+    item?.textColor ??
+    item?.iconColor ??
+    "neutral"
+  );
 }
 
 /**
  * `status_pill`: a tinted pill led by a dot, in the tone the row gives
- * (`toneField`) or the value maps to, with an optional line under it (a
+ * (`toneField`), the value maps to or its select item carries, with an optional line under it (a
  * failure's cause, a composed "retry Oct 10") in the row's tone, else
  * `subTone`, else the pill's.
  */
@@ -68,7 +84,7 @@ function renderStatusPill(
   const item = opts.typeOptions?.items?.find(
     (candidate) => String(candidate.value) === key,
   );
-  const tone = statusPillTone(opts, key, row);
+  const tone = statusPillTone(opts, key, row, item);
   const pill = h(StatusPill, {
     tone,
     label: processI18n(item?.label ?? key),
@@ -272,6 +288,30 @@ function renderDuration(
  */
 interface MonoOptions {
   copy?: boolean;
+  /** The column's own type options: a relation's key mapping names its label. */
+  typeOptions?: {
+    keyMapping?: { label?: string; value?: string };
+  };
+}
+
+const MONO_RELATION_LABEL_KEY = "name";
+
+/** The text a mono cell shows: a related row reads as its label, not as an object. */
+function monoText(
+  value: Parameters<DataTypeFormatter>[0],
+  opts: MonoOptions,
+): string {
+  if (Array.isArray(value)) {
+    const items: unknown[] = value;
+    return items.map((item) => monoText(item, opts)).join(", ");
+  }
+  if (!isObject(value) || value === null) return String(value);
+  const mapping = opts.typeOptions?.keyMapping;
+  return readRelationLabel(
+    value,
+    mapping?.label || MONO_RELATION_LABEL_KEY,
+    mapping?.value || DEFAULT_RELATION_VALUE_KEY,
+  );
 }
 
 export const registerMetricCellTypes = (
@@ -317,7 +357,7 @@ export const registerMetricCellTypes = (
       default: (value, _locale, options) => {
         const opts: MonoOptions = options ?? {};
         return h(MonoCell, {
-          value: String(value),
+          value: monoText(value, opts),
           copy: !!opts.copy,
           class: CELL_TEXT_CLASS,
         });

@@ -8,6 +8,7 @@ import {
   queryRouteMethodText,
   seriesNaming,
   registerBuiltinQueryTemplates,
+  interfaceExportsHelper,
   interfaceNamesBuckets,
 } from "../../../implementations/dms-builder/engine";
 
@@ -81,6 +82,28 @@ describe("naming the periods of a bucketed series", () => {
     expect(interfaceNamesBuckets(withoutWeek, "month")).to.equal(true);
     expect(interfaceNamesBuckets(withoutWeek, "week")).to.equal(false);
     expect(interfaceNamesBuckets(withWeek, "week")).to.equal(true);
+  });
+
+  it("finds out whether the declarations export a helper as a function, not merely name it", () => {
+    const exporting = interfaceWith(
+      "export declare function percentOf(top: unknown, bottom: unknown): unknown;",
+    );
+    const mentioning = interfaceWith(
+      "export interface PercentOptions { percentOf?: boolean }\n/** Replaces percentOfOld. */\nexport declare function percentOfOld(): void;",
+    );
+
+    expect(interfaceExportsHelper(exporting, "percentOf")).to.equal(true);
+    expect(interfaceExportsHelper(exporting, "kpiValueData")).to.equal(false);
+    expect(interfaceExportsHelper(mentioning, "percentOf")).to.equal(false);
+  });
+
+  it("takes an interface it cannot find for one that exports nothing", () => {
+    expect(
+      interfaceExportsHelper(
+        "/nonexistent/src/orders/data-api.ts",
+        "percentOf",
+      ),
+    ).to.equal(false);
   });
 
   it("takes an interface it cannot find for one that does not", () => {

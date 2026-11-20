@@ -241,7 +241,13 @@ function usePageReports(options: OverviewOptions) {
     }
     if (blocks) layouts.value = new Map(layouts.value).set(page, blocks);
   }
-  return { frames, labels, canvases, report };
+  return { frames, labels, canvases, report, layouts };
+}
+
+/** The pages the live slots are handed out among: where each sits, and which reported its blocks. */
+interface LiveSlotPages {
+  frames: ComputedRef<OverviewFrame[]>;
+  layouts: Readonly<Ref<ReadonlyMap<string, PreviewBlockRect[]>>>;
 }
 
 /**
@@ -249,38 +255,48 @@ function usePageReports(options: OverviewOptions) {
  * holding a slot, at most {@link LIVE_FRAMES}. The iframes of the overview
  * share the window's main thread, so the pool grows by one iframe at a time,
  * once every iframe it has booted: the page nearest the middle draws first,
- * and the canvas keeps answering while the others boot. While the camera
+ * and the canvas keeps answering while the others boot. With more pages
+ * nearby than slots, a page never drawn goes first, so every page draws once
+ * and the ones past the cap keep that drawing as a snapshot. While the camera
  * moves, the slots stay as they are, since an iframe drawing another page or
  * booting holds the main thread for a whole frame or more; they follow the
  * camera once it rests.
  */
 function useLiveSlots(
   isOpen: Readonly<Ref<boolean>>,
-  frames: ComputedRef<OverviewFrame[]>,
+  { frames, layouts }: LiveSlotPages,
   camera: Readonly<Ref<OverviewCamera>>,
   isMoving: Readonly<Ref<boolean>>,
   viewport: Viewport,
 ) {
   const slots = ref<(string | undefined)[]>([]);
   const booted = shallowRef<ReadonlySet<number>>(new Set());
-  watch([isOpen, frames, camera, isMoving, viewport.size, booted], () => {
-    if (!isOpen.value) {
-      if (slots.value.length) slots.value = [];
-      if (booted.value.size) booted.value = new Set();
-      return;
-    }
-    if (!viewport.hasSize.value || isMoving.value) return;
-    const wanted = nearbyFrames(
-      frames.value,
-      camera.value,
-      viewport.size.value,
-    );
-    const capacity = Math.min(LIVE_FRAMES, booted.value.size + 1);
-    const next = assignSlots(slots.value, wanted, capacity);
-    if (next.some((id, index) => id !== slots.value[index])) {
-      slots.value = next;
-    }
-  });
+  watch(
+    [isOpen, frames, camera, isMoving, viewport.size, booted, layouts],
+    () => {
+      if (!isOpen.value) {
+        if (slots.value.length) slots.value = [];
+        if (booted.value.size) booted.value = new Set();
+        return;
+      }
+      if (!viewport.hasSize.value || isMoving.value) return;
+      const nearby = nearbyFrames(
+        frames.value,
+        camera.value,
+        viewport.size.value,
+      );
+      const isDrawn = (id: string) => layouts.value.has(id);
+      const wanted =
+        nearby.length > LIVE_FRAMES
+          ? [...nearby.filter((id) => !isDrawn(id)), ...nearby.filter(isDrawn)]
+          : nearby;
+      const capacity = Math.min(LIVE_FRAMES, booted.value.size + 1);
+      const next = assignSlots(slots.value, wanted, capacity);
+      if (next.some((id, index) => id !== slots.value[index])) {
+        slots.value = next;
+      }
+    },
+  );
   return {
     slots,
     booted: (slot: number) => {
@@ -396,7 +412,7 @@ function useCameraControls(
 export function useMockupOverview(options: OverviewOptions): MockupOverview {
   const { isOpen } = options;
   const viewport = useViewport();
-  const { frames, labels, canvases, report } = usePageReports(options);
+  const { frames, labels, canvases, report, layouts } = usePageReports(options);
   const fitPadding = computed(() =>
     labels.value.length ? SECTIONED_FIT_PADDING_PX : FIT_PADDING_PX,
   );
@@ -409,7 +425,7 @@ export function useMockupOverview(options: OverviewOptions): MockupOverview {
   );
   const { slots, booted } = useLiveSlots(
     isOpen,
-    frames,
+    { frames, layouts },
     camera,
     isMoving,
     viewport,

@@ -5,12 +5,12 @@ import { currentRun } from "./global-setup.mjs";
 import { judgeJourney, openJourney, timedJourney } from "./journey-run.mjs";
 import { saveRun } from "./run-state.mjs";
 import { featureOf, journeyOf } from "./test-journey.mjs";
-import { loadSkill } from "./verify/skill.mjs";
+import { loadSuiteConfig } from "./journeys-config.mjs";
 
 /**
  * @typedef {import("./suite.mjs").Suite} Suite
  * @typedef {import("./test-journey.mjs").DmsOptions} DmsOptions How the `dms` fixture prepares a test
- * @typedef {{ dmsSuite: Suite, run: import("./run-state.mjs").RunState, skill: import("./verify/skill.mjs").Skill }} DmsWorkerFixtures What a worker shares: the suite its config declared, the run its global setup started, and the verify skill of the suite
+ * @typedef {{ dmsSuite: Suite, run: import("./run-state.mjs").RunState, journeysConfig: import("./journeys-config.mjs").SuiteConfig }} DmsWorkerFixtures What a worker shares: the suite its config declared, the run its global setup started, and the journeys config of the suite
  * @typedef {{ dmsOptions: DmsOptions, dms: import("./journey.mjs").JourneyContext, adminPage: import("@playwright/test").Page }} DmsTestFixtures What one test gets: its options, the journey context it drives the run through, and a page the administrator signed in on
  * @typedef {import("@playwright/test").PlaywrightTestArgs & import("@playwright/test").PlaywrightTestOptions} PlaywrightTestFixtures The fixtures Playwright gives a test
  * @typedef {import("@playwright/test").PlaywrightWorkerArgs & import("@playwright/test").PlaywrightWorkerOptions} PlaywrightWorkerFixtures The fixtures Playwright gives a worker
@@ -22,7 +22,10 @@ const STEP_EVIDENCE = [
 ];
 
 /** @type {Suite} */
-const UNDECLARED_SUITE = { skill: undefined, frontend: "build" };
+const UNDECLARED_SUITE = {
+  config: undefined,
+  frontend: "build",
+};
 
 /**
  * Replays a judged test into the Playwright report: a step per recorded
@@ -33,7 +36,7 @@ const UNDECLARED_SUITE = { skill: undefined, frontend: "build" };
  * the serving backend's log and names its evidence folder. The judged error
  * is thrown last.
  *
- * @param {import("./verify/types.mjs").FeatureResult} result The judged test
+ * @param {import("./types.mjs").FeatureResult} result The judged test
  * @param {import("./run-state.mjs").RunState} state The run
  * @param {import("@playwright/test").TestInfo} testInfo The test
  * @returns {Promise<void>}
@@ -95,9 +98,9 @@ const FIXTURES = {
     },
     { scope: "worker" },
   ],
-  skill: [
+  journeysConfig: [
     async ({ dmsSuite }, use) => {
-      await use(await loadSkill(dmsSuite.skill, process.cwd()));
+      await use(await loadSuiteConfig(process.cwd(), dmsSuite.config));
     },
     { scope: "worker" },
   ],
@@ -105,7 +108,7 @@ const FIXTURES = {
   baseURL: async ({ run }, use) => {
     await use(run.webUrl);
   },
-  dms: async ({ run, skill, browser, dmsOptions }, use, testInfo) => {
+  dms: async ({ run, journeysConfig, browser, dmsOptions }, use, testInfo) => {
     const journey = journeyOf(testInfo, dmsOptions);
     const feature = featureOf(testInfo);
     const result = await timedJourney(
@@ -116,7 +119,7 @@ const FIXTURES = {
           run,
           feature,
           journey,
-          skill,
+          journeysConfig,
           browser,
         );
         if (!context.ended) await use(context);

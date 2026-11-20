@@ -108,6 +108,12 @@ export interface CustomRowAction<
    */
   confirm?: ActionConfirm;
   rule?: RowActionRule<T>;
+  /**
+   * Why `rule` keeps the action off a row (`$`: i18n key, receiving the row's
+   * fields as parameters). With it a table row keeps the action, disabled,
+   * and shows this text; without it the row hides the action.
+   */
+  disabledReason?: string;
   isVisible?: boolean;
   /**
    * Makes this action the target of a row click, ahead of the built-in
@@ -164,6 +170,7 @@ export interface CustomRowActionSerialized {
   target: ActionTargetSerialized;
   confirm?: ActionConfirmSerialized;
   rule?: RowActionRule;
+  disabledReason?: string;
   isVisible?: boolean;
   /**
    * Makes this action the target of a row click, ahead of the built-in

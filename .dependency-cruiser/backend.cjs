@@ -26,6 +26,7 @@ const loaderEntries = [
   "dms/guards",
   "dms-base/table-view",
   "dms-base/distinct-values",
+  "dms-base/phone-number",
   "dms-base/export-jobs",
   "dms-base/tenant-export-archive",
   "dms/client-base-url",
@@ -60,7 +61,7 @@ const faces = new Map(
       "dms-html-render/services",
       "dms-notifications/services",
     ],
-    store: ["frontend"],
+    store: ["frontend", "catalog"],
     utils: [
       "notification-tones",
       "email-subjects",

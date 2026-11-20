@@ -24,9 +24,7 @@ const PLAYGROUND = join(".agents", "skills", "verify", "playground");
  * @returns {{ repo: string, playground: string }} Its paths
  */
 function repoWithNewPlayground(t) {
-  const root = realpathSync(
-    mkdtempSync(join(tmpdir(), "dms-control-base-test-")),
-  );
+  const root = realpathSync(mkdtempSync(join(tmpdir(), "dms-e2e-base-test-")));
   t.after(() => rmSync(root, { recursive: true, force: true }));
   setEnv(t, { XDG_CACHE_HOME: join(root, "cache") });
   const repo = join(root, "repo");
@@ -53,10 +51,7 @@ await test("a base ref without the playground prepares a copy of the run's playg
     ["grep", "-qx", "head", join(PLAYGROUND, "antelope.config.ts")],
     ["grep", "-qx", "base", "README.md"],
   ];
-  const base = baseCheckout(
-    { repo, playground, baseRef: "base" },
-    { config: { prepare } },
-  );
+  const base = baseCheckout({ repo, playground, baseRef: "base" }, { prepare });
   assert.equal(base.sha, git(["rev-parse", "base"], repo));
   assert.equal(base.playground, join(base.dir, PLAYGROUND));
   assert.equal(existsSync(join(base.playground, "node_modules")), false);
@@ -65,15 +60,13 @@ await test("a base ref without the playground prepares a copy of the run's playg
 await test("a copied base playground follows the run's playground from one run to the next", (t) => {
   const { repo, playground } = repoWithNewPlayground(t);
   const state = { repo, playground, baseRef: "base" };
-  baseCheckout(state, { config: { prepare: [] } });
+  baseCheckout(state, { prepare: [] });
   write(join(playground, "antelope.config.ts"), "edited\n");
   const base = baseCheckout(state, {
-    config: {
-      prepare: [
-        ["grep", "-qx", "edited", join(PLAYGROUND, "antelope.config.ts")],
-        ["touch", "prepared"],
-      ],
-    },
+    prepare: [
+      ["grep", "-qx", "edited", join(PLAYGROUND, "antelope.config.ts")],
+      ["touch", "prepared"],
+    ],
   });
   assert.equal(existsSync(join(base.dir, "prepared")), true);
 });
@@ -81,8 +74,8 @@ await test("a copied base playground follows the run's playground from one run t
 await test("a base ref that has the playground is built once", (t) => {
   const { repo, playground } = repoWithNewPlayground(t);
   const state = { repo, playground, baseRef: "HEAD" };
-  const first = baseCheckout(state, { config: { prepare: [] } });
+  const first = baseCheckout(state, { prepare: [] });
   write(join(first.playground, "prepared"), "");
-  const second = baseCheckout(state, { config: { prepare: [["false"]] } });
+  const second = baseCheckout(state, { prepare: [["false"]] });
   assert.equal(existsSync(join(second.playground, "prepared")), true);
 });

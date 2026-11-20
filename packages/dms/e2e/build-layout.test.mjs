@@ -34,7 +34,7 @@ const REGISTRY = "generated-frontend-modules.json";
  */
 function fixture(t) {
   const dir = realpathSync(
-    mkdtempSync(join(tmpdir(), "dms-control-build-layout-test-")),
+    mkdtempSync(join(tmpdir(), "dms-e2e-build-layout-test-")),
   );
   t.after(() => rmSync(dir, { recursive: true, force: true }));
   setEnv(t, { XDG_CACHE_HOME: join(dir, "xdg") });
@@ -144,6 +144,24 @@ await test("a run restores the build of the sources it set up into its own works
   );
 });
 
+await test("a second run under an install pnpm 12 recorded reuses the first run's build", async (t) => {
+  const { dir, up } = fixture(t);
+  write(
+    join(dir, "node_modules", ".modules.yaml"),
+    `${JSON.stringify({ hoistPattern: ["*"], layoutVersion: 5, prunedAt: "Mon, 16 Nov 2026 10:57:18 GMT" }, null, 2)}\n`,
+  );
+  const first = await up();
+  assert.equal(first.frontendBuild?.reason, undefined);
+  const second = await up();
+  assert.equal(
+    second.frontendBuild?.cached,
+    true,
+    "a key that refuses pnpm 12's JSON record rebuilds the dashboard on every run",
+  );
+  assert.deepEqual(second.builds, []);
+  assert.equal(second.served, "clean");
+});
+
 await test("an edit present only while a run copies its sources is keyed with them, so a clean run never serves it", async (t) => {
   const { checkout, up } = fixture(t);
   const edited = await up({
@@ -217,7 +235,7 @@ await test("without the cache, or when the workspace cannot be prepared, the run
   );
   assert.equal(forced.frontendBuild?.key, null);
   assert.equal(
-    namesIn(join(dir, "xdg", "dms-control", "frontend")).length,
+    namesIn(join(dir, "xdg", "dms-e2e", "frontend")).length,
     1,
     "--no-build-cache stores what it built",
   );
@@ -241,7 +259,7 @@ await test("an install record the key cannot read is a miss that builds as ajs d
   write(record, "hoistPattern:\n  - '*'\nlayoutVersion: 5\n");
   await up();
   assert.equal((await up()).frontendBuild?.cached, true);
-  write(record, `${JSON.stringify({ hoistPattern: [], layoutVersion: 5 })}\n`);
+  write(record, '"hoistPattern": []\nlayoutVersion: 5\n');
   const unread = await up();
   assert.deepEqual(
     unread.builds,
@@ -251,10 +269,10 @@ await test("an install record the key cannot read is a miss that builds as ajs d
   assert.deepEqual(unread.frontendBuild, {
     key: null,
     cached: false,
-    reason: `its inputs could not be keyed (${record} is not the YAML layout the build cache reads (line 1))`,
+    reason: `its inputs could not be keyed (${record} is neither the JSON nor the YAML layout the build cache reads (line 1))`,
   });
   assert.equal(
-    namesIn(join(dir, "xdg", "dms-control", "frontend")).length,
+    namesIn(join(dir, "xdg", "dms-e2e", "frontend")).length,
     1,
     "a build whose inputs were not all keyed is stored under no key",
   );
@@ -283,7 +301,7 @@ await test("a build that refuses its prepared workspace builds again as ajs dms 
     /refused its prepared workspace \(frontend-build exited with 75\)/u,
   );
   assert.equal(
-    treeOf(join(dir, "xdg", "dms-control", "frontend")),
+    treeOf(join(dir, "xdg", "dms-e2e", "frontend")),
     null,
     "a build outside the prepared workspace is stored under the key of sources it did not read",
   );
@@ -332,11 +350,11 @@ await test("a run records the VITE_ and NODE_ENV variables it keyed on, so anoth
 
 await test("an install record above TMPDIR that the key cannot read leaves the runs cached, through a linked TMPDIR too", async (t) => {
   const outer = realpathSync(
-    mkdtempSync(join(tmpdir(), "dms-control-build-layout-outer-")),
+    mkdtempSync(join(tmpdir(), "dms-e2e-build-layout-outer-")),
   );
   t.after(() => rmSync(outer, { recursive: true, force: true }));
   const record = join(outer, "node_modules", ".modules.yaml");
-  write(record, '{"layoutVersion":5}\n');
+  write(record, '"layoutVersion": 5\n');
   write(join(outer, "tmp", ".keep"), "");
   symlinkSync(join(outer, "tmp"), join(outer, "linked-tmp"));
   const linked = join(outer, "linked-tmp");
@@ -345,7 +363,7 @@ await test("an install record above TMPDIR that the key cannot read leaves the r
   write(join(dir, "node_modules", ".modules.yaml"), "layoutVersion: 5\n");
   assert.match(
     (await up({ top: outer })).frontendBuild?.reason ?? "",
-    /\.modules\.yaml is not the YAML layout the build cache reads/u,
+    /\.modules\.yaml is neither the JSON nor the YAML layout the build cache reads/u,
     "a run whose key reads the folder above TMPDIR refuses the record there, so the fixture's runs below hit only by not reading it",
   );
   await up();

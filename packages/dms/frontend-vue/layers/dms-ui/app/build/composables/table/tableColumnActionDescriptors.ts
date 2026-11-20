@@ -76,18 +76,6 @@ const isRuleBlocked = <T extends Data>(
   return listed === undefined || !evaluateRowActionRule(rule, listed);
 };
 
-const isActionDisabled = <T extends Data>(
-  context: TableColumnContext<T>,
-  actionConfig: boolean | RowActionConfig | undefined,
-  rowData: Data,
-): boolean => {
-  const actionConfigNormalized = normalizeActionConfig(actionConfig);
-  if (!actionConfigNormalized.isEnabled) return true;
-  if (!actionConfigNormalized.rule) return false;
-
-  return isRuleBlocked(context, actionConfigNormalized.rule, rowData);
-};
-
 const rowText = <T extends Data>(
   context: TableColumnContext<T>,
   text: string,
@@ -96,6 +84,38 @@ const rowText = <T extends Data>(
   const { t } = context;
   return resolveConfirmText(text, rowData, t);
 };
+
+type Availability = Pick<RowActionDescriptor, "disabled" | "disabledReason">;
+
+const ruleAvailability = <T extends Data>(
+  context: TableColumnContext<T>,
+  declared: Pick<RowActionConfig, "rule" | "disabledReason">,
+  rowData: Data,
+): Availability => {
+  if (!declared.rule || !isRuleBlocked(context, declared.rule, rowData)) {
+    return { disabled: false };
+  }
+  return {
+    disabled: true,
+    disabledReason:
+      declared.disabledReason &&
+      rowText(context, declared.disabledReason, rowData),
+  };
+};
+
+const actionAvailability = <T extends Data>(
+  context: TableColumnContext<T>,
+  actionConfig: boolean | RowActionConfig | undefined,
+  rowData: Data,
+): Availability => {
+  const normalized = normalizeActionConfig(actionConfig);
+  if (!normalized.isEnabled) return { disabled: true };
+  return ruleAvailability(context, normalized, rowData);
+};
+
+/** Whether a row shows the action: enabled, or kept off with a reason to show. */
+export const isOffered = (descriptor: RowActionDescriptor): boolean =>
+  !descriptor.disabled || !!descriptor.disabledReason;
 
 export const menuLabel = <T extends Data>(
   context: TableColumnContext<T>,
@@ -111,16 +131,6 @@ export const menuLabel = <T extends Data>(
   return isString(label) || isNumber(label)
     ? t("dms.table.row_actions_for", { label })
     : t("dms.table.row_actions");
-};
-
-const isCustomActionDisabled = <T extends Data>(
-  context: TableColumnContext<T>,
-  action: CustomRowAction,
-  rowData: Data,
-): boolean => {
-  if (!action.rule) return false;
-
-  return isRuleBlocked(context, action.rule, rowData);
 };
 
 const buildCopyLinkOnSelect = <T extends Data>(
@@ -193,7 +203,7 @@ const buildCustomActionDescriptors = <T extends Data>(
 
     icon: action.icon || (action.showLabel ? "" : "i-ph-lightning"),
     onSelect: onRow(rowData, (row) => config.onCustomRowAction?.(action, row)),
-    disabled: isCustomActionDisabled(context, action, shown),
+    ...ruleAvailability(context, action, shown),
     visible: isCustomActionInline(action),
     color: action.color,
     variant: action.variant,
@@ -232,7 +242,7 @@ const buildBuiltInActionDescriptors = <T extends Data>(
       label: builtInLabel(context, "copyLink", t("dms.button.copy_link")),
       icon: builtInIcon(context, "copyLink", "i-ph-link"),
       onSelect: onRow(rowData, (row) => copyLinkAfterConfirm(context, row)),
-      disabled: isActionDisabled(context, config.rowActions?.copyLink, shown),
+      ...actionAvailability(context, config.rowActions?.copyLink, shown),
       visible: isActionVisible(config.rowActions?.copyLink),
     },
     {
@@ -240,7 +250,7 @@ const buildBuiltInActionDescriptors = <T extends Data>(
       label: builtInLabel(context, "details", t("dms.button.details")),
       icon: builtInIcon(context, "details", "i-ph-info"),
       onSelect: onRow(rowData, (row) => config.emits("details", row)),
-      disabled: isActionDisabled(context, config.rowActions?.details, shown),
+      ...actionAvailability(context, config.rowActions?.details, shown),
       visible: isActionVisible(config.rowActions?.details),
     },
     {
@@ -248,7 +258,7 @@ const buildBuiltInActionDescriptors = <T extends Data>(
       label: builtInLabel(context, "edit", t("dms.button.edit")),
       icon: builtInIcon(context, "edit", "i-ph-pencil"),
       onSelect: onRow(rowData, (row) => config.emits("edit", row)),
-      disabled: isActionDisabled(context, config.rowActions?.edit, shown),
+      ...actionAvailability(context, config.rowActions?.edit, shown),
       visible: isActionVisible(config.rowActions?.edit),
     },
     {
@@ -258,7 +268,7 @@ const buildBuiltInActionDescriptors = <T extends Data>(
       onSelect: onRow(rowData, (row) =>
         config.emits("duplicate", rowIdOf(row, config.rowIdKey)),
       ),
-      disabled: isActionDisabled(context, config.rowActions?.duplicate, shown),
+      ...actionAvailability(context, config.rowActions?.duplicate, shown),
       visible: isActionVisible(config.rowActions?.duplicate),
     },
     {
@@ -268,7 +278,7 @@ const buildBuiltInActionDescriptors = <T extends Data>(
       onSelect: onRow(rowData, (row) =>
         config.emits("delete", [rowIdOf(row, config.rowIdKey)]),
       ),
-      disabled: isActionDisabled(context, config.rowActions?.delete, shown),
+      ...actionAvailability(context, config.rowActions?.delete, shown),
       visible: isActionVisible(config.rowActions?.delete),
       color: Color.error,
     },
@@ -279,7 +289,7 @@ const buildBuiltInActionDescriptors = <T extends Data>(
       onSelect: onRow(rowData, (row) =>
         config.emits("archive", [rowIdOf(row, config.rowIdKey)]),
       ),
-      disabled: isActionDisabled(context, config.rowActions?.archive, shown),
+      ...actionAvailability(context, config.rowActions?.archive, shown),
       visible: isActionVisible(config.rowActions?.archive),
     },
     {
@@ -289,7 +299,7 @@ const buildBuiltInActionDescriptors = <T extends Data>(
       onSelect: onRow(rowData, (row) =>
         config.emits("restore", [rowIdOf(row, config.rowIdKey)]),
       ),
-      disabled: isActionDisabled(context, config.rowActions?.restore, shown),
+      ...actionAvailability(context, config.rowActions?.restore, shown),
       visible: isActionVisible(config.rowActions?.restore),
     },
   ];
@@ -318,6 +328,12 @@ export const descriptorToMenuItem = (
     descriptor.label,
     descriptor.icon,
     descriptor.onSelect,
-    descriptor.color ? { color: descriptor.color } : undefined,
+    {
+      ...(descriptor.color && { color: descriptor.color }),
+      ...(descriptor.disabled && {
+        disabled: true,
+        description: descriptor.disabledReason,
+      }),
+    },
   );
 };

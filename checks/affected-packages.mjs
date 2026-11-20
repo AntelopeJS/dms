@@ -1,7 +1,6 @@
 import { spawnSync } from "node:child_process";
 import { matchesGlob } from "node:path/posix";
-import { decodeSkillConfig } from "../packages/dms/e2e/verify/decode.mjs";
-import { isRecord } from "../packages/dms/e2e/json.mjs";
+import { formal } from "./formal-checks.ts";
 
 /** @typedef {{ name: string, root: string, reads: string[], dependsOn: string[] }} TestPackage */
 
@@ -20,9 +19,8 @@ import { isRecord } from "../packages/dms/e2e/json.mjs";
  *   the docs examples through the mockup compile test.
  * - `frontend-vue` reads `packages/dms/data`, `packages/dms/checks`,
  *   `packages/dms/package.json` and the playground layer.
- * - `verify-dms` is the verify-map check: its features name documentation
- *   pages, its config names playground files, and its journeys and their
- *   Playwright suite live in `e2e/`.
+ * - `e2e` is the Playwright suite and its journeys, which drive the
+ *   playground.
  * - `agents` holds the TLA+ formal models, which cover code in every package.
  *
  * @type {TestPackage[]}
@@ -75,9 +73,9 @@ export const PACKAGES = [
     dependsOn: ["interface-dms", "dms", "frontend-vue"],
   },
   {
-    name: "verify-dms",
-    root: ".agents/skills/verify-dms",
-    reads: ["packages/*/docs/**", "e2e/**"],
+    name: "e2e",
+    root: "e2e",
+    reads: [],
     dependsOn: [
       "interface-dms",
       "interface-dms-builder",
@@ -289,8 +287,7 @@ const JOB_RULES = [
     job: "frontend-verify",
     when: ({ packages }) => packages.has("frontend-vue"),
   },
-  { job: "verify-map", when: ({ packages }) => packages.has("verify-dms") },
-  { job: "e2e", when: ({ packages }) => packages.has("verify-dms") },
+  { job: "e2e", when: ({ packages }) => packages.has("e2e") },
   {
     job: "docs-playground",
     when: ({ tier }) => tier === "queue" || tier === "nightly",
@@ -316,7 +313,7 @@ export const requiredJobs = (plan) =>
   JOB_RULES.filter(({ when }) => when(plan)).map(({ job }) => job);
 
 /** How many jobs share the builder suite, balanced by `scripts/test-weights.json`. */
-const BUILDER_SHARDS = 4;
+const BUILDER_SHARDS = 5;
 
 /**
  * The suites of the `backend` job's matrix: `unit`, `integration` and one
@@ -362,27 +359,12 @@ export const planRun = (env, checks, changedFiles) => {
 };
 
 /**
- * The formal checks the verification skill lists.
+ * The formal checks `checks/formal-checks.ts` lists.
  *
  * @returns {Promise<FormalCheck[]>}
  */
-export const loadFormalChecks = async () => {
-  const config = new URL(
-    "../.agents/skills/verify-dms/verify.config.ts",
-    import.meta.url,
-  );
-  /** @type {unknown} */
-  const loaded = await import(config.href);
-  const { formal } = decodeSkillConfig(
-    isRecord(loaded) ? loaded.default : undefined,
-    config.pathname,
-  );
-  return formal.map(({ name, covers, files = [] }) => ({
-    name,
-    covers,
-    files,
-  }));
-};
+export const loadFormalChecks = async () =>
+  formal.map(({ name, covers, files }) => ({ name, covers, files }));
 
 if (import.meta.main) {
   const run = planRun(

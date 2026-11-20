@@ -272,12 +272,7 @@ const isStat = computed(() => props.variant === "stat");
         class="text-dimmed size-[15px] shrink-0"
         :aria-hidden="true"
       />
-      <DmsEyebrowLabel
-        tone="muted"
-        truncate
-        class="max-sm:whitespace-normal"
-        :label="processI18n(title)"
-      />
+      <DmsEyebrowLabel tone="muted" :label="processI18n(title)" />
     </div>
     <!-- The value's placeholder takes its 33px line. -->
     <USkeleton

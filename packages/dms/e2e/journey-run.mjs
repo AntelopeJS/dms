@@ -1,19 +1,16 @@
-import { existsSync } from "node:fs";
 import { join, relative } from "node:path";
 import { launchBrowser } from "./browser.mjs";
 import { judge } from "./journey-judge.mjs";
 import { JourneyContext } from "./journey.mjs";
-import { frontendRefusal, loadJourneys } from "./journey-load.mjs";
-import { readRecordList, writeJson } from "./json.mjs";
+import { writeJson } from "./json.mjs";
 import { resolutionFolders } from "./launch.mjs";
-import { saveRun } from "./run-state.mjs";
 import { onboard } from "./session.mjs";
 import { ensureMail } from "./stack.mjs";
-import { assertForwardedRun, freshDatabase } from "./backend.mjs";
+import { freshDatabase } from "./backend.mjs";
 import { recordTiming, stopwatch, timed } from "./timing.mjs";
 
 /**
- * @typedef {import("./verify/types.mjs").FeatureResult} FeatureResult
+ * @typedef {import("./types.mjs").FeatureResult} FeatureResult
  * @typedef {import("./journey-load.mjs").Journey} Journey
  * @typedef {Pick<Journey, "id" | "database" | "onboard" | "backend" | "standby">} JourneyPreparation What a journey asks of the run before it starts
  */
@@ -78,11 +75,11 @@ async function prepare(state, feature, journey, context) {
  * @param {import("./run-state.mjs").RunState} state The run
  * @param {string} feature The feature it belongs to
  * @param {Journey} journey The journey
- * @param {import("./verify/skill.mjs").Skill | undefined} skill The skill the journey belongs to
+ * @param {import("./journeys-config.mjs").SuiteConfig | undefined} config The journeys config the journey belongs to, none for a browserless run
  * @param {Pick<import("playwright-core").Browser, "newContext" | "close">} [browser] The browser to open its contexts in, such as Playwright Test's
  * @returns {Promise<FeatureResult>} The result
  */
-export function runJourney(state, feature, journey, skill, browser) {
+export function runJourney(state, feature, journey, config, browser) {
   const detail = { feature, journey: journey.id };
   return timedJourney(state, detail, async () => {
     const opened =
@@ -94,7 +91,13 @@ export function runJourney(state, feature, journey, skill, browser) {
         detail,
       ));
     try {
-      const context = await openJourney(state, feature, journey, skill, opened);
+      const context = await openJourney(
+        state,
+        feature,
+        journey,
+        config,
+        opened,
+      );
       await context.drive(journey.run);
       return await judgeJourney(context, journey);
     } finally {
@@ -113,17 +116,17 @@ export function runJourney(state, feature, journey, skill, browser) {
  * @param {import("./run-state.mjs").RunState} state The run
  * @param {string} feature The feature it belongs to
  * @param {JourneyPreparation} journey What it asks of the run
- * @param {import("./verify/skill.mjs").Skill | undefined} skill The skill it belongs to
+ * @param {import("./journeys-config.mjs").SuiteConfig | undefined} config The journeys config it belongs to, none for a browserless run
  * @param {Pick<import("playwright-core").Browser, "newContext">} browser The browser to open its contexts in
  * @returns {Promise<JourneyContext>} Its context, ended when the preparation failed
  */
-export async function openJourney(state, feature, journey, skill, browser) {
+export async function openJourney(state, feature, journey, config, browser) {
   const context = new JourneyContext(
     state,
     feature,
     journey.id,
     browser,
-    skill,
+    config,
   );
   await context.attempt(() => prepare(state, feature, journey, context));
   return context;
@@ -184,48 +187,4 @@ export async function timedJourney(state, detail, drive) {
   const timedResult = { ...result, ms: lap.ms };
   writeJson(join(state.evidence, result.folder, "result.json"), timedResult);
   return timedResult;
-}
-
-/**
- * Runs a feature's journeys, all or those named, and merges their results
- * into `<feature>/feature.json` so a partial run never drops earlier ones.
- *
- * @param {import("./run-state.mjs").RunState} state The run
- * @param {{ file: string, feature: string, ids: string[], skill: import("./verify/skill.mjs").Skill }} request Which journeys, and the skill they belong to
- * @returns {Promise<FeatureResult[]>} The results of this run
- */
-export async function runJourneyFile(state, request) {
-  assertForwardedRun(state);
-  const journeys = await loadJourneys(request.file);
-  const unknown = request.ids.filter(
-    (id) => !journeys.some((journey) => journey.id === id),
-  );
-  if (unknown.length > 0) {
-    throw new Error(
-      `Unknown journeys of ${request.feature}: ${unknown.join(", ")}`,
-    );
-  }
-  const selected =
-    request.ids.length > 0
-      ? journeys.filter((journey) => request.ids.includes(journey.id))
-      : journeys;
-  const refusal = frontendRefusal(selected, state.frontendMode);
-  if (refusal) throw new Error(refusal);
-  /** @type {FeatureResult[]} */
-  const results = [];
-  for (const journey of selected)
-    results.push(
-      await runJourney(state, request.feature, journey, request.skill),
-    );
-  const file = join(state.evidence, request.feature, "feature.json");
-  const earlier = existsSync(file) ? readRecordList(file) : [];
-  const merged = journeys.flatMap((journey) => {
-    const fresh = results.filter((result) => result.journey === journey.id);
-    return fresh.length > 0
-      ? fresh
-      : earlier.filter((result) => result.journey === journey.id);
-  });
-  writeJson(file, merged);
-  saveRun(state);
-  return results;
 }

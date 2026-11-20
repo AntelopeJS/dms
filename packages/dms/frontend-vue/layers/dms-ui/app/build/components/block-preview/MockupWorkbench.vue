@@ -4,6 +4,7 @@ import { useMockupCatalog } from "../../composables/block-preview/useMockupCatal
 import { useMockupDocument } from "../../composables/block-preview/useMockupDocument";
 import { useMockupEditing } from "../../composables/block-preview/useMockupEditing";
 import { useMockupGridLayout } from "../../composables/block-preview/useMockupGridLayout";
+import { useMockupLocks } from "../../composables/block-preview/useMockupLocks";
 import { useMockupOverview } from "../../composables/block-preview/useMockupOverview";
 import { useMockupPageFrame } from "../../composables/block-preview/useMockupPageFrame";
 import { useMockupPanels } from "../../composables/block-preview/useMockupPanels";
@@ -23,6 +24,7 @@ import MockupEditOverlay from "./MockupEditOverlay.vue";
 import MockupEditPanel from "./MockupEditPanel.vue";
 import MockupHistoryPanel from "./MockupHistoryPanel.vue";
 import MockupInspector from "./MockupInspector.vue";
+import MockupModules from "./MockupModules.vue";
 import MockupOverview from "./MockupOverview.vue";
 import MockupPinLayer from "./MockupPinLayer.vue";
 import MockupPlacementChip from "./MockupPlacementChip.vue";
@@ -72,9 +74,12 @@ const session = useMockupSession({
   authFetch: $authFetch,
 });
 const { state, isConnected, hasRequestFailed } = session;
+const heldBlock = ref<string>();
 const { editor, history } = useMockupDocument({
   name: props.name,
   state,
+  viewer: session.viewer,
+  held: heldBlock,
   onNotice: () => editing.settle(),
 });
 const catalog = useMockupCatalog($authFetch);
@@ -91,6 +96,7 @@ const {
   title,
   pages,
   categories,
+  modules,
   issues,
   requestedPage,
   record,
@@ -118,6 +124,20 @@ const { handoff, runs, handOff, build, resolveComments } =
     isOverview,
   });
 
+const selection = ref<string>();
+const locks = useMockupLocks({
+  name: props.name,
+  authFetch: $authFetch,
+  viewer: session.viewer,
+  presence: session.presence,
+  isConnected,
+  ownEdit: editor.ownEdit,
+  selection,
+  isPending: editor.isPending,
+  spec: editor.spec,
+  digest: editor.digest,
+  held: heldBlock,
+});
 const editing = useMockupEditing({
   editor,
   catalog,
@@ -125,6 +145,8 @@ const editing = useMockupEditing({
   pageIndex,
   openPage: (id) => (requestedPage.value = id),
   revision: computed(() => state.value?.revision),
+  selection,
+  isHeld: locks.isHeld,
 });
 const overview = useMockupOverview({
   name: props.name,
@@ -162,7 +184,12 @@ const { isPreviewing, mode } = useMockupToolModes({
 
 const rows = computed(() =>
   spec.value
-    ? outlineRows(spec.value, pageIndex.value, catalog.byType.value)
+    ? outlineRows(
+        spec.value,
+        pageIndex.value,
+        catalog.byType.value,
+        locks.holders.value,
+      )
     : [],
 );
 /** The editing panels show on the current spec's page view alone: the Overview, Preview, a past version and a generated form page edit nothing. */
@@ -214,6 +241,7 @@ const {
   boxStyle,
   stageStyle,
   toFrame,
+  onCanvasClick,
 } = useMockupPageFrame({
   editing,
   width,
@@ -224,7 +252,6 @@ const {
   realData,
   navigation,
   isPreviewing,
-  isPending: editor.isPending,
   openPage,
   onSectionEdit: (edit) => sections.write(edit),
   onEscape: () =>
@@ -268,6 +295,7 @@ const { showsLeft, showsInspector, gridClass } = useMockupGridLayout({
       :has-request-failed="hasRequestFailed"
       :history="history"
     />
+    <MockupModules :modules="modules" />
     <div class="grid min-h-0 flex-1" :class="gridClass">
       <MockupEditPanel
         v-if="showsLeft && spec"
@@ -293,6 +321,7 @@ const { showsLeft, showsInspector, gridClass } = useMockupGridLayout({
           tabindex="-1"
           class="bg-muted absolute inset-0 overflow-auto p-6 pe-20 outline-none"
           data-dms-mockup-canvas
+          @click="onCanvasClick"
         >
           <div
             v-if="!pages.length"
@@ -319,7 +348,9 @@ const { showsLeft, showsInspector, gridClass } = useMockupGridLayout({
               />
               <MockupEditOverlay
                 v-if="spec && !isReadOnly && !isPreviewing && !isVirtual"
-                :selected="editing.selected.value"
+                :selected="
+                  locks.blocker.value ? undefined : editing.selected.value
+                "
                 :can-move-up="editing.canMoveUp.value"
                 :can-move-down="editing.canMoveDown.value"
                 :is-dragging="!!editing.drag.value"
@@ -369,6 +400,18 @@ const { showsLeft, showsInspector, gridClass } = useMockupGridLayout({
           :data-mode="choice"
           @open="openPage"
         />
+        <div
+          v-if="state && !isConnected"
+          class="bg-muted/80 absolute inset-0 z-40 flex items-center justify-center gap-2 backdrop-blur-sm"
+          role="status"
+          data-dms-mockup-reconnecting
+        >
+          <UIcon
+            name="i-ph-arrows-clockwise"
+            class="text-muted size-5 animate-spin motion-reduce:animate-none"
+          />
+          <p class="text-muted text-sm">{{ t("dms.mockup.disconnected") }}</p>
+        </div>
         <MockupCanvasChrome
           :has-open-page="!isOverview && pages.length > 0"
           :is-locked="isReadOnly || isPreviewing"
@@ -397,6 +440,7 @@ const { showsLeft, showsInspector, gridClass } = useMockupGridLayout({
         :selection="editing.selection.value"
         :catalog="catalog.byType.value"
         :issues="issues"
+        :locked-by="locks.blocker.value?.name"
         :sketch-state="
           sketchStates.of(currentPage?.id).get(editing.selection.value ?? '')
         "

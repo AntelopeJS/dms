@@ -52,6 +52,17 @@ describe("[unit] interfaces/dms-base — column displays", () => {
       ),
     ).to.deep.equal({ type: "identity", options: { subtitleField: "email" } });
     expect(
+      serializeColumnDisplay(
+        new DefaultDisplays.IdentityDisplay({
+          avatarField: "logo",
+          avatarFrame: "square",
+        }),
+      ),
+    ).to.deep.equal({
+      type: "identity",
+      options: { avatarField: "logo", avatarFrame: "square" },
+    });
+    expect(
       serializeColumnDisplay(new DefaultDisplays.IndicatorDisplay()),
     ).to.deep.equal({ type: "indicator" });
   });
@@ -95,10 +106,21 @@ describe("[unit] interfaces/dms-base — column displays", () => {
       >,
       IsAssignable<{ avatarField: "photo" }, IdentityOptions>,
       IsAssignable<{ avatar: "photo" }, IdentityOptions>,
+      IsAssignable<{ avatarFrame: "square" }, IdentityOptions>,
+      IsAssignable<{ avatarFrame: "oval" }, IdentityOptions>,
       IsAssignable<{ format: "ms" }, DurationOptions>,
       IsAssignable<{ format: "seconds" }, DurationOptions>,
-    ] = [true, false, true, false, true, false];
-    expect(answers).to.deep.equal([true, false, true, false, true, false]);
+    ] = [true, false, true, false, true, false, true, false];
+    expect(answers).to.deep.equal([
+      true,
+      false,
+      true,
+      false,
+      true,
+      false,
+      true,
+      false,
+    ]);
   });
 });
 

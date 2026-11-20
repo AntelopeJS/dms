@@ -28,7 +28,7 @@ const control = process.argv[1];
 const { runPorts } = await import(join(control, "stack.mjs"));
 const { serveMail } = await import(join(control, "mail.mjs"));
 const RANGE_SIZE = 8;
-const dir = mkdtempSync(join(tmpdir(), "dms-control-run-restart-"));
+const dir = mkdtempSync(join(tmpdir(), "dms-e2e-run-restart-"));
 const { apiPort, webPort, smtpPort } = await runPorts();
 const listen = (server, port) =>
   new Promise((resolve, reject) => {

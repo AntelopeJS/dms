@@ -55,6 +55,30 @@ export interface SeriesOptions {
   previous?: SeriesPoint[];
 }
 
+/**
+ * A calculation that answers one figure once run: the `count()` or `sum(...)` a
+ * model method returns.
+ */
+export interface FigureQuery {
+  /** Null or absent when there was nothing to measure, as a sum over no rows may answer. */
+  run(): Promise<number | null | undefined>;
+}
+
+/** What {@link percentOf} answers once run. */
+export interface PercentQuery {
+  /** A percentage, 25 for a quarter; null when no share can be stated. */
+  run(): Promise<number | null>;
+}
+
+/** What {@link kpiValueData} is told about the figure it presents. */
+export interface KpiValueOptions {
+  /**
+   * The same calculation over the preceding period; null when it measured nothing,
+   * absent when the request asked for no comparison.
+   */
+  previous?: number | null;
+}
+
 /** A figure alongside the one before it, and the share between them. */
 export interface ComparedFigure {
   /** Absent when the preceding period measured nothing to compare against. */
@@ -121,15 +145,11 @@ function variation(current: number, previous: number): number | undefined {
 }
 
 /** Fill in the figure before this one and the share it moved, when there is one. */
-function addComparison(
+function compareWith(
   target: ComparedFigure,
   value: number | undefined,
-  options: SeriesOptions,
+  previousValue: number | undefined,
 ): void {
-  if (!options.previous) {
-    return;
-  }
-  const previousValue = headline(options.previous, options.measure);
   if (previousValue === undefined) {
     return;
   }
@@ -141,6 +161,21 @@ function addComparison(
   if (delta !== undefined) {
     target.delta = delta;
   }
+}
+
+function addComparison(
+  target: ComparedFigure,
+  value: number | undefined,
+  options: SeriesOptions,
+): void {
+  if (options.previous) {
+    compareWith(target, value, headline(options.previous, options.measure));
+  }
+}
+
+/** Whether a calculation measured a figure, as opposed to nothing or something that is not one. */
+function isMeasured(figure: number | null | undefined): figure is number {
+  return isNumber(figure) && Number.isFinite(figure);
 }
 
 /**
@@ -278,4 +313,60 @@ export function topListData(
         : [topListEntry(point, point.y, before, options.bucket)],
     ),
   };
+}
+
+/**
+ * One figure over another, as a percentage: 25 for a quarter, in the percent units
+ * a `KpiCard` with `valueFormat: "percent"` reads and shows as 25 %, and the units
+ * a `delta` is stated in.
+ *
+ * Both calculations run together and answer nothing until `run` is called. The
+ * answer is null when no share can be stated: a denominator of 0, or a side that
+ * measured nothing or measured something that is not a figure. A numerator of 0
+ * over measured rows stays 0, because that is a measured share, and null is
+ * what a block shows as absent.
+ *
+ * The change of a percentage over the preceding period is the relative change of
+ * the percentage, as every `delta` is: 50 % falling to 25 % is a delta of -50, not
+ * the -25 points it moved.
+ */
+export function percentOf(
+  numerator: FigureQuery,
+  denominator: FigureQuery,
+): PercentQuery {
+  return {
+    async run() {
+      const [top, bottom] = await Promise.all([
+        numerator.run(),
+        denominator.run(),
+      ]);
+      return isMeasured(top) && isMeasured(bottom) && bottom !== 0
+        ? (top * PERCENT_SCALE) / bottom
+        : null;
+    },
+  };
+}
+
+/**
+ * One figure as a KPI card reads it, alongside the same figure over the preceding
+ * period when a comparison was asked for. The change is stated as `kpiCardData`
+ * states it, in percent, and is absent from a preceding zero. It is the relative
+ * change of the figure whatever the figure measures, so for a {@link percentOf}
+ * answer going from 50 to 25 it is -50, not the 25 points the percentage lost.
+ *
+ * A null figure leaves `value` out of the response rather than writing a zero, and
+ * a preceding period that measured nothing leaves out the comparison with it.
+ */
+export function kpiValueData(
+  value: number | null,
+  options: KpiValueOptions = {},
+): KpiCardData {
+  const data: KpiCardData = {};
+  const figure = isMeasured(value) ? value : undefined;
+  if (figure !== undefined) {
+    data.value = figure;
+  }
+  const { previous } = options;
+  compareWith(data, figure, isMeasured(previous) ? previous : undefined);
+  return data;
 }

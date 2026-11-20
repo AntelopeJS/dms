@@ -1,16 +1,16 @@
 import { resolve } from "node:path";
 import { checkoutOf } from "./git.mjs";
 import { up } from "./stack.mjs";
-import { loadSkill, runPrepare } from "./verify/skill.mjs";
+import { loadSuiteConfig, runPrepare } from "./journeys-config.mjs";
 
 /**
- * @typedef {Omit<import("./stack.mjs").UpOptions, "playground" | "prepared"> & { playground?: string, prepare?: boolean }} StartOptions How to start a run: `prepare` first runs the skill's install and build commands, `skill` is the verify skill folder (the checkout's one `.agents/skills/verify-*` folder when absent), `playground` and `renderer` win over the skill's config, and `noStandby` is also on with `DMS_CONTROL_NO_STANDBY=1`
- * @typedef {{ skill?: string, frontend?: "build" | "dev", prepare?: boolean }} RunOptions How a test starts a run: `skill` is the verify skill folder, relative to the repository root, for a repository with several; `frontend: "dev"` serves the dashboard with `ajs dms dev` instead of a build; `prepare` runs the skill's install and build commands first, which it does unless `DMS_E2E_PREBUILT=1`
+ * @typedef {Omit<import("./stack.mjs").UpOptions, "playground" | "prepared"> & { playground?: string, prepare?: boolean, config?: string }} StartOptions How to start a run: `config` is the absolute path of a journeys config file, `prepare` first runs the journeys config's install and build commands, `playground` and `renderer` win over the journeys config, and `noStandby` is also on with `DMS_E2E_NO_STANDBY=1`
+ * @typedef {{ config?: string, frontend?: "build" | "dev", prepare?: boolean }} RunOptions How a test starts a run: `config` is a journeys config file, relative to the repository root, whose journeys folder is `journeys/` beside it (`e2e/journeys.config.ts` by default); `frontend: "dev"` serves the dashboard with `ajs dms dev` instead of a build; `prepare` runs the journeys config's install and build commands first, which it does unless `DMS_E2E_PREBUILT=1`
  */
 
 /**
- * How the stack of a test's run starts, the skill folder resolved against
- * the root of the checkout `cwd` is in.
+ * How the stack of a test's run starts, the journeys config resolved
+ * against the root of the checkout `cwd` is in.
  *
  * @param {RunOptions} options How the test starts its run
  * @param {string} cwd Where the run starts from
@@ -18,64 +18,61 @@ import { loadSkill, runPrepare } from "./verify/skill.mjs";
  */
 export function startOptions(options, cwd) {
   const root = checkoutOf(cwd).root ?? cwd;
-  return {
+  /** @type {StartOptions} */
+  const start = {
     prepare: options.prepare ?? process.env.DMS_E2E_PREBUILT !== "1",
-    skill:
-      options.skill === undefined ? undefined : resolve(root, options.skill),
     frontendMode: options.frontend ?? "build",
   };
+  if (options.config !== undefined)
+    start.config = resolve(root, options.config);
+  return start;
 }
 
 /**
  * The playground and the renderer checkout a run starts: the options, then
- * the skill's `verify.config.ts`.
+ * the journeys config.
  *
- * @param {Pick<StartOptions, "playground" | "renderer" | "skill">} options
- * @param {string} cwd Where the run starts from, which finds the skill
+ * @param {Pick<StartOptions, "playground" | "renderer" | "config">} options
+ * @param {string} cwd Where the run starts from, which finds the journeys config
  * @returns {Promise<{ playground: string, renderer: string | undefined }>}
  */
 export async function targetOf(options, cwd) {
-  const skill =
+  const config =
     options.playground && options.renderer
       ? null
-      : await loadSkill(options.skill, cwd).catch(() => null);
-  const fromSkill = (/** @type {string | undefined} */ folder) =>
-    skill && folder ? resolve(skill.repo, folder) : undefined;
+      : await loadSuiteConfig(cwd, options.config).catch(() => null);
   return {
-    playground:
-      options.playground ?? fromSkill(skill?.config.playground) ?? "playground",
-    renderer: options.renderer ?? fromSkill(skill?.config.renderer),
+    playground: options.playground ?? config?.playground ?? "playground",
+    renderer: options.renderer ?? config?.renderer,
   };
 }
 
 /**
- * Starts the stack of a run: with `prepare`, the skill's install and build
- * commands first, then the stack on the skill's playground and renderer.
+ * Starts the stack of a run: with `prepare`, the journeys config's install
+ * and build commands first, then the stack on its playground and renderer.
  *
  * @param {StartOptions} options How to start it
- * @param {string} cwd Where the run starts from, which finds the skill
+ * @param {string} cwd Where the run starts from, which finds the journeys config
  * @returns {Promise<import("./run-state.mjs").RunState>} The ready run
  */
 export async function startStack(options, cwd) {
-  const { prepare, ...upOptions } = options;
-  const skill = options.skill ? resolve(options.skill) : undefined;
+  const { prepare, config: journeysConfig, ...upOptions } = options;
   /** @type {import("./timing.mjs").TimingEntry[]} */
   let prepared = [];
   if (prepare) {
-    const loaded = await loadSkill(skill, cwd);
-    prepared = runPrepare(loaded, loaded.repo);
+    const config = await loadSuiteConfig(cwd, journeysConfig);
+    prepared = runPrepare(config, config.repo);
   }
   const state = await up({
     ...upOptions,
     ...(await targetOf(options, cwd)),
-    skill,
     prepared,
     noStandby:
-      options.noStandby === true || process.env.DMS_CONTROL_NO_STANDBY === "1",
+      options.noStandby === true || process.env.DMS_E2E_NO_STANDBY === "1",
   });
   if (state.frontendBuild?.reason) {
     process.stderr.write(
-      `dms-control: the frontend build was not cached: ${state.frontendBuild.reason}\n`,
+      `dms-e2e: the frontend build was not cached: ${state.frontendBuild.reason}\n`,
     );
   }
   return state;

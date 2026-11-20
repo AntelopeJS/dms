@@ -70,6 +70,8 @@ export interface RowActionConfig<
   isEnabled?: boolean;
   isVisible?: boolean;
   rule?: RowActionRule<T>;
+  /** Shown on a row `rule` keeps the action off, which then stays disabled (`$`: i18n key). */
+  disabledReason?: string;
   /** Label in place of the built-in one (`$`: i18n key). */
   label?: string;
   /** Icon in place of the built-in one. */

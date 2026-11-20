@@ -7,8 +7,6 @@ import type {
 import { type StructuredPatchHunk, structuredPatch } from "diff";
 import {
   type ClassDeclaration,
-  type Diagnostic,
-  DiagnosticMessageChain,
   type ExportDeclaration,
   type ImportDeclaration,
   type ImportSpecifier,
@@ -24,14 +22,42 @@ import {
   createModulesProject,
   targetModule,
 } from "./modules";
+import {
+  readResolutionInputs,
+  type ResolutionInputs,
+  resolutionInputsChanged,
+} from "./resolution-inputs";
+import { relevantDiagnostics } from "./save-check";
 
-let writable: Project | undefined;
+let writable: { project: Project; inputs: ResolutionInputs } | undefined;
 
+/**
+ * The project every operation edits and typechecks, as {@link openWritableProject} last left it.
+ * Every read within one operation answers the same project.
+ */
 export function getWritableProject(): Project {
   if (!writable) {
-    writable = createModulesProject();
+    const inputs = readResolutionInputs();
+    writable = { project: createModulesProject(), inputs };
   }
-  return writable;
+  return writable.project;
+}
+
+/**
+ * The writable project in line with the disk, for an operation to start from. Once a
+ * {@link ResolutionInputs} file has changed it is built again, since its module resolutions and
+ * compiler options are read only when it is built; otherwise it is refreshed with
+ * {@link refreshFromDisk}.
+ */
+export function openWritableProject(): Project {
+  if (writable && resolutionInputsChanged(writable.inputs)) {
+    const inputs = readResolutionInputs();
+    writable = { project: createModulesProject(), inputs };
+    return writable.project;
+  }
+  const project = getWritableProject();
+  refreshFromDisk(project);
+  return project;
 }
 
 /**
@@ -45,28 +71,51 @@ export function resetWritableProject(): void {
 }
 
 /**
- * Bring the project's source files in line with the disk, adding the ones
- * created since and dropping the ones that are gone. Changed files are
- * reapplied as a text change: ts-morph's own refresh prints them through a
- * writer that normalizes CRLF before the editor can preserve source
- * expressions.
+ * Bring the project's source files and the declaration files its program read
+ * in line with the disk, adding the sources created since and dropping the
+ * ones that are gone. Only a file whose text differs is parsed again, so a
+ * refresh keeps every unchanged declaration it holds. A declaration file that
+ * is gone keeps its last text: a reinstall or a `rimraf dist` puts it back, and
+ * the importers TypeScript does not resolve again would otherwise stay unresolved.
  */
 export function refreshFromDisk(project: Project): void {
   addModuleSources(project);
   for (const sourceFile of project.getSourceFiles()) {
-    if (!sourceFile.isInNodeModules()) {
-      const filepath = sourceFile.getFilePath();
-      if (!fs.existsSync(filepath)) {
-        project.removeSourceFile(sourceFile);
-        continue;
-      }
-      const text = fs.readFileSync(filepath, "utf8");
-      if (text !== sourceFile.getFullText()) {
-        sourceFile.applyTextChanges([
-          { span: { start: 0, length: sourceFile.getEnd() }, newText: text },
-        ]);
-      }
+    if (sourceFile.isInNodeModules()) {
+      continue;
     }
+    if (fs.existsSync(sourceFile.getFilePath())) {
+      matchDisk(sourceFile);
+    } else {
+      project.removeSourceFile(sourceFile);
+    }
+  }
+  const program = project.getProgram().compilerObject;
+  for (const file of program.getSourceFiles()) {
+    const sourceFile = project.getSourceFile(file.fileName);
+    if (
+      sourceFile &&
+      file.isDeclarationFile &&
+      !program.isSourceFileDefaultLibrary(file) &&
+      fs.existsSync(file.fileName)
+    ) {
+      matchDisk(sourceFile);
+    }
+  }
+}
+
+/**
+ * Reapply a file's text from the disk when it differs. The text goes in as one
+ * change: ts-morph's own refresh prints it through a writer that normalizes
+ * CRLF before the editor can preserve source expressions.
+ */
+function matchDisk(sourceFile: SourceFile): void {
+  const filepath = sourceFile.getFilePath();
+  const text = fs.readFileSync(filepath, "utf8");
+  if (text !== sourceFile.getFullText()) {
+    sourceFile.applyTextChanges([
+      { span: { start: 0, length: sourceFile.getEnd() }, newText: text },
+    ]);
   }
 }
 
@@ -92,11 +141,16 @@ export function resolveRootBarrel(
   return undefined;
 }
 
+/**
+ * The declarations that import or re-export `targetPath`. ts-morph reports every
+ * path with `/`, so a path built with `path.join` (`\` on Windows) is read in that form.
+ */
 export function findImporters(
   project: Project,
   targetPath: string,
 ): Array<ImportDeclaration | ExportDeclaration> {
   const importers: Array<ImportDeclaration | ExportDeclaration> = [];
+  const wanted = targetPath.replaceAll("\\", "/");
   for (const sourceFile of project.getSourceFiles()) {
     if (sourceFile.isInNodeModules()) {
       continue;
@@ -106,7 +160,7 @@ export function findImporters(
       ...sourceFile.getExportDeclarations(),
     ];
     for (const decl of declarations) {
-      if (decl.getModuleSpecifierSourceFile()?.getFilePath() === targetPath) {
+      if (decl.getModuleSpecifierSourceFile()?.getFilePath() === wanted) {
         importers.push(decl);
       }
     }
@@ -239,40 +293,6 @@ export function findPageClass(
     }
   }
   return undefined;
-}
-
-function diagnosticToError(diagnostic: Diagnostic): TypecheckError {
-  const message = diagnostic.getMessageText();
-  return {
-    file: diagnostic.getSourceFile()?.getFilePath() ?? "",
-    line: diagnostic.getLineNumber() ?? 0,
-    message:
-      message instanceof DiagnosticMessageChain
-        ? message.getMessageText()
-        : message,
-  };
-}
-
-/**
- * The diagnostics of the program's own files, imported ones included. Each
- * file is checked on its own: the whole program's diagnostics would also check
- * every declaration file in `node_modules`, whose errors are never reported.
- */
-function relevantDiagnostics(project: Project): TypecheckError[] {
-  return project
-    .getProgram()
-    .compilerObject.getSourceFiles()
-    .flatMap((file) => {
-      const sourceFile = project.getSourceFile(file.fileName);
-      return sourceFile && !sourceFile.isInNodeModules()
-        ? sourceFile.getPreEmitDiagnostics()
-        : [];
-    })
-    .filter((diagnostic) => {
-      const file = diagnostic.getSourceFile();
-      return file !== undefined && !file.isInNodeModules();
-    })
-    .map(diagnosticToError);
 }
 
 const DIFF_CONTEXT_LINES = 3;

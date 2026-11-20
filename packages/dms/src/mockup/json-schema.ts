@@ -13,6 +13,7 @@ import {
   MAX_GENERATED_ROWS,
 } from "./generate";
 import type { Json, JsonObject } from "./model";
+import { knownModuleIds } from "./modules";
 import {
   jsonSchema,
   KEY_PATTERN,
@@ -478,6 +479,14 @@ export function buildMockupSchema(
         },
       },
       sidebar: SIDEBAR_SCHEMA,
+      modules: {
+        type: "array",
+        maxItems: MAX_PAGES,
+        uniqueItems: true,
+        description:
+          "The DMS modules the app needs, by their ids in the module store catalog. Building the mockup installs each one (`ajs project modules add <package>`), and the viewer lists them.",
+        items: { enum: knownModuleIds() },
+      },
       pages: {
         type: "array",
         maxItems: MAX_PAGES,

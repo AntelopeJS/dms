@@ -215,7 +215,7 @@
     },
     "pagination": {
       "label": "Navigation",
-      "count": "{count} éléments",
+      "count": "{count} élément | {count} éléments",
       "size": "Affiché par {pageSize}",
       "current_page": "Page {currentPage} sur {totalPages}",
       "first_page": "Première page",
@@ -443,6 +443,11 @@
       "tags": {
         "invalid_email": "{value} n’est pas une adresse e-mail valide. | {value} ne sont pas des adresses e-mail valides.",
         "remove": "Retirer {value}"
+      },
+      "phone": {
+        "country": "Pays",
+        "country_search": "Rechercher un pays ou un indicatif",
+        "country_none": "Aucun pays ne correspond à « {search} »."
       },
       "code": {
         "completion_footer": "↵ insérer · Échap fermer",
@@ -947,6 +952,7 @@
       "group_visualization": "Graphiques",
       "group_other": "Autres",
       "layers_empty": "Cette page n’a pas encore de bloc.",
+      "locked_by": "{name} modifie ce bloc",
       "page_home": "accueil",
       "add_page": "Ajouter une page",
       "new_page_title": "Nouvelle page",
@@ -1006,6 +1012,8 @@
       "copied": "Copié",
       "close": "Fermer",
       "section_default": "Pages",
+      "modules": "Modules",
+      "modules_hint": "Construire la maquette installe ces modules DMS.",
       "section_new": "Nouvelle section",
       "section_name": "Nom de la section",
       "section_actions": "Actions de la section",

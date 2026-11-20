@@ -26,10 +26,20 @@ import type {
   MockupSpec,
   MockupSpecPage,
 } from "./model";
-import { pageIdSchema, parseMockupName, specSchema } from "./model";
+import {
+  jsonObjectSchema,
+  pageIdSchema,
+  parseMockupName,
+  specSchema,
+} from "./model";
 import { menuOrder, placePage, withCategory } from "./page-placement";
 import { queued } from "./queue";
-import { readSpecSource, type SpecDigest, withSpecLock } from "./source";
+import {
+  readSpecSource,
+  type SpecDigest,
+  type SpecWriteResult,
+  withSpecLock,
+} from "./source";
 
 export interface LivePages {
   listPages(): Promise<readonly PageSummary[]>;
@@ -61,6 +71,16 @@ export interface EditAsMockupOptions {
    * unless `replace`.
    */
   into?: MockupName;
+  /**
+   * The issues that refuse writing `next` over the `current` spec of a mockup,
+   * asked inside its spec lock: a block another viewer holds, which a
+   * conversion would change. A write with issues answers `conflict`.
+   */
+  refusals?: (
+    mockup: MockupName,
+    current: JsonObject,
+    next: JsonObject,
+  ) => MockupIssue[];
 }
 
 type Opened = { mockup: MockupName; page: string; url: string };
@@ -419,13 +439,17 @@ async function convertLivePage(
     sectionCategory(structure, await pages.listCategories()),
   );
   const read = slot.kind === "linked" ? slot.digest : undefined;
-  const written = await withSpecLock(mockupsDir, slot.name, async (write) => {
-    const current = await readSpecSource(mockupsDir, slot.name);
-    return current?.digest === read ? write(spec, { by: "you" }) : undefined;
-  });
+  const written = await writeConverted(
+    mockupsDir,
+    slot.name,
+    read,
+    spec,
+    options,
+  );
   if (!written) {
     return failure("conflict", "spec.json changed since it was read");
   }
+  if ("error" in written) return written;
   if (!written.ok) {
     return failure("invalid", "the converted spec has issues", written.errors);
   }
@@ -436,6 +460,39 @@ async function convertLivePage(
     liveRoutes: Object.keys(converted.page.liveRoutes ?? {}),
     ...opened,
   };
+}
+
+/**
+ * Writes the converted spec `next` over `mockup` under its spec lock, as the
+ * spec read at `digest`. Undefined when the file changed since, and a failure
+ * when `options.refusals` holds a block of the file that `next` changes.
+ */
+async function writeConverted(
+  mockupsDir: string,
+  mockup: MockupName,
+  digest: SpecDigest | undefined,
+  next: MockupSpec,
+  options: EditAsMockupOptions,
+): Promise<SpecWriteResult | Failure | undefined> {
+  return withSpecLock(mockupsDir, mockup, async (write) => {
+    const current = await readSpecSource(mockupsDir, mockup);
+    if (current?.digest !== digest) return undefined;
+    const errors =
+      current?.spec && options.refusals
+        ? options.refusals(
+            mockup,
+            current.spec,
+            jsonObjectSchema.parse(JSON.parse(JSON.stringify(next))),
+          )
+        : [];
+    return errors.length
+      ? failure(
+          "conflict",
+          "another viewer is editing a block this conversion changes",
+          errors,
+        )
+      : write(next, { by: "you" });
+  });
 }
 
 /** A page id for `ref` that no page of `spec` has: its slug, suffixed when taken. */
@@ -510,15 +567,17 @@ async function convertInto(
         category,
         menuOrder(await pages.listPages(), categories),
       );
-  const written = await withSpecLock(mockupsDir, into, async (write) => {
-    const current = await readSpecSource(mockupsDir, into);
-    return current?.digest === source.digest
-      ? write(next, { by: "you" })
-      : undefined;
-  });
+  const written = await writeConverted(
+    mockupsDir,
+    into,
+    source.digest,
+    next,
+    options,
+  );
   if (!written) {
     return failure("conflict", "spec.json changed since it was read");
   }
+  if ("error" in written) return written;
   if (!written.ok) {
     return failure("invalid", "the converted spec has issues", written.errors);
   }

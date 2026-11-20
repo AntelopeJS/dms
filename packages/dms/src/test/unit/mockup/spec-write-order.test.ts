@@ -8,7 +8,7 @@ import { expect } from "chai";
 import { z } from "zod";
 import {
   closeMockupStreams,
-  type MockupEngine,
+  createMockupEngine,
   MockupStore,
   registerMockupRoutes,
 } from "../../../mockup";
@@ -47,10 +47,7 @@ const specSchema = z.object({
 
 /** Serves the mockup routes over `mockups`, and stops serving. */
 function serve(mockups: string): () => void {
-  const engine: MockupEngine = {
-    store: new MockupStore(mockups),
-    streams: new Set(),
-  };
+  const engine = createMockupEngine(new MockupStore(mockups));
   registerMockupRoutes(engine);
   const ids = getRegisteredRoutes()
     .filter((route) => route.location.startsWith(BASE))

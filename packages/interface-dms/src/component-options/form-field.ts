@@ -3,7 +3,8 @@ import type { Tone } from "../tones";
 import type { DataType } from "./data-type";
 
 /**
- * Valid default values for form fields and columns
+ * Valid default values for form fields and columns. An object is a row of
+ * an `ArrayType` field, a value per key: a list field defaults to its rows.
  */
 export type DefaultValue =
   | string
@@ -11,7 +12,8 @@ export type DefaultValue =
   | boolean
   | Date
   | null
-  | DefaultValue[];
+  | DefaultValue[]
+  | { [key: string]: DefaultValue };
 
 /** A pill shown beside a read-only field's value. */
 export interface FormFieldBadge {

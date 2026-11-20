@@ -2,13 +2,18 @@
 import type { ComponentInfo } from "#dms-core/app/types/page";
 import { EYEBROW_CLASS } from "../../../build/utils/eyebrow";
 import {
+  formBusInjectionKey,
   formErrorsInjectionKey,
   formInputsInjectionKey,
   useFormField,
 } from "@nuxt/ui/composables/useFormField";
+import { fieldErrorPattern } from "../../../build/composables/form/formEntryContext";
 import { resolveDmsComponent } from "../../../composables/resolveDmsComponent";
 import DmsRepeaterTable from "./RepeaterTable.vue";
 import type { DataTypeFormatter } from "#dms-core/app/composables/data-types/useDataType";
+import type { FormFieldValue } from "../../../composables/form/types/value";
+import { FORM_FIELD_SAVED_KEY } from "../../../composables/form/types/field-saved";
+import { cloneFormValue } from "../../../build/composables/form/useFormModel";
 
 /** A field of the rows: one column. */
 interface RepeaterColumn {
@@ -17,6 +22,8 @@ interface RepeaterColumn {
   type?: string;
   component: ComponentInfo;
   required?: boolean;
+  /** The cell's value in a row added or created to reach `min`. */
+  defaultValue?: FormFieldValue;
 }
 
 type RepeaterRow = NonNullable<Parameters<DataTypeFormatter>[3]>;
@@ -39,8 +46,10 @@ const model = defineModel<RepeaterRow[] | null | undefined>();
 const { t } = useI18n();
 
 const { name: fieldName, emitFormChange } = useFormField();
+const formBus = inject(formBusInjectionKey, null);
 const formErrors = inject(formErrorsInjectionKey, null);
 const formInputs = inject(formInputsInjectionKey, null);
+const markFieldSaved = inject(FORM_FIELD_SAVED_KEY, null);
 
 const rows = computed<RepeaterRow[]>(() =>
   Array.isArray(model.value) ? model.value : [],
@@ -115,13 +124,40 @@ function setCell(
     rows.value.map((row, at) =>
       at === index ? { ...row, [column]: value } : row,
     ),
+    false,
   );
+  if (fieldName.value) formBus?.emit({ type: "change", name: rowName(index) });
+}
+
+/** A row as the user adds it: a copy of each column's `defaultValue`. */
+function newRow(): RepeaterRow {
+  const row: RepeaterRow = {};
+  for (const column of props.columns)
+    if (column.defaultValue !== undefined)
+      row[column.id] = cloneFormValue(column.defaultValue);
+  return row;
 }
 
 function addRow(): void {
   rowKeys.value.push(nextKey++);
-  emitRows([...rows.value, {}], false);
+  emitRows([...rows.value, newRow()], false);
 }
+
+/**
+ * Below `min`, the field gets the missing rows as the value it opens with:
+ * the form does not read them as a change to save.
+ */
+watch(
+  () => rows.value.length,
+  (length) => {
+    const missing = (props.min ?? 0) - length;
+    if (props.disabled || missing <= 0) return;
+    const next = [...rows.value, ...Array.from({ length: missing }, newRow)];
+    emitRows(next, false);
+    if (props.id) markFieldSaved?.(props.id, next);
+  },
+  { immediate: true },
+);
 
 function removeRow(index: number): void {
   rowKeys.value.splice(index, 1);
@@ -155,9 +191,14 @@ function onDrop(index: number): void {
   draggedIndex.value = null;
 }
 
+/** The name a row's errors go under: a cell edit checks its row alone. */
+function rowName(index: number): string {
+  return `${fieldName.value ?? props.id ?? "rows"}.${index}`;
+}
+
 /** The name a cell's errors go under, and the id of its control. */
 function cellName(index: number, column: string): string {
-  return `${fieldName.value ?? props.id ?? "rows"}.${index}.${column}`;
+  return `${rowName(index)}.${column}`;
 }
 
 function isCellInvalid(index: number, column: string): boolean {
@@ -165,13 +206,15 @@ function isCellInvalid(index: number, column: string): boolean {
   return !!formErrors?.value.some((error) => error.name === name);
 }
 
-function cellNames(length: number): string[] {
-  return Array.from({ length }, (_, index) =>
-    props.columns.map((column) => cellName(index, column.id)),
-  ).flat();
+/** The form inputs of the rows and their cells; a row's covers its cells' errors. */
+function rowInputs(length: number): { id: string; pattern?: RegExp }[] {
+  return Array.from({ length }, (_, index) => [
+    { id: rowName(index), pattern: fieldErrorPattern(rowName(index)) },
+    ...props.columns.map((column) => ({ id: cellName(index, column.id) })),
+  ]).flat();
 }
 
-function unregisterCells(names: readonly string[]): void {
+function unregisterInputs(names: readonly string[]): void {
   for (const name of names) delete formInputs?.value[name];
 }
 
@@ -179,13 +222,14 @@ let registered: string[] = [];
 watch(
   () => [fieldName.value, rows.value.length] as const,
   ([name, length]) => {
-    unregisterCells(registered);
-    registered = name && formInputs ? cellNames(length) : [];
-    for (const cell of registered) formInputs!.value[cell] = { id: cell };
+    unregisterInputs(registered);
+    const inputs = name && formInputs ? rowInputs(length) : [];
+    registered = inputs.map((input) => input.id);
+    for (const input of inputs) formInputs!.value[input.id] = input;
   },
   { immediate: true },
 );
-onBeforeUnmount(() => unregisterCells(registered));
+onBeforeUnmount(() => unregisterInputs(registered));
 
 function cellComponent(column: RepeaterColumn) {
   const name = column.component.componentName;

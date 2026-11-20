@@ -150,6 +150,29 @@ describe("[unit] interfaces/dms-base — ArrayType", () => {
     expect(options.sortable).to.equal(true);
     expect(options.addLabel).to.equal("Add header");
   });
+
+  it("hands each column its new-row value", () => {
+    const { options } = new DefaultDataTypes.ArrayType({
+      of: {
+        unit: {
+          type: new DefaultDataTypes.SelectType({ items: ITEMS }),
+          defaultValue: "low",
+        },
+        quantity: { type: new DefaultDataTypes.NumberType(), defaultValue: 1 },
+        price: new DefaultDataTypes.NumberType(),
+      },
+    }).inputComponent();
+    if (!isRepeaterOptions(options)) {
+      throw new Error("The component carries no repeater options");
+    }
+    expect(
+      options.columns.map(({ id, defaultValue }) => [id, defaultValue]),
+    ).to.deep.equal([
+      ["unit", "low"],
+      ["quantity", 1],
+      ["price", undefined],
+    ]);
+  });
 });
 
 describe("[unit] interfaces/dms-base — KeyValueType", () => {

@@ -7,7 +7,12 @@ import { resolveResponseToast } from "../../utils/responseWarning";
 import { resolveConfirmText } from "../confirm/confirmDialogTexts";
 import { readBulkCount } from "../table-view/utils/bulkActions";
 import { type DownloadFetch, saveDownload } from "../../utils/fileDownload";
-import { downloadTargetFilename, targetUrl } from "./actionTargetUrl";
+import { isJsonObject } from "../../utils/json";
+import {
+  apiRedirectPath,
+  downloadTargetFilename,
+  targetUrl,
+} from "./actionTargetUrl";
 
 const JOB_ID_TOKEN = /\{\{\s*job\.id\s*\}\}/g;
 
@@ -113,6 +118,14 @@ export function createActionRequests(
       ),
     );
     if (target.method !== "GET") config.refreshCallback?.();
+    const redirect =
+      target.redirect &&
+      apiRedirectPath(
+        target.redirect,
+        isJsonObject(response) ? response : undefined,
+        rowData,
+      );
+    if (redirect) await navigateDms(redirect);
   };
   const handleApiTarget = async (
     target: ActionTarget & { type: "api" },

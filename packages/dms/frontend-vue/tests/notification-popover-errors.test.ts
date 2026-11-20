@@ -86,7 +86,10 @@ const Card = defineComponent({
   setup:
     (_, { slots }) =>
     () =>
-      h("div", { "data-card": "" }, slots.default?.()),
+      h("div", { "data-card": "" }, [
+        slots.default?.(),
+        slots.description?.(),
+      ]),
 });
 
 const Passthrough = defineComponent({
@@ -277,6 +280,15 @@ it("marks a notification read when it is clicked", async () => {
   await vi.waitFor(() =>
     expect(notifications.markAsRead).toHaveBeenCalledWith("n1"),
   );
+});
+
+it("shows a notification's exact date and time when its time is hovered", async () => {
+  notifications.notifications.value = [UNREAD_NOTIFICATION];
+  await mountPopover();
+  await openPopover();
+  const time = host.querySelector("[data-card] time");
+  expect(time?.getAttribute("datetime")).toBe(UNREAD_NOTIFICATION.createdAt);
+  expect(time?.getAttribute("title")).toMatch(/2026/);
 });
 
 it("does not mark an already read notification again", async () => {

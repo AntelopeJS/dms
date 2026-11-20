@@ -1,18 +1,23 @@
 import { PassThrough } from "node:stream";
 import { expect } from "chai";
 import {
+  getRegisteredRoutes,
+  UnregisterRoute,
+} from "@antelopejs/interface-api";
+import {
   cancelScheduledBroadcast,
   closeDevReloadStreams,
-  DevReloadController,
+  registerDevReloadRoute,
   scheduleBroadcast,
   setSlugProvider,
 } from "../../../../store/frontend";
+import { createClient } from "../../../helpers/http";
 
 const SETTLE_MS = 400;
 
 function connect(): PassThrough {
   const stream = new PassThrough();
-  new DevReloadController().reload(stream);
+  new (registerDevReloadRoute())().reload(stream);
   return stream;
 }
 
@@ -31,7 +36,24 @@ function settle(): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, SETTLE_MS));
 }
 
+const DEV_ROUTE = "/dms/dev/reload";
+
+function devRoutes() {
+  return getRegisteredRoutes().filter((route) => route.location === DEV_ROUTE);
+}
+
+describe("[unit] dev reload route outside development", () => {
+  it("is not mounted until development mounts it", async () => {
+    expect(devRoutes()).to.deep.equal([]);
+    expect((await createClient().get(DEV_ROUTE)).status).to.equal(404);
+  });
+});
+
 describe("[unit] implementations/dms/dev-reload", () => {
+  after(() => {
+    devRoutes().forEach((route) => UnregisterRoute(Number(route.id)));
+  });
+
   let stream: PassThrough;
 
   beforeEach(() => {

@@ -7,7 +7,8 @@ import { join } from "node:path";
 import test from "node:test";
 import { hasProc, isSameProcess } from "./identity.mjs";
 import { JourneyContext } from "./journey.mjs";
-import { runJourney, runJourneyFile } from "./journey-run.mjs";
+import { runJourney } from "./journey-run.mjs";
+import { assertForwardedRun } from "./backend.mjs";
 import { loadJourneys } from "./journey-load.mjs";
 import { apiTargetFile, writeTarget } from "./forwarder.mjs";
 import { commandOf, newRun, served, startedOn } from "./helpers/fake-run.mjs";
@@ -30,7 +31,7 @@ const JOURNEY = '{ id: "smoke", title: "t", entryPoint: "e", async run() {} }';
  * @returns {string} The journeys module
  */
 function journeysModule(t, source) {
-  const dir = mkdtempSync(join(tmpdir(), "dms-control-journey-test-"));
+  const dir = mkdtempSync(join(tmpdir(), "dms-e2e-journey-test-"));
   t.after(() => rmSync(dir, { recursive: true, force: true }));
   const file = join(dir, "journeys.mjs");
   writeFileSync(file, source);
@@ -91,7 +92,7 @@ await test("a journey missing a field a run reads is refused", async (t) => {
 });
 
 await test("a journey whose browser fails to launch still records its journey entry, failed; recording it only after a normal return leaves the run's total blind to it", async (t) => {
-  const dir = mkdtempSync(join(tmpdir(), "dms-control-journey-timing-"));
+  const dir = mkdtempSync(join(tmpdir(), "dms-e2e-journey-timing-"));
   t.after(() => rmSync(dir, { recursive: true, force: true }));
   const evidence = join(dir, "evidence");
   mkdirSync(evidence);
@@ -178,7 +179,7 @@ await test("a journey that pins a dev backend and no standby in a production run
   );
 });
 
-await test("a run whose backend holds the API port itself is refused before its journeys load", async (t) => {
+await test("a run whose backend holds the API port itself is refused", (t) => {
   const old = spawn(process.execPath, ["-e", "setInterval(() => {}, 1000)"], {
     stdio: "ignore",
   });
@@ -188,15 +189,9 @@ await test("a run whose backend holds the API port itself is refused before its 
     apiPort: 5010,
     processes: [{ name: "backend", pid: old.pid, port: 5010 }],
   };
-  await assert.rejects(
-    runJourneyFile(state, {
-      file: journeysModule(t, `export const journeys = [${JOURNEY}];`),
-      feature: "smoke",
-      ids: [],
-      skill: { config: {} },
-    }),
-    { message: "this run was started by an older dms-control; run `up` again" },
-  );
+  assert.throws(() => assertForwardedRun(state), {
+    message: "this run was started by an older e2e kit; start a new run",
+  });
 });
 
 const FAKE_MONGOD = `
@@ -263,7 +258,7 @@ function starts(port) {
  * @returns {Promise<{ state: { dir: string, logs: string, mongo: string, processes: import("./run-state.mjs").ProcessRecord[], ownsMongo: boolean }, context: JourneyContext, port: number }>} The run, a journey's context and the mongod's port
  */
 async function runOwningMongod(t) {
-  const dir = mkdtempSync(join(tmpdir(), "dms-control-journey-mongod-"));
+  const dir = mkdtempSync(join(tmpdir(), "dms-e2e-journey-mongod-"));
   const binary = join(dir, "mongod.cjs");
   writeFileSync(binary, FAKE_MONGOD);
   for (const [name, source] of [
@@ -275,8 +270,8 @@ async function runOwningMongod(t) {
     writeFileSync(join(root, "package.json"), `{"name":"${name}"}`);
     writeFileSync(join(root, "index.js"), source);
   }
-  const previous = process.env.DMS_CONTROL_MONGOD;
-  process.env.DMS_CONTROL_MONGOD = binary;
+  const previous = process.env.DMS_E2E_MONGOD;
+  process.env.DMS_E2E_MONGOD = binary;
   const paths = { mongo: join(dir, "mongo"), logs: dir };
   const mongod = await startMongod(paths, [dir]);
   const state = {
@@ -291,8 +286,8 @@ async function runOwningMongod(t) {
   };
   t.after(async () => {
     await stopRecorded([...state.processes, ...liveBackends(state)]);
-    if (previous === undefined) delete process.env.DMS_CONTROL_MONGOD;
-    else process.env.DMS_CONTROL_MONGOD = previous;
+    if (previous === undefined) delete process.env.DMS_E2E_MONGOD;
+    else process.env.DMS_E2E_MONGOD = previous;
     rmSync(dir, { recursive: true, force: true });
   });
   const context = new JourneyContext(state, "feat", "j1", undefined, undefined);

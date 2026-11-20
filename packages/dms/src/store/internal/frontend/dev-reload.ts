@@ -108,15 +108,15 @@ function removeClient(stream: PassThrough): void {
   clients.delete(stream);
 }
 
-export class DevReloadController extends Controller("/dms/dev") {
-  @Get()
-  reload(@WriteStream(SSE_CONTENT_TYPE) out: PassThrough) {
-    if (isProduction()) {
-      out.end();
-      return;
+/** Mounts `GET /dms/dev`, the reload stream. Only called in development, so a production backend answers 404 there. */
+export function registerDevReloadRoute() {
+  class DevReloadController extends Controller("/dms/dev") {
+    @Get()
+    reload(@WriteStream(SSE_CONTENT_TYPE) out: PassThrough) {
+      registerClient(out);
+      out.on("close", () => removeClient(out));
+      out.on("error", () => removeClient(out));
     }
-    registerClient(out);
-    out.on("close", () => removeClient(out));
-    out.on("error", () => removeClient(out));
   }
+  return DevReloadController;
 }

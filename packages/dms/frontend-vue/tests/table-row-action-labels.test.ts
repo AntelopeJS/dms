@@ -3,7 +3,9 @@
  * A row's actions are named after the row: a custom action's label fills its
  * `{field}` braces from the row ("Translate {name}"), and the ⋯ button opening
  * the row's menu has an accessible name — "Actions for <label>" by default,
- * or the table's own `rowActions.menuLabel`.
+ * or the table's own `rowActions.menuLabel`. An action whose rule keeps it off
+ * the row says why when it declares a `disabledReason`, and is hidden
+ * otherwise.
  */
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import {
@@ -20,6 +22,8 @@ import {
   type App,
 } from "vue";
 import { createTable, getCoreRowModel } from "@tanstack/vue-table";
+import UApp from "@nuxt/ui/components/App.vue";
+import UTooltip from "@nuxt/ui/components/Tooltip.vue";
 import { useTableColumns } from "../layers/dms-ui/app/entries/composables/table/useTableColumns";
 import * as ruleEvaluator from "../layers/dms-core/app/utils/row-action-rule-evaluator";
 import * as colors from "../layers/dms-core/app/types/color";
@@ -124,7 +128,8 @@ function actionsCell({ custom, menuLabel, labelKey }: ActionsCellOptions) {
 }
 
 function renderCell(cell: VNode) {
-  const app = createApp({ render: () => cell });
+  const app = createApp({ render: () => h(UApp, null, () => cell) });
+  app.component("UTooltip", UTooltip);
   const host = document.createElement("div");
   document.body.append(host);
   app.mount(host);
@@ -205,4 +210,78 @@ it("fills a custom action's label from the row, inline and in the menu", async (
     expect.stringContaining('dms_lang.languages.remove({"_id":"fr"'),
     "Keep {unknown} as written",
   ]);
+});
+
+const LOCKED = { field: "code", notEquals: "fr" } as const;
+
+async function openMenu(cell: VNode) {
+  const host = renderCell(cell);
+  host
+    .querySelector('[aria-haspopup="menu"]')!
+    .dispatchEvent(
+      new KeyboardEvent("keydown", { key: "Enter", bubbles: true }),
+    );
+  await nextTick();
+  await new Promise((resolve) => setTimeout(resolve));
+  return [...document.querySelectorAll('[role="menuitem"]')];
+}
+
+it("keeps a rule-blocked action in the menu, disabled, with its reason filled from the row", async () => {
+  const items = await openMenu(
+    actionsCell({
+      custom: [
+        MENU_ACTION,
+        {
+          label: "Rename",
+          rule: LOCKED,
+          disabledReason: "{name} is the default language",
+          target: { type: "api", url: "/rename", successMessage: "Renamed" },
+        },
+      ],
+    }),
+  );
+  const rename = items.find((item) => item.textContent?.includes("Rename"));
+  expect(rename?.getAttribute("aria-disabled")).toBe("true");
+  expect(rename?.textContent).toContain("Français is the default language");
+});
+
+it("keeps a rule-blocked inline action on the row, disabled, its reason shown on focus", async () => {
+  const host = renderCell(
+    actionsCell({
+      custom: [
+        {
+          label: "Rename",
+          isVisible: true,
+          showLabel: true,
+          rule: LOCKED,
+          disabledReason: "Locked",
+          target: { type: "api", url: "/rename", successMessage: "Renamed" },
+        },
+      ],
+    }),
+  );
+  const rename = host.querySelector<HTMLButtonElement>('[aria-label="Rename"]');
+  expect(rename?.disabled).toBe(true);
+  const wrapper = rename?.parentElement;
+  expect(wrapper?.getAttribute("tabindex")).toBe("0");
+  wrapper?.dispatchEvent(new FocusEvent("focus"));
+  await nextTick();
+  await new Promise((resolve) => setTimeout(resolve));
+  expect(document.body.textContent).toContain("Locked");
+});
+
+it("hides a rule-blocked action that gives no reason", async () => {
+  const items = await openMenu(
+    actionsCell({
+      custom: [
+        MENU_ACTION,
+        {
+          label: "Rename",
+          rule: LOCKED,
+          target: { type: "api", url: "/rename", successMessage: "Renamed" },
+        },
+      ],
+    }),
+  );
+  expect(items.map((item) => item.textContent?.trim())).toEqual(["Remove"]);
 });

@@ -21,6 +21,8 @@ export interface RowActionDescriptor {
   icon: string;
   onSelect: () => void;
   disabled: boolean;
+  /** Why a disabled action stays on the row, filled from it. */
+  disabledReason?: string;
   color?: CustomRowAction["color"];
   visible: boolean;
   /** Inline button variant (custom actions); ghost otherwise. */

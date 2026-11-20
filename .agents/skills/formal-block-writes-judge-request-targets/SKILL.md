@@ -39,11 +39,11 @@ It builds `packages/dms` (skipped when `DMS_PREBUILT` is set), then runs the one
 - Exit 1: `BROKEN <tool>` per failed test, then the runner's output, with fast-check's seed and the counterexample options of the first failure.
 - Exit 2: the build or the runner could not run.
 
-`dms-control formal` runs it and reads each `BROKEN` line as a violated rule. CI runs it in the `formal-generated` job.
+CI runs it in the `formal-generated` job, and each `BROKEN` line is a violated rule.
 
 ## When to run it
 
-Run it when a change touches a file in the coverage record below, adds or changes an MCP tool that writes block options, changes the URL rules of `builder-request-targets.ts`, or changes how the engine writes a block's options. A `BROKEN` line makes `dms-control formal` print `ERROR` or `VIOLATED`, and the verifier explains it in the reply (`verify-dms` verdict rule 5).
+Run it when a change touches a file in the coverage record below, adds or changes an MCP tool that writes block options, changes the URL rules of `builder-request-targets.ts`, or changes how the engine writes a block's options. A `BROKEN` line fails the check. Explain it in the reply.
 
 ## Real bug or modeling error
 

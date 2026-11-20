@@ -292,6 +292,43 @@ await test("a no-op install, with scripts or without, keeps the key; a change to
   }
 });
 
+await test("the JSON .modules.yaml pnpm 12 writes keys what pnpm linked where, not its bookkeeping", (t) => {
+  const { frontend, checkout, prepare } = fixture(t);
+  const side = prepare("run", 1001);
+  /** @param {Record<string, unknown>} fields */
+  const installed = (fields) => {
+    write(
+      join(checkout, "node_modules", ".modules.yaml"),
+      `${JSON.stringify(fields, null, 2)}\n`,
+    );
+    return keyOf(frontend, side);
+  };
+  const layout = {
+    hoistPattern: ["*"],
+    layoutVersion: 5,
+    nodeLinker: "isolated",
+  };
+  const plain = installed({
+    ...layout,
+    packageManager: "pnpm@12.16.1",
+    prunedAt: "Mon, 16 Nov 2026 10:57:18 GMT",
+  });
+  assert.equal(
+    installed({
+      prunedAt: "Tue, 17 Nov 2026 10:57:18 GMT",
+      ...layout,
+      packageManager: "pnpm@12.17.0",
+    }),
+    plain,
+    "a key on the whole record, or on its field order, misses after an install that links the same packages",
+  );
+  assert.notEqual(
+    installed({ ...layout, hoistPattern: [] }),
+    plain,
+    "a key without hoistPattern serves a build that resolved through packages no longer hoisted",
+  );
+});
+
 await test("a linked workspace package is keyed by its files, without its installs or its runs' outputs; a package of pnpm's virtual store by its link", (t) => {
   const { frontend, checkout, modules, prepare } = fixture(t);
   const side = prepare("run", 1001);
@@ -395,10 +432,10 @@ await test("links of one name and one link text in two node_modules are keyed by
 
 await test("an install record above TMPDIR that the key cannot read leaves the fixture's keys unchanged", (t) => {
   const outer = realpathSync.native(
-    mkdtempSync(join(tmpdir(), "dms-control-build-key-outer-")),
+    mkdtempSync(join(tmpdir(), "dms-e2e-build-key-outer-")),
   );
   t.after(() => rmSync(outer, { recursive: true, force: true }));
-  write(join(outer, "node_modules", ".modules.yaml"), '{"layoutVersion":5}\n');
+  write(join(outer, "node_modules", ".modules.yaml"), '"layoutVersion": 5\n');
   write(join(outer, "tmp", ".keep"), "");
   const temp = join(outer, "tmp");
   setEnv(t, { TMPDIR: temp, TEMP: temp, TMP: temp });
@@ -406,7 +443,7 @@ await test("an install record above TMPDIR that the key cannot read leaves the f
   const side = prepare("run-a", 1001);
   assert.throws(
     () => buildInputs(side.run, frontend, side.prepared, outer),
-    /\.modules\.yaml is not the YAML layout the build cache reads/u,
+    /\.modules\.yaml is neither the JSON nor the YAML layout the build cache reads/u,
     "a key that reads the folder above TMPDIR refuses the record there, so the fixture's keys below pass only by not reading it",
   );
   assert.equal(

@@ -1,4 +1,5 @@
 import type {
+  ConfigObject,
   ConfigValue,
   QueryOutputKind,
   QueryStructure,
@@ -6,6 +7,7 @@ import type {
 } from "@antelopejs/interface-dms-builder";
 import {
   type BinaryExpression,
+  type ConditionalExpression,
   type CallExpression,
   type ClassDeclaration,
   type MethodDeclaration,
@@ -24,6 +26,7 @@ import {
 import { unwrapReturnedCall } from "./query-route-response";
 import { findResourceBySymbol, findResourceRecord } from "./resource-index";
 import { isPlainObject } from "./plain-object";
+import { isString } from "./scalar-guards";
 import { getWritableProject } from "./writable";
 
 export const MODEL_DECORATORS = ["Model", "TenantScopedModel"];
@@ -283,7 +286,41 @@ function booleanParam(node: BinaryExpression): QueryArg | undefined {
   return undefined;
 }
 
+/**
+ * `x === undefined ? new Date("…") : new Date(String(x))` is a date parameter whose
+ * omitted bound a route fills in, so it reads as the date parameter `x`.
+ */
+function openDateParam(node: ConditionalExpression): QueryArg | undefined {
+  const condition = node.getCondition();
+  const whenOmitted = node.getWhenTrue();
+  const whenGiven = node.getWhenFalse();
+  if (
+    !Node.isBinaryExpression(condition) ||
+    condition.getOperatorToken().getKind() !==
+      SyntaxKind.EqualsEqualsEqualsToken ||
+    !Node.isNewExpression(whenGiven) ||
+    !Node.isNewExpression(whenOmitted)
+  ) {
+    return undefined;
+  }
+  const given = coercedParam(whenGiven, "Date", "date");
+  const left = condition.getLeft();
+  const omitted = condition.getRight();
+  return given &&
+    given.kind === "param" &&
+    Node.isIdentifier(left) &&
+    left.getText() === given.name &&
+    omitted.getText() === "undefined" &&
+    calledWith(whenOmitted, "Date") !== undefined &&
+    Node.isStringLiteral(calledWith(whenOmitted, "Date"))
+    ? given
+    : undefined;
+}
+
 function unwrapArgument(node: Node): QueryArg | undefined {
+  if (Node.isConditionalExpression(node)) {
+    return openDateParam(node);
+  }
   if (Node.isIdentifier(node)) {
     return { kind: "param", name: node.getText() };
   }
@@ -408,6 +445,40 @@ function findModelMethod(
     ?.getMethod(modelMethod);
 }
 
+/** The public `$param` binding a model parameter stands for, or `undefined` when no route parameter supplies it. */
+type BindingOf = (modelParameter: string) => ConfigValue | undefined;
+
+/**
+ * The `where` of one object of a template's parameters, with its `$bind`
+ * sentinels resolved. `undefined` when one cannot be.
+ */
+function resolveWhere(
+  holder: ConfigObject,
+  bindingOf: BindingOf,
+): ConfigObject | undefined {
+  if (!Array.isArray(holder.where)) {
+    return holder;
+  }
+  const entries: ConfigValue[] = holder.where;
+  const where: ConfigValue[] = [];
+  for (const filter of entries) {
+    const name =
+      isPlainObject(filter) && isPlainObject(filter.value)
+        ? filter.value.$bind
+        : undefined;
+    if (name === undefined) {
+      where.push(filter);
+      continue;
+    }
+    const binding = isString(name) ? bindingOf(name) : undefined;
+    if (!binding || !isPlainObject(filter)) {
+      return undefined;
+    }
+    where.push({ field: filter.field, op: filter.op, value: binding });
+  }
+  return { ...holder, where };
+}
+
 /**
  * Resolves a parsed method's `$bind` sentinels into public `$param` bindings by
  * following each to the route: the model parameter it names → its position in
@@ -415,6 +486,10 @@ function findModelMethod(
  * name and source. Returns `undefined` if a bound value cannot be traced to a
  * `query`/`param` route parameter, which degrades the whole query to opaque —
  * the route no longer supplies what the chain reads.
+ *
+ * A `where` sits on the parameters themselves or, for a template with several
+ * chains such as a ratio, inside each object parameter: every chain of a method
+ * reads the one parameter list, so the same route supplies them all.
  */
 function resolveBindings(
   params: ParsedParams,
@@ -422,37 +497,38 @@ function resolveBindings(
   call: QueryRouteCall,
   route: { name: string; in: ParamSource }[],
 ): QueryParams | undefined {
-  if (!params.where) {
-    return params;
-  }
   const positionOf = new Map(
     method
       .getParameters()
       .map((parameter, index) => [parameter.getName(), index]),
   );
-  const where: ConfigValue[] = [];
-  for (const filter of params.where) {
-    const name = isPlainObject(filter.value) ? filter.value.$bind : undefined;
-    if (name === undefined) {
-      where.push(filter);
-      continue;
-    }
+  const bindingOf: BindingOf = (name) => {
     const position = positionOf.get(name);
     const argument = position !== undefined ? call.args[position] : undefined;
     if (!argument || argument.kind !== "param") {
       return undefined;
     }
     const routeParam = route.find((param) => param.name === argument.name);
-    if (!routeParam || routeParam.in === "header") {
+    return !routeParam || routeParam.in === "header"
+      ? undefined
+      : { $param: { name: routeParam.name, in: routeParam.in } };
+  };
+  const top = resolveWhere(params, bindingOf);
+  if (!top) {
+    return undefined;
+  }
+  const resolved: ConfigObject = { ...top };
+  for (const [key, value] of Object.entries(top)) {
+    if (!isPlainObject(value)) {
+      continue;
+    }
+    const nested = resolveWhere(value, bindingOf);
+    if (!nested) {
       return undefined;
     }
-    where.push({
-      field: filter.field,
-      op: filter.op,
-      value: { $param: { name: routeParam.name, in: routeParam.in } },
-    });
+    resolved[key] = nested;
   }
-  return { ...params, where };
+  return resolved;
 }
 
 /** Read-back for every query route on a page. */

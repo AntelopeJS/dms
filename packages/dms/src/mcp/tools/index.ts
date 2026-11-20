@@ -11,11 +11,11 @@ import { DATABASE_TOOLS } from "./database";
 import { MOCKUP_TOOLS } from "./mockup";
 import { PAGE_VERIFY_TOOLS } from "./page-verify";
 import { PAGE_TOOLS } from "./pages";
-import { previewBlocksTool } from "./preview-blocks";
 import { queryLogsTool } from "./query-logs";
 import { typecheckTool } from "./typecheck";
 
 export { judgedWriter } from "./mockup-apply-to-page";
+export { createMockupFromPageTool } from "./mockup-from-page";
 
 /** Every tool the DMS MCP server serves, in the order `tools/list` returns them. */
 export const MCP_TOOLS: readonly McpTool[] = [
@@ -29,7 +29,6 @@ export const MCP_TOOLS: readonly McpTool[] = [
   ...BUILDER_THEME_TOOLS,
   ...PAGE_TOOLS,
   ...PAGE_VERIFY_TOOLS,
-  previewBlocksTool,
   typecheckTool,
   queryLogsTool,
   ...DATABASE_TOOLS,

@@ -2,6 +2,7 @@
 FROM node:24-bookworm-slim AS deps
 
 ENV PNPM_HOME=/pnpm
+ENV CI=true
 ENV PATH=/pnpm:$PATH
 ENV HOME=/opt/dms-home
 ENV NODE_OPTIONS=--max-old-space-size=6144
@@ -9,7 +10,7 @@ WORKDIR /opt/dms
 
 RUN apt-get update && apt-get install -y --no-install-recommends git ca-certificates libcurl4 \
     && rm -rf /var/lib/apt/lists/*
-RUN corepack enable && corepack prepare pnpm@10.2.0 --activate
+RUN corepack enable && corepack prepare pnpm@10.34.9 --activate
 
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml .npmrc ./
 RUN pnpm fetch --store-dir=/pnpm/store

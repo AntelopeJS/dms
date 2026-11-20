@@ -25,6 +25,7 @@ import { buildCatalog } from "./catalog";
 import { assertBlockAccess, formGuard } from "./connection-access";
 import { editableOptions } from "./config-literal";
 import { applyImportRef, blockCallText, childArgText } from "./emit";
+import { markSourcesWritten } from "./indexed-project";
 import { stringLiteralValue } from "./literals";
 import { contentVersion, pageVersion } from "./page-structure";
 import { parseBlockPath } from "./paths";
@@ -36,9 +37,9 @@ import {
   requestIssues,
   requestRefusal,
 } from "./request-targets";
-import { invalidateResourceIndex, resourceRefResolver } from "./resource-index";
+import { resourceRefResolver } from "./resource-index";
 import { type PageRecord } from "./scan";
-import { findPageRecord, invalidateSourceIndex } from "./source-index";
+import { findPageRecord } from "./source-index";
 import {
   createImportCollector,
   InvalidValueError,
@@ -46,12 +47,7 @@ import {
   UnknownDataTypeError,
   UnknownReferenceError,
 } from "./value";
-import {
-  findPageClass,
-  getWritableProject,
-  refreshFromDisk,
-  Transaction,
-} from "./writable";
+import { findPageClass, openWritableProject, Transaction } from "./writable";
 
 export function notFound<T = void>(ref: string): OpResult<T> {
   return { ok: false, error: { code: "not_found", ref } };
@@ -148,8 +144,7 @@ export function openPage(ref: string): PageContext | OpResult<never> {
   if (!page) {
     return notFound<never>(ref);
   }
-  const project = getWritableProject();
-  refreshFromDisk(project);
+  const project = openWritableProject();
   const sourceFile = project.getSourceFile(page.filepath);
   if (!sourceFile) {
     return notFound<never>(page.filepath);
@@ -196,8 +191,7 @@ export function commit<T>(
     return stale(changed.path, contentVersion(changed.text));
   }
   const changes = transaction.flush();
-  invalidateSourceIndex();
-  invalidateResourceIndex();
+  markSourcesWritten();
   return warnings.length > 0
     ? { ok: true, data, changes, warnings }
     : { ok: true, data, changes };

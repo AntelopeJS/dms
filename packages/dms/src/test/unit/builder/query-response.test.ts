@@ -203,7 +203,7 @@ function readsParametersAsTheQueryStringGivesThem(): void {
       "AddQuery",
     );
     expect(app.read(PAGE_FILE)).to.contain(
-      "model.revenueInPeriod(new Date(String(from)), new Date(String(to)))",
+      'model.revenueInPeriod(from === undefined ? new Date("0001-01-01T00:00:00.000Z") : new Date(String(from)), to === undefined ? new Date("9999-12-31T23:59:59.999Z") : new Date(String(to)))',
     );
     const query = await queryNamed("revenueInPeriod");
     expect(
@@ -241,8 +241,11 @@ function comparesAgainstThePeriodBefore(): void {
     ).to.contain(
       '@Parameter("from", "query") from: string | true | undefined,',
     );
-    expect(page).to.contain(
-      "previous: await model.revenueTrend(new Date(String(compareFrom)), new Date(String(compareTo))).run()",
+    expect(
+      page,
+      "a request that carries no comparison bounds runs no second query",
+    ).to.contain(
+      "previous: compareFrom && compareTo ? await model.revenueTrend(new Date(String(compareFrom)), new Date(String(compareTo))).run() : undefined",
     );
   });
 
@@ -268,10 +271,10 @@ function comparesAgainstThePeriodBefore(): void {
 
     const page = app.read(PAGE_FILE);
     expect(page).to.contain(
-      "chartCardData(await model.revenueTrend(new Date(String(from)), new Date(String(to))).run()",
+      'chartCardData(await model.revenueTrend(from === undefined ? new Date("0001-01-01T00:00:00.000Z") : new Date(String(from)), to === undefined ? new Date("9999-12-31T23:59:59.999Z") : new Date(String(to))).run()',
     );
     expect(page).to.contain(
-      "previous: await model.revenueTrend(new Date(String(compareFrom)), new Date(String(compareTo))).run()",
+      "previous: compareFrom && compareTo ? await model.revenueTrend(new Date(String(compareFrom)), new Date(String(compareTo))).run() : undefined",
     );
     const trend = await queryNamed("revenueTrend");
     expect(trend?.params).to.include({ limit: 12 });
@@ -291,7 +294,7 @@ function comparesAgainstThePeriodBefore(): void {
 
     const page = app.read(PAGE_FILE);
     expect(page).to.contain("topListData(await model.revenueTrend(");
-    expect(page).to.not.contain("previous: await model.revenueTrend");
+    expect(page).to.not.match(/previous:[^\n]*model\.revenueTrend/);
     const trend = await queryNamed("revenueTrend");
     expect(trend?.response).to.equal("items");
     expect(trend?.compare).to.equal(undefined);
@@ -308,8 +311,8 @@ function comparesAgainstThePeriodBefore(): void {
       }),
       "AddQuery",
     );
-    expect(app.read(PAGE_FILE)).to.not.contain(
-      "previous: await model.revenueFixed",
+    expect(app.read(PAGE_FILE)).to.not.match(
+      /previous:[^\n]*model\.revenueFixed/,
     );
   });
 }

@@ -279,5 +279,7 @@ export async function pageAccess(
   if (also && also !== prefixes[0] && findPermissionNode(tree, also)?.data) {
     prefixes.push(also);
   }
-  return describePageAccess(record, tree, await readRoles(tenant, prefixes));
+  const roles = await readRoles(tenant, prefixes);
+  const current = findPageRecord(ref);
+  return current && describePageAccess(current, tree, roles);
 }

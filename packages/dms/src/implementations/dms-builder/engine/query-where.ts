@@ -10,13 +10,23 @@ import type {
   ValidationIssue,
 } from "@antelopejs/interface-dms-builder";
 import { FILTER_OPS } from "./query-chain";
-import { checkFilter, checkParamConflicts, issue } from "./query-template";
+import {
+  checkFilter,
+  checkParamConflicts,
+  issue,
+  type ParamBindings,
+} from "./query-template";
 
-/** Validates a `where` clause: an optional array of well-typed filters. */
+/**
+ * Validates a `where` clause: an optional array of well-typed filters. A caller
+ * validating several clauses that share one method passes the same `bindings`
+ * to each, so a parameter two of them bind is checked to agree.
+ */
 export function checkFilters(
   where: ConfigValue,
   fields: ResourceFieldStructure[],
   pointer = "/where",
+  bindings?: ParamBindings,
 ): ValidationIssue[] {
   if (where === undefined) {
     return [];
@@ -27,7 +37,9 @@ export function checkFilters(
   const issues = where.flatMap((filter, index) =>
     checkFilter(filter, fields, `${pointer}/${index}`),
   );
-  return issues.length > 0 ? issues : checkParamConflicts(where, fields);
+  return issues.length > 0
+    ? issues
+    : checkParamConflicts(where, fields, pointer, bindings);
 }
 
 /**

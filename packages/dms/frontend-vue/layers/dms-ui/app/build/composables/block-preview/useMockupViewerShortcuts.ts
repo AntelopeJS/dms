@@ -1,6 +1,7 @@
 import { computed, onBeforeUnmount, onMounted, type Ref } from "vue";
 import {
   isFieldKey,
+  isInspectorEscape,
   matchShortcuts,
   type MockupShortcutId,
   type MockupView,
@@ -44,8 +45,9 @@ function always(act: () => void): () => boolean {
 
 /**
  * The viewer's keyboard: the shortcuts table's actions, each of the view the
- * canvas shows, fired by the window's key presses outside a field, and by an
- * Escape the preview frame reports. Escape steps back from the innermost
+ * canvas shows, fired by the window's key presses outside a field, by an
+ * Escape a field of the inspector left, and by an Escape the preview frame
+ * reports. Escape steps back from the innermost
  * thing going on: an armed block, the comment tool, a pin, the selection.
  */
 export function useMockupViewerShortcuts(
@@ -119,15 +121,29 @@ export function useMockupViewerShortcuts(
     return matchShortcuts(event, view.value).some((id) => actions[id]());
   }
 
+  /** A key pressed outside a field, seen before the page's other listeners: once a shortcut acts, none of them sees it. */
   function onKeydown(event: KeyboardEvent): void {
-    if (isFieldKey(event.target)) return;
-    if (!run(event)) return;
+    if (isFieldKey(event.target) || !run(event)) return;
     event.preventDefault();
     event.stopPropagation();
   }
 
-  onMounted(() => window.addEventListener("keydown", onKeydown, true));
-  onBeforeUnmount(() => window.removeEventListener("keydown", onKeydown, true));
+  /** An Escape a field of the inspector left, with a block selected to step back from, once the field had its turn. */
+  function onFieldEscape(event: KeyboardEvent): void {
+    if (!isFieldKey(event.target) || editing.selection.value === undefined) {
+      return;
+    }
+    if (isInspectorEscape(event) && run(event)) event.preventDefault();
+  }
+
+  onMounted(() => {
+    window.addEventListener("keydown", onKeydown, true);
+    window.addEventListener("keydown", onFieldEscape);
+  });
+  onBeforeUnmount(() => {
+    window.removeEventListener("keydown", onKeydown, true);
+    window.removeEventListener("keydown", onFieldEscape);
+  });
 
   return { undo, redo, run };
 }

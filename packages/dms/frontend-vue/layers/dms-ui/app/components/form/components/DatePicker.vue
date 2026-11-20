@@ -329,6 +329,7 @@ const label = computed(() => {
     <template #content>
       <UCalendar
         v-bind="forwarded"
+        :calendar-label="t('dms.form.select_date')"
         :min-value="minValue"
         :max-value="maxValue"
         :week-starts-on="props.weekStartsOn ?? weekStartsOn"

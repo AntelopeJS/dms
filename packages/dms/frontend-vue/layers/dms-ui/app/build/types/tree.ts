@@ -8,14 +8,16 @@ export interface TreeItem extends LinkProps {
   children?: TreeItem[];
 }
 
+/** The menu groups of the first-level entries declared with `placement`, unset for the scrolling menu. */
 export function convertSiteLayoutTreeToTreeItems(
   siteLayoutTree: SiteLayoutTree | null | undefined,
+  placement?: SiteLayoutTree["placement"],
 ): NavigationMenuItem[][] {
   if (!siteLayoutTree) {
     return [];
   }
 
-  return convertToTreeItems(siteLayoutTree);
+  return convertToTreeItems(siteLayoutTree, placement);
 }
 
 const EXCLUDED_TOP_LEVEL_IDS = new Set(["settings", "modules"]);
@@ -70,12 +72,15 @@ function buildLabelGroup(
   ];
 }
 
-function convertToTreeItems(node: SiteLayoutTree): NavigationMenuItem[][] {
+function convertToTreeItems(
+  node: SiteLayoutTree,
+  placement: SiteLayoutTree["placement"],
+): NavigationMenuItem[][] {
   const groups: NavigationMenuItem[][] = [];
 
   for (const nodeId of node.childrenOrders) {
     const item = node.children[nodeId]!;
-    if (isExcludedFromRoot(item)) {
+    if (isExcludedFromRoot(item) || item.placement !== placement) {
       continue;
     }
 

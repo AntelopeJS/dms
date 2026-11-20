@@ -38,6 +38,10 @@
       "title": "Server error",
       "description": "An unexpected error occurred. Please try again later."
     },
+    "503": {
+      "title": "Service unavailable",
+      "description": "The server or its database is not answering right now. Try again in a moment."
+    },
     "request_refused": {
       "title": "Request refused"
     },
@@ -49,6 +53,7 @@
       "title": "Connection lost",
       "description": "The server could not be reached. Check your connection and try again."
     },
+    "database_unavailable": "The database is not answering right now. Try again in a moment.",
     "switch_account_failed": "Failed to switch account",
     "email_already_used": "This email address is already used.",
     "user_not_found": "No user found with this email address.",
@@ -406,6 +411,7 @@
       "required": "This field is required.",
       "invalid": "This value isn’t valid.",
       "invalid_email": "Enter a valid email address.",
+      "invalid_phone": "Enter a valid phone number, with its country.",
       "too_long": "This value is too long.",
       "too_short": "This value is too short.",
       "too_small": "This value is too small.",

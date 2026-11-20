@@ -14,12 +14,17 @@ export { loadRun, saveRun } from "./run-state.mjs";
  * @typedef {{ run: RunState, stop: () => Promise<void> }} StartedRun A ready run, and what stops it
  */
 
+/** @type {NodeJS.Signals[]} */
+const STOP_SIGNALS = ["SIGINT", "SIGTERM"];
+
 /**
  * Starts a run of the checkout's playground, as the global setup of a
  * Playwright suite does, for any test runner: a copy of the playground on
  * free ports, its own MongoDB, a mail sink and the dashboard of the skill
  * config's `renderer` or of the playground. `stop` stops every process the
  * run started and keeps its `evidence/` and `logs/`. Loads no Playwright.
+ * The processes run detached, so a SIGINT or SIGTERM to this process stops
+ * the run too, then ends the process by that signal.
  *
  * @param {RunOptions} [options] How to start it
  * @returns {Promise<StartedRun>} The ready run
@@ -28,7 +33,22 @@ export { loadRun, saveRun } from "./run-state.mjs";
 export async function startRun(options = {}) {
   const cwd = process.cwd();
   const run = await startStack(startOptions(options, cwd), cwd);
-  return { run, stop: () => stopRun(run.dir) };
+  const onSignal = (/** @type {NodeJS.Signals} */ signal) => {
+    release();
+    const reraise = () => process.kill(process.pid, signal);
+    stopRun(run.dir).then(reraise, reraise);
+  };
+  const release = () => {
+    for (const signal of STOP_SIGNALS) process.off(signal, onSignal);
+  };
+  for (const signal of STOP_SIGNALS) process.on(signal, onSignal);
+  return {
+    run,
+    stop: () => {
+      release();
+      return stopRun(run.dir);
+    },
+  };
 }
 
 /**
@@ -40,12 +60,12 @@ export async function startRun(options = {}) {
 async function stopRun(dir) {
   const lines = await down(loadRun(dir));
   for (const line of lines.filter((entry) => entry.startsWith("could not")))
-    process.stderr.write(`dms-control: ${line}\n`);
+    process.stderr.write(`dms-e2e: ${line}\n`);
 }
 
 /**
  * @typedef {import("./journey-load.mjs").Journey} Journey A journey: its preparation fields and its `run(ctx)` body
- * @typedef {import("./verify/types.mjs").FeatureResult} FeatureResult The judged result: `status`, `error` and `steps[].checks[].verdict`
+ * @typedef {import("./types.mjs").FeatureResult} FeatureResult The judged result: `status`, `error` and `steps[].checks[].verdict`
  */
 
 /** A browser that refuses to open anything, so a browserless journey fails when it asks for a tab. */

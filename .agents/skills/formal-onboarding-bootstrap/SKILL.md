@@ -40,7 +40,7 @@ The lines that name a changed rule match `^(?:BROKEN|CHANGED|HOLDS) +(\w+)`. A r
 
 ## When to run it
 
-Run `--full` when a change touches a file in the coverage record below, or this folder. A changed rule (exit 1) makes `dms-control formal` print `ERROR` or `VIOLATED`, and the verifier explains it in the reply (`verify-dms` verdict rule 5). The CI configuration catches every scratch break in the last section, so it is the one to run on every push.
+Run `--full` when a change touches a file in the coverage record below, or this folder. A changed rule exits 1. Explain it in the reply. The CI configuration catches every scratch break in the last section, so it is the one to run on every push.
 
 ## The rules
 

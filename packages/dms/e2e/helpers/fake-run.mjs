@@ -223,7 +223,7 @@ export function running() {
  * @returns {Promise<import("../run-state.mjs").RunState>} The run
  */
 export async function newRun(t) {
-  const parent = mkdtempSync(join(tmpdir(), "dms-control-backend-test-"));
+  const parent = mkdtempSync(join(tmpdir(), "dms-e2e-backend-test-"));
   const playground = join(parent, "playground");
   for (const [path, content] of Object.entries(PLAYGROUND_FILES)) {
     mkdirSync(dirname(join(playground, path)), { recursive: true });
@@ -248,7 +248,6 @@ export async function newRun(t) {
     repo: null,
     headSha: null,
     baseRef: "origin/main",
-    skill: null,
     apiPort,
     webPort: 0,
     smtpPort: 0,

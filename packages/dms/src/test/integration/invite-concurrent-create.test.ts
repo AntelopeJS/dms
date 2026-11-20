@@ -66,15 +66,22 @@ describe("[integration] concurrent invitations of one email", () => {
 
   afterEach(() => unregisterBarrier());
 
-  it("keeps one pending invitation and hands both callers its token", async () => {
+  it("keeps one pending invitation and hands its token to the caller that created it alone", async () => {
     const [first, second] = await Promise.all([
       createUserInviteToken(inviteOptions("member")),
       createUserInviteToken(inviteOptions("member")),
     ]);
     const rows = await GetModel(UserInviteModel, TENANT).getAll();
     assert.equal(rows.length, 1);
-    assert.deepEqual(first, second);
-    assert.equal(first.token, rows[0]?.token);
+    assert.equal(first.inviteId, rows[0]?._id);
+    assert.equal(second.inviteId, rows[0]?._id);
+    const tokens = [first.token, second.token].filter((token) => token);
+    assert.equal(tokens.length, 1);
+    assert.equal(
+      (await GetModel(UserInviteModel, TENANT).getByToken(tokens[0] ?? ""))
+        ?._id,
+      rows[0]?._id,
+    );
   });
 
   it("keeps one pending invitation and refuses the invitation that lost with other content", async () => {
@@ -113,8 +120,8 @@ describe("[integration] three concurrent invitations of one email", () => {
     const lateResult = await late;
     const rows = await GetModel(UserInviteModel, TENANT).getAll();
     assert.equal(rows.length, 1);
-    assert.equal(rows[0]?.token, replacement.token);
-    assert.deepEqual(lateResult, replacement);
+    assert.equal(rows[0]?._id, replacement.inviteId);
+    assert.equal(lateResult.inviteId, replacement.inviteId);
   });
 });
 
@@ -155,8 +162,8 @@ describe("[integration] four concurrent invitations of one email", () => {
     await invites.delete(fresh._id);
     const rows = await invites.getAll();
     assert.deepEqual(
-      rows.map((row) => row.token),
-      [kept.token],
+      rows.map((row) => row._id),
+      [kept.inviteId],
     );
   });
 
@@ -166,8 +173,8 @@ describe("[integration] four concurrent invitations of one email", () => {
     await assertReplacementRefused(fresh);
     const rows = await invites.getAll();
     assert.deepEqual(
-      rows.map((row) => row.token),
-      [kept.token],
+      rows.map((row) => row._id),
+      [kept.inviteId],
     );
   });
 });
@@ -240,8 +247,8 @@ describe("[integration] an invitation retired while a fresh invite withdraws", (
       const invited = await fresh;
       const rows = await invites.getAll();
       assert.deepEqual(
-        rows.map((row) => row.token),
-        [invited.token],
+        rows.map((row) => row._id),
+        [invited.inviteId],
       );
     });
   }
@@ -260,8 +267,8 @@ describe("[integration] an invitation retired while a fresh invite withdraws", (
 
     const rows = await invites.getAll();
     assert.deepEqual(
-      rows.map((row) => row.token),
-      [invited.token],
+      rows.map((row) => row._id),
+      [invited.inviteId],
     );
   });
 });
@@ -289,11 +296,11 @@ describe("[integration] withdrawal of a fresh invite that found a rival", () => 
     insertion.release();
     const replaced = await replacing;
 
-    assert.deepEqual(withdrawn, replaced);
+    assert.deepEqual(withdrawn, { inviteId: replaced.inviteId });
     const rows = await invites.getAll();
     assert.deepEqual(
-      rows.map((row) => row.token),
-      [replaced.token],
+      rows.map((row) => row._id),
+      [replaced.inviteId],
     );
   });
 

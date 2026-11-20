@@ -28,6 +28,12 @@ const THINKING_ITEMS = [
   { label: "High", value: "high" },
 ];
 
+const UNIT_ITEMS = [
+  { label: "Hour", value: "hour" },
+  { label: "Day", value: "day" },
+  { label: "Piece", value: "piece" },
+];
+
 const QUERY_COMPLETIONS = [
   { label: "orders", detail: "1,284 rows", icon: "i-ph-table" },
   { label: "customers", detail: "4,960 rows", icon: "i-ph-table" },
@@ -185,6 +191,32 @@ export class PageFormFieldTypes extends PageController(
               min: 1,
               max: 5,
               addLabel: "Add a category",
+            }),
+          },
+          {
+            id: "lines",
+            label: "Lines",
+            description: "A new line starts at 1 hour",
+            type: new DefaultDataTypes.ArrayType({
+              of: {
+                description: {
+                  type: new DefaultDataTypes.StringType(),
+                  label: "Description",
+                  required: true,
+                },
+                quantity: {
+                  type: new DefaultDataTypes.NumberType({ min: 0 }),
+                  label: "Quantity",
+                  defaultValue: 1,
+                },
+                unit: {
+                  type: new DefaultDataTypes.SelectType({ items: UNIT_ITEMS }),
+                  label: "Unit",
+                  defaultValue: "hour",
+                },
+              },
+              min: 1,
+              addLabel: "Add a line",
             }),
           },
           {

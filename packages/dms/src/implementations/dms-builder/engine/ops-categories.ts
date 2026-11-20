@@ -34,9 +34,8 @@ import {
 import { createImportCollector, InvalidValueError } from "./value";
 import {
   findImporters,
-  getWritableProject,
   holdsOnlyImports,
-  refreshFromDisk,
+  openWritableProject,
   resolveRootBarrel,
   Transaction,
 } from "./writable";
@@ -109,8 +108,7 @@ export function createCategory(
   if (findCategoryRecord(ref)) {
     return duplicate<{ ref: CategoryRef }>(input.name, "category");
   }
-  const project = getWritableProject();
-  refreshFromDisk(project);
+  const project = openWritableProject();
   const barrel = resolveRootBarrel(project, input.module);
   if (!barrel) {
     return unsupported<{ ref: CategoryRef }>(
@@ -143,8 +141,7 @@ function openCategoryDeclaration(category: CategoryRecord) {
   ) {
     return undefined;
   }
-  const project = getWritableProject();
-  refreshFromDisk(project);
+  const project = openWritableProject();
   const sourceFile = project.getSourceFile(category.importModule);
   const decl = sourceFile?.getVariableDeclaration(category.importName);
   if (!sourceFile || !decl) {

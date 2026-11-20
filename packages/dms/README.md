@@ -2,7 +2,7 @@
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/AntelopeJS/dms/main/packages/dms/frontend-vue/layers/dms-layout/public/images/antelope-logo/dark.svg">
-  <img alt="Antelope DMS" src="https://raw.githubusercontent.com/AntelopeJS/dms/main/packages/dms/frontend-vue/layers/dms-layout/public/images/antelope-logo/light.svg" data-illustration height="72">
+  <img alt="AntelopeJS DMS" src="https://raw.githubusercontent.com/AntelopeJS/dms/main/packages/dms/frontend-vue/layers/dms-layout/public/images/antelope-logo/light.svg" data-illustration height="72">
 </picture>
 
 # `@antelopejs/dms`
@@ -25,7 +25,7 @@
 - Declares pages as TypeScript classes: forms, tables, charts and layouts are blocks the shared Vue renderer draws, with no Vue to write for standard screens.
 - Handles sign-in, members, roles and permissions down to each block, multi-tenancy and a SaaS mode.
 - Manages data through data controllers and table views, with file uploads, notifications and realtime updates.
-- Grows with installable modules: an AI assistant, a page builder, database and API consoles, automations, SaaS billing, translations, mailing, marketing analytics and a media library.
+- Grows with installable modules: an AI assistant with live mockups, database and API consoles, automations, SaaS billing, translations, mailing, marketing analytics and a media library.
 - Ships Claude Code skills (`dms`, `dms-project`, `dms-auth`, `dms-module`) so coding agents use its API the way the DMS expects. The `antelopejs` plugin adds the page-building skills.
 
 Its public contracts live in a separate package, [`@antelopejs/interface-dms`](https://www.npmjs.com/package/@antelopejs/interface-dms): modules import them from there, never from this runtime.
@@ -110,7 +110,7 @@ Each DMS release declares the renderer releases it runs on in `engines["@antelop
 
 The runtime guides live in [`docs/`](./docs). The canonical contract reference belongs to [`@antelopejs/interface-dms`](../interface-dms/docs/index.md), not this runtime package.
 
-The package ships the core Claude Code skills (`dms`, `dms-auth`, `dms-module`, `dms-project`) in [`skills/`](https://github.com/AntelopeJS/dms/tree/main/packages/dms/skills), declared under `antelopeJs.skills`; [Install the plugin](https://dms.antelopejs.com/docs/ai-and-claude-code/install) to use them. The plugin itself ships `antelopejs:dms-pages` and `antelopejs:dms-best-practices`.
+The package ships the core Claude Code skills (`dms`, `dms-auth`, `dms-module`, `dms-project`) in [`skills/`](https://github.com/AntelopeJS/dms/tree/main/packages/dms/skills), declared under `antelopeJs.skills`; [Install the plugin](https://dms.antelopejs.com/docs/ai-and-claude-code/coding-agent/install) to use them. The plugin itself ships `antelopejs:dms-pages` and `antelopejs:dms-best-practices`.
 
 ## Contributing
 
