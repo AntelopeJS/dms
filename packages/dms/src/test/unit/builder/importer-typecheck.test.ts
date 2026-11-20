@@ -38,6 +38,24 @@ function source(relativePath: string): string {
   return path.join(app.root, "src", relativePath);
 }
 
+/** A dependency whose entry re-exports the tone another of its files declares. */
+function installTone(tone: string): void {
+  const root = path.join(app.root, "node_modules", "fixture-tone");
+  fs.mkdirSync(root, { recursive: true });
+  fs.writeFileSync(
+    path.join(root, "package.json"),
+    JSON.stringify({ name: "fixture-tone", types: "index.d.ts" }),
+  );
+  fs.writeFileSync(
+    path.join(root, "index.d.ts"),
+    `export { tone } from "./tone";\n`,
+  );
+  fs.writeFileSync(
+    path.join(root, "tone.d.ts"),
+    `export declare const tone: "${tone}";\n`,
+  );
+}
+
 function failedFiles(result: OpResult<unknown>): string[] {
   return !result.ok && result.error.code === "typecheck_failed"
     ? result.error.diagnostics.map((diagnostic) => diagnostic.file)
@@ -155,6 +173,25 @@ describe("[unit] a save that breaks a file the save did not write", () => {
     const result = await addBanner();
 
     expect(failedFiles(result)).to.deep.equal([source("referrer.ts")]);
+  });
+
+  /**
+   * A dependency rebuilt under a running builder changes a declaration file the
+   * app reaches through another file of the dependency.
+   */
+  it("fails on the app's importer of a dependency whose inner file changed", async function () {
+    this.timeout(OP_TIMEOUT);
+    installTone("draft");
+    write(
+      "tone-reader.ts",
+      `import { tone } from "fixture-tone";\n\nexport const shown: "draft" = tone;\n`,
+    );
+    expectOk(await addBanner(), "AddBlock with the dependency installed");
+
+    installTone("published");
+    const result = await addBanner();
+
+    expect(failedFiles(result)).to.deep.equal([source("tone-reader.ts")]);
   });
 
   /** A global reaches every file without an import, so its change checks them all. */

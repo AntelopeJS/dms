@@ -339,9 +339,16 @@ function reachesPastModule(file: ts.SourceFile): boolean {
   );
 }
 
+/** Whether a file lies in `node_modules`, read from its path as ts-morph's `isInNodeModules` reads it. */
+function inNodeModules(fileName: string): boolean {
+  return fileName.includes("/node_modules/");
+}
+
 /**
- * The files that import each file of the program, by path, through a module
- * specifier or a `/// <reference path>`.
+ * The files outside `node_modules` that import each file of the program, by
+ * path, through a module specifier or a `/// <reference path>`. The imports of
+ * a dependency's files are not read: they outnumber the app's own, and a
+ * dependency's file changes only when it is rebuilt under a running builder.
  */
 function importGraph(
   project: Project,
@@ -351,6 +358,9 @@ function importGraph(
   const importers = new Map<string, string[]>();
   for (const file of files) {
     const importer = file.fileName;
+    if (inNodeModules(importer)) {
+      continue;
+    }
     const literals =
       project.getSourceFile(importer)?.getImportStringLiterals() ?? [];
     const imported = literals
@@ -379,7 +389,8 @@ function importGraph(
 /**
  * The files whose diagnostics may differ from the clean check's: each file
  * parsed again or gone since, and every file importing one of them, at any
- * depth. Every file when one of them declares past its module.
+ * depth. Every file when one of them declares past its module or lies in
+ * `node_modules`, whose importers the graph does not follow.
  */
 function affectedFiles(
   files: readonly ts.SourceFile[],
@@ -405,7 +416,7 @@ function affectedFiles(
     }
   }
   return [...affected].some(
-    (name) => global.has(name) || clean.global.has(name),
+    (name) => inNodeModules(name) || global.has(name) || clean.global.has(name),
   )
     ? files
     : files.filter((file) => affected.has(file.fileName));
