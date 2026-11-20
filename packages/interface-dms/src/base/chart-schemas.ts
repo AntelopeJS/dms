@@ -54,6 +54,18 @@ const chartPointSchema = z.union([
   }),
 ]);
 
+const xAxisSchema = z.object({
+  tickAmount: z.number().optional(),
+  rotate: z.number().optional(),
+  hideOverlappingLabels: z.boolean().optional(),
+  datetimeFormat: z
+    .string()
+    .optional()
+    .describe(
+      'ApexCharts datetime tokens, for example "dd MMM". Applies to a datetime X axis (`xaxisType: "datetime"`) on a vertical chart; a horizontal ChartBar always uses a category axis.',
+    ),
+});
+
 const chartSeriesSchema = z.object({
   name: z.string(),
   data: z.array(chartPointSchema),
@@ -200,6 +212,11 @@ const xyChartOptions = {
     label: "X axis type",
     group: "appearance",
     widget: "segmented",
+  }),
+  xAxis: ui(xAxisSchema.optional(), {
+    label: "X axis",
+    group: "appearance",
+    advanced: true,
   }),
 };
 

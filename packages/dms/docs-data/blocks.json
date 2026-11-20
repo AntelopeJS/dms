@@ -2153,6 +2153,34 @@
             "widget": "segmented"
           }
         },
+        "xAxis": {
+          "type": "object",
+          "properties": {
+            "tickAmount": {
+              "type": "number",
+              "optional": true
+            },
+            "rotate": {
+              "type": "number",
+              "optional": true
+            },
+            "hideOverlappingLabels": {
+              "type": "boolean",
+              "optional": true
+            },
+            "datetimeFormat": {
+              "type": "string",
+              "optional": true,
+              "description": "ApexCharts datetime tokens, for example \"dd MMM\". Applies to a datetime X axis (`xaxisType: \"datetime\"`) on a vertical chart; a horizontal ChartBar always uses a category axis."
+            }
+          },
+          "optional": true,
+          "ui": {
+            "label": "X axis",
+            "group": "appearance",
+            "advanced": true
+          }
+        },
         "fillOpacity": {
           "type": "number",
           "optional": true,
@@ -2662,6 +2690,34 @@
             "label": "X axis type",
             "group": "appearance",
             "widget": "segmented"
+          }
+        },
+        "xAxis": {
+          "type": "object",
+          "properties": {
+            "tickAmount": {
+              "type": "number",
+              "optional": true
+            },
+            "rotate": {
+              "type": "number",
+              "optional": true
+            },
+            "hideOverlappingLabels": {
+              "type": "boolean",
+              "optional": true
+            },
+            "datetimeFormat": {
+              "type": "string",
+              "optional": true,
+              "description": "ApexCharts datetime tokens, for example \"dd MMM\". Applies to a datetime X axis (`xaxisType: \"datetime\"`) on a vertical chart; a horizontal ChartBar always uses a category axis."
+            }
+          },
+          "optional": true,
+          "ui": {
+            "label": "X axis",
+            "group": "appearance",
+            "advanced": true
           }
         },
         "stacked": {
@@ -3195,6 +3251,34 @@
             "label": "X axis type",
             "group": "appearance",
             "widget": "segmented"
+          }
+        },
+        "xAxis": {
+          "type": "object",
+          "properties": {
+            "tickAmount": {
+              "type": "number",
+              "optional": true
+            },
+            "rotate": {
+              "type": "number",
+              "optional": true
+            },
+            "hideOverlappingLabels": {
+              "type": "boolean",
+              "optional": true
+            },
+            "datetimeFormat": {
+              "type": "string",
+              "optional": true,
+              "description": "ApexCharts datetime tokens, for example \"dd MMM\". Applies to a datetime X axis (`xaxisType: \"datetime\"`) on a vertical chart; a horizontal ChartBar always uses a category axis."
+            }
+          },
+          "optional": true,
+          "ui": {
+            "label": "X axis",
+            "group": "appearance",
+            "advanced": true
           }
         }
       },
@@ -3909,6 +3993,34 @@
             "label": "X axis type",
             "group": "appearance",
             "widget": "segmented"
+          }
+        },
+        "xAxis": {
+          "type": "object",
+          "properties": {
+            "tickAmount": {
+              "type": "number",
+              "optional": true
+            },
+            "rotate": {
+              "type": "number",
+              "optional": true
+            },
+            "hideOverlappingLabels": {
+              "type": "boolean",
+              "optional": true
+            },
+            "datetimeFormat": {
+              "type": "string",
+              "optional": true,
+              "description": "ApexCharts datetime tokens, for example \"dd MMM\". Applies to a datetime X axis (`xaxisType: \"datetime\"`) on a vertical chart; a horizontal ChartBar always uses a category axis."
+            }
+          },
+          "optional": true,
+          "ui": {
+            "label": "X axis",
+            "group": "appearance",
+            "advanced": true
           }
         },
         "stacked": {
@@ -5075,6 +5187,34 @@
             "widget": "segmented"
           }
         },
+        "xAxis": {
+          "type": "object",
+          "properties": {
+            "tickAmount": {
+              "type": "number",
+              "optional": true
+            },
+            "rotate": {
+              "type": "number",
+              "optional": true
+            },
+            "hideOverlappingLabels": {
+              "type": "boolean",
+              "optional": true
+            },
+            "datetimeFormat": {
+              "type": "string",
+              "optional": true,
+              "description": "ApexCharts datetime tokens, for example \"dd MMM\". Applies to a datetime X axis (`xaxisType: \"datetime\"`) on a vertical chart; a horizontal ChartBar always uses a category axis."
+            }
+          },
+          "optional": true,
+          "ui": {
+            "label": "X axis",
+            "group": "appearance",
+            "advanced": true
+          }
+        },
         "strokeWidth": {
           "type": "number",
           "optional": true,
@@ -5572,6 +5712,34 @@
             "label": "X axis type",
             "group": "appearance",
             "widget": "segmented"
+          }
+        },
+        "xAxis": {
+          "type": "object",
+          "properties": {
+            "tickAmount": {
+              "type": "number",
+              "optional": true
+            },
+            "rotate": {
+              "type": "number",
+              "optional": true
+            },
+            "hideOverlappingLabels": {
+              "type": "boolean",
+              "optional": true
+            },
+            "datetimeFormat": {
+              "type": "string",
+              "optional": true,
+              "description": "ApexCharts datetime tokens, for example \"dd MMM\". Applies to a datetime X axis (`xaxisType: \"datetime\"`) on a vertical chart; a horizontal ChartBar always uses a category axis."
+            }
+          },
+          "optional": true,
+          "ui": {
+            "label": "X axis",
+            "group": "appearance",
+            "advanced": true
           }
         },
         "seriesDefs": {
@@ -6325,6 +6493,34 @@
             "label": "X axis type",
             "group": "appearance",
             "widget": "segmented"
+          }
+        },
+        "xAxis": {
+          "type": "object",
+          "properties": {
+            "tickAmount": {
+              "type": "number",
+              "optional": true
+            },
+            "rotate": {
+              "type": "number",
+              "optional": true
+            },
+            "hideOverlappingLabels": {
+              "type": "boolean",
+              "optional": true
+            },
+            "datetimeFormat": {
+              "type": "string",
+              "optional": true,
+              "description": "ApexCharts datetime tokens, for example \"dd MMM\". Applies to a datetime X axis (`xaxisType: \"datetime\"`) on a vertical chart; a horizontal ChartBar always uses a category axis."
+            }
+          },
+          "optional": true,
+          "ui": {
+            "label": "X axis",
+            "group": "appearance",
+            "advanced": true
           }
         },
         "fillOpacity": {
@@ -7082,6 +7278,34 @@
             "widget": "segmented"
           }
         },
+        "xAxis": {
+          "type": "object",
+          "properties": {
+            "tickAmount": {
+              "type": "number",
+              "optional": true
+            },
+            "rotate": {
+              "type": "number",
+              "optional": true
+            },
+            "hideOverlappingLabels": {
+              "type": "boolean",
+              "optional": true
+            },
+            "datetimeFormat": {
+              "type": "string",
+              "optional": true,
+              "description": "ApexCharts datetime tokens, for example \"dd MMM\". Applies to a datetime X axis (`xaxisType: \"datetime\"`) on a vertical chart; a horizontal ChartBar always uses a category axis."
+            }
+          },
+          "optional": true,
+          "ui": {
+            "label": "X axis",
+            "group": "appearance",
+            "advanced": true
+          }
+        },
         "fillOpacity": {
           "type": "number",
           "optional": true,
@@ -7581,6 +7805,34 @@
             "label": "X axis type",
             "group": "appearance",
             "widget": "segmented"
+          }
+        },
+        "xAxis": {
+          "type": "object",
+          "properties": {
+            "tickAmount": {
+              "type": "number",
+              "optional": true
+            },
+            "rotate": {
+              "type": "number",
+              "optional": true
+            },
+            "hideOverlappingLabels": {
+              "type": "boolean",
+              "optional": true
+            },
+            "datetimeFormat": {
+              "type": "string",
+              "optional": true,
+              "description": "ApexCharts datetime tokens, for example \"dd MMM\". Applies to a datetime X axis (`xaxisType: \"datetime\"`) on a vertical chart; a horizontal ChartBar always uses a category axis."
+            }
+          },
+          "optional": true,
+          "ui": {
+            "label": "X axis",
+            "group": "appearance",
+            "advanced": true
           }
         },
         "pointSize": {
