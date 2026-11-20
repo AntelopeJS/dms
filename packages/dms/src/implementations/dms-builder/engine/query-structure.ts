@@ -7,6 +7,7 @@ import type {
 } from "@antelopejs/interface-dms-builder";
 import {
   type BinaryExpression,
+  type ConditionalExpression,
   type CallExpression,
   type ClassDeclaration,
   type MethodDeclaration,
@@ -285,7 +286,41 @@ function booleanParam(node: BinaryExpression): QueryArg | undefined {
   return undefined;
 }
 
+/**
+ * `x === undefined ? new Date("…") : new Date(String(x))` is a date parameter whose
+ * omitted bound a route fills in, so it reads as the date parameter `x`.
+ */
+function openDateParam(node: ConditionalExpression): QueryArg | undefined {
+  const condition = node.getCondition();
+  const whenOmitted = node.getWhenTrue();
+  const whenGiven = node.getWhenFalse();
+  if (
+    !Node.isBinaryExpression(condition) ||
+    condition.getOperatorToken().getKind() !==
+      SyntaxKind.EqualsEqualsEqualsToken ||
+    !Node.isNewExpression(whenGiven) ||
+    !Node.isNewExpression(whenOmitted)
+  ) {
+    return undefined;
+  }
+  const given = coercedParam(whenGiven, "Date", "date");
+  const left = condition.getLeft();
+  const omitted = condition.getRight();
+  return given &&
+    given.kind === "param" &&
+    Node.isIdentifier(left) &&
+    left.getText() === given.name &&
+    omitted.getText() === "undefined" &&
+    calledWith(whenOmitted, "Date") !== undefined &&
+    Node.isStringLiteral(calledWith(whenOmitted, "Date"))
+    ? given
+    : undefined;
+}
+
 function unwrapArgument(node: Node): QueryArg | undefined {
+  if (Node.isConditionalExpression(node)) {
+    return openDateParam(node);
+  }
   if (Node.isIdentifier(node)) {
     return { kind: "param", name: node.getText() };
   }

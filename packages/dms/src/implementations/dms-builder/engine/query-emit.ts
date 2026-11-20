@@ -371,6 +371,7 @@ export function queryModelMethodText(
  */
 function routeArgument(
   param: Pick<MethodParam, "routeName" | "type" | "in">,
+  openBound?: string,
 ): string {
   if (param.type === "number") {
     return `Number(${param.routeName})`;
@@ -380,8 +381,24 @@ function routeArgument(
   }
   const text =
     param.in === "query" ? `String(${param.routeName})` : param.routeName;
-  return param.type === "Date" ? `new Date(${text})` : text;
+  if (param.type !== "Date") {
+    return text;
+  }
+  const date = `new Date(${text})`;
+  return openBound === undefined || param.in !== "query"
+    ? date
+    : `${param.routeName} === undefined ? new Date(${JSON.stringify(openBound)}) : ${date}`;
 }
+
+/**
+ * What a period bound the request omits stands for: the "All" period sends no `from` and `to`,
+ * and a date PostgreSQL parses must stand in for each. Both fall inside the timestamp range
+ * PostgreSQL accepts.
+ */
+const OPEN_PERIOD_BOUNDS = [
+  "0001-01-01T00:00:00.000Z",
+  "9999-12-31T23:59:59.999Z",
+] as const;
 
 /**
  * What a route declares for a query-string parameter: interface-api's `QueryValue`,
@@ -487,7 +504,13 @@ export function queryRouteMethodText(
   for (const param of spec.chain.parameters) {
     routeParameter(param);
   }
-  const args = spec.chain.parameters.map(routeArgument).join(", ");
+  const bounds = periodParameters(spec.chain.parameters);
+  const args = spec.chain.parameters
+    .map((parameter) => {
+      const at = bounds?.indexOf(parameter) ?? -1;
+      return routeArgument(parameter, OPEN_PERIOD_BOUNDS[at]);
+    })
+    .join(", ");
   const previous = comparisonCall(spec, modelMethod);
   const response = responseEmission(
     outputForTemplate(spec.template) ?? "scalar",
