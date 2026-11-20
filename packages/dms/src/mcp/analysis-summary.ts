@@ -100,7 +100,7 @@ const ALL_MAPPED_HINT =
   "Every relation read is mapped already, so nothing is left to propose: say so, and offer to open the pages that show them, or to start a new mockup over them (mockup_write_spec).";
 
 function groupedHint(tables: number): string {
-  return `The proposal holds ${tables} tables, too many to choose one by one: show the user \`groups\` first and let them pick or skip each group whole, then open a picked group to refine its tables. Use only the tables picked. ${HINT}`;
+  return `The proposal holds ${tables} tables, too many to choose one by one: show the user \`groups\` first and let them pick or skip each group whole, then open a picked group to refine its tables, passing them to \`detail\` a few at a time, since a full proposal of this many tables does not fit your context. Use only the tables picked. Each relation below lists its columns with types, relations and where each is used.`;
 }
 
 /** The tables a user chooses from: the relations proposed and those a `purpose` item asks about. */
@@ -115,19 +115,11 @@ function tablesOf(proposal: RedactedProposal): string[] {
   ];
 }
 
-/**
- * The hint for a proposal: what to do when every relation read is mapped already, how to choose
- * among grouped tables, else how to read more.
- */
-function hintOf(
-  proposal: RedactedProposal,
-  tables: number,
-  grouped: boolean,
-): string {
+/** The hint for a proposal: what to do when every relation read is mapped already, else how to read more. */
+function hintOf(proposal: RedactedProposal): string {
   const nothingLeft =
     proposal.resources.length === 0 && proposal.open.length === 0;
-  if (nothingLeft && proposal.mapped.length > 0) return ALL_MAPPED_HINT;
-  return grouped ? groupedHint(tables) : HINT;
+  return nothingLeft && proposal.mapped.length > 0 ? ALL_MAPPED_HINT : HINT;
 }
 
 function screenOf(resource: RedactedResource): ScreenKind {
@@ -234,7 +226,7 @@ export function summariseAnalysis(
     })),
     open: proposal.open.map(openItemOf),
     mapped: proposal.mapped,
-    hint: hintOf(proposal, tables.length, groups !== undefined),
+    hint: groups ? groupedHint(tables.length) : hintOf(proposal),
   };
   if (groups) summary.groups = groups;
   if (detail.length) summary.detail = detailOf(proposal, detail);

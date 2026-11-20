@@ -17,6 +17,12 @@ function splitRelation(relation: string) {
   return { schema: relation.slice(0, dot), name: relation.slice(dot + 1) };
 }
 
+/** A table name's segments, leading, doubled and trailing separators dropped. */
+function segmentsOf(name: string): string[] {
+  const segments = name.split(SEPARATOR).filter(Boolean);
+  return segments.length > 0 ? segments : [name];
+}
+
 function groupBy(
   relations: readonly string[],
   keyOf: (relation: string) => string,
@@ -24,21 +30,34 @@ function groupBy(
   const groups = new Map<string, string[]>();
   for (const relation of relations) {
     const key = keyOf(relation);
-    groups.set(key, [...(groups.get(key) ?? []), relation]);
+    const members = groups.get(key);
+    if (members) members.push(relation);
+    else groups.set(key, [relation]);
   }
   return groups;
 }
 
-/** The leading name segments every table shares, such as `["wp"]` for `wp_posts` and `wp_users`. */
+function startsWith(segments: readonly string[], prefix: readonly string[]) {
+  return prefix.every((segment, at) => segments[at] === segment);
+}
+
+/**
+ * The leading segments more than half the tables share with a segment after them, such as
+ * `["wp"]` for `wp_posts`, `wp_users` and a stray `migrations`.
+ */
 function sharedSegments(names: readonly string[][]): string[] {
   const shared: string[] = [];
-  for (let at = 0; ; at++) {
-    const segment = names[0][at];
-    const sharedByAll = names.every(
-      (segments) => segments.length > at + 1 && segments[at] === segment,
-    );
-    if (!sharedByAll) return shared;
-    shared.push(segment);
+  for (;;) {
+    const counts = new Map<string, number>();
+    for (const segments of names) {
+      if (segments.length > shared.length + 1 && startsWith(segments, shared)) {
+        const next = segments[shared.length];
+        counts.set(next, (counts.get(next) ?? 0) + 1);
+      }
+    }
+    const [top] = [...counts].sort(([, a], [, b]) => b - a);
+    if (top === undefined || top[1] * 2 <= names.length) return shared;
+    shared.push(top[0]);
   }
 }
 
@@ -46,15 +65,19 @@ function prefixGroups(relations: readonly string[]): RelationGroup[] {
   const segments = new Map(
     relations.map((relation) => [
       relation,
-      splitRelation(relation).name.split(SEPARATOR),
+      segmentsOf(splitRelation(relation).name),
     ]),
   );
   const shared = sharedSegments([...segments.values()]);
-  const byPrefix = groupBy(relations, (relation) =>
-    [...shared, segments.get(relation)?.[shared.length] ?? ""].join(SEPARATOR),
-  );
+  const byPrefix = groupBy(relations, (relation) => {
+    const own = segments.get(relation) ?? [];
+    return startsWith(own, shared)
+      ? own.slice(0, shared.length + 1).join(SEPARATOR)
+      : own[0];
+  });
   const grouped = [...byPrefix]
     .filter(([, members]) => members.length > 1)
+    .sort(([a], [b]) => a.localeCompare(b))
     .map(([name, members]): RelationGroup => ({
       name,
       by: "prefix",
@@ -72,9 +95,9 @@ function prefixGroups(relations: readonly string[]): RelationGroup[] {
 
 /**
  * The tables grouped for a user to pick or skip a group at once: by schema when they span several,
- * else by the name prefix they share past the one common to all (`wp_shop_orders` and
- * `wp_shop_items` in `wp_shop`), the tables sharing none in a last group named `null`. `undefined` at
- * {@link GROUPING_THRESHOLD} tables or fewer, or when the tables fall into a single group.
+ * else by the name prefix they share past the one most tables share (`wp_shop_orders` and
+ * `wp_shop_items` in `wp_shop`), the tables sharing none in a last group named `null`. `undefined`
+ * at {@link GROUPING_THRESHOLD} tables or fewer, or when the tables fall into a single group.
  */
 export function groupRelations(
   relations: readonly string[],

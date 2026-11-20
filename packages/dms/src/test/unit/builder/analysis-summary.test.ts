@@ -475,13 +475,14 @@ describe("[unit] builder_analyse_database: tables grouped past 30", () => {
     expect(groups?.[2].relations).to.have.length(21);
   });
 
-  it("groups one schema's tables by the prefix past the one they all share, the rest together", () => {
+  it("groups one schema's tables by the prefix past the one most share, the rest together", () => {
     const groups = grouped([
       ...named("public", "wp_shop_", 12),
       ...named("public", "wp_blog_", 12),
       ...named("public", "wp_user_", 6),
       "public.wp_options",
       "public.wp_links",
+      "public.migrations",
     ])?.groups;
 
     expect(groups?.map(({ name, by }) => ({ name, by }))).to.deep.equal([
@@ -492,8 +493,23 @@ describe("[unit] builder_analyse_database: tables grouped past 30", () => {
     ]);
     expect(groups?.[1].relations).to.have.length(12);
     expect(groups?.[3].relations).to.deep.equal([
+      "public.migrations",
       "public.wp_links",
       "public.wp_options",
+    ]);
+  });
+
+  it("reads past leading underscores, naming no group by an empty prefix", () => {
+    const groups = grouped([
+      ...named("public", "_audit_", 15),
+      ...named("public", "__cache_", 15),
+      "public._prisma_migrations",
+    ])?.groups;
+
+    expect(groups?.map((group) => group.name)).to.deep.equal([
+      "audit",
+      "cache",
+      null,
     ]);
   });
 
