@@ -53,7 +53,8 @@ export type SpecWriteResult =
   | { ok: true; digest: SpecDigest; warnings: MockupIssue[] }
   | { ok: false; errors: MockupIssue[]; warnings: MockupIssue[] };
 
-function digestOf(text: string): SpecDigest {
+/** The digest of `text`, the content of a `spec.json`. */
+export function digestOf(text: string): SpecDigest {
   return createHash("sha256")
     .update(text)
     .digest("hex")

@@ -5,6 +5,7 @@ import { expect } from "chai";
 import { z } from "zod";
 import { type JsonObject, jsonObjectSchema } from "../../../mockup";
 import { followEvents } from "../../helpers/mockup-events";
+import { lock } from "../../helpers/mockup-presence";
 import { stubPages, structureOf } from "../../helpers/live-page";
 import {
   MOCKUP_API as BASE,
@@ -54,7 +55,7 @@ describe("[unit] mockup: a page converted over a mockup a viewer holds a block o
     const viewer = randomUUID();
     const stream = await followEvents("desk", ownerToken, viewer);
     try {
-      await owner.put(`${BASE}/desk/locks`, { viewer, path: FIRST });
+      await lock(owner, viewer, FIRST);
       const read = sourceSchema.parse(
         (await owner.get(`${BASE}/desk/spec`)).data,
       );

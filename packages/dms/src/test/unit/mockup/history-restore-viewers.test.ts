@@ -5,6 +5,7 @@ import { expect } from "chai";
 import { z } from "zod";
 import type { JsonObject } from "../../../mockup";
 import { followEvents } from "../../helpers/mockup-events";
+import { lock } from "../../helpers/mockup-presence";
 import {
   MOCKUP_API as BASE,
   serveMockupRoutes,
@@ -42,7 +43,7 @@ describe("[unit] mockup: a version restored over a block a viewer holds", () => 
     const viewer = randomUUID();
     const stream = await followEvents("desk", ownerToken, viewer);
     try {
-      await owner.put(`${BASE}/desk/locks`, { viewer, path: FIRST });
+      await lock(owner, viewer, FIRST);
       const before = await readFile(specPath, "utf8");
       const restore = () => owner.post(`${BASE}/desk/history/1/restore`);
 
