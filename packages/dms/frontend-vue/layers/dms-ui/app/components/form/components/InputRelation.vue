@@ -168,8 +168,9 @@ const canAdd = computed(
   () =>
     !!props.addForm &&
     !!props.addForm.options?.submitUrl &&
-    (!props.addPermissionIds?.length ||
-      props.addPermissionIds.some((id) => hasPermission(id))),
+    (props.addPermissionIds?.length
+      ? props.addPermissionIds.some((id) => hasPermission(id))
+      : hasPermission("*")),
 );
 
 interface RelationResponse {

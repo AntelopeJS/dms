@@ -48,6 +48,7 @@ afterEach(() => {
 
 interface MountOptions {
   relationProps?: { filter: TableFilter };
+  hasPermission?: (id: string) => boolean;
   /** The form the picker fills; none for a table filter's picker. */
   formContext?: FormEntryContext;
 }
@@ -76,7 +77,7 @@ async function mountRelation(options: MountOptions = {}) {
   await engine.setupFrontendModules([]);
   vi.stubGlobal("useDmsAsyncData", engine.useDmsAsyncData);
   vi.stubGlobal("usePermissions", () => ({
-    hasPermission: () => true,
+    hasPermission: options.hasPermission ?? (() => true),
     loadPermissions: async () => {},
   }));
   vi.stubGlobal("useFileReadUrls", () => ({
@@ -238,4 +239,10 @@ it("searches a form's picker with its fixed filter", async () => {
 it("leaves the fixed filter out of a table filter's picker", async () => {
   const params = await searchParamsOnOpen({});
   expect(params).not.toHaveProperty("filter_isArchived");
+});
+
+it("offers a member no relation add whose table declares no add permission", async () => {
+  await mountRelation({ hasPermission: (id) => id !== "*" });
+  await openMenu();
+  expect(host.textContent).not.toContain(t("dms.form.relation.add_new"));
 });

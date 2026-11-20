@@ -58,13 +58,20 @@ function isGateBypassableAction(
   return permissionIds.length > 0 && GATE_BYPASSABLE_ACTIONS.includes(actionId);
 }
 
-/** @internal */
+/**
+ * The caller's effective permission set, once the tenant access gate admits
+ * them and they hold a permission `actionId` carries on a mounted table view.
+ * An action no mounted table view declares is served to a holder of `*`
+ * alone. Throws a 403 otherwise.
+ *
+ * @internal
+ */
 export async function authorizeAction(
   thisObj: DataControllerInstance,
   actionId: string,
   user: User,
   tenantId: string,
-): Promise<Set<string> | undefined> {
+): Promise<Set<string>> {
   const meta = getTableViewMetaFor(thisObj);
   const permissionIds = meta.actionPermissionIds(actionId);
   if (
@@ -78,9 +85,6 @@ export async function authorizeAction(
     }
     await AssertTenantAccess(user._id, tenantId);
   }
-  if (permissionIds.length === 0) {
-    return undefined;
-  }
   const roleModel = GetModel(RoleModel, tenantId);
   const memberModel = GetModel(TenantMemberModel, tenantId);
   const member = await memberModel.getByUser(user._id);
@@ -91,14 +95,20 @@ export async function authorizeAction(
     roleIds,
     roleModel,
   );
-  if (await HasAnyPermission(permissions, permissionIds)) {
+  if (permissionIds.length === 0) {
+    throwHttpAssert(
+      permissions.has("*"),
+      403,
+      `Forbidden: action "${actionId}" declares no permission`,
+    );
     return permissions;
   }
   throwHttpAssert(
-    false,
+    await HasAnyPermission(permissions, permissionIds),
     403,
     `Forbidden: missing permission ${permissionIds.join(" or ")}`,
   );
+  return permissions;
 }
 
 /**

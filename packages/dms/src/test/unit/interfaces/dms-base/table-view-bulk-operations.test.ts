@@ -39,7 +39,7 @@ const TABLE = "tasks";
 const ARCHIVE_FIELD = "isArchived";
 const IDS_ARG_INDEX = 1;
 const SESSION = "bulk-operations-session";
-const USER = userFixture({ _id: "bulk-operations-user" });
+const USER = userFixture({ _id: "bulk-operations-user", owner: true });
 const ALL_IDS = ["a", "b", "c", "d"];
 
 const RULE_REFUSED_ID = "c";
