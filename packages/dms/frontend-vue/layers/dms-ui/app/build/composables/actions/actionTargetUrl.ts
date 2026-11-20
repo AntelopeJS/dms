@@ -1,14 +1,12 @@
 import {
+  hasUrlVariables,
   namesPageValue,
   resolveLinkVariables,
   resolveTextVariables,
 } from "../../utils/urlVariables";
+import type { JsonObject } from "../../utils/json";
 import { currentPageUrlValues } from "../page/pageUrlValues";
 import { interpolateRowText } from "#dms-core/app/utils/url-interpolation";
-import { isNumber, isObject, isString } from "#dms-core/app/utils/type-check";
-
-const RESPONSE_TOKEN = /\{\{\s*response\.([^{}\s]+)\s*\}\}/g;
-const DASHBOARD_PATH = /^\/(?![/\\])/;
 
 /** Fills page URL tokens at execution time, then fills row tokens. */
 export function targetUrl(url: string, rowData?: Data): string {
@@ -28,47 +26,25 @@ export function downloadTargetFilename(
   return resolveTextVariables(withRow, currentPageUrlValues());
 }
 
-function responseField(
-  response: Parameters<typeof isObject>[0],
-  path: string,
-): string | undefined {
-  const value = path
-    .split(".")
-    .reduce<
-      Parameters<typeof isObject>[0]
-    >((node, key) => (isObject(node) && Object.hasOwn(node, key) ? node[key] : undefined), response);
-  if (isNumber(value)) return String(value);
-  return isString(value) && value !== "" ? value : undefined;
-}
-
 /**
- * The dashboard path an `api` target's `redirect` names once its request
- * answered `response`: its `{{response.<field>}}` tokens filled with encoded
- * values, then its page and row tokens. `undefined`, with a console warning,
- * when the response lacks a string or number at a field it names, or when the
- * result is not a path of the dashboard.
+ * The page an `api` target's `redirect` names once its request answered
+ * `response`: its page and `{{response.X}}` tokens filled as a form's
+ * `redirectOnSuccess` is, then its row tokens. `undefined`, with a console
+ * warning, while a token is left, such as a field the response lacks.
  */
 export function apiRedirectPath(
   redirect: string,
-  response: Parameters<typeof isObject>[0],
+  response: JsonObject | undefined,
   rowData?: Data,
 ): string | undefined {
-  const missing: string[] = [];
-  const withResponse = redirect.replace(RESPONSE_TOKEN, (_, path: string) => {
-    const value = responseField(response, path);
-    if (value === undefined) missing.push(path);
-    return encodeURIComponent(value ?? "");
+  const withResponse = resolveLinkVariables(redirect, {
+    ...currentPageUrlValues(),
+    response,
   });
-  if (missing.length > 0) {
-    console.warn(
-      `[dms] The response has no ${missing.join(", ")} for the redirect "${redirect}": staying on the page.`,
-    );
-    return undefined;
-  }
-  const path = targetUrl(withResponse, rowData);
-  if (DASHBOARD_PATH.test(path)) return path;
+  const path = rowData ? interpolateUrl(withResponse, rowData) : withResponse;
+  if (!hasUrlVariables(path)) return path;
   console.warn(
-    `[dms] The redirect "${redirect}" is not a path of the dashboard: staying on the page.`,
+    `[dms] The redirect "${redirect}" names a value the response lacks: staying on the page.`,
   );
   return undefined;
 }

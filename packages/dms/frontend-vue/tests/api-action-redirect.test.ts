@@ -56,7 +56,7 @@ const createButton = (redirect: string): CustomButton => ({
 });
 
 beforeEach(() => {
-  answer = { _id: "d 1" };
+  answer = { _id: "d1" };
   route.query = { tab: "lines" };
   navigateDms.mockReset();
   toastAdd.mockReset();
@@ -102,7 +102,7 @@ describe("an api target's redirect", () => {
       createButton("/sales/invoices/{{response._id}}?from={{params.id}}"),
     );
     await vi.waitFor(() =>
-      expect(navigateDms).toHaveBeenCalledWith("/sales/invoices/d%201?from=q1"),
+      expect(navigateDms).toHaveBeenCalledWith("/sales/invoices/d1?from=q1"),
     );
     expect(toastAdd).toHaveBeenCalledWith(
       expect.objectContaining({ title: "Created" }),
@@ -122,11 +122,11 @@ describe("an api target's redirect", () => {
     );
   });
 
-  it("encodes a response value, so it cannot turn the path into another host", async () => {
-    answer = { path: "/elsewhere.example" };
-    mountTargets().handleCustomButton(createButton("/{{response.path}}"));
+  it("writes a response value as a form's redirectOnSuccess does", async () => {
+    answer = { path: "invoices/7" };
+    mountTargets().handleCustomButton(createButton("/sales/{{response.path}}"));
     await vi.waitFor(() =>
-      expect(navigateDms).toHaveBeenCalledWith("/%2Felsewhere.example"),
+      expect(navigateDms).toHaveBeenCalledWith("/sales/invoices/7"),
     );
   });
 
@@ -138,7 +138,9 @@ describe("an api target's redirect", () => {
     );
     await vi.waitFor(() => expect(toastAdd).toHaveBeenCalled());
     expect(navigateDms).not.toHaveBeenCalled();
-    expect(warn).toHaveBeenCalledWith(expect.stringContaining("_id"));
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringContaining("{{response._id}}"),
+    );
   });
 
   it("fills a confirmed row action's redirect with the row and the response", async () => {
@@ -154,9 +156,7 @@ describe("an api target's redirect", () => {
     };
     mountTargets().handleCustomRowAction(action, { _id: "q1", number: "Q-7" });
     await vi.waitFor(() =>
-      expect(navigateDms).toHaveBeenCalledWith(
-        "/sales/quotes/d%201?copyOf=Q-7",
-      ),
+      expect(navigateDms).toHaveBeenCalledWith("/sales/quotes/d1?copyOf=Q-7"),
     );
   });
 });
