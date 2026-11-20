@@ -138,9 +138,9 @@ export function registerPresenceRoutes(
      * id. Answers 409 with the holder's name while another viewer holds that
      * node, an ancestor of it or a descendant, and while the spec has changed
      * since the `digest` the viewer sent (a take names one): the pointer may
-     * then name another block, so nothing is granted nor stamped. With no `path`, it pushes back
-     * the expiry of the lock `viewer` holds wherever its block is now, and
-     * answers 404 when it holds none.
+     * then name another block, so nothing is granted nor stamped. With no
+     * `path`, it pushes back the expiry of the lock `viewer` holds wherever
+     * its block is now, and answers 404 when it holds none.
      */
     @Put(":name/locks")
     async acquire(
