@@ -6,24 +6,14 @@ import {
   generateRefreshToken,
   validateRefreshToken,
 } from "@antelopejs/interface-dms/auth";
-import {
-  isCurrentRefreshToken,
-  type SessionModel,
-  type UserModel,
+import type {
+  SessionModel,
+  UserModel,
 } from "@antelopejs/interface-dms/auth/db";
-import { decode } from "jsonwebtoken";
 import { authSchema } from "../../validation";
-import { isJwtClaims, REFRESH_TOKEN_ROTATION_THRESHOLD_MS } from "../../utils";
 import type { AuthResponse } from "./types";
 
 export const HTTP_FORBIDDEN = 403;
-
-function shouldRotateRefreshToken(token: string): boolean {
-  const payload = decode(token);
-  if (!isJwtClaims(payload) || !payload.iat) return false;
-  const tokenAgeMs = Date.now() - payload.iat * 1000;
-  return tokenAgeMs > REFRESH_TOKEN_ROTATION_THRESHOLD_MS;
-}
 
 interface TenantAccessUser {
   _id: string;
@@ -53,9 +43,6 @@ export async function refresh(
   const user = await userModel.get(tokenPayload.id);
   assert(user, 401, "error.invalid_token");
 
-  const session = await sessionModel.get(tokenPayload.sessionId);
-  assert(session, 401, "error.session_expired");
-
   const { tenantId } = tokenPayload;
   assert(tenantId, 401, "error.invalid_token");
   await assertTenantAccess(user, tenantId);
@@ -66,26 +53,17 @@ export async function refresh(
     tokenPayload.sessionId,
   );
 
-  let refreshToken = token;
-  if (shouldRotateRefreshToken(token)) {
-    const refreshTokenData = await generateRefreshToken(
-      tenantId,
-      user,
-      tokenPayload.sessionId,
-    );
-    const resolvedToken = await sessionModel.rotateRefreshToken(
-      tokenPayload.sessionId,
-      token,
-      refreshTokenData.token,
-    );
-    assert(resolvedToken, 401, "error.session_expired");
-    refreshToken = resolvedToken;
-  } else {
-    assert(isCurrentRefreshToken(session, token), 401, "error.session_expired");
-    sessionModel
-      .update(tokenPayload.sessionId, { lastActiveAt: new Date() })
-      .catch(() => {});
-  }
+  const refreshTokenData = await generateRefreshToken(
+    tenantId,
+    user,
+    tokenPayload.sessionId,
+  );
+  const refreshToken = await sessionModel.rotateRefreshToken(
+    tokenPayload.sessionId,
+    token,
+    refreshTokenData.token,
+  );
+  assert(refreshToken, 401, "error.session_expired");
 
   return {
     token_type: "Bearer",

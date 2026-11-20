@@ -7,9 +7,10 @@ import {
 import { BasicDataModel } from "@antelopejs/interface-database-decorators";
 import { SESSIONS_TABLE_NAME, Session } from "../tables/sessions.table";
 import {
-  isImmediateRefreshTokenPredecessor,
   hashRefreshToken,
   hashesMatch,
+  isPreviousRefreshToken,
+  isWithinRotationGrace,
 } from "../internal/sessions.model";
 
 const SEAL_ALGORITHM = "aes-256-gcm";
@@ -78,7 +79,14 @@ function recoverSuccessor(
 }
 
 export class SessionModel extends BasicDataModel(Session, SESSIONS_TABLE_NAME) {
-  /** Atomically rotates a token or resolves its immediate predecessor. */
+  /**
+   * Atomically rotates a token or resolves its immediate predecessor. The
+   * predecessor presented again past the rotation grace window is a replay:
+   * the session is deleted.
+   *
+   * @returns The session's current token, or `null` when the presented one
+   * is refused
+   */
   async rotateRefreshToken(
     sessionId: string,
     presentedToken: string,
@@ -101,10 +109,11 @@ export class SessionModel extends BasicDataModel(Session, SESSIONS_TABLE_NAME) {
     if (modified > 0) return refreshToken;
 
     const session = await this.get(sessionId);
-    if (
-      !session ||
-      !isImmediateRefreshTokenPredecessor(session, presentedToken, rotatedAt)
-    ) {
+    if (!session || !isPreviousRefreshToken(session, presentedToken)) {
+      return null;
+    }
+    if (!isWithinRotationGrace(session, rotatedAt)) {
+      await this.delete(sessionId);
       return null;
     }
     return recoverSuccessor(session, presentedToken);

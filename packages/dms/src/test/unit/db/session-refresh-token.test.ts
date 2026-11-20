@@ -7,7 +7,6 @@ import {
 
 const USER_ID = "session-refresh-token-user";
 const HASHED_SESSION_ID = "session-refresh-token-hashed";
-const ONE_MINUTE_MS = 60_000;
 
 describe("[unit] session refresh tokens — stored hashed, rotated against the database", () => {
   const model = GetModel(SessionModel);
@@ -48,15 +47,6 @@ describe("[unit] session refresh tokens — stored hashed, rotated against the d
         rotatedAt,
       ),
     ).to.equal("T2");
-    expect(
-      await model.rotateRefreshToken(
-        HASHED_SESSION_ID,
-        "T1",
-        "late",
-        new Date(rotatedAt.getTime() + ONE_MINUTE_MS),
-      ),
-    ).to.equal(null);
-
     const session = await model.get(HASHED_SESSION_ID);
     expect(session).to.not.have.property("refreshToken");
     expect(isCurrentRefreshToken(session!, "T2")).to.equal(true);

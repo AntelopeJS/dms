@@ -20,18 +20,22 @@ export function hashesMatch(left: string, right: string): boolean {
 export const REFRESH_TOKEN_PREDECESSOR_GRACE_MS = 15_000;
 
 /** @internal */
-export function isImmediateRefreshTokenPredecessor(
+export function isPreviousRefreshToken(
   session: Session,
   presentedToken: string,
-  now: Date,
 ): boolean {
-  if (!session.previousRefreshTokenHash || !session.refreshTokenRotatedAt) {
-    return false;
-  }
-  const age = now.getTime() - session.refreshTokenRotatedAt.getTime();
-  if (Math.abs(age) > REFRESH_TOKEN_PREDECESSOR_GRACE_MS) return false;
-  return hashesMatch(
-    session.previousRefreshTokenHash,
-    hashRefreshToken(presentedToken),
+  return (
+    !!session.previousRefreshTokenHash &&
+    hashesMatch(
+      session.previousRefreshTokenHash,
+      hashRefreshToken(presentedToken),
+    )
   );
+}
+
+/** @internal */
+export function isWithinRotationGrace(session: Session, now: Date): boolean {
+  if (!session.refreshTokenRotatedAt) return false;
+  const age = now.getTime() - session.refreshTokenRotatedAt.getTime();
+  return Math.abs(age) <= REFRESH_TOKEN_PREDECESSOR_GRACE_MS;
 }

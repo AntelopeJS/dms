@@ -85,6 +85,19 @@ describe("refresh token rotation", () => {
     );
   });
 
+  it("revokes the session when the predecessor comes back past the grace", async () => {
+    const id = await storeSession("T0");
+    await model.rotateRefreshToken(id, "T0", "T1", committedAt);
+    const replayedAt = new Date(
+      committedAt.getTime() + REFRESH_TOKEN_PREDECESSOR_GRACE_MS + 1,
+    );
+
+    expect(
+      await model.rotateRefreshToken(id, "T0", "discarded", replayedAt),
+    ).to.equal(null);
+    expect(await model.get(id)).to.equal(undefined);
+  });
+
   it("does not slide predecessor expiry", async () => {
     const id = await storeSession("T0");
     await model.rotateRefreshToken(id, "T0", "T1", committedAt);
@@ -109,6 +122,7 @@ describe("refresh token rotation", () => {
     expect(
       await model.rotateRefreshToken(id, "other", "discarded", committedAt),
     ).to.equal(null);
+    expect(isCurrentRefreshToken(await storedSession(id), "T1")).to.equal(true);
 
     await model.delete(id);
     expect(
