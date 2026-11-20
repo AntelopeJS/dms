@@ -285,5 +285,6 @@ export function proposeMapping(input: AnalysisInput): MappingProposal {
     resources,
     excluded,
     open,
+    mapped: Object.keys(input.mapped).sort(),
   };
 }

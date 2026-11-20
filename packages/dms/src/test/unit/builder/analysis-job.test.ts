@@ -302,6 +302,42 @@ function proposesWhatIsMappable(): void {
   });
 }
 
+function tellsMappedFromUnreadable(): void {
+  it("names every relation the module maps once nothing is left to propose", async () => {
+    const mapped = await MapResources({
+      module: MODULE,
+      connection: "erp",
+      resources: [...LABELS].map(([relation, label]) => ({
+        relation,
+        label,
+        tableView: true,
+        writable: false,
+        fields: [{ column: label }],
+      })),
+    });
+    expectOk(mapped, "MapResources");
+    const proposal = (await analysed()).proposal!;
+    expect(proposal.resources).to.deep.equal([]);
+    expect(proposal.open).to.deep.equal([]);
+    expect(proposal.mapped).to.deep.equal([
+      "erp.customers",
+      "erp.invoices",
+      "erp.orders",
+    ]);
+  });
+
+  it("names no mapped relation when the account reads no table", async () => {
+    setCatalogConnectionsForTests({ erp: catalogOver([]) });
+    try {
+      const proposal = (await analysed()).proposal!;
+      expect(proposal.resources).to.deep.equal([]);
+      expect(proposal.mapped).to.deep.equal([]);
+    } finally {
+      setCatalogConnectionsForTests({ erp: catalogOver(RELATIONS) });
+    }
+  });
+}
+
 function keepsOneJobPerConnection(): void {
   it("answers a connection's latest job: the running one on a second start, then the next once it finished", async () => {
     const first = jobOf(
@@ -369,5 +405,6 @@ describe("an analysis job", function () {
   });
 
   proposesWhatIsMappable();
+  tellsMappedFromUnreadable();
   keepsOneJobPerConnection();
 });

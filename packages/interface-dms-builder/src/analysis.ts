@@ -166,6 +166,12 @@ export interface MappingProposal {
   resources: ProposedResource[];
   excluded: ProposedExclusion[];
   open: OpenItem[];
+  /**
+   * The relations read (`"schema.name"`, sorted) that the module maps already, which the proposal
+   * leaves out. A proposal with no resource and no open item but some mapped relations means every
+   * table is mapped already, not that the account reads none.
+   */
+  mapped: string[];
 }
 
 /** Which connection to analyse, for which module, optionally limited to some schemas. */

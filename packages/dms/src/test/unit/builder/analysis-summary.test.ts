@@ -332,6 +332,23 @@ describe("[unit] builder_analyse_database: the compact answer", () => {
     expect(proposal?.hint).to.contain("detail");
   });
 
+  it("tells the agent to offer the existing pages or a new mockup once every relation is mapped", () => {
+    const left = (mapped: string[]) =>
+      summariseAnalysis(
+        redactAnalysis({
+          ...STATE,
+          proposal: { ...PROPOSAL, resources: [], open: [], mapped },
+        }),
+      ).proposal;
+
+    const allMapped = left(["erp.customers", "erp.orders"]);
+    expect(allMapped?.mapped).to.deep.equal(["erp.customers", "erp.orders"]);
+    expect(allMapped?.hint).to.contain("mapped already");
+    expect(allMapped?.hint).to.contain("mockup_write_spec");
+    expect(left([])?.hint).to.not.contain("mapped already");
+    expect(proposal?.hint).to.not.contain("mapped already");
+  });
+
   it("keeps the job's own fields and an answer with no proposal as it was", () => {
     expect(summary).to.deep.include({ id: "job-1", status: "done" });
     const running = summariseAnalysis({
