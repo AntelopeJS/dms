@@ -81,6 +81,5 @@ export async function ensureInviteReplacement(
   await ExecuteHooks(Hook.INVITE_CREATED, {
     ...hookPayload(current),
     inviteId: resolution.replacement._id,
-    token: resolution.replacement.token,
   });
 }

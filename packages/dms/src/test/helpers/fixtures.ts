@@ -3,6 +3,7 @@ import { GetModel } from "@antelopejs/interface-database-decorators";
 import { SystemStateModel } from "../../db";
 import { DEFAULT_TENANT_ID } from "@antelopejs/interface-dms/constants";
 import { UserInviteModel } from "@antelopejs/interface-dms/db/models";
+import { hashInviteToken } from "@antelopejs/interface-dms/db/internal/invite-token";
 import type { UserInvite } from "@antelopejs/interface-dms/db/tables/user_invites.table";
 import { UserModel } from "@antelopejs/interface-dms/auth/db/models";
 import type { User } from "@antelopejs/interface-dms/auth/db/tables/users.table";
@@ -36,7 +37,7 @@ export async function seedUserInvite(
     email: invite.email,
     roles_ids: invite.roles_ids ?? [],
     language: invite.language ?? "en",
-    token,
+    token: hashInviteToken(token),
     asTenantOwner: invite.owner ?? false,
     expiresAt: new Date(
       Date.now() + (invite.lifetimeMs ?? MILLISECONDS_IN_HOUR),

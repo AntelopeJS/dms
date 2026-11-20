@@ -41,14 +41,14 @@ Read each TLC result with the pstack `/statechart` skill.
 
 ## The rules
 
-They are checked once every actor has answered.
+They are checked once every actor has answered. A caller's answer is the invite it returns: its `inviteId`, with its token only for the caller that created it, because the row stores the token's digest. The rule names keep the word token from before the digest.
 
 | Rule | Plain sentence | Harm when it breaks | Result |
 | --- | --- | --- | --- |
 | `AtMostOnePending` | At most one invite of the email is pending: stored, undecided, not withdrawn, and a replacement only once its decision completed. | Two links work, and accepting one leaves the other. | holds |
-| `NoWithdrawnToken` | A caller that returned holds an invite someone can act on, or one a decision retired; never a withdrawn one. | The invitee gets a token that never works. | holds |
-| `OneKeptToken` | When nothing retired an invite, one is pending and every caller that returned holds its token. | The email has no pending invite, or callers hold different tokens. | holds |
-| `NoCrash` | A caller answers with a token or 409, never another error. | A concurrent caller gets HTTP 500. | finding F1 |
+| `NoWithdrawnToken` | A caller that returned answers with an invite someone can act on, or one a decision retired; never a withdrawn one. | The invitee gets a link that never works. | holds |
+| `OneKeptToken` | When nothing retired an invite, one is pending and every caller that returned answers with it. | The email has no pending invite, or callers answer with different invites. | holds |
+| `NoCrash` | A caller answers with an invite or 409, never another error. | A concurrent caller gets HTTP 500. | finding F1 |
 
 ## Findings on the code
 

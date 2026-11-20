@@ -33,8 +33,8 @@ function held<T extends { restore: () => void }>(hold: T): T {
   return hold;
 }
 
-async function tokensOf(invites: UserInviteModel): Promise<string[]> {
-  return (await invites.getAll()).map((row) => row.token);
+async function idsOf(invites: UserInviteModel): Promise<string[]> {
+  return (await invites.getAll()).map((row) => row._id);
 }
 
 /**
@@ -73,8 +73,8 @@ describe("[integration] two fresh invites of one email around a retiring rival",
     const firstResult = await setup.firstCall;
     secondRivalRead.release();
     const secondResult = await setup.secondCall;
-    assert.deepEqual(firstResult, secondResult);
-    assert.deepEqual(await tokensOf(setup.invites), [secondResult.token]);
+    assert.equal(firstResult.inviteId, secondResult.inviteId);
+    assert.deepEqual(await idsOf(setup.invites), [secondResult.inviteId]);
   });
 
   it("hands the second caller the replacement decided on its fresh invite after the first caller kept it", async () => {
@@ -93,8 +93,8 @@ describe("[integration] two fresh invites of one email around a retiring rival",
     const secondResult = await setup.secondCall;
     deletion.release();
     const replaced = await replacing;
-    assert.deepEqual(secondResult, replaced);
-    assert.deepEqual(await tokensOf(setup.invites), [replaced.token]);
+    assert.deepEqual(secondResult, { inviteId: replaced.inviteId });
+    assert.deepEqual(await idsOf(setup.invites), [replaced.inviteId]);
   });
 
   it("hands both callers one invitation when the first finishes the second's withdrawal", async () => {
@@ -108,8 +108,8 @@ describe("[integration] two fresh invites of one email around a retiring rival",
     const firstResult = await setup.firstCall;
     settled.release();
     const secondResult = await setup.secondCall;
-    assert.deepEqual(firstResult, secondResult);
-    assert.deepEqual(await tokensOf(setup.invites), [secondResult.token]);
+    assert.equal(firstResult.inviteId, secondResult.inviteId);
+    assert.deepEqual(await idsOf(setup.invites), [secondResult.inviteId]);
   });
 
   it("hands the first caller the resent invitation beside the second's fresh invite", async () => {
@@ -134,9 +134,9 @@ describe("[integration] two fresh invites of one email around a retiring rival",
     const firstResult = await setup.firstCall;
     secondRivalRead.release();
     const secondResult = await setup.secondCall;
-    assert.deepEqual(firstResult, resent);
-    assert.deepEqual(secondResult, resent);
-    assert.deepEqual(await tokensOf(setup.invites), [resent.token]);
+    assert.equal(firstResult.inviteId, resent.inviteId);
+    assert.deepEqual(secondResult, { inviteId: resent.inviteId });
+    assert.deepEqual(await idsOf(setup.invites), [resent.inviteId]);
   });
 
   it("hands a caller that lost the fresh slot the resent invitation its winner withdraws to", async () => {
@@ -158,7 +158,7 @@ describe("[integration] two fresh invites of one email around a retiring rival",
     const loserResult = await setup.secondCall;
     rivalRead.release();
     const winnerResult = await setup.firstCall;
-    assert.deepEqual(winnerResult, resent);
-    assert.deepEqual(loserResult, resent);
+    assert.deepEqual(winnerResult, { inviteId: resent.inviteId });
+    assert.deepEqual(loserResult, { inviteId: resent.inviteId });
   });
 });

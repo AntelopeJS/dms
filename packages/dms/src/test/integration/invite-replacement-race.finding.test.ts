@@ -43,6 +43,6 @@ describe("[integration] finding: a second caller replaces the invite a first one
     const kept = await replacing;
     const rows = await GetModel(UserInviteModel, TENANT).getAll();
     assert.equal(rows.length, 1);
-    assert.equal(rows[0]?.token, kept.token);
+    assert.equal(rows[0]?._id, kept.inviteId);
   });
 });
