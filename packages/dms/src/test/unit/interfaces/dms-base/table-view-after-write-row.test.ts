@@ -85,7 +85,7 @@ function withGuards(guards: TableViewGuards<InvoiceAPI>): void {
 
 describe("[unit] interfaces/dms-base/table-view — the row an after-write receives", () => {
   let model: InvoiceModel;
-  const written: Partial<InvoiceAPI>[] = [];
+  const written: (InvoiceAPI & { _id: string })[] = [];
 
   before(async () => {
     await RegisterSchema(SCHEMA);
@@ -113,11 +113,10 @@ describe("[unit] interfaces/dms-base/table-view — the row an after-write recei
       json({ customer: "Acme" }),
     );
     expect(written).to.have.length(1);
-    expect(written[0]).to.include({
-      _id: answer._id,
-      customer: "Acme",
-      number: "INV-0042",
-    });
+    const [created] = written;
+    const createdId: string = created._id;
+    expect(createdId).to.equal(answer._id);
+    expect(created).to.include({ customer: "Acme", number: "INV-0042" });
   });
 
   it("hands an edit guard's after-write the row as the edit left it", async () => {
@@ -155,5 +154,24 @@ describe("[unit] interfaces/dms-base/table-view — the row an after-write recei
     );
     expect(written).to.have.length(1);
     expect(written[0]).to.include({ _id: id, customer: "Initech" });
+  });
+
+  it("reads the edited row back by its primary key when the edit changes the row id key", async () => {
+    const [id] = await model.insert({ customer: "Acme", number: "INV-3" });
+    const { options } = GetMetadata(InvoiceAPI, TableViewMeta);
+    options.rowIdKey = "number";
+    withGuards({ edit: () => (row) => void written.push(row) });
+    try {
+      await editRoute.func.call(
+        controller,
+        ctx,
+        { id: "INV-3", index: "number" },
+        json({ number: "INV-4" }),
+      );
+    } finally {
+      delete options.rowIdKey;
+    }
+    expect(written).to.have.length(1);
+    expect(written[0]).to.include({ _id: id, number: "INV-4" });
   });
 });

@@ -94,9 +94,9 @@ export interface TableViewGuards<
 > {
   /** Runs after view authorization and loading, before response and presence acquisition. Not used by exports. */
   get?: GuardFn<GetGuardArgs<T>, T>;
-  edit?: GuardFn<EditGuardArgs<T>, T, T>;
+  edit?: GuardFn<EditGuardArgs<T>, T, T & { _id: string }>;
   delete?: GuardFn<DeleteGuardArgs, T, void>;
   archive?: GuardFn<BulkGuardArgs, T, void>;
   restore?: GuardFn<BulkGuardArgs, T, void>;
-  new?: GuardFn<NewGuardArgs<T>, T, T>;
+  new?: GuardFn<NewGuardArgs<T>, T, T & { _id: string }>;
 }
