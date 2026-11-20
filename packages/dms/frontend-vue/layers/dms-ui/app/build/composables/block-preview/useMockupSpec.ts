@@ -33,7 +33,7 @@ import {
   undo,
   type MockupHistory,
 } from "../../utils/mockupHistory";
-import { rebasedEdit } from "../../utils/mockupRebase";
+import { type RebasedEdit, rebasedEdit } from "../../utils/mockupRebase";
 import {
   parseMockupSpec,
   type MockupSpecDocument,
@@ -71,8 +71,12 @@ interface MockupSpecOptions {
   onNotice: (notice: MockupSpecNotice) => void;
   /** This browser session's viewer id, which each write names: its own locks do not refuse it. */
   viewer?: string;
-  /** The pointer of the block this session holds the lock of, while it holds one. */
-  held?: Readonly<Ref<string | undefined>>;
+  /**
+   * The pointer of the block this session holds the lock of, while it holds
+   * one. An outside change that moves the block moves it here too, once the
+   * edit inside it is kept on top of that change.
+   */
+  held?: Ref<string | undefined>;
 }
 
 /** The spec the `/mockup` editor changes, and its undo history. */
@@ -268,7 +272,7 @@ class MockupSpecSync {
    * The file with the edit not written yet put back on it, when the edit is
    * all inside the block this session holds: see {@link rebasedEdit}.
    */
-  private keptEdit(source: SpecSource): MockupSpecDocument | undefined {
+  private keptEdit(source: SpecSource): RebasedEdit | undefined {
     const present = this.history.value?.present;
     const held = this.options.held?.value;
     const written = this.written.value;
@@ -290,10 +294,11 @@ class MockupSpecSync {
     this.digest = source.digest;
     this.written.value = source.spec;
     this.history.value = kept
-      ? commit(reset(source.spec), kept)
+      ? commit(reset(source.spec), kept.spec)
       : reset(source.spec);
+    if (kept && this.options.held) this.options.held.value = kept.held;
     if (!isNews) return;
-    this.adoption.value = { previous, next: kept ?? source.spec };
+    this.adoption.value = { previous, next: kept?.spec ?? source.spec };
     this.options.onNotice(
       source.writtenBy
         ? { kind: "adopted", by: source.writtenBy.name }

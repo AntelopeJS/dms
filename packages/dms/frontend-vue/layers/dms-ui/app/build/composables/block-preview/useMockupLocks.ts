@@ -32,7 +32,11 @@ interface MockupLocksOptions {
   selection: Readonly<Ref<string | undefined>>;
   /** Whether an edit is not written yet: a lock changes hands once it is. */
   isPending: Readonly<Ref<boolean>>;
-  /** Set to the pointer of the block this session holds, and to undefined while it holds none. */
+  /**
+   * Set to the pointer of the block this session holds, and to undefined
+   * while it holds none. The spec editor moves it when an outside change moves
+   * the block under an edit it keeps.
+   */
   held: Ref<string | undefined>;
 }
 

@@ -106,21 +106,27 @@ function withStampsOf(
   return stamped;
 }
 
+/** An edit kept on top of a file someone else wrote: the spec, and where the held block is in it. */
+export interface RebasedEdit {
+  spec: MockupSpecDocument;
+  held: string;
+}
+
 /**
  * The spec that keeps an edit on top of a file someone else wrote: `outside`,
- * with the block at `held` of `present` put back in the place its id has there.
- * `written` is the spec the editor last wrote or read, so that `present`
- * differs from it by the edit. Undefined when the edit is not all inside the
- * held block, which `present` and `written` tell by agreeing once it is put
- * back, or when the block has no id, or one that is not the block's alone, in
- * any of the three specs.
+ * with the block at `held` of `present` put back in the place its id has there,
+ * which is the block's pointer in the spec then. `written` is the spec the
+ * editor last wrote or read, so that `present` differs from it by the edit.
+ * Undefined when the edit is not all inside the held block, which `present`
+ * and `written` tell by agreeing once it is put back, or when the block has
+ * no id, or one that is not the block's alone, in any of the three specs.
  */
 export function rebasedEdit(
   written: MockupSpecDocument,
   present: MockupSpecDocument,
   outside: MockupSpecDocument,
   held: string,
-): MockupSpecDocument | undefined {
+): RebasedEdit | undefined {
   const heldNode = nodeAt(present, held);
   const id = heldNode?.id;
   if (!heldNode || id === undefined) return undefined;
@@ -132,11 +138,18 @@ export function rebasedEdit(
   const writtenNode = nodeAt(written, before);
   const outsideNode = nodeAt(outside, after);
   const restored = writtenNode && withNodeAt(present, held, writtenNode);
-  return writtenNode && outsideNode && restored && sameSpec(restored, written)
-    ? withNodeAt(
-        outside,
-        after,
-        withStampsOf(heldNode, writtenNode, outsideNode),
-      )
-    : undefined;
+  if (
+    !writtenNode ||
+    !outsideNode ||
+    !restored ||
+    !sameSpec(restored, written)
+  ) {
+    return undefined;
+  }
+  const spec = withNodeAt(
+    outside,
+    after,
+    withStampsOf(heldNode, writtenNode, outsideNode),
+  );
+  return spec && { spec, held: after };
 }

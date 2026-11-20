@@ -12,7 +12,7 @@ interface DocumentOptions {
   /** This browser session's viewer id: see {@link MockupSpecEditor}. */
   viewer: string;
   /** The pointer of the block this session holds the lock of, while it holds one. */
-  held: Readonly<Ref<string | undefined>>;
+  held: Ref<string | undefined>;
 }
 
 /**

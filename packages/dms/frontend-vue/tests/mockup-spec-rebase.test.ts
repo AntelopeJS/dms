@@ -106,6 +106,38 @@ describe("a write from outside while the editor holds a block", () => {
   });
 });
 
+describe("a write from outside that moves the held block", () => {
+  const MOVED = "/pages/0/tree/1";
+
+  function withNewFirst(title: string): MockupSpecDocument {
+    const written = theirs(title);
+    written.pages[0]?.tree.unshift({
+      id: "b-new00001",
+      type: "KpiCard",
+      options: { title: "New" },
+    });
+    return written;
+  }
+
+  it("keeps the edit through a second write from outside that lands before the first rebase is written, the held block now being where the first write put it (fails when the held pointer stays on the old place)", async () => {
+    file.spec = twoBlocks();
+    const held = shallowRef<string | undefined>(TITLE);
+    await mountEditor({ held });
+    retitle("Mine");
+    file.writeFromOutside(withNewFirst("Theirs"));
+
+    await settle(MOCKUP_WRITE_DELAY_MS);
+    expect(held.value).toBe(MOVED);
+    expect(titles(editor.spec.value)).toEqual(["New", "Mine", "Theirs"]);
+    const again = withNewFirst("Theirs, again");
+    file.writeFromOutside(again);
+    await settle(MOCKUP_WRITE_DELAY_MS * 3);
+
+    expect(titles(file.spec)).toEqual(["New", "Mine", "Theirs, again"]);
+    expect(titles(editor.spec.value)).toEqual(["New", "Mine", "Theirs, again"]);
+  });
+});
+
 describe("a write from outside that stamps an id inside the held block", () => {
   const GRID = "/pages/0/tree/0";
   const CELL = `${GRID}/children/0`;
