@@ -17,6 +17,10 @@ import {
 import { renderToString } from "vue/server-renderer";
 import { freshDmsState, sharedDmsCookie, type StateValue } from "./state-stub";
 import { stubModuleReads } from "./helpers/installed-modules-runtime";
+import {
+  applyMenuRouteState,
+  translateMenuItems,
+} from "../layers/dms-core/app/utils/menu";
 import Sidebar from "../layers/dms-layout/app/entries/components/layout/DashboardSidebar";
 import { KEYBOARD_PLATFORM_COOKIE } from "../layers/dms-ui/app/composables/global/keyboardPlatform";
 
@@ -88,6 +92,8 @@ function installRuntime(initialCookies: Record<string, string>) {
   vi.stubGlobal("useSidebarWidgets", () => ({ widgets: ref([]) }));
   vi.stubGlobal("useHomepage", () => "/settings");
   vi.stubGlobal("collectOpenItemIds", () => []);
+  vi.stubGlobal("translateMenuItems", translateMenuItems);
+  vi.stubGlobal("applyMenuRouteState", applyMenuRouteState);
 }
 
 function useNavigator(kind: keyof typeof NAVIGATORS) {

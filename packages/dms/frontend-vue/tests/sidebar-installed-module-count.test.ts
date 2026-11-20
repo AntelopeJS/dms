@@ -94,16 +94,18 @@ const Navigation = defineComponent({
   setup: (props) => () =>
     h(
       "nav",
-      props.items.map((item: NavigationMenuItem) =>
-        h(
-          "a",
-          { href: item.to },
-          [
-            item.label,
-            isObject(item.badge) ? ` ${String(item.badge.label)}` : "",
-          ].join(""),
+      props.items
+        .flat()
+        .map((item: NavigationMenuItem) =>
+          h(
+            "a",
+            { href: item.to },
+            [
+              item.label,
+              isObject(item.badge) ? ` ${String(item.badge.label)}` : "",
+            ].join(""),
+          ),
         ),
-      ),
     ),
 });
 
