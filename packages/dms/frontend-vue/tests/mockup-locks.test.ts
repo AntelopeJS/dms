@@ -358,6 +358,99 @@ describe("the lock after the last edit of its holder", () => {
   });
 });
 
+describe("deselecting the block, which is how its holder lets go of the lock", () => {
+  const selected = () => find("[data-dms-mockup-inspector-fields]") !== null;
+
+  function escapeIn(target: HTMLElement): Promise<void> {
+    target.dispatchEvent(
+      new KeyboardEvent("keydown", {
+        key: "Escape",
+        bubbles: true,
+        cancelable: true,
+      }),
+    );
+    return flush();
+  }
+
+  it("follows an Escape pressed in an inspector field, once the typing is written (fails when a key pressed in a field is left to the field, or when the typing is dropped)", async () => {
+    await pick("block-0");
+    await type("Turnover");
+    const field = titleField();
+    if (!field) throw new Error("no title field");
+
+    await escapeIn(field);
+    expect(selected()).toBe(false);
+    expect(freed()).toHaveLength(0);
+
+    await settled();
+    expect(freed()).toHaveLength(1);
+    expect(runtime.file.spec.pages[0]?.tree[0]?.options?.title).toBe(
+      "Turnover",
+    );
+  });
+
+  it("is not done by an Escape pressed in a field outside the inspector (fails when every field hands its Escape to the viewer)", async () => {
+    await pick("block-0");
+    const outside = document.createElement("input");
+    viewer.host.append(outside);
+
+    await escapeIn(outside);
+
+    expect(selected()).toBe(true);
+    expect(freed()).toHaveLength(0);
+  });
+
+  it("is not done by an Escape the field already took (fails when an Escape that closed a layer of the field also deselects)", async () => {
+    await pick("block-0");
+    const field = titleField();
+    if (!field) throw new Error("no title field");
+    field.addEventListener("keydown", (event) => event.preventDefault());
+
+    await escapeIn(field);
+
+    expect(selected()).toBe(true);
+  });
+
+  it("follows a click on the empty canvas around the page, right after an edit still being written, and frees the lock once it is (fails when the canvas takes no click, or drops it while an edit is pending)", async () => {
+    await pick("block-0");
+    await type("Turnover");
+
+    await click("[data-dms-mockup-canvas]");
+    expect(selected()).toBe(false);
+    expect(freed()).toHaveLength(0);
+
+    await settled();
+    expect(freed()).toHaveLength(1);
+    expect(runtime.file.spec.pages[0]?.tree[0]?.options?.title).toBe(
+      "Turnover",
+    );
+  });
+
+  it("is not done by a click on the canvas toolbar, which acts on the block (fails when the canvas takes every click inside it, the toolbar's included)", async () => {
+    await pick("block-0");
+
+    await click("[data-dms-mockup-move-down]");
+
+    expect(selected()).toBe(true);
+    expect(freed()).toHaveLength(0);
+  });
+
+  it("follows a click on the empty page, right after an edit still being written, and frees the lock once it is (fails when a click is dropped while an edit is pending)", async () => {
+    await pick("block-0");
+    await type("Turnover");
+
+    await viewer.say({ type: "select-page" });
+    expect(selected()).toBe(false);
+    expect(freed()).toHaveLength(0);
+
+    await settled();
+    expect(freed()).toHaveLength(1);
+    expect(runtime.file.spec.pages[0]?.tree[0]?.options?.title).toBe(
+      "Turnover",
+    );
+  });
+});
+
 describe("a block another viewer holds", () => {
   beforeEach(async () => {
     await viewer.publish("presence", {

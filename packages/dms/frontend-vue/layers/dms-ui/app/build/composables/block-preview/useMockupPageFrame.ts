@@ -31,8 +31,6 @@ interface PageFrameOptions {
   realData: Readonly<Ref<boolean>>;
   navigation: Readonly<Ref<PreviewNavigation>>;
   isPreviewing: Readonly<Ref<boolean>>;
-  /** Whether the spec shown is not yet the one the stream last compiled. */
-  isPending: Readonly<Ref<boolean>>;
   /** Opens the page `id`, on the row `record` when a link names one. */
   openPage: (id: string, record?: string) => void;
   onSectionEdit: (edit: MockupSectionEdit) => void;
@@ -73,6 +71,11 @@ export function useMockupPageFrame(options: PageFrameOptions) {
     canvasElement.value?.focus({ preventScroll: true });
   }
 
+  function deselect(): void {
+    editing.selection.value = undefined;
+    focusCanvas();
+  }
+
   const bridge = usePreviewFrame({
     frame: previewElement,
     onReady: sync,
@@ -80,11 +83,7 @@ export function useMockupPageFrame(options: PageFrameOptions) {
       editing.selectPath(layoutPath);
       focusCanvas();
     },
-    onSelectPage: () => {
-      if (options.isPending.value) return;
-      editing.selection.value = undefined;
-      focusCanvas();
-    },
+    onSelectPage: deselect,
     onLayout: (blocks) => editing.setLayout(blocks),
     onText: (message) => editing.openText(message),
     onNavigate: (id, linked) =>
@@ -124,6 +123,10 @@ export function useMockupPageFrame(options: PageFrameOptions) {
     bridge,
     sketchStates,
     focusCanvas,
+    /** Deselects the block on a click on the canvas itself, around the page, and leaves a click on anything drawn in it to that. */
+    onCanvasClick(event: MouseEvent): void {
+      if (event.target === event.currentTarget) deselect();
+    },
     ...size,
     /** The page in view, and the point of its frame's document, under a point of the screen. */
     toFrame(client: ClientPoint): PagePoint | undefined {
