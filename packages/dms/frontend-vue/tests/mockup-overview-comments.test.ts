@@ -27,6 +27,7 @@ const {
   pointer,
   spyOn,
   sayFrom,
+  bootLive,
   click,
   wheel,
 } = overviewDriver(() => viewer);
@@ -62,6 +63,30 @@ describe("the frames drawn live", () => {
     for (const corner of placeholders) {
       expect(["p1", "p6", "p7", "p12"]).toContain(corner);
     }
+  });
+
+  it("draws every page of a 12-page Overview once, the two past the cap as a snapshot of the blocks they reported (fails when those pages show only the page icon)", async () => {
+    await mount(12);
+    await openOverview();
+    const block = { path: "block-0", rect: { x: 0, y: 0, width: 400, height: 90 } };
+    for (let round = 0; round < 3; round += 1) {
+      for (const frame of findAll("[data-dms-mockup-overview-slot]")) {
+        const page = frame.getAttribute("data-dms-mockup-overview-slot");
+        if (page) await sayFrom(page, { type: "layout", blocks: [block] });
+      }
+      await bootLive();
+    }
+
+    const undrawn = findAll("[data-dms-mockup-overview-frame]").filter(
+      (frame) =>
+        frame.querySelector("[data-dms-mockup-overview-slot]") === null &&
+        !live(frame.getAttribute("data-dms-mockup-overview-frame") ?? "") &&
+        frame.querySelector("[data-dms-mockup-overview-snapshot-block]") ===
+          null,
+    );
+    expect(findAll("[data-dms-mockup-overview-frame]")).toHaveLength(12);
+    expect(undrawn).toHaveLength(0);
+    expect(findAll("[data-dms-mockup-overview-preview]")).toHaveLength(10);
   });
 
   it("draws each live frame on a compositing layer of its own, which a pan or a zoom only moves (fails when the class goes and every move of the canvas sorts every live page into layers again)", async () => {
