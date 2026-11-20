@@ -384,3 +384,62 @@ describe("[unit] a save after a file outside the app changed how the app resolve
     expect(failedFiles(result)).to.deep.equal([source("shade-user.ts")]);
   });
 });
+
+const augmentation = `export {};\n\ndeclare module "./augmented" {\n  interface Target {\n    b: number;\n  }\n}\n`;
+
+/**
+ * A file that augments a module or declares a global is read by files that do
+ * not import it, so a change on one side checks the other.
+ */
+describe("[unit] a save after a file another reads without importing it changed", () => {
+  before(async function () {
+    this.timeout(120_000);
+    await createBoard();
+  });
+
+  afterEach(removeWritten);
+
+  after(() => destroyFixture());
+
+  it("fails on the augmentation of a module edited outside the builder", async function () {
+    this.timeout(OP_TIMEOUT);
+    write("augmented.ts", `export interface Target {\n  a: string;\n}\n`);
+    write("augmentation.ts", augmentation);
+    expectOk(await addBanner(), "AddBlock with the augmentation on disk");
+
+    write(
+      "augmented.ts",
+      `export interface Target {\n  a: string;\n  b: string;\n}\n`,
+    );
+    const result = await addBanner();
+
+    expect(failedFiles(result)).to.deep.equal([source("augmentation.ts")]);
+  });
+
+  it("fails on the augmentation of a module deleted outside the builder", async function () {
+    this.timeout(OP_TIMEOUT);
+    write("augmented.ts", `export interface Target {\n  a: string;\n}\n`);
+    write("augmentation.ts", augmentation);
+    expectOk(await addBanner(), "AddBlock with the augmentation on disk");
+
+    remove("augmented.ts");
+    const result = await addBanner();
+
+    expect(failedFiles(result)).to.deep.equal([source("augmentation.ts")]);
+  });
+
+  it("fails on a reader of a global whose file was deleted outside the builder", async function () {
+    this.timeout(OP_TIMEOUT);
+    write(
+      "shade-global.ts",
+      `declare global {\n  const SHADE: "draft";\n}\n\nexport {};\n`,
+    );
+    write("shade-reader.ts", `export const shade: "draft" = SHADE;\n`);
+    expectOk(await addBanner(), "AddBlock with the global on disk");
+
+    remove("shade-global.ts");
+    const result = await addBanner();
+
+    expect(failedFiles(result)).to.deep.equal([source("shade-reader.ts")]);
+  });
+});

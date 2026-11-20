@@ -69,7 +69,11 @@ function referencedFile(
   );
 }
 
-/** The files a file imports, by path, through a module specifier or a `/// <reference path>`. */
+/**
+ * The files a file imports, by path, through a module specifier, a
+ * `declare module "…"` block that augments another module, or a
+ * `/// <reference path>`.
+ */
 function importsOf(
   project: Project,
   file: ts.SourceFile,
@@ -77,14 +81,19 @@ function importsOf(
 ): readonly string[] {
   const checker = project.getTypeChecker().compilerObject;
   const literals =
-    project.getSourceFile(file.fileName)?.getImportStringLiterals() ?? [];
+    project
+      .getSourceFile(file.fileName)
+      ?.getImportStringLiterals()
+      .map((literal) => literal.compilerNode) ?? [];
+  const augmented = file.statements
+    .filter(ts.isModuleDeclaration)
+    .map((declaration) => declaration.name)
+    .filter(ts.isStringLiteral);
   return [
-    ...literals
-      .flatMap(
-        (literal) =>
-          checker.getSymbolAtLocation(literal.compilerNode)?.declarations ?? [],
-      )
-      .map((declaration) => declaration.getSourceFile().fileName),
+    ...[...literals, ...augmented]
+      .flatMap((name) => checker.getSymbolAtLocation(name)?.declarations ?? [])
+      .map((declaration) => declaration.getSourceFile().fileName)
+      .filter((imported) => imported !== file.fileName),
     ...file.referencedFiles.map((reference) =>
       referencedFile(reference.fileName, file.fileName, present),
     ),
