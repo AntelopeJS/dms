@@ -48,11 +48,6 @@ function reachesPastModule(file: ts.SourceFile): boolean {
   );
 }
 
-/** Whether a file lies in `node_modules`, read from its path as ts-morph's `isInNodeModules` reads it. */
-function inNodeModules(fileName: string): boolean {
-  return fileName.includes("/node_modules/");
-}
-
 /** The extensions TypeScript tries, in order, on a `/// <reference path>` written without one. */
 const REFERENCE_EXTENSIONS = [".ts", ".tsx", ".d.ts", ".js", ".jsx"];
 
@@ -74,28 +69,16 @@ function referencedFile(
   );
 }
 
-/**
- * The files each parse of a dependency's file imports. Resolving them again
- * costs more than checking a small app, and a dependency's file resolves its
- * imports the same while the project lives: one rebuilt in place is parsed
- * again, and one added beside it is itself a changed file in `node_modules`.
- */
-const dependencyImports = new WeakMap<ts.SourceFile, readonly string[]>();
-
 /** The files a file imports, by path, through a module specifier or a `/// <reference path>`. */
 function importsOf(
   project: Project,
   file: ts.SourceFile,
   present: Set<string>,
 ): readonly string[] {
-  const cached = dependencyImports.get(file);
-  if (cached) {
-    return cached;
-  }
   const checker = project.getTypeChecker().compilerObject;
   const literals =
     project.getSourceFile(file.fileName)?.getImportStringLiterals() ?? [];
-  const imported = [
+  return [
     ...literals
       .flatMap(
         (literal) =>
@@ -106,10 +89,6 @@ function importsOf(
       referencedFile(reference.fileName, file.fileName, present),
     ),
   ];
-  if (inNodeModules(file.fileName)) {
-    dependencyImports.set(file, imported);
-  }
-  return imported;
 }
 
 /** The files that import each file of the program, by path. */
@@ -136,9 +115,7 @@ function importGraph(
 /**
  * The files whose diagnostics may differ from the clean check's: each file
  * parsed again or gone since, and every file importing one of them, at any
- * depth. Every file when one of them declares past its module, or lies in
- * `node_modules` and may have changed how the dependency files that did not
- * change resolve their imports.
+ * depth. Every file when one of them declares past its module.
  */
 function affectedFiles(
   files: readonly ts.SourceFile[],
@@ -164,7 +141,7 @@ function affectedFiles(
     }
   }
   return [...affected].some(
-    (name) => inNodeModules(name) || global.has(name) || clean.global.has(name),
+    (name) => global.has(name) || clean.global.has(name),
   )
     ? files
     : files.filter((file) => affected.has(file.fileName));

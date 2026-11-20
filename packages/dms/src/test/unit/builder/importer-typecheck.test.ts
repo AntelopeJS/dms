@@ -13,7 +13,6 @@ import {
   destroyFixture,
   expectOk,
   type Fixture,
-  type FixtureOptions,
 } from "./harness";
 
 const PAGE = "/shop/board";
@@ -75,8 +74,8 @@ async function addBanner() {
 }
 
 /** An app with one page holding one banner, saved once. */
-async function createBoard(options?: FixtureOptions): Promise<void> {
-  app = createFixture(options);
+async function createBoard(): Promise<void> {
+  app = createFixture();
   expectOk(
     await CreateCategory({ name: "shop", displayName: "Shop" }),
     "CreateCategory",
@@ -234,36 +233,41 @@ describe("[unit] a save that breaks a file the save did not write", () => {
   });
 });
 
-/** A package of the app's workspace, linked into `node_modules` as a package manager links it. */
-function linkWorkspaceTone(tone: string): void {
-  const workspace = path.join(app.root, "workspace", "tone");
+/**
+ * A package of the app's workspace, linked into `node_modules` as a package
+ * manager links it. Without a tone, its declaration file is not built yet.
+ */
+function linkWorkspace(name: string, tone?: string): void {
+  const workspace = path.join(app.root, "workspace", name);
   fs.mkdirSync(workspace, { recursive: true });
   fs.writeFileSync(
     path.join(workspace, "package.json"),
-    JSON.stringify({ name: "fixture-workspace-tone", types: "index.d.ts" }),
+    JSON.stringify({ name, types: "index.d.ts" }),
   );
-  fs.writeFileSync(
-    path.join(workspace, "index.d.ts"),
-    `export declare const tone: "${tone}";\n`,
-  );
-  const link = path.join(app.root, "node_modules", "fixture-workspace-tone");
+  if (tone) {
+    fs.writeFileSync(
+      path.join(workspace, "index.d.ts"),
+      `export declare const tone: "${tone}";\n`,
+    );
+  }
+  const link = path.join(app.root, "node_modules", name);
   if (!fs.existsSync(link)) {
     fs.mkdirSync(path.dirname(link), { recursive: true });
     fs.symlinkSync(workspace, link, "junction");
   }
 }
 
-/** A dependency that re-exports the workspace package's tone. */
-function installToneWrapper(): void {
-  const root = path.join(app.root, "node_modules", "fixture-tone-wrapper");
+/** A dependency named `<linked>-wrapper` that re-exports the tone of a linked workspace package. */
+function installWrapper(linked: string): void {
+  const root = path.join(app.root, "node_modules", `${linked}-wrapper`);
   fs.mkdirSync(root, { recursive: true });
   fs.writeFileSync(
     path.join(root, "package.json"),
-    JSON.stringify({ name: "fixture-tone-wrapper", types: "index.d.ts" }),
+    JSON.stringify({ name: `${linked}-wrapper`, types: "index.d.ts" }),
   );
   fs.writeFileSync(
     path.join(root, "index.d.ts"),
-    `export { tone } from "fixture-workspace-tone";\n`,
+    `export { tone } from "${linked}";\n`,
   );
 }
 
@@ -292,14 +296,13 @@ function installShade(added?: string): void {
 }
 
 /**
- * Without `preserveSymlinks`, a linked package's files are read where the link
- * points, outside `node_modules`, and the app may reach them only through a
- * dependency.
+ * A linked package's files are read where the link points, outside
+ * `node_modules`, and the app may reach them only through a dependency.
  */
 describe("[unit] a save after a file outside the app changed how the app resolves", () => {
   before(async function () {
     this.timeout(120_000);
-    await createBoard({ compilerOptions: { preserveSymlinks: false } });
+    await createBoard();
   });
 
   afterEach(removeWritten);
@@ -308,15 +311,15 @@ describe("[unit] a save after a file outside the app changed how the app resolve
 
   it("fails on the app's importer of a dependency re-exporting a linked package that changed", async function () {
     this.timeout(OP_TIMEOUT);
-    linkWorkspaceTone("draft");
-    installToneWrapper();
+    linkWorkspace("fixture-linked", "draft");
+    installWrapper("fixture-linked");
     write(
       "tone-reader.ts",
-      `import { tone } from "fixture-tone-wrapper";\n\nexport const shown: "draft" = tone;\n`,
+      `import { tone } from "fixture-linked-wrapper";\n\nexport const shown: "draft" = tone;\n`,
     );
     expectOk(await addBanner(), "AddBlock with the linked package");
 
-    linkWorkspaceTone("published");
+    linkWorkspace("fixture-linked", "published");
     const result = await addBanner();
 
     expect(failedFiles(result)).to.deep.equal([source("tone-reader.ts")]);
@@ -342,6 +345,27 @@ describe("[unit] a save after a file outside the app changed how the app resolve
     expect(failedFiles(result)).to.deep.equal([
       source("shade-dependency-user.ts"),
     ]);
+  });
+
+  /**
+   * The dependency did not change, and the linked package it imports from is
+   * built once the app holds a new file, so the program resolves it again.
+   */
+  it("fails on the app's importer of a dependency re-exporting a linked package built since", async function () {
+    this.timeout(OP_TIMEOUT);
+    linkWorkspace("fixture-late");
+    installWrapper("fixture-late");
+    write(
+      "late-reader.ts",
+      `import { tone } from "fixture-late-wrapper";\n\nexport const shown: "draft" = tone;\n`,
+    );
+    expectOk(await addBanner(), "AddBlock before the linked package is built");
+
+    linkWorkspace("fixture-late", "published");
+    write("late-unrelated.ts", `export {};\n`);
+    const result = await addBanner();
+
+    expect(failedFiles(result)).to.deep.equal([source("late-reader.ts")]);
   });
 
   /** The importer did not change, and the file it resolves to now is new. */
