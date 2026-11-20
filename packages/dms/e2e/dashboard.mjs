@@ -1,4 +1,5 @@
 import { readFileSync, renameSync, writeFileSync } from "node:fs";
+import { get } from "node:http";
 import { createRequire } from "node:module";
 import { join } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
@@ -85,6 +86,32 @@ function isFingerprint(value) {
 }
 
 /**
+ * GETs `url` on a connection of its own. The run's API forwarder binds a
+ * connection to the backend it reached when it opened, so a pooled one can
+ * still lead to a backend `freshDatabase` has stopped.
+ *
+ * @param {string} url The URL
+ * @param {Record<string, string>} headers The request headers
+ * @returns {Promise<{ status: number, body: string }>} The status and the body
+ */
+function getOnOwnConnection(url, headers) {
+  return new Promise((resolve, reject) => {
+    const request = get(url, { agent: false, headers }, (response) => {
+      let body = "";
+      response.setEncoding("utf8");
+      response.on("data", (chunk) => {
+        body += chunk;
+      });
+      response.on("error", reject);
+      response.on("end", () =>
+        resolve({ status: response.statusCode ?? 0, body }),
+      );
+    });
+    request.on("error", reject);
+  });
+}
+
+/**
  * The fingerprint of the frontend module set the run's API serves now, as
  * the dev dashboard reads it: through the API, with the run's bootstrap
  * secret, once the backend is not settling a store operation.
@@ -99,15 +126,15 @@ async function servedModuleSet(state, fingerprint) {
   const secret = state.secrets.DMS_BOOTSTRAP_SECRET;
   const deadline = Date.now() + SETTLE_TIMEOUT_MS;
   for (;;) {
-    const response = await fetch(url, {
-      headers: secret ? { [BOOTSTRAP_HEADER]: secret } : {},
-    });
-    if (!response.ok) {
-      await response.body?.cancel();
+    const response = await getOnOwnConnection(
+      url,
+      secret ? { [BOOTSTRAP_HEADER]: secret } : {},
+    );
+    if (response.status < 200 || response.status > 299) {
       throw new Error(`${url} answered ${response.status}`);
     }
     /** @type {unknown} */
-    const body = await response.json();
+    const body = JSON.parse(response.body);
     const manifest = decode(isManifest, body, url, "a frontend manifest");
     if (!manifest.settling) return fingerprint(manifest.modules);
     if (Date.now() > deadline) {
