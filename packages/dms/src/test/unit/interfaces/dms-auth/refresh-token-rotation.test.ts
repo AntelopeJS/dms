@@ -116,17 +116,17 @@ describe("refresh token rotation", () => {
     ).to.equal(null);
   });
 
-  it("rejects other tokens and deleted sessions", async () => {
+  it("revokes the session for a token older than the predecessor", async () => {
     const id = await storeSession("T0");
     await model.rotateRefreshToken(id, "T0", "T1", committedAt);
-    expect(
-      await model.rotateRefreshToken(id, "other", "discarded", committedAt),
-    ).to.equal(null);
-    expect(isCurrentRefreshToken(await storedSession(id), "T1")).to.equal(true);
+    await model.rotateRefreshToken(id, "T1", "T2", committedAt);
 
-    await model.delete(id);
     expect(
       await model.rotateRefreshToken(id, "T0", "discarded", committedAt),
+    ).to.equal(null);
+    expect(await model.get(id)).to.equal(undefined);
+    expect(
+      await model.rotateRefreshToken(id, "T2", "discarded", committedAt),
     ).to.equal(null);
   });
 
