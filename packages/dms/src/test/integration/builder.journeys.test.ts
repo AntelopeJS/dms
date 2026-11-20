@@ -121,6 +121,34 @@ describe("[integration] builder journeys: pages through the bridge", function ()
 });
 
 /**
+ * Stops the app module after the suite that calls this.
+ *
+ * @returns A function that compiles the app and starts it as a module the first time, then
+ * reloads that module
+ */
+function useServedApp(root: () => string): () => Promise<void> {
+  let appLoaded = false;
+  after(async () => {
+    if (!appLoaded) return;
+    await StopModule(APP_MODULE);
+    await DestroyModule(APP_MODULE);
+  });
+  return async () => {
+    compileApp(root(), APP_MODULE);
+    if (appLoaded) {
+      await ReloadModule(APP_MODULE);
+      return;
+    }
+    await LoadModule(
+      APP_MODULE,
+      { source: { type: "local", path: root() }, config: {} },
+      true,
+    );
+    appLoaded = true;
+  };
+}
+
+/**
  * The playground compiles the app the builder wrote and restarts its backend on it, or reloads
  * the module a write changed under `ajs project dev -w`. The harness compiles the app and loads
  * it as a module of its own, then reloads that module after each write.
@@ -133,7 +161,8 @@ describe("[integration] builder journeys: pages through the bridge", function ()
  *   `unit/builder/query-response.test.ts`'s to check.
  * - `builder-ratio-kpi-answers-fraction-with-its-delta-and-null-over-http` fails when a ratio
  *   route answers 25 for 1 bike rented of 4 instead of 0.25, carries no delta over the period
- *   before, runs the comparison when the request carries no comparison bounds, answers 0
+ *   before, answers more than the bare fraction when the request carries no comparison bounds,
+ *   answers 0
  *   instead of null for a denominator of 0, or when builder_configure_query leaves the route on
  *   its old sides. The fleet resource names a schema of its own for the same reason as the
  *   order one.
@@ -143,29 +172,8 @@ describe("[integration] builder journeys: pages through the bridge", function ()
  */
 describe("[integration] builder journeys: the app the builder writes, served", function () {
   this.timeout(OP_TIMEOUT);
-  let appLoaded = false;
-  after(async () => {
-    if (!appLoaded) return;
-    await StopModule(APP_MODULE);
-    await DestroyModule(APP_MODULE);
-  });
   const session = useBuilderSession();
-
-  /** Compiles the app and starts it as a module the first time, then reloads that module. */
-  async function runApp(): Promise<void> {
-    const root = session().shop.shopRoot();
-    compileApp(root, APP_MODULE);
-    if (appLoaded) {
-      await ReloadModule(APP_MODULE);
-      return;
-    }
-    await LoadModule(
-      APP_MODULE,
-      { source: { type: "local", path: root }, config: {} },
-      true,
-    );
-    appLoaded = true;
-  }
+  const runApp = useServedApp(() => session().shop.shopRoot());
 
   it("builder-period-bound-series-and-comparison-card-answer-over-http", async () => {
     const { shop, bridge } = session();
