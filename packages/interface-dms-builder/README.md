@@ -73,7 +73,7 @@ The `@antelopejs/dms` module implements this interface. The `@antelopejs/interfa
 
 ## Documentation
 
-- [MCP server](https://dms.antelopejs.com/docs/ai-and-claude-code/mcp-server) covers the builder tools `@antelopejs/dms` serves to coding agents in development.
+- [MCP server](https://dms.antelopejs.com/docs/ai-and-claude-code/mcp-and-tools/mcp-server) covers the builder tools `@antelopejs/dms` serves to coding agents in development.
 - [Interface reference](./docs/1.introduction.md) is the canonical contract. It ships with this package and is published at [/docs/modules/builder/reference](https://dms.antelopejs.com/docs/modules/builder/reference).
 - [A chart without code](./docs/10.a-chart-without-code.md) follows one chart from the choice of a measure to the reopened page.
 

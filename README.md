@@ -153,7 +153,7 @@ Press <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>K</kbd> in the dashboard and describ
 
 ### Use your own coding agent
 
-Run Claude Code or Codex in the project folder. Install the `antelopejs` plugin once to link the skills your packages ship, at the version you run.
+Run Claude Code or Codex in the project folder. **Your agent needs the `antelopejs` plugin to get the DMS skills and tools.** Without it, the agent does not know how to build a DMS page. Install it once:
 
 ```bash
 # Claude Code
@@ -165,7 +165,7 @@ codex plugin marketplace add AntelopeJS/agent-skills
 codex plugin add antelopejs@antelopejs
 ```
 
-Then run `ajs project dev` once. It adds a `dms` server to the project's `.mcp.json`, so Claude Code gets the builder, database and page tools the dashboard assistant uses. [MCP server](https://dms.antelopejs.com/docs/ai-and-claude-code/mcp-server) shows the Codex setup.
+Then run `ajs project dev` once. It adds a `dms` server to `.mcp.json` and `.codex/config.toml`, so your agent gets the builder, database, page and mockup tools the dashboard assistant uses. See [Install the plugin](https://dms.antelopejs.com/docs/ai-and-claude-code/coding-agent/install).
 
 <img src="./docs/media/harness.gif" width="100%" data-illustration alt="Claude Code in a terminal mocks up a support desk, and the mockup opens in the dashboard.">
 
@@ -350,7 +350,7 @@ pnpm frontend:dev
 
 Do not lower the modules' interface requirements or delete the lockfile. The reinstall keeps the MongoDB database and the playground's file storage.
 
-Two scripts keep the documentation data in step with the code (the [block preview page](https://dms.antelopejs.com/docs/ai-and-claude-code/block-preview-page) must be enabled for the screenshots):
+Two scripts keep the documentation data in step with the code (the [block preview page](https://dms.antelopejs.com/docs/ai-and-claude-code/mcp-and-tools/block-preview-page) must be enabled for the screenshots):
 
 ```bash
 pnpm --dir packages/dms docs:catalog       # docs-data/blocks.json from ListBlockTypes(); CI runs docs:catalog:check, which also fails unless each block type has exactly one page holding its `::block-playground` and `::block-options`
