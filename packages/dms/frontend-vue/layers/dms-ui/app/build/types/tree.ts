@@ -8,25 +8,16 @@ export interface TreeItem extends LinkProps {
   children?: TreeItem[];
 }
 
+/** The menu groups of the first-level entries declared with `placement`, unset for the scrolling menu. */
 export function convertSiteLayoutTreeToTreeItems(
   siteLayoutTree: SiteLayoutTree | null | undefined,
+  placement?: SiteLayoutTree["placement"],
 ): NavigationMenuItem[][] {
   if (!siteLayoutTree) {
     return [];
   }
 
-  return convertToTreeItems(siteLayoutTree, undefined);
-}
-
-/** The first-level entries declared with `placement: "footer"`, grouped as the menu groups them. */
-export function convertSiteLayoutTreeToFooterItems(
-  siteLayoutTree: SiteLayoutTree | null | undefined,
-): NavigationMenuItem[][] {
-  if (!siteLayoutTree) {
-    return [];
-  }
-
-  return convertToTreeItems(siteLayoutTree, "footer");
+  return convertToTreeItems(siteLayoutTree, placement);
 }
 
 const EXCLUDED_TOP_LEVEL_IDS = new Set(["settings", "modules"]);

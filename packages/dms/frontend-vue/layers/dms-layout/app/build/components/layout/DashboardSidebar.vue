@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import type { NavigationMenuItem } from "@nuxt/ui";
 import {
-  convertSiteLayoutTreeToFooterItems,
   convertSiteLayoutTreeToTreeItems,
   convertSiteLayoutTreeToTreeItemsForModule,
 } from "#dms-ui/app/entries/types/tree";
@@ -205,52 +204,32 @@ const favoriteItems = computed((): NavigationMenuItem[][] => {
   ];
 });
 
-const items = computed((): NavigationMenuItem[][] => {
-  if (isInModule.value) {
-    if (!moduleRootNode.value) {
-      return [];
-    }
-    const moduleMenuItems = convertSiteLayoutTreeToTreeItemsForModule(
-      moduleRootNode.value,
-    );
-    const translatedItems = translateMenuItems(moduleMenuItems, processI18n);
-    return applyMenuRouteState(
-      translatedItems,
-      currentFullId.value,
-      currentRoute.value,
-    );
-  }
-
-  if (!siteLayout.siteLayoutTree.value) {
-    return [];
-  }
-
-  const menuItems = convertSiteLayoutTreeToTreeItems(
-    siteLayout.siteLayoutTree.value,
-  );
-  const translatedItems = translateMenuItems(menuItems, processI18n);
+function withRouteState(menuItems: NavigationMenuItem[][]) {
   return applyMenuRouteState(
-    translatedItems,
+    translateMenuItems(menuItems, processI18n),
     currentFullId.value,
     currentRoute.value,
   );
-});
+}
 
-const pinnedItems = computed((): NavigationMenuItem[][] => {
-  if (isMockup.value || !siteLayout.siteLayoutTree.value) {
-    return [];
-  }
+const items = computed((): NavigationMenuItem[][] =>
+  withRouteState(
+    isInModule.value
+      ? convertSiteLayoutTreeToTreeItemsForModule(moduleRootNode.value)
+      : convertSiteLayoutTreeToTreeItems(siteLayout.siteLayoutTree.value),
+  ),
+);
 
-  const menuItems = convertSiteLayoutTreeToFooterItems(
-    siteLayout.siteLayoutTree.value,
-  );
-  const translatedItems = translateMenuItems(menuItems, processI18n);
-  return applyMenuRouteState(
-    translatedItems,
-    currentFullId.value,
-    currentRoute.value,
-  );
-});
+const pinnedItems = computed((): NavigationMenuItem[][] =>
+  isMockup.value
+    ? []
+    : withRouteState(
+        convertSiteLayoutTreeToTreeItems(
+          siteLayout.siteLayoutTree.value,
+          "footer",
+        ),
+      ),
+);
 
 const openCategories = ref<string[]>([]);
 

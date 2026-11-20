@@ -16,6 +16,7 @@ import type { NavigationMenuItem } from "@nuxt/ui";
 import { stubModuleReads } from "./helpers/installed-modules-runtime";
 import {
   applyMenuRouteState,
+  collectOpenItemIds,
   translateMenuItems,
 } from "../layers/dms-core/app/utils/menu";
 import Sidebar from "../layers/dms-layout/app/entries/components/layout/DashboardSidebar";
@@ -40,10 +41,12 @@ const Navigation = defineComponent({
       type: Array<NavigationMenuItem | NavigationMenuItem[]>,
       required: true,
     },
+    modelValue: { type: Array<string> },
   },
   setup: (props) => () =>
     h(
       "nav",
+      { "data-open": props.modelValue?.join(",") },
       flatten(props.items).map((item) =>
         h(
           item.type === "label" ? "span" : "a",
@@ -121,7 +124,7 @@ function installRuntime() {
   }));
   vi.stubGlobal("SETTINGS_ROUTE", "/settings");
   vi.stubGlobal("ACCOUNT_MENU_ENTRIES", []);
-  vi.stubGlobal("collectOpenItemIds", () => []);
+  vi.stubGlobal("collectOpenItemIds", collectOpenItemIds);
   vi.stubGlobal("translateMenuItems", translateMenuItems);
   vi.stubGlobal("applyMenuRouteState", applyMenuRouteState);
 }
@@ -246,6 +249,29 @@ it("draws no pinned entry the user may not open", () => {
   mountSidebar();
 
   expect(labels("footer")).toEqual(["menu.modules"]);
+});
+
+it("leaves an entry pinned below the first level in its parent's menu", () => {
+  route.path = "/reports";
+  siteLayoutTree.value = root([
+    { id: "reports", children: [{ id: "nested", placement: "footer" }] },
+  ]);
+  mountSidebar();
+
+  expect(labels("menu")).toEqual(["reports", "nested"]);
+  expect(labels("footer")).toEqual(["menu.modules"]);
+});
+
+it("opens the pinned category of the current page", () => {
+  route.path = "/admin/general";
+  siteLayoutTree.value = root([
+    { id: "admin", placement: "footer", children: [{ id: "general" }] },
+  ]);
+  mountSidebar();
+
+  expect(
+    host.querySelector('[data-part="footer"] nav')?.getAttribute("data-open"),
+  ).toBe("admin");
 });
 
 it("marks the pinned entry of the current page active", () => {
