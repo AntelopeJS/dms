@@ -189,6 +189,38 @@ describe("a write from outside that stamps an id inside the held block", () => {
     expect(written?.id).toBe("b-cell0001");
     expect(file.spec.pages[0]?.tree[1]?.options?.title).toBe("Theirs");
   });
+
+  it("gives the id to the child it was stamped on only, when the edit removed a sibling and added a block of the same type at that sibling's place (fails when the new block is taken for the stamped one and the two share the id)", async () => {
+    file.spec = nested();
+    await mountEditor({ held: shallowRef(GRID) });
+    editor.apply({ kind: "removeNode", pointer: CELL });
+    editor.apply({
+      kind: "insertNode",
+      parent: GRID,
+      page: "orders",
+      index: 1,
+      node: { type: "KpiCard", options: { title: "Added" } },
+    });
+    const theirs = nested();
+    const [grid, orders] = theirs.pages[0]?.tree ?? [];
+    const [, margin] = grid?.children ?? [];
+    if (!margin || !orders?.options) throw new Error("the spec has no margin");
+    margin.id = "b-margin01";
+    orders.options.title = "Theirs";
+    file.writeFromOutside(theirs);
+
+    await settle(MOCKUP_WRITE_DELAY_MS * 3);
+
+    const children = file.spec.pages[0]?.tree[0]?.children ?? [];
+    expect(children.map((child) => child.options?.title)).toEqual([
+      "Margin",
+      "Added",
+    ]);
+    expect(children.map((child) => child.id)).toEqual([
+      "b-margin01",
+      undefined,
+    ]);
+  });
 });
 
 describe("what a write from outside says", () => {
