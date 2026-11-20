@@ -60,20 +60,33 @@ export interface NewGuardArgs<
  * notification comparing the two belongs here. It runs in the same request,
  * on the same instance; a failure is logged and never fails the request, the
  * write being done.
+ *
+ * `TWritten` lists what it receives. After a `new` or an `edit`, that is
+ * `[written]`: the row as stored once the write is done, loaded as the edit
+ * guard's `current` is, so a created row comes with its new id. After a
+ * `delete`, `archive` or `restore` it receives nothing: the guard already
+ * holds the ids.
  */
-export type AfterWrite = () => void | Promise<void>;
+export type AfterWrite<TWritten extends unknown[] = []> = (
+  ...written: TWritten
+) => void | Promise<void>;
 
 /**
  * Throws to refuse the action. A mutating guard (`edit`, `delete`, `archive`,
- * `restore`, `new`) may return an {@link AfterWrite}; what `get` returns is
- * ignored. It runs with the data controller instance as `this`
- * (`TController`), so a guard written as a `function` reaches its models.
+ * `restore`, `new`) may return an {@link AfterWrite}, called with the
+ * arguments `TWritten` lists; what `get` returns is ignored. It runs with the
+ * data controller instance as `this` (`TController`), so a guard written as a
+ * `function` reaches its models.
  */
-export type GuardFn<TArgs, TController = unknown> = (
+export type GuardFn<
+  TArgs,
+  TController = unknown,
+  TWritten extends unknown[] = [],
+> = (
   this: TController,
   ctx: RequestContext,
   args: TArgs,
-) => void | AfterWrite | Promise<void | AfterWrite>;
+) => void | AfterWrite<TWritten> | Promise<void | AfterWrite<TWritten>>;
 
 /**
  * The guards of a table view. `T` is its data controller instance — the type
@@ -86,9 +99,9 @@ export interface TableViewGuards<
 > {
   /** Runs after view authorization and loading, before response and presence acquisition. Not used by exports. */
   get?: GuardFn<GetGuardArgs<T>, T>;
-  edit?: GuardFn<EditGuardArgs<T>, T>;
+  edit?: GuardFn<EditGuardArgs<T>, T, [written: T & { _id: string }]>;
   delete?: GuardFn<DeleteGuardArgs, T>;
   archive?: GuardFn<BulkGuardArgs, T>;
   restore?: GuardFn<BulkGuardArgs, T>;
-  new?: GuardFn<NewGuardArgs<T>, T>;
+  new?: GuardFn<NewGuardArgs<T>, T, [written: T & { _id: string }]>;
 }

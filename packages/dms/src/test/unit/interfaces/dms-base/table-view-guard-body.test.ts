@@ -32,7 +32,7 @@ function writingRoute(written: ReturnType<typeof Validation.ParseBody>[]) {
         body: Validation.WrittenBody,
       ) => {
         written.push(Validation.ParseBody(body));
-        return "written";
+        return { _id: "written" };
       },
       args: [],
       method: "post",
@@ -74,6 +74,7 @@ describe("[unit] interfaces/dms-base/table-view — guards amending the body", (
           value: Validation.WrittenBody,
         ) => {
           seen.push(value);
+          return { _id: "written" };
         },
         args: [],
         method: "post",
