@@ -113,6 +113,8 @@ beforeEach(() => {
   );
   vi.stubGlobal("markRaw", <T>(value: T) => value);
   vi.stubGlobal("ref", ref);
+  vi.stubGlobal("useDmsRoute", () => ({ path: "/", query: {} }));
+  vi.stubGlobal("findPageRoute", () => undefined);
 });
 
 afterEach(() => {

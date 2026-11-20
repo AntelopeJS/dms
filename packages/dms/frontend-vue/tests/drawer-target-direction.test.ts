@@ -84,6 +84,8 @@ describe("a drawer action target's direction", () => {
       },
     }));
     vi.stubGlobal("useExportJob", () => ({ runJob: vi.fn() }));
+    vi.stubGlobal("useDmsRoute", () => ({ path: "/", query: {} }));
+    vi.stubGlobal("findPageRoute", () => undefined);
     vi.stubGlobal("useConfirm", () => ({ confirm: vi.fn(async () => true) }));
     vi.stubGlobal("useAuthFetch", () => ({ $authFetch: vi.fn() }));
     vi.stubGlobal("resolveDmsComponent", () =>

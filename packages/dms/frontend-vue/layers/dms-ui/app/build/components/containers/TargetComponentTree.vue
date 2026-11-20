@@ -10,6 +10,7 @@ interface Props {
   targetTree: ResolvedComponentInfo;
   pageId: string;
   componentId: string;
+  routeParams?: Record<string, string>;
 }
 
 defineProps<Props>();
@@ -23,5 +24,6 @@ const attrs = useAttrs();
     :page-id="pageId"
     :component-id="componentId"
     :root-props="attrs"
+    :route-params="routeParams"
   />
 </template>

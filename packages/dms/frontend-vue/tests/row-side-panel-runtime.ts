@@ -105,6 +105,8 @@ const ButtonStub = defineComponent({
 
 function installRuntime(): void {
   const runtime = {
+    useDmsRoute: () => ({ path: "/", query: {} }),
+    findPageRoute: () => undefined,
     computed,
     onBeforeUnmount,
     onMounted,

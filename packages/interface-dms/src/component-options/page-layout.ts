@@ -21,7 +21,8 @@ export interface PageHeaderButton extends CustomButton {
   /**
    * The button acts on the record the page shows (the layout's `record`): it
    * is left out of a page whose record was not found. A target naming
-   * `{{record.X}}` implies it.
+   * `{{record.X}}` implies it: in its `url`, an `api` target's `redirect`, or
+   * the options of the component a `drawer`, `modal` or `sidePanel` opens.
    */
   requiresRecord?: boolean;
 }
@@ -70,7 +71,9 @@ export interface DefaultLayoutOptions {
    * The record the page shows, read on the server with the layout: the
    * header buttons acting on it (`requiresRecord`, or a `{{record.X}}` in
    * their target) are left out without it, and every `availability` of the
-   * page reads it as `context.record`.
+   * page reads it as `context.record`. A drawer, modal or side panel's
+   * component options take `{{record.X}}`, and the block it opens receives
+   * the page's route parameters (`{{params.X}}`).
    */
   record?: PageRecordLoader;
 }

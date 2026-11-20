@@ -51,6 +51,8 @@ const Panel = defineComponent({ render: () => null });
 
 function installRuntime(): void {
   const runtime = {
+    useDmsRoute: () => ({ path: "/", query: {} }),
+    findPageRoute: () => undefined,
     computed,
     ref,
     markRaw: <T>(value: T) => value,
