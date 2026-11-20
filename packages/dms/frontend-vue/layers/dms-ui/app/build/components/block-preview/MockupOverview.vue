@@ -107,6 +107,15 @@ const iconById = computed(
       props.pages.map((page, index) => [page.id, mockupPageIcon(page, index)]),
     ),
 );
+const blocksById = computed(
+  () =>
+    new Map(
+      props.overview.canvases.value.map(({ page, blocks }) => [
+        page.id,
+        blocks,
+      ]),
+    ),
+);
 const frameById = computed(
   () => new Map(props.overview.frames.value.map((frame) => [frame.id, frame])),
 );
@@ -346,7 +355,15 @@ onBeforeUnmount(() => {
           class="bg-default absolute inset-0 grid place-items-center rounded-md"
           data-dms-mockup-overview-placeholder
         >
+          <div
+            v-for="block in blocksById.get(frame.id)"
+            :key="block.path"
+            class="border-default bg-muted absolute rounded-sm border"
+            :style="rectStyle(block.rect)"
+            data-dms-mockup-overview-snapshot-block
+          />
           <UIcon
+            v-if="!blocksById.get(frame.id)?.length"
             :name="pageById.get(frame.id)?.icon ?? 'i-ph-frame-corners-light'"
             class="text-dimmed size-6"
             :style="{ transform: `scale(${1 / zoom})` }"
