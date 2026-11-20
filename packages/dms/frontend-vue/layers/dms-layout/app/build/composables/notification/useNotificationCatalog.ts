@@ -11,15 +11,6 @@ export interface NotificationCategory {
   tagKey?: string;
 }
 
-/** The delivery channels a subject can offer next to the in-app feed. */
-export type NotificationChannelId = "email";
-
-/** How a subject offers a channel, as the server reads it. */
-export interface NotificationChannelOffer {
-  /** The channel is on for a user who never chose. */
-  defaultOn: boolean;
-}
-
 export interface NotificationSubject {
   id: string;
   category: NotificationCategory;
@@ -29,15 +20,18 @@ export interface NotificationSubject {
   badgeKey?: string;
   /** Set by the server: the user may not turn the subject off. */
   locked?: boolean;
-  /** Set by the server: the registered channels the subject offers. */
-  channels?: Partial<Record<NotificationChannelId, NotificationChannelOffer>>;
+  /** Set by the server when the subject has an e-mail switch: it offers e-mail and a module delivers it. */
+  email?: {
+    /** E-mail is on for a user who never chose. */
+    defaultOn: boolean;
+  };
 }
 
 interface NotificationCatalogResponse {
   categories: NotificationCategory[];
   subjects: NotificationSubject[];
-  /** The channels a module registered; none on an installation without one. */
-  channels?: NotificationChannelId[];
+  /** A module registered the e-mail channel. */
+  emailChannel?: boolean;
 }
 
 export const buildPreferenceKey = (categoryId: string, subjectId: string) =>
@@ -46,11 +40,9 @@ export const buildPreferenceKey = (categoryId: string, subjectId: string) =>
 export const subjectPreferenceKey = (subject: NotificationSubject) =>
   buildPreferenceKey(subject.category.id, subject.id);
 
-/** The key the subject's switch for `channel` is stored under. */
-export const channelPreferenceKey = (
-  subject: NotificationSubject,
-  channel: NotificationChannelId,
-) => `${subjectPreferenceKey(subject)}@${channel}`;
+/** The key the subject's e-mail switch is stored under. */
+export const emailPreferenceKey = (subject: NotificationSubject) =>
+  `${subjectPreferenceKey(subject)}@email`;
 
 const CATALOG_URL = pageRoutePath(
   "/settings/user/notifications",
@@ -74,10 +66,10 @@ export const useNotificationCatalog = (enabled: () => boolean = () => true) => {
   );
   const categories = computed(() => catalog.data.value?.categories ?? []);
   const subjects = computed(() => catalog.data.value?.subjects ?? []);
-  const channels = computed(() => catalog.data.value?.channels ?? []);
-  /** A module registered `channel`: its column holds switches. */
-  const hasChannel = (channel: NotificationChannelId) =>
-    channels.value.includes(channel);
+  /** A module registered the e-mail channel: its column holds switches. */
+  const hasEmailChannel = computed(
+    () => catalog.data.value?.emailChannel === true,
+  );
   const isLoaded = computed(() => !!catalog.data.value);
   const loadFailed = computed(() => !isLoaded.value && hasFailed(catalog));
 
@@ -99,7 +91,7 @@ export const useNotificationCatalog = (enabled: () => boolean = () => true) => {
   return {
     categories,
     subjects,
-    hasChannel,
+    hasEmailChannel,
     isLoaded,
     loadFailed,
     loadCatalog,

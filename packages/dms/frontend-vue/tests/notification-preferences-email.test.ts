@@ -21,27 +21,26 @@ import { installAuthSettingsRuntime } from "./helpers/auth-settings-runtime";
 const PREFERENCES_URL = "/dms/pages/settings/user/notifications/preferences";
 const category = { id: "work", labelKey: "Work", icon: "i-ph-briefcase" };
 
-function catalog(channels: string[], stored: Record<string, boolean> = {}) {
-  const offered = channels.length > 0;
+function catalog(emailChannel: boolean, stored: Record<string, boolean> = {}) {
   return vi.fn(async (url: string): Promise<ApiAnswer> => {
     if (url.endsWith("/categories")) {
       return {
         categories: [category],
-        channels,
+        emailChannel,
         subjects: [
           {
             id: "assigned",
             category,
             labelKey: "Assigned",
-            channels: offered ? { email: { defaultOn: false } } : {},
+            email: emailChannel ? { defaultOn: false } : undefined,
           },
           {
             id: "digest",
             category,
             labelKey: "Digest",
-            channels: offered ? { email: { defaultOn: true } } : {},
+            email: emailChannel ? { defaultOn: true } : undefined,
           },
-          { id: "mentions", category, labelKey: "Mentions", channels: {} },
+          { id: "mentions", category, labelKey: "Mentions" },
         ],
       };
     }
@@ -139,7 +138,7 @@ afterEach(() => {
 
 describe("notification preferences e-mail column", () => {
   it("keeps the Soon column without a registered channel (fails when an installation without a mail module draws e-mail switches)", async () => {
-    const container = await mount(catalog([]));
+    const container = await mount(catalog(false));
 
     expect(emailSwitchOf(container, "Assigned")).toBeNull();
     expect(container.querySelector("[data-badge]")?.textContent).toBe(
@@ -151,7 +150,7 @@ describe("notification preferences e-mail column", () => {
   });
 
   it("draws a switch for each subject offering e-mail, on its default (fails when the default of the offer is ignored)", async () => {
-    const container = await mount(catalog(["email"]));
+    const container = await mount(catalog(true));
 
     expect(
       emailSwitchOf(container, "Assigned")?.getAttribute("aria-checked"),
@@ -167,7 +166,7 @@ describe("notification preferences e-mail column", () => {
   });
 
   it("saves the e-mail switch under its own key (fails when it changes the in-app preference)", async () => {
-    const authFetch = catalog(["email"]);
+    const authFetch = catalog(true);
     const container = await mount(authFetch);
 
     emailSwitchOf(container, "Assigned")?.click();
@@ -181,7 +180,7 @@ describe("notification preferences e-mail column", () => {
   });
 
   it("disables the e-mail switch of a subject off in the app (fails when e-mail looks on for a notification never sent)", async () => {
-    const container = await mount(catalog(["email"], { "work:digest": false }));
+    const container = await mount(catalog(true, { "work:digest": false }));
 
     expect(emailSwitchOf(container, "Digest")?.disabled).toBe(true);
     expect(emailSwitchOf(container, "Assigned")?.disabled).toBe(false);

@@ -7,7 +7,7 @@ import { UserModel } from "@antelopejs/interface-dms/auth/db";
 import type {
   DeliveryOptions,
   NotificationCategoryInfo,
-  NotificationChannelInfo,
+  NotificationEmailChannelInfo,
   NotificationData,
   NotificationSubjectInfo,
   ReadScope,
@@ -25,8 +25,8 @@ import { getRealtimeBroker, buildUserNotificationTopic } from "../../realtime";
 import { runInBatches } from "../../utils/run-in-batches/index";
 import {
   categoryRegistry,
-  channelRegistry,
-  isChannelOn,
+  emailChannelSlot,
+  isEmailOn,
   isSubjectLocked,
   subjectRegistry,
 } from "../../utils/notification-registry/index";
@@ -171,38 +171,34 @@ async function store(
 }
 
 /**
- * Hands a stored notification to every registered channel the recipient has
- * on for its subject. A channel that throws is logged; the others still run
+ * Hands a stored notification to the registered e-mail channel when the
+ * recipient has e-mail on for its subject. A channel that throws is logged
  * and the in-app delivery stands.
  */
-async function deliverToChannels(
+async function deliverByEmail(
   userId: string,
   data: NotificationData,
   notification: UserNotification,
   preferences: () => Promise<Record<string, boolean>>,
   idempotencyKey?: string,
 ): Promise<void> {
+  const channel = emailChannelSlot.channel;
   const subject = subjectRegistry.get(
     `${data.subject.category.id}:${data.subject.id}`,
   );
-  const channels = [...channelRegistry.values()].filter(
-    (channel) => subject?.channels?.[channel.id],
-  );
-  if (!subject || channels.length === 0) return;
-  const stored = await preferences();
-  for (const channel of channels) {
-    if (!isChannelOn(subject, channel.id, stored)) continue;
-    try {
-      await channel.deliver(userId, data, {
-        notificationId: notification._id,
-        idempotencyKey,
-      });
-    } catch (error) {
-      Logging.Error(
-        `[DMS] Notification channel "${channel.id}" failed to deliver "${data.title}" to "${userId}"`,
-        error,
-      );
-    }
+  if (!channel || !subject || !isEmailOn(subject, await preferences())) {
+    return;
+  }
+  try {
+    await channel.deliver(userId, data, {
+      notificationId: notification._id,
+      idempotencyKey,
+    });
+  } catch (error) {
+    Logging.Error(
+      `[DMS] Notification e-mail channel failed to deliver "${data.title}" to "${userId}"`,
+      error,
+    );
   }
 }
 
@@ -232,17 +228,17 @@ export namespace internal {
     },
   };
 
-  export const RegisterNotificationChannel = {
-    register: (info: NotificationChannelInfo) => {
-      if (channelRegistry.has(info.id)) {
+  export const RegisterNotificationEmailChannel = {
+    register: (channel: NotificationEmailChannelInfo) => {
+      if (emailChannelSlot.channel) {
         Logging.Warn(
-          `[DMS] Notification channel "${info.id}" registered again: the latest registration replaces the previous one`,
+          "[DMS] Notification e-mail channel registered again: the latest registration replaces the previous one",
         );
       }
-      channelRegistry.set(info.id, info);
+      emailChannelSlot.channel = channel;
     },
-    unregister: (info: NotificationChannelInfo) => {
-      channelRegistry.delete(info.id);
+    unregister: () => {
+      emailChannelSlot.channel = undefined;
     },
   };
 
@@ -314,7 +310,7 @@ export namespace internal {
     await publishNotificationEvent(userId, NOTIFICATION_NEW_EVENT, {
       notification: created,
     });
-    await deliverToChannels(userId, data, created, preferences, idempotencyKey);
+    await deliverByEmail(userId, data, created, preferences, idempotencyKey);
   }
 
   export async function SendToUsers(

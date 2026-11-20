@@ -5,7 +5,7 @@ export { internal };
 export * from "./types";
 import type {
   NotificationCategoryInfo,
-  NotificationChannelInfo,
+  NotificationEmailChannelInfo,
   NotificationSubjectInfo,
 } from "./types";
 
@@ -38,19 +38,16 @@ export function NotificationSubject(
 }
 
 /**
- * Registers a delivery channel (`email`): every notification stored in a
- * user's feed is also handed to `deliver` when its subject offers the channel
- * and the user has it on. One module registers a channel id; a later
- * registration of the same id replaces it. The registration goes away with
- * the module that made it.
+ * Registers the e-mail channel: every notification stored in a user's feed is
+ * also handed to `deliver` when its subject offers e-mail and the user has it
+ * on. One module registers it; a later registration replaces the earlier one.
+ * The registration goes away with the module that made it.
  */
-export function NotificationChannel(
-  id: NotificationChannelInfo["id"],
-  channel: Omit<NotificationChannelInfo, "id">,
-): NotificationChannelInfo {
-  const notificationChannel: NotificationChannelInfo = { id, ...channel };
-  internal.RegisterNotificationChannel.register(notificationChannel);
-  return notificationChannel;
+export function NotificationEmailChannel(
+  channel: NotificationEmailChannelInfo,
+): NotificationEmailChannelInfo {
+  internal.RegisterNotificationEmailChannel.register(channel);
+  return channel;
 }
 
 export const SystemCategory = NotificationCategory("system", {

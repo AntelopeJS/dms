@@ -31,10 +31,7 @@ import {
   TABLE_DISPLAY_ID,
   TableView,
 } from "@antelopejs/interface-dms/base/table-view";
-import type {
-  NotificationChannelId,
-  NotificationSubjectInfo,
-} from "@antelopejs/interface-dms/notifications/types";
+import type { NotificationSubjectInfo } from "@antelopejs/interface-dms/notifications/types";
 import {
   type UserNotificationCounts,
   UserNotificationPreferencesModel,
@@ -48,13 +45,13 @@ import {
   parseNotificationFeedQuery,
 } from "../../../db/models";
 import {
-  type ChannelOffer,
-  findPreferenceTarget,
+  type EmailOffer,
+  emailChannelSlot,
+  emailOffer,
+  findPreferenceSubject,
   getRegisteredCategories,
-  getRegisteredChannelIds,
   getRegisteredSubjects,
   isSubjectLocked,
-  registeredChannelOffers,
   publishAllNotificationsRead,
   publishNotificationsRead,
   publishNotificationsUnread,
@@ -70,11 +67,14 @@ const HTTP_FORBIDDEN = 403;
 const HTTP_NOT_FOUND = 404;
 
 /** A registered subject as the settings screen lists it. */
-export interface NotificationSubjectView extends NotificationSubjectInfo {
-  /** The user may not turn this subject off, on any channel. */
+export interface NotificationSubjectView extends Omit<
+  NotificationSubjectInfo,
+  "email"
+> {
+  /** The user may not turn this subject off, in the app or by e-mail. */
   locked: boolean;
-  /** The registered channels the subject offers. */
-  channels: Partial<Record<NotificationChannelId, ChannelOffer>>;
+  /** Set when the subject offers e-mail and a module registered the channel. */
+  email?: EmailOffer;
 }
 
 function toSubjectView(
@@ -83,7 +83,7 @@ function toSubjectView(
   return {
     ...subject,
     locked: isSubjectLocked(subject),
-    channels: registeredChannelOffers(subject),
+    email: emailOffer(subject),
   };
 }
 
@@ -221,21 +221,21 @@ function readFeedFilter(context: RequestContext): NotificationFeedFilter {
 }
 
 /**
- * Refuses keys that name no registered subject, or a channel the subject does
- * not offer or no module registered, and turning a locked subject off.
+ * Refuses keys that name no registered subject, or an e-mail switch the
+ * subject does not offer, and turning a locked subject off.
  */
 function assertChangesAllowed(changes: Record<string, boolean>): void {
   for (const key of Object.keys(changes)) {
     assert(
-      findPreferenceTarget(key),
+      findPreferenceSubject(key),
       HTTP_BAD_REQUEST,
       "error.request_refused",
     );
   }
   for (const [key, enabled] of Object.entries(changes)) {
-    const target = findPreferenceTarget(key);
+    const subject = findPreferenceSubject(key);
     assert(
-      enabled || !target || !isSubjectLocked(target.subject),
+      enabled || !subject || !isSubjectLocked(subject),
       HTTP_FORBIDDEN,
       "error.forbidden",
     );
@@ -312,15 +312,19 @@ export class NotificationsApiController extends Controller(NOTIFICATIONS_API) {
   }
 
   /**
-   * The registered categories and subjects, and the ids of the registered
-   * delivery channels (`channels`): the screen draws a channel's column
-   * only when a module registered it.
+   * The registered categories and subjects, and whether a module registered
+   * the e-mail channel (`emailChannel`): the screen draws e-mail switches
+   * only then.
    */
   @Get("/categories")
   async getCategories() {
     const categories = getRegisteredCategories();
     const subjects = getRegisteredSubjects().map(toSubjectView);
-    return { categories, subjects, channels: getRegisteredChannelIds() };
+    return {
+      categories,
+      subjects,
+      emailChannel: emailChannelSlot.channel !== undefined,
+    };
   }
 
   /**

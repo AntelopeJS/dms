@@ -29,7 +29,6 @@ const {
   toggleSubject,
   toggleCategory,
   hasEmailChannel,
-  offersEmail,
   isEmailEnabled,
   toggleEmail,
   retry,
@@ -165,7 +164,6 @@ const failureMessage = computed(() => {
                 :subject="subject"
                 :enabled="isEnabled(subject)"
                 :state="rowState(subject)"
-                :offers-email="offersEmail(subject)"
                 :email-enabled="isEmailEnabled(subject)"
                 @toggle="(enabled) => toggleSubject(subject, enabled)"
                 @toggle-email="(enabled) => toggleEmail(subject, enabled)"

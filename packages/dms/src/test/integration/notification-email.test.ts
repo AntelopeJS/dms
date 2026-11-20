@@ -3,9 +3,9 @@ import { expect } from "chai";
 import { SendableNotification } from "@antelopejs/interface-dms/notifications/sendable";
 import type {
   NotificationCategoryInfo,
-  NotificationChannelInfo,
   NotificationData,
   NotificationDeliveryContext,
+  NotificationEmailChannelInfo,
   NotificationSubjectInfo,
 } from "@antelopejs/interface-dms/notifications/types";
 import { pageRoutePath } from "@antelopejs/interface-dms/page";
@@ -31,13 +31,13 @@ const optIn: NotificationSubjectInfo = {
   id: "opt-in",
   labelKey: "opt-in",
   category,
-  channels: { email: true },
+  email: true,
 };
 const optOut: NotificationSubjectInfo = {
   id: "opt-out",
   labelKey: "opt-out",
   category,
-  channels: { email: { defaultOn: true } },
+  email: { defaultOn: true },
 };
 const inAppOnly: NotificationSubjectInfo = {
   id: "in-app-only",
@@ -49,7 +49,7 @@ const locked: NotificationSubjectInfo = {
   labelKey: "locked",
   category,
   togglePermission: "forbidden",
-  channels: { email: true },
+  email: true,
 };
 const SUBJECTS = [optIn, optOut, inAppOnly, locked];
 const emailKey = (subject: NotificationSubjectInfo) =>
@@ -65,13 +65,12 @@ interface Delivery {
 
 interface CatalogSubject {
   id: string;
-  channels: Record<string, { defaultOn: boolean }>;
+  email?: { defaultOn: boolean };
 }
 
 let deliveries: Delivery[] = [];
 let failing = false;
-const channel: NotificationChannelInfo = {
-  id: "email",
+const channel: NotificationEmailChannelInfo = {
   deliver: (userId, data, context) => {
     if (failing) throw new Error("mail server down");
     deliveries.push({ userId, data, context });
@@ -132,18 +131,18 @@ function useChannelTestUser(): ChannelTestUser {
 }
 
 interface Catalog {
-  channels: string[];
+  emailChannel: boolean;
   subjects: CatalogSubject[];
 }
 
-describe("[integration] notification channels, none registered", () => {
+describe("[integration] notification e-mail, no channel registered", () => {
   const user = useChannelTestUser();
 
   it("lists no channel and no offer (fails when the screen would draw an e-mail switch no module delivers)", async () => {
     const catalog = await user.client().get<Catalog>(CATEGORIES);
     const subject = catalog.data.subjects.find((s) => s.id === optIn.id);
-    expect(catalog.data.channels).to.deep.equal([]);
-    expect(subject?.channels).to.deep.equal({});
+    expect(catalog.data.emailChannel).to.equal(false);
+    expect(subject?.email).to.equal(undefined);
   });
 
   it("refuses an e-mail preference (fails when a key for an unregistered channel is stored)", async () => {
@@ -154,17 +153,17 @@ describe("[integration] notification channels, none registered", () => {
   });
 });
 
-describe("[integration] notification channels, one registered", () => {
+describe("[integration] notification e-mail, channel registered", () => {
   const user = useChannelTestUser();
   const patch = (changes: Record<string, boolean>) =>
     user.client().patch<Record<string, boolean>>(PREFERENCES, changes);
 
   before(() => {
-    internal.RegisterNotificationChannel.register(channel);
+    internal.RegisterNotificationEmailChannel.register(channel);
   });
 
   after(() => {
-    internal.RegisterNotificationChannel.unregister(channel);
+    internal.RegisterNotificationEmailChannel.unregister();
   });
 
   beforeEach(() => {
@@ -175,12 +174,12 @@ describe("[integration] notification channels, one registered", () => {
   it("lists the channel and each subject's offer with its default (fails when the defaults are not read from the subject)", async () => {
     const catalog = await user.client().get<Catalog>(CATEGORIES);
     const offers = Object.fromEntries(
-      catalog.data.subjects.map((s) => [s.id, s.channels]),
+      catalog.data.subjects.map((s) => [s.id, s.email]),
     );
-    expect(catalog.data.channels).to.deep.equal(["email"]);
-    expect(offers[optIn.id]).to.deep.equal({ email: { defaultOn: false } });
-    expect(offers[optOut.id]).to.deep.equal({ email: { defaultOn: true } });
-    expect(offers[inAppOnly.id]).to.deep.equal({});
+    expect(catalog.data.emailChannel).to.equal(true);
+    expect(offers[optIn.id]).to.deep.equal({ defaultOn: false });
+    expect(offers[optOut.id]).to.deep.equal({ defaultOn: true });
+    expect(offers[inAppOnly.id]).to.equal(undefined);
   });
 
   it("does not mail a subject offered off until the user turns it on, then mails it with its tenant (fails when the default is on or the tenant is lost)", async () => {

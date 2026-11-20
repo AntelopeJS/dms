@@ -29,28 +29,16 @@ export interface NotificationSubjectInfo {
   /** Translation key of a badge shown next to the subject label (`Developer mode`). */
   badgeKey?: string;
   /**
-   * The channels this subject also reaches its recipients through, next to
-   * the in-app feed. A subject that names none is in-app only. A channel
-   * delivers only when a module registers it (`NotificationChannel`).
+   * Whether the subject also reaches its recipients by e-mail, next to the
+   * in-app feed. `true` offers it off until the user turns it on;
+   * `{ defaultOn: true }` offers it on until the user turns it off. Unset or
+   * `false`: in-app only. E-mail is delivered only once a module registers
+   * the e-mail channel (`NotificationEmailChannel`).
    */
-  channels?: NotificationChannelOffers;
+  email?: boolean | { defaultOn?: boolean };
 }
 
-/** The delivery channels a subject can offer next to the in-app feed. */
-export type NotificationChannelId = "email";
-
-/**
- * How a subject offers a channel. `true` offers it off until the user turns
- * it on; `{ defaultOn: true }` offers it on until the user turns it off.
- * `false` does not offer it.
- */
-export type NotificationChannelOffer = boolean | { defaultOn?: boolean };
-
-export type NotificationChannelOffers = Partial<
-  Record<NotificationChannelId, NotificationChannelOffer>
->;
-
-/** What a channel learns about one delivery besides its recipient and content. */
+/** What the e-mail channel learns about one delivery besides its recipient and content. */
 export interface NotificationDeliveryContext {
   /** Id of the in-app notification this delivery follows. */
   notificationId: string;
@@ -59,12 +47,11 @@ export interface NotificationDeliveryContext {
 }
 
 /**
- * A channel a notification also reaches its recipient through. The DMS calls
- * `deliver` once per stored in-app notification whose recipient has the
- * channel on for its subject.
+ * The e-mail channel a mail module registers. The DMS calls `deliver` once
+ * per stored in-app notification whose recipient has e-mail on for its
+ * subject.
  */
-export interface NotificationChannelInfo {
-  id: NotificationChannelId;
+export interface NotificationEmailChannelInfo {
   /**
    * Hands one notification to the channel. A rejection is logged and never
    * fails the in-app delivery. Sends wait for it, so queue slow work.

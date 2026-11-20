@@ -3,7 +3,7 @@ import type { SaveStatusState } from "#dms-ui/app/components/save-bar/SaveStatus
 import { useInstantSave } from "#dms-ui/app/entries/composables/instant-save/useInstantSave";
 import { combineSaveStates } from "#dms-ui/app/composables/layout/useInstantSaveHeader";
 import {
-  channelPreferenceKey,
+  emailPreferenceKey,
   hasFailed,
   type NotificationCategory,
   type NotificationSubject,
@@ -57,20 +57,19 @@ export const useNotificationPreferences = (
   const emailDefaults = computed<PreferenceMap>(() =>
     Object.fromEntries(
       catalog.subjects.value.flatMap((subject) =>
-        subject.channels?.email
-          ? [
-              [
-                channelPreferenceKey(subject, "email"),
-                subject.channels.email.defaultOn,
-              ],
-            ]
+        subject.email
+          ? [[emailPreferenceKey(subject), subject.email.defaultOn]]
           : [],
       ),
     ),
   );
 
+  /** What a switch reads: the stored choice, else its default. */
+  const read = (key: string) =>
+    preferences.value[key] ?? emailDefaults.value[key] ?? true;
+
   const instant = useInstantSave<PreferenceMap>({
-    read: (key) => preferences.value[key] ?? emailDefaults.value[key] ?? true,
+    read,
     write: (key, enabled) => {
       preferences.value = { ...preferences.value, [key]: enabled };
     },
@@ -79,24 +78,17 @@ export const useNotificationPreferences = (
   });
 
   const isEnabled = (subject: NotificationSubject) =>
-    preferences.value[subjectPreferenceKey(subject)] ?? true;
-
-  /** The subject has an e-mail switch: a module delivers e-mail and the subject offers it. */
-  const offersEmail = (subject: NotificationSubject) =>
-    catalog.hasChannel("email") && !!subject.channels?.email;
+    read(subjectPreferenceKey(subject));
 
   /** A locked subject is mailed whatever is stored, as the server sends it. */
   const isEmailEnabled = (subject: NotificationSubject) =>
-    subject.locked === true ||
-    (preferences.value[channelPreferenceKey(subject, "email")] ??
-      subject.channels?.email?.defaultOn ??
-      false);
+    subject.locked === true || read(emailPreferenceKey(subject));
 
   /** The row's state cell sums up its in-app and e-mail switches. */
   const rowState = (subject: NotificationSubject): SaveStatusState =>
     combineSaveStates([
       instant.states[subjectPreferenceKey(subject)],
-      instant.states[channelPreferenceKey(subject, "email")],
+      instant.states[emailPreferenceKey(subject)],
     ]);
 
   const toggleableSubjectsOf = (category: NotificationCategory) =>
@@ -106,7 +98,7 @@ export const useNotificationPreferences = (
     instant.change(subjectPreferenceKey(subject), enabled);
 
   const toggleEmail = (subject: NotificationSubject, enabled: boolean) =>
-    instant.change(channelPreferenceKey(subject, "email"), enabled);
+    instant.change(emailPreferenceKey(subject), enabled);
 
   const toggleCategory = (category: NotificationCategory, enabled: boolean) =>
     instant.changeMany(
@@ -131,8 +123,7 @@ export const useNotificationPreferences = (
   return {
     categories: catalog.categories,
     subjectsOf: catalog.subjectsOf,
-    hasEmailChannel: computed(() => catalog.hasChannel("email")),
-    offersEmail,
+    hasEmailChannel: catalog.hasEmailChannel,
     isEmailEnabled,
     toggleEmail,
     preferences,

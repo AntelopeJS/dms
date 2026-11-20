@@ -10,8 +10,6 @@ interface NotificationMatrixSubjectProps {
   subject: NotificationSubject;
   enabled: boolean;
   state: SaveStatusState;
-  /** The e-mail column holds a switch for this subject. */
-  offersEmail?: boolean;
   emailEnabled?: boolean;
 }
 
@@ -87,7 +85,7 @@ const onToggleEmail = (value: boolean) => {
         @update:model-value="onToggle"
       />
     </div>
-    <div v-if="props.offersEmail" class="flex justify-center" role="cell">
+    <div v-if="props.subject.email" class="flex justify-center" role="cell">
       <USwitch
         :model-value="props.emailEnabled"
         :disabled="isEmailDisabled"
