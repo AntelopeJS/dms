@@ -297,7 +297,7 @@ export async function start(): Promise<void> {
   await RegisterSchema(CORE_SCHEMA_NAME);
   await RegisterSchema(TENANT_SCHEMA_NAME);
   await ensureDefaultTenantExists();
-  await announceSetupToken();
+  await announceSetupToken((await GetRuntimeInfo()).dev);
   await registerExistingTenantInstances();
   await SettleHook(Hook.DATABASE_INITIALIZED);
 
