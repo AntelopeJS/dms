@@ -36,6 +36,8 @@ interface IdentityBadgeOption {
 
 interface IdentityOptions {
   avatarField?: string;
+  /** `square` draws the avatar whole in the icon's tile; `circle` otherwise. */
+  avatarFrame?: string;
   icon?: string;
   /** Row field holding the tile's icon; `icon` when it is empty. */
   iconField?: string;
@@ -99,6 +101,7 @@ export function renderIdentity(
     emptyLabel: opts.emptyLabel ? processI18n(opts.emptyLabel) : undefined,
     emptyIcon: opts.emptyIcon,
     avatar: avatarOf(readRowField(row, opts.avatarField)),
+    avatarFrame: opts.avatarFrame === "square" ? "square" : "circle",
     icon: stringOf(readRowField(row, opts.iconField)) ?? opts.icon,
     selfId: stringOf(readRowField(row, opts.selfField)),
     selfLabel: opts.selfLabel ? processI18n(opts.selfLabel) : undefined,

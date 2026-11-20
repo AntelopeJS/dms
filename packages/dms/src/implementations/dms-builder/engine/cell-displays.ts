@@ -31,6 +31,7 @@ const relativeDateStyle = z.enum([
 const identity = z
   .object({
     avatarField: z.string().optional(),
+    avatarFrame: z.enum(["circle", "square"]).optional(),
     icon: z.string().optional(),
     iconField: z.string().optional(),
     subtitleField: z.string().optional(),

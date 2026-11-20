@@ -26,6 +26,11 @@ interface IdentityCellProps {
   subtitleClass?: string;
   /** Image value (`{ key }`, resolved through the file API) or a URL. */
   avatar?: { key: string; alt?: string } | string | null;
+  /**
+   * `circle` crops the avatar round; `square` draws it whole in the icon's
+   * rounded tile, so a wide logo keeps its edges.
+   */
+  avatarFrame?: "circle" | "square";
   /** Icon drawn in a tile instead of an avatar. */
   icon?: string;
   /** User id the row stands for: the signed-in user's row gets `selfLabel`. */
@@ -47,6 +52,7 @@ const props = withDefaults(defineProps<IdentityCellProps>(), {
   subtitle: "",
   subtitleClass: "text-dimmed",
   avatar: null,
+  avatarFrame: "circle",
   icon: undefined,
   selfId: undefined,
   selfLabel: undefined,
@@ -90,6 +96,11 @@ const avatarSrc = computed(() => {
 });
 
 const initials = computed(() => labelInitials(label.value));
+
+const SQUARE_FRAME = {
+  root: "rounded-[7px] bg-accented",
+  image: "object-contain",
+};
 </script>
 
 <template>
@@ -108,6 +119,7 @@ const initials = computed(() => labelInitials(label.value));
       :alt="label"
       :text="initials"
       size="sm"
+      :ui="props.avatarFrame === 'square' ? SQUARE_FRAME : undefined"
       class="shrink-0"
     />
     <div class="min-w-0">
