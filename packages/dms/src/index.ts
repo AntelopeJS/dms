@@ -55,6 +55,7 @@ import {
   cancelScheduledBroadcast,
   closeDevReloadStreams,
   initFrontendBootstrapSecret,
+  registerDevReloadRoute,
 } from "./store/frontend";
 import { publishDevBootstrapCredential } from "./implementations/dms/services";
 import {
@@ -119,6 +120,7 @@ export async function construct(config: Config): Promise<void> {
     registerDocsPreviewPage();
   }
   if (dev) {
+    registerDevReloadRoute();
     startMockupEngine(
       undefined,
       isBuilderEnabled(dev) ? BUILDER_PAGES : undefined,
