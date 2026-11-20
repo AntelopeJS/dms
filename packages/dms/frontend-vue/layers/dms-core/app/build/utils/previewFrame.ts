@@ -1,5 +1,5 @@
 /** The page the mockup viewer and the Mockups list embed to draw a mockup, once per page or card. */
-export const BLOCK_PREVIEW_PATH = "/dms-preview";
+const BLOCK_PREVIEW_PATH = "/dms-preview";
 
 /**
  * Whether this document is a `/dms-preview` frame. A frame opens no
