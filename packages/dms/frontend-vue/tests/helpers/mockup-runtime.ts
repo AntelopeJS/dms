@@ -37,6 +37,13 @@ import type {
 } from "../../layers/dms-ui/app/entries/utils/mockup";
 import type { MockupBlockType } from "../../layers/dms-ui/app/entries/utils/mockupCatalog";
 import type { MockupSpecDocument } from "../../layers/dms-ui/app/entries/utils/mockupSpec";
+import {
+  annotation,
+  answerAnnotations,
+  type FakeRequest,
+} from "./mockup-notes-backend";
+
+export { annotation };
 
 export class FakeEventSource {
   static readonly CLOSED = 2;
@@ -256,38 +263,6 @@ export function mockupState(overrides: Partial<MockupState> = {}): MockupState {
   };
 }
 
-export function annotation(
-  overrides: Partial<MockupAnnotation> = {},
-): MockupAnnotation {
-  return {
-    id: "a1",
-    anchor: { block: "b-revenue1", steps: [] },
-    offset: { x: 0.5, y: 0.5 },
-    page: "orders",
-    path: "/pages/0/tree/0",
-    text: "Tighten the spacing",
-    status: "open",
-    createdAt: "2026-11-07T10:00:00.000Z",
-    ...overrides,
-  };
-}
-
-/** What the fake backend serves for a pin put at `place`, the place's page and path as its location, and its sketch state. */
-function placed(
-  note: MockupAnnotation,
-  place: Pick<MockupAnnotation, "page" | "path" | "offset" | "state">,
-): MockupAnnotation {
-  const { path: _path, state: _state, ...rest } = note;
-  return {
-    ...rest,
-    page: place.page,
-    offset: place.offset,
-    anchor: place.path ? note.anchor : { page: place.page ?? "" },
-    ...(place.path !== undefined && { path: place.path }),
-    ...(place.state !== undefined && { state: place.state }),
-  };
-}
-
 /** One ref per key, made with `init` on first use and shared by every later caller, as the DMS state and cookies are. */
 function sharedRefs(): (
   key: string,
@@ -320,8 +295,14 @@ export interface MockupRuntime {
   authFetch: ReturnType<typeof vi.fn>;
   /** The notes the fake backend holds. */
   notes: MockupAnnotation[];
-  /** `spec.json` as the fake backend holds it, and its digest. */
-  file: { spec: MockupSpecDocument; version: number };
+  /** `spec.json` as the fake backend holds it, its digest, and the viewer of an editor that wrote this very file. */
+  file: {
+    spec: MockupSpecDocument;
+    version: number;
+    writtenBy?: { viewer: string; name: string };
+  };
+  /** The lock requests the viewer sent: taking (`PUT`) and freeing (`DELETE`) the lock on a block. */
+  locks: Array<{ method: string; viewer: string; path?: string }>;
   /** The toasts the viewer raised. */
   toasts: RaisedToast[];
   /** The viewer's route, which the router's pushes move, as Inertia moves the page's URL. */
@@ -330,47 +311,8 @@ export interface MockupRuntime {
   pushes: Record<string, string>[];
 }
 
-/** A request the viewer sends the fake backend. */
-interface FakeRequest {
-  method?: string;
-  body?: Record<string, string> & {
-    spec?: MockupSpecDocument;
-    offset?: MockupAnnotation["offset"];
-    place?: Pick<MockupAnnotation, "page" | "path" | "offset" | "state">;
-  };
-}
-
-/** What the fake backend answers on the annotation routes, keeping `notes` as the real one keeps the file. */
-function answerAnnotations(
-  notes: MockupAnnotation[],
-  url: string,
-  init: FakeRequest | undefined,
-) {
-  if (init?.method === "POST" && init.body) {
-    const { text, ...place } = init.body;
-    const created = placed(annotation({ id: "new", text }), {
-      ...place,
-      offset: place.offset ?? { x: 0, y: 0 },
-    });
-    notes.push(created);
-    return created;
-  }
-  const id = decodeURIComponent(url.split("/").at(-1) ?? "");
-  const index = notes.findIndex((entry) => entry.id === id);
-  if (init?.method === "DELETE") {
-    notes.splice(index, 1);
-    return { id };
-  }
-  if (init?.method === "PATCH" && init.body) {
-    const { place, ...change } = init.body;
-    const found = { ...notes[index], ...change };
-    notes[index] = place ? placed(found, place) : found;
-    return notes[index];
-  }
-  return { annotations: notes };
-}
-
 const SPEC_URL = "/api/mockup/demo/spec";
+const LOCKS_URL = "/api/mockup/demo/locks";
 const CATALOG_URL = "/api/mockup/schema/blocks";
 
 /** Stubs what the viewer reads from the dashboard and the browser. */
@@ -378,7 +320,11 @@ export function stubMockupRuntime(options: RuntimeOptions = {}): MockupRuntime {
   FakeEventSource.instances = [];
   const notes: MockupAnnotation[] = [...(options.notes ?? [])];
   const toasts: RaisedToast[] = [];
-  const file = { spec: options.spec ?? mockupSpec(), version: 1 };
+  const file: MockupRuntime["file"] = {
+    spec: options.spec ?? mockupSpec(),
+    version: 1,
+  };
+  const locks: MockupRuntime["locks"] = [];
   const authFetch = vi.fn(async (url: string, init?: FakeRequest) => {
     if (url === "/api/mockup") {
       const results = (options.mockups ?? []).map((mockup) => ({
@@ -393,10 +339,26 @@ export function stubMockupRuntime(options: RuntimeOptions = {}): MockupRuntime {
     if (url === SPEC_URL && init?.method === "PUT" && init.body?.spec) {
       file.spec = structuredClone(init.body.spec);
       file.version += 1;
+      file.writtenBy = undefined;
       return { ok: true, digest: `d${file.version}` };
     }
     if (url === SPEC_URL) {
-      return { spec: structuredClone(file.spec), digest: `d${file.version}` };
+      return {
+        spec: structuredClone(file.spec),
+        digest: `d${file.version}`,
+        writtenBy: file.writtenBy,
+      };
+    }
+    if (url.startsWith(LOCKS_URL)) {
+      locks.push({
+        method: init?.method ?? "GET",
+        viewer:
+          init?.body?.viewer ??
+          new URL(url, "http://backend").searchParams.get("viewer") ??
+          "",
+        path: init?.body?.path,
+      });
+      return { ok: true };
     }
     return answerAnnotations(notes, url, init);
   });
@@ -452,7 +414,7 @@ export function stubMockupRuntime(options: RuntimeOptions = {}): MockupRuntime {
   );
   vi.stubGlobal("useDmsUserSession", () => ({ loggedIn: ref(true) }));
   vi.stubGlobal("isDmsHydrating", () => false);
-  return { authFetch, notes, file, toasts, route, pushes };
+  return { authFetch, notes, file, locks, toasts, route, pushes };
 }
 
 type WithoutChannel<Message> = Message extends unknown
@@ -469,7 +431,7 @@ export interface MountedViewer {
   say: (message: WithoutChannel<PreviewOutboundMessage>) => Promise<void>;
   /** Has the backend send a stream event, and lets the viewer settle. */
   publish: (
-    type: "state" | "annotations",
+    type: "state" | "annotations" | "presence",
     data: Parameters<FakeEventSource["emit"]>[1],
   ) => Promise<void>;
   unmount: () => void;

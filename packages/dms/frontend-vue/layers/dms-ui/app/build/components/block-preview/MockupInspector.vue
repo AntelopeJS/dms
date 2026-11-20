@@ -28,7 +28,8 @@ import MockupSketchStatePicker from "./MockupSketchStatePicker.vue";
  * and Style, and says its data is sample data; a custom zone offers the AI or a
  * DMS block in its place, and picks the state it is drawn in when it has
  * named states; with nothing selected, the page's own settings, and the
- * state a custom page is drawn in.
+ * state a custom page is drawn in. A block another viewer is editing says
+ * who, and changes nothing.
  */
 const props = defineProps<{
   spec: MockupSpecDocument;
@@ -38,6 +39,8 @@ const props = defineProps<{
   issues: MockupIssue[];
   /** The state the selected sketch, or with none the custom page, is drawn in; undefined for its own `html`. */
   sketchState?: string;
+  /** The name of the viewer editing the selected block, when another does: its fields are read-only. */
+  lockedBy?: string;
 }>();
 const emit = defineEmits<{
   edit: [edit: MockupEdit, coalesceKey?: string];
@@ -114,6 +117,15 @@ function setOption(key: string, value: JsonValue | undefined): void {
           {{ trail.join(" › ") }}
         </p>
       </header>
+      <p
+        v-if="lockedBy"
+        class="bg-elevated text-default flex items-center gap-1.5 rounded-md px-2 py-1.5 text-xs"
+        role="status"
+        data-dms-mockup-locked
+      >
+        <UIcon name="i-ph-lock-simple" class="size-3.5 shrink-0" />
+        {{ t("dms.mockup.locked_by", { name: lockedBy }) }}
+      </p>
 
       <template v-if="isSketch">
         <p class="text-muted text-sm">{{ t("dms.mockup.sketch_hint") }}</p>
@@ -138,6 +150,7 @@ function setOption(key: string, value: JsonValue | undefined): void {
             variant="outline"
             icon="i-ph-squares-four"
             block
+            :disabled="!!lockedBy"
             data-dms-mockup-replace
             @click="emit('replace', selection)"
           >
@@ -168,13 +181,20 @@ function setOption(key: string, value: JsonValue | undefined): void {
         <p v-if="!fields.length" class="text-muted text-xs">
           {{ t("dms.mockup.no_fields") }}
         </p>
-        <MockupInspectorField
-          v-for="field in fields"
-          :key="`${selection}:${field.key}`"
-          :field="field"
-          :value="optionValue(field.key)"
-          @update="setOption(field.key, $event)"
-        />
+        <div
+          class="space-y-4"
+          :inert="lockedBy ? true : undefined"
+          :aria-disabled="lockedBy ? 'true' : undefined"
+          data-dms-mockup-inspector-fields
+        >
+          <MockupInspectorField
+            v-for="field in fields"
+            :key="`${selection}:${field.key}`"
+            :field="field"
+            :value="optionValue(field.key)"
+            @update="setOption(field.key, $event)"
+          />
+        </div>
         <p v-if="hasData" class="text-muted text-xs" data-dms-mockup-data-hint>
           {{ t("dms.mockup.data_hint") }}
         </p>

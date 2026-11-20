@@ -4,6 +4,7 @@ import { useMockupCatalog } from "../../composables/block-preview/useMockupCatal
 import { useMockupDocument } from "../../composables/block-preview/useMockupDocument";
 import { useMockupEditing } from "../../composables/block-preview/useMockupEditing";
 import { useMockupGridLayout } from "../../composables/block-preview/useMockupGridLayout";
+import { useMockupLocks } from "../../composables/block-preview/useMockupLocks";
 import { useMockupOverview } from "../../composables/block-preview/useMockupOverview";
 import { useMockupPageFrame } from "../../composables/block-preview/useMockupPageFrame";
 import { useMockupPanels } from "../../composables/block-preview/useMockupPanels";
@@ -73,9 +74,12 @@ const session = useMockupSession({
   authFetch: $authFetch,
 });
 const { state, isConnected, hasRequestFailed } = session;
+const heldBlock = ref<string>();
 const { editor, history } = useMockupDocument({
   name: props.name,
   state,
+  viewer: session.viewer,
+  held: heldBlock,
   onNotice: () => editing.settle(),
 });
 const catalog = useMockupCatalog($authFetch);
@@ -120,6 +124,18 @@ const { handoff, runs, handOff, build, resolveComments } =
     isOverview,
   });
 
+const selection = ref<string>();
+const locks = useMockupLocks({
+  name: props.name,
+  authFetch: $authFetch,
+  viewer: session.viewer,
+  presence: session.presence,
+  isConnected,
+  spec,
+  selection,
+  isPending: editor.isPending,
+  held: heldBlock,
+});
 const editing = useMockupEditing({
   editor,
   catalog,
@@ -127,6 +143,8 @@ const editing = useMockupEditing({
   pageIndex,
   openPage: (id) => (requestedPage.value = id),
   revision: computed(() => state.value?.revision),
+  selection,
+  isHeld: locks.isHeld,
 });
 const overview = useMockupOverview({
   name: props.name,
@@ -164,7 +182,12 @@ const { isPreviewing, mode } = useMockupToolModes({
 
 const rows = computed(() =>
   spec.value
-    ? outlineRows(spec.value, pageIndex.value, catalog.byType.value)
+    ? outlineRows(
+        spec.value,
+        pageIndex.value,
+        catalog.byType.value,
+        locks.holders.value,
+      )
     : [],
 );
 /** The editing panels show on the current spec's page view alone: the Overview, Preview, a past version and a generated form page edit nothing. */
@@ -322,7 +345,9 @@ const { showsLeft, showsInspector, gridClass } = useMockupGridLayout({
               />
               <MockupEditOverlay
                 v-if="spec && !isReadOnly && !isPreviewing && !isVirtual"
-                :selected="editing.selected.value"
+                :selected="
+                  locks.blocker.value ? undefined : editing.selected.value
+                "
                 :can-move-up="editing.canMoveUp.value"
                 :can-move-down="editing.canMoveDown.value"
                 :is-dragging="!!editing.drag.value"
@@ -412,6 +437,7 @@ const { showsLeft, showsInspector, gridClass } = useMockupGridLayout({
         :selection="editing.selection.value"
         :catalog="catalog.byType.value"
         :issues="issues"
+        :locked-by="locks.blocker.value?.name"
         :sketch-state="
           sketchStates.of(currentPage?.id).get(editing.selection.value ?? '')
         "

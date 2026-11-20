@@ -943,6 +943,7 @@
       "group_visualization": "Graphiques",
       "group_other": "Autres",
       "layers_empty": "Cette page n’a pas encore de bloc.",
+      "locked_by": "{name} modifie ce bloc",
       "page_home": "accueil",
       "add_page": "Ajouter une page",
       "new_page_title": "Nouvelle page",

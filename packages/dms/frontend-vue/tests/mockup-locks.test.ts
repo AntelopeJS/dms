@@ -1,0 +1,262 @@
+/** @vitest-environment jsdom */
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { MOCKUP_WRITE_DELAY_MS } from "../layers/dms-ui/app/entries/composables/block-preview/useMockupSpec";
+import { MOCKUP_LOCK_RENEW_MS } from "../layers/dms-ui/app/entries/composables/block-preview/useMockupLocks";
+import type { MockupBlockType } from "../layers/dms-ui/app/entries/utils/mockupCatalog";
+import type { MockupSpecDocument } from "../layers/dms-ui/app/entries/utils/mockupSpec";
+import {
+  flush,
+  mockupPage,
+  mockupState,
+  mountViewer,
+  stubMockupRuntime,
+  type MockupRuntime,
+  type MountedViewer,
+} from "./helpers/mockup-runtime";
+
+const KPI: MockupBlockType = {
+  type: "KpiCard",
+  componentName: "dms-kpi-card",
+  meta: { name: "KPI card", group: "visualization" },
+  config: {
+    title: { type: "string", ui: { label: "Title", group: "content" } },
+  },
+  defaults: {},
+};
+
+const FIRST = "/pages/0/tree/0";
+
+function spec(): MockupSpecDocument {
+  return {
+    version: 1,
+    pages: [
+      {
+        id: "orders",
+        title: "Orders",
+        tree: [
+          { id: "revenue", type: "KpiCard", options: { title: "Revenue" } },
+          { id: "orders", type: "KpiCard", options: { title: "Orders" } },
+        ],
+      },
+    ],
+  };
+}
+
+const STATE = mockupState({
+  pages: [
+    mockupPage({
+      options: {},
+      tree: [],
+      paths: { "block-0": FIRST, "block-1": "/pages/0/tree/1" },
+    }),
+  ],
+});
+const RECTS = [
+  { path: "block-0", rect: { x: 0, y: 40, width: 400, height: 100 } },
+  { path: "block-1", rect: { x: 0, y: 160, width: 400, height: 100 } },
+];
+const BEA = { viewer: "v-bea", name: "Bea", page: "orders", path: FIRST };
+
+let runtime: MockupRuntime;
+let viewer: MountedViewer;
+
+const find = (selector: string) =>
+  viewer.host.querySelector<HTMLElement>(selector);
+const titleField = () =>
+  viewer.host.querySelector<HTMLInputElement>(
+    "[data-dms-mockup-field=title] input",
+  );
+const taken = () => runtime.locks.filter((lock) => lock.method === "PUT");
+const freed = () => runtime.locks.filter((lock) => lock.method === "DELETE");
+const specWrites = () =>
+  runtime.authFetch.mock.calls.filter(
+    ([url, init]) => url === "/api/mockup/demo/spec" && init?.method === "PUT",
+  );
+
+async function pick(path: string): Promise<void> {
+  await viewer.say({ type: "select", path });
+  await viewer.say({ type: "layout", blocks: RECTS });
+}
+
+async function type(title: string): Promise<void> {
+  const field = titleField();
+  if (!field) throw new Error("no title field");
+  field.value = title;
+  field.dispatchEvent(new Event("input"));
+  await flush();
+}
+
+function press(key: string): Promise<void> {
+  window.dispatchEvent(new KeyboardEvent("keydown", { key }));
+  return flush();
+}
+
+async function settled(): Promise<void> {
+  await new Promise((resolve) =>
+    setTimeout(resolve, MOCKUP_WRITE_DELAY_MS + 50),
+  );
+  await flush();
+  await viewer.publish(
+    "state",
+    mockupState({
+      revision: 100 + runtime.file.version,
+      pages: STATE.pages,
+    }),
+  );
+}
+
+beforeEach(async () => {
+  runtime = stubMockupRuntime({ spec: spec(), blocks: [KPI] });
+  viewer = await mountViewer();
+  viewer.stream.emit("open", {});
+  await viewer.publish("state", STATE);
+  await viewer.say({ type: "ready" });
+});
+
+afterEach(() => {
+  viewer.unmount();
+  vi.useRealTimers();
+  vi.unstubAllGlobals();
+});
+
+describe("the lock of the selected block", () => {
+  it("is taken for the block selected, under the id the stream was opened with, and freed when the selection goes (fails when no lock is asked for, or none is let go)", async () => {
+    const id = new URL(viewer.stream.url).searchParams.get("viewer");
+
+    await pick("block-0");
+    expect(taken()).toEqual([{ method: "PUT", viewer: id, path: FIRST }]);
+
+    await press("Escape");
+    expect(freed()).toEqual([{ method: "DELETE", viewer: id }]);
+  });
+
+  it("is freed only once the edit made under it is written (fails when a deselect frees the block before its last edit is saved)", async () => {
+    await pick("block-0");
+    await type("Turnover");
+
+    await press("Escape");
+    expect(freed()).toHaveLength(0);
+
+    await settled();
+    expect(freed()).toHaveLength(1);
+    expect(runtime.file.spec.pages[0]?.tree[0]?.options?.title).toBe(
+      "Turnover",
+    );
+  });
+
+  it("is taken again when the stream reopens, the backend having freed it with the stream (fails when a reconnect leaves the block unlocked)", async () => {
+    await pick("block-0");
+    expect(taken()).toHaveLength(1);
+
+    viewer.stream.emit("error", {});
+    await flush();
+    viewer.stream.emit("open", {});
+    await flush();
+
+    expect(taken()).toHaveLength(2);
+  });
+
+  it("is renewed by an edit, once every MOCKUP_LOCK_RENEW_MS at most (fails when every keystroke renews it, or none does)", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    await pick("block-0");
+    expect(taken()).toHaveLength(1);
+
+    await type("T");
+    await type("Tu");
+    expect(taken()).toHaveLength(1);
+
+    vi.setSystemTime(Date.now() + MOCKUP_LOCK_RENEW_MS + 1);
+    await type("Tur");
+    await type("Turn");
+    expect(taken()).toHaveLength(2);
+  });
+});
+
+describe("a block another viewer holds", () => {
+  beforeEach(async () => {
+    await viewer.publish("presence", {
+      viewers: [{ viewer: "v-bea", name: "Bea" }],
+      locks: [BEA],
+    });
+  });
+
+  it("shows the holder's name in the inspector, read-only, with no lock asked for and no edit written (fails when the fields stay editable or the lock is requested anyway)", async () => {
+    await pick("block-0");
+
+    expect(find("[data-dms-mockup-locked]")?.textContent).toContain(
+      "dms.mockup.locked_by Bea",
+    );
+    expect(
+      find("[data-dms-mockup-inspector-fields]")?.hasAttribute("inert"),
+    ).toBe(true);
+    await type("Mine");
+    await settled();
+    expect(specWrites()).toHaveLength(0);
+    expect(runtime.file.spec).toEqual(spec());
+    expect(taken()).toHaveLength(0);
+  });
+
+  it("hides the canvas toolbar of that block, and shows the holder on its row of the Layers tab (fails when the toolbar still offers to move or remove it)", async () => {
+    await pick("block-0");
+    expect(find("[data-dms-mockup-toolbar]")).toBeNull();
+
+    find("[data-dms-mockup-panel-tab=layers]")?.click();
+    await flush();
+    const row = find(`[data-dms-mockup-layer="${FIRST}"]`);
+    expect(row?.textContent).toContain("Bea");
+    expect(
+      find('[data-dms-mockup-layer="/pages/0/tree/1"]')?.textContent,
+    ).not.toContain("Bea");
+  });
+
+  it("is editable again, and locked for this session, once its holder lets go (fails when the read-only state outlives the other viewer's lock)", async () => {
+    await pick("block-0");
+    await viewer.publish("presence", { viewers: [], locks: [] });
+
+    expect(find("[data-dms-mockup-locked]")).toBeNull();
+    expect(taken()).toHaveLength(1);
+    await type("Mine");
+    await settled();
+    expect(runtime.file.spec.pages[0]?.tree[0]?.options?.title).toBe("Mine");
+  });
+
+  it("leaves another block of the page editable (fails when one held block locks the whole page)", async () => {
+    await pick("block-1");
+
+    expect(find("[data-dms-mockup-locked]")).toBeNull();
+    expect(taken()).toEqual([
+      expect.objectContaining({ path: "/pages/0/tree/1" }),
+    ]);
+  });
+});
+
+describe("a change from another viewer", () => {
+  async function outsideWrites(
+    title: string,
+    by?: { viewer: string; name: string },
+  ) {
+    const theirs = spec();
+    const second = theirs.pages[0]?.tree[1];
+    if (second?.options) second.options.title = title;
+    runtime.file.spec = theirs;
+    runtime.file.version += 1;
+    runtime.file.writtenBy = by;
+    await viewer.publish(
+      "state",
+      mockupState({
+        revision: 100 + runtime.file.version,
+        pages: STATE.pages,
+      }),
+    );
+  }
+
+  it("is taken in without the notice of a file changed on disk, which an AI's change still gets (fails when every outside change toasts)", async () => {
+    await outsideWrites("Sales", { viewer: "v-bea", name: "Bea" });
+    expect(runtime.toasts).toEqual([]);
+
+    await outsideWrites("Marketing");
+    expect(runtime.toasts).toEqual([
+      expect.objectContaining({ title: "dms.mockup.adopted" }),
+    ]);
+  });
+});
