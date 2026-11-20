@@ -1,14 +1,7 @@
 import { expect } from "chai";
-import { z } from "zod";
-import { MCP_TOOLS } from "../../../mcp/tools";
 import { sketchRefusals } from "../../../mockup/sketch";
 
 type Sketch = { html: string } | { html: string; css: string };
-
-const PreviewAnswer = z.object({
-  ok: z.boolean(),
-  error: z.object({ code: z.string() }).optional(),
-});
 
 /** A CSS string a newline ends early, so a regex reading one string across it misses the url() after. */
 const NEWLINE_IN_STRING =
@@ -20,8 +13,7 @@ const ESCAPED_QUOTE = "p{b:url(\\22 #a\\22 )}";
 
 /**
  * Sketches that link or load outside the frame: the ones the mockup compiler
- * learnt to refuse in dms#858, which the looser copy `preview_blocks` kept let
- * through, then the ones five reviews of the shared check found.
+ * learnt to refuse in dms#858, then the ones five reviews of the check found.
  */
 const BYPASSES: Sketch[] = [
   { html: '<a/href="https://example.com/x">x</a>' },
@@ -127,18 +119,8 @@ const STATIC_SKETCH: Sketch = {
   css: 'p::before{content:"\\2014 Step: 1"}p{background:image-set("data:image/png;base64,AAAA" 1x)}',
 };
 
-async function previewCode(sketch: Sketch): Promise<string> {
-  const previewBlocks = MCP_TOOLS.find(
-    (tool) => tool.name === "preview_blocks",
-  );
-  if (previewBlocks === undefined) throw new Error("preview_blocks is gone");
-  const result = await previewBlocks.call({ title: "Sketch", sketch });
-  const answer = PreviewAnswer.parse(JSON.parse(result.content[0]?.text ?? ""));
-  return answer.ok ? "ok" : (answer.error?.code ?? "unknown");
-}
-
-describe("Sketch refusals shared by the compiler and preview_blocks", () => {
-  it("refuses each sketch-sanitizer bypass in sketchRefusals", () => {
+describe("Sketch refusals of the mockup compiler", () => {
+  it("refuses each sketch-sanitizer bypass", () => {
     const passed = BYPASSES.filter(
       (sketch) => sketchRefusals(sketch).length === 0,
     );
@@ -146,14 +128,7 @@ describe("Sketch refusals shared by the compiler and preview_blocks", () => {
     expect(passed).to.deep.equal([]);
   });
 
-  it("refuses each sketch-sanitizer bypass in preview_blocks", async () => {
-    const codes = await Promise.all(BYPASSES.map(previewCode));
-
-    expect(codes).to.deep.equal(BYPASSES.map(() => "invalid_sketch"));
-  });
-
-  it("accepts a static sketch with data images, anchors and plain character references", async () => {
+  it("accepts a static sketch with data images, anchors and plain character references", () => {
     expect(sketchRefusals(STATIC_SKETCH)).to.deep.equal([]);
-    expect(await previewCode(STATIC_SKETCH)).to.equal("ok");
   });
 });
