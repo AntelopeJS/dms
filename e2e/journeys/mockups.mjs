@@ -1,7 +1,6 @@
-import { mkdirSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
 import { fieldOf, itemsOf, parseJson } from "../mcp-bridge.mjs";
 import { createRole, joinedMember } from "./settings-members/steps.mjs";
+import { compiledPages, writeSpec } from "./mockups/spec.mjs";
 
 /**
  * @typedef {import("@antelopejs/dms/e2e").Ctx} Ctx
@@ -63,19 +62,6 @@ const ZOOM_SETTLE_MS = 400;
 const MARKER_WHOLE_FROM_PX = 64;
 
 /**
- * Writes a mockup's spec under the run's `mockups/`, which the development backend watches.
- *
- * @param {Ctx} ctx
- * @param {string} name
- * @param {{ title: string, categories?: unknown[], pages: unknown[] }} spec
- */
-function writeSpec(ctx, name, spec) {
-  const folder = join(ctx.state.runPlayground ?? ctx.state.playground, "mockups", name);
-  mkdirSync(folder, { recursive: true });
-  writeFileSync(join(folder, "spec.json"), JSON.stringify({ version: 1, ...spec }));
-}
-
-/**
  * Writes the sample mockup's spec.
  *
  * @param {Ctx} ctx
@@ -124,23 +110,6 @@ async function previewStates(page) {
   }
   await page.waitForTimeout(SETTLE_MS);
   return states;
-}
-
-/**
- * Waits until the backend compiled `count` pages of the mockup `name`.
- *
- * @param {Ctx} ctx
- * @param {string} name
- * @param {number} count
- */
-async function compiledPages(ctx, name, count) {
-  const deadline = Date.now() + DRAW_TIMEOUT_MS;
-  for (;;) {
-    const state = await ctx.api(`GET the ${name} mockup`, { method: "GET", path: `/api/mockup/${name}` });
-    const pages = itemsOf(fieldOf(state.body, "pages"));
-    if (pages.length === count || Date.now() > deadline) return pages.length;
-    await new Promise((resolve) => setTimeout(resolve, POLL_MS));
-  }
 }
 
 /**
@@ -200,72 +169,6 @@ async function everyRoute(ctx, as) {
     await ctx.api(`POST a comment as ${as}`, { method: "POST", path: ROUTES[2], body: NOTE, as }),
   );
   return answers;
-}
-
-/** The mockup whose Overview the responsiveness journey opens. */
-const SHOP_MOCKUP = "overview-shop";
-/** Pages of the shop mockup: more than the Overview draws live. */
-const SHOP_PAGES = 12;
-/** How many frames the Overview draws live at once, `LIVE_FRAMES` of `useMockupOverview`. */
-const LIVE_FRAMES = 10;
-/** How long every live frame of the shop mockup has to draw its blocks. */
-const SHOP_DRAW_TIMEOUT_MS = 60_000;
-/** The heartbeat the Overview's own window keeps while its frames boot. */
-const HEARTBEAT_MS = 50;
-/** The longest the Overview's window may go without running its heartbeat, far past any task of a frame booting. */
-const MAX_STALL_MS = 2_000;
-
-/**
- * One page of the shop mockup: three KPIs over a table of 40 generated rows.
- *
- * @param {number} index
- * @param {string} category
- */
-function shopPage(index, category) {
-  return {
-    id: `page-${index}`,
-    title: `Page ${index}`,
-    category,
-    fixtures: {
-      orders: {
-        $generate: {
-          rows: 40,
-          fields: { _id: "id", name: "name", email: "email", since: "date", orders: { number: [0, 60] }, spent: { money: [50, 9000] }, tier: ["free", "pro", "enterprise"] },
-        },
-      },
-    },
-    tree: [
-      { type: "KpiCard", options: { title: "Revenue", staticValue: 48210 } },
-      { type: "KpiCard", options: { title: "Orders", staticValue: 1204 } },
-      { type: "KpiCard", options: { title: "Customers", staticValue: 311 } },
-      {
-        type: "TableView",
-        options: {
-          caption: "Orders",
-          fetchUrl: "fixture:orders",
-          columns: { name: { type: "string" }, email: { type: "string" }, since: { type: "date" }, orders: { type: "number" }, spent: { type: "number" }, tier: { type: "string" } },
-        },
-      },
-    ],
-  };
-}
-
-/**
- * The Overview's live frames, and how many of them drew every block with none loading.
- *
- * @param {import("playwright-core").Page} page
- */
-function liveFrames(page) {
-  return page.evaluate(() => {
-    const frames = [...document.querySelectorAll("[data-dms-mockup-overview-preview]")];
-    const drawn = frames.filter((frame) => {
-      const states = [...(frame instanceof HTMLIFrameElement ? (frame.contentDocument?.querySelectorAll("[data-dms-block-state]") ?? []) : [])].map((block) =>
-        block.getAttribute("data-dms-block-state"),
-      );
-      return states.length > 0 && !states.includes("loading");
-    });
-    return { live: frames.length, drawn: drawn.length };
-  });
 }
 
 /** The development-only mockup engine, seen from a run's backend. */
@@ -431,52 +334,6 @@ export const journeys = [
         ctx.holds("the camera reached the narrowest zoom", zooms.at(-1)?.zoom === OVERVIEW_MIN_ZOOM, JSON.stringify(zooms.map(({ zoom }) => zoom))),
         ctx.equal("no part of a label is painted past its frame's right edge", past, []),
         ctx.equal(`the hidden-page marker is painted whole on a frame at least ${MARKER_WHOLE_FROM_PX} px wide`, cutMarkers, []),
-      ]);
-    },
-  },
-  {
-    id: "mockup-overview-of-twelve-pages-stays-responsive",
-    title: `the Overview of a ${SHOP_PAGES}-page mockup, in a browser without Web Locks as on a plain HTTP host, draws at most ${LIVE_FRAMES} pages live, each within ${SHOP_DRAW_TIMEOUT_MS / 1000} s, and its window never stalls ${MAX_STALL_MS} ms`,
-    entryPoint: `/mockup?name=${SHOP_MOCKUP}`,
-    backend: "dev",
-    async run(/** @type {Ctx} */ ctx) {
-      const categories = ["sales", "catalog", "customers"].map((id) => ({ id, title: id }));
-      writeSpec(ctx, SHOP_MOCKUP, {
-        title: "Shop",
-        categories,
-        pages: Array.from({ length: SHOP_PAGES }, (_, index) => shopPage(index + 1, categories[index % categories.length].id)),
-      });
-      const compiled = await compiledPages(ctx, SHOP_MOCKUP, SHOP_PAGES);
-      await ctx.verify("the mockup compiled", [ctx.equal("its pages", compiled, SHOP_PAGES)], { critical: true });
-      const admin = await ctx.tab("admin");
-      await admin.signIn("admin");
-      const { page: viewer } = admin;
-      await viewer.context().addInitScript((beat) => {
-        Object.defineProperty(Navigator.prototype, "locks", { get: () => undefined });
-        if (window.top !== window) return;
-        let last = performance.now();
-        let longest = 0;
-        setInterval(() => {
-          const now = performance.now();
-          longest = Math.max(longest, now - last);
-          last = now;
-          document.documentElement.dataset.dmsLongestStallMs = String(Math.round(longest));
-        }, beat);
-      }, HEARTBEAT_MS);
-      await viewer.goto(`/mockup?name=${SHOP_MOCKUP}`);
-      const deadline = Date.now() + SHOP_DRAW_TIMEOUT_MS;
-      let frames = await liveFrames(viewer);
-      let most = frames.live;
-      while (Date.now() < deadline && !(frames.live === LIVE_FRAMES && frames.drawn === LIVE_FRAMES)) {
-        await viewer.waitForTimeout(POLL_MS);
-        frames = await liveFrames(viewer);
-        most = Math.max(most, frames.live);
-      }
-      const longestStall = await viewer.evaluate(() => Number(document.documentElement.dataset.dmsLongestStallMs));
-      await ctx.verify("the Overview stays responsive while its frames boot", [
-        ctx.holds(`no more than ${LIVE_FRAMES} frames are ever live`, most <= LIVE_FRAMES, `${most} live at most`),
-        ctx.equal(`${LIVE_FRAMES} live frames drew their blocks within ${SHOP_DRAW_TIMEOUT_MS / 1000} s`, frames, { live: LIVE_FRAMES, drawn: LIVE_FRAMES }),
-        ctx.holds(`the window never went ${MAX_STALL_MS} ms without its heartbeat`, longestStall < MAX_STALL_MS, `${longestStall} ms longest stall`),
       ]);
     },
   },
