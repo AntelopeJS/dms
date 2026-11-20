@@ -271,8 +271,9 @@ export namespace DefaultDisplays {
 
   export interface StatusPillDisplayOptions {
     /**
-     * Tone of the pill for each value of the column; a value left out is
-     * neutral. A select column's item labels and icons name the pill.
+     * Tone of the pill for each value of the column; a value left out takes
+     * its select item's `textColor`, else `iconColor`, else neutral. A select
+     * column's item labels and icons name the pill.
      * @example { healthy: "success", degraded: "warning", failing: "error" }
      */
     tones?: Record<string, Tone>;

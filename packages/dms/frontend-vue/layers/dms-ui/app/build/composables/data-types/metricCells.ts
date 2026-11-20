@@ -35,6 +35,8 @@ interface SelectItemOption {
   value: unknown;
   label?: string;
   icon?: string;
+  textColor?: string;
+  iconColor?: string;
 }
 
 interface StatusPillOptions {
@@ -49,13 +51,24 @@ interface StatusPillOptions {
   typeOptions?: { items?: SelectItemOption[] };
 }
 
-function statusPillTone(opts: StatusPillOptions, key: string, row: Row) {
-  return readRowTone(row, opts.toneField) ?? opts.tones?.[key] ?? "neutral";
+function statusPillTone(
+  opts: StatusPillOptions,
+  key: string,
+  row: Row,
+  item?: SelectItemOption,
+) {
+  return (
+    readRowTone(row, opts.toneField) ??
+    opts.tones?.[key] ??
+    item?.textColor ??
+    item?.iconColor ??
+    "neutral"
+  );
 }
 
 /**
  * `status_pill`: a tinted pill led by a dot, in the tone the row gives
- * (`toneField`) or the value maps to, with an optional line under it (a
+ * (`toneField`), the value maps to or its select item carries, with an optional line under it (a
  * failure's cause, a composed "retry Oct 10") in the row's tone, else
  * `subTone`, else the pill's.
  */
@@ -71,7 +84,7 @@ function renderStatusPill(
   const item = opts.typeOptions?.items?.find(
     (candidate) => String(candidate.value) === key,
   );
-  const tone = statusPillTone(opts, key, row);
+  const tone = statusPillTone(opts, key, row, item);
   const pill = h(StatusPill, {
     tone,
     label: processI18n(item?.label ?? key),
