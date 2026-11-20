@@ -55,7 +55,7 @@ describe("[unit] interfaces/dms-base/table-view — an action no table view decl
       TENANT,
     );
 
-    expect([...(permissions ?? [])]).to.include(`${PERMISSION_ID}.${DECLARED}`);
+    expect([...permissions]).to.include(`${PERMISSION_ID}.${DECLARED}`);
   });
 
   it("refuses a declared action to a member missing its permission", async () => {
@@ -111,7 +111,7 @@ describe("[unit] interfaces/dms-base/table-view — an action no table view decl
       TENANT,
     );
 
-    expect([...(permissions ?? [])]).to.deep.equal(["*"]);
+    expect([...permissions]).to.deep.equal(["*"]);
   });
 
   it("refuses an undeclared action to a member whose role stores *", async () => {

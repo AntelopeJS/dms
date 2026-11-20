@@ -42,6 +42,9 @@ function userWithId(id: string): User {
 
 const MEMBER = userWithId("tv-gate-member");
 
+const undeclaredRefusal = (actionId: string) =>
+  `Forbidden: action "${actionId}" declares no permission`;
+
 const gateInfo = denyingTenantGate("tv-gate", DENIED_TENANT, SUSPENDED_CODE);
 
 function tableViewController(options: TableViewOptions, permissionId?: string) {
@@ -119,15 +122,16 @@ function registerFlaggedActionCases(): void {
     expect(error.getBody()).to.equal(SUSPENDED_CODE);
   });
 
-  it("leaves an unstamped action of a flagged table view alone for an allowed tenant", async () => {
-    expect(
-      await authorizeAction(
+  it("leaves an unstamped action of a flagged table view to the permission check for an allowed tenant", async () => {
+    const error = await httpRejectionOf(
+      authorizeAction(
         tableViewInstance({ bypassTenantAccessGate: true }),
         LIST_ACTION,
         MEMBER,
         ALLOWED_TENANT,
       ),
-    ).to.equal(undefined);
+    );
+    expect(error.getBody()).to.equal(undeclaredRefusal(LIST_ACTION));
   });
 }
 
@@ -171,15 +175,16 @@ function registerFlaggedAccessCases(): void {
     });
   }
 
-  it("leaves the writes of a flagged table view alone for an allowed tenant", async () => {
-    expect(
-      await authorizeAction(
+  it("leaves the writes of a flagged table view to the permission check for an allowed tenant", async () => {
+    const error = await httpRejectionOf(
+      authorizeAction(
         tableViewInstance({ bypassTenantAccessGate: true }),
         "delete",
         MEMBER,
         ALLOWED_TENANT,
       ),
-    ).to.equal(undefined);
+    );
+    expect(error.getBody()).to.equal(undeclaredRefusal("delete"));
   });
 }
 
@@ -221,15 +226,16 @@ function registerBypassCases(): void {
     expect([...(permissions ?? [])]).to.include(PERMISSION_ID);
   });
 
-  it("leaves an allowed tenant untouched on an unflagged table view", async () => {
-    expect(
-      await authorizeAction(
+  it("leaves an allowed tenant to the permission check on an unflagged table view", async () => {
+    const error = await httpRejectionOf(
+      authorizeAction(
         tableViewInstance({}),
         LIST_ACTION,
         MEMBER,
         ALLOWED_TENANT,
       ),
-    ).to.equal(undefined);
+    );
+    expect(error.getBody()).to.equal(undeclaredRefusal(LIST_ACTION));
   });
 
   it("keeps the bypass when a later registration omits the flag", async () => {
