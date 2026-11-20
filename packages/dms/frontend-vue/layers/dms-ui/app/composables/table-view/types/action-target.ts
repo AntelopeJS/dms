@@ -88,6 +88,11 @@ export type ActionTarget =
       body?: Record<string, JsonValue>;
       /** Field of the JSON response copied to the clipboard on success. */
       copy?: string;
+      /**
+       * Dashboard path opened on success: the tokens of `url`, plus
+       * `{{response.<field>}}`.
+       */
+      redirect?: string;
       successMessage: string;
     }
   | {

@@ -14,14 +14,17 @@ const RECORD_TOKEN = /\{\{\s*record\.([\w.-]+)\s*\}\}/g;
 const NAMES_RECORD = /\{\{\s*record\./;
 const PATH_SEPARATOR = ".";
 
+type DeclaredTarget = NonNullable<PageHeaderButtonDeclared["target"]>;
+
 const targetUrl = (
-  target:
-    | (NonNullable<PageHeaderButtonDeclared["target"]> & { url?: unknown })
-    | undefined,
+  target: (DeclaredTarget & { url?: unknown }) | undefined,
 ): string | undefined => {
   const url = target?.url;
   return isString(url) ? url : undefined;
 };
+
+const targetRedirect = (target: DeclaredTarget | undefined) =>
+  target?.type === "api" ? target.redirect : undefined;
 
 const isRecordNode = (value: unknown): value is Record<string, unknown> =>
   !!value && typeof value === "object";
@@ -77,8 +80,9 @@ export async function readPageRecord(
 /** Whether a header button acts on the page's record. */
 function isRecordBound(button: PageHeaderButtonDeclared): boolean {
   if (button.requiresRecord) return true;
-  const url = targetUrl(button.target);
-  return !!url && NAMES_RECORD.test(url);
+  return [targetUrl(button.target), targetRedirect(button.target)].some(
+    (url) => !!url && NAMES_RECORD.test(url),
+  );
 }
 
 /**
@@ -99,8 +103,8 @@ function fillRecordTokens(
 /**
  * A header button as the page's record leaves it: unchanged when the layout
  * reads no record or the button does not act on it, left out (`undefined`)
- * when the record was not found, its target's `{{record.X}}` filled in
- * otherwise.
+ * when the record was not found, the `{{record.X}}` of its target's `url`
+ * (and of an `api` target's `redirect`) filled in otherwise.
  *
  * @internal
  */
@@ -114,8 +118,9 @@ export function withPageRecord(
   if (!record) return undefined;
   const { target } = button;
   if (!target || !("url" in target) || !isString(target.url)) return button;
-  return {
-    ...button,
-    target: { ...target, url: fillRecordTokens(target.url, record) },
-  };
+  const filled = { ...target, url: fillRecordTokens(target.url, record) };
+  if (filled.type === "api" && filled.redirect !== undefined) {
+    filled.redirect = fillRecordTokens(filled.redirect, record);
+  }
+  return { ...button, target: filled };
 }
