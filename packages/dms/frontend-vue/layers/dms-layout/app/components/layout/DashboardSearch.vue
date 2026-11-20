@@ -9,6 +9,7 @@ import {
 import CommandPaletteAssistantAnswer from "../../build/components/layout/CommandPaletteAssistantAnswer.vue";
 import { ASSISTANT_MODE_KEY } from "../../build/composables/command-palette/assistantGroups";
 import { useCommandPaletteAssistantMode } from "../../build/composables/command-palette/useCommandPaletteAssistantMode";
+import { SHORTCUTS_PAGE_SHORTCUT } from "#dms-ui/app/entries/composables/global/shortcuts";
 
 const { t } = useI18n();
 const appConfig = useDmsAppConfig();
@@ -64,13 +65,8 @@ function close(): void {
 /** The page "?" opens: the keyboard shortcuts, in the user's settings. */
 const SHORTCUTS_PAGE_PATH = "/settings/user/shortcuts";
 
-/**
- * "?" outside a text field opens the shortcuts page. `defineShortcuts` keeps
- * the key typed in an input, and reads "?" with or without Shift held (it is
- * a shifted key on most layouts).
- */
 defineShortcuts({
-  "?": () => {
+  [SHORTCUTS_PAGE_SHORTCUT]: () => {
     void navigateDms(SHORTCUTS_PAGE_PATH);
   },
 });

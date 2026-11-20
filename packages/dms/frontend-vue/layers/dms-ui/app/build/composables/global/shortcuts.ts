@@ -12,9 +12,12 @@ export const GLOBAL_META_K_METADATA: ShortcutMetadata = {
   component: GLOBAL_COMPONENT,
 };
 
+/** The key that opens the keyboard shortcuts page. */
+export const SHORTCUTS_PAGE_SHORTCUT = "?";
+
 /** Opens the keyboard shortcuts page from anywhere outside a text field. */
 export const GLOBAL_QUESTION_MARK_METADATA: ShortcutMetadata = {
-  key: ["?"],
+  key: [SHORTCUTS_PAGE_SHORTCUT],
   descriptionKey: "$dms.shortcuts.global.question_mark.description",
   component: GLOBAL_COMPONENT,
   condition: {
