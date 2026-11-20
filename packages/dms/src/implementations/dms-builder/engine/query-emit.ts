@@ -98,13 +98,7 @@ export function seriesNaming(
   return { measure, label: field?.label ?? field?.name ?? resource, ...bucket };
 }
 
-/**
- * The options a helper is handed: what the series is, and what came before.
- *
- * The preceding period is calculated only when the request carries both of its bounds: a
- * request without a comparison sends neither, and a query over them would bind an Invalid Date,
- * which a SQL database refuses as a malformed timestamp.
- */
+/** The options a helper is handed: what the series is, and what came before. */
 function helperOptions(naming: SeriesNaming, previous?: string): string {
   const parts = [
     `measure: ${JSON.stringify(naming.measure)}`,
@@ -114,11 +108,19 @@ function helperOptions(naming: SeriesNaming, previous?: string): string {
     parts.push(`bucket: ${JSON.stringify(naming.bucket)}`);
   }
   if (previous) {
-    parts.push(
-      `previous: ${COMPARISON_PARAMETERS.join(" && ")} ? await ${previous} : undefined`,
-    );
+    parts.push(previousOption(previous));
   }
   return `, { ${parts.join(", ")} }`;
+}
+
+/**
+ * The option a helper reads the preceding period from. It is calculated only when the
+ * request carries both of its bounds: a request without a comparison sends neither, and a
+ * query over them would bind an Invalid Date, which a SQL database refuses as a malformed
+ * timestamp.
+ */
+function previousOption(previous: string): string {
+  return `previous: ${COMPARISON_PARAMETERS.join(" && ")} ? await ${previous} : undefined`;
 }
 
 function plainResponse(key: string, type: string): ResponseEmission {
@@ -155,7 +157,7 @@ function scalarResponse({
   return {
     returnType: `Promise<${type}>`,
     body: (current, previous) =>
-      `${helper}(await ${current}${previous ? `, { previous: await ${previous} }` : ""})`,
+      `${helper}(await ${current}${previous ? `, { ${previousOption(previous)} }` : ""})`,
     imports: [helper, type],
   };
 }

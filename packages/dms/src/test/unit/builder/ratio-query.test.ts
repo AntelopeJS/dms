@@ -69,7 +69,7 @@ function writesARatio(): void {
 
     expect(page).to.contain("): Promise<KpiCardData> {");
     expect(page).to.contain(
-      "return kpiValueData(await model.utilisation(new Date(String(from)), new Date(String(to))).run(), { previous: await model.utilisation(new Date(String(compareFrom)), new Date(String(compareTo))).run() });",
+      "return kpiValueData(await model.utilisation(new Date(String(from)), new Date(String(to))).run(), { previous: compareFrom && compareTo ? await model.utilisation(new Date(String(compareFrom)), new Date(String(compareTo))).run() : undefined });",
     );
     expect(page).to.contain(
       'import { KpiCardData, kpiValueData } from "@antelopejs/interface-dms/base";',

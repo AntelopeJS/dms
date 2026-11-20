@@ -315,7 +315,7 @@ describe("the route of a scalar query", () => {
 
     expect(text).to.contain("): Promise<KpiCardData> {");
     expect(text).to.contain(
-      "return kpiValueData(await model.utilisation(new Date(String(from)), new Date(String(to))).run(), { previous: await model.utilisation(new Date(String(compareFrom)), new Date(String(compareTo))).run() });",
+      "return kpiValueData(await model.utilisation(new Date(String(from)), new Date(String(to))).run(), { previous: compareFrom && compareTo ? await model.utilisation(new Date(String(compareFrom)), new Date(String(compareTo))).run() : undefined });",
     );
     expect(text).to.contain(
       '@Parameter("compareFrom", "query") compareFrom: string | true | undefined,',

@@ -72,7 +72,10 @@ export interface RatioQuery {
 
 /** What {@link kpiValueData} is told about the figure it presents. */
 export interface KpiValueOptions {
-  /** The same calculation over the preceding period; null when it measured nothing. */
+  /**
+   * The same calculation over the preceding period; null when it measured nothing,
+   * absent when the request asked for no comparison.
+   */
   previous?: number | null;
 }
 
