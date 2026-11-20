@@ -387,6 +387,11 @@ describe("IdentityCell", () => {
     expect(text(cell.querySelector(".truncate"))).toBe("ada@example.com");
     expect(cell.querySelector(".text-xs")).toBeNull();
   });
+
+  it("draws two initials for a one-word name", () => {
+    const cell = mountIdentity({ title: "EduLoop" });
+    expect(text(cell.querySelector("[data-avatar]"))).toBe("ED");
+  });
 });
 
 describe("identity sub-line", () => {

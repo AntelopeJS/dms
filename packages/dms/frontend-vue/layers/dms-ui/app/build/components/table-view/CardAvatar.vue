@@ -2,6 +2,7 @@
 import { computed, watch } from "vue";
 import { isObject, isString } from "#dms-core/app/utils/type-check";
 import { useFileReadUrls } from "../../../composables/useFileReadUrls";
+import { labelInitials } from "../../utils/initials";
 
 /**
  * The leading tile of a built-in card: the row's avatar when its title column
@@ -18,8 +19,6 @@ interface CardAvatarProps {
 
 const props = defineProps<CardAvatarProps>();
 
-const INITIALS_LENGTH = 2;
-
 const { getUrl, resolve } = useFileReadUrls(props.storage);
 
 const avatarKey = computed(() =>
@@ -32,14 +31,7 @@ const src = computed(() => {
   return avatarKey.value ? getUrl(avatarKey.value) : undefined;
 });
 
-const initials = computed(() =>
-  props.label
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, INITIALS_LENGTH)
-    .map((word) => word.charAt(0).toUpperCase())
-    .join(""),
-);
+const initials = computed(() => labelInitials(props.label));
 </script>
 
 <template>
