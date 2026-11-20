@@ -240,6 +240,7 @@ const {
   boxStyle,
   stageStyle,
   toFrame,
+  onCanvasClick,
 } = useMockupPageFrame({
   editing,
   width,
@@ -250,7 +251,6 @@ const {
   realData,
   navigation,
   isPreviewing,
-  isPending: editor.isPending,
   openPage,
   onSectionEdit: (edit) => sections.write(edit),
   onEscape: () =>
@@ -320,6 +320,7 @@ const { showsLeft, showsInspector, gridClass } = useMockupGridLayout({
           tabindex="-1"
           class="bg-muted absolute inset-0 overflow-auto p-6 pe-20 outline-none"
           data-dms-mockup-canvas
+          @click="onCanvasClick"
         >
           <div
             v-if="!pages.length"
