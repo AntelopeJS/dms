@@ -1,5 +1,5 @@
 import { assert, expect } from "chai";
-import { applyConfig } from "../../../../config";
+import { applyConfig, getHtmlRenderConfig } from "../../../../config";
 import { GenerateHtml } from "../../../../implementations/dms-html-render";
 import type { HtmlTemplateRef } from "@antelopejs/interface-dms/html-render";
 
@@ -69,6 +69,29 @@ describe("[unit] implementations/dms-html-render — GenerateHtml", () => {
       );
     } finally {
       answer = previous;
+    }
+  });
+
+  it("fails a render that outlasts htmlRender.renderTimeout", async () => {
+    const previousFetch = globalThis.fetch;
+    const previousTimeout = getHtmlRenderConfig().renderTimeout;
+    getHtmlRenderConfig().renderTimeout = 20;
+    globalThis.fetch = (_input, init) =>
+      new Promise<Response>((_resolve, reject) => {
+        init?.signal?.addEventListener("abort", () => {
+          reject(init.signal?.reason);
+        });
+      });
+    try {
+      let failure: unknown;
+      await GenerateHtml(TEMPLATE, { name: "Ada" }).catch((error: unknown) => {
+        failure = error;
+      });
+      assert.instanceOf(failure, Error);
+      expect(failure.name).to.equal("TimeoutError");
+    } finally {
+      globalThis.fetch = previousFetch;
+      getHtmlRenderConfig().renderTimeout = previousTimeout;
     }
   });
 });
