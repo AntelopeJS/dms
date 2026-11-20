@@ -5,7 +5,7 @@
  * the same way: an `api` or `exportJob` target as a `page` one, a
  * confirmation's `from`, a block's links, a form's `backTo`.
  */
-import { createApp, defineComponent, h, reactive, type App } from "vue";
+import { createApp, defineComponent, h, inject, reactive, type App } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fetchClientMock } from "./fixtures/unusedApi";
 import type { useExportJob } from "../layers/dms-ui/app/composables/useExportJob";
@@ -75,9 +75,11 @@ beforeEach(() => {
   vi.stubGlobal("interpolateUrl", interpolateUrl);
   vi.stubGlobal("HttpMethod", HttpMethod);
   vi.stubGlobal("useDmsRoute", () => route);
-  vi.stubGlobal("useSiteLayout", () => ({
-    findMatchingRoute: () => ({ params: { id: "s1" } }),
-  }));
+  vi.stubGlobal("findPageRoute", () => ({ params: { id: "s1" } }));
+  vi.stubGlobal("useSiteLayout", () => {
+    inject("toast-max", undefined);
+    return { findMatchingRoute: () => ({ params: { id: "s1" } }) };
+  });
 });
 
 afterEach(() => {
@@ -146,6 +148,12 @@ describe("page tokens in links and requested routes", () => {
     expect(buttonLinkProps("/stores/{{params.id}}/orders")).toMatchObject({
       to: "/stores/s1/orders",
     });
+  });
+
+  it("fills a link from a click handler, outside any setup, without a Vue warning", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    expect(pageLink("/stores/{{params.id}}")).toBe("/stores/s1");
+    expect(warn).not.toHaveBeenCalled();
   });
 
   it("does not request a route while one of its tokens has no value", () => {

@@ -40,9 +40,7 @@ beforeEach(() => {
     path: "/modules/marketing/overview",
     query: PAGE_QUERY,
   }));
-  vi.stubGlobal("useSiteLayout", () => ({
-    findMatchingRoute: () => ({ params: { id: "o1" } }),
-  }));
+  vi.stubGlobal("findPageRoute", () => ({ params: { id: "o1" } }));
 });
 
 afterEach(() => {
