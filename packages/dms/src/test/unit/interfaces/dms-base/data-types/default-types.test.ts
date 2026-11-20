@@ -8,6 +8,7 @@ import {
 } from "@antelopejs/interface-dms/base/data-types";
 import { DefaultDataTypes } from "@antelopejs/interface-dms/base/data-types/default-types";
 import { DefaultDataCompareTypes } from "@antelopejs/interface-dms/base/data-types/compare-types";
+import { TableViewRoutes } from "@antelopejs/interface-dms/base/table-view/routes";
 
 const DATA_TYPE_IDS = {
   number: "number",
@@ -396,6 +397,41 @@ describe("[unit] interfaces/dms-base/data-types/default-types", () => {
 
       expect(() => rel.decorateField(Target.prototype, "site", {})).to.throw(
         /filterBy\.field "region" is not filterable on SiteController/,
+      );
+    });
+  });
+
+  describe("RelationType filter", () => {
+    class SiteController extends Controller("/relation-fixed-filter-site") {
+      declare archived: boolean;
+      declare region: string;
+    }
+    const siteMeta = GetMetadata(SiteController, DataAPIMeta);
+    siteMeta.filters.archived = () => true;
+    siteMeta.endpoints.select = TableViewRoutes.Select;
+    const ACTIVE = { field: "archived", mode: "ne", value: "true" } as const;
+
+    it("hands its fixed filter to the picker it renders", () => {
+      const rel = new DefaultDataTypes.RelationType({
+        dataApiController: SiteController,
+        filter: ACTIVE,
+      });
+
+      expect(rel.describedInputComponent().options).to.deep.include({
+        filter: ACTIVE,
+      });
+    });
+
+    it("refuses a filter field the search route would drop", () => {
+      class Target {}
+      const rel = new DefaultDataTypes.RelationType({
+        dataApiController: SiteController,
+        filter: { field: "region", mode: "is", value: "north" },
+        filterOnly: true,
+      });
+
+      expect(() => rel.decorateField(Target.prototype, "site", {})).to.throw(
+        /filter\.field "region" is not filterable on SiteController/,
       );
     });
   });

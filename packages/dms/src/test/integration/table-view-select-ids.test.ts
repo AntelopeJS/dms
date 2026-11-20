@@ -60,4 +60,16 @@ describe("[integration] table view select by ids", () => {
   it("answers no row for an unknown id", async () => {
     expect(await select("ids=missing")).to.deep.equal([]);
   });
+
+  it("serves only the rows a picker's fixed filter keeps, and still labels the others", async () => {
+    const archived = await client.put(
+      `${LOCATION}/archive?ids=${idOf("Bravo")}`,
+    );
+    expect(archived.status, JSON.stringify(archived.data)).to.equal(HTTP_OK);
+
+    const options = await select("filter_isArchived=ne:true&limit=50");
+    expect(titlesOf(options)).to.deep.equal(["Alpha", "Charlie"]);
+    const labels = await select(`ids=${idOf("Bravo")}`);
+    expect(titlesOf(labels)).to.deep.equal(["Bravo"]);
+  });
 });

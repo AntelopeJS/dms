@@ -18,6 +18,13 @@ export interface RelationFilterBy<T extends ControllerClass> {
   from: string;
 }
 
+/** {@link FormComponents.RelationFilter}, `field` typed on the related row. */
+export interface RelationFilter<T extends ControllerClass> {
+  field: keyof InstanceType<T> & string;
+  mode: string;
+  value?: string;
+}
+
 function relationCompareModes(multiple?: boolean) {
   return multiple
     ? [
@@ -99,6 +106,14 @@ export class RelationType<T extends ControllerClass> extends DataType {
        * controller: declaring it otherwise throws at registration.
        */
       filterBy?: RelationFilterBy<T>;
+      /**
+       * Lists only the related rows meeting a fixed condition, e.g.
+       * `{ field: "archived", mode: "ne", value: "true" }` for the active
+       * ones. A record already holding a row outside it keeps its label.
+       * `field` must be filterable on the related controller: declaring it
+       * otherwise throws at registration.
+       */
+      filter?: RelationFilter<T>;
     },
   ) {
     super(
@@ -133,6 +148,7 @@ export class RelationType<T extends ControllerClass> extends DataType {
       searchUrl: selectUrl(controller),
       keyMapping: this.options.keyMapping,
       filterBy: this.options.filterBy,
+      filter: this.options.filter,
       addForm: addOptions?.addForm,
       addPermissionIds: addOptions?.addPermissionIds,
       addFormTexts: this.options.addForm,
@@ -143,17 +159,21 @@ export class RelationType<T extends ControllerClass> extends DataType {
     return this.options.multiple ? z.array(z.string()) : z.string();
   }
 
-  private assertFilterByFilterable(key: PropertyKey): void {
-    const field = this.options.filterBy?.field;
-    if (!field) return;
+  private assertFiltersFilterable(key: PropertyKey): void {
     const { filters } = GetMetadata(
       this.options.dataApiController,
       DataAPIMeta,
     );
-    if (filters[field]) return;
-    throw new Error(
-      `Relation "${String(key)}": filterBy.field "${field}" is not filterable on ${this.options.dataApiController.name}; declare it filterable: true there.`,
-    );
+    const fields = {
+      filterBy: this.options.filterBy?.field,
+      filter: this.options.filter?.field,
+    };
+    for (const [option, field] of Object.entries(fields)) {
+      if (!field || filters[field]) continue;
+      throw new Error(
+        `Relation "${String(key)}": ${option}.field "${field}" is not filterable on ${this.options.dataApiController.name}; declare it filterable: true there.`,
+      );
+    }
   }
 
   public decorateField(
@@ -161,7 +181,7 @@ export class RelationType<T extends ControllerClass> extends DataType {
     key: PropertyKey,
     descriptor?: PropertyDescriptor,
   ): void {
-    this.assertFilterByFilterable(key);
+    this.assertFiltersFilterable(key);
     if (this.options.filterOnly) {
       return;
     }
