@@ -2,6 +2,7 @@ import { GetModel } from "@antelopejs/interface-database-decorators";
 import { UserModel } from "@antelopejs/interface-dms/auth/db";
 import { assert, expect } from "chai";
 import { z } from "zod";
+import { captureWarnings } from "../helpers/logging";
 import { announceSetupToken, SetupTokenModel } from "../../db";
 import { resetDatabase } from "../helpers/db";
 import { createClient } from "../helpers/http";
@@ -146,9 +147,9 @@ describe("[integration] setup token at start", () => {
   });
 
   it("generates one token and gives every later start the same one", async () => {
-    await announceSetupToken();
+    await announceSetupToken(true);
     const first = await tokens.ensure();
-    await announceSetupToken();
+    await announceSetupToken(true);
 
     expect(first).to.have.length.greaterThan(32);
     expect(await tokens.ensure()).to.equal(first);
@@ -165,14 +166,14 @@ describe("[integration] setup token at start", () => {
 
   it("stores the configured token", async () => {
     process.env.DMS_SETUP_TOKEN = ENV_SETUP_TOKEN;
-    await announceSetupToken();
+    await announceSetupToken(true);
 
     expect(await tokens.claim(ENV_SETUP_TOKEN)).to.equal(ENV_SETUP_TOKEN);
   });
 
   it("refuses to start with a configured token too short to protect the instance", async () => {
     process.env.DMS_SETUP_TOKEN = "short";
-    const failure = await announceSetupToken().then(
+    const failure = await announceSetupToken(true).then(
       () => undefined,
       (error: unknown) => error,
     );
@@ -193,8 +194,32 @@ describe("[integration] setup token at start", () => {
       password: null,
       owner: true,
     });
-    await announceSetupToken();
+    await announceSetupToken(true);
 
     expect(await tokens.claim(ENV_SETUP_TOKEN)).to.equal(undefined);
+  });
+
+  it("logs the generated token in development", async () => {
+    const warnings = captureWarnings();
+    try {
+      await announceSetupToken(true);
+    } finally {
+      warnings.restore();
+    }
+
+    expect(warnings.messages.join("\n")).to.contain(await tokens.ensure());
+  });
+
+  it("keeps the generated token out of the log in production", async () => {
+    const warnings = captureWarnings();
+    try {
+      await announceSetupToken(false);
+    } finally {
+      warnings.restore();
+    }
+
+    const logged = warnings.messages.join("\n");
+    expect(logged).to.contain("/onboarding");
+    expect(logged).to.not.contain(await tokens.ensure());
   });
 });
