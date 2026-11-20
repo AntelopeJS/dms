@@ -23,6 +23,7 @@ import MockupEditOverlay from "./MockupEditOverlay.vue";
 import MockupEditPanel from "./MockupEditPanel.vue";
 import MockupHistoryPanel from "./MockupHistoryPanel.vue";
 import MockupInspector from "./MockupInspector.vue";
+import MockupModules from "./MockupModules.vue";
 import MockupOverview from "./MockupOverview.vue";
 import MockupPinLayer from "./MockupPinLayer.vue";
 import MockupPlacementChip from "./MockupPlacementChip.vue";
@@ -91,6 +92,7 @@ const {
   title,
   pages,
   categories,
+  modules,
   issues,
   requestedPage,
   record,
@@ -268,6 +270,7 @@ const { showsLeft, showsInspector, gridClass } = useMockupGridLayout({
       :has-request-failed="hasRequestFailed"
       :history="history"
     />
+    <MockupModules :modules="modules" />
     <div class="grid min-h-0 flex-1" :class="gridClass">
       <MockupEditPanel
         v-if="showsLeft && spec"
