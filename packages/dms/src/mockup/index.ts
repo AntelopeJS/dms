@@ -5,6 +5,13 @@ import {
 import type { PageReader } from "./built-sync";
 import { defaultMockupsDir } from "./files";
 import { MOCKUP_API } from "./fixtures";
+import {
+  isJsonObject,
+  type Json,
+  type JsonObject,
+  type MockupIssue,
+  type MockupName,
+} from "./model";
 import { registerMockupPage } from "./page";
 import {
   closeMockupStreams,
@@ -56,6 +63,23 @@ export function startMockupEngine(
 
 export function mockupEngineRunning(): boolean {
   return engine !== undefined;
+}
+
+/**
+ * The issues that refuse writing `next` over the `current` spec of `name`
+ * because a viewer of the running engine holds a block it changes or removes,
+ * as `PUT /spec` refuses it: each at the block's path, naming the holder.
+ * None while the engine does not run. Ask it inside the spec lock of `name`,
+ * for a write made outside the engine's routes.
+ */
+export function mockupLockRefusals(
+  name: MockupName,
+  current: JsonObject,
+  next: Json,
+): MockupIssue[] {
+  return engine && isJsonObject(next)
+    ? engine.presence.refusals(name, undefined, current, next)
+    : [];
 }
 
 /**

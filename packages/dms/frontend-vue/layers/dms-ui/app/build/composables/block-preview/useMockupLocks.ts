@@ -46,6 +46,8 @@ interface MockupLocksOptions {
   isPending: Readonly<Ref<boolean>>;
   /** The spec the editor shows: it is the file's once no edit is pending, which is when the selection is read in it. */
   spec: Readonly<Ref<MockupSpecDocument | undefined>>;
+  /** The digest of the file the spec shown was read from, once no edit is pending: a take names it, so a write that landed since cannot move its pointer to another block. */
+  digest: Readonly<Ref<string | undefined>>;
   /**
    * Set to the id of the block this session holds, which the backend answers
    * when it grants the lock, and to undefined while it holds none. This is the
@@ -71,6 +73,26 @@ function ignoreRejection(task: Promise<void>): void {
 /** The id of the block a granted lock names; undefined when the answer names none. */
 function lockedId(answer: JsonValue | undefined): string | undefined {
   return isObjectValue(answer) && isString(answer.id) ? answer.id : undefined;
+}
+
+/** Asks for the lock on the block at `pointer` in the file of the digest the editor holds; the id the backend answers, undefined when it refuses. */
+async function requestLock(
+  options: MockupLocksOptions,
+  endpoint: string,
+  pointer: string,
+): Promise<string | undefined> {
+  return lockedId(
+    await options
+      .authFetch<JsonValue>(endpoint, {
+        method: "PUT",
+        body: {
+          viewer: options.viewer,
+          path: pointer,
+          digest: options.digest.value,
+        },
+      })
+      .catch(() => undefined),
+  );
 }
 
 /** Where the block `id` is in `spec` and what it holds, as one text; undefined when no block or several carry the id. */
@@ -114,7 +136,10 @@ function isAt(
  * written. Every request runs one after the other. A renewal names no block,
  * as the backend knows where it moved the lock to, and the block is known by
  * the id the backend answered when it granted the lock: a block that moves
- * stays the held one. It is taken again when the stream reopens, the backend
+ * stays the held one. A take names the digest of the file it read the block's
+ * pointer in, and the backend refuses it once the file changed: it is taken
+ * again when the editor has read the new file, at the pointer the selection
+ * then has. It is taken again when the stream reopens, the backend
  * having freed it with the stream, or when a renewal finds it gone, and freed
  * when the editor closes. A block someone else holds is never locked: it shows
  * as the `blocker` of the selection.
@@ -141,14 +166,7 @@ export function useMockupLocks(options: MockupLocksOptions): MockupLocks {
 
   async function take(pointer: string): Promise<void> {
     lose();
-    const id = lockedId(
-      await options
-        .authFetch<JsonValue>(endpoint, {
-          method: "PUT",
-          body: { viewer: options.viewer, path: pointer },
-        })
-        .catch(() => undefined),
-    );
+    const id = await requestLock(options, endpoint, pointer);
     if (id === undefined) return;
     options.held.value = id;
     takenAt = pointer;
@@ -223,6 +241,7 @@ export function useMockupLocks(options: MockupLocksOptions): MockupLocks {
       options.isPending,
       options.isConnected,
       () => blocker.value !== undefined,
+      options.digest,
     ],
     sync,
   );

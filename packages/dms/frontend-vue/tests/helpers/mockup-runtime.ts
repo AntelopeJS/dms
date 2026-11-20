@@ -362,8 +362,12 @@ export function stubMockupRuntime(options: RuntimeOptions = {}): MockupRuntime {
         writtenBy: file.writtenBy,
       };
     }
-    if (url.startsWith(LOCKS_URL))
-      return lockTable.answer(url, init, file.spec);
+    if (url.startsWith(LOCKS_URL)) {
+      return lockTable.answer(url, init, {
+        spec: file.spec,
+        digest: `d${file.version}`,
+      });
+    }
     return answerAnnotations(notes, url, init);
   });
   for (const [name, value] of Object.entries({

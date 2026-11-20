@@ -129,7 +129,9 @@ describe("the lock of the selected block", () => {
     const id = new URL(viewer.stream.url).searchParams.get("viewer");
 
     await pick("block-0");
-    expect(taken()).toEqual([{ method: "PUT", viewer: id, path: FIRST }]);
+    expect(taken()).toEqual([
+      expect.objectContaining({ method: "PUT", viewer: id, path: FIRST }),
+    ]);
 
     await press("Escape");
     expect(freed()).toEqual([{ method: "DELETE", viewer: id }]);
@@ -202,6 +204,45 @@ describe("the lock of the selected block", () => {
       FIRST,
     ]);
     expect(runtime.holding.size).toBe(1);
+  });
+});
+
+describe("the lock take names the spec the editor shows", () => {
+  it("carries the digest of the file the editor last read or wrote, never the first one it read (fails when the take sends no digest, or one that is never updated)", async () => {
+    await pick("block-0");
+    expect(taken().map((request) => request.digest)).toEqual(["d1"]);
+
+    await type("Turnover");
+    await settled();
+    await pick("block-1");
+
+    expect(taken().map((request) => request.digest)).toEqual(["d1", "d2"]);
+  });
+
+  it("is taken again once the refresh arrives, on the block the selection followed, when a write that landed first refused the take as stale (fails when the stale take is never retried, or is retried before the selection followed its block)", async () => {
+    const theirs = spec();
+    theirs.pages[0]?.tree.unshift({
+      id: "b-new00001",
+      type: "KpiCard",
+      options: { title: "New" },
+    });
+    runtime.file.spec = theirs;
+    runtime.file.version += 1;
+    runtime.file.writtenBy = { name: "Bea" };
+
+    await pick("block-0");
+    expect(runtime.holding.size).toBe(0);
+
+    await viewer.publish(
+      "state",
+      mockupState({ revision: 100 + runtime.file.version, pages: STATE.pages }),
+    );
+
+    expect(taken().map(({ path, digest }) => ({ path, digest }))).toEqual([
+      { path: FIRST, digest: "d1" },
+      { path: "/pages/0/tree/1", digest: "d2" },
+    ]);
+    expect([...runtime.holding.values()]).toEqual(["revenue"]);
   });
 });
 
@@ -314,6 +355,99 @@ describe("the lock after the last edit of its holder", () => {
       "PUT",
       "DELETE",
     ]);
+  });
+});
+
+describe("deselecting the block, which is how its holder lets go of the lock", () => {
+  const selected = () => find("[data-dms-mockup-inspector-fields]") !== null;
+
+  function escapeIn(target: HTMLElement): Promise<void> {
+    target.dispatchEvent(
+      new KeyboardEvent("keydown", {
+        key: "Escape",
+        bubbles: true,
+        cancelable: true,
+      }),
+    );
+    return flush();
+  }
+
+  it("follows an Escape pressed in an inspector field, once the typing is written (fails when a key pressed in a field is left to the field, or when the typing is dropped)", async () => {
+    await pick("block-0");
+    await type("Turnover");
+    const field = titleField();
+    if (!field) throw new Error("no title field");
+
+    await escapeIn(field);
+    expect(selected()).toBe(false);
+    expect(freed()).toHaveLength(0);
+
+    await settled();
+    expect(freed()).toHaveLength(1);
+    expect(runtime.file.spec.pages[0]?.tree[0]?.options?.title).toBe(
+      "Turnover",
+    );
+  });
+
+  it("is not done by an Escape pressed in a field outside the inspector (fails when every field hands its Escape to the viewer)", async () => {
+    await pick("block-0");
+    const outside = document.createElement("input");
+    viewer.host.append(outside);
+
+    await escapeIn(outside);
+
+    expect(selected()).toBe(true);
+    expect(freed()).toHaveLength(0);
+  });
+
+  it("is not done by an Escape the field already took (fails when an Escape that closed a layer of the field also deselects)", async () => {
+    await pick("block-0");
+    const field = titleField();
+    if (!field) throw new Error("no title field");
+    field.addEventListener("keydown", (event) => event.preventDefault());
+
+    await escapeIn(field);
+
+    expect(selected()).toBe(true);
+  });
+
+  it("follows a click on the empty canvas around the page, right after an edit still being written, and frees the lock once it is (fails when the canvas takes no click, or drops it while an edit is pending)", async () => {
+    await pick("block-0");
+    await type("Turnover");
+
+    await click("[data-dms-mockup-canvas]");
+    expect(selected()).toBe(false);
+    expect(freed()).toHaveLength(0);
+
+    await settled();
+    expect(freed()).toHaveLength(1);
+    expect(runtime.file.spec.pages[0]?.tree[0]?.options?.title).toBe(
+      "Turnover",
+    );
+  });
+
+  it("is not done by a click on the canvas toolbar, which acts on the block (fails when the canvas takes every click inside it, the toolbar's included)", async () => {
+    await pick("block-0");
+
+    await click("[data-dms-mockup-move-down]");
+
+    expect(selected()).toBe(true);
+    expect(freed()).toHaveLength(0);
+  });
+
+  it("follows a click on the empty page, right after an edit still being written, and frees the lock once it is (fails when a click is dropped while an edit is pending)", async () => {
+    await pick("block-0");
+    await type("Turnover");
+
+    await viewer.say({ type: "select-page" });
+    expect(selected()).toBe(false);
+    expect(freed()).toHaveLength(0);
+
+    await settled();
+    expect(freed()).toHaveLength(1);
+    expect(runtime.file.spec.pages[0]?.tree[0]?.options?.title).toBe(
+      "Turnover",
+    );
   });
 });
 

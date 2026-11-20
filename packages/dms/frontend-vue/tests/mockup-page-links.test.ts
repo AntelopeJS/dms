@@ -198,6 +198,7 @@ describe("links in the preview frame", () => {
     await nextTick();
     click(anchor);
     expect(sentOf("navigate")).toHaveLength(1);
+    expect(sentOf("select-page")).toHaveLength(1);
     click(anchor, { ctrlKey: true });
     click(anchor, { metaKey: true });
     expect(sentOf("navigate")).toEqual([
@@ -205,7 +206,7 @@ describe("links in the preview frame", () => {
       { channel: PREVIEW_CHANNEL, type: "navigate", id: "orders" },
       { channel: PREVIEW_CHANNEL, type: "navigate", id: "orders" },
     ]);
-    expect(sentOf("select-page")).toEqual([]);
+    expect(sentOf("select-page")).toHaveLength(1);
   });
 
   it("hands Escape to the viewer unless a menu or dialog of the page is open, which takes it", () => {

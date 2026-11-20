@@ -185,6 +185,22 @@ export function isFieldKey(target: EventTarget | null): boolean {
   );
 }
 
+/** Marks the inspector, whose fields leave an Escape they did not take to the viewer. */
+const INSPECTOR = "[data-dms-mockup-inspector]";
+
+/**
+ * Whether `event` is an Escape pressed in a field of the inspector that the
+ * field did not take itself: the viewer steps back from the selection on it.
+ */
+export function isInspectorEscape(event: KeyboardEvent): boolean {
+  return (
+    event.key === "Escape" &&
+    !event.defaultPrevented &&
+    event.target instanceof HTMLElement &&
+    event.target.closest(INSPECTOR) !== null
+  );
+}
+
 /** Marks an open menu, popover, tooltip or dialog, which takes Escape itself. */
 const DISMISSABLE_LAYER = "[data-dismissable-layer]";
 

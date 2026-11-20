@@ -48,6 +48,8 @@ const presenceSchema = z
   })
   .strict();
 
+const specSchema = z.object({ digest: z.string() });
+
 export const lockAnswerSchema = z.object({
   ok: z.literal(true),
   id: z.string(),
@@ -62,8 +64,23 @@ export function heldPaths(stream: FollowedStream): string[] {
   return lastPresence(stream)?.locks.map((lock) => lock.path) ?? [];
 }
 
-export const lock = (client: AxiosInstance, viewer: string, path: string) =>
-  client.put(LOCKS, { viewer, path });
+/** Takes the lock as a client that has just read the spec does. */
+export async function lock(
+  client: AxiosInstance,
+  viewer: string,
+  path: string,
+) {
+  const { digest } = specSchema.parse((await client.get(SPEC_URL)).data);
+  return client.put(LOCKS, { viewer, path, digest });
+}
+
+/** Takes the lock as a client that read the spec at `digest` does. */
+export const lockAt = (
+  client: AxiosInstance,
+  viewer: string,
+  path: string,
+  digest: string | undefined,
+) => client.put(LOCKS, { viewer, path, digest });
 
 export const renew = (client: AxiosInstance, viewer: string) =>
   client.put(LOCKS, { viewer });

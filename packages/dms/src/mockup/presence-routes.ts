@@ -23,7 +23,12 @@ import {
   type ViewerId,
   viewerIdSchema,
 } from "./presence";
-import { readSpecText, withSpecLock } from "./source";
+import {
+  digestOf,
+  readSpecText,
+  type SpecDigest,
+  withSpecLock,
+} from "./source";
 
 const HTTP_BAD_REQUEST = 400;
 const HTTP_FORBIDDEN = 403;
@@ -40,8 +45,13 @@ const lockBodySchema = z
       .max(MAX_POINTER)
       .regex(/^(?:\/[^/]*)*$/)
       .optional(),
+    /** The digest of the spec the viewer read the block's pointer in: a take needs it, so that a write landed meanwhile cannot move the pointer to another block. */
+    digest: z.string().optional(),
   })
-  .strict();
+  .strict()
+  .refine((body) => body.path === undefined || body.digest !== undefined, {
+    message: "a take sends the digest of the spec it read",
+  });
 
 /** What taking or renewing a lock answers when it worked. */
 export interface LockAnswer {
@@ -71,6 +81,7 @@ type Refusal =
   | Exclude<Renewal, { kind: "renewed" }>
   | { kind: "no_mockup" }
   | { kind: "ambiguous" }
+  | { kind: "stale"; digest: SpecDigest }
   | { kind: "spec_invalid"; errors: Array<{ path: string; message: string }> };
 
 function refused(refusal: Refusal): HTTPResult {
@@ -87,6 +98,12 @@ function refused(refusal: Refusal): HTTPResult {
       return new HTTPResult(HTTP_CONFLICT, {
         message: `${refusal.by} is editing this block`,
         holder: refusal.by,
+      });
+    case "stale":
+      return new HTTPResult(HTTP_CONFLICT, {
+        message:
+          "spec.json changed since it was read, so the pointer may name another block: read it again and retake the lock",
+        digest: refusal.digest,
       });
     case "ambiguous":
       return new HTTPResult(HTTP_CONFLICT, {
@@ -119,9 +136,11 @@ export function registerPresenceRoutes(
      * after it, or renews the one it holds there. The node gets an id when it
      * has none, as a note pinned on it would give it, and the answer names the
      * id. Answers 409 with the holder's name while another viewer holds that
-     * node, an ancestor of it or a descendant. With no `path`, it pushes back
-     * the expiry of the lock `viewer` holds wherever its block is now, and
-     * answers 404 when it holds none.
+     * node, an ancestor of it or a descendant, and while the spec has changed
+     * since the `digest` the viewer sent (a take names one): the pointer may
+     * then name another block, so nothing is granted nor stamped. With no
+     * `path`, it pushes back the expiry of the lock `viewer` holds wherever
+     * its block is now, and answers 404 when it holds none.
      */
     @Put(":name/locks")
     async acquire(
@@ -137,7 +156,7 @@ export function registerPresenceRoutes(
           message: parsed.error.message,
         });
       }
-      const { viewer, path } = parsed.data;
+      const { viewer, path, digest } = parsed.data;
       if (!board.viewerOf(name, viewer, owner.userId)) throw notOnMockup();
       if (path === undefined) {
         const renewal = board.renew(name, { id: viewer, userId: owner.userId });
@@ -150,6 +169,8 @@ export function registerPresenceRoutes(
         async (_write, stamp): Promise<Refusal | LockAnswer> => {
           const text = await readSpecText(mockupsDir, name);
           if (text === undefined) return { kind: "no_mockup" };
+          const current = digestOf(text);
+          if (current !== digest) return { kind: "stale", digest: current };
           const read = parseSpec(text);
           if (!read.ok) return { kind: "spec_invalid", errors: read.issues };
           const anchored = anchorPointer(read.spec, path);

@@ -1,6 +1,7 @@
 import { computed, onBeforeUnmount, onMounted, type Ref } from "vue";
 import {
   isFieldKey,
+  isInspectorEscape,
   matchShortcuts,
   type MockupShortcutId,
   type MockupView,
@@ -44,8 +45,9 @@ function always(act: () => void): () => boolean {
 
 /**
  * The viewer's keyboard: the shortcuts table's actions, each of the view the
- * canvas shows, fired by the window's key presses outside a field, and by an
- * Escape the preview frame reports. Escape steps back from the innermost
+ * canvas shows, fired by the window's key presses outside a field, by an
+ * Escape a field of the inspector left, and by an Escape the preview frame
+ * reports. Escape steps back from the innermost
  * thing going on: an armed block, the comment tool, a pin, the selection.
  */
 export function useMockupViewerShortcuts(
@@ -119,8 +121,14 @@ export function useMockupViewerShortcuts(
     return matchShortcuts(event, view.value).some((id) => actions[id]());
   }
 
+  /** Whether the viewer takes a key: one pressed outside a field, or an Escape a field of the inspector left, with a block selected to step back from. */
+  function takesKey(event: KeyboardEvent): boolean {
+    if (!isFieldKey(event.target)) return true;
+    return editing.selection.value !== undefined && isInspectorEscape(event);
+  }
+
   function onKeydown(event: KeyboardEvent): void {
-    if (isFieldKey(event.target)) return;
+    if (!takesKey(event)) return;
     if (run(event)) event.preventDefault();
   }
 
