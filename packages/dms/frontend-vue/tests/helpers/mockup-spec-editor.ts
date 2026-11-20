@@ -24,7 +24,12 @@ export async function settle(ms = 0): Promise<void> {
   await vi.advanceTimersByTimeAsync(ms);
 }
 
-export async function mountEditor(): Promise<void> {
+/** What a test sets on the editor besides the file it reads: the viewer it writes as, and the block it holds. */
+type EditorOptions = Partial<
+  Pick<Parameters<typeof useMockupSpec>[0], "viewer" | "held">
+>;
+
+export async function mountEditor(extra: EditorOptions = {}): Promise<void> {
   const host = document.createElement("div");
   app = createApp(
     defineComponent({
@@ -34,6 +39,7 @@ export async function mountEditor(): Promise<void> {
           authFetch: fetchClient(file.fetch),
           state,
           onNotice: (notice) => notices.push(notice),
+          ...extra,
         });
         return () => null;
       },

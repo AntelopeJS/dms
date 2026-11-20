@@ -32,15 +32,25 @@ export class FakeSpecFile {
   isInvalid = false;
   /** Holds the answer of the next write that lands until it settles. */
   answerGate: Promise<void> | undefined;
-  readonly writes: Array<{ spec: MockupSpecDocument; digest?: string }> = [];
+  /** The viewer of an editor that wrote this very file, as the read answers it. */
+  writtenBy: { viewer: string; name: string } | undefined;
+  readonly writes: Array<{
+    spec: MockupSpecDocument;
+    digest?: string;
+    viewer?: string;
+  }> = [];
 
   get digest(): string {
     return `d${this.version}`;
   }
 
-  writeFromOutside(spec: MockupSpecDocument): void {
+  writeFromOutside(
+    spec: MockupSpecDocument,
+    writtenBy?: { viewer: string; name: string },
+  ): void {
     this.spec = spec;
     this.version += 1;
+    this.writtenBy = writtenBy;
   }
 
   readonly fetch = vi.fn(
@@ -48,7 +58,7 @@ export class FakeSpecFile {
       url: string,
       init?: {
         method?: string;
-        body?: { spec: MockupSpecDocument; digest?: string };
+        body?: { spec: MockupSpecDocument; digest?: string; viewer?: string };
       },
     ) => {
       if (url !== ENDPOINT) throw new Error(`unexpected ${url}`);
@@ -60,7 +70,7 @@ export class FakeSpecFile {
         const spec = this.isInvalid
           ? { version: 1, pages: "broken" }
           : structuredClone(this.spec);
-        return { spec, digest: this.digest };
+        return { spec, digest: this.digest, writtenBy: this.writtenBy };
       }
       if (this.failures > 0) {
         this.failures -= 1;
@@ -73,6 +83,7 @@ export class FakeSpecFile {
       if (this.refuse) return { ok: false, errors: [this.refuse] };
       this.spec = structuredClone(init.body.spec);
       this.version += 1;
+      this.writtenBy = undefined;
       const gate = this.answerGate;
       this.answerGate = undefined;
       if (gate) await gate;
