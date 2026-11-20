@@ -236,9 +236,9 @@ function checksRolesAndListsFailures(): void {
     ]);
     await members.table
       .insert({
-        _id: `${tenant}-without-roles`,
-        userId: "without-roles",
-        isTenantOwner: false,
+        _id: `${tenant}-unflagged`,
+        userId: "unflagged",
+        roleIds: ["editor"],
         joinedAt: new Date("2026-06-01T00:00:00Z"),
         invitedBy: null,
       })
@@ -259,6 +259,9 @@ function checksRolesAndListsFailures(): void {
     expect(
       await pickMember(members, "auditor", new Set(["auditor-only"])),
     ).to.equal(undefined);
+    expect((await pickMember(members, "editor", owners))?.userId).to.equal(
+      "unflagged",
+    );
   });
 
   it("lists one line per failed check and none for the checks that passed", () => {
