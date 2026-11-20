@@ -366,37 +366,53 @@ function referencedFile(
 }
 
 /**
- * The files outside `node_modules` that import each file of the program, by
- * path, through a module specifier or a `/// <reference path>`. The imports of
- * a dependency's files are not read: they outnumber the app's own, and a
- * dependency's file changes only when it is rebuilt under a running builder.
+ * The files each parse of a dependency's file imports. Resolving them again
+ * costs more than checking a small app, and a dependency's file resolves its
+ * imports the same while the project lives: one rebuilt in place is parsed
+ * again, and one added beside it is itself a changed file in `node_modules`.
  */
-function importGraph(
+const dependencyImports = new WeakMap<ts.SourceFile, readonly string[]>();
+
+/** The files a file imports, by path, through a module specifier or a `/// <reference path>`. */
+function importsOf(
   project: Project,
-  files: readonly ts.SourceFile[],
-): Map<string, string[]> {
+  file: ts.SourceFile,
+  present: Set<string>,
+): readonly string[] {
+  const cached = dependencyImports.get(file);
+  if (cached) {
+    return cached;
+  }
   const checker = project.getTypeChecker().compilerObject;
-  const present = new Set(files.map((file) => file.fileName));
-  const importers = new Map<string, string[]>();
-  for (const file of files) {
-    const importer = file.fileName;
-    if (inNodeModules(importer)) {
-      continue;
-    }
-    const literals =
-      project.getSourceFile(importer)?.getImportStringLiterals() ?? [];
-    const imported = literals
+  const literals =
+    project.getSourceFile(file.fileName)?.getImportStringLiterals() ?? [];
+  const imported = [
+    ...literals
       .flatMap(
         (literal) =>
           checker.getSymbolAtLocation(literal.compilerNode)?.declarations ?? [],
       )
-      .map((declaration) => declaration.getSourceFile().fileName);
-    for (const name of [
-      ...imported,
-      ...file.referencedFiles.map((reference) =>
-        referencedFile(reference.fileName, importer, present),
-      ),
-    ]) {
+      .map((declaration) => declaration.getSourceFile().fileName),
+    ...file.referencedFiles.map((reference) =>
+      referencedFile(reference.fileName, file.fileName, present),
+    ),
+  ];
+  if (inNodeModules(file.fileName)) {
+    dependencyImports.set(file, imported);
+  }
+  return imported;
+}
+
+/** The files that import each file of the program, by path. */
+function importGraph(
+  project: Project,
+  files: readonly ts.SourceFile[],
+): Map<string, string[]> {
+  const present = new Set(files.map((file) => file.fileName));
+  const importers = new Map<string, string[]>();
+  for (const file of files) {
+    const importer = file.fileName;
+    for (const name of importsOf(project, file, present)) {
       const known = importers.get(name);
       if (known) {
         known.push(importer);
@@ -411,8 +427,9 @@ function importGraph(
 /**
  * The files whose diagnostics may differ from the clean check's: each file
  * parsed again or gone since, and every file importing one of them, at any
- * depth. Every file when one of them declares past its module or lies in
- * `node_modules`, whose importers the graph does not follow.
+ * depth. Every file when one of them declares past its module, or lies in
+ * `node_modules` and may have changed how the dependency files that did not
+ * change resolve their imports.
  */
 function affectedFiles(
   files: readonly ts.SourceFile[],

@@ -13,6 +13,7 @@ import {
   destroyFixture,
   expectOk,
   type Fixture,
+  type FixtureOptions,
 } from "./harness";
 
 const PAGE = "/shop/board";
@@ -26,6 +27,7 @@ let banners = 0;
 
 /** Write a file under the app's `src` that the next test no longer finds. */
 function write(relativePath: string, content: string): void {
+  fs.mkdirSync(path.dirname(source(relativePath)), { recursive: true });
   app.write(relativePath, content);
   written.push(relativePath);
 }
@@ -72,6 +74,30 @@ async function addBanner() {
   });
 }
 
+/** An app with one page holding one banner, saved once. */
+async function createBoard(options?: FixtureOptions): Promise<void> {
+  app = createFixture(options);
+  expectOk(
+    await CreateCategory({ name: "shop", displayName: "Shop" }),
+    "CreateCategory",
+  );
+  expectOk(
+    await CreatePage({
+      name: "board",
+      displayName: "Board",
+      category: "pages.shop",
+    }),
+    "CreatePage",
+  );
+  expectOk(await addBanner(), "AddBlock");
+  pageClass = /export class (\w+)/.exec(app.read(PAGE_FILE))?.[1];
+}
+
+function removeWritten(): void {
+  written.forEach(remove);
+  written = [];
+}
+
 /**
  * Once a typecheck of the app found no error, a save checks only what it could
  * have broken. Each case starts from a clean save, so the save under test goes
@@ -80,27 +106,10 @@ async function addBanner() {
 describe("[unit] a save that breaks a file the save did not write", () => {
   before(async function () {
     this.timeout(120_000);
-    app = createFixture();
-    expectOk(
-      await CreateCategory({ name: "shop", displayName: "Shop" }),
-      "CreateCategory",
-    );
-    expectOk(
-      await CreatePage({
-        name: "board",
-        displayName: "Board",
-        category: "pages.shop",
-      }),
-      "CreatePage",
-    );
-    expectOk(await addBanner(), "AddBlock");
-    pageClass = /export class (\w+)/.exec(app.read(PAGE_FILE))?.[1];
+    await createBoard();
   });
 
-  afterEach(() => {
-    written.forEach(remove);
-    written = [];
-  });
+  afterEach(removeWritten);
 
   after(() => destroyFixture());
 
@@ -222,5 +231,132 @@ describe("[unit] a save that breaks a file the save did not write", () => {
     const result = await addBanner();
 
     expect(failedFiles(result)).to.deep.equal([source("lib-user.ts")]);
+  });
+});
+
+/** A package of the app's workspace, linked into `node_modules` as a package manager links it. */
+function linkWorkspaceTone(tone: string): void {
+  const workspace = path.join(app.root, "workspace", "tone");
+  fs.mkdirSync(workspace, { recursive: true });
+  fs.writeFileSync(
+    path.join(workspace, "package.json"),
+    JSON.stringify({ name: "fixture-workspace-tone", types: "index.d.ts" }),
+  );
+  fs.writeFileSync(
+    path.join(workspace, "index.d.ts"),
+    `export declare const tone: "${tone}";\n`,
+  );
+  const link = path.join(app.root, "node_modules", "fixture-workspace-tone");
+  if (!fs.existsSync(link)) {
+    fs.mkdirSync(path.dirname(link), { recursive: true });
+    fs.symlinkSync(workspace, link, "junction");
+  }
+}
+
+/** A dependency that re-exports the workspace package's tone. */
+function installToneWrapper(): void {
+  const root = path.join(app.root, "node_modules", "fixture-tone-wrapper");
+  fs.mkdirSync(root, { recursive: true });
+  fs.writeFileSync(
+    path.join(root, "package.json"),
+    JSON.stringify({ name: "fixture-tone-wrapper", types: "index.d.ts" }),
+  );
+  fs.writeFileSync(
+    path.join(root, "index.d.ts"),
+    `export { tone } from "fixture-workspace-tone";\n`,
+  );
+}
+
+/** A dependency whose entry re-exports a shade from its `shade` folder, or from a `shade.d.ts` beside it once one is added. */
+function installShade(added?: string): void {
+  const root = path.join(app.root, "node_modules", "fixture-shade");
+  fs.mkdirSync(path.join(root, "shade"), { recursive: true });
+  fs.writeFileSync(
+    path.join(root, "package.json"),
+    JSON.stringify({ name: "fixture-shade", types: "index.d.ts" }),
+  );
+  fs.writeFileSync(
+    path.join(root, "index.d.ts"),
+    `export { shade } from "./shade";\n`,
+  );
+  fs.writeFileSync(
+    path.join(root, "shade", "index.d.ts"),
+    `export declare const shade: "draft";\n`,
+  );
+  if (added) {
+    fs.writeFileSync(
+      path.join(root, "shade.d.ts"),
+      `export declare const shade: "${added}";\n`,
+    );
+  }
+}
+
+/**
+ * Without `preserveSymlinks`, a linked package's files are read where the link
+ * points, outside `node_modules`, and the app may reach them only through a
+ * dependency.
+ */
+describe("[unit] a save after a file outside the app changed how the app resolves", () => {
+  before(async function () {
+    this.timeout(120_000);
+    await createBoard({ compilerOptions: { preserveSymlinks: false } });
+  });
+
+  afterEach(removeWritten);
+
+  after(() => destroyFixture());
+
+  it("fails on the app's importer of a dependency re-exporting a linked package that changed", async function () {
+    this.timeout(OP_TIMEOUT);
+    linkWorkspaceTone("draft");
+    installToneWrapper();
+    write(
+      "tone-reader.ts",
+      `import { tone } from "fixture-tone-wrapper";\n\nexport const shown: "draft" = tone;\n`,
+    );
+    expectOk(await addBanner(), "AddBlock with the linked package");
+
+    linkWorkspaceTone("published");
+    const result = await addBanner();
+
+    expect(failedFiles(result)).to.deep.equal([source("tone-reader.ts")]);
+  });
+
+  /**
+   * A file added to a dependency changes what an unchanged file of it imports,
+   * once a new file of the app makes the program resolve its imports again.
+   */
+  it("fails on the app's importer of a dependency whose import a new file now resolves", async function () {
+    this.timeout(OP_TIMEOUT);
+    installShade();
+    write(
+      "shade-dependency-user.ts",
+      `import { shade } from "fixture-shade";\n\nexport const shown: "draft" = shade;\n`,
+    );
+    expectOk(await addBanner(), "AddBlock with the dependency installed");
+
+    installShade("published");
+    write("unrelated.ts", `export {};\n`);
+    const result = await addBanner();
+
+    expect(failedFiles(result)).to.deep.equal([
+      source("shade-dependency-user.ts"),
+    ]);
+  });
+
+  /** The importer did not change, and the file it resolves to now is new. */
+  it("fails on an importer whose import a new file now resolves", async function () {
+    this.timeout(OP_TIMEOUT);
+    write("shade/index.ts", `export const shade = "draft";\n`);
+    write(
+      "shade-user.ts",
+      `import { shade } from "./shade";\n\nexport const shown: "draft" = shade;\n`,
+    );
+    expectOk(await addBanner(), "AddBlock with the folder module");
+
+    write("shade.ts", `export const shade = "published";\n`);
+    const result = await addBanner();
+
+    expect(failedFiles(result)).to.deep.equal([source("shade-user.ts")]);
   });
 });
