@@ -121,11 +121,13 @@ export function useMockupViewerShortcuts(
 
   function onKeydown(event: KeyboardEvent): void {
     if (isFieldKey(event.target)) return;
-    if (run(event)) event.preventDefault();
+    if (!run(event)) return;
+    event.preventDefault();
+    event.stopPropagation();
   }
 
-  onMounted(() => window.addEventListener("keydown", onKeydown));
-  onBeforeUnmount(() => window.removeEventListener("keydown", onKeydown));
+  onMounted(() => window.addEventListener("keydown", onKeydown, true));
+  onBeforeUnmount(() => window.removeEventListener("keydown", onKeydown, true));
 
   return { undo, redo, run };
 }
