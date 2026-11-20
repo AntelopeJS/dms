@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { adaptFieldValidationSchema, FormComponents } from "../form-schema";
 import { DefaultDataCompareTypes } from "./compare-types";
+import type { DefaultValue } from "../types";
 import { DataType, getDataTypeId, RegisterDataType } from "./core";
 
 /** A field of the rows an `ArrayType` holds, with a column header. */
@@ -10,6 +11,12 @@ export interface ArrayItemField {
   label?: string;
   /** A row is refused without it. */
   required?: boolean;
+  /**
+   * The value of this field in a row the user adds, and in the rows the
+   * form opens with to reach `min`. A row is checked once edited or on
+   * submit, not the moment it appears.
+   */
+  defaultValue?: DefaultValue;
 }
 
 /** A field of an `ArrayType`'s rows: its type alone, or with a header. */
@@ -152,6 +159,7 @@ export class ArrayType extends DataType {
         type: getDataTypeId(field.type),
         component: field.type.inputComponent(),
         required: field.required,
+        defaultValue: field.defaultValue,
       })),
       sortable: this.options.sortable,
       min: this.options.min,

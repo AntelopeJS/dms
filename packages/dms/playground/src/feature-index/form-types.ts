@@ -60,6 +60,12 @@ export const typeFeatures: PlaygroundFeature[] = [
   },
   {
     area: AREA,
+    feature: "Repeater rows with starting values",
+    api: "ArrayType({ of: { key: { type, defaultValue } }, min })",
+    demo: FIELD_TYPES,
+  },
+  {
+    area: AREA,
     feature: "Repeater of one bare type",
     api: "ArrayType({ of: { url: new UrlType() } })",
     demo: FIELD_TYPES,

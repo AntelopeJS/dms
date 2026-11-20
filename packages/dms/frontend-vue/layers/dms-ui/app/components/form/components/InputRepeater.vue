@@ -11,6 +11,9 @@ import { fieldErrorPattern } from "../../../build/composables/form/formEntryCont
 import { resolveDmsComponent } from "../../../composables/resolveDmsComponent";
 import DmsRepeaterTable from "./RepeaterTable.vue";
 import type { DataTypeFormatter } from "#dms-core/app/composables/data-types/useDataType";
+import type { FormFieldValue } from "../../../composables/form/types/value";
+import { FORM_FIELD_SAVED_KEY } from "../../../composables/form/types/field-saved";
+import { cloneFormValue } from "../../../build/composables/form/useFormModel";
 
 /** A field of the rows: one column. */
 interface RepeaterColumn {
@@ -19,6 +22,8 @@ interface RepeaterColumn {
   type?: string;
   component: ComponentInfo;
   required?: boolean;
+  /** The cell's value in a row added or created to reach `min`. */
+  defaultValue?: FormFieldValue;
 }
 
 type RepeaterRow = NonNullable<Parameters<DataTypeFormatter>[3]>;
@@ -44,6 +49,7 @@ const { name: fieldName, emitFormChange } = useFormField();
 const formBus = inject(formBusInjectionKey, null);
 const formErrors = inject(formErrorsInjectionKey, null);
 const formInputs = inject(formInputsInjectionKey, null);
+const markFieldSaved = inject(FORM_FIELD_SAVED_KEY, null);
 
 const rows = computed<RepeaterRow[]>(() =>
   Array.isArray(model.value) ? model.value : [],
@@ -123,10 +129,35 @@ function setCell(
   if (fieldName.value) formBus?.emit({ type: "change", name: rowName(index) });
 }
 
+/** A row as the user adds it: a copy of each column's `defaultValue`. */
+function newRow(): RepeaterRow {
+  const row: RepeaterRow = {};
+  for (const column of props.columns)
+    if (column.defaultValue !== undefined)
+      row[column.id] = cloneFormValue(column.defaultValue);
+  return row;
+}
+
 function addRow(): void {
   rowKeys.value.push(nextKey++);
-  emitRows([...rows.value, {}], false);
+  emitRows([...rows.value, newRow()], false);
 }
+
+/**
+ * Below `min`, the field gets the missing rows as the value it opens with:
+ * the form does not read them as a change to save.
+ */
+watch(
+  () => rows.value.length,
+  (length) => {
+    const missing = (props.min ?? 0) - length;
+    if (props.disabled || missing <= 0) return;
+    const next = [...rows.value, ...Array.from({ length: missing }, newRow)];
+    emitRows(next, false);
+    if (props.id) markFieldSaved?.(props.id, next);
+  },
+  { immediate: true },
+);
 
 function removeRow(index: number): void {
   rowKeys.value.splice(index, 1);

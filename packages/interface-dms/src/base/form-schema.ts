@@ -6,7 +6,7 @@ import "zod-to-json-schema";
 import { getDataTypeId } from "./data-types/core";
 import type { DefaultDataTypes } from "./data-types/default-types";
 import type * as RelationPickers from "./form-relation-options";
-import type { AxeOrientation, EnumOption } from "./types";
+import type { AxeOrientation, DefaultValue, EnumOption } from "./types";
 import "./internal/form-block-schema";
 import {
   FormBuilder,
@@ -187,6 +187,8 @@ export namespace FormComponents {
     type?: string;
     component: ComponentInfoSerialized;
     required?: boolean;
+    /** The cell's value in a row the user adds or `min` creates. */
+    defaultValue?: DefaultValue;
   }
 
   export interface RepeaterOptions {
