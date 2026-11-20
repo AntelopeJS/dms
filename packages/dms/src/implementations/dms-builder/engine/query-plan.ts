@@ -11,6 +11,7 @@
 import type {
   ConfigValue,
   FilterOp,
+  ImportRef,
   OpWarning,
   QueryParamBinding,
   ResourceFieldStructure,
@@ -72,6 +73,12 @@ export interface PlanOrder {
   direction: "asc" | "desc";
 }
 
+/** The rows a calculation selects, and the one measure taken over all of them at once. */
+export interface ScalarPlan {
+  filters: PlanFilter[];
+  measure: PlanMeasure;
+}
+
 /**
  * A calculation over one resource: which rows, how they are grouped, what is
  * computed from them, and which of the results are kept.
@@ -79,15 +86,52 @@ export interface PlanOrder {
  * Deliberately says nothing about `this.table`, method bodies or streams — that
  * is each backend's business.
  */
-export interface QueryPlan {
-  filters: PlanFilter[];
-  measure: PlanMeasure;
+export interface MeasurePlan extends ScalarPlan {
+  /** Absent, which is what tells a measure from a {@link RatioPlan}. */
+  kind?: undefined;
   /** Absent for a scalar: the measure is taken over every selected row at once. */
   group?: PlanGroup;
   order?: PlanOrder;
   /** Keeps the first N groups after ordering — a top N. */
   limit?: number;
 }
+
+/**
+ * One scalar calculation over another, as a fraction. Each side selects its own
+ * rows of the same resource; a value a route supplies per request is one value
+ * for both.
+ */
+export interface RatioPlan {
+  kind: "ratio";
+  numerator: ScalarPlan;
+  denominator: ScalarPlan;
+}
+
+export type QueryPlan = MeasurePlan | RatioPlan;
+
+export function isRatioPlan(plan: QueryPlan): plan is RatioPlan {
+  return plan.kind === "ratio";
+}
+
+/** The filters of every calculation a plan makes, in the order they are written. */
+export function allPlanFilters(plan: QueryPlan): PlanFilter[] {
+  return isRatioPlan(plan)
+    ? [...plan.numerator.filters, ...plan.denominator.filters]
+    : plan.filters;
+}
+
+/** The helper a ratio's body wraps its two sides in, and where the model imports it from. */
+export const RATIO_HELPER = "ratioOf";
+const RATIO_IMPORT: ImportRef = {
+  name: RATIO_HELPER,
+  module: "@antelopejs/interface-dms/base/query-response",
+};
+
+/**
+ * The symbols a chain's text may need imported, so the pruning that follows a
+ * removed method knows which imports it may have left unused.
+ */
+export const CHAIN_IMPORT_NAMES = [RATIO_IMPORT.name];
 
 /**
  * Read a template's `where` parameter as the plan's filters. A template plans
@@ -195,21 +239,27 @@ function paramArgument({
   return param.name;
 }
 
-interface EmittedFilters {
-  /** One `.filter(...)` hop each, kept apart so the chain can be broken on them. */
-  hops: string[];
-  parameters: MethodParam[];
+/**
+ * What every chain of one method body binds and warns about. A ratio's two sides
+ * share it, so a period bound on both is two model parameters, not four.
+ */
+interface FilterScope {
+  parameters: Map<string, MethodParam>;
+  taken: Set<string>;
   warnings: OpWarning[];
 }
 
+function newFilterScope(): FilterScope {
+  return { parameters: new Map(), taken: new Set(), warnings: [] };
+}
+
+/** One `.filter(...)` hop each, kept apart so the chain can be broken on them. */
 function emitFilters(
   filters: PlanFilter[],
   fields: ResourceFieldStructure[],
-): EmittedFilters {
-  const parameters = new Map<string, MethodParam>();
-  const taken = new Set<string>();
-  const warnings: OpWarning[] = [];
-  const hops = filters.map((filter) => {
+  { parameters, taken, warnings }: FilterScope,
+): string[] {
+  return filters.map((filter) => {
     const resolved = checkField(fields, filter.field, "");
     const ts = "ts" in resolved ? resolved.ts : "string";
     if ("ts" in resolved) {
@@ -229,11 +279,6 @@ function emitFilters(
         : JSON.stringify(filter.value);
     return `.filter((row) => row.key(${JSON.stringify(filter.field)}).${filter.op}(${argument}))`;
   });
-  return {
-    hops,
-    parameters: [...parameters.values()],
-    warnings,
-  };
 }
 
 function measureCall(measure: PlanMeasure, over: string): string {
@@ -368,7 +413,7 @@ function fitsOneLine(indent: string, depth: number, text: string): boolean {
  * fits beside it, so the members break out the way a formatter would break them.
  */
 function bucketProjection(
-  plan: QueryPlan,
+  plan: MeasurePlan,
   group: PlanGroup,
   indent: string,
 ): string {
@@ -408,7 +453,7 @@ function limitCall(limit: number | undefined): string {
  * having to know which field was grouped on.
  */
 function emitGrouped(
-  plan: QueryPlan,
+  plan: MeasurePlan,
   group: PlanGroup,
   filterHops: string[],
   indent: string,
@@ -433,25 +478,85 @@ function emitGrouped(
   ];
 }
 
+/** The line a chain starts on, which decides whether it still fits there. */
+interface ChainLine {
+  /** The depth of the line the receiver sits on. */
+  depth: number;
+  /** What precedes the chain on that line, and what follows it. */
+  lead: string;
+  trail: string;
+}
+
+const RETURN_LINE: ChainLine = {
+  depth: RETURN_DEPTH,
+  lead: "return ",
+  trail: ";",
+};
+const ARGUMENT_LINE: ChainLine = { depth: HOP_DEPTH, lead: "", trail: "," };
+
+/** The chain on one line, whatever its length. */
+function inlineChain(hops: string[]): string {
+  return hops.filter((hop) => hop !== "").join("");
+}
+
 /**
  * The chain as it reads in the method: on one line while it fits, one hop per
  * line once it does not — which is what the project's formatter would do with
  * it, and what stops a grouped calculation coming out as a 300-character line.
  *
- * The receiver stays on the `return` line either way: a chain whose first line
- * is a bare `this.table` reads as if something were missing.
+ * The receiver stays on its line either way: a chain whose first line is a bare
+ * `this.table` reads as if something were missing.
  */
-function chainText(hops: string[], indent: string): string {
-  const [receiver, ...rest] = hops.filter((hop) => hop !== "");
-  const inline = `${receiver}${rest.join("")}`;
+function chainText(hops: string[], indent: string, line: ChainLine): string {
+  const inline = inlineChain(hops);
   if (
     !inline.includes("\n") &&
-    fitsOneLine(indent, RETURN_DEPTH, `return ${inline};`)
+    fitsOneLine(indent, line.depth, `${line.lead}${inline}${line.trail}`)
   ) {
     return inline;
   }
-  const broken = bodyIndent(indent, HOP_DEPTH);
+  const [receiver, ...rest] = hops.filter((hop) => hop !== "");
+  const broken = bodyIndent(indent, line.depth + 1);
   return `${receiver}${rest.map((hop) => `\n${broken}${hop}`).join("")}`;
+}
+
+function scalarHops(plan: ScalarPlan, filterHops: string[]): string[] {
+  const over = plan.measure.kind === "aggregate" ? plan.measure.field : "";
+  return ["this.table", ...filterHops, `.${measureCall(plan.measure, over)}`];
+}
+
+function measureText(
+  plan: MeasurePlan,
+  fields: ResourceFieldStructure[],
+  scope: FilterScope,
+  indent: string,
+): string {
+  const filterHops = emitFilters(plan.filters, fields, scope);
+  const hops = plan.group
+    ? emitGrouped(plan, plan.group, filterHops, indent)
+    : scalarHops(plan, filterHops);
+  return chainText(hops, indent, RETURN_LINE);
+}
+
+/** Both sides as the arguments of `ratioOf`, on the line they fit on or one to a line. */
+function ratioText(
+  plan: RatioPlan,
+  fields: ResourceFieldStructure[],
+  scope: FilterScope,
+  indent: string,
+): string {
+  const sides = [plan.numerator, plan.denominator].map((side) =>
+    scalarHops(side, emitFilters(side.filters, fields, scope)),
+  );
+  const inline = `${RATIO_HELPER}(${sides.map(inlineChain).join(", ")})`;
+  if (fitsOneLine(indent, RETURN_DEPTH, `return ${inline};`)) {
+    return inline;
+  }
+  const lines = sides.map(
+    (hops) =>
+      `${bodyIndent(indent, HOP_DEPTH)}${chainText(hops, indent, ARGUMENT_LINE)},`,
+  );
+  return `${RATIO_HELPER}(\n${lines.join("\n")}\n${bodyIndent(indent, RETURN_DEPTH)})`;
 }
 
 /**
@@ -463,20 +568,17 @@ export function emitPlan(
   fields: ResourceFieldStructure[],
 ): CompiledChain {
   const indent = indentationText(resolveProjectRoot());
-  const filters = emitFilters(plan.filters, fields);
-  const hops = plan.group
-    ? emitGrouped(plan, plan.group, filters.hops, indent)
-    : [
-        "this.table",
-        ...filters.hops,
-        `.${measureCall(
-          plan.measure,
-          plan.measure.kind === "aggregate" ? plan.measure.field : "",
-        )}`,
-      ];
-  return {
-    body: `{\n${bodyIndent(indent, RETURN_DEPTH)}return ${chainText(hops, indent)};\n}`,
-    parameters: filters.parameters,
-    warnings: filters.warnings,
+  const scope = newFilterScope();
+  const text = isRatioPlan(plan)
+    ? ratioText(plan, fields, scope, indent)
+    : measureText(plan, fields, scope, indent);
+  const chain: CompiledChain = {
+    body: `{\n${bodyIndent(indent, RETURN_DEPTH)}return ${text};\n}`,
+    parameters: [...scope.parameters.values()],
+    warnings: scope.warnings,
   };
+  if (isRatioPlan(plan)) {
+    chain.imports = [RATIO_IMPORT];
+  }
+  return chain;
 }

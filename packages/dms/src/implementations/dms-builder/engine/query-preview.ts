@@ -10,6 +10,7 @@
 import {
   chartCardData,
   kpiCardData,
+  kpiValueData,
   type SeriesOptions,
   topListData,
 } from "@antelopejs/interface-dms/base/query-response";
@@ -34,7 +35,7 @@ import {
   type SeriesNaming,
 } from "./query-emit";
 import { executePlan, type PlanStream } from "./query-plan-execute";
-import type { QueryPlan } from "./query-plan";
+import { allPlanFilters, type QueryPlan } from "./query-plan";
 import {
   getQueryTemplate,
   isParamBinding,
@@ -127,13 +128,14 @@ const RESPONSE_ARRANGERS = new Map<
 /** What the table answered: a figure, or the points, capped where it stopped. */
 interface ReadRows {
   points?: QueryPoint[];
-  value?: number;
+  /** Null for a calculation that answers no figure, such as a ratio over no rows. */
+  value?: number | null;
   truncated: boolean;
 }
 
-function readRows(rows: number | QueryPoint[]): ReadRows {
+function readRows(rows: number | null | QueryPoint[]): ReadRows {
   if (!Array.isArray(rows)) {
-    return { value: Number(rows), truncated: false };
+    return { value: rows === null ? null : Number(rows), truncated: false };
   }
   return {
     points: rows.slice(0, PREVIEW_LIMIT),
@@ -141,23 +143,43 @@ function readRows(rows: number | QueryPoint[]): ReadRows {
   };
 }
 
+/** What a preview knows of the comparison a query asked for. */
+interface Comparison {
+  /** The query binds the period a comparison needs, so its route answers one. */
+  applies: boolean;
+  /** The calculation over the preceding period, when the request carried its bounds. */
+  previous?: ReadRows;
+}
+
 /**
  * The envelope the query's route would serve, built from what the table answered.
  *
  * Mirrors the emitter's own decision: a scalar calculation answers the figure
  * itself whatever arrangement was asked for — there is nothing else in it to
- * arrange — a grouped one defaults to its points, and the three arrangements are
- * built by the helper the route would have called, so the preview and the page
- * cannot diverge on a rounding, a label or a missing group.
+ * arrange — unless it compares against the period before, which the route hands
+ * to `kpiValueData` as it would a `KpiCard`. A grouped one defaults to its
+ * points, and the three arrangements are built by the helper the route would have
+ * called, so the preview and the page cannot diverge on a rounding, a label or a
+ * missing group.
  */
 function arrange(
   read: ReadRows,
   output: QueryOutputKind,
   requested: QueryArrangement | undefined,
   naming: SeriesNaming,
-  previous?: QueryPoint[],
+  comparison: Comparison,
 ): OpResult<QueryPreview> {
   const points = read.points;
+  if (output === "scalar" && comparison.applies) {
+    return preview({
+      output,
+      response: "value",
+      body: kpiValueData(read.value ?? null, {
+        previous: comparison.previous?.value,
+      }),
+      truncated: false,
+    });
+  }
   if (output === "scalar" || !points) {
     return preview({
       output,
@@ -175,8 +197,8 @@ function arrange(
     });
   }
   const options: SeriesOptions = { ...naming };
-  if (previous) {
-    options.previous = previous;
+  if (comparison.previous?.points) {
+    options.previous = comparison.previous.points;
   }
   return preview({
     output,
@@ -187,33 +209,39 @@ function arrange(
 }
 
 /**
- * The arguments the route hands the calculation for the preceding period: the
- * comparison's bounds, in the place of the two date bounds the query binds — the
- * same substitution the emitted route makes. None when the query binds no such
- * pair, or the caller sent no comparison bounds.
+ * The names the plan binds a date field to, once each: the period a comparison
+ * shifts. A ratio binding the same pair on both sides has one pair.
  */
-function precedingArguments(
+function periodBounds(
   plan: QueryPlan,
   fields: ResourceFieldStructure[],
-  args: ConfigObject,
-): ConfigObject | undefined {
+): string[] {
   const dates = new Set(
     fields
       .filter((field) => field.dataType?.$dataType === "date")
       .map((field) => field.name),
   );
-  const bounds = [
+  return [
     ...new Set(
-      plan.filters.flatMap((filter) =>
+      allPlanFilters(plan).flatMap((filter) =>
         dates.has(filter.field) && isParamBinding(filter.value)
           ? [filter.value.$param.name]
           : [],
       ),
     ),
   ];
-  if (bounds.length !== COMPARISON_PARAMETERS.length) {
-    return undefined;
-  }
+}
+
+/**
+ * The arguments the route hands the calculation for the preceding period: the
+ * comparison's bounds, in the place of the two date bounds the query binds — the
+ * same substitution the emitted route makes. None when the caller sent no
+ * comparison bounds.
+ */
+function precedingArguments(
+  bounds: string[],
+  args: ConfigObject,
+): ConfigObject | undefined {
   const preceding: ConfigObject = { ...args };
   for (const [at, name] of bounds.entries()) {
     const value = args[COMPARISON_PARAMETERS[at]];
@@ -258,11 +286,12 @@ export async function runPlanPreview(
     const plan = template.plan(params, fields);
     const args = request.args ?? {};
     const rows = await executePlan(table, plan, fields, args).run();
-    const preceding = query.compare
-      ? precedingArguments(plan, fields, args)
-      : undefined;
+    const bounds = periodBounds(plan, fields);
+    const applies =
+      query.compare === true && bounds.length === COMPARISON_PARAMETERS.length;
+    const preceding = applies ? precedingArguments(bounds, args) : undefined;
     const previous = preceding
-      ? readRows(await executePlan(table, plan, fields, preceding).run()).points
+      ? readRows(await executePlan(table, plan, fields, preceding).run())
       : undefined;
     return arrange(
       readRows(rows),
@@ -270,7 +299,7 @@ export async function runPlanPreview(
         (Array.isArray(rows) ? "series" : "scalar"),
       query.response,
       seriesNaming(params, fields, query.resource),
-      previous,
+      { applies, previous },
     );
   } catch (error) {
     return unsupported<QueryPreview>(

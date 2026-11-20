@@ -3,7 +3,7 @@ import type {
   QueryStructure,
 } from "@antelopejs/interface-dms-builder";
 import { type CallExpression, type MethodDeclaration, Node } from "ts-morph";
-import { arrangementForHelper, outputForResponseKey } from "./query-emit";
+import { outputForResponseKey, responseForHelper } from "./query-emit";
 
 /** What unwrapping a route's return produced: the call, and how it was dressed. */
 export interface UnwrappedResponse {
@@ -109,8 +109,8 @@ function unwrapHelperCall(call: CallExpression): UnwrappedResponse | undefined {
   if (!Node.isIdentifier(callee)) {
     return undefined;
   }
-  const arrangement = arrangementForHelper(callee.getText());
-  if (!arrangement) {
+  const answered = responseForHelper(callee.getText());
+  if (!answered) {
     return undefined;
   }
   const [first, options] = call.getArguments();
@@ -123,8 +123,7 @@ function unwrapHelperCall(call: CallExpression): UnwrappedResponse | undefined {
   }
   return {
     call: modelCallOf(inner),
-    output: "series",
-    response: arrangement,
+    ...answered,
     compare: comparesPrevious(options) || undefined,
   };
 }

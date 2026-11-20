@@ -40,7 +40,7 @@ type Rendered =
   | PlanOperand
   | PlanValue
   | PlanQuery<number>
-  | PlanQuery<number | QueryPoint[]>;
+  | PlanQuery<number | null | QueryPoint[]>;
 
 function carriesText(node: Rendered): node is Rendered & Transcript {
   return (

@@ -1,0 +1,371 @@
+import fs from "node:fs";
+import path from "node:path";
+import { expect } from "chai";
+import {
+  AddQuery,
+  ConfigureQuery,
+  CreateCategory,
+  CreatePage,
+  CreateResource,
+  GetPageStructure,
+  RemoveQuery,
+} from "../../../implementations/dms-builder";
+import type { AddQueryInput } from "@antelopejs/interface-dms-builder";
+import {
+  createFixture,
+  destroyFixture,
+  expectOk,
+  type Fixture,
+} from "./harness";
+
+const PAGE = "/shop/fleet";
+const PAGE_FILE = "fleet/page.ts";
+const MODEL_FILE = "bike/database.ts";
+const OP_TIMEOUT = 60_000;
+
+let app: Fixture;
+
+const RENTED = { field: "status", op: "eq", value: "rented" };
+const PERIOD = [
+  { field: "createdAt", op: "ge", value: { $param: { name: "from" } } },
+  { field: "createdAt", op: "le", value: { $param: { name: "to" } } },
+];
+const IN_PERIOD = {
+  numerator: { where: [RENTED, ...PERIOD] },
+  denominator: { where: PERIOD },
+};
+
+/** Bikes rented over bikes in the period the page selects, against the period before. */
+const UTILISATION: AddQueryInput = {
+  name: "utilisation",
+  resource: "bike",
+  template: "ratio",
+  params: IN_PERIOD,
+  response: "value",
+  compare: true,
+};
+
+async function queryNamed(name: string) {
+  const structure = expectOk(await GetPageStructure(PAGE), "GetPageStructure");
+  return structure.queries.find((query) => query.name === name);
+}
+
+function writesARatio(): void {
+  it("writes the two sides into one model method taking the period once", async function () {
+    this.timeout(OP_TIMEOUT);
+    expectOk(await AddQuery(PAGE, UTILISATION), "AddQuery");
+
+    const model = app.read(MODEL_FILE);
+    expect(model).to.contain(
+      "utilisation(minCreatedAt: Date, maxCreatedAt: Date) {\n    return ratioOf(",
+    );
+    expect(model, "the helper is imported where the model uses it").to.contain(
+      'import { ratioOf } from "@antelopejs/interface-dms/base/query-response";',
+    );
+  });
+
+  it("serves a KPI's figure with the period before it", async () => {
+    const page = app.read(PAGE_FILE);
+
+    expect(page).to.contain("): Promise<KpiCardData> {");
+    expect(page).to.contain(
+      "return kpiValueData(await model.utilisation(new Date(String(from)), new Date(String(to))).run(), { previous: await model.utilisation(new Date(String(compareFrom)), new Date(String(compareTo))).run() });",
+    );
+    expect(page).to.contain(
+      'import { KpiCardData, kpiValueData } from "@antelopejs/interface-dms/base";',
+    );
+  });
+}
+
+function readsAndEditsARatio(): void {
+  it("reads back as a ratio over the route's own parameters, comparing", async () => {
+    const utilisation = await queryNamed("utilisation");
+
+    expect(utilisation?.opaque).to.not.equal(true);
+    expect(utilisation?.template).to.equal("ratio");
+    expect(utilisation?.output).to.equal("scalar");
+    expect(utilisation?.response).to.equal("value");
+    expect(utilisation?.compare).to.equal(true);
+    expect(utilisation?.params).to.deep.equal({
+      numerator: {
+        where: [
+          RENTED,
+          {
+            field: "createdAt",
+            op: "ge",
+            value: { $param: { name: "from", in: "query" } },
+          },
+          {
+            field: "createdAt",
+            op: "le",
+            value: { $param: { name: "to", in: "query" } },
+          },
+        ],
+      },
+      denominator: {
+        where: [
+          {
+            field: "createdAt",
+            op: "ge",
+            value: { $param: { name: "from", in: "query" } },
+          },
+          {
+            field: "createdAt",
+            op: "le",
+            value: { $param: { name: "to", in: "query" } },
+          },
+        ],
+      },
+    });
+  });
+
+  it("keeps the ratio and its comparison when only a side changes", async function () {
+    this.timeout(OP_TIMEOUT);
+    expectOk(
+      await ConfigureQuery(`${PAGE}@utilisation`, {
+        params: {
+          ...IN_PERIOD,
+          numerator: {
+            where: [{ field: "status", op: "ne", value: "free" }, ...PERIOD],
+          },
+        },
+      }),
+      "ConfigureQuery",
+    );
+
+    expect(app.read(MODEL_FILE)).to.contain('row.key("status").ne("free")');
+    const utilisation = await queryNamed("utilisation");
+    expect(utilisation?.template).to.equal("ratio");
+    expect(utilisation?.compare).to.equal(true);
+  });
+
+  it("promises a value that may be null from a ratio that compares nothing", async function () {
+    this.timeout(OP_TIMEOUT);
+    expectOk(
+      await AddQuery(PAGE, {
+        name: "overallRate",
+        resource: "bike",
+        template: "ratio",
+        params: { numerator: { where: [RENTED] }, denominator: {} },
+      }),
+      "AddQuery",
+    );
+
+    expect(app.read(PAGE_FILE)).to.contain(
+      "): Promise<{ value: number | null }> {",
+    );
+    expect(app.read(PAGE_FILE)).to.contain(
+      "return { value: await model.overallRate().run() };",
+    );
+    const read = await queryNamed("overallRate");
+    expect(read?.template).to.equal("ratio");
+    expect(read?.response).to.equal(undefined);
+    expect(read?.compare).to.equal(undefined);
+  });
+
+  it("compares a count over a bound period as it compares a ratio", async function () {
+    this.timeout(OP_TIMEOUT);
+    expectOk(
+      await AddQuery(PAGE, {
+        name: "bikesInPeriod",
+        resource: "bike",
+        template: "count",
+        params: { where: PERIOD },
+        compare: true,
+      }),
+      "AddQuery",
+    );
+
+    expect(app.read(PAGE_FILE)).to.contain(
+      "return kpiValueData(await model.bikesInPeriod(",
+    );
+    const read = await queryNamed("bikesInPeriod");
+    expect(read?.template).to.equal("count");
+    expect(read?.output).to.equal("scalar");
+    expect(read?.response).to.equal("value");
+    expect(read?.compare).to.equal(true);
+  });
+
+  it("answers a bare value again when the comparison is dropped", async function () {
+    this.timeout(OP_TIMEOUT);
+    expectOk(
+      await ConfigureQuery(`${PAGE}@bikesInPeriod`, { compare: false }),
+      "ConfigureQuery",
+    );
+
+    expect(app.read(PAGE_FILE)).to.contain(
+      "return { value: await model.bikesInPeriod(",
+    );
+    expect((await queryNamed("bikesInPeriod"))?.compare).to.equal(undefined);
+  });
+}
+
+/**
+ * The fixture compiles with `noUnusedLocals`, so an import its last user left
+ * behind fails the next write rather than lingering unnoticed.
+ */
+function leavesNoImportBehind(): void {
+  it("drops the helper's import once the last ratio becomes a count", async function () {
+    this.timeout(OP_TIMEOUT);
+    expectOk(await RemoveQuery(`${PAGE}@overallRate`), "RemoveQuery");
+    expect(app.read(MODEL_FILE), "another ratio still calls it").to.contain(
+      "ratioOf",
+    );
+
+    expectOk(
+      await ConfigureQuery(`${PAGE}@utilisation`, {
+        template: "count",
+        params: { where: PERIOD },
+      }),
+      "ConfigureQuery",
+    );
+
+    expect(app.read(MODEL_FILE)).to.not.contain("ratioOf");
+  });
+
+  it("imports it again for the next ratio and drops it with the last one removed", async function () {
+    this.timeout(OP_TIMEOUT);
+    expectOk(
+      await AddQuery(PAGE, { ...UTILISATION, name: "freshRate" }),
+      "AddQuery after",
+    );
+    expect(app.read(MODEL_FILE)).to.contain(
+      'import { ratioOf } from "@antelopejs/interface-dms/base/query-response";',
+    );
+
+    expectOk(await RemoveQuery(`${PAGE}@freshRate`), "RemoveQuery");
+    expect(app.read(MODEL_FILE)).to.not.contain("ratioOf");
+  });
+}
+
+/**
+ * An interface that predates the helpers would take the page the builder writes
+ * to a type error, so it is refused first and the project told what to update.
+ */
+function refusesWhatTheInstalledInterfaceCannotServe(): void {
+  const declaration = () =>
+    path.join(
+      app.root,
+      "node_modules/@antelopejs/interface-dms/dist/base/query-response.d.ts",
+    );
+
+  before(() => {
+    fs.mkdirSync(path.dirname(declaration()), { recursive: true });
+    fs.writeFileSync(
+      declaration(),
+      "export declare function kpiCardData(): void;\n",
+    );
+  });
+
+  after(() => {
+    fs.rmSync(path.join(app.root, "node_modules"), {
+      recursive: true,
+      force: true,
+    });
+  });
+
+  it("refuses a ratio when the interface has no ratioOf", async function () {
+    this.timeout(OP_TIMEOUT);
+    const refused = await AddQuery(PAGE, {
+      ...UTILISATION,
+      name: "old",
+      compare: false,
+    });
+
+    expect(refused.ok).to.equal(false);
+    if (!refused.ok && "issues" in refused.error) {
+      expect(refused.error.issues).to.have.length(1);
+      expect(refused.error.issues[0].pointer).to.equal("/template");
+      expect(refused.error.issues[0].message).to.contain("ratioOf");
+      expect(refused.error.issues[0].message).to.contain(
+        "update @antelopejs/interface-dms",
+      );
+    }
+    expect(app.read(PAGE_FILE)).to.not.contain("old(");
+  });
+
+  it("names both helpers for a ratio that also compares", async function () {
+    this.timeout(OP_TIMEOUT);
+    const refused = await AddQuery(PAGE, { ...UTILISATION, name: "older" });
+
+    expect(refused.ok).to.equal(false);
+    if (!refused.ok && "issues" in refused.error) {
+      expect(refused.error.issues.map((found) => found.pointer)).to.deep.equal([
+        "/template",
+        "/compare",
+      ]);
+    }
+  });
+
+  it("refuses a scalar that compares when the interface has no kpiValueData", async function () {
+    this.timeout(OP_TIMEOUT);
+    const refused = await AddQuery(PAGE, {
+      name: "oldCount",
+      resource: "bike",
+      template: "count",
+      params: { where: PERIOD },
+      compare: true,
+    });
+
+    expect(refused.ok).to.equal(false);
+    if (!refused.ok && "issues" in refused.error) {
+      expect(refused.error.issues.map((found) => found.pointer)).to.deep.equal([
+        "/compare",
+      ]);
+      expect(refused.error.issues[0].message).to.contain("kpiValueData");
+    }
+  });
+}
+
+/**
+ * A card with `valueFormat: "percent"` reads a fraction: the template that makes
+ * one is written, read back and reconfigured like every other, and a count that
+ * compares answers what a card reads.
+ */
+describe("a ratio query written through the builder", () => {
+  before(async function () {
+    this.timeout(120_000);
+    app = createFixture({ compilerOptions: { noUnusedLocals: true } });
+    expectOk(
+      await CreateCategory({ name: "shop", displayName: "Shop" }),
+      "CreateCategory",
+    );
+    expectOk(
+      await CreateResource({
+        name: "bike",
+        displayName: "Bike",
+        fields: [
+          {
+            name: "status",
+            label: "Status",
+            dataType: { $dataType: "string" },
+          },
+          {
+            name: "createdAt",
+            label: "Created",
+            dataType: { $dataType: "date" },
+          },
+        ],
+      }),
+      "CreateResource",
+    );
+    expectOk(
+      await CreatePage({
+        name: "fleet",
+        displayName: "Fleet",
+        category: "pages.shop",
+      }),
+      "CreatePage",
+    );
+  });
+
+  after(() => destroyFixture());
+
+  writesARatio();
+  readsAndEditsARatio();
+  leavesNoImportBehind();
+
+  describe("on an interface that predates the helpers", () => {
+    refusesWhatTheInstalledInterfaceCannotServe();
+  });
+});

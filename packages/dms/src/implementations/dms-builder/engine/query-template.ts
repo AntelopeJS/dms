@@ -52,6 +52,11 @@ export interface CompiledChain {
 
 export interface QueryTemplate {
   descriptor: QueryTemplateDescriptor;
+  /**
+   * The template answers null where no figure can be stated, so the route that
+   * serves it promises `number | null` rather than a number.
+   */
+  nullable?: boolean;
   validate(
     params: QueryParams,
     fields: ResourceFieldStructure[],
@@ -319,11 +324,19 @@ interface ParamBindingInfo {
   in: "query" | "param";
 }
 
+/** The parameters already bound, by their route name, for the filters that follow to agree with. */
+export type ParamBindings = Map<string, ParamBindingInfo>;
+
+/**
+ * `seen` is shared by every `where` of a query that compiles into one method, so
+ * the sides of a ratio agree on a name they both bind.
+ */
 export function checkParamConflicts(
   where: ConfigValue[],
   fields: ResourceFieldStructure[],
+  pointer = "/where",
+  seen: ParamBindings = new Map(),
 ): ValidationIssue[] {
-  const seen = new Map<string, ParamBindingInfo>();
   const issues: ValidationIssue[] = [];
   where.forEach((raw, index) => {
     if (!isPlainObject(raw) || !isParamBinding(raw.value)) {
@@ -343,7 +356,7 @@ export function checkParamConflicts(
     if (previous.type !== param.type || previous.in !== param.in) {
       issues.push(
         issue(
-          `/where/${index}/value/$param`,
+          `${pointer}/${index}/value/$param`,
           `parameter "${param.name}" is already bound as ${previous.in} ${previous.type}; a name may only bind one type and source`,
         ),
       );

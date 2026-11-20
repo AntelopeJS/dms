@@ -1,6 +1,7 @@
 import type { SeriesMeasure } from "@antelopejs/interface-dms/base/query-response";
 import type {
   ImportRef,
+  QueryArrangement,
   QueryOutputKind,
   QueryStructure,
   ResourceFieldStructure,
@@ -49,6 +50,16 @@ const RESPONSE_HELPERS = new Map([
   ["value", { helper: "kpiCardData", type: "KpiCardData" }],
   ["items", { helper: "topListData", type: "TopListData" }],
 ]);
+
+/**
+ * What a scalar is arranged by when it also answers the preceding period: the
+ * KPI card's figure with its change, which a bare `{ value }` has no room for.
+ */
+export const SCALAR_COMPARISON = {
+  helper: "kpiValueData",
+  type: "KpiCardData",
+  arrangement: "value",
+} as const;
 
 /** What the series plan measures when no `op` was asked for. */
 const COUNT_MEASURE = "count";
@@ -125,20 +136,47 @@ function plainResponse(key: string, type: string): ResponseEmission {
  */
 const SERIES_TYPE = "{ x: number | string; y: number | null }[]";
 
+/** How a scalar route answers, beyond that it answers a figure. */
+interface ScalarAnswer {
+  /** The calculation may answer no figure, so the route promises `number | null`. */
+  nullable: boolean;
+  /** The route also answers the preceding period, which a card reads as a variation. */
+  compares: boolean;
+}
+
+function scalarResponse({
+  nullable,
+  compares,
+}: ScalarAnswer): ResponseEmission {
+  if (!compares) {
+    return plainResponse("value", nullable ? "number | null" : "number");
+  }
+  const { helper, type } = SCALAR_COMPARISON;
+  return {
+    returnType: `Promise<${type}>`,
+    body: (current, previous) =>
+      `${helper}(await ${current}${previous ? `, { previous: await ${previous} }` : ""})`,
+    imports: [helper, type],
+  };
+}
+
 /**
  * The arrangement a query's route emits, from what it computes and what the
  * block reading it asked for.
  *
  * A scalar calculation has one arrangement — the number itself; asking for
- * anything else of it would be asking a question the chain did not answer.
+ * anything else of it would be asking a question the chain did not answer. The
+ * one exception is comparing against the period before, for which the figure and
+ * its change are what a KPI card reads whatever arrangement was asked for.
  */
 function responseEmission(
   output: QueryOutputKind,
   response: string | undefined,
   naming: SeriesNaming,
+  scalar: ScalarAnswer,
 ): ResponseEmission {
   if (output === "scalar") {
-    return plainResponse("value", "number");
+    return scalarResponse(scalar);
   }
   const arrangement = response ?? "series";
   if (arrangement === "series") {
@@ -201,13 +239,25 @@ const HELPED_ARRANGEMENTS: ExhaustiveList<
   typeof HELPED_ARRANGEMENT_LIST
 > = HELPED_ARRANGEMENT_LIST;
 
-/** The arrangement a helper name stands for, for read-back. */
-export function arrangementForHelper(
-  helper: string,
-): QueryStructure["response"] {
+/** The arrangement a series helper name stands for, for read-back. */
+function arrangementForHelper(helper: string): QueryStructure["response"] {
   return HELPED_ARRANGEMENTS.find(
     (arrangement) => RESPONSE_HELPERS.get(arrangement)?.helper === helper,
   );
+}
+
+/**
+ * What a route that returns through a helper answers and how it arranges it, for
+ * read-back: a series helper answers points, `kpiValueData` answers a scalar.
+ */
+export function responseForHelper(
+  helper: string,
+): { output: QueryOutputKind; response: QueryArrangement } | undefined {
+  if (helper === SCALAR_COMPARISON.helper) {
+    return { output: "scalar", response: SCALAR_COMPARISON.arrangement };
+  }
+  const response = arrangementForHelper(helper);
+  return response === undefined ? undefined : { output: "series", response };
 }
 
 /** What a template's queries answer with, for a caller outside the emitter. */
@@ -215,6 +265,11 @@ export function outputForTemplate(
   template: string,
 ): QueryOutputKind | undefined {
   return getQueryTemplate(template)?.descriptor.output;
+}
+
+/** Whether a template's queries may answer null where no figure can be stated. */
+function answersNull(template: string): boolean {
+  return getQueryTemplate(template)?.nullable === true;
 }
 
 export interface CompiledQuery {
@@ -326,24 +381,40 @@ export const COMPARISON_PARAMETERS = ["compareFrom", "compareTo"] as const;
 const RESPONSE_MODULE = "@antelopejs/interface-dms/base";
 
 /**
+ * The two Date parameters that bound the period a chain reads, or nothing when it
+ * binds no such pair: only a query whose period the route supplies can compare,
+ * since there is nothing to shift for a calculation that bakes its dates in.
+ */
+function periodParameters(
+  parameters: MethodParam[],
+): MethodParam[] | undefined {
+  const bounds = parameters.filter((parameter) => parameter.type === "Date");
+  return bounds.length === COMPARISON_PARAMETERS.length ? bounds : undefined;
+}
+
+/**
+ * Whether the route answers a scalar together with the figure of the preceding
+ * period, which is where it needs a helper `@antelopejs/interface-dms` may lack.
+ */
+export function comparesScalar(spec: CompiledQuery): boolean {
+  return (
+    spec.compare === true &&
+    outputForTemplate(spec.template) === "scalar" &&
+    periodParameters(spec.chain.parameters) !== undefined
+  );
+}
+
+/**
  * The same model call over the preceding period, or nothing when the query does
  * not compare.
- *
- * Only a query whose period the route supplies can compare: the bounds are its
- * own parameters, and there is nothing to shift for a calculation that bakes its
- * dates in.
  */
 function comparisonCall(
   spec: CompiledQuery,
   modelMethod: string,
 ): string | undefined {
-  if (spec.compare !== true) {
-    return undefined;
-  }
-  const bounds = spec.chain.parameters.filter(
-    (parameter) => parameter.type === "Date",
-  );
-  if (bounds.length !== COMPARISON_PARAMETERS.length) {
+  const bounds =
+    spec.compare === true ? periodParameters(spec.chain.parameters) : undefined;
+  if (!bounds) {
     return undefined;
   }
   const args = spec.chain.parameters.map((parameter) => {
@@ -402,16 +473,17 @@ export function queryRouteMethodText(
     routeParameter(param);
   }
   const args = spec.chain.parameters.map(routeArgument).join(", ");
+  const previous = comparisonCall(spec, modelMethod);
   const response = responseEmission(
     outputForTemplate(spec.template) ?? "scalar",
     spec.response,
     spec.naming,
+    { nullable: answersNull(spec.template), compares: previous !== undefined },
   );
   for (const name of response.imports) {
     symbols.push({ name, module: RESPONSE_MODULE });
   }
   const call = `model.${modelMethod}(${args}).run()`;
-  const previous = comparisonCall(spec, modelMethod);
   if (previous) {
     for (const parameter of COMPARISON_PARAMETERS) {
       routeParameter({ routeName: parameter, in: "query" });
