@@ -14,7 +14,7 @@ import { Logging } from "@antelopejs/interface-core/logging";
 import { z } from "zod";
 import { AssertConnectionWritable } from "../../../connection-access";
 import type { JsonValue } from "../../../json";
-import type { AfterWrite, GuardFn } from "../../types/guards";
+import type { GuardFn } from "../../types/guards";
 import { fetchRowForGuard } from "../data-functions";
 import { TableViewMeta } from "../meta";
 import { DEFAULT_ROW_ID_FIELD } from "../options";
@@ -158,14 +158,29 @@ interface GuardedActionBodies {
   new: Validation.RequestBody;
 }
 
-interface GuardInvocationConfig<P, B> {
+/**
+ * What each guarded action's route answers, as far as its after-write needs:
+ * a write reads its row back, a confirmation hands nothing on.
+ */
+interface GuardedActionAnswers {
+  edit: unknown;
+  delete: void;
+  archive: void;
+  restore: void;
+  new: { _id: string };
+}
+
+/** The work a guarded action runs once its route answered `A`. */
+type AnsweredWork<A> = (answer: A) => void | Promise<void>;
+
+interface GuardInvocationConfig<P, B, A = void> {
   invokeGuard: (
     controller: GuardedController,
     ctx: RequestContext,
     params: P,
     body: B,
-    guard: GuardFn<any>,
-  ) => Promise<void | AfterWrite>;
+    guard: GuardFn<any, unknown, any>,
+  ) => Promise<void | AnsweredWork<A>>;
 }
 
 const getIdField = (controller: GuardedController): string => {
@@ -173,11 +188,23 @@ const getIdField = (controller: GuardedController): string => {
   return meta.options.rowIdKey || DEFAULT_ROW_ID_FIELD;
 };
 
+/**
+ * The row stored under the primary key `key`, read back for an after-write.
+ *
+ * @throws When no row is stored under `key`.
+ */
+const readWrittenRow = async (controller: GuardedController, key: string) => {
+  const row = await fetchRowForGuard(controller, key, DEFAULT_ROW_ID_FIELD);
+  if (!row) throw new Error("the written row could not be read back");
+  return row;
+};
+
 /** The guard adapter of each guarded action. */
 type GuardInvocationConfigs = {
   [K in GuardedActionName]: GuardInvocationConfig<
     GuardedActionParams[K],
-    GuardedActionBodies[K]
+    GuardedActionBodies[K],
+    GuardedActionAnswers[K]
   >;
 };
 
@@ -188,7 +215,15 @@ const ACTION_GUARD_CONFIGS: GuardInvocationConfigs = {
       const id = String(params.id);
       const current = await fetchRowForGuard(controller, id, idField);
       throwHttpAssert(current, 404, "Not Found");
-      return guard.call(controller, ctx, { id, body, current });
+      const afterWrite = await guard.call(controller, ctx, {
+        id,
+        body,
+        current,
+      });
+      if (!afterWrite) return undefined;
+      const { _id: key } = current;
+      throwHttpAssert(isString(key), 500, "Stored row has no primary key");
+      return async () => afterWrite(await readWrittenRow(controller, key));
     },
   },
   delete: {
@@ -220,7 +255,10 @@ const ACTION_GUARD_CONFIGS: GuardInvocationConfigs = {
   },
   new: {
     invokeGuard: async (controller, ctx, _params, body, guard) => {
-      return guard.call(controller, ctx, { body });
+      const afterWrite = await guard.call(controller, ctx, { body });
+      if (!afterWrite) return undefined;
+      return async (answer) =>
+        afterWrite(await readWrittenRow(controller, answer._id));
     },
   },
 };
@@ -228,7 +266,7 @@ const ACTION_GUARD_CONFIGS: GuardInvocationConfigs = {
 const getGuardForAction = (
   controller: DataControllerInstance,
   actionName: GuardedActionName | "get",
-): GuardFn<any> | undefined => {
+): GuardFn<any, unknown, any> | undefined => {
   const meta = getTableViewMetaFor(controller);
   return meta.controllerGuards?.[actionName];
 };
@@ -244,7 +282,7 @@ export const guardedGetRoute = DefaultRoutes.WithGetGuard(
 );
 
 async function runAfterWrite(
-  afterWrite: AfterWrite,
+  afterWrite: () => void | Promise<void>,
   actionName: GuardedActionName,
 ): Promise<void> {
   try {
@@ -312,7 +350,7 @@ export const createGuardedConfirmRoute = <
 export const createGuardedWriteRoute = <
   K extends "new" | "edit",
   O,
-  R,
+  R extends GuardedActionAnswers[K],
   Rest extends unknown[],
 >(
   baseRoute: DataControllerCallback<
@@ -328,7 +366,8 @@ export const createGuardedWriteRoute = <
 > => {
   const config: GuardInvocationConfig<
     GuardedActionParams[K],
-    Validation.RequestBody
+    Validation.RequestBody,
+    GuardedActionAnswers[K]
   > = ACTION_GUARD_CONFIGS[actionName];
   return {
     func: async function (
@@ -356,7 +395,7 @@ export const createGuardedWriteRoute = <
         writtenBody,
         ...rest,
       );
-      if (afterWrite) await runAfterWrite(afterWrite, actionName);
+      if (afterWrite) await runAfterWrite(() => afterWrite(result), actionName);
       return result;
     },
     args: baseRoute.args,
