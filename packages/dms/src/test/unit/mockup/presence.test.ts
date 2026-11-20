@@ -1,5 +1,4 @@
 import { expect } from "chai";
-import type { BlockAnchor, BlockTree } from "../../../mockup/anchor";
 import {
   acquired,
   joined,
@@ -9,7 +8,11 @@ import {
   parseViewerId,
   settled,
   viewerOf,
-} from "../../../mockup/presence";
+} from "../../../mockup";
+
+type LockRequest = Parameters<typeof acquired>[1];
+type BlockAnchor = LockRequest["anchor"];
+type BlockTree = LockRequest["tree"];
 
 const ADA_VIEWER = parseViewerId("11111111-1111-4111-8111-111111111111");
 const BEA_VIEWER = parseViewerId("22222222-2222-4222-8222-222222222222");
