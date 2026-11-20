@@ -60,7 +60,7 @@ const faces = new Map(
       "dms-html-render/services",
       "dms-notifications/services",
     ],
-    store: ["frontend"],
+    store: ["frontend", "catalog"],
     utils: [
       "notification-tones",
       "email-subjects",
