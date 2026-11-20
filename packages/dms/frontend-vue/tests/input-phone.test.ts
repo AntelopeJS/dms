@@ -8,7 +8,6 @@ import {
   h,
   inject,
   nextTick,
-  onMounted,
   provide,
   ref,
   watch,
@@ -74,8 +73,8 @@ const USelectMenuStub = defineComponent({
         "ul",
         props.items.map((item) =>
           h("li", { "data-item": item.value }, [
-            slots["item-leading"]?.({ item }),
-            item.label,
+            h("span", { "data-label": "" }, item.label),
+            slots["item-trailing"]?.({ item }),
           ]),
         ),
       ),
@@ -123,8 +122,9 @@ const shown = () =>
   host.querySelector<HTMLInputElement>("[data-number]")?.value;
 const selected = () =>
   host.querySelector("[data-country]")?.getAttribute("data-country");
-const selectedFlag = () =>
-  host.querySelector<HTMLImageElement>("[data-country] img");
+const trigger = () => host.querySelector("[data-country]")?.textContent?.trim();
+const listed = (code: string) =>
+  host.querySelector(`[data-item="${code}"] [data-label]`)?.textContent;
 
 beforeEach(() => {
   for (const [name, value] of Object.entries({
@@ -132,7 +132,6 @@ beforeEach(() => {
     ref,
     watch,
     inject,
-    onMounted,
   })) {
     vi.stubGlobal(name, value);
   }
@@ -228,24 +227,25 @@ it("keeps what the user deleted instead of formatting it back", async () => {
   expect(shown()).toBe(formatted.slice(0, -1));
 });
 
-it("draws the selected country's flag as an image named after the country", async () => {
+it("shows the selected country's code and calling code, and lists each country with its calling code", async () => {
   await mount({ defaultCountry: "BE" });
-  await vi.waitFor(() => expect(selectedFlag()).not.toBeNull());
-  expect(selectedFlag()?.alt).toBe("Belgium");
-  expect(selectedFlag()?.src).toMatch(/^data:image\/svg\+xml/);
-  expect(host.querySelector("[data-country]")?.textContent).toContain("+32");
+  expect(trigger()).toBe("BE +32");
+  expect(host.querySelector('[data-item="BE"]')?.textContent).toBe(
+    "Belgium+32",
+  );
+});
 
-  const listed = host.querySelector('[data-item="BE"] img');
-  await vi.waitFor(() => expect(listed).not.toBeNull());
-  expect(listed?.getAttribute("alt")).toBe("");
-  expect(listed?.getAttribute("aria-hidden")).toBe("true");
+it("names the countries as the DMS translations do, and offers none they leave out", async () => {
+  await mount({ defaultCountry: "BE" });
+  expect(listed("BA")).toBe("Bosnia and Herzegovina");
+  expect(host.querySelector('[data-item="XK"]')).toBeNull();
 });
 
 it("speaks the user's language: French message and country names", async () => {
   i18n.global.locale.value = "fr-FR";
   await mount({ defaultCountry: "BE" });
-  await vi.waitFor(() => expect(selectedFlag()?.alt).toBe("Belgique"));
-  expect(host.querySelector('[data-item="DE"]')?.textContent).toBe("Allemagne");
+  expect(listed("BE")).toBe("Belgique");
+  expect(listed("DE")).toBe("Allemagne");
   expect(host.querySelector("[data-empty]")?.textContent).toBe(
     "Aucun pays ne correspond à « zz ».",
   );

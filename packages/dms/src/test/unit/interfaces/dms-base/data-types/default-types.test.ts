@@ -218,21 +218,21 @@ describe("[unit] interfaces/dms-base/data-types/default-types", () => {
     const parse = (
       type: InstanceType<typeof DefaultDataTypes.PhoneType>,
       value: string,
-    ) => type.getValidation().safeParse(value);
+    ) => type.getValidation().safeParseAsync(value);
 
-    it("keeps any string as typed without defaultCountry or requiredPrefix", () => {
+    it("keeps any string as typed without defaultCountry or requiredPrefix", async () => {
       const type = new DefaultDataTypes.PhoneType();
-      expect(parse(type, "0123456789")).to.deep.equal({
+      expect(await parse(type, "0123456789")).to.deep.equal({
         success: true,
         data: "0123456789",
       });
-      expect(parse(type, "+32494 66 94 43")).to.deep.equal({
+      expect(await parse(type, "+32494 66 94 43")).to.deep.equal({
         success: true,
         data: "+32494 66 94 43",
       });
     });
 
-    it("stores every common spelling of a number in E.164 with defaultCountry", () => {
+    it("stores every common spelling of a number in E.164 with defaultCountry", async () => {
       const type = new DefaultDataTypes.PhoneType({ defaultCountry: "BE" });
       for (const typed of [
         "0494669443",
@@ -241,25 +241,25 @@ describe("[unit] interfaces/dms-base/data-types/default-types", () => {
         "+32 (0)494 66.94.43",
         "0032 494 66 94 43",
       ]) {
-        expect(parse(type, typed), typed).to.deep.equal({
+        expect(await parse(type, typed), typed).to.deep.equal({
           success: true,
           data: "+32494669443",
         });
       }
     });
 
-    it("reads a prefixed number in its own country, not defaultCountry", () => {
+    it("reads a prefixed number in its own country, not defaultCountry", async () => {
       const type = new DefaultDataTypes.PhoneType({ defaultCountry: "BE" });
-      expect(parse(type, "+33 1 23 45 67 89")).to.deep.equal({
+      expect(await parse(type, "+33 1 23 45 67 89")).to.deep.equal({
         success: true,
         data: "+33123456789",
       });
     });
 
-    it("refuses what is no possible number of its country", () => {
+    it("refuses what is no possible number of its country", async () => {
       const type = new DefaultDataTypes.PhoneType({ defaultCountry: "BE" });
       for (const typed of ["", "12", "+32 494", "call 0494669443"]) {
-        const result = parse(type, typed);
+        const result = await parse(type, typed);
         expect(result.success, typed).to.equal(false);
         expect(result.error?.issues[0]?.message).to.equal(
           "$dms.field_errors.invalid_phone",
@@ -267,14 +267,15 @@ describe("[unit] interfaces/dms-base/data-types/default-types", () => {
       }
     });
 
-    it("refuses a national number with requiredPrefix, and stores an international one in E.164", () => {
+    it("refuses a national number with requiredPrefix, and stores an international one in E.164", async () => {
       const type = new DefaultDataTypes.PhoneType({ requiredPrefix: true });
-      expect(parse(type, "0123456789").success).to.equal(false);
-      expect(parse(type, "+33 1 23 45 67 89")).to.deep.equal({
+      expect((await parse(type, "0123456789")).success).to.equal(false);
+      expect((await parse(type, "+999999")).success).to.equal(false);
+      expect(await parse(type, "+33 1 23 45 67 89")).to.deep.equal({
         success: true,
         data: "+33123456789",
       });
-      expect(parse(type, "0033123456789")).to.deep.equal({
+      expect(await parse(type, "0033123456789")).to.deep.equal({
         success: true,
         data: "+33123456789",
       });

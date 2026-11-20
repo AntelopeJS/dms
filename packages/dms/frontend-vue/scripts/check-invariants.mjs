@@ -411,28 +411,6 @@ function checkGeistNarrowSpace() {
   }
 }
 
-const PHONE_LIBRARY = "libphonenumber-js";
-
-/**
- * The phone input and the server's `PhoneType` read numbers with one exact
- * release of the library, so both agree on which numbers are possible.
- */
-function checkPhoneLibraryRelease() {
-  const Manifest = z.object({
-    dependencies: z.object({
-      [PHONE_LIBRARY]: z.string().regex(/^\d+\.\d+\.\d+$/),
-    }),
-  });
-  /** @param {string} file */
-  const release = (file) =>
-    Manifest.parse(readJson(file)).dependencies[PHONE_LIBRARY];
-  assert.equal(
-    release(join(ROOT, "package.json")),
-    release(join(ROOT, "../../interface-dms/package.json")),
-    `the Vue layer and @antelopejs/interface-dms pin the same ${PHONE_LIBRARY}`,
-  );
-}
-
 /** @type {[string, () => unknown][]} */
 const CHECKS = [
   ["API error presentation", () => assertApiErrorPresentation([LAYERS_DIR])],
@@ -451,7 +429,6 @@ const CHECKS = [
   ["Geist narrow no-break spaces", checkGeistNarrowSpace],
   ["font asset URLs", checkFontAssetUrls],
   ["onboarding page meta", checkOnboardingPageMeta],
-  ["phone library release", checkPhoneLibraryRelease],
 ];
 
 for (const [name, check] of CHECKS) {

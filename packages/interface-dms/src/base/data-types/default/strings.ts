@@ -10,7 +10,7 @@ import {
   UrlTypeOptions,
   PhoneTypeOptions,
 } from "./options";
-import { toE164 } from "../internal/phone-number";
+import { ToE164 } from "../internal/phone-number";
 
 const INVALID_PHONE_MESSAGE = "$dms.field_errors.invalid_phone";
 
@@ -176,8 +176,8 @@ export class PhoneType extends DataType {
     if (!requiredPrefix && !defaultCountry) return z.string();
 
     const country = requiredPrefix ? undefined : defaultCountry;
-    return z.string().transform((value, context) => {
-      const number = toE164(value, country);
+    return z.string().transform(async (value, context) => {
+      const number = await ToE164(value, country);
       if (number) return number;
       context.addIssue({
         code: z.ZodIssueCode.custom,

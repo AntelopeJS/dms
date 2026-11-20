@@ -215,6 +215,10 @@ async function implementInterfaces(): Promise<void> {
     await import("./implementations/dms-base/distinct-values"),
   );
   void ImplementInterface(
+    await import("@antelopejs/interface-dms/base/data-types/internal/phone-number"),
+    await import("./implementations/dms-base/phone-number"),
+  );
+  void ImplementInterface(
     await import("@antelopejs/interface-dms/base/export-jobs"),
     await import("./implementations/dms-base/export-jobs"),
   );
