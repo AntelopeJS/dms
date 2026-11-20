@@ -48,6 +48,7 @@ import {
   parseMockupName,
 } from "./model";
 import { registerFromPageRoute } from "./from-page-routes";
+import { BUILDER_PAGES, type LivePages } from "./live-page";
 import { registerHistoryRoutes } from "./history-routes";
 import type {
   MockupCreated,
@@ -68,19 +69,21 @@ const SSE_HELLO = `retry: ${SSE_RECONNECT_MS}\n: connected\n\n`;
 /** The bulk routes a table in archive mode sends its rows to. */
 const ARCHIVE_CHANGES: ReadonlySet<string> = new Set(["archive", "restore"]);
 
-/** The mockup files, the event streams open on them, and who is on each mockup. */
+/** The mockup files, the event streams open on them, who is on each mockup, and the live pages a conversion reads. */
 export interface MockupEngine {
   store: MockupStore;
   streams: Set<PassThrough>;
   presence: PresenceBoard;
+  pages: LivePages;
 }
 
 /** An engine over `store` with no stream open and nobody on any mockup. */
 export function createMockupEngine(
   store: MockupStore,
   presence = new PresenceBoard(store),
+  pages: LivePages = BUILDER_PAGES,
 ): MockupEngine {
-  return { store, streams: new Set(), presence };
+  return { store, streams: new Set(), presence, pages };
 }
 
 function notFound(what: string): HTTPResult {
@@ -286,7 +289,7 @@ export function registerMockupRoutes(engine: MockupEngine) {
   registerPresenceRoutes(engine.presence, store.mockupsDir);
   registerHistoryRoutes(store.mockupsDir);
   registerManageRoutes(store.mockupsDir);
-  registerFromPageRoute(store.mockupsDir);
+  registerFromPageRoute(store.mockupsDir, engine.presence, engine.pages);
   return MockupController;
 }
 

@@ -10,6 +10,7 @@ import { expect } from "chai";
 import {
   closeMockupStreams,
   createMockupEngine,
+  type LivePages,
   type MockupEngine,
   MockupStore,
   PresenceBoard,
@@ -41,11 +42,12 @@ function mockupRouteIds(): number[] {
  * Serves `spec` as the mockup `desk` through `/api/mockup` routes registered
  * for the enclosing suite, signs a platform owner up, and removes the routes
  * and the files after the suite. `clock` replaces the time the viewers' locks
- * run out by.
+ * run out by, and `pages` the live pages a conversion reads.
  */
 export function serveMockupRoutes(
   spec: string,
   clock?: PresenceClock,
+  pages?: LivePages,
 ): () => ServedMockups {
   let served: ServedMockups | undefined;
 
@@ -56,7 +58,11 @@ export function serveMockupRoutes(
     await mkdir(join(dir, "mockups", "desk"), { recursive: true });
     await writeFile(join(dir, "mockups", "desk", "spec.json"), spec);
     const store = new MockupStore(join(dir, "mockups"));
-    const engine = createMockupEngine(store, new PresenceBoard(store, clock));
+    const engine = createMockupEngine(
+      store,
+      new PresenceBoard(store, clock),
+      pages,
+    );
     registerMockupRoutes(engine);
     served = { dir, engine, owner: authorizedClient(ownerToken), ownerToken };
   });
