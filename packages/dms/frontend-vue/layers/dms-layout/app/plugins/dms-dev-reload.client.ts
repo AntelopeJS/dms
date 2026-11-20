@@ -1,3 +1,4 @@
+import { isPreviewFrame } from "#dms-core/app/entries/utils/previewFrame";
 import { useDevReloadHolder } from "../build/composables/dev-reload/useDevReloadHolder";
 import { followDevReload } from "../build/utils/dev-reload-stream";
 
@@ -18,7 +19,7 @@ function resolveBackendBase(): string | null {
  * share one route-readiness loop and one in-flight refresh.
  */
 export default defineDmsPlugin(() => {
-  if (!import.meta.env.DEV) return;
+  if (!import.meta.env.DEV || isPreviewFrame()) return;
 
   const backendBase = resolveBackendBase();
   if (!backendBase) return;

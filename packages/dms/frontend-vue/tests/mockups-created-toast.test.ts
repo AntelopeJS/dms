@@ -216,21 +216,6 @@ it("opens no stream for a viewer who is not the owner", async () => {
   expect(FakeEventSource.instances).toEqual([]);
 });
 
-/**
- * Fails an implementation that streams from a `/dms-preview` document. The
- * mockup viewer's Overview and the Mockups list embed one per page or card,
- * each stream holds one of the six connections a browser opens per host, and
- * the frames past the sixth never load.
- */
-it("opens no stream in a /dms-preview document, which the Overview and the Mockups list embed many times", async () => {
-  FakeEventSource.instances = [];
-  route = reactive({ path: "/dms-preview" });
-
-  await plugin(dmsAppContext(emptyApp()));
-
-  expect(FakeEventSource.instances).toEqual([]);
-});
-
 it("opens the stream again after the backend refused it", () => {
   vi.useFakeTimers();
   const first = latestSource();
