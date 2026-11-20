@@ -12,7 +12,7 @@ import test from "node:test";
 import { fileURLToPath } from "node:url";
 import { MongoClient } from "mongodb";
 import { pidIn } from "./helpers/pids.mjs";
-import { isAlive } from "./identity.mjs";
+import { isRunning } from "./identity.mjs";
 import { mongodBinary, startMongod } from "./mongo.mjs";
 import { stopRecorded } from "./processes.mjs";
 
@@ -107,7 +107,7 @@ await test("a mongod that cannot join the replica set is stopped", async (t) => 
   await assert.rejects(startMongod(paths, [PACKAGE_ROOT]), {
     message: "This node was not started with replication enabled.",
   });
-  assert.equal(isAlive(pidIn(spawned)), false);
+  assert.equal(isRunning(pidIn(spawned)), false);
 });
 
 await test("a mongod restarted on its port and data folder serves a change stream again", async (t) => {
