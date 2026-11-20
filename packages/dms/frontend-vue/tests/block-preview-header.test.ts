@@ -285,6 +285,17 @@ describe("the page header a mockup draws", () => {
     expect(posted("select-page")).toHaveLength(1);
   });
 
+  it("picks the page when the empty space around its blocks is clicked while inspecting, which is how the frame's click deselects a block (fails when only a click on the header reaches the viewer)", async () => {
+    await mountPreview(HEADER);
+    postFromParent({ type: "inspect", enabled: true });
+    await nextTick();
+
+    click(host);
+
+    expect(posted("select-page")).toHaveLength(1);
+    expect(posted("select")).toEqual([]);
+  });
+
   it("is outlined under the pointer while inspecting, as a block is", async () => {
     await mountPreview(HEADER);
     postFromParent({ type: "inspect", enabled: true });
