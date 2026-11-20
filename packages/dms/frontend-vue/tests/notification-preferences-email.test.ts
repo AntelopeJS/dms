@@ -183,6 +183,9 @@ describe("notification preferences e-mail column", () => {
     const container = await mount(catalog(true, { "work:digest": false }));
 
     expect(emailSwitchOf(container, "Digest")?.disabled).toBe(true);
+    expect(
+      emailSwitchOf(container, "Digest")?.getAttribute("aria-checked"),
+    ).toBe("false");
     expect(emailSwitchOf(container, "Assigned")?.disabled).toBe(false);
   });
 });

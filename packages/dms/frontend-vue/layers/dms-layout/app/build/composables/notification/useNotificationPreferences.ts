@@ -80,9 +80,13 @@ export const useNotificationPreferences = (
   const isEnabled = (subject: NotificationSubject) =>
     read(subjectPreferenceKey(subject));
 
-  /** A locked subject is mailed whatever is stored, as the server sends it. */
+  /**
+   * As the server sends it: a locked subject is mailed whatever is stored,
+   * and a subject off in the app is not mailed at all.
+   */
   const isEmailEnabled = (subject: NotificationSubject) =>
-    subject.locked === true || read(emailPreferenceKey(subject));
+    subject.locked === true ||
+    (isEnabled(subject) && read(emailPreferenceKey(subject)));
 
   /** The row's state cell sums up its in-app and e-mail switches. */
   const rowState = (subject: NotificationSubject): SaveStatusState =>

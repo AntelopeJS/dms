@@ -46,6 +46,7 @@ export function NotificationSubject(
 export function NotificationEmailChannel(
   channel: NotificationEmailChannelInfo,
 ): NotificationEmailChannelInfo {
+  internal.emailChannelIdentity.stamp(channel);
   internal.RegisterNotificationEmailChannel.register(channel);
   return channel;
 }

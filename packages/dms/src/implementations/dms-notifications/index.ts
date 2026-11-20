@@ -13,6 +13,7 @@ import type {
   ReadScope,
   RoleSendOptions,
 } from "@antelopejs/interface-dms/notifications/types";
+import { internal as interfaceInternal } from "@antelopejs/interface-dms/notifications/internal";
 import {
   UserNotificationPreferencesModel,
   type UserNotificationCounts,
@@ -180,7 +181,6 @@ async function deliverByEmail(
   data: NotificationData,
   notification: UserNotification,
   preferences: () => Promise<Record<string, boolean>>,
-  idempotencyKey?: string,
 ): Promise<void> {
   const channel = emailChannelSlot.channel;
   const subject = subjectRegistry.get(
@@ -190,10 +190,7 @@ async function deliverByEmail(
     return;
   }
   try {
-    await channel.deliver(userId, data, {
-      notificationId: notification._id,
-      idempotencyKey,
-    });
+    await channel.deliver(userId, data, notification._id);
   } catch (error) {
     Logging.Error(
       `[DMS] Notification e-mail channel failed to deliver "${data.title}" to "${userId}"`,
@@ -230,15 +227,17 @@ export namespace internal {
 
   export const RegisterNotificationEmailChannel = {
     register: (channel: NotificationEmailChannelInfo) => {
-      if (emailChannelSlot.channel) {
-        Logging.Warn(
-          "[DMS] Notification e-mail channel registered again: the latest registration replaces the previous one",
-        );
-      }
       emailChannelSlot.channel = channel;
     },
-    unregister: () => {
-      emailChannelSlot.channel = undefined;
+    unregister: (channel: NotificationEmailChannelInfo) => {
+      if (
+        interfaceInternal.emailChannelIdentity.isSame(
+          emailChannelSlot.channel,
+          channel,
+        )
+      ) {
+        emailChannelSlot.channel = undefined;
+      }
     },
   };
 
@@ -310,7 +309,7 @@ export namespace internal {
     await publishNotificationEvent(userId, NOTIFICATION_NEW_EVENT, {
       notification: created,
     });
-    await deliverByEmail(userId, data, created, preferences, idempotencyKey);
+    await deliverByEmail(userId, data, created, preferences);
   }
 
   export async function SendToUsers(

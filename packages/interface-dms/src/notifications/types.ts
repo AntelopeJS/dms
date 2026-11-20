@@ -38,14 +38,6 @@ export interface NotificationSubjectInfo {
   email?: boolean | { defaultOn?: boolean };
 }
 
-/** What the e-mail channel learns about one delivery besides its recipient and content. */
-export interface NotificationDeliveryContext {
-  /** Id of the in-app notification this delivery follows. */
-  notificationId: string;
-  /** The event key of a keyed send (`idempotencyKey`). */
-  idempotencyKey?: string;
-}
-
 /**
  * The e-mail channel a mail module registers. The DMS calls `deliver` once
  * per stored in-app notification whose recipient has e-mail on for its
@@ -53,13 +45,14 @@ export interface NotificationDeliveryContext {
  */
 export interface NotificationEmailChannelInfo {
   /**
-   * Hands one notification to the channel. A rejection is logged and never
-   * fails the in-app delivery. Sends wait for it, so queue slow work.
+   * Hands one notification to the channel, with the id of the in-app
+   * notification it follows. A rejection is logged and never fails the
+   * in-app delivery. Sends wait for it, so queue slow work.
    */
   deliver(
     userId: string,
     data: NotificationData,
-    context: NotificationDeliveryContext,
+    notificationId: string,
   ): Promise<void> | void;
 }
 
@@ -79,9 +72,10 @@ export interface DeliveryOptions {
 export interface SendOptions extends DeliveryOptions {
   readScope?: ReadScope;
   /**
-   * The workspace the notification is about. Channels receive it in
-   * `NotificationData.tenantId`; `toRoles` also limits its recipients to
-   * this tenant's members.
+   * The workspace the notification is about. The e-mail channel receives it
+   * in `NotificationData.tenantId`. `toRoles` also limits its recipients to
+   * this tenant's members holding the roles; without it, the holders are
+   * looked up in every tenant.
    */
   tenantId?: string;
   /** Stable event key, unique across notification producers. Retries preserve delivery and dismissal state. */
@@ -89,14 +83,7 @@ export interface SendOptions extends DeliveryOptions {
 }
 
 /** Options of `toRoles`: a send to the holders of roles. */
-export interface RoleSendOptions extends SendOptions {
-  /**
-   * Only the members of this tenant holding the roles. Role ids belong to a
-   * tenant, so a send about one tenant names it; without it, the holders are
-   * looked up in every tenant.
-   */
-  tenantId?: string;
-}
+export type RoleSendOptions = SendOptions;
 
 export interface NotificationData {
   icon: string;

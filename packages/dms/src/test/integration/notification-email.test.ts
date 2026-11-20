@@ -1,10 +1,11 @@
 import type { AxiosInstance } from "axios";
 import { expect } from "chai";
+import { NotificationEmailChannel } from "@antelopejs/interface-dms/notifications";
+import { internal as interfaceInternal } from "@antelopejs/interface-dms/notifications/internal";
 import { SendableNotification } from "@antelopejs/interface-dms/notifications/sendable";
 import type {
   NotificationCategoryInfo,
   NotificationData,
-  NotificationDeliveryContext,
   NotificationEmailChannelInfo,
   NotificationSubjectInfo,
 } from "@antelopejs/interface-dms/notifications/types";
@@ -60,7 +61,7 @@ const inAppKey = (subject: NotificationSubjectInfo) =>
 interface Delivery {
   userId: string;
   data: NotificationData;
-  context: NotificationDeliveryContext;
+  notificationId: string;
 }
 
 interface CatalogSubject {
@@ -70,12 +71,15 @@ interface CatalogSubject {
 
 let deliveries: Delivery[] = [];
 let failing = false;
-const channel: NotificationEmailChannelInfo = {
-  deliver: (userId, data, context) => {
-    if (failing) throw new Error("mail server down");
-    deliveries.push({ userId, data, context });
-  },
+const deliver: NotificationEmailChannelInfo["deliver"] = (
+  userId,
+  data,
+  notificationId,
+) => {
+  if (failing) throw new Error("mail server down");
+  deliveries.push({ userId, data, notificationId });
 };
+const channel: NotificationEmailChannelInfo = { deliver };
 
 let sequence = 0;
 function notificationOn(
@@ -158,12 +162,14 @@ describe("[integration] notification e-mail, channel registered", () => {
   const patch = (changes: Record<string, boolean>) =>
     user.client().patch<Record<string, boolean>>(PREFERENCES, changes);
 
+  let registered = channel;
+
   before(() => {
-    internal.RegisterNotificationEmailChannel.register(channel);
+    NotificationEmailChannel(channel);
   });
 
   after(() => {
-    internal.RegisterNotificationEmailChannel.unregister();
+    interfaceInternal.RegisterNotificationEmailChannel.unregister(registered);
   });
 
   beforeEach(() => {
@@ -194,7 +200,7 @@ describe("[integration] notification e-mail, channel registered", () => {
     expect(deliveries).to.have.length(1);
     expect(deliveries[0]?.userId).to.equal(user.userId());
     expect(deliveries[0]?.data.tenantId).to.equal("tenant-a");
-    expect(deliveries[0]?.context.notificationId).to.be.a("string");
+    expect(deliveries[0]?.notificationId).to.be.a("string");
   });
 
   it("mails a subject offered on until the user turns it off (fails when defaultOn is ignored or the choice is not read)", async () => {
@@ -233,9 +239,6 @@ describe("[integration] notification e-mail, channel registered", () => {
     await keyed.toUsersIdempotently([user.userId()], "channel-test-event");
     await keyed.toUsersIdempotently([user.userId()], "channel-test-event");
     expect(deliveries).to.have.length(1);
-    expect(deliveries[0]?.context.idempotencyKey).to.equal(
-      "channel-test-event",
-    );
   });
 
   it("mails a repeat dropped by the duplicate window once (fails when a deduplicated send still mails)", async () => {
@@ -251,5 +254,15 @@ describe("[integration] notification e-mail, channel registered", () => {
     expect(await titlesOf(user.client())).to.include(
       `Channel test ${sequence} on ${optOut.id}`,
     );
+  });
+
+  it("keeps mailing when a replaced registration unloads after its replacement, as on a hot reload (fails when any unregister clears the channel)", async () => {
+    registered = NotificationEmailChannel({ deliver });
+    interfaceInternal.RegisterNotificationEmailChannel.unregister(channel);
+
+    const catalog = await user.client().get<Catalog>(CATEGORIES);
+    expect(catalog.data.emailChannel).to.equal(true);
+    await notificationOn(optOut).toUser(user.userId());
+    expect(deliveries).to.have.length(1);
   });
 });
