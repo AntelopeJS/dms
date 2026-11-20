@@ -5,6 +5,7 @@ import {
   type SharedRealtimeConnectionOptions,
   type StreamRecovery,
 } from "../../build/utils/sharedRealtimeConnection";
+import { isPreviewFrame } from "../../build/utils/previewFrame";
 import { HTTP_UNAUTHORIZED } from "../../utils/http-status";
 import {
   isNumber,
@@ -486,7 +487,7 @@ const buildApi = (): UserRealtimeApi => {
   const { refreshSession, redirectToAuth } = useSessionRecovery();
   const baseUrl = config.public.dms.baseURL;
 
-  if (!import.meta.env.SSR) {
+  if (!import.meta.env.SSR && !isPreviewFrame()) {
     watch(
       () => (loggedIn.value ? String(user.value?._id ?? "") : undefined),
       (userKey) => {
