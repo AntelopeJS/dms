@@ -53,10 +53,12 @@ function mount(
       setup:
         (_props, { slots }) =>
         () =>
-          h("article", [slots.default?.(), slots.trailing?.()]),
+          h("article", [slots.default?.(), slots.meta?.(), slots.trailing?.()]),
     }),
   );
-  app.mount(document.createElement("div"));
+  const host = document.createElement("div");
+  app.mount(host);
+  return host;
 }
 
 beforeEach(() => {
@@ -102,5 +104,21 @@ describe("notification inbox row actions", () => {
       expect(revealed.length).toBeGreaterThan(0);
       for (const name of revealed) expect(name).toMatch(/:opacity-/);
     }
+  });
+
+  it("shows the exact date and time when the time is hovered", () => {
+    const host = mount(NotificationInboxItem, {
+      notification: {
+        _id: "n1",
+        title: "Deploy",
+        isRead: true,
+        createdAt: "2026-10-02T10:00:00.000Z",
+      },
+      time: "3 h ago",
+    });
+    const time = host.querySelector("time");
+    expect(time?.textContent).toBe("3 h ago");
+    expect(time?.getAttribute("datetime")).toBe("2026-10-02T10:00:00.000Z");
+    expect(time?.getAttribute("title")).toMatch(/2026/);
   });
 });
