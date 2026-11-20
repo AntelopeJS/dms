@@ -135,6 +135,7 @@ const locks = useMockupLocks({
   selection,
   isPending: editor.isPending,
   spec: editor.spec,
+  digest: editor.digest,
   held: heldBlock,
 });
 const editing = useMockupEditing({

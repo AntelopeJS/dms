@@ -90,6 +90,11 @@ export interface MockupSpecEditor {
   canRedo: ComputedRef<boolean>;
   /** The last change from outside the editor took over its own spec. */
   adoption: Readonly<ShallowRef<MockupAdoption | undefined>>;
+  /**
+   * The digest of the file as the editor last read or wrote it: the file's
+   * once no edit is pending, which names the spec a lock is taken in.
+   */
+  digest: Readonly<ShallowRef<string | undefined>>;
   /** The last change the editor made to its own spec: never one that came from outside, nor one that took ids a note stamped. */
   ownEdit: Readonly<ShallowRef<MockupOwnEdit | undefined>>;
   /** Whether the last write failed and is being retried: true until one lands. */
@@ -177,11 +182,12 @@ class MockupSpecSync {
   readonly written = shallowRef<MockupSpecDocument>();
   readonly adoption = shallowRef<MockupAdoption>();
   readonly ownEdit = shallowRef<MockupOwnEdit>();
+  /** The digest of the file as the editor last read or wrote it. */
+  readonly digest = shallowRef<string>();
   readonly hasFailed = shallowRef(false);
   readonly isAwaitingState = shallowRef(false);
   isClosed = false;
   private readonly endpoint: string;
-  private digest: string | undefined;
   private timer: ReturnType<typeof setTimeout> | undefined;
   private retryTimer: ReturnType<typeof setTimeout> | undefined;
   private failures = 0;
@@ -239,7 +245,7 @@ class MockupSpecSync {
       (spec) => spec !== undefined && sameSpec(source.spec, spec),
     );
     if (!own) return false;
-    this.digest = source.digest;
+    this.digest.value = source.digest;
     this.written.value = own;
     this.landed();
     return true;
@@ -258,7 +264,7 @@ class MockupSpecSync {
       stampedHistory(this.history.value, bases, source.spec);
     if (!stamped) return false;
     this.history.value = stamped.history;
-    this.digest = source.digest;
+    this.digest.value = source.digest;
     this.written.value = stamped.written;
     this.landed();
     return true;
@@ -291,7 +297,7 @@ class MockupSpecSync {
       previous !== undefined && previous !== this.written.value && !kept;
     this.stopTimers();
     this.landed();
-    this.digest = source.digest;
+    this.digest.value = source.digest;
     this.written.value = source.spec;
     this.history.value = kept
       ? commit(reset(source.spec), kept)
@@ -318,7 +324,7 @@ class MockupSpecSync {
     const source = await this.read();
     const present = this.history.value?.present;
     if (!source || this.isClosed) return;
-    if (source.digest === this.digest) {
+    if (source.digest === this.digest.value) {
       if (!this.isBusy() && present !== this.written.value) {
         ignoreRejection(this.write());
       }
@@ -404,12 +410,16 @@ class MockupSpecSync {
           method: "PUT",
           body:
             this.options.viewer === undefined
-              ? { spec, digest: this.digest }
-              : { spec, digest: this.digest, viewer: this.options.viewer },
+              ? { spec, digest: this.digest.value }
+              : {
+                  spec,
+                  digest: this.digest.value,
+                  viewer: this.options.viewer,
+                },
         }),
       );
       if (answer?.ok) {
-        this.digest = answer.digest;
+        this.digest.value = answer.digest;
         this.written.value = spec;
         this.isAwaitingState.value =
           this.options.state.value?.revision === sentAt;
@@ -503,6 +513,7 @@ export function useMockupSpec(options: MockupSpecOptions): MockupSpecEditor {
     canRedo: computed(() => !!history.value?.future.length),
     adoption: sync.adoption,
     ownEdit: sync.ownEdit,
+    digest: sync.digest,
     hasFailed: computed(() => sync.hasFailed.value),
     isPending: computed(
       () =>
