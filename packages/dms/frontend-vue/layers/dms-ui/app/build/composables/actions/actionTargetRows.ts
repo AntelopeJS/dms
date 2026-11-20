@@ -12,6 +12,7 @@ import {
   type WrittenRecord,
 } from "../table-view/utils/recordLink";
 import { fillRowChildren, fillRowOptions } from "./rowComponentOptions";
+import { currentPageUrlValues } from "../page/pageUrlValues";
 import { resolveComponentChildren } from "../../../utils/componentTree";
 import TargetComponentTree from "../../components/containers/TargetComponentTree.vue";
 import { resolveConfirmText } from "../confirm/confirmDialogTexts";
@@ -87,7 +88,10 @@ export function createTargetRows(config: ActionTargetsConfig) {
     const id = rowIdOf(row);
     const tokens = row && id !== undefined ? { ...row, id } : row;
     const declared = component?.options ?? {};
-    const options = tokens ? fillRowOptions(declared, tokens) : declared;
+    const options = {
+      ...(tokens ? fillRowOptions(declared, tokens) : declared),
+      routeParams: currentPageUrlValues().routeParams,
+    };
     const children = component?.children;
     if (!component?.componentName || !children?.length) return options;
     const targetTree: ResolvedComponentInfo = {

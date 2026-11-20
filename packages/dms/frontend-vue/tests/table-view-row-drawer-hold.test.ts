@@ -42,6 +42,7 @@ beforeEach(async () => {
   vi.stubGlobal("resolveDmsComponent", () =>
     defineComponent({ render: () => null }),
   );
+  vi.stubGlobal("findPageRoute", () => undefined);
   live = createPageLiveController("sales", {});
   setCurrentPageLive(live);
 });

@@ -1,5 +1,6 @@
 import type { ControllerClass } from "@antelopejs/interface-api";
 import { GetMetadata, ImplementInterface } from "@antelopejs/interface-core";
+import { ComponentBuilder } from "@antelopejs/interface-dms/component";
 import { expect } from "chai";
 import { z } from "zod";
 import {
@@ -34,10 +35,27 @@ const OWNER = userFixture({ _id: "layout-query-owner", owner: true });
 const models = stubPageAccessModels([]);
 const requestAt = (url: URL) => requestContextFixture(url);
 
+const ServedOptionsOf = z.object({
+  componentName: z.string(),
+  options: z.record(z.unknown()).optional(),
+});
+
+const ServedComponent = ServedOptionsOf.extend({
+  children: z
+    .array(z.object({ id: z.string(), component: ServedOptionsOf }))
+    .optional(),
+});
+
 const HeaderAction = z
   .object({
     id: z.string(),
-    target: z.object({ url: z.string().optional() }).passthrough().optional(),
+    target: z
+      .object({
+        url: z.string().optional(),
+        component: ServedComponent.optional(),
+      })
+      .passthrough()
+      .optional(),
   })
   .passthrough();
 
@@ -269,16 +287,21 @@ describe("[unit] interfaces/dms/page — header availability reads the route par
 
 const cleanups: Array<() => void> = [];
 type SiteRecord = {
+  _id?: string;
   address: string;
   owner?: { id: string };
   locked?: boolean;
 };
 const SITES = new Map<string, SiteRecord>([
-  ["s1", { address: "1 rue de l'Église, Liège", owner: { id: "u&1" } }],
+  [
+    "s1",
+    { _id: "s1", address: "1 rue de l'Église, Liège", owner: { id: "u&1" } },
+  ],
   ["locked", { address: "Gare", locked: true }],
 ]);
 let pattern = "";
 let notePattern = "";
+let formPattern = "";
 
 async function servedLayout(id: string, slug = pattern) {
   const path = slug.replace(":id", id);
@@ -316,6 +339,54 @@ function registerRecordCases(): void {
     expect(byId(options, "edit")).to.not.have.property("requiresRecord");
     expect(options).to.not.have.property("record");
     expect(options.headerActionsParams).to.deep.equal({ id: "s1" });
+  });
+
+  it("fills the options of the component a modal opens, encoded in a URL and raw elsewhere", async () => {
+    const options = headerOptions(await servedLayout("s1", formPattern));
+    expect(options.headerActions.map((action) => action.id)).to.deep.equal([
+      "rename",
+      "notes",
+      "help",
+    ]);
+    expect(byId(options, "rename")?.target?.component).to.deep.equal({
+      componentName: "lq-form-block",
+      options: {
+        fetchUrl: "/api/sites/s1?by=u%261",
+        submitDefaults: { owner: "u&1" },
+        title: "Rename 1 rue de l'Église, Liège",
+      },
+      children: [
+        {
+          id: "hint",
+          component: {
+            componentName: "lq-hint",
+            options: {
+              items: [
+                "1 rue de l'Église, Liège",
+                { to: "/x/1%20rue%20de%20l'%C3%89glise%2C%20Li%C3%A8ge" },
+              ],
+            },
+          },
+        },
+      ],
+    });
+  });
+
+  it("fills a child of the component when only the child names the record", async () => {
+    const options = headerOptions(await servedLayout("s1", formPattern));
+    expect(
+      byId(options, "notes")?.target?.component?.children?.[0]?.component
+        .options,
+    ).to.deep.equal({ fetchUrl: "/api/notes?site=s1" });
+  });
+
+  it("leaves a modal button naming the record out when there is none", async () => {
+    for (const id of ["missing", "broken"]) {
+      const options = headerOptions(await servedLayout(id, formPattern));
+      expect(options.headerActions.map((action) => action.id)).to.deep.equal([
+        "help",
+      ]);
+    }
   });
 
   it("hands the record to every availability of the page", async () => {
@@ -405,6 +476,59 @@ describe("[unit] interfaces/dms/page — the page's record, read with its layout
     );
     cleanups.push(await registerTestPage(controller));
     pattern = GetMetadata(controller, PageMetadata).pageInfo?.fullSlug ?? "";
+
+    const form: ControllerClass = PageController(
+      "lq-form",
+      {
+        displayName: "Form",
+        category: pagesCategory,
+        urlSlug: "lq-forms/:id",
+        hidden: true,
+      },
+      DefaultLayout({
+        record: ({ params }) => SITES.get(params?.id ?? ""),
+        headerActions: [
+          {
+            id: "rename",
+            label: "Rename",
+            target: {
+              type: "modal",
+              component: new ComponentBuilder("lq-form-block")
+                .options({
+                  fetchUrl: "/api/sites/{{record._id}}?by={{record.owner.id}}",
+                  submitDefaults: { owner: "{{record.owner.id}}" },
+                  title: "Rename {{record.address}}",
+                })
+                .child(
+                  "hint",
+                  new ComponentBuilder("lq-hint").options({
+                    items: [
+                      "{{record.address}}",
+                      { to: "/x/{{record.address}}" },
+                    ],
+                  }),
+                ),
+            },
+          },
+          {
+            id: "notes",
+            label: "Notes",
+            target: {
+              type: "drawer",
+              component: new ComponentBuilder("lq-panel").child(
+                "list",
+                new ComponentBuilder("lq-list").options({
+                  fetchUrl: "/api/notes?site={{record._id}}",
+                }),
+              ),
+            },
+          },
+          { id: "help", label: "Help", target: { type: "page", url: "/help" } },
+        ],
+      }),
+    );
+    cleanups.push(await registerTestPage(form));
+    formPattern = GetMetadata(form, PageMetadata).pageInfo?.fullSlug ?? "";
 
     const note: ControllerClass = PageController(
       "lq-note",

@@ -5,7 +5,12 @@ import type {
   ComponentInfoSerialized,
 } from "../component";
 import { HasPermission } from "../permissions";
-import { isNull, isObject, isString } from "../utils/internal/type-check";
+import {
+  isNull,
+  isObject,
+  isPlainObject,
+  isString,
+} from "../utils/internal/type-check";
 import type { ComponentTreeNode } from "./component-tree";
 
 /**
@@ -63,14 +68,6 @@ const isGatedWatch = (value: unknown): value is GatedWatch =>
   (!("requirePermission" in value) ||
     value.requirePermission === undefined ||
     isString(value.requirePermission));
-
-const isPlainObject = (
-  value: ComponentInfoSerialized["options"],
-): value is Record<string, ComponentInfoSerialized["options"]> =>
-  !!value &&
-  typeof value === "object" &&
-  (Object.getPrototypeOf(value) === Object.prototype ||
-    Object.getPrototypeOf(value) === null);
 
 /** Whether `value` or anything nested in it carries `watchActions`. */
 function holdsWatchActions(value: ComponentInfoSerialized["options"]): boolean {
