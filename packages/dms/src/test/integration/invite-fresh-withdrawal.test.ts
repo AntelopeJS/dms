@@ -40,8 +40,8 @@ async function freshHeldAfterRivalRead() {
   return held;
 }
 
-async function tokensOf(invites: UserInviteModel): Promise<string[]> {
-  return (await invites.getAll()).map((row) => row.token);
+async function idsOf(invites: UserInviteModel): Promise<string[]> {
+  return (await invites.getAll()).map((row) => row._id);
 }
 
 describe("[integration] a fresh invite whose rival retires during its withdrawal", () => {
@@ -62,7 +62,7 @@ describe("[integration] a fresh invite whose rival retires during its withdrawal
     rivalRead.release();
     const invited = await fresh;
     await completeInviteResolution(cancellation);
-    assert.deepEqual(await tokensOf(invites), [invited.token]);
+    assert.deepEqual(await idsOf(invites), [invited.inviteId]);
   });
 
   it("hands the fresh caller the kept invitation accepted during its withdrawal and leaves its acceptance to its decider", async () => {
@@ -76,10 +76,11 @@ describe("[integration] a fresh invite whose rival retires during its withdrawal
     });
     rivalRead.release();
     const yielded = await fresh;
-    assert.equal(yielded.token, keptInvite.token);
-    assert.deepEqual(await tokensOf(invites), [keptInvite.token]);
+    assert.equal(yielded.inviteId, keptInvite._id);
+    assert.equal(yielded.token, undefined);
+    assert.deepEqual(await idsOf(invites), [keptInvite._id]);
     await completeInviteResolution(acceptance);
-    assert.deepEqual(await tokensOf(invites), []);
+    assert.deepEqual(await idsOf(invites), []);
   });
 
   it("hands the fresh caller the replacement when the kept invite is resent during its withdrawal", async () => {
@@ -105,7 +106,7 @@ describe("[integration] a fresh invite whose rival retires during its withdrawal
     const invited = await fresh;
     deletion.release();
     const resent = await resending;
-    assert.deepEqual(invited, resent);
-    assert.deepEqual(await tokensOf(invites), [resent.token]);
+    assert.deepEqual(invited, { inviteId: resent.inviteId });
+    assert.deepEqual(await idsOf(invites), [resent.inviteId]);
   });
 });

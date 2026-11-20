@@ -12,6 +12,7 @@ import {
 } from "@antelopejs/interface-dms/invite-resolution";
 import type { InviteResolutionReason } from "@antelopejs/interface-dms/db/tables/inviteResolutions.table";
 import { createUserInviteToken } from "@antelopejs/interface-dms/invites";
+import { hashInviteToken } from "@antelopejs/interface-dms/db/internal/invite-token";
 import { resetDatabase } from "../helpers/db";
 
 const TENANT = "invite-link-status-tenant";
@@ -28,7 +29,7 @@ async function seedInvite(expiresAt: Date): Promise<UserInvite> {
   const invites = GetModel(UserInviteModel, TENANT);
   await invites.insert({
     _id: INVITE_ID,
-    token: TOKEN,
+    token: hashInviteToken(TOKEN),
     email: EMAIL,
     firstname: null,
     lastname: null,
@@ -130,6 +131,7 @@ describe("[integration] auth/validate-invite-token", () => {
       replacementReason: "resent",
     });
 
+    assert.isDefined(token);
     expect(await refusalOf(TOKEN, EMAIL)).to.equal("error.invite_replaced");
     expect(await refusalOf(token, EMAIL)).to.equal(undefined);
   });

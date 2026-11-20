@@ -294,7 +294,7 @@ describe("Invite terminal decisions (MongoDB adapter), uncertain decisions", () 
     assert.ok(replacement);
     await assert.rejects(assertInviteReady(TENANT, replacement));
     const result = await createUserInviteToken(options);
-    assert.equal(result.token, replacement.token);
+    assert.equal(result.inviteId, replacement._id);
     assert.equal((await invites.getAll()).length, 1);
     const cancelled = await decideInvite({
       tenantId: TENANT,

@@ -114,9 +114,12 @@ export interface InviteHookPayload {
   deliveryId?: string;
 }
 
+/**
+ * Carries no token: an invitation stores only the digest of its token, and a
+ * replayed creation has nothing else to hand out.
+ */
 export interface InviteCreatedHookPayload extends InviteHookPayload {
   inviteId: string;
-  token: string;
 }
 
 /**

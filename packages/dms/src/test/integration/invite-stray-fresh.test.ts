@@ -95,8 +95,8 @@ async function undecidedStrayBesideKept() {
   return { invites, keptInvite, stray };
 }
 
-async function tokensOf(invites: UserInviteModel): Promise<string[]> {
-  return (await invites.getAll()).map((row) => row.token);
+async function idsOf(invites: UserInviteModel): Promise<string[]> {
+  return (await invites.getAll()).map((row) => row._id);
 }
 
 describe("[integration] a fresh invite left beside the kept one", () => {
@@ -105,19 +105,19 @@ describe("[integration] a fresh invite left beside the kept one", () => {
   it("resends the kept invitation after a withdrawn fresh invite failed to be deleted", async () => {
     const { invites, keptInvite } = await withdrawalThatFailedToDelete();
     const resent = await resend(keptInvite);
-    assert.deepEqual(await tokensOf(invites), [resent.token]);
+    assert.deepEqual(await idsOf(invites), [resent.inviteId]);
   });
 
   it("invites the email again after a withdrawn fresh invite failed to be deleted", async () => {
     const { invites } = await withdrawalThatFailedToDelete();
     const invited = await createUserInviteToken(inviteOptions());
-    assert.deepEqual(await tokensOf(invites), [invited.token]);
+    assert.deepEqual(await idsOf(invites), [invited.inviteId]);
   });
 
   it("refuses a resend of the withdrawn fresh invite and removes it", async () => {
     const { invites, keptInvite, stray } = await withdrawalThatFailedToDelete();
     await refusal(resend(stray));
-    assert.deepEqual(await tokensOf(invites), [keptInvite.token]);
+    assert.deepEqual(await idsOf(invites), [keptInvite._id]);
   });
 
   it("names the undecided fresh invite that blocks a resend of the kept one", async () => {
@@ -172,21 +172,21 @@ describe("[integration] an invitation retired while another creation reads it", 
     const { invites, invite } = await pendingInvite();
     hold = afterFirstEmailRead(() => cancel(invite));
     const invited = await createUserInviteToken(inviteOptions());
-    assert.deepEqual(await tokensOf(invites), [invited.token]);
+    assert.deepEqual(await idsOf(invites), [invited.inviteId]);
   });
 
   it("refuses a new invitation when the invite it read is accepted before its decision", async () => {
     const { invites, invite } = await pendingInvite();
     hold = afterFirstEmailRead(() => accept(invite));
     await refusal(createUserInviteToken(inviteOptions()));
-    assert.deepEqual(await tokensOf(invites), []);
+    assert.deepEqual(await idsOf(invites), []);
   });
 
   it("refuses a new invitation when the kept invite it read beside a withdrawn fresh invite is accepted", async () => {
     const { invites, keptInvite } = await withdrawalThatFailedToDelete();
     hold = readFirstEmailAs(keptInvite, () => accept(keptInvite));
     await refusal(createUserInviteToken(inviteOptions()));
-    assert.deepEqual(await tokensOf(invites), []);
+    assert.deepEqual(await idsOf(invites), []);
   });
 
   it("invites the email when the kept invite it read beside a withdrawn fresh invite is cancelled during the retry", async () => {
@@ -200,7 +200,7 @@ describe("[integration] an invitation retired while another creation reads it", 
       },
     };
     const invited = await createUserInviteToken(inviteOptions());
-    assert.deepEqual(await tokensOf(invites), [invited.token]);
+    assert.deepEqual(await idsOf(invites), [invited.inviteId]);
   });
 
   it("invites the email when the cleanup removes the withdrawn fresh invite while the kept invite it read is cancelled", async () => {
@@ -218,17 +218,17 @@ describe("[integration] an invitation retired while another creation reads it", 
       },
     };
     const invited = await createUserInviteToken(inviteOptions());
-    assert.deepEqual(await tokensOf(invites), [invited.token]);
+    assert.deepEqual(await idsOf(invites), [invited.inviteId]);
   });
 
   it("names no invite to cancel when the invite it resends was resent meanwhile", async () => {
     const { invites, invite } = await pendingInvite();
     let resentMeanwhile = "";
     hold = beforeFirstOnlyInviteCheck(async () => {
-      resentMeanwhile = (await resend(invite)).token;
+      resentMeanwhile = (await resend(invite)).inviteId;
     });
     const refused = await refusal(resend(invite));
     assert.doesNotMatch(refused.getBody(), /cancel invitation/);
-    assert.deepEqual(await tokensOf(invites), [resentMeanwhile]);
+    assert.deepEqual(await idsOf(invites), [resentMeanwhile]);
   });
 });

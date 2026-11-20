@@ -432,7 +432,7 @@
           "cancel_confirm_title": "Cancel invitation",
           "cancel_confirm_description": "Are you sure you want to cancel this invitation? The invite link will no longer work.",
           "copy_link": "Copy link",
-          "copy_link_success": "Invitation link copied",
+          "copy_link_success": "New invitation link copied. Earlier links no longer work",
           "edit": "Edit invitation",
           "revoke": "Revoke",
           "revoke_confirm_title": "Revoke the invitation to {email}?",

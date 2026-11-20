@@ -6,6 +6,7 @@ import {
   type CreateUserInviteTokenOptions,
   createUserInviteToken,
 } from "@antelopejs/interface-dms/invites";
+import { copyInviteLink } from "../../pages/members";
 import { resetDatabase } from "../helpers/db";
 
 const TENANT = "invite-token-at-rest-tenant";
@@ -60,5 +61,17 @@ describe("[integration] invitation tokens at rest", () => {
     assert.ok(!stored.includes(resent.token));
     assert.equal(await invitationHolding(first.token), undefined);
     assert.equal(await invitationHolding(resent.token), resent.inviteId);
+  });
+
+  it("copies a link under a newly minted token, which retires the emailed one", async () => {
+    const emailed = await created();
+
+    const { url } = await copyInviteLink(TENANT, emailed.inviteId);
+    const copied = new URL(url, "http://dms.test").searchParams.get("token");
+
+    assert.ok(copied);
+    assert.notEqual(copied, emailed.token);
+    assert.ok(await invitationHolding(copied));
+    assert.equal(await invitationHolding(emailed.token), undefined);
   });
 });

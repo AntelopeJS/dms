@@ -1,6 +1,7 @@
 import { BasicDataModel } from "@antelopejs/interface-database-decorators";
 import { normalizeEmail } from "../../auth/db/models/users.model";
 import { getRowInstance } from "../../utils/internal/row-instance";
+import { hashInviteToken } from "../internal/invite-token";
 import {
   type FreshInviteOutcome,
   USER_INVITES_TABLE_NAME,
@@ -103,12 +104,12 @@ export class UserInviteModel extends BasicDataModel(
   /**
    * Get an invite by its token
    *
-   * @param token The token of the invite
+   * @param token The token its link carries
    * @returns The invite or undefined if not found
    */
   getByToken(token: string): Promise<UserInvite | undefined> {
     return this.table
-      .getAll(token, "token")
+      .getAll(hashInviteToken(token), "token")
       .nth(0)
       .default(undefined)
       .run()
@@ -119,14 +120,14 @@ export class UserInviteModel extends BasicDataModel(
    * Get an invite by token along with the tenant it belongs to.
    * Intended for cross-tenant lookups during unauthenticated flows like signup.
    *
-   * @param token The token of the invite
+   * @param token The token its link carries
    * @returns The invite and its tenant id, or undefined if not found
    */
   async getByTokenWithTenant(
     token: string,
   ): Promise<InviteWithTenant | undefined> {
     const row = await this.table
-      .getAll(token, "token")
+      .getAll(hashInviteToken(token), "token")
       .nth(0)
       .default(undefined)
       .run();
@@ -139,9 +140,9 @@ export class UserInviteModel extends BasicDataModel(
   /**
    * Delete an invite by its token
    *
-   * @param token The token of the invite
+   * @param token The token its link carries
    */
   deleteByToken(token: string) {
-    return this.table.getAll(token, "token").delete().run();
+    return this.table.getAll(hashInviteToken(token), "token").delete().run();
   }
 }
