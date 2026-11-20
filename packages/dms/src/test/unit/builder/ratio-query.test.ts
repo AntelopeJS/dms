@@ -156,7 +156,7 @@ function readsAndEditsARatio(): void {
     expect(utilisation?.compare).to.equal(true);
   });
 
-  it("promises a value that may be null from a ratio that compares nothing", async function () {
+  it("answers a ratio that compares nothing through kpiValueData, which leaves a null value out", async function () {
     this.timeout(OP_TIMEOUT);
     expectOk(
       await AddQuery(PAGE, {
@@ -169,14 +169,16 @@ function readsAndEditsARatio(): void {
     );
 
     expect(app.read(PAGE_FILE)).to.contain(
-      "): Promise<{ value: number | null }> {",
+      "return kpiValueData(await model.overallRate().run());",
     );
-    expect(app.read(PAGE_FILE)).to.contain(
-      "return { value: await model.overallRate().run() };",
+    expect(app.read(PAGE_FILE)).to.not.contain(
+      "{ value: await model.overallRate()",
     );
     const read = await queryNamed("overallRate");
+    expect(read?.opaque).to.not.equal(true);
     expect(read?.template).to.equal("ratio");
-    expect(read?.response).to.equal(undefined);
+    expect(read?.output).to.equal("scalar");
+    expect(read?.response).to.equal("value");
     expect(read?.compare).to.equal(undefined);
   });
 
@@ -281,16 +283,21 @@ function refusesWhatTheInstalledInterfaceCannotServe(): void {
     });
   });
 
-  it("refuses a ratio when the interface has no percentOf", async function () {
+  it("refuses a ratio when the interface has neither percentOf nor kpiValueData", async function () {
     this.timeout(OP_TIMEOUT);
     const issues = refusedIssues(
       await AddQuery(PAGE, { ...UTILISATION, name: "old", compare: false }),
     );
 
-    expect(issues).to.have.length(1);
-    expect(issues[0].pointer).to.equal("/template");
+    expect(issues.map((found) => found.pointer)).to.deep.equal([
+      "/template",
+      "/template",
+    ]);
     expect(issues[0].message).to.contain("percentOf");
-    expect(issues[0].message).to.contain("update @antelopejs/interface-dms");
+    expect(issues[1].message).to.contain("kpiValueData");
+    for (const found of issues) {
+      expect(found.message).to.contain("update @antelopejs/interface-dms");
+    }
     expect(app.read(PAGE_FILE)).to.not.contain("old(");
   });
 
@@ -304,6 +311,8 @@ function refusesWhatTheInstalledInterfaceCannotServe(): void {
       "/template",
       "/compare",
     ]);
+    expect(issues[0].message).to.contain("percentOf");
+    expect(issues[1].message).to.contain("kpiValueData");
   });
 
   it("refuses a scalar that compares when the interface has no kpiValueData", async function () {

@@ -37,7 +37,7 @@ const QUERY_PARAMS = JsonObjectSchema.describe(
 const QUERY_RESPONSE = z
   .enum(["series", "card", "value", "items"])
   .describe(
-    "How the route arranges a `series` template's points for the block that reads them: `series` (the default) one point per group, for a bare chart such as ChartLine, ChartColumn or ChartBar; `card` a figure above its series, for a ChartCard; `value` a figure and its sparkline, for a KpiCard; `items` ranked entries, for a TopListCard. A block reads only its own arrangement, so match the block. A `count`, `aggregate` or `ratio` query answers `{ value }` whatever you pass, unless it also has `compare`: then it answers a KPI card's figure with its change (`value`, `previousValue`, `delta`).",
+    "How the route arranges a `series` template's points for the block that reads them: `series` (the default) one point per group, for a bare chart such as ChartLine, ChartColumn or ChartBar; `card` a figure above its series, for a ChartCard; `value` a figure and its sparkline, for a KpiCard; `items` ranked entries, for a TopListCard. A block reads only its own arrangement, so match the block. A `count`, `aggregate` or `ratio` query answers `{ value }` whatever you pass, unless it also has `compare`: then it answers a KPI card's figure with its change (`value`, `previousValue`, `delta`). A `ratio` always answers as a KPI card's figure, and leaves `value` out when it has no share to state.",
   );
 
 const QUERY_COMPARE = z
@@ -89,7 +89,7 @@ const addQuery = defineTool({
   name: "builder_add_query",
   title: "Add query",
   description: withEscalationNote(
-    'Adds a query — a page-hosted GET route serving a computed number, or one per group, that the DataAPI cannot give you. Compiles the template into a method on the resource\'s model and a route on the page, atomically. Returns `{ query, route }`; `route` is the full URL to pass as the reading block\'s `fetchUrl`. A `count` or `aggregate` route serves `{ "value": <number> }`; a `ratio` route serves `{ "value": <percent or null> }`, 25 for a quarter and null when the denominator is 0, which a KpiCard with `valueFormat: "percent"` shows as 25 %; a `series` route serves the arrangement `response` names. Add `compare: true` to a query that binds its period with `$param` `from` and `to` so a card shows a delta: a `count`, `aggregate` or `ratio` then serves `{ value, previousValue, delta }`. Run builder_preview_query first to see what the route would answer.',
+    'Adds a query — a page-hosted GET route serving a computed number, or one per group, that the DataAPI cannot give you. Compiles the template into a method on the resource\'s model and a route on the page, atomically. Returns `{ query, route }`; `route` is the full URL to pass as the reading block\'s `fetchUrl`. A `count` or `aggregate` route serves `{ "value": <number> }`; a `ratio` route serves `{ "value": <percent> }`, 25 for a quarter, and `{}` when the denominator is 0, which a KpiCard with `valueFormat: "percent"` shows as 25 % and as no figure; a `series` route serves the arrangement `response` names. Add `compare: true` to a query that binds its period with `$param` `from` and `to` so a card shows a delta: a `count`, `aggregate` or `ratio` then serves `{ value, previousValue, delta }`. Run builder_preview_query first to see what the route would answer.',
   ),
   effect: "builder",
   input: z.object({

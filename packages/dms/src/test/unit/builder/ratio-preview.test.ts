@@ -108,13 +108,15 @@ describe("previewing a ratio query", () => {
     const answer = await previewed(JANUARY_BIKES, RENTED_BIKES);
 
     expect(answer.output).to.equal("scalar");
+    expect(answer.response).to.equal("value");
     expect(answer.body).to.deep.equal({ value: 25 });
   });
 
-  it("answers null, not 0 or NaN, when the denominator is 0", async () => {
+  it("leaves the value out, not 0 or null, when the denominator is 0", async () => {
     const answer = await previewed([], RENTED_BIKES);
 
-    expect(answer.body).to.deep.equal({ value: null });
+    expect(answer.response).to.equal("value");
+    expect(answer.body).to.deep.equal({});
   });
 
   it("divides a sum by a sum when the sides measure a field", async () => {

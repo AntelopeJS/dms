@@ -335,15 +335,37 @@ describe("the route of a scalar query", () => {
     ]);
   });
 
-  it("promises a value that may be null for a ratio, which a count never answers", () => {
+  it("answers a ratio through kpiValueData even when it compares nothing, so a null leaves value out", () => {
     const ratio = routeText(specOf("ratio", RATIO_PARAMS));
+
+    expect(ratio).to.contain("): Promise<KpiCardData> {");
+    expect(ratio).to.contain(
+      "return kpiValueData(await model.utilisation(new Date(String(from)), new Date(String(to))).run());",
+    );
+    expect(ratio).to.not.contain("{ value:");
+    expect(ratio).to.not.contain("compareFrom");
+  });
+
+  it("imports kpiValueData and its type for a ratio that compares nothing", () => {
+    const route = queryRouteMethodText(
+      specOf("ratio", RATIO_PARAMS),
+      "BikeModel",
+      "main",
+      "utilisation",
+      "Page",
+    );
+
+    expect(route.symbols).to.deep.include.members([
+      { name: "kpiValueData", module: "@antelopejs/interface-dms/base" },
+      { name: "KpiCardData", module: "@antelopejs/interface-dms/base" },
+    ]);
+  });
+
+  it("keeps a count, which never answers null, a bare number", () => {
     const count = routeText(specOf("count", { where: PERIOD }));
 
-    expect(ratio).to.contain("): Promise<{ value: number | null }> {");
-    expect(ratio).to.contain(
-      "return { value: await model.utilisation(new Date(String(from)), new Date(String(to))).run() };",
-    );
     expect(count).to.contain("): Promise<{ value: number }> {");
+    expect(count).to.not.contain("kpiValueData");
   });
 
   it("answers a ratio's figure and its change when it compares, whatever response was asked for", () => {
@@ -376,11 +398,21 @@ describe("reading the route of a scalar query back", () => {
 
   it("reads a plain scalar as a scalar with no arrangement and no comparison", () => {
     const call = parseQueryRouteCall(
-      routeMethod(specOf("ratio", RATIO_PARAMS)),
+      routeMethod(specOf("count", { where: PERIOD })),
     );
 
     expect(call?.output).to.equal("scalar");
     expect(call?.response).to.equal(undefined);
+    expect(call?.compare).to.equal(undefined);
+  });
+
+  it("reads a ratio that compares nothing as a scalar arranged as a value, with no comparison", () => {
+    const call = parseQueryRouteCall(
+      routeMethod(specOf("ratio", RATIO_PARAMS)),
+    );
+
+    expect(call?.output).to.equal("scalar");
+    expect(call?.response).to.equal("value");
     expect(call?.compare).to.equal(undefined);
   });
 

@@ -53,8 +53,9 @@ export interface CompiledChain {
 export interface QueryTemplate {
   descriptor: QueryTemplateDescriptor;
   /**
-   * The template answers null where no figure can be stated, so the route that
-   * serves it promises `number | null` rather than a number.
+   * The template answers no figure where none can be stated, so the route that
+   * serves it arranges the answer with `kpiValueData`, which leaves `value` out
+   * of the response rather than writing a null a card would read as 0.
    */
   nullable?: boolean;
   validate(

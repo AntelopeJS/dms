@@ -11,7 +11,6 @@ import { parseBody } from "./parse-body";
 const FLEET_SCHEMA = "builder-journeys-fleet";
 const HTTP_OK = 200;
 
-const RatioBody = z.object({ value: z.number().nullable() });
 const PreviewSchema = z.object({
   ok: z.literal(true),
   data: z.object({
@@ -20,6 +19,7 @@ const PreviewSchema = z.object({
     truncated: z.boolean(),
   }),
 });
+/** A KPI card's answer: `value` is left out rather than written as null. */
 const KpiBody = z.object({
   value: z.number().optional(),
   previousValue: z.number().optional(),
@@ -51,10 +51,10 @@ const RENTED: JsonValue = { field: "status", op: "eq", value: "rented" };
 export interface RatioJourney {
   compared: z.infer<typeof KpiBody>;
   uncompared: z.infer<typeof KpiBody>;
-  overall: z.infer<typeof RatioBody>;
-  retired: z.infer<typeof RatioBody>;
+  overall: z.infer<typeof KpiBody>;
+  retired: z.infer<typeof KpiBody>;
   previewed: z.infer<typeof PreviewSchema>["data"];
-  reconfigured: z.infer<typeof RatioBody>;
+  reconfigured: z.infer<typeof KpiBody>;
 }
 
 async function saveFleetQueries({
@@ -103,7 +103,7 @@ async function saveFleetQueries({
 
 /**
  * A ratio saved through the builder tools, then served: the percentage a KpiCard with
- * `valueFormat: "percent"` shows, with its delta over the period before, and null
+ * `valueFormat: "percent"` shows, with its delta over the period before, and no value
  * where the denominator is 0.
  */
 export async function servesARatioKpi(
@@ -136,8 +136,8 @@ export async function servesARatioKpi(
     KpiBody,
     await read(routes.period, { from: daysAgo(30), to: daysAgo(0) }),
   );
-  const overall = parseBody(RatioBody, await read(routes.overall));
-  const retired = parseBody(RatioBody, await read(routes.retired));
+  const overall = parseBody(KpiBody, await read(routes.overall));
+  const retired = parseBody(KpiBody, await read(routes.retired));
 
   const previewed = await callTool(bridge, "builder_preview_query", {
     name: "preview",
@@ -166,6 +166,6 @@ export async function servesARatioKpi(
     overall,
     retired,
     previewed: PreviewSchema.parse(JSON.parse(previewed.text)).data,
-    reconfigured: parseBody(RatioBody, await read(routes.retired)),
+    reconfigured: parseBody(KpiBody, await read(routes.retired)),
   };
 }

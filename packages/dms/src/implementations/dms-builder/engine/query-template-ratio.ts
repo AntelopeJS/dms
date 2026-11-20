@@ -147,7 +147,7 @@ export function ratioTemplate(): QueryTemplate {
       resourceType: "database-table",
       title: "Ratio",
       description:
-        "Answers numerator / denominator as a percentage, where 25 means 25 %, and null when the denominator is 0. Each side counts the rows of this resource matching its own filters, or sums a numeric field over them. Serve it to a KpiCard with valueFormat percent, which shows 25 as 25 %, e.g. bikes rented over all bikes.",
+        "Answers numerator / denominator as a percentage, where 25 means 25 %, and leaves the value out when the denominator is 0. Each side counts the rows of this resource matching its own filters, or sums a numeric field over them. Serve it to a KpiCard with valueFormat percent, which shows 25 as 25 %, e.g. bikes rented over all bikes.",
       output: "scalar",
       params: {
         numerator: sideSchema("The figure above the line."),

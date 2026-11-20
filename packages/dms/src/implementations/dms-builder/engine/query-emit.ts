@@ -52,10 +52,12 @@ const RESPONSE_HELPERS = new Map([
 ]);
 
 /**
- * What a scalar is arranged by when it also answers the preceding period: the
- * KPI card's figure with its change, which a bare `{ value }` has no room for.
+ * What a scalar is arranged by when it compares against the preceding period or
+ * may answer no figure: the KPI card's figure with its change, which a bare
+ * `{ value }` has no room for and which leaves `value` out rather than writing it
+ * as null.
  */
-export const SCALAR_COMPARISON = {
+export const KPI_VALUE_RESPONSE = {
   helper: "kpiValueData",
   type: "KpiCardData",
   arrangement: "value",
@@ -139,21 +141,31 @@ function plainResponse(key: string, type: string): ResponseEmission {
 const SERIES_TYPE = "{ x: number | string; y: number | null }[]";
 
 /** How a scalar route answers, beyond that it answers a figure. */
-interface ScalarAnswer {
-  /** The calculation may answer no figure, so the route promises `number | null`. */
+export interface ScalarAnswer {
+  /** The calculation may answer no figure, which a card reads only from a `value` left out. */
   nullable: boolean;
   /** The route also answers the preceding period, which a card reads as a variation. */
   compares: boolean;
 }
 
-function scalarResponse({
+/**
+ * Whether a scalar route answers through `kpiValueData`: a route that compares needs
+ * its change, and one that may answer no figure needs `value` left out, because a
+ * card reads a null `value` as 0 and only an absent one as nothing to show. The
+ * preview applies the same rule, so the two cannot disagree on a null.
+ */
+export function answersThroughKpiValue({
   nullable,
   compares,
-}: ScalarAnswer): ResponseEmission {
-  if (!compares) {
-    return plainResponse("value", nullable ? "number | null" : "number");
+}: ScalarAnswer): boolean {
+  return nullable || compares;
+}
+
+function scalarResponse(answer: ScalarAnswer): ResponseEmission {
+  if (!answersThroughKpiValue(answer)) {
+    return plainResponse("value", "number");
   }
-  const { helper, type } = SCALAR_COMPARISON;
+  const { helper, type } = KPI_VALUE_RESPONSE;
   return {
     returnType: `Promise<${type}>`,
     body: (current, previous) =>
@@ -168,8 +180,9 @@ function scalarResponse({
  *
  * A scalar calculation has one arrangement — the number itself; asking for
  * anything else of it would be asking a question the chain did not answer. The
- * one exception is comparing against the period before, for which the figure and
- * its change are what a KPI card reads whatever arrangement was asked for.
+ * exceptions are comparing against the period before and answering no figure,
+ * for which the figure and its change are what a KPI card reads whatever
+ * arrangement was asked for.
  */
 function responseEmission(
   output: QueryOutputKind,
@@ -255,8 +268,8 @@ function arrangementForHelper(helper: string): QueryStructure["response"] {
 export function responseForHelper(
   helper: string,
 ): { output: QueryOutputKind; response: QueryArrangement } | undefined {
-  if (helper === SCALAR_COMPARISON.helper) {
-    return { output: "scalar", response: SCALAR_COMPARISON.arrangement };
+  if (helper === KPI_VALUE_RESPONSE.helper) {
+    return { output: "scalar", response: KPI_VALUE_RESPONSE.arrangement };
   }
   const response = arrangementForHelper(helper);
   return response === undefined ? undefined : { output: "series", response };
@@ -269,8 +282,8 @@ export function outputForTemplate(
   return getQueryTemplate(template)?.descriptor.output;
 }
 
-/** Whether a template's queries may answer null where no figure can be stated. */
-function answersNull(template: string): boolean {
+/** Whether a template's queries may answer no figure where none can be stated. */
+export function answersNull(template: string): boolean {
   return getQueryTemplate(template)?.nullable === true;
 }
 

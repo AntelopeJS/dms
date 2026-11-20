@@ -14,7 +14,7 @@ export type QueryRef = string;
 /**
  * The shape a query's route responds with: one number as `{ value }`, or one
  * point per group as `{ series }`, each point carrying its group as `x` and what
- * was measured as `y`. A ratio's `value` is null where its denominator is 0.
+ * was measured as `y`. A ratio's `value` is left out where its denominator is 0.
  */
 export type QueryOutputKind = "scalar" | "series";
 

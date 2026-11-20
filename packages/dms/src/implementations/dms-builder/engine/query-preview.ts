@@ -27,10 +27,13 @@ import type {
 import { isCallable, isIndexable } from "./guards";
 import { invalidConfig, notFound, unsupported } from "./ops";
 import {
+  answersNull,
+  answersThroughKpiValue,
   COMPARISON_PARAMETERS,
   isPerTenantSchema,
   outputForTemplate,
   RESPONSE_KEYS,
+  type ScalarAnswer,
   seriesNaming,
   type SeriesNaming,
 } from "./query-emit";
@@ -143,10 +146,8 @@ function readRows(rows: number | null | QueryPoint[]): ReadRows {
   };
 }
 
-/** What a preview knows of the comparison a query asked for. */
-interface Comparison {
-  /** The query binds the period a comparison needs, so its route answers one. */
-  applies: boolean;
+/** How a scalar is answered, and the calculation a comparison shifts to the preceding period. */
+interface Comparison extends ScalarAnswer {
   /** The calculation over the preceding period, when the request carried its bounds. */
   previous?: ReadRows;
 }
@@ -156,11 +157,11 @@ interface Comparison {
  *
  * Mirrors the emitter's own decision: a scalar calculation answers the figure
  * itself whatever arrangement was asked for — there is nothing else in it to
- * arrange — unless it compares against the period before, which the route hands
- * to `kpiValueData` as it would a `KpiCard`. A grouped one defaults to its
- * points, and the three arrangements are built by the helper the route would have
- * called, so the preview and the page cannot diverge on a rounding, a label or a
- * missing group.
+ * arrange — unless it compares against the period before or may answer no figure,
+ * which the route hands to `kpiValueData` as it would a `KpiCard`. A grouped one
+ * defaults to its points, and the three arrangements are built by the helper the
+ * route would have called, so the preview and the page cannot diverge on a
+ * rounding, a label, a null or a missing group.
  */
 function arrange(
   read: ReadRows,
@@ -170,7 +171,7 @@ function arrange(
   comparison: Comparison,
 ): OpResult<QueryPreview> {
   const points = read.points;
-  if (output === "scalar" && comparison.applies) {
+  if (output === "scalar" && answersThroughKpiValue(comparison)) {
     return preview({
       output,
       response: "value",
@@ -299,7 +300,7 @@ export async function runPlanPreview(
         (Array.isArray(rows) ? "series" : "scalar"),
       query.response,
       seriesNaming(params, fields, query.resource),
-      { applies, previous },
+      { nullable: answersNull(query.template), compares: applies, previous },
     );
   } catch (error) {
     return unsupported<QueryPreview>(

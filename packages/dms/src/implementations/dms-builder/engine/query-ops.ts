@@ -19,11 +19,12 @@ import { isIdentifier } from "./paths";
 import { canonicalBody } from "./query-chain";
 import { emitPlan } from "./query-plan";
 import {
+  answersNull,
   comparesScalar,
   type CompiledQuery,
   defaultEndpoint,
+  KPI_VALUE_RESPONSE,
   type ModelTarget,
-  SCALAR_COMPARISON,
   seriesNaming,
 } from "./query-emit";
 import {
@@ -294,31 +295,45 @@ function checkParamSegments(
     }));
 }
 
+interface HelperNeed {
+  helper: string;
+  /** The part of the query that needs it. */
+  pointer: string;
+  for: string;
+}
+
+/**
+ * The helper that arranges a scalar answering through `kpiValueData`, and what asked
+ * for it: comparing against the period before, or a template that may answer no figure.
+ */
+function kpiValueNeed(spec: CompiledQuery): HelperNeed | undefined {
+  const { helper } = KPI_VALUE_RESPONSE;
+  if (comparesScalar(spec)) {
+    return { helper, pointer: "/compare", for: "comparing a scalar query" };
+  }
+  return answersNull(spec.template)
+    ? { helper, pointer: "/template", for: `the "${spec.template}" template` }
+    : undefined;
+}
+
 /**
  * What the installed `@antelopejs/interface-dms` has to export for the code this
  * query writes to compile: the helper a chain calls, and the one that arranges a
- * scalar compared against the period before. Refused rather than written, because
+ * scalar answering through `kpiValueData`. Refused rather than written, because
  * the page would not typecheck.
  */
 function missingHelperIssues(
   spec: CompiledQuery,
   record: ResourceRecord,
 ): ValidationIssue[] {
-  const needs = [
+  const arranging = kpiValueNeed(spec);
+  const needs: HelperNeed[] = [
     ...(spec.chain.imports ?? []).map((ref) => ({
       helper: ref.name,
       pointer: "/template",
       for: `the "${spec.template}" template`,
     })),
-    ...(comparesScalar(spec)
-      ? [
-          {
-            helper: SCALAR_COMPARISON.helper,
-            pointer: "/compare",
-            for: "comparing a scalar query",
-          },
-        ]
-      : []),
+    ...(arranging ? [arranging] : []),
   ];
   return needs
     .filter((need) => !interfaceExportsHelper(record.dataApiFile, need.helper))
