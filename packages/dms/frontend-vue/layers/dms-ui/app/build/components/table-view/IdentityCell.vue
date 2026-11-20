@@ -2,6 +2,7 @@
 import { computed, watch } from "vue";
 import { isObject, isString } from "#dms-core/app/utils/type-check";
 import { useFileReadUrls } from "../../../composables/useFileReadUrls";
+import { labelInitials } from "../../utils/initials";
 
 /**
  * The `identity` cell of a table: an avatar (or an icon tile), a name with an
@@ -58,9 +59,6 @@ const props = withDefaults(defineProps<IdentityCellProps>(), {
 const { user } = useCurrentUser();
 const { getUrl, resolve } = useFileReadUrls(props.storage);
 
-const MAX_INITIALS = 2;
-const INITIALS_SPLIT = /[\s.@_-]+/;
-
 const isEmpty = computed(
   () => !props.title && !!(props.emptyLabel || props.emptyIcon),
 );
@@ -91,14 +89,7 @@ const avatarSrc = computed(() => {
   return avatarKey.value ? getUrl(avatarKey.value) : undefined;
 });
 
-const initials = computed(() =>
-  label.value
-    .split(INITIALS_SPLIT)
-    .filter(Boolean)
-    .slice(0, MAX_INITIALS)
-    .map((word) => word[0]!.toLocaleUpperCase())
-    .join(""),
-);
+const initials = computed(() => labelInitials(label.value));
 </script>
 
 <template>
