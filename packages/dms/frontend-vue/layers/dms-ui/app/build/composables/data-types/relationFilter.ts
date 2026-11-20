@@ -1,5 +1,10 @@
 import { isEmptyFormValue, sameFormValue } from "../unsaved-changes/formValue";
 import { isBoolean, isNumber, isString } from "#dms-core/app/utils/type-check";
+import type { TableFilter } from "../../components/table/Table.types";
+import {
+  buildFiltersQuery,
+  combineFilters,
+} from "../table-view/utils/tableQuery";
 
 /**
  * A relation picker narrowed by another field of its form: the related
@@ -8,13 +13,6 @@ import { isBoolean, isNumber, isString } from "#dms-core/app/utils/type-check";
 export interface RelationFilterBy {
   field: string;
   from: string;
-}
-
-/** A fixed condition the related rows a picker lists must meet. */
-export interface RelationFilter {
-  field: string;
-  mode: string;
-  value?: string;
 }
 
 /** The compare mode the search route matches the related `field` with. */
@@ -32,24 +30,22 @@ function isFilterValue(
 /**
  * The query narrowing the picker's search: the related table's filter
  * syntax (`filter_<field>=<mode>:<value>`), the one its funnel sends. The
- * fixed `filter` always applies; `filterBy` only while its source field
- * holds a single value. A field both name gets both conditions.
+ * fixed `filter` always applies, `filterBy` only while its source field
+ * holds a single value; a field both name gets both conditions.
  */
 export function relationFilterParams(
   filterBy: RelationFilterBy | undefined,
   sourceValue: RelationPickChange["source"],
-  filter?: RelationFilter,
+  filter?: TableFilter,
 ) {
-  const params = new Map<string, string[]>();
-  const add = (field: string, condition: string) => {
-    const key = `filter_${field}`;
-    params.set(key, [...(params.get(key) ?? []), condition]);
-  };
-  if (filter) add(filter.field, `${filter.mode}:${filter.value ?? ""}`);
-  if (filterBy && isFilterValue(sourceValue)) {
-    add(filterBy.field, `${FILTER_MODE}:${sourceValue}`);
-  }
-  return Object.fromEntries(params);
+  const narrowing: TableFilter[] =
+    filterBy && isFilterValue(sourceValue)
+      ? [{ accessorKey: filterBy.field, mode: FILTER_MODE, value: sourceValue }]
+      : [];
+  return combineFilters(
+    buildFiltersQuery(filter ? [filter] : []),
+    buildFiltersQuery(narrowing),
+  );
 }
 
 /** The source field and the pick, before and after a change of either. */

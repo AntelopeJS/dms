@@ -1,7 +1,10 @@
 /** Options of the relation pickers `dms-input-relation` and `dms-input-cascader`. @packageDocumentation */
 import type { ComponentInfoSerialized } from "../component";
 import type { FormPropsSerialized } from "./form-types";
-import type { FormContainerPageTexts } from "./table-view/options";
+import type {
+  FormContainerPageTexts,
+  TableViewTabFilter,
+} from "./table-view/options";
 
 /**
  * Narrows a relation picker to the related rows matching another field of
@@ -19,24 +22,6 @@ export interface RelationFilterBy {
   from: string;
 }
 
-/**
- * A fixed condition on the related rows a relation picker lists, in the
- * related table's filter syntax (`filter_<field>=<mode>:<value>`), e.g.
- * `{ field: "archived", mode: "ne", value: "true" }` for its active rows.
- */
-export interface RelationFilter {
-  /**
-   * Field of the related table to match. It must be filterable there
-   * (`filterable: true` or `@Filter`): the search route honors only the
-   * filters the related controller declares.
-   */
-  field: string;
-  /** Compare mode of the field's filter, e.g. `"is"` or `"ne"`. */
-  mode: string;
-  /** Value compared, as the filter reads it from the URL. */
-  value?: string;
-}
-
 export interface RelationOptions {
   placeholder?: string;
   searchUrl: string;
@@ -47,10 +32,11 @@ export interface RelationOptions {
    */
   filterBy?: RelationFilterBy;
   /**
-   * Lists only the related rows meeting a fixed condition. A held value
-   * outside it keeps its label. Ignored outside a form (a filter's picker).
+   * Lists only the related rows meeting a fixed condition, sent like a tab's
+   * filter (`filter_<accessorKey>=<mode>:<value>`). Ignored outside a form
+   * (a filter's picker).
    */
-  filter?: RelationFilter;
+  filter?: TableViewTabFilter;
   multiple?: boolean;
   deselectable?: boolean;
   keyMapping?: {

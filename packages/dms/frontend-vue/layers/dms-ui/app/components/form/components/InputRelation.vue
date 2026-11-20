@@ -26,8 +26,8 @@ import {
 import type { FormProps } from "../../../composables/form/types";
 import { sameFormValue } from "../../../build/composables/unsaved-changes/formValue";
 import { FORM_ENTRY_CONTEXT_KEY } from "../../../build/composables/form/formEntryContext";
+import type { TableFilter } from "../../../build/components/table/Table.types";
 import {
-  type RelationFilter,
   type RelationFilterBy,
   relationFilterParams,
   resolveRelationPick,
@@ -61,7 +61,7 @@ export interface RelationProps<
    * Lists only the related rows meeting a fixed condition; ignored outside a
    * form (a filter's picker).
    */
-  filter?: RelationFilter;
+  filter?: TableFilter;
   addForm?: { componentName: string; options?: FormProps };
   addPermissionIds?: string[];
   /**

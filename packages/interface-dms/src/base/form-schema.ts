@@ -328,7 +328,6 @@ export namespace FormComponents {
   }
 
   export type RelationFilterBy = RelationPickers.RelationFilterBy;
-  export type RelationFilter = RelationPickers.RelationFilter;
   export type RelationOptions = RelationPickers.RelationOptions;
   export type CascaderRelationKeyMapping =
     RelationPickers.CascaderRelationKeyMapping;

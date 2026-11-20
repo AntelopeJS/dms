@@ -403,13 +403,17 @@ describe("[unit] interfaces/dms-base/data-types/default-types", () => {
 
   describe("RelationType filter", () => {
     class SiteController extends Controller("/relation-fixed-filter-site") {
-      declare archived: boolean;
+      declare isArchived: boolean;
       declare region: string;
     }
     const siteMeta = GetMetadata(SiteController, DataAPIMeta);
-    siteMeta.filters.archived = () => true;
+    siteMeta.filters.isArchived = () => true;
     siteMeta.endpoints.select = TableViewRoutes.Select;
-    const ACTIVE = { field: "archived", mode: "ne", value: "true" } as const;
+    const ACTIVE = {
+      accessorKey: "isArchived",
+      mode: "ne",
+      value: "true",
+    } as const;
 
     it("hands its fixed filter to the picker it renders", () => {
       const rel = new DefaultDataTypes.RelationType({
@@ -426,12 +430,12 @@ describe("[unit] interfaces/dms-base/data-types/default-types", () => {
       class Target {}
       const rel = new DefaultDataTypes.RelationType({
         dataApiController: SiteController,
-        filter: { field: "region", mode: "is", value: "north" },
+        filter: { accessorKey: "region", mode: "is", value: "north" },
         filterOnly: true,
       });
 
       expect(() => rel.decorateField(Target.prototype, "site", {})).to.throw(
-        /filter\.field "region" is not filterable on SiteController/,
+        /filter\.accessorKey "region" is not filterable on SiteController/,
       );
     });
   });

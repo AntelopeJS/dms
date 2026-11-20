@@ -5,15 +5,15 @@ import {
 } from "../layers/dms-ui/app/entries/composables/data-types/relationFilter";
 
 const BY_CUSTOMER = { field: "customer", from: "customer" };
-const ACTIVE = { field: "archived", mode: "ne", value: "true" };
+const ACTIVE = { accessorKey: "isArchived", mode: "ne", value: "true" };
 
 describe("relationFilterParams", () => {
   it("narrows the search with the related table's filter syntax", () => {
     expect(relationFilterParams(BY_CUSTOMER, "c-1")).toEqual({
-      filter_customer: ["is:c-1"],
+      filter_customer: "is:c-1",
     });
     expect(relationFilterParams(BY_CUSTOMER, 3)).toEqual({
-      filter_customer: ["is:3"],
+      filter_customer: "is:3",
     });
   });
 
@@ -30,31 +30,30 @@ describe("relationFilterParams", () => {
 
   it("always sends the fixed filter, whatever the source field holds", () => {
     expect(relationFilterParams(undefined, undefined, ACTIVE)).toEqual({
-      filter_archived: ["ne:true"],
+      filter_isArchived: "ne:true",
     });
     expect(relationFilterParams(BY_CUSTOMER, "c-1", ACTIVE)).toEqual({
-      filter_archived: ["ne:true"],
-      filter_customer: ["is:c-1"],
+      filter_isArchived: "ne:true",
+      filter_customer: "is:c-1",
     });
   });
 
-  it("sends a fixed filter without a value as an empty one", () => {
-    expect(
-      relationFilterParams(undefined, undefined, {
-        field: "closedAt",
-        mode: "isEmpty",
-      }),
-    ).toEqual({ filter_closedAt: ["isEmpty:"] });
+  it("sends a fixed filter that needs no value", () => {
+    const params = relationFilterParams(undefined, undefined, {
+      accessorKey: "closedAt",
+      mode: "is_empty",
+    });
+    expect(params.filter_closedAt).toMatch(/^is_empty:/);
   });
 
   it("keeps both conditions when the fixed filter and filterBy share a field", () => {
     expect(
       relationFilterParams(BY_CUSTOMER, "c-1", {
-        field: "customer",
-        mode: "ne",
+        accessorKey: "customer",
+        mode: "is_not",
         value: "c-9",
       }),
-    ).toEqual({ filter_customer: ["ne:c-9", "is:c-1"] });
+    ).toEqual({ filter_customer: ["is_not:c-9", "is:c-1"] });
   });
 });
 

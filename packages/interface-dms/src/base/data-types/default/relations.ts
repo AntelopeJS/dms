@@ -5,7 +5,10 @@ import type { DecoratorTarget } from "@antelopejs/interface-core/decorators";
 import { DataAPIMeta, Foreign } from "@antelopejs/interface-data-api/metadata";
 import { z } from "zod";
 import { FormComponents } from "../../form-schema";
-import type { FormContainerPageTexts } from "../../table-view/options";
+import type {
+  FormContainerPageTexts,
+  TableViewTabFilter,
+} from "../../table-view/options";
 import { DataType, RegisterDataType } from "../core";
 import { absolutizeJoinedSchemas } from "../internal/compare-types";
 import { buildOutsideCycle } from "../internal/relation-add-form";
@@ -16,13 +19,6 @@ import { DefaultDataCompareTypes } from "../compare-types";
 export interface RelationFilterBy<T extends ControllerClass> {
   field: keyof InstanceType<T> & string;
   from: string;
-}
-
-/** {@link FormComponents.RelationFilter}, `field` typed on the related row. */
-export interface RelationFilter<T extends ControllerClass> {
-  field: keyof InstanceType<T> & string;
-  mode: string;
-  value?: string;
 }
 
 function relationCompareModes(multiple?: boolean) {
@@ -107,13 +103,17 @@ export class RelationType<T extends ControllerClass> extends DataType {
        */
       filterBy?: RelationFilterBy<T>;
       /**
-       * Lists only the related rows meeting a fixed condition, e.g.
-       * `{ field: "archived", mode: "ne", value: "true" }` for the active
-       * ones. A record already holding a row outside it keeps its label.
-       * `field` must be filterable on the related controller: declaring it
-       * otherwise throws at registration.
+       * Lists only the related rows meeting a fixed condition, written like
+       * a tab's filter: `{ accessorKey: "isArchived", mode: "ne", value:
+       * "true" }` for the active rows of an `@ArchiveField` table. `mode` is
+       * one the related field's filter takes (`eq` or `ne` for an archive
+       * field, a compare mode such as `is` or `is_not` for a filterable
+       * column). `accessorKey` must be filterable on the related controller:
+       * declaring it otherwise throws at registration.
        */
-      filter?: RelationFilter<T>;
+      filter?: TableViewTabFilter & {
+        accessorKey: keyof InstanceType<T> & string;
+      };
     },
   ) {
     super(
@@ -165,13 +165,13 @@ export class RelationType<T extends ControllerClass> extends DataType {
       DataAPIMeta,
     );
     const fields = {
-      filterBy: this.options.filterBy?.field,
-      filter: this.options.filter?.field,
+      "filterBy.field": this.options.filterBy?.field,
+      "filter.accessorKey": this.options.filter?.accessorKey,
     };
     for (const [option, field] of Object.entries(fields)) {
       if (!field || filters[field]) continue;
       throw new Error(
-        `Relation "${String(key)}": ${option}.field "${field}" is not filterable on ${this.options.dataApiController.name}; declare it filterable: true there.`,
+        `Relation "${String(key)}": ${option} "${field}" is not filterable on ${this.options.dataApiController.name}; declare it filterable: true there.`,
       );
     }
   }
