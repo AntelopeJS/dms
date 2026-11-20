@@ -66,8 +66,7 @@ function parse(text: string, country: CountryCode | undefined) {
 /**
  * The E.164 form ("+32494669443") of a phone number typed in any common way:
  * a number without a "+" or "00" prefix reads in `country`. `undefined` when
- * the text is not a possible number of its country. The server's `PhoneType`
- * applies the same rule.
+ * the text is not a possible number of its country.
  */
 export function toE164(
   text: string,
