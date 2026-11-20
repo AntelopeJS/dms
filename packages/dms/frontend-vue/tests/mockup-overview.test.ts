@@ -65,7 +65,7 @@ const writes = () =>
 const HOME = { name: "demo" };
 
 describe("opening the overview", () => {
-  it("follows the mockup on one stream, however many pages its Overview draws (fails when a frame of the Overview opens a stream of its own)", async () => {
+  it("follows the mockup on one stream, however many pages its Overview draws (fails when each slot of the Overview follows the mockup on a stream of its own)", async () => {
     await mount(12, { query: HOME });
     await measure();
 

@@ -76,7 +76,8 @@ function stubDashboard(path: string): void {
 
 /**
  * Loads a document of the dashboard on `path`, as the browser does a tab or
- * a frame, and runs the plugins that keep a connection open.
+ * a frame: starts its realtime engine, as the menu, notification and MCP
+ * plugins do, and runs the plugins that keep a stream open.
  */
 async function openDocument(path: string): Promise<FakeRealtimeServer> {
   window.history.replaceState(null, "", path);
@@ -91,6 +92,7 @@ async function openDocument(path: string): Promise<FakeRealtimeServer> {
     "../layers/dms-core/app/composables/realtime/useUserRealtime"
   );
   vi.stubGlobal("useUserRealtime", realtime.useUserRealtime);
+  realtime.useUserRealtime();
   const plugins = await Promise.all([
     import("../layers/dms-layout/app/plugins/dms-dev-reload.client"),
     import("../layers/dms-layout/app/entries/mockups/created-toast"),
