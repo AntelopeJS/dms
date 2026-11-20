@@ -1,4 +1,4 @@
-import type { ShallowRef } from "vue";
+import type { Ref, ShallowRef } from "vue";
 import type { MockupState } from "../../utils/mockup";
 import { useMockupSpec, type MockupSpecNotice } from "./useMockupSpec";
 import { useMockupVersions } from "./useMockupVersions";
@@ -9,12 +9,17 @@ interface DocumentOptions {
   state: Readonly<ShallowRef<MockupState | undefined>>;
   /** Called with each notice of the spec, before its toast: the viewer settles what it was doing. */
   onNotice: () => void;
+  /** This browser session's viewer id: see {@link MockupSpecEditor}. */
+  viewer: string;
+  /** The id of the block this session holds the lock of, while it holds one. */
+  held: Readonly<Ref<string | undefined>>;
 }
 
 /**
  * The mockup's spec as the viewer edits it, with its undo history, and the
  * version history beside it. Each notice of the spec, a spec adopted, one
- * refused or a failed write, and each restore, shows as a toast.
+ * refused or a failed write, and each restore, shows as a toast, except a
+ * spec adopted that another viewer of the editor wrote, which is no surprise.
  */
 export function useMockupDocument(options: DocumentOptions) {
   const { t } = useI18n();
@@ -25,7 +30,9 @@ export function useMockupDocument(options: DocumentOptions) {
   function notify(notice: MockupSpecNotice): void {
     options.onNotice();
     if (notice.kind === "adopted") {
-      toast.add({ color: "info", title: t("dms.mockup.adopted") });
+      if (notice.by === undefined) {
+        toast.add({ color: "info", title: t("dms.mockup.adopted") });
+      }
     } else if (notice.kind === "refused") {
       const issue = `${notice.issue.path}: ${notice.issue.message}`;
       toast.add({
@@ -47,6 +54,8 @@ export function useMockupDocument(options: DocumentOptions) {
     authFetch: $authFetch,
     state: options.state,
     onNotice: notify,
+    viewer: options.viewer,
+    held: options.held,
   });
   const history = useMockupVersions({
     name: options.name,

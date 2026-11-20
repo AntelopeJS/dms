@@ -319,6 +319,8 @@ function idCounts(tree: BlockTree): Map<string, number> {
   return counts;
 }
 
+const PAGE_OF_POINTER = new RegExp(`^/pages/${INDEX}/`);
+
 /**
  * Anchors the node `site` names in `spec` on the nearest node, from it up to
  * its root, that has no id or an id anchoring stamped that no other node
@@ -353,4 +355,18 @@ export function anchorSite(
   const stamp = { path: pointerOf(reached), id: freshId(taken) };
   stampNode(spec, reached, stamp.id);
   return { anchor: { block: stamp.id, steps }, stamp };
+}
+
+/**
+ * {@link anchorSite} for a node named by its spec JSON pointer alone: its page
+ * is the one the pointer's page index names in `spec`. Undefined when the
+ * pointer names no page or no node.
+ */
+export function anchorPointer(
+  spec: MockupSpec,
+  path: string,
+): Anchored | undefined {
+  const index = PAGE_OF_POINTER.exec(path)?.[1];
+  const page = index === undefined ? undefined : spec.pages[Number(index)]?.id;
+  return page === undefined ? undefined : anchorSite(spec, { page, path });
 }

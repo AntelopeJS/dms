@@ -27,13 +27,14 @@ import {
   type MockupDrag,
   type MockupDropTarget,
 } from "../../utils/mockupDrop";
-import type { MockupEdit } from "../../utils/mockupEdit";
+import { editTargets, type MockupEdit } from "../../utils/mockupEdit";
 import {
   nodeAt,
   nodePointer,
   pageFixtures,
   parentPointer,
   parseNodePointer,
+  pointersOfId,
   siblingsAt,
   type MockupSpecDocument,
   type MockupSpecNode,
@@ -61,6 +62,10 @@ interface EditingOptions {
   openPage: (id: string) => void;
   /** The revision of the compiled state the preview draws. */
   revision: ComputedRef<number | undefined>;
+  /** The selection to use, when the caller shares it. */
+  selection?: Ref<string | undefined>;
+  /** Whether another viewer holds the block at a pointer, or one it sits in or holds: an edit of such a block changes nothing. */
+  isHeld?: (pointer: string) => boolean;
 }
 
 /** A block armed from the catalog, waiting for a click on the page to drop it. */
@@ -112,6 +117,20 @@ export interface MockupEditing {
   dropAt: (point: { x: number; y: number }) => void;
   openText: (message: PreviewTextMessage) => void;
   commitText: (value: string) => void;
+}
+
+/**
+ * Where the node at `pointer` before an outside change is after it, when it
+ * has an id no other node carries: undefined once it is gone.
+ */
+function followedPointer(
+  adopted: MockupAdoption,
+  pointer: string,
+): string | undefined {
+  const id = adopted.previous && nodeAt(adopted.previous, pointer)?.id;
+  if (id === undefined) return undefined;
+  const [only, ...others] = pointersOfId(adopted.next, id);
+  return others.length === 0 ? only : undefined;
 }
 
 /**
@@ -306,12 +325,18 @@ function watchSelection(
       selection.value = undefined;
     }
   });
-  watch(options.editor.adoption, (adopted) => {
-    text.value = undefined;
-    const pointer = selection.value;
-    if (!adopted || !pointer) return;
-    if (!isSameNode(adopted, pointer)) selection.value = undefined;
-  });
+  watch(
+    options.editor.adoption,
+    (adopted) => {
+      text.value = undefined;
+      const pointer = selection.value;
+      if (!adopted || !pointer) return;
+      if (!isSameNode(adopted, pointer)) {
+        selection.value = followedPointer(adopted, pointer);
+      }
+    },
+    { flush: "sync" },
+  );
 }
 
 function selectedBlock(
@@ -383,7 +408,7 @@ function useNodeActions(
 /** Wires edit mode: every action becomes one reducer edit, whose result picks the selection. */
 export function useMockupEditing(options: EditingOptions): MockupEditing {
   const { editor, catalog } = options;
-  const selection = ref<string>();
+  const selection = options.selection ?? ref<string>();
   const rects = shallowRef<PreviewBlockRect[]>([]);
   /** The revision drawn when nodes last moved, until a newer one is laid out. */
   const movedAt = ref<number>();
@@ -422,6 +447,7 @@ export function useMockupEditing(options: EditingOptions): MockupEditing {
   }
 
   function edit(next: MockupEdit, coalesceKey?: string): void {
+    if (editTargets(next).some((pointer) => options.isHeld?.(pointer))) return;
     const result = editor.apply(next, coalesceKey);
     if (!result || next.kind === "setTitle") return;
     if (next.kind !== "setOption" && next.kind !== "setText") markMoved();

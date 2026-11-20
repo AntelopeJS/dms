@@ -8,6 +8,7 @@ import { MOCKUP_API } from "./fixtures";
 import { registerMockupPage } from "./page";
 import {
   closeMockupStreams,
+  createMockupEngine,
   type MockupEngine,
   registerMockupRoutes,
 } from "./routes";
@@ -27,6 +28,9 @@ export * from "./json-schema";
 export * from "./manage";
 export * from "./live-page";
 export * from "./model";
+export * from "./presence";
+export * from "./presence-board";
+export * from "./presence-routes";
 export * from "./routes";
 export * from "./sample-rows";
 export * from "./source";
@@ -45,10 +49,7 @@ export function startMockupEngine(
   livePages?: PageReader,
 ): void {
   if (engine) return;
-  engine = {
-    store: new MockupStore(mockupsDir, livePages),
-    streams: new Set(),
-  };
+  engine = createMockupEngine(new MockupStore(mockupsDir, livePages));
   registerMockupRoutes(engine);
   registerMockupPage();
 }

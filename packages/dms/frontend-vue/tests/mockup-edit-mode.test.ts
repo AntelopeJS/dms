@@ -96,6 +96,10 @@ const titles = (document: MockupSpecDocument) =>
   document.pages[0]?.tree.map((node) => node.options?.title);
 const find = (selector: string) =>
   viewer.host.querySelector<HTMLElement>(selector);
+const titleField = () =>
+  viewer.host.querySelector<HTMLInputElement>(
+    "[data-dms-mockup-field=title] input",
+  );
 
 async function click(selector: string): Promise<void> {
   find(selector)?.click();
@@ -364,12 +368,16 @@ describe("a change from outside while the editor is open", () => {
     expect(runtime.file.spec).toEqual(withKpiAbove());
   });
 
-  it("clears the selection when its pointer now names another node (fails when the editor stays on the block that moved away)", async () => {
+  it("moves the selection to where its block went, and clears it once the block is gone (fails when the editor stays on the pointer, which now names another block)", async () => {
     await pick("block-0");
-    expect(find("[data-dms-mockup-field=title]")).not.toBeNull();
+    expect(titleField()?.value).toBe("Revenue");
 
     await theAIWrites(withKpiAbove());
+    expect(titleField()?.value).toBe("Revenue");
 
+    const theirs = withKpiAbove();
+    theirs.pages[0]?.tree.splice(1, 1);
+    await theAIWrites(theirs);
     expect(find("[data-dms-mockup-field=title]")).toBeNull();
   });
 

@@ -36,6 +36,7 @@ import {
   mockupSourceSchema,
   parseMockupName,
 } from "./model";
+import type { PresenceSnapshot } from "./presence";
 import { readSpecText, withSpecLock } from "./source";
 
 /** How long a burst of writes to one file is waited out before it is read. */
@@ -47,7 +48,8 @@ const CREATED_POLL_MS = 500;
 /** What a subscriber to one mockup receives. */
 export type MockupEvent =
   | { event: "state"; data: MockupState }
-  | { event: "annotations"; data: { annotations: MockupAnnotation[] } };
+  | { event: "annotations"; data: { annotations: MockupAnnotation[] } }
+  | { event: "presence"; data: PresenceSnapshot };
 
 export type MockupListener = (event: MockupEvent) => void;
 

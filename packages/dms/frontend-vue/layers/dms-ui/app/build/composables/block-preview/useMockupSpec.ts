@@ -5,14 +5,12 @@ import {
   shallowRef,
   watch,
   type ComputedRef,
+  type Ref,
   type ShallowRef,
 } from "vue";
 import type { JsonValue } from "../../../../../dms-core/app/types/json";
-import {
-  isNumber,
-  isObject,
-  isString,
-} from "../../../../../dms-core/app/utils/type-check";
+import { isString } from "../../../../../dms-core/app/utils/type-check";
+import { fetchStatus } from "../../utils/fetchStatus";
 import { isObjectValue } from "../../utils/json";
 import {
   mockupEndpoint,
@@ -32,6 +30,7 @@ import {
   undo,
   type MockupHistory,
 } from "../../utils/mockupHistory";
+import { rebasedEdit } from "../../utils/mockupRebase";
 import {
   parseMockupSpec,
   type MockupSpecDocument,
@@ -42,7 +41,11 @@ type AuthFetch = ReturnType<typeof useAuthFetch>["$authFetch"];
 
 /** Why the editor's spec changed under the developer, or could not be saved. */
 export type MockupSpecNotice =
-  | { kind: "adopted" }
+  | {
+      kind: "adopted";
+      /** The name of the viewer of the editor who wrote the file, when one did: the change is news, not a surprise. */
+      by?: string;
+    }
   | {
       kind: "refused";
       issue: MockupIssue;
@@ -57,12 +60,26 @@ export interface MockupAdoption {
   next: MockupSpecDocument;
 }
 
+/** A change the editor made to its own spec: an edit, an undo or a redo. */
+export interface MockupOwnEdit {
+  previous: MockupSpecDocument;
+  next: MockupSpecDocument;
+}
+
 interface MockupSpecOptions {
   name: string;
   authFetch: AuthFetch;
   /** The compiled state the stream last sent: each new one re-reads the file. */
   state: Readonly<ShallowRef<MockupState | undefined>>;
   onNotice: (notice: MockupSpecNotice) => void;
+  /** This browser session's viewer id, which each write names: its own locks do not refuse it. */
+  viewer?: string;
+  /**
+   * The id of the block this session holds the lock of, while it holds one:
+   * the editor finds the block by it, wherever an edit or an outside change
+   * put it, and never writes it.
+   */
+  held?: Readonly<Ref<string | undefined>>;
 }
 
 /** The spec the `/mockup` editor changes, and its undo history. */
@@ -73,6 +90,8 @@ export interface MockupSpecEditor {
   canRedo: ComputedRef<boolean>;
   /** The last change from outside the editor took over its own spec. */
   adoption: Readonly<ShallowRef<MockupAdoption | undefined>>;
+  /** The last change the editor made to its own spec: never one that came from outside, nor one that took ids a note stamped. */
+  ownEdit: Readonly<ShallowRef<MockupOwnEdit | undefined>>;
   /** Whether the last write failed and is being retried: true until one lands. */
   hasFailed: ComputedRef<boolean>;
   /**
@@ -108,16 +127,18 @@ const HTTP_CONFLICT = 409;
 interface SpecSource {
   spec: MockupSpecDocument;
   digest: string;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return isObject(value) && value !== null && !Array.isArray(value);
+  /** The name of the viewer of an editor whose write made this very file. */
+  writtenBy?: { name: string };
 }
 
 function parseSource(value: JsonValue | undefined): SpecSource | undefined {
   if (!isObjectValue(value) || !isString(value.digest)) return undefined;
   const spec = parseMockupSpec(value.spec);
-  return spec ? { spec, digest: value.digest } : undefined;
+  if (!spec) return undefined;
+  const { writtenBy } = value;
+  return isObjectValue(writtenBy) && isString(writtenBy.name)
+    ? { spec, digest: value.digest, writtenBy: { name: writtenBy.name } }
+    : { spec, digest: value.digest };
 }
 
 type WriteAnswer =
@@ -139,12 +160,6 @@ function parseWriteAnswer(
     : undefined;
 }
 
-function statusOf(cause: unknown): number | undefined {
-  if (!isRecord(cause)) return undefined;
-  const response = isRecord(cause.response) ? cause.response : {};
-  return [cause.status, cause.statusCode, response.status].find(isNumber);
-}
-
 function sameSpec(
   left: MockupSpecDocument,
   right: MockupSpecDocument,
@@ -161,6 +176,7 @@ class MockupSpecSync {
   readonly history = shallowRef<MockupHistory<MockupSpecDocument>>();
   readonly written = shallowRef<MockupSpecDocument>();
   readonly adoption = shallowRef<MockupAdoption>();
+  readonly ownEdit = shallowRef<MockupOwnEdit>();
   readonly hasFailed = shallowRef(false);
   readonly isAwaitingState = shallowRef(false);
   isClosed = false;
@@ -248,16 +264,46 @@ class MockupSpecSync {
     return true;
   }
 
+  /**
+   * The file with the edit not written yet put back on it, when the edit is
+   * all inside the block this session holds: see {@link rebasedEdit}.
+   */
+  private keptEdit(source: SpecSource): MockupSpecDocument | undefined {
+    const present = this.history.value?.present;
+    const held = this.options.held?.value;
+    const written = this.written.value;
+    if (!present || !written || present === written || held === undefined) {
+      return undefined;
+    }
+    return rebasedEdit(written, present, source.spec, held);
+  }
+
+  /**
+   * Takes the file in place of the spec held, starting the history over. An
+   * edit inside the block this session holds is kept and written on top. The
+   * notice names the viewer who wrote the file only when no edit not written
+   * yet goes with it: an edit it drops is never dropped in silence.
+   */
   adopt(source: SpecSource, isNews: boolean): void {
     const previous = this.history.value?.present;
+    const kept = isNews ? this.keptEdit(source) : undefined;
+    const isLosing =
+      previous !== undefined && previous !== this.written.value && !kept;
     this.stopTimers();
     this.landed();
     this.digest = source.digest;
     this.written.value = source.spec;
-    this.history.value = reset(source.spec);
+    this.history.value = kept
+      ? commit(reset(source.spec), kept)
+      : reset(source.spec);
     if (!isNews) return;
-    this.adoption.value = { previous, next: source.spec };
-    this.options.onNotice({ kind: "adopted" });
+    this.adoption.value = { previous, next: kept ?? source.spec };
+    this.options.onNotice(
+      source.writtenBy && !isLosing
+        ? { kind: "adopted", by: source.writtenBy.name }
+        : { kind: "adopted" },
+    );
+    if (kept) this.schedule();
   }
 
   private isBusy(): boolean {
@@ -324,7 +370,7 @@ class MockupSpecSync {
     cause: unknown,
     sent: MockupSpecDocument,
   ): Promise<void> {
-    if (statusOf(cause) !== HTTP_CONFLICT) {
+    if (fetchStatus(cause) !== HTTP_CONFLICT) {
       if (!this.unconfirmed.includes(sent)) this.unconfirmed.push(sent);
       this.failed(cause);
       return;
@@ -356,7 +402,10 @@ class MockupSpecSync {
       const answer = parseWriteAnswer(
         await this.options.authFetch<JsonValue>(this.endpoint, {
           method: "PUT",
-          body: { spec, digest: this.digest },
+          body:
+            this.options.viewer === undefined
+              ? { spec, digest: this.digest }
+              : { spec, digest: this.digest, viewer: this.options.viewer },
         }),
       );
       if (answer?.ok) {
@@ -392,8 +441,10 @@ class MockupSpecSync {
   }
 
   move(next: MockupHistory<MockupSpecDocument>): void {
-    if (next === this.history.value) return;
+    const previous = this.history.value?.present;
+    if (!previous || next === this.history.value) return;
     this.history.value = next;
+    this.ownEdit.value = { previous, next: next.present };
     this.schedule();
   }
 
@@ -451,6 +502,7 @@ export function useMockupSpec(options: MockupSpecOptions): MockupSpecEditor {
     canUndo: computed(() => !!history.value?.past.length),
     canRedo: computed(() => !!history.value?.future.length),
     adoption: sync.adoption,
+    ownEdit: sync.ownEdit,
     hasFailed: computed(() => sync.hasFailed.value),
     isPending: computed(
       () =>

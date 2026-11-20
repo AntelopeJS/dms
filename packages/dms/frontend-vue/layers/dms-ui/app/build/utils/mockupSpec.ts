@@ -307,3 +307,26 @@ export function ancestorPointers(pointer: string): string[] {
     nodePointer({ ...address, steps: address.steps.slice(0, depth + 1) }),
   );
 }
+
+/** The one pointer `id` has in `spec`; undefined when no node or several carry it. */
+export function pointerOfId(
+  spec: MockupSpecDocument,
+  id: string,
+): string | undefined {
+  const [only, ...others] = pointersOfId(spec, id);
+  return others.length === 0 ? only : undefined;
+}
+
+/** The pointer of each node of `spec` whose id is `id`, in document order. */
+export function pointersOfId(spec: MockupSpecDocument, id: string): string[] {
+  const found: string[] = [];
+  const walk = (nodes: readonly MockupSpecNode[], pointer: string): void => {
+    nodes.forEach((node, index) => {
+      const at = `${pointer}/${index}`;
+      if (node.id === id) found.push(at);
+      walk(node.children ?? [], `${at}/children`);
+    });
+  };
+  spec.pages.forEach((page, index) => walk(page.tree, `/pages/${index}/tree`));
+  return found;
+}

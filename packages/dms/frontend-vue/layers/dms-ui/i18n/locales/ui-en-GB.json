@@ -943,6 +943,7 @@
       "group_visualization": "Charts",
       "group_other": "Other",
       "layers_empty": "This page has no blocks yet.",
+      "locked_by": "{name} is editing this block",
       "page_home": "home",
       "add_page": "Add page",
       "new_page_title": "New page",
