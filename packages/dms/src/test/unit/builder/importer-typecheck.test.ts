@@ -59,7 +59,9 @@ function installTone(tone: string): void {
 
 function failedFiles(result: OpResult<unknown>): string[] {
   return !result.ok && result.error.code === "typecheck_failed"
-    ? result.error.diagnostics.map((diagnostic) => diagnostic.file)
+    ? result.error.diagnostics.map((diagnostic) =>
+        path.normalize(diagnostic.file),
+      )
     : [];
 }
 

@@ -8,7 +8,7 @@ import {
   rmSync,
   writeFileSync,
 } from "node:fs";
-import { tmpdir } from "node:os";
+import { platform, tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { describeFailure } from "./failure.mjs";
 import { assertSameNamespaces } from "./identity.mjs";
@@ -26,6 +26,9 @@ import {
 } from "./json.mjs";
 
 const RUN_FILE = "run.json";
+const REPLACE_RETRY_MS = 2_000;
+const REPLACE_POLL_MS = 5;
+const REPLACE_PAUSE = new Int32Array(new SharedArrayBuffer(4));
 const ID_BYTES = 3;
 const TIMESTAMP_LENGTH = 15;
 
@@ -275,7 +278,42 @@ export function saveRun(state) {
   writeFileSync(`${file}.next`, `${JSON.stringify(state, null, 2)}\n`, {
     mode: 0o600,
   });
-  renameSync(`${file}.next`, file);
+  replaceFile(`${file}.next`, file);
+}
+
+/**
+ * Renames `from` over `to`. Windows refuses with EPERM to replace a file
+ * another process holds open, as a service loading the run does for a
+ * moment, so there the rename is tried again until that read is done.
+ *
+ * @param {string} from The new file
+ * @param {string} to The file it replaces
+ * @throws When the rename fails for another reason, or Windows still refuses it after {@link REPLACE_RETRY_MS}
+ */
+function replaceFile(from, to) {
+  const deadline = Date.now() + REPLACE_RETRY_MS;
+  for (;;) {
+    try {
+      renameSync(from, to);
+      return;
+    } catch (error) {
+      if (!isHeldOpen(error) || Date.now() >= deadline) throw error;
+      Atomics.wait(REPLACE_PAUSE, 0, 0, REPLACE_POLL_MS);
+    }
+  }
+}
+
+/**
+ * @param {unknown} error
+ * @returns {boolean}
+ */
+function isHeldOpen(error) {
+  return (
+    platform() === "win32" &&
+    error instanceof Error &&
+    "code" in error &&
+    error.code === "EPERM"
+  );
 }
 
 /**

@@ -84,9 +84,9 @@ describe("[unit] a declaration file edited between two builder operations", () =
       !result.ok && result.error.code === "typecheck_failed"
         ? result.error.diagnostics
         : [];
-    expect(diagnostics.map((diagnostic) => diagnostic.file)).to.deep.equal([
-      path.join(app.root, "src", "labels.ts"),
-    ]);
+    expect(
+      diagnostics.map((diagnostic) => path.normalize(diagnostic.file)),
+    ).to.deep.equal([path.join(app.root, "src", "labels.ts")]);
   });
 
   /**

@@ -6,6 +6,7 @@ import { join } from "node:path";
 import test from "node:test";
 import { pathToFileURL } from "node:url";
 import { newRun } from "./helpers/fake-run.mjs";
+import { hasProc } from "./identity.mjs";
 import { listenersOf, restartablePort } from "./processes.mjs";
 import { readRun, saveRun } from "./run-state.mjs";
 
@@ -44,7 +45,8 @@ await ensureMail(loadRun(${JSON.stringify(state.dir)}));`,
   const mail = readRun(state.dir).processes.find(
     (entry) => entry.name === "mail",
   );
-  assert.deepEqual(listenersOf(state.smtpPort), [mail?.pid]);
+  assert.ok(mail, "the run records no mail sink");
+  if (hasProc()) assert.deepEqual(listenersOf(state.smtpPort), [mail.pid]);
 });
 
 await test("the service entry refuses a name it does not serve and names those it does (catches an entry that exits 0 on a typo, leaving the stack to wait on a port nothing listens on)", () => {
