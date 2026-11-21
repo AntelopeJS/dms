@@ -14,7 +14,7 @@ import {
   recordOf,
 } from "./json.mjs";
 import {
-  freePort,
+  restartablePort,
   startDetached,
   stopRecorded,
   waitForOwnPort,
@@ -254,7 +254,7 @@ export async function mongodBinary(from) {
 }
 
 /**
- * Starts a mongod owned by the run, on `port` or a free one, with its data
+ * Starts a mongod owned by the run, on `port` or a restartable one, with its data
  * under the run folder, as the only member of a replica set, so change
  * streams work. A mongod that does not become primary is stopped before the
  * error is thrown. A binary that is a JavaScript file runs on this Node, as
@@ -263,12 +263,12 @@ export async function mongodBinary(from) {
  *
  * @param {{ mongo: string, logs: string }} paths The run's folders
  * @param {string[]} from Folders to resolve mongodb-memory-server-core from
- * @param {number} [port] The port, which a restart keeps so the backend's URL still reaches it
- * @returns {Promise<{ url: string, record: ReturnType<typeof startDetached> & { port: number } }>} Its URL and process record
+ * @param {import("./processes.mjs").RestartablePort} [port] The port, which a restart keeps so the backend's URL still reaches it, so it must be one {@link restartablePort} gave
+ * @returns {Promise<{ url: string, record: ReturnType<typeof startDetached> & { port: import("./processes.mjs").RestartablePort } }>} Its URL and process record
  */
 export async function startMongod(paths, from, port) {
   const binary = await mongodBinary(from);
-  port ??= await freePort();
+  port ??= await restartablePort();
   mkdirSync(paths.mongo, { recursive: true });
   const script = JAVASCRIPT_FILE.test(binary);
   const record = startDetached({

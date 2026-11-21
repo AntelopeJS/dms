@@ -94,30 +94,53 @@ function ephemeralRange() {
 }
 
 /**
+ * @typedef {number & { readonly restartable: true }} RestartablePort A loopback port outside the kernel's ephemeral range, or any port where /proc does not tell the range. A function that takes one refuses a port from {@link freePort}, which a restart can fail to listen on again.
+ */
+
+/**
+ * @param {number} port A loopback port
+ * @returns {port is RestartablePort} Whether it lies outside the kernel's ephemeral range, or the range is unknown
+ */
+export function isRestartablePort(port) {
+  const range = ephemeralRange();
+  return range === null || port < range.low || port > range.high;
+}
+
+/**
  * A free loopback port outside the kernel's ephemeral range, for a server
  * that must listen on the same port again after it restarts. No outgoing
  * connection takes such a port as its source port, so none can hold it in
  * TIME_WAIT and make that listen fail with `EADDRINUSE`, as a port from
- * {@link freePort} can be held. Where /proc does not tell the range, or no
- * unprivileged port outside it is free, it is a port from {@link freePort}.
+ * {@link freePort} can be held.
  *
- * @returns {Promise<number>} The port
+ * @returns {Promise<RestartablePort>} The port
+ * @throws When no unprivileged port outside the range is free
  */
 export async function restartablePort() {
   const range = ephemeralRange();
-  if (range === null) return freePort();
-  const below = Math.max(range.low - FIRST_UNPRIVILEGED_PORT, 0);
-  const above = Math.max(LAST_PORT - range.high, 0);
-  if (below + above === 0) return freePort();
+  const below =
+    range === null ? 0 : Math.max(range.low - FIRST_UNPRIVILEGED_PORT, 0);
+  const above = range === null ? 0 : Math.max(LAST_PORT - range.high, 0);
+  if (range === null || below + above === 0) return restartableFree();
   for (let attempt = 0; attempt < RESTARTABLE_PORT_ATTEMPTS; attempt += 1) {
     const index = randomInt(below + above);
     const port =
       index < below
         ? FIRST_UNPRIVILEGED_PORT + index
         : range.high + 1 + index - below;
-    if (await canListen(port)) return port;
+    if (isRestartablePort(port) && (await canListen(port))) return port;
   }
-  return freePort();
+  throw new Error("no loopback port outside the ephemeral range is free");
+}
+
+/**
+ * @returns {Promise<RestartablePort>} A port from {@link freePort}, where /proc does not tell the range
+ * @throws When the range is known and the port lies in it
+ */
+async function restartableFree() {
+  const port = await freePort();
+  if (isRestartablePort(port)) return port;
+  throw new Error("no loopback port outside the ephemeral range is free");
 }
 
 /**
