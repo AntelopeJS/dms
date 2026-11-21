@@ -1,7 +1,7 @@
 import { apiTargetFile, readTarget } from "./forwarder.mjs";
 import { isSameProcess } from "./identity.mjs";
 import { startMongod } from "./mongo.mjs";
-import { killRecorded, stopRecorded } from "./processes.mjs";
+import { isRestartablePort, killRecorded, stopRecorded } from "./processes.mjs";
 import { resolutionFolders } from "./launch.mjs";
 import { liveBackends, record } from "./stack.mjs";
 
@@ -9,7 +9,7 @@ import { liveBackends, record } from "./stack.mjs";
 
 /**
  * @param {RunState} state The run
- * @returns {import("./run-state.mjs").ServerRecord} The mongod the run started
+ * @returns {import("./run-state.mjs").ServerRecord & { port: import("./processes.mjs").RestartablePort }} The mongod the run started
  * @throws When the run uses a server it does not own (`--mongo-url`) or recorded no mongod
  */
 function ownedMongod(state) {
@@ -22,7 +22,13 @@ function ownedMongod(state) {
   if (mongod?.port === undefined) {
     throw new Error("this run recorded no mongod");
   }
-  return { ...mongod, port: mongod.port };
+  const { port } = mongod;
+  if (!isRestartablePort(port)) {
+    throw new Error(
+      "this run's mongod listens on a port in the ephemeral range, which a restart can fail to listen on again",
+    );
+  }
+  return { ...mongod, port };
 }
 
 /**
