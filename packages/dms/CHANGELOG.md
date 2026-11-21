@@ -1,5 +1,119 @@
 # Changelog
 
+## v0.22.0
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/v0.21.3...v0.22.0)
+
+### 🚀 Enhancements
+
+- **dms:** Make the e2e kit a standalone Playwright setup ([#1162](https://github.com/AntelopeJS/dms/pull/1162))
+- **dms:** Export run-state, backend and mail helpers from e2e/run ([#1164](https://github.com/AntelopeJS/dms/pull/1164))
+- **dms:** Read the e2e kit's journeys from e2e/journeys.config.ts ([#1166](https://github.com/AntelopeJS/dms/pull/1166))
+- **dms:** Add a config option to e2eConfig and startRun ([#1170](https://github.com/AntelopeJS/dms/pull/1170))
+- **dms:** List the DMS modules a mockup needs in its spec ([#1198](https://github.com/AntelopeJS/dms/pull/1198))
+- **dms:** Group the tables of a large database in the analysis answer ([#1200](https://github.com/AntelopeJS/dms/pull/1200))
+- **dms:** Add a ratio query template and compare for scalar queries ([#1201](https://github.com/AntelopeJS/dms/pull/1201))
+- **dms:** Let several people edit a mockup with live refresh and per-block locks ([#1207](https://github.com/AntelopeJS/dms/pull/1207))
+- **dms:** Tone a status pill by its select item when tones has no entry ([#1222](https://github.com/AntelopeJS/dms/pull/1222))
+- **dms:** Open a dashboard page after an api action target succeeds with redirect ([#1210](https://github.com/AntelopeJS/dms/pull/1210))
+- **dms:** Draw an identity cell's avatar as a square logo with avatarFrame ([#1209](https://github.com/AntelopeJS/dms/pull/1209))
+- **dms:** Pass the written row to a guard's AfterWrite ([#1219](https://github.com/AntelopeJS/dms/pull/1219))
+- **interface-dms:** Add a fixed filter to RelationType pickers ([#1223](https://github.com/AntelopeJS/dms/pull/1223))
+- **dms:** Pin a first-level menu entry to the sidebar footer ([#1125](https://github.com/AntelopeJS/dms/pull/1125))
+- **dms:** Let a subject offer e-mail and a mail module deliver it ([#1126](https://github.com/AntelopeJS/dms/pull/1126))
+- **dms:** Give repeater columns a new-row value and fill rows up to min ([#1127](https://github.com/AntelopeJS/dms/pull/1127))
+- **dms:** Store phone numbers in E.164 and pick their country in the input ([#1212](https://github.com/AntelopeJS/dms/pull/1212))
+- **layout:** Show a notification's exact date and time on hover ([#1154](https://github.com/AntelopeJS/dms/pull/1154))
+- **dms:** Hand a header button's modal, drawer or side panel the page's record and route params ([#1226](https://github.com/AntelopeJS/dms/pull/1226))
+- **layout:** Press ? to open the keyboard shortcuts page ([#1155](https://github.com/AntelopeJS/dms/pull/1155))
+
+### 🔥 Performance
+
+- **dms:** Halve the builder suite and fix the e2e run-state race ([#1165](https://github.com/AntelopeJS/dms/pull/1165))
+- **dms:** Key the e2e build cache on pnpm 12's JSON .modules.yaml ([#1169](https://github.com/AntelopeJS/dms/pull/1169))
+- **dms:** Keep the parsed declarations of the builder's index across operations ([#1183](https://github.com/AntelopeJS/dms/pull/1183))
+- **dms:** Typecheck only the files a builder save can break ([#1191](https://github.com/AntelopeJS/dms/pull/1191))
+
+### 🩹 Fixes
+
+- Repair the main checks broken by the #1158 dependency bumps ([#1161](https://github.com/AntelopeJS/dms/pull/1161))
+- **dms:** Retry the e2e kit's dashboard install while the registry answers 404 on a new tarball ([#1173](https://github.com/AntelopeJS/dms/pull/1173))
+- **dms:** Stop the run when a SIGINT or SIGTERM reaches the process that started it ([#1182](https://github.com/AntelopeJS/dms/pull/1182))
+- **dms:** Hold a live table and say why while a drawer has its row open ([#1181](https://github.com/AntelopeJS/dms/pull/1181))
+- **dms:** Keep a moved page's planned path in ts-morph's form on Windows ([#1180](https://github.com/AntelopeJS/dms/pull/1180))
+- **dms:** Find a deleted resource's barrel export on Windows paths ([#1185](https://github.com/AntelopeJS/dms/pull/1185))
+- **dms:** Rebuild the builder's projects when the install state or the tsconfig changes ([#1188](https://github.com/AntelopeJS/dms/pull/1188))
+- **dms:** Answer 503 within 5 s when the database cannot verify a session ([#1189](https://github.com/AntelopeJS/dms/pull/1189))
+- **dms:** Name the product AntelopeJS DMS in onboarding, logo and settings ([#1192](https://github.com/AntelopeJS/dms/pull/1192))
+- **dms:** Name the relations already mapped in the database analysis ([#1194](https://github.com/AntelopeJS/dms/pull/1194))
+- **dms:** Show a relation's label in a monospace cell ([#1193](https://github.com/AntelopeJS/dms/pull/1193))
+- **dms:** Open no long-lived connection from a mockup preview frame ([#1196](https://github.com/AntelopeJS/dms/pull/1196))
+- **dms:** Format a horizontal bar's categories as dates, not as the value format ([#1195](https://github.com/AntelopeJS/dms/pull/1195))
+- **dms:** Skip the comparison query when a stats route gets no comparison bounds ([#1199](https://github.com/AntelopeJS/dms/pull/1199))
+- **dms:** Show a reconnecting state on the mockup canvas while its stream is down ([#1203](https://github.com/AntelopeJS/dms/pull/1203))
+- **dms:** Draw every page thumbnail of a large mockup Overview, past the live cap as a snapshot ([#1205](https://github.com/AntelopeJS/dms/pull/1205))
+- **dms:** Keep mockup Overview section headings clear of thumbnails at low zoom ([#1206](https://github.com/AntelopeJS/dms/pull/1206))
+- **dms:** Accept xAxis options on a mockup ChartBar ([#1208](https://github.com/AntelopeJS/dms/pull/1208))
+- **dms:** Enforce mockup block locks on MCP writes, deselects and lock takes ([#1211](https://github.com/AntelopeJS/dms/pull/1211))
+- **dms:** Answer a period-bound stats route for the All period over PostgreSQL ([#1214](https://github.com/AntelopeJS/dms/pull/1214))
+- **period-selector:** Keep the other bound while a date is typed ([#1150](https://github.com/AntelopeJS/dms/pull/1150))
+- **dms:** Draw two initials for a one-word identity or card name ([#1213](https://github.com/AntelopeJS/dms/pull/1213))
+- **dms:** Time out a GenerateHtml render that hangs ([#1216](https://github.com/AntelopeJS/dms/pull/1216))
+- **dms:** Rotate the refresh token on every refresh and revoke a replayed session ([#1215](https://github.com/AntelopeJS/dms/pull/1215))
+- **dms:** Validate only the edited row of a repeater ([#1217](https://github.com/AntelopeJS/dms/pull/1217))
+- **dms:** Log the first-owner setup token only in development ([#1221](https://github.com/AntelopeJS/dms/pull/1221))
+- **dms:** Fix the Altab QA defects in counts, dates, addresses, KPI titles, row actions and page links ([#1224](https://github.com/AntelopeJS/dms/pull/1224))
+- **dms:** Mount GET /dms/dev/reload only in development ([#1225](https://github.com/AntelopeJS/dms/pull/1225))
+- **dms:** Store invitation tokens as digests and mint a new one to copy a link ([#1218](https://github.com/AntelopeJS/dms/pull/1218))
+- **interface-dms:** Refuse a table action no table view declares to everyone but a platform owner ([#1220](https://github.com/AntelopeJS/dms/pull/1220))
+- **dms:** Pass the nightly's Windows legs and its Stress mongod check ([#1227](https://github.com/AntelopeJS/dms/pull/1227))
+
+### 💅 Refactors
+
+- **dms:** Delete dms-control and the verify-dms harness ([#1172](https://github.com/AntelopeJS/dms/pull/1172))
+- **dms:** Name the e2e kit's environment variables after the kit ([#1184](https://github.com/AntelopeJS/dms/pull/1184))
+- **dms:** Remove the preview_blocks MCP tool ([#1204](https://github.com/AntelopeJS/dms/pull/1204))
+- **interface-dms:** Remove TenantMemberModel.listAll() ([#1228](https://github.com/AntelopeJS/dms/pull/1228))
+
+### 📖 Documentation
+
+- **readme:** Show the mockup run and its new numbers ([#1176](https://github.com/AntelopeJS/dms/pull/1176))
+- **ai:** Group the AI & coding agents pages and rewrite them ([#1190](https://github.com/AntelopeJS/dms/pull/1190))
+
+### 📦 Build
+
+- Move pnpm to 10.34.9 ([#1179](https://github.com/AntelopeJS/dms/pull/1179))
+
+### ✅ Tests
+
+- **dms:** Port the dms HTTP and command-line journeys to integration tests ([#1167](https://github.com/AntelopeJS/dms/pull/1167))
+- **dms:** Run the run-exports kit test and name the journeys config's renderer ([#1174](https://github.com/AntelopeJS/dms/pull/1174))
+- **dms:** Count only the bridge publication's own warnings ([#1187](https://github.com/AntelopeJS/dms/pull/1187))
+- **dms:** Import the relation input before its test starts its timer ([#1186](https://github.com/AntelopeJS/dms/pull/1186))
+- **dms:** Read the API's module set on a connection of its own in the dashboard wait ([#1197](https://github.com/AntelopeJS/dms/pull/1197))
+- **dms:** Serve the dev-frontend test's fake dashboard on a restartable port ([#1229](https://github.com/AntelopeJS/dms/pull/1229))
+- **dms:** Take the e2e mongod's port from restartablePort and refuse a freePort port where a server restarts ([#1230](https://github.com/AntelopeJS/dms/pull/1230))
+
+### 🤖 CI
+
+- **dms:** Run the merge queue tier and plan every job from one selector ([#1159](https://github.com/AntelopeJS/dms/pull/1159))
+- **dms:** Shard the e2e queue suite by measured seconds ([#1163](https://github.com/AntelopeJS/dms/pull/1163))
+- **dms:** Run the builder suite on 5 shards and refresh its weights ([#1171](https://github.com/AntelopeJS/dms/pull/1171))
+
+#### ⚠️ Breaking Changes
+
+- **dms:** Remove the preview_blocks MCP tool ([#1204](https://github.com/AntelopeJS/dms/pull/1204))
+- **dms:** Store invitation tokens as digests and mint a new one to copy a link ([#1218](https://github.com/AntelopeJS/dms/pull/1218))
+- **interface-dms:** Refuse a table action no table view declares to everyone but a platform owner ([#1220](https://github.com/AntelopeJS/dms/pull/1220))
+- **dms:** Store phone numbers in E.164 and pick their country in the input ([#1212](https://github.com/AntelopeJS/dms/pull/1212))
+- **interface-dms:** Remove TenantMemberModel.listAll() ([#1228](https://github.com/AntelopeJS/dms/pull/1228))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli
+- Maxime Westhoven
+- Emre Öcel
+
 ## v0.21.3
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/v0.21.2...v0.21.3)
