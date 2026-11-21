@@ -1,5 +1,33 @@
 # Changelog
 
+## v0.6.2
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/interface-dms-builder-v0.6.1...interface-dms-builder-v0.6.2)
+
+### 🚀 Enhancements
+
+- **dms:** Add a ratio query template and compare for scalar queries ([#1201](https://github.com/AntelopeJS/dms/pull/1201))
+
+### 🩹 Fixes
+
+- Repair the main checks broken by the #1158 dependency bumps ([#1161](https://github.com/AntelopeJS/dms/pull/1161))
+- **dms:** Name the relations already mapped in the database analysis ([#1194](https://github.com/AntelopeJS/dms/pull/1194))
+- **dms:** Skip the comparison query when a stats route gets no comparison bounds ([#1199](https://github.com/AntelopeJS/dms/pull/1199))
+- **dms:** Answer a period-bound stats route for the All period over PostgreSQL ([#1214](https://github.com/AntelopeJS/dms/pull/1214))
+
+### 📖 Documentation
+
+- **readme:** Show the mockup run and its new numbers ([#1176](https://github.com/AntelopeJS/dms/pull/1176))
+- **ai:** Group the AI & coding agents pages and rewrite them ([#1190](https://github.com/AntelopeJS/dms/pull/1190))
+
+### 📦 Build
+
+- Move pnpm to 10.34.9 ([#1179](https://github.com/AntelopeJS/dms/pull/1179))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli
+
 ## v0.6.1
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/interface-dms-builder-v0.6.0...interface-dms-builder-v0.6.1)
