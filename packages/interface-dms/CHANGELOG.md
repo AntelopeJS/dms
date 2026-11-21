@@ -1,5 +1,54 @@
 # Changelog
 
+## v0.15.0
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/interface-v0.14.6...interface-v0.15.0)
+
+### 🚀 Enhancements
+
+- **dms:** Add a ratio query template and compare for scalar queries ([#1201](https://github.com/AntelopeJS/dms/pull/1201))
+- **dms:** Tone a status pill by its select item when tones has no entry ([#1222](https://github.com/AntelopeJS/dms/pull/1222))
+- **dms:** Open a dashboard page after an api action target succeeds with redirect ([#1210](https://github.com/AntelopeJS/dms/pull/1210))
+- **dms:** Draw an identity cell's avatar as a square logo with avatarFrame ([#1209](https://github.com/AntelopeJS/dms/pull/1209))
+- **dms:** Pass the written row to a guard's AfterWrite ([#1219](https://github.com/AntelopeJS/dms/pull/1219))
+- **interface-dms:** Add a fixed filter to RelationType pickers ([#1223](https://github.com/AntelopeJS/dms/pull/1223))
+- **dms:** Pin a first-level menu entry to the sidebar footer ([#1125](https://github.com/AntelopeJS/dms/pull/1125))
+- **dms:** Let a subject offer e-mail and a mail module deliver it ([#1126](https://github.com/AntelopeJS/dms/pull/1126))
+- **dms:** Give repeater columns a new-row value and fill rows up to min ([#1127](https://github.com/AntelopeJS/dms/pull/1127))
+- **dms:** Store phone numbers in E.164 and pick their country in the input ([#1212](https://github.com/AntelopeJS/dms/pull/1212))
+- **dms:** Hand a header button's modal, drawer or side panel the page's record and route params ([#1226](https://github.com/AntelopeJS/dms/pull/1226))
+
+### 🩹 Fixes
+
+- Repair the main checks broken by the #1158 dependency bumps ([#1161](https://github.com/AntelopeJS/dms/pull/1161))
+- **dms:** Hold a live table and say why while a drawer has its row open ([#1181](https://github.com/AntelopeJS/dms/pull/1181))
+- **dms:** Accept xAxis options on a mockup ChartBar ([#1208](https://github.com/AntelopeJS/dms/pull/1208))
+- **period-selector:** Keep the other bound while a date is typed ([#1150](https://github.com/AntelopeJS/dms/pull/1150))
+- **dms:** Rotate the refresh token on every refresh and revoke a replayed session ([#1215](https://github.com/AntelopeJS/dms/pull/1215))
+- **dms:** Fix the Altab QA defects in counts, dates, addresses, KPI titles, row actions and page links ([#1224](https://github.com/AntelopeJS/dms/pull/1224))
+- **dms:** Store invitation tokens as digests and mint a new one to copy a link ([#1218](https://github.com/AntelopeJS/dms/pull/1218))
+- **interface-dms:** Refuse a table action no table view declares to everyone but a platform owner ([#1220](https://github.com/AntelopeJS/dms/pull/1220))
+
+### 💅 Refactors
+
+- **interface-dms:** Remove TenantMemberModel.listAll() ([#1228](https://github.com/AntelopeJS/dms/pull/1228))
+
+### 📦 Build
+
+- Move pnpm to 10.34.9 ([#1179](https://github.com/AntelopeJS/dms/pull/1179))
+
+#### ⚠️ Breaking Changes
+
+- **dms:** Store invitation tokens as digests and mint a new one to copy a link ([#1218](https://github.com/AntelopeJS/dms/pull/1218))
+- **interface-dms:** Refuse a table action no table view declares to everyone but a platform owner ([#1220](https://github.com/AntelopeJS/dms/pull/1220))
+- **dms:** Store phone numbers in E.164 and pick their country in the input ([#1212](https://github.com/AntelopeJS/dms/pull/1212))
+- **interface-dms:** Remove TenantMemberModel.listAll() ([#1228](https://github.com/AntelopeJS/dms/pull/1228))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli
+- Maxime Westhoven
+
 ## v0.14.6
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/interface-v0.14.5...interface-v0.14.6)
