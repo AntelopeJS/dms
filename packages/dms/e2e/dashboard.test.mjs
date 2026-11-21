@@ -6,7 +6,12 @@ import test from "node:test";
 import { freshDatabase } from "./backend.mjs";
 import { awaitDashboard, recordDashboardModules } from "./dashboard.mjs";
 import { newRun } from "./helpers/fake-run.mjs";
-import { freePort, startDetached, waitForOk } from "./processes.mjs";
+import {
+  freePort,
+  restartablePort,
+  startDetached,
+  waitForOk,
+} from "./processes.mjs";
 import { saveRun } from "./run-state.mjs";
 import { record } from "./stack.mjs";
 
@@ -52,7 +57,7 @@ async function devDashboardRun(t) {
   const state = await newRun(t);
   state.frontendMode = "dev";
   state.secrets = { DMS_BOOTSTRAP_SECRET: SECRET };
-  state.webPort = await freePort();
+  state.webPort = await restartablePort();
   state.webUrl = `http://127.0.0.1:${state.webPort}`;
   saveRun(state);
   await freshDatabase(state, "j001");
