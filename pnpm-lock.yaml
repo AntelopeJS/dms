@@ -163,8 +163,8 @@ importers:
         specifier: ~1.24.5
         version: 1.24.5
       '@antelopejs/mongodb':
-        specifier: ~1.8.11
-        version: 1.8.11(socks@2.8.7)
+        specifier: '>=1.8.13 <1.9.0'
+        version: 1.8.13(socks@2.8.7)
       '@antelopejs/mysql':
         specifier: '>=0.2.7 <0.3.0'
         version: 0.2.7(@types/node@26.6.5)
@@ -713,6 +713,11 @@ packages:
     peerDependencies:
       '@antelopejs/interface-core': '>=0.5.0 <0.6.0'
 
+  '@antelopejs/interface-database-catalog@0.1.1':
+    resolution: {integrity: sha512-XLzAa26IP7sJKXkspOfMwytk1NcYdY1PEvL2ffvKwCkH+iYrdOr2CHQtuXnmemSzHihsJ3OSRxanIZYzvqQgew==}
+    peerDependencies:
+      '@antelopejs/interface-core': '>=0.5.0 <0.6.0'
+
   '@antelopejs/interface-database-decorators@0.5.4':
     resolution: {integrity: sha512-N+cQB3fDqGQo8zd1OBiqfrUJRIRch2Y2jYadqeqnZnB94uWxb6y816rOBswDuFp+T9ztbFyNxUQTlWttONxLyg==}
     peerDependencies:
@@ -753,8 +758,8 @@ packages:
     peerDependencies:
       '@antelopejs/interface-core': '>=0.2.4 <1.0.0'
 
-  '@antelopejs/mongodb@1.8.11':
-    resolution: {integrity: sha512-JnymonWA9jw/AoplJ13UtzP+zYlbh4rzCI3qjC30N88YYXjhsGvYGzIQW4NUZnmhWVYPZgOq6xAi0ZBmwLh9UA==}
+  '@antelopejs/mongodb@1.8.13':
+    resolution: {integrity: sha512-z4qjnoRPQJf6dY1pTttDZ/+6c0/tKTiPxVIxoZACVopUW61mEeD5wqWnyAna7N7Bnj5/xYNfH4j4gPGbVYAlSw==}
 
   '@antelopejs/mysql@0.2.7':
     resolution: {integrity: sha512-llrgE55IMr5seiJCJFw/xLmP4xAKBrsnuBjf6j1alc1gUXyAi8QCmVpd1wWkEiEGe/KyVte5pfWCUqvNWzVctQ==}
@@ -7308,7 +7313,7 @@ snapshots:
       rethinkdb-ts: 2.7.0
     optional: true
 
-  '@antelopejs/mongodb@1.8.11(socks@2.8.7)':
+  '@antelopejs/mongodb@1.8.13(socks@2.8.7)':
     dependencies:
       '@antelopejs/interface-core': 0.5.1
       '@antelopejs/interface-database': 0.4.3(@antelopejs/interface-core@0.5.1)
@@ -7329,6 +7334,10 @@ snapshots:
       - mongodb-client-encryption
       - snappy
       - socks
+  '@antelopejs/interface-database-catalog@0.1.1(@antelopejs/interface-core@0.5.1)':
+    dependencies:
+      '@antelopejs/interface-core': 0.5.1
+
 
   '@antelopejs/mysql@0.2.7(@types/node@26.6.5)':
     dependencies:
@@ -7353,7 +7362,7 @@ snapshots:
     dependencies:
       '@antelopejs/interface-core': 0.5.1
       '@antelopejs/interface-database': 0.4.3(@antelopejs/interface-core@0.5.1)
-      '@antelopejs/interface-database-catalog': 0.1.0(@antelopejs/interface-core@0.5.1)
+      '@antelopejs/interface-database-catalog': 0.1.1(@antelopejs/interface-core@0.5.1)
       chai: 4.5.0
       reflect-metadata: 0.2.2
       rethinkdb-ts: 2.7.0

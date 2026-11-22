@@ -146,7 +146,7 @@
   "devDependencies": {
     "@antelopejs/api": "~1.7.8",
     "@antelopejs/core": "~1.24.5",
-    "@antelopejs/mongodb": "~1.8.11",
+    "@antelopejs/mongodb": ">=1.8.13 <1.9.0",
     "@antelopejs/mysql": ">=0.2.7 <0.3.0",
     "@antelopejs/postgres": ">=0.4.3 <0.5.0",
     "@antelopejs/rethinkdb": "~1.10.6",

@@ -26,27 +26,13 @@ export async function operation(session, name, args = {}) {
 }
 
 /**
- * The `@antelopejs/mongodb` version the playground's `mongodb` module pins in its `antelope.config.ts`.
- *
- * @param {string} root The playground
- * @returns {string} The version
- */
-export function playgroundMongodbVersion(root) {
-  const pinned = /package: "@antelopejs\/mongodb",\s*version: "([^"]+)"/.exec(readFileSync(join(root, "antelope.config.ts"), "utf8"));
-  if (!pinned?.[1]) throw new Error(`${root}/antelope.config.ts pins no @antelopejs/mongodb version`);
-  return pinned[1];
-}
-
-/**
  * The batch the Builder's *Connect a database* form writes for a MongoDB database, from what `database_project` answers.
- * The driver module installs the version the playground's own `mongodb` module runs, so the journey loads no driver release the playground does not.
  *
  * @param {string} id The connection id
  * @param {unknown} project What `database_project` answered
- * @param {string} root The playground
  * @returns {Record<string, unknown>[]} Its steps
  */
-export function connectSteps(id, project, root) {
+export function connectSteps(id, project) {
   const driver = fieldOf(fieldOf(project, "drivers"), "mongodb");
   const driverModule = `builder-db-${id}`;
   const tablesModule = `${driverModule}-tables`;
@@ -56,7 +42,7 @@ export function connectSteps(id, project, root) {
       op: "AddModule",
       id: driverModule,
       entry: {
-        source: { type: "package", package: textOf(fieldOf(driver, "package")), version: playgroundMongodbVersion(root) },
+        source: { type: "package", package: textOf(fieldOf(driver, "package")), version: textOf(fieldOf(driver, "version")) },
         config: { mode: "external", statementTimeoutMs: 30_000 },
         env: { url: `${variable}_URL`, database: `${variable}_DATABASE` },
         exportPriority: { [DATABASE]: -1 },

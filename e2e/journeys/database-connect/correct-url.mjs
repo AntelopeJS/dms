@@ -98,7 +98,7 @@ export const journeys = [
         await ctx.verify("the project answers again after the variables are written", [
           ctx.holds("database_project answers", await untilAnswering(session), "no answer"),
         ], { critical: true });
-        const steps = connectSteps(id, project.data, root);
+        const steps = connectSteps(id, project.data);
         await operation(session, "builder_configure_project", { steps });
         const written = await operation(session, "builder_configure_project", { steps });
         await ctx.verify("the batch is written", [ctx.holds("ConfigureProject answers ok", written.ok, written.raw.slice(0, 600))], { critical: true });
