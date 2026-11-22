@@ -65,7 +65,7 @@ The interface declares this peer dependency:
 
 | Package                      | Supported        | Tested with |
 | ---------------------------- | ---------------- | ----------- |
-| `@antelopejs/interface-core` | `>=0.5.1 <0.6.0` | `0.5.1`     |
+| `@antelopejs/interface-core` | `>=0.5.1 <0.6.0` | `0.5.2`     |
 
 <!-- antelopejs-docs-compat:end -->
 

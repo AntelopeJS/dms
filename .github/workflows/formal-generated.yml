@@ -31,3 +31,5 @@ jobs:
           key: dms-test-harness-${{ runner.os }}-${{ hashFiles('packages/dms/src/test/antelope.test.ts', 'packages/dms/antelope-lock/**') }}
       - run: pnpm --dir packages/dms build
       - run: node .agents/skills/${{ matrix.check }}/check.mjs
+      - if: ${{ !cancelled() }}
+        uses: AntelopeJS/.github/.github/actions/module-locks-committed@v2

@@ -41,6 +41,7 @@ jobs:
         pnpm --dir packages/dms docs:catalog:check
         pnpm --dir packages/dms mockup:schema:check
         pnpm --dir packages/dms check:frontend-declarations
+      module-locks: true
       renovate-sync: false
       test-job: true
       single-job: false
@@ -160,6 +161,8 @@ jobs:
             SUITE=builder:shard
           fi
           pnpm --dir packages/dms "test:${SUITE}"
+      - if: ${{ !cancelled() }}
+        uses: AntelopeJS/.github/.github/actions/module-locks-committed@v2
       - if: ${{ !cancelled() && runner.os == 'Linux' && startsWith(matrix.suite, 'builder:') }}
         uses: actions/upload-artifact@v4
         with:
@@ -330,13 +333,18 @@ jobs:
             ~/.cache/mongodb-binaries
             ~/.cache/ms-playwright
             packages/dms/playground/.antelope/cache
-          key: e2e-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml', 'packages/dms/playground/antelope.config.ts') }}
+          key: e2e-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml', 'packages/dms/playground/antelope.config.ts', 'packages/dms/playground/antelope-lock/**') }}
       - uses: actions/cache@v4
         with:
           path: ~/.cache/dms-e2e/frontend
           key: dms-e2e-frontend-${{ github.sha }}
           restore-keys: dms-e2e-frontend-
       - run: pnpm exec playwright install --only-shell chromium
+      - name: Install the playground's modules in the checkout, where a lock they write is seen
+        run: pnpm exec ajs project build -e docs -p packages/dms/playground
+        env:
+          DMS_PREBUILT: "1"
+      - uses: AntelopeJS/.github/.github/actions/module-locks-committed@v2
       - if: matrix.shard == 'smoke'
         run: pnpm e2e --grep @smoke
       - if: matrix.shard != 'smoke'
@@ -469,3 +477,13 @@ jobs:
       actions: write
       statuses: write
     uses: AntelopeJS/.github/.github/workflows/ci-renovate-sync.yml@v2
+  module-locks:
+    needs: [ci, backend, e2e, formal-generated]
+    if: ${{ !cancelled() }}
+    permissions:
+      contents: read
+      actions: read
+    uses: AntelopeJS/.github/.github/workflows/module-locks-renovate.yml@v2
+    secrets:
+      RELEASE_APP_ID: ${{ secrets.RELEASE_APP_ID }}
+      RELEASE_APP_PRIVATE_KEY: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
