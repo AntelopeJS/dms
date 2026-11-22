@@ -10,20 +10,20 @@ importers:
     dependencies:
       '@antelopejs/interface-api':
         specifier: '>=0.3.3 <0.4.0'
-        version: 0.3.4(@antelopejs/interface-core@0.5.1)
+        version: 0.3.4(@antelopejs/interface-core@0.5.2)
       '@antelopejs/interface-core':
         specifier: '>=0.5.1 <0.6.0'
-        version: 0.5.1
+        version: 0.5.2
       '@antelopejs/interface-file-storage':
         specifier: '>=0.1.6 <0.2.0'
-        version: 0.1.9(@antelopejs/interface-core@0.5.1)
+        version: 0.1.9(@antelopejs/interface-core@0.5.2)
     devDependencies:
       '@antelopejs/core':
         specifier: ~1.23.3
         version: 1.23.3
       '@antelopejs/tooling-configs':
         specifier: '>=0.8.0 <0.9.0'
-        version: 0.8.4(eslint-plugin-perfectionist@5.14.0(eslint@10.15.0(jiti@2.7.0))(typescript@5.9.3))(knip@6.46.1)(oxfmt@0.66.0)(oxlint@1.81.0(oxlint-tsgolint@7.0.2007))
+        version: 0.8.9(eslint-plugin-perfectionist@5.14.0(eslint@10.15.0(jiti@2.7.0))(typescript@5.9.3))(knip@6.47.0)(oxfmt@0.66.0)(oxlint@1.81.0(oxlint-tsgolint@7.0.2008))
       '@types/mocha':
         specifier: ^10.0.10
         version: 10.0.10
@@ -35,7 +35,7 @@ importers:
         version: 5.14.0(eslint@10.15.0(jiti@2.7.0))(typescript@5.9.3)
       knip:
         specifier: ^6.34.0
-        version: 6.46.1
+        version: 6.47.0
       lefthook:
         specifier: ^2.2.2
         version: 2.2.2
@@ -44,10 +44,10 @@ importers:
         version: 0.66.0
       oxlint:
         specifier: 1.81.0
-        version: 1.81.0(oxlint-tsgolint@7.0.2007)
+        version: 1.81.0(oxlint-tsgolint@7.0.2008)
       oxlint-tsgolint:
         specifier: ^7.0.2001
-        version: 7.0.2007
+        version: 7.0.2008
       release-it:
         specifier: ^19.2.4
         version: 19.2.4(@types/node@22.20.5)
@@ -66,6 +66,7 @@ packages:
   '@antelopejs/core@1.23.3':
     resolution: {integrity: sha512-W9ekdNXaZCuK4lsKn5bBF3F+LoQhvwlmLoprw4m0W6jdS0DA6Bb7B2+2ttgla0oggAJwyFUxHcpBVloFnlv91w==}
     engines: {node: ^20.19.0 || >=22.12.0}
+    deprecated: 'Update to @antelopejs/core >=1.24.6: interface-core 0.5.2 adds HoldReloads, which older cores do not implement'
     hasBin: true
 
   '@antelopejs/interface-api@0.3.4':
@@ -73,16 +74,16 @@ packages:
     peerDependencies:
       '@antelopejs/interface-core': '>=0.5.1 <0.6.0'
 
-  '@antelopejs/interface-core@0.5.1':
-    resolution: {integrity: sha512-ON/7TYA1yyT8UznzKi6vnwyjRU3byNE0OcFXBmf8dE/dqp8hKjeWHVyA2EUPOngmEimCLw4idZqOS5DJqMJx3g==}
+  '@antelopejs/interface-core@0.5.2':
+    resolution: {integrity: sha512-5rmFLzHH8x8SCMK3KEm7L4DdRaLXjKKMWS/5ektDz5C2P/mAmaG++JAe1+09RBFNWWe0LER56vz9AVIeqVQoMA==}
 
   '@antelopejs/interface-file-storage@0.1.9':
     resolution: {integrity: sha512-BX3UAMcCti94CprtyGuLcAL/8WP8QU4Ki3yFVgWrPZkwNkHVCXLOqnaETULQ794YoLxw3THMo0DPzv3nyZ0dzw==}
     peerDependencies:
       '@antelopejs/interface-core': '>=0.5.1 <0.6.0'
 
-  '@antelopejs/tooling-configs@0.8.4':
-    resolution: {integrity: sha512-jlxLUEYxa1EguRwF9FrTLo6vMXVkfptyQr8oe+cgej2OVCwCWmb9yF/Ky3w1lXBiOO0fqTNac7poAasJr8Jnyw==}
+  '@antelopejs/tooling-configs@0.8.9':
+    resolution: {integrity: sha512-DMar3gDUBy73qpAqv8coGCmvIBrZ12FtyYwD+Igqn6jrb92GMxZAuI2YlW9pED9tS3tdk17+aZRIyVO0oDacHA==}
     engines: {node: '>=22.18.0'}
     hasBin: true
     peerDependencies:
@@ -90,8 +91,8 @@ packages:
       eslint-plugin-perfectionist: '>=5.0.0'
       knip: '>=6.0.0'
       mongodb-memory-server: '>=10.0.0'
-      oxfmt: ^0.66.0 || ^0.77.0
-      oxlint: 1.81.0
+      oxfmt: ^0.66.0 || ^0.77.0 || ^0.79.0
+      oxlint: 1.81.0 || 1.94.0
       pixelmatch: '>=7.0.0'
       playwright-core: '>=1.56.0'
       sharp: '>=0.34.0'
@@ -732,33 +733,33 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@oxlint-tsgolint/darwin-arm64@7.0.2007':
-    resolution: {integrity: sha512-bjNxPFyu1wNK74epHzXrtVLrj7oEuB8jQvJZDSia2d5EZ/0YgnyhI37E9U530IUZlNCqlTWjko1iT3CKAYF9+A==}
+  '@oxlint-tsgolint/darwin-arm64@7.0.2008':
+    resolution: {integrity: sha512-RXcQ439KXqspwHtw39825cyFmvrkOa1AA2CnqFNNG0pVJB0FdhpfQZsDLjRc/3Mt/uEG0MWOG50Hl09J2Ra9UA==}
     cpu: [arm64]
     os: [darwin]
 
-  '@oxlint-tsgolint/darwin-x64@7.0.2007':
-    resolution: {integrity: sha512-dCd7mzk2FeTaU46LLeXy5mQyEFICaPqlew/LpehNzEuL86D0jTYlwZHbibRqdRrvkSNgq1szz/7014FIHgyV1g==}
+  '@oxlint-tsgolint/darwin-x64@7.0.2008':
+    resolution: {integrity: sha512-4FpkHVDF1I4W0Owgsff8rDdf/XVcI9aoqflqyh3JiMCg7zCzWNkB0hfKMNjMDYDAeK/k1CNawAb7Y7mYGr/Xhg==}
     cpu: [x64]
     os: [darwin]
 
-  '@oxlint-tsgolint/linux-arm64@7.0.2007':
-    resolution: {integrity: sha512-qb0XUQXuTmQ8H++zsx/tQitG0/fU3BE16KGp1qXExeDgRzEc7WIlCuN1i+rmA40lty9gQs+x3a73BFODVhTZqA==}
+  '@oxlint-tsgolint/linux-arm64@7.0.2008':
+    resolution: {integrity: sha512-CmheyZowc+sbXlZ2ksFrbqR6Mnu+HHheZZKTP3FpDBe64eCp6DzSrjcR2VHRj6mC2UKF1ZO0J8Z1e9Bgji4kKw==}
     cpu: [arm64]
     os: [linux]
 
-  '@oxlint-tsgolint/linux-x64@7.0.2007':
-    resolution: {integrity: sha512-75vx0067HSgxq/HEZzlHwqhcujn3bshg43fVLTx604jZdZZMQfPVCcxTh2RTEShP7ACT1PRty6vboZlWh5RtEA==}
+  '@oxlint-tsgolint/linux-x64@7.0.2008':
+    resolution: {integrity: sha512-7by4bup5rF9q7i19G6zPDXgywBi3tFB6jGzefoc/BfleNS0Q/eleYpD2SDLmsXzN2hFpDrfAskx7H0WnUtKbtQ==}
     cpu: [x64]
     os: [linux]
 
-  '@oxlint-tsgolint/win32-arm64@7.0.2007':
-    resolution: {integrity: sha512-6zl7I+BvScfOPtnPtSEP5JA+z8NkDPGd47YnQChL5lLF/Dzs7Rasr1G+q0zGlQcP8OEgW43hW4QlUTXxPfD13Q==}
+  '@oxlint-tsgolint/win32-arm64@7.0.2008':
+    resolution: {integrity: sha512-u12UqT/xG64vXclqfe3/7I4j2mWSMZmXsMRBxbgmGfHaEfZUEzxl1QCNyx3TDM5OfsWWKH4dAHJtDRxTAiYA7A==}
     cpu: [arm64]
     os: [win32]
 
-  '@oxlint-tsgolint/win32-x64@7.0.2007':
-    resolution: {integrity: sha512-VptFHYhBm0SIWCUkx89hmTrKVOQsDg0iB1YE3EBlvRRtCHGUd3pU1kMxPBg1wOd83ZMmIn7zB6maBROtpmrP5g==}
+  '@oxlint-tsgolint/win32-x64@7.0.2008':
+    resolution: {integrity: sha512-Vjev4Ns8rdGa4Tb85ZsBkei0reLa77j3FNJsCKPo2gi5oTPK5O2eN42sim2ewoorgx7JQ3+49YuUKa1d6UKHPw==}
     cpu: [x64]
     os: [win32]
 
@@ -876,8 +877,8 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@oxlint/plugins@1.81.0':
-    resolution: {integrity: sha512-HhD8kd3r6XpelZkhxhRty/po8V6yK1VV63Eq4kSsOS2IoHUywG3DV2EX+z/ZHw46aLI74Y6aA604NRiAqLKW9w==}
+  '@oxlint/plugins@1.94.0':
+    resolution: {integrity: sha512-YT6htikBOBQ00XDxZpRZLZ0anEDo7h9s4+YvjRU0/Ng/cLd0D6SZQ3tsms4g/GDer/z8UKlegC5iptEfyRXJcw==}
     engines: {node: ^12.22.0 || ^14.17.0 || >=16.0.0}
 
   '@phun-ky/typeof@2.0.3':
@@ -1782,8 +1783,8 @@ packages:
   keyv@5.6.0:
     resolution: {integrity: sha512-CYDD3SOtsHtyXeEORYRx2qBtpDJFjRTGXUtmNEMGyzYOKj1TE3tycdlho7kA1Ufx9OYWZzg52QFBGALTirzDSw==}
 
-  knip@6.46.1:
-    resolution: {integrity: sha512-5/ajqjZfmuv8O74+McrKBOSArKG6tsUgy6yJird36VZh9HiUq75qY4U39uqf9wjchEUOLrStuOZpFP057CZFRw==}
+  knip@6.47.0:
+    resolution: {integrity: sha512-nYmQnk0YqDXIJrYViJz88c8xw3tBDkpuAmofo58EkVPnKr6DnRKYtf6oIqcGVHZvXDE+gtmFuYx277/QsWng+A==}
     engines: {node: ^20.19.0 || >=22.12.0}
     hasBin: true
 
@@ -1981,8 +1982,8 @@ packages:
     resolution: {integrity: sha512-kKHJhxwpR/Okycz4HhQKKlhWe4ASEfPgkSWNmKFHd7+ezuQlxkA5cM3+XkBPvm1gmHen3w53qsYAv+8GwRrBlg==}
     engines: {node: '>=18'}
 
-  netmask@2.1.1:
-    resolution: {integrity: sha512-eonl3sLUha+S1GzTPxychyhnUzKyeQkZ7jLjKrBagJgPla13F+uQ71HgpFefyHgqrjEbCPkDArxYsjY8/+gLKA==}
+  netmask@2.1.2:
+    resolution: {integrity: sha512-In/qjEgPWP3EEKRBrATKSHRCcempKN/gUl97rrB1mTreVQfvPGthTJVwNXwbQHtIzzLf1bYyh8M50xpeYk0r6Q==}
     engines: {node: '>= 0.4.0'}
 
   new-github-release-url@2.0.0:
@@ -2071,8 +2072,8 @@ packages:
       vite-plus:
         optional: true
 
-  oxlint-tsgolint@7.0.2007:
-    resolution: {integrity: sha512-i8X2qf6VVqFzoNVP34joMKuZpO6T2uXMOgKJaSPFc6p+E3FTnbIGPRbI8K4ZApmtDTMu2CIeGfpzeK1zzGwfnA==}
+  oxlint-tsgolint@7.0.2008:
+    resolution: {integrity: sha512-QuRK+gdriCwpOs+1PGq6/aImEEEK+EClNptdVtI0y4bDOhJ0uH/v3noz+yPKe+DYOTdkej75/5f3ouOGP5EGrQ==}
     hasBin: true
 
   oxlint@1.81.0:
@@ -2350,8 +2351,8 @@ packages:
     resolution: {integrity: sha512-HehCEsotFqbPW9sJ8WVYB6UbmIMv7kUUORIF2Nncq4VQvBfNBLibW9YZR5dlYCSUhwcD628pRllm7n+E+YTzJw==}
     engines: {node: '>= 14'}
 
-  socks@2.8.10:
-    resolution: {integrity: sha512-e0VyvkVTwVYViNovRkZ9aodhxVlyoMn7eJhVUPxZ+eK9P/7CBkxvvsBOHqFPEH416726W8tLXXXjKwqgTErrCQ==}
+  socks@2.8.11:
+    resolution: {integrity: sha512-2H/uQ7+SNP0hK16RorTak0mWrFoqo4AnAVGSUl2dT07obgWdWt9grml+VDl1LklgUOPWM4Abo0u86Cvp8vFjYw==}
     engines: {node: '>= 10.0.0', npm: '>= 3.0.0'}
 
   source-map@0.6.1:
@@ -2488,8 +2489,8 @@ packages:
   ufo@1.6.4:
     resolution: {integrity: sha512-JFNbkD1Svwe0KvGi8GOeLcP4kAWQ609twvCdcHxq1oSL8svv39ZuSvajcD8B+5D0eL4+s1Is2D/O6KN3qcTeRA==}
 
-  unbash@6.0.4:
-    resolution: {integrity: sha512-t3OptUArewg9OpYGDskTSlxhyLDahfmZ4d36hE44Efb1y3HRLLpzsVqwH+AwBVymP4t7pP71xN+nnduudn2awA==}
+  unbash@6.0.5:
+    resolution: {integrity: sha512-5P8o+nYRueKpHxmemofYqZRZCSWAi+Tqy31MQS8l/sT54Z+Axn55N9CnWPo19BxxJD4wYYf6RqlcURhWkrFXew==}
     engines: {node: '>=14'}
 
   unbzip2-stream@1.4.3:
@@ -2604,7 +2605,7 @@ snapshots:
 
   '@antelopejs/core@1.23.3':
     dependencies:
-      '@antelopejs/interface-core': 0.5.1
+      '@antelopejs/interface-core': 0.5.2
       '@clack/prompts': 1.9.0
       '@types/proper-lockfile': 4.1.4
       commander: 13.1.0
@@ -2617,21 +2618,21 @@ snapshots:
       semver: 7.8.6
       typescript: 5.9.3
 
-  '@antelopejs/interface-api@0.3.4(@antelopejs/interface-core@0.5.1)':
+  '@antelopejs/interface-api@0.3.4(@antelopejs/interface-core@0.5.2)':
     dependencies:
-      '@antelopejs/interface-core': 0.5.1
+      '@antelopejs/interface-core': 0.5.2
 
-  '@antelopejs/interface-core@0.5.1':
+  '@antelopejs/interface-core@0.5.2':
     dependencies:
       reflect-metadata: 0.2.2
 
-  '@antelopejs/interface-file-storage@0.1.9(@antelopejs/interface-core@0.5.1)':
+  '@antelopejs/interface-file-storage@0.1.9(@antelopejs/interface-core@0.5.2)':
     dependencies:
-      '@antelopejs/interface-core': 0.5.1
+      '@antelopejs/interface-core': 0.5.2
 
-  '@antelopejs/tooling-configs@0.8.4(eslint-plugin-perfectionist@5.14.0(eslint@10.15.0(jiti@2.7.0))(typescript@5.9.3))(knip@6.46.1)(oxfmt@0.66.0)(oxlint@1.81.0(oxlint-tsgolint@7.0.2007))':
+  '@antelopejs/tooling-configs@0.8.9(eslint-plugin-perfectionist@5.14.0(eslint@10.15.0(jiti@2.7.0))(typescript@5.9.3))(knip@6.47.0)(oxfmt@0.66.0)(oxlint@1.81.0(oxlint-tsgolint@7.0.2008))':
     dependencies:
-      '@oxlint/plugins': 1.81.0
+      '@oxlint/plugins': 1.94.0
       dts-bundle-generator: 9.5.1
       minimatch: 10.2.6
       semver: 7.8.6
@@ -2659,9 +2660,9 @@ snapshots:
       '@typescript/typescript-win32-arm64': 7.0.2
       '@typescript/typescript-win32-x64': 7.0.2
       eslint-plugin-perfectionist: 5.14.0(eslint@10.15.0(jiti@2.7.0))(typescript@5.9.3)
-      knip: 6.46.1
+      knip: 6.47.0
       oxfmt: 0.66.0
-      oxlint: 1.81.0(oxlint-tsgolint@7.0.2007)
+      oxlint: 1.81.0(oxlint-tsgolint@7.0.2008)
 
   '@cacheable/memory@2.2.0':
     dependencies:
@@ -3151,22 +3152,22 @@ snapshots:
   '@oxfmt/binding-win32-x64-msvc@0.66.0':
     optional: true
 
-  '@oxlint-tsgolint/darwin-arm64@7.0.2007':
+  '@oxlint-tsgolint/darwin-arm64@7.0.2008':
     optional: true
 
-  '@oxlint-tsgolint/darwin-x64@7.0.2007':
+  '@oxlint-tsgolint/darwin-x64@7.0.2008':
     optional: true
 
-  '@oxlint-tsgolint/linux-arm64@7.0.2007':
+  '@oxlint-tsgolint/linux-arm64@7.0.2008':
     optional: true
 
-  '@oxlint-tsgolint/linux-x64@7.0.2007':
+  '@oxlint-tsgolint/linux-x64@7.0.2008':
     optional: true
 
-  '@oxlint-tsgolint/win32-arm64@7.0.2007':
+  '@oxlint-tsgolint/win32-arm64@7.0.2008':
     optional: true
 
-  '@oxlint-tsgolint/win32-x64@7.0.2007':
+  '@oxlint-tsgolint/win32-x64@7.0.2008':
     optional: true
 
   '@oxlint/binding-android-arm-eabi@1.81.0':
@@ -3226,7 +3227,7 @@ snapshots:
   '@oxlint/binding-win32-x64-msvc@1.81.0':
     optional: true
 
-  '@oxlint/plugins@1.81.0': {}
+  '@oxlint/plugins@1.94.0': {}
 
   '@phun-ky/typeof@2.0.3': {}
 
@@ -4113,7 +4114,7 @@ snapshots:
     dependencies:
       '@keyv/serialize': 1.1.1
 
-  knip@6.46.1:
+  knip@6.47.0:
     dependencies:
       formatly: 0.11.4
       get-tsconfig: 4.14.3
@@ -4124,7 +4125,7 @@ snapshots:
       smol-toml: 1.9.1
       strip-json-comments: 5.0.3
       tinyglobby: 0.2.17
-      unbash: 6.0.4
+      unbash: 6.0.5
       yaml: 2.9.1
 
   lefthook-android-arm64@2.2.2:
@@ -4294,7 +4295,7 @@ snapshots:
 
   natural-orderby@5.0.0: {}
 
-  netmask@2.1.1: {}
+  netmask@2.1.2: {}
 
   new-github-release-url@2.0.0:
     dependencies:
@@ -4459,16 +4460,16 @@ snapshots:
       '@oxfmt/binding-win32-ia32-msvc': 0.66.0
       '@oxfmt/binding-win32-x64-msvc': 0.66.0
 
-  oxlint-tsgolint@7.0.2007:
+  oxlint-tsgolint@7.0.2008:
     optionalDependencies:
-      '@oxlint-tsgolint/darwin-arm64': 7.0.2007
-      '@oxlint-tsgolint/darwin-x64': 7.0.2007
-      '@oxlint-tsgolint/linux-arm64': 7.0.2007
-      '@oxlint-tsgolint/linux-x64': 7.0.2007
-      '@oxlint-tsgolint/win32-arm64': 7.0.2007
-      '@oxlint-tsgolint/win32-x64': 7.0.2007
+      '@oxlint-tsgolint/darwin-arm64': 7.0.2008
+      '@oxlint-tsgolint/darwin-x64': 7.0.2008
+      '@oxlint-tsgolint/linux-arm64': 7.0.2008
+      '@oxlint-tsgolint/linux-x64': 7.0.2008
+      '@oxlint-tsgolint/win32-arm64': 7.0.2008
+      '@oxlint-tsgolint/win32-x64': 7.0.2008
 
-  oxlint@1.81.0(oxlint-tsgolint@7.0.2007):
+  oxlint@1.81.0(oxlint-tsgolint@7.0.2008):
     optionalDependencies:
       '@oxlint/binding-android-arm-eabi': 1.81.0
       '@oxlint/binding-android-arm64': 1.81.0
@@ -4489,7 +4490,7 @@ snapshots:
       '@oxlint/binding-win32-arm64-msvc': 1.81.0
       '@oxlint/binding-win32-ia32-msvc': 1.81.0
       '@oxlint/binding-win32-x64-msvc': 1.81.0
-      oxlint-tsgolint: 7.0.2007
+      oxlint-tsgolint: 7.0.2008
 
   p-limit@3.1.0:
     dependencies:
@@ -4515,7 +4516,7 @@ snapshots:
   pac-resolver@7.0.1:
     dependencies:
       degenerator: 5.0.1
-      netmask: 2.1.1
+      netmask: 2.1.2
 
   package-json-from-dist@1.0.1: {}
 
@@ -4771,11 +4772,11 @@ snapshots:
     dependencies:
       agent-base: 7.1.4
       debug: 4.4.3(supports-color@8.1.1)
-      socks: 2.8.10
+      socks: 2.8.11
     transitivePeerDependencies:
       - supports-color
 
-  socks@2.8.10:
+  socks@2.8.11:
     dependencies:
       ip-address: 10.7.6
       smart-buffer: 4.2.0
@@ -4907,7 +4908,7 @@ snapshots:
 
   ufo@1.6.4: {}
 
-  unbash@6.0.4: {}
+  unbash@6.0.5: {}
 
   unbzip2-stream@1.4.3:
     dependencies:
