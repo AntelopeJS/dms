@@ -9,7 +9,7 @@ const METHOD_NOT_FOUND = -32601;
 const InitializeResult = z.object({
   protocolVersion: z.string(),
   serverInfo: z.object({ name: z.string() }),
-  capabilities: z.object({ tools: z.unknown() }),
+  capabilities: z.object({ tools: z.unknown().optional() }),
 });
 const ToolsResult = z.object({
   tools: z.array(

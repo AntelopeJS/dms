@@ -1,8 +1,8 @@
+import { isDeepStrictEqual } from "node:util";
 import type { JsonValue } from "@antelopejs/interface-dms/json";
 import { z } from "zod";
 import type { McpClient } from "./bridge";
 import { containsHiddenValue, HIDDEN_VALUE_REFUSAL } from "./hidden-values";
-import { zodToJsonSchema } from "zod-to-json-schema";
 import { JsonObjectSchema } from "./json";
 
 /**
@@ -110,11 +110,31 @@ function issuesText(error: z.ZodError): string {
     .join("\n");
 }
 
+/**
+ * The JSON Schema of a tool's arguments: what each accepts as input, in
+ * draft-07, with an object that strips unknown keys refusing them, and no
+ * `propertyNames` on a record whose keys are any string, which says nothing
+ * a JSON key does not.
+ */
 function inputSchemaOf<Fields extends McpInputFields>(
   input: z.ZodObject<Fields>,
 ): McpInputSchema {
   const { $schema: _schema, ...schema } = JsonObjectSchema.parse(
-    zodToJsonSchema(input, { target: "jsonSchema7", $refStrategy: "root" }),
+    z.toJSONSchema(input, {
+      target: "draft-07",
+      io: "input",
+      override: ({ zodSchema, jsonSchema }) => {
+        const def = zodSchema._zod.def;
+        if (def.type === "object" && def.catchall === undefined) {
+          jsonSchema.additionalProperties = false;
+        } else if (
+          def.type === "record" &&
+          isDeepStrictEqual(jsonSchema.propertyNames, { type: "string" })
+        ) {
+          delete jsonSchema.propertyNames;
+        }
+      },
+    }),
   );
   return schema;
 }

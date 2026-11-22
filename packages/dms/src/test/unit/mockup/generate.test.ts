@@ -68,7 +68,7 @@ function read(text: string) {
 
 function rowsOf(text: string, name = DEMO, now?: number) {
   const fixtures = compileSpec(name, read(text), now).fixtures.get("home");
-  return z.array(z.record(z.unknown())).parse(fixtures?.people);
+  return z.array(z.record(z.string(), z.unknown())).parse(fixtures?.people);
 }
 
 function issuesOf(fixture: Json) {

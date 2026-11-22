@@ -30,11 +30,17 @@ export const jsonSchema: z.ZodType<Json> = z.union([
   z.boolean(),
   z.null(),
   z.array(z.lazy(() => jsonSchema)),
-  z.record(z.lazy(() => jsonSchema)),
+  z.record(
+    z.string(),
+    z.lazy(() => jsonSchema),
+  ),
 ]);
 
 /** Decodes a JSON object. */
-export const jsonObjectSchema: z.ZodType<JsonObject> = z.record(jsonSchema);
+export const jsonObjectSchema: z.ZodType<JsonObject> = z.record(
+  z.string(),
+  jsonSchema,
+);
 
 /** A mockup name or a page id. */
 export const SLUG_PATTERN = /^[a-z0-9][a-z0-9-]{0,63}$/;
@@ -513,7 +519,7 @@ export function specValueAt(value: Json, pointer: string): Json | undefined {
 }
 
 /** RFC 6901: the root is the empty string, `~` and `/` are escaped. */
-export function jsonPointer(path: ReadonlyArray<string | number>): string {
+export function jsonPointer(path: readonly PropertyKey[]): string {
   return path
     .map(
       (segment) =>

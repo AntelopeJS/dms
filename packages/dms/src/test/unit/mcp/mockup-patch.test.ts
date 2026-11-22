@@ -260,7 +260,9 @@ function writesPatchedSpec(): void {
       .object({
         title: z.string(),
         pages: z.array(
-          z.object({ tree: z.array(z.object({ options: z.unknown() })) }),
+          z.object({
+            tree: z.array(z.object({ options: z.unknown().optional() })),
+          }),
         ),
       })
       .parse(JSON.parse(text));

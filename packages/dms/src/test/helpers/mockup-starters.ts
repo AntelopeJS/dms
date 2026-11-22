@@ -81,6 +81,7 @@ export function writeStarterCatalog(blocks: JsonObject[]): void {
 }
 
 const startersSchema = z.record(
+  z.string(),
   z.object({ node: jsonObjectSchema, fixtures: jsonObjectSchema }),
 );
 

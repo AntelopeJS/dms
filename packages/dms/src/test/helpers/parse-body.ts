@@ -11,7 +11,7 @@ export interface BodyResponse {
  * test with the status and the body, instead of passing as an unchecked type.
  */
 export function parseBody<Body>(
-  schema: z.ZodType<Body, z.ZodTypeDef, unknown>,
+  schema: z.ZodType<Body, unknown>,
   response: BodyResponse,
 ): Body {
   const parsed = schema.safeParse(response.data);

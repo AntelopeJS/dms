@@ -37,7 +37,7 @@ const requestAt = (url: URL) => requestContextFixture(url);
 
 const ServedOptionsOf = z.object({
   componentName: z.string(),
-  options: z.record(z.unknown()).optional(),
+  options: z.record(z.string(), z.unknown()).optional(),
 });
 
 const ServedComponent = ServedOptionsOf.extend({
@@ -61,8 +61,8 @@ const HeaderAction = z
 
 const ServedStatus = z
   .object({
-    headerActionsQuery: z.record(z.string()).optional(),
-    headerActionsParams: z.record(z.string()).optional(),
+    headerActionsQuery: z.record(z.string(), z.string()).optional(),
+    headerActionsParams: z.record(z.string(), z.string()).optional(),
     recordStatus: z.string().optional(),
   })
   .passthrough();

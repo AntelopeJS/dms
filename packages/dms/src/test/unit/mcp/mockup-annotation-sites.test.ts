@@ -51,7 +51,7 @@ describe("[unit] mockup_annotations: what each note is on in the spec", () => {
       annotations: z.array(
         z.object({
           pointer: z.string().optional(),
-          node: z.record(z.unknown()).optional(),
+          node: z.record(z.string(), z.unknown()).optional(),
         }),
       ),
     });

@@ -66,7 +66,7 @@ const storedSchema = z.object({
 /** Rewrites the file as a build before versions left it: no note has a version. */
 async function withoutVersions(): Promise<void> {
   const file = z
-    .object({ annotations: z.array(z.record(z.unknown())) })
+    .object({ annotations: z.array(z.record(z.string(), z.unknown())) })
     .passthrough()
     .parse(JSON.parse(await readFile(annotationsPath(), "utf8")));
   await writeFile(

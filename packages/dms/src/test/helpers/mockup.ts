@@ -23,6 +23,7 @@ export function shippedExampleSpec(): Json {
 }
 
 const docsExamplesSchema = z.record(
+  z.string(),
   z.object({ type: z.string() }).passthrough(),
 );
 

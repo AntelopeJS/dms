@@ -90,10 +90,9 @@ export interface ValidationIssue {
   path?: unknown;
   message?: unknown;
   code?: unknown;
-  validation?: unknown;
+  format?: unknown;
   minimum?: unknown;
-  received?: unknown;
-  type?: unknown;
+  origin?: unknown;
 }
 
 const HTTP_BAD_REQUEST = 400;
@@ -124,8 +123,8 @@ const FIELD_ERROR_KEYS = {
   tooLarge: "$dms.field_errors.too_large",
 } as const;
 
-/** Issue types whose size is a count (characters, items), not a value. */
-const COUNTED_TYPES = new Set(["string", "array", "set"]);
+/** Issue origins whose size is a count (characters, items), not a value. */
+const COUNTED_ORIGINS = new Set(["string", "array", "set"]);
 
 const DATA_API_CODES: Readonly<
   Record<ReturnType<typeof resolveApiErrorMessage>, ApiFieldError["message"]>
@@ -177,7 +176,10 @@ function isI18nKey(message: string): boolean {
 
 /** A zod issue's own message when it is a key, else a generic one. */
 function tooSmallMessage(issue: ValidationIssue): string {
-  if (issue.type !== undefined && !COUNTED_TYPES.has(String(issue.type))) {
+  if (
+    issue.origin !== undefined &&
+    !COUNTED_ORIGINS.has(String(issue.origin))
+  ) {
     return FIELD_ERROR_KEYS.tooSmall;
   }
   return isNumber(issue.minimum) && issue.minimum <= 1
@@ -194,18 +196,15 @@ export function validationIssueMessage(issue: ValidationIssue): string {
     return issue.message;
   }
   switch (issue.code) {
-    case "invalid_type":
-      return issue.received === "undefined" || issue.received === "null"
-        ? FIELD_ERROR_KEYS.required
-        : FIELD_ERROR_KEYS.invalid;
     case "too_small":
       return tooSmallMessage(issue);
     case "too_big":
-      return issue.type !== undefined && !COUNTED_TYPES.has(String(issue.type))
+      return issue.origin !== undefined &&
+        !COUNTED_ORIGINS.has(String(issue.origin))
         ? FIELD_ERROR_KEYS.tooLarge
         : FIELD_ERROR_KEYS.tooLong;
-    case "invalid_string":
-      return issue.validation === "email"
+    case "invalid_format":
+      return issue.format === "email"
         ? FIELD_ERROR_KEYS.invalidEmail
         : FIELD_ERROR_KEYS.invalid;
     default:

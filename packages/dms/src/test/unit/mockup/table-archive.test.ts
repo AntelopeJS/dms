@@ -69,7 +69,7 @@ const builtSchema = z
   .object({
     archiveMode: z.boolean().optional(),
     archivedCountLabel: z.string().optional(),
-    rowActions: z.record(z.unknown()),
+    rowActions: z.record(z.string(), z.unknown()),
   })
   .passthrough();
 

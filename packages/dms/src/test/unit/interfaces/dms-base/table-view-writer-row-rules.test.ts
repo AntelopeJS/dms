@@ -174,11 +174,11 @@ function ruleOf(action: "archive" | "restore" | "delete" | "edit") {
 
 const ServedOptions = z.object({
   formComponents: z.object({
-    new: z.unknown(),
-    edit: z.unknown(),
-    view: z.unknown(),
+    new: z.unknown().optional(),
+    edit: z.unknown().optional(),
+    view: z.unknown().optional(),
   }),
-  rowActions: z.object({ delete: z.unknown() }).optional(),
+  rowActions: z.object({ delete: z.unknown().optional() }).optional(),
 });
 
 async function served(

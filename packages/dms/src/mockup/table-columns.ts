@@ -37,7 +37,7 @@ const mappedDisplaySchema = z.discriminatedUnion("kind", [
 const cellDisplaySchema = z
   .object({
     type: z.string(),
-    options: z.record(z.unknown()).optional(),
+    options: z.record(z.string(), z.unknown()).optional(),
   })
   .strict();
 
@@ -61,7 +61,7 @@ export const columnSchema = z
     cellWrap: z.boolean().optional(),
     size: z.number().optional(),
     sortable: z.boolean().optional(),
-    display: z.record(z.unknown()).optional(),
+    display: z.record(z.string(), z.unknown()).optional(),
     group: z.string().optional(),
   })
   .strict();

@@ -258,16 +258,15 @@ function distinctTypes(elements: JsonTypes[]): JsonTypes {
 }
 
 /** Reads a JSON value as its types: each leaf its type, each list its length and distinct element types. */
-const JsonTypesSchema: z.ZodType<JsonTypes, z.ZodTypeDef, unknown> = z.lazy(
-  () =>
-    z.union([
-      z.string().transform((): JsonTypes => "string"),
-      z.number().transform((): JsonTypes => "number"),
-      z.boolean().transform((): JsonTypes => "boolean"),
-      z.null().transform((): JsonTypes => "null"),
-      z.array(JsonTypesSchema).transform(distinctTypes),
-      z.record(z.string(), JsonTypesSchema),
-    ]),
+const JsonTypesSchema: z.ZodType<JsonTypes, unknown> = z.lazy(() =>
+  z.union([
+    z.string().transform((): JsonTypes => "string"),
+    z.number().transform((): JsonTypes => "number"),
+    z.boolean().transform((): JsonTypes => "boolean"),
+    z.null().transform((): JsonTypes => "null"),
+    z.array(JsonTypesSchema).transform(distinctTypes),
+    z.record(z.string(), JsonTypesSchema),
+  ]),
 );
 
 /** A query preview with its body reduced to the types it holds, and `status` when one is given. */

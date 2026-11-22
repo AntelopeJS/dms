@@ -94,17 +94,16 @@ export function refusalResult(code: string, detail: string): McpToolResult {
 
 const EXPR_SENTINEL = z.object({ $expr: z.string() });
 
-export const containsExprSentinel: z.ZodType<boolean, z.ZodTypeDef, unknown> =
-  z.lazy(() =>
-    z.union([
-      EXPR_SENTINEL.transform(() => true),
-      z.array(containsExprSentinel).transform((items) => items.some(Boolean)),
-      z
-        .record(z.string(), containsExprSentinel)
-        .transform((members) => Object.values(members).some(Boolean)),
-      z.unknown().transform(() => false),
-    ]),
-  );
+export const containsExprSentinel: z.ZodType<boolean, unknown> = z.lazy(() =>
+  z.union([
+    EXPR_SENTINEL.transform(() => true),
+    z.array(containsExprSentinel).transform((items) => items.some(Boolean)),
+    z
+      .record(z.string(), containsExprSentinel)
+      .transform((members) => Object.values(members).some(Boolean)),
+    z.unknown().transform(() => false),
+  ]),
+);
 
 export function exprRefusal(): McpToolResult {
   return refusalResult("unsupported", BUILDER_EXPR_REFUSAL);

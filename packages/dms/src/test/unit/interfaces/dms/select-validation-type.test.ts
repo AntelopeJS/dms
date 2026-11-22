@@ -5,8 +5,8 @@ import { DefaultDataTypes } from "@antelopejs/interface-dms/base/data-types/defa
 /** The return type `SelectType.getValidation()` publishes; a change to it is a change of the interface's API. */
 type PublishedSelectValidation =
   | z.ZodNever
-  | z.ZodEnum<[string, ...string[]]>
-  | z.ZodArray<z.ZodNever | z.ZodEnum<[string, ...string[]]>>
+  | z.ZodEnum<Record<string, string>>
+  | z.ZodArray<z.ZodNever | z.ZodEnum<Record<string, string>>>
   | z.ZodString
   | z.ZodArray<z.ZodString>;
 

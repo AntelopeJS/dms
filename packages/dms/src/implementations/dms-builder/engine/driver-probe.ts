@@ -11,10 +11,10 @@ const ProbeConfigSchema = z.object({
   signal: z.instanceof(AbortSignal),
 }) satisfies z.ZodType<ProbeConfig>;
 
-const ProbeExport = z
-  .function()
-  .args(ProbeConfigSchema)
-  .returns(z.promise(z.unknown()));
+const ProbeExport = z.function({
+  input: [ProbeConfigSchema],
+  output: z.promise(z.unknown()),
+});
 
 /**
  * A driver's `probe` as the check loads it: its answer is read by `ReadProbeAnswer`, since the

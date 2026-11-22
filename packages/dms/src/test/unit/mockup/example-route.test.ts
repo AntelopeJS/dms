@@ -43,7 +43,7 @@ describe("[unit] GET /api/mockup/example", () => {
     const fixtures = z
       .object({
         pages: z.array(
-          z.object({ fixtures: z.record(z.unknown()).optional() }),
+          z.object({ fixtures: z.record(z.string(), z.unknown()).optional() }),
         ),
       })
       .parse(response.data).pages[0].fixtures;

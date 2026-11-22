@@ -167,7 +167,7 @@ function customersTable(options: JsonObject): JsonObject {
 }
 
 const formsSchema = z.object({
-  formComponents: z.record(z.object({ options: formSchema })),
+  formComponents: z.record(z.string(), z.object({ options: formSchema })),
 });
 
 const CONTACT = {

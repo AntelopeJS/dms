@@ -54,7 +54,7 @@ export interface ServedHeaderActions {
   headerActionsQuery?: Record<string, string>;
 }
 
-const StringRecord = z.record(z.string());
+const StringRecord = z.record(z.string(), z.string());
 
 function isServedHeaderActions(value: unknown): value is ServedHeaderActions {
   return (

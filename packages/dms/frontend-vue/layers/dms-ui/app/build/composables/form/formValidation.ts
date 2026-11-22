@@ -56,7 +56,7 @@ export interface FormValidationContext {
   /** The language a localized field shows: its required error goes there. */
   locale?: string;
   /** Passed to zod (the error map wording its issues). */
-  parseParams?: Partial<z.ParseParams>;
+  parseParams?: z.core.ParseContext<z.core.$ZodIssue>;
   /**
    * Errors controls report on their own value (a duration or JSON that
    * cannot be read), by field id, already translated: the field is refused
@@ -102,8 +102,8 @@ function requiredPath(
 }
 
 /** An issue saying the value is not of a branch's type at all. */
-function isTypeMismatch(issue: z.ZodIssue, path: PropertyKey[]): boolean {
-  return issue.code === "invalid_type" && issue.path.length === path.length;
+function isTypeMismatch(issue: z.core.$ZodIssue): boolean {
+  return issue.code === "invalid_type" && issue.path.length === 0;
 }
 
 /**
@@ -114,14 +114,15 @@ function isTypeMismatch(issue: z.ZodIssue, path: PropertyKey[]): boolean {
  * issues replace it: an address part missing, a range end not picked. A
  * union with several such branches keeps its issue.
  */
-export function unwrapUnionIssue(issue: z.ZodIssue): z.ZodIssue[] {
+export function unwrapUnionIssue(issue: z.core.$ZodIssue): z.core.$ZodIssue[] {
   if (issue.code !== "invalid_union") return [issue];
-  const branches = issue.unionErrors.filter(
-    (error) =>
-      !error.issues.every((inner) => isTypeMismatch(inner, issue.path)),
+  const branches = issue.errors.filter(
+    (branch) => !branch.every(isTypeMismatch),
   );
   if (branches.length !== 1) return [issue];
-  return branches[0]!.issues.flatMap(unwrapUnionIssue);
+  return branches[0]!.flatMap((inner) =>
+    unwrapUnionIssue({ ...inner, path: [...issue.path, ...inner.path] }),
+  );
 }
 
 /**

@@ -1,5 +1,5 @@
 import { computed, provide, reactive, toValue, watch } from "vue";
-import type { ZodErrorMap } from "zod";
+import type { z } from "zod";
 import { isObject } from "#dms-core/app/utils/type-check";
 import {
   formIssueMessage,
@@ -32,8 +32,8 @@ interface FormValidationSource
 
 /** Form.vue's localized schema and validation for controls with custom events. */
 export function formComponentValidation(source: FormValidationSource) {
-  const issueErrorMap: ZodErrorMap = (issue, context) => ({
-    message: source.processApiMessage(formIssueMessage(issue, context.data)),
+  const issueErrorMap: z.core.$ZodErrorMap = (issue) => ({
+    message: source.processApiMessage(formIssueMessage(issue, issue.input)),
   });
   const localizedSchema = computed(() => {
     const schema = source.validationSchema.value;
@@ -57,7 +57,7 @@ export function formComponentValidation(source: FormValidationSource) {
               fields: validationFields,
               requiredMessage: source.processApiMessage(REQUIRED_MESSAGE),
               locale: source.locale(),
-              parseParams: { errorMap: issueErrorMap },
+              parseParams: { error: issueErrorMap },
               controlErrors,
             },
           ),

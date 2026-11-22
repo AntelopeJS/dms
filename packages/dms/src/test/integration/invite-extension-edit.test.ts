@@ -23,7 +23,9 @@ interface ScopeSlice {
   access: string;
 }
 
-const StoredExtensions = z.record(z.record(z.string())).nullish();
+const StoredExtensions = z
+  .record(z.string(), z.record(z.string(), z.string()))
+  .nullish();
 
 interface RecordedUpdate {
   payload: ScopeSlice;

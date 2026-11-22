@@ -43,7 +43,7 @@ const listSchema = z.object({
 
 const versionSchema = z.object({
   seq: z.number(),
-  spec: z.record(z.unknown()),
+  spec: z.record(z.string(), z.unknown()),
   state: z.object({
     revision: z.number(),
     pages: z.array(z.object({ id: z.string(), tree: z.array(z.unknown()) })),

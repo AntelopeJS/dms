@@ -352,8 +352,11 @@ function servesTheRealTools(): void {
     );
     const schema = compose?.inputSchema ?? {};
     expect(schema.properties).to.include.keys(["pageRef", "blocks", "preview"]);
+    const blockRef = RefSchema.parse(
+      resolveRef(schema, "#/properties/blocks/items"),
+    ).$ref;
+    expect(refsOf(resolveRef(schema, blockRef) ?? {})).to.include(blockRef);
     const refs = refsOf(schema);
-    expect(refs).to.include("#/properties/blocks/items");
     for (const ref of refs) {
       expect(resolveRef(schema, ref), ref).to.be.an("object");
     }

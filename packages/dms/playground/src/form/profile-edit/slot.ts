@@ -11,7 +11,9 @@ import {
 export const PROFILE_SOCIAL_SLOT_ID = "playground:profile-social";
 
 type FormSchemaJson = NonNullable<FormPropsSerialized["schema"]>;
-type ObjectSchemaJson = Extract<FormSchemaJson, { properties: object }>;
+type ObjectSchemaJson = FormSchemaJson & {
+  properties: NonNullable<FormSchemaJson["properties"]>;
+};
 
 function serializedOptions(form: ReturnType<typeof Form>): FormPropsSerialized {
   const { options } = form.serializeSync();
@@ -22,10 +24,9 @@ function serializedOptions(form: ReturnType<typeof Form>): FormPropsSerialized {
 function objectSchemaOf(
   schema: FormSchemaJson | undefined,
 ): ObjectSchemaJson | undefined {
-  if (schema && "properties" in schema && schema.type === "object") {
-    return schema;
-  }
-  return undefined;
+  const properties = schema?.properties;
+  if (!schema || !properties || schema.type !== "object") return undefined;
+  return { ...schema, properties };
 }
 
 const contributed = serializedOptions(

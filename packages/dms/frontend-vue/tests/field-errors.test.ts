@@ -111,9 +111,10 @@ function registerMappedFieldErrorTests() {
       statusCode: 400,
       data: zodBody([
         {
-          validation: "email",
-          code: "invalid_string",
-          message: "Invalid email",
+          origin: "string",
+          code: "invalid_format",
+          format: "email",
+          message: "Invalid email address",
           path: ["email", 0],
         },
         {
@@ -122,10 +123,10 @@ function registerMappedFieldErrorTests() {
           path: ["roles"],
         },
         {
+          origin: "string",
           code: "too_small",
           minimum: 1,
-          type: "string",
-          message: "String must contain at least 1 character(s)",
+          message: "Too small: expected string to have >=1 characters",
           path: ["name"],
         },
       ]),

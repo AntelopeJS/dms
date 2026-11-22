@@ -9,7 +9,7 @@ const TYPES = "/api/block-preview/types";
 const HTTP_OK = 200;
 const HTTP_UNAUTHORIZED = 401;
 
-const TypesBody = z.record(z.object({ componentName: z.string() }));
+const TypesBody = z.record(z.string(), z.object({ componentName: z.string() }));
 
 describe("[integration] block preview types", () => {
   beforeEach(resetDatabase);

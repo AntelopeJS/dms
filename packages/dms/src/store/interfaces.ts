@@ -33,7 +33,10 @@ const INTERFACE_NAME_PATTERN = /(^|\/)interface-/;
 const TextSchema = z.string().optional().catch(undefined);
 
 const RegistryManifestSchema = z.object({
-  interfaces: z.record(z.string().catch("")).optional().catch(undefined),
+  interfaces: z
+    .record(z.string(), z.string().catch(""))
+    .optional()
+    .catch(undefined),
 });
 
 const RegistryModuleSchema = z.object({
@@ -51,14 +54,17 @@ const InterfaceManifestSchema = z.object({
 });
 
 const AntelopeManifestSchema = z.object({
-  implements: z.unknown(),
-  standalone: z.unknown(),
+  implements: z.unknown().optional(),
+  standalone: z.unknown().optional(),
 });
 
 type AntelopeManifest = z.infer<typeof AntelopeManifestSchema>;
 
 const ModulePackageSchema = z.object({
-  dependencies: z.record(z.string().catch("")).optional().catch(undefined),
+  dependencies: z
+    .record(z.string(), z.string().catch(""))
+    .optional()
+    .catch(undefined),
   antelopeJs: AntelopeManifestSchema.optional().catch(undefined),
 });
 
@@ -73,7 +79,7 @@ type InterfaceKind = "required" | "standalone" | "library";
 
 async function fetchRegistryDocument<Document>(
   file: string,
-  schema: z.ZodType<Document, z.ZodTypeDef, unknown>,
+  schema: z.ZodType<Document, unknown>,
   freshness: Freshness,
 ): Promise<Document | undefined> {
   const document = await registryDocuments.get(

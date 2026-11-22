@@ -161,7 +161,10 @@ function refused(
   }
 }
 
-const unnamedSchema = z.object({ id: z.undefined(), type: z.string() });
+const unnamedSchema = z.object({
+  id: z.undefined().optional(),
+  type: z.string(),
+});
 
 /** Whether the node a stamp names still has no id and the type it was written as. */
 function stillUnnamed(spec: JsonObject, stamp: NodeStamp): boolean {

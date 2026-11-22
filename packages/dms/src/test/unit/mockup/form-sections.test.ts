@@ -40,7 +40,7 @@ const OWN_FIELDS: Json[] = [{ id: "intro", label: "Intro", type: "string" }];
 const layoutSchema = z
   .object({
     fields: z.array(z.object({ id: z.string() })),
-    sections: z.array(z.record(z.unknown())),
+    sections: z.array(z.record(z.string(), z.unknown())),
   })
   .transform(({ fields, sections }) => ({
     fieldIds: fields.map((field) => field.id),

@@ -44,7 +44,8 @@ const DateValueSchema = z.union([
   z.object({ start: DateSchema, end: DateSchema }).strict(),
 ]);
 const DemoRecordSchema = z.record(
-  z.union([FlatSchema, DateValueSchema, z.record(FlatSchema)]),
+  z.string(),
+  z.union([FlatSchema, DateValueSchema, z.record(z.string(), FlatSchema)]),
 ) satisfies z.ZodType<DemoRecord>;
 
 /** Who may read and write a demo record: the page showing its form. */

@@ -253,7 +253,9 @@ const ModuleEntrySchema = z
   })
   .passthrough();
 
-const ConnectionSettingSchema = z.object({ access: z.unknown() }).passthrough();
+const ConnectionSettingSchema = z
+  .object({ access: z.unknown().optional() })
+  .passthrough();
 
 type ModuleEntry = z.infer<typeof ModuleEntrySchema>;
 
