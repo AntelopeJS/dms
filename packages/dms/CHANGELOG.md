@@ -1,5 +1,23 @@
 # Changelog
 
+## v0.22.1
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/v0.22.0...v0.22.1)
+
+### 🩹 Fixes
+
+- **dms:** Move to @antelopejs/mongodb 1.8.13, which loads its interfaces through require() ([#1233](https://github.com/AntelopeJS/dms/pull/1233))
+
+### 🤖 CI
+
+- Re-sync the AntelopeJS pack for the release app ([#1232](https://github.com/AntelopeJS/dms/pull/1232))
+- Adopt the shared module lock refresh and checks ([#1234](https://github.com/AntelopeJS/dms/pull/1234))
+- Stop forwarding the retired RELEASE_GITHUB_TOKEN ([#1235](https://github.com/AntelopeJS/dms/pull/1235))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli
+
 ## v0.22.0
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/v0.21.3...v0.22.0)
