@@ -4,7 +4,7 @@
  * them from.
  */
 export const HARNESS_MODULES = {
-  mongodb: "1.8.11",
+  mongodb: "1.8.13",
   "auth-jwt": "1.1.3",
   "file-storage-local": "0.2.2",
   nodemailer: "0.0.13",
