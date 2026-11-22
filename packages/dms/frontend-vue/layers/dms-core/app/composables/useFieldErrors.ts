@@ -93,6 +93,16 @@ export interface ValidationIssue {
   format?: unknown;
   minimum?: unknown;
   origin?: unknown;
+  /** zod 3's `origin`, in an issue list a module still on zod 3 sends. */
+  type?: unknown;
+  /** zod 3's `format`, in an issue list a module still on zod 3 sends. */
+  validation?: unknown;
+}
+
+/** What a size issue measured, as zod 4 (`origin`) or zod 3 (`type`) names it. */
+function sizeOrigin(issue: ValidationIssue): string | undefined {
+  const origin = issue.origin ?? issue.type;
+  return origin === undefined ? undefined : String(origin);
 }
 
 const HTTP_BAD_REQUEST = 400;
@@ -176,10 +186,8 @@ function isI18nKey(message: string): boolean {
 
 /** A zod issue's own message when it is a key, else a generic one. */
 function tooSmallMessage(issue: ValidationIssue): string {
-  if (
-    issue.origin !== undefined &&
-    !COUNTED_ORIGINS.has(String(issue.origin))
-  ) {
+  const origin = sizeOrigin(issue);
+  if (origin !== undefined && !COUNTED_ORIGINS.has(origin)) {
     return FIELD_ERROR_KEYS.tooSmall;
   }
   return isNumber(issue.minimum) && issue.minimum <= 1
@@ -198,13 +206,15 @@ export function validationIssueMessage(issue: ValidationIssue): string {
   switch (issue.code) {
     case "too_small":
       return tooSmallMessage(issue);
-    case "too_big":
-      return issue.origin !== undefined &&
-        !COUNTED_ORIGINS.has(String(issue.origin))
+    case "too_big": {
+      const origin = sizeOrigin(issue);
+      return origin !== undefined && !COUNTED_ORIGINS.has(origin)
         ? FIELD_ERROR_KEYS.tooLarge
         : FIELD_ERROR_KEYS.tooLong;
+    }
     case "invalid_format":
-      return issue.format === "email"
+    case "invalid_string":
+      return (issue.format ?? issue.validation) === "email"
         ? FIELD_ERROR_KEYS.invalidEmail
         : FIELD_ERROR_KEYS.invalid;
     default:

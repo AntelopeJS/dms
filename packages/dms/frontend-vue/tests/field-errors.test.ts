@@ -13,6 +13,7 @@ const zodBody = (issues: unknown[]) => JSON.stringify(issues, null, 2);
 
 describe("resolveFieldErrors", () => {
   registerMappedFieldErrorTests();
+  registerZod3IssueTests();
   registerStructuredFieldErrorTests();
   registerUnmatchedFieldErrorTests();
 });
@@ -145,6 +146,39 @@ function registerMappedFieldErrorTests() {
           message: "$page.settings.members.invite.roles_required",
         },
         { field: "name", message: "$dms.field_errors.required" },
+      ],
+      hasUnmatched: false,
+    });
+  });
+}
+
+function registerZod3IssueTests() {
+  it("words a module's zod 3 issues as it words zod 4's, never a typed number as required", () => {
+    const error = {
+      statusCode: 400,
+      data: zodBody([
+        {
+          validation: "email",
+          code: "invalid_string",
+          message: "Invalid email",
+          path: ["email"],
+        },
+        {
+          code: "too_small",
+          minimum: 1,
+          type: "number",
+          inclusive: true,
+          message: "Number must be greater than or equal to 1",
+          path: ["quantity"],
+        },
+      ]),
+    };
+    expect(
+      resolveFieldErrors(error, { fields: ["email", "quantity"] }),
+    ).toEqual({
+      fields: [
+        { field: "email", message: "$dms.field_errors.invalid_email" },
+        { field: "quantity", message: "$dms.field_errors.too_small" },
       ],
       hasUnmatched: false,
     });

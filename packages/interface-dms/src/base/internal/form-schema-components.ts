@@ -51,23 +51,40 @@ function serializeFormSections(
 }
 
 /**
- * The pattern a string format (an e-mail, a uuid, a date-time) checks with, as
- * opposed to one `.regex()` adds.
+ * The zod string formats the browser checks by their JSON Schema `format`
+ * alone, since `json-schema-to-zod` rebuilds each as zod's own check.
+ */
+const BROWSER_CHECKED_FORMATS: ReadonlySet<string> = new Set([
+  "email",
+  "uuid",
+  "url",
+  "datetime",
+  "date",
+  "time",
+  "ipv4",
+  "ipv6",
+  "duration",
+]);
+
+/**
+ * The pattern a string format the browser checks by its `format` (an e-mail,
+ * a uuid, a date-time) checks with, as opposed to one `.regex()` or another
+ * format adds.
  */
 function formatPattern(
   def: z.core.$ZodTypeDef | z.core.$ZodCheckDef,
 ): string | undefined {
   if (!("check" in def) || def.check !== "string_format") return undefined;
-  if (!("format" in def) || def.format === "regex") return undefined;
+  if (!("format" in def) || !isString(def.format)) return undefined;
+  if (!BROWSER_CHECKED_FORMATS.has(def.format)) return undefined;
   return "pattern" in def && def.pattern instanceof RegExp
     ? def.pattern.source
     : undefined;
 }
 
 /**
- * Drops the patterns of a string's formats: the browser checks a format by
- * its `format`, and the same check written twice reports every bad value
- * twice.
+ * Drops the patterns of the formats the browser checks by their `format`: the
+ * same check written twice reports every bad value twice.
  */
 function dropFormatPatterns(
   schema: z.core.$ZodType,
