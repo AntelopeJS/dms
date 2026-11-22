@@ -303,7 +303,7 @@ const configureColumnGroups = defineTool({
       .string()
       .describe("The resource's `ref`, from builder_list_resources."),
     groups: z
-      .record(COLUMN_GROUP.nullable())
+      .record(z.string(), COLUMN_GROUP.nullable())
       .describe("The groups to write by id; null removes that group."),
   }),
   run: async ({ resource, groups }) =>

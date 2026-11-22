@@ -331,8 +331,8 @@ export class DateType extends DataType {
     return this.singleDateValidation();
   }
 
-  private singleDateValidation(): z.ZodType<Date, z.ZodTypeDef, string | Date> {
-    let singleDateSchema: z.ZodType<Date, z.ZodTypeDef, string | Date> = z
+  private singleDateValidation(): z.ZodType<Date, string | Date> {
+    let singleDateSchema: z.ZodType<Date, string | Date> = z
       .union([
         z
           .string()

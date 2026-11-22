@@ -62,28 +62,29 @@ interface LayoutNode {
 
 const optionalString = z.string().optional().catch(undefined);
 
-const LayoutNodeSchema: z.ZodType<LayoutNode, z.ZodTypeDef, unknown> = z.lazy(
-  () =>
-    z.object({
-      componentName: z.string().optional(),
-      options: z
-        .object({
-          fetchUrl: optionalString,
-          location: optionalString,
-          source: z
-            .object({ fetchUrl: optionalString })
-            .optional()
-            .catch(undefined),
-        })
-        .optional()
-        .catch(undefined),
-      children: z
-        .array(z.object({ id: z.string(), component: LayoutNodeSchema }))
-        .optional(),
-    }),
+const LayoutNodeSchema: z.ZodType<LayoutNode, unknown> = z.lazy(() =>
+  z.object({
+    componentName: z.string().optional(),
+    options: z
+      .object({
+        fetchUrl: optionalString,
+        location: optionalString,
+        source: z
+          .object({ fetchUrl: optionalString })
+          .optional()
+          .catch(undefined),
+      })
+      .optional()
+      .catch(undefined),
+    children: z
+      .array(z.object({ id: z.string(), component: LayoutNodeSchema }))
+      .optional(),
+  }),
 );
 
-const LayoutSchema = z.object({ components: z.record(LayoutNodeSchema) });
+const LayoutSchema = z.object({
+  components: z.record(z.string(), LayoutNodeSchema),
+});
 
 /** A block the layout serves, at its layout path. */
 export interface ExpectedBlock {

@@ -51,6 +51,7 @@ interface SiteLayoutSlice {
 const SiteLayoutBody = z.object({
   siteLayout: z.object({
     pages: z.record(
+      z.string(),
       z.object({ hasAccess: z.boolean(), displayName: z.string() }),
     ),
   }),

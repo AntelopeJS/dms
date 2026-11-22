@@ -39,7 +39,7 @@ const SPEC = {
 };
 
 const sourceSchema = z.object({
-  spec: z.record(z.unknown()),
+  spec: z.record(z.string(), z.unknown()),
   digest: z.string(),
 });
 
@@ -53,7 +53,9 @@ const writeSchema = z.union([
 
 const catalogSchema = z.object({
   blocks: z.array(
-    z.object({ type: z.string(), config: z.record(z.unknown()) }).passthrough(),
+    z
+      .object({ type: z.string(), config: z.record(z.string(), z.unknown()) })
+      .passthrough(),
   ),
 });
 

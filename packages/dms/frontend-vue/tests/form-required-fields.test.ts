@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
-import { zodToJsonSchema } from "zod-to-json-schema";
+import { formJsonSchema } from "@antelopejs/interface-dms/base/internal/form-schema-components";
 import { jsonSchemaToZod } from "json-schema-to-zod";
 import { isBoolean, isObject } from "../layers/dms-core/app/utils/type-check";
 import { evaluateZodObject } from "./helpers/zod-source";
@@ -13,10 +13,10 @@ import {
 function serializedJsonSchema(
   schema: z.ZodTypeAny,
 ): Parameters<typeof jsonSchemaToZod>[0] {
-  const json: unknown = JSON.parse(JSON.stringify(zodToJsonSchema(schema)));
+  const json: unknown = JSON.parse(JSON.stringify(formJsonSchema(schema)));
   if (isBoolean(json) || isObject(json)) return json;
   throw new TypeError(
-    "zodToJsonSchema returned neither an object nor a boolean",
+    "formJsonSchema returned neither an object nor a boolean",
   );
 }
 

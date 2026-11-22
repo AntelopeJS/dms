@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
-import { zodToJsonSchema } from "zod-to-json-schema";
+import { formJsonSchema } from "@antelopejs/interface-dms/base/internal/form-schema-components";
 import { jsonSchemaToZod } from "json-schema-to-zod";
 import {
   isBoolean,
@@ -28,7 +28,7 @@ const isJsonSchema = (value: unknown): value is JsonSchema =>
 function roundTrip(
   fields: Record<string, z.ZodTypeAny>,
 ): z.ZodObject<Record<string, z.ZodTypeAny>> {
-  const json = zodToJsonSchema(z.object(fields));
+  const json = formJsonSchema(z.object(fields));
   if (!isJsonSchema(json)) throw new TypeError("not a JSON schema");
   const code = jsonSchemaToZod(json, { module: "none" }).replace(
     /\.strict\(\)$/,
@@ -66,12 +66,10 @@ function address(): z.ZodTypeAny {
 
 const REQUIRED = "This field is required.";
 
-const errorMap: z.ZodErrorMap = (issue, context) => ({
-  message:
-    formIssueMessage(issue, context.data) === REQUIRED_MESSAGE
-      ? REQUIRED
-      : (issue.message ?? context.defaultError),
-});
+const errorMap: z.core.$ZodErrorMap = (issue) =>
+  formIssueMessage(issue, issue.input) === REQUIRED_MESSAGE
+    ? REQUIRED
+    : issue.message;
 
 async function issuesOf(
   fieldsById: Record<string, z.ZodTypeAny>,
@@ -82,7 +80,7 @@ async function issuesOf(
     fields,
     requiredMessage: REQUIRED,
     locale: "en",
-    parseParams: { errorMap },
+    parseParams: { error: errorMap },
   });
   return "issues" in result ? result.issues : [];
 }
@@ -96,7 +94,7 @@ async function valueOf(
     fields,
     requiredMessage: REQUIRED,
     locale: "en",
-    parseParams: { errorMap },
+    parseParams: { error: errorMap },
   });
   return "value" in result ? result.value : undefined;
 }

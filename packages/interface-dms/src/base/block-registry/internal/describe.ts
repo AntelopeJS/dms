@@ -1,29 +1,4 @@
-import {
-  type ZodArrayDef,
-  type ZodBrandedDef,
-  type ZodCatchDef,
-  type ZodDefaultDef,
-  type ZodDiscriminatedUnionDef,
-  type ZodDiscriminatedUnionOption,
-  type ZodEffectsDef,
-  type ZodEnumDef,
-  ZodFirstPartyTypeKind,
-  type ZodIntersectionDef,
-  type ZodLazyDef,
-  type ZodLiteralDef,
-  type ZodNativeEnumDef,
-  type ZodNullableDef,
-  type ZodObjectDef,
-  type ZodOptionalDef,
-  type ZodPipelineDef,
-  type ZodPromiseDef,
-  type ZodReadonlyDef,
-  type ZodRecordDef,
-  type ZodTupleDef,
-  type ZodTypeAny,
-  type ZodTypeDef,
-  type ZodUnionDef,
-} from "zod";
+import { z } from "zod";
 import type {
   BlockOptionSchema,
   BlockOptionType,
@@ -41,73 +16,11 @@ import {
 const MAX_DEPTH = 6;
 const MAX_WRAPPERS = 8;
 
-type LiteralValue =
-  | string
-  | number
-  | boolean
-  | bigint
-  | symbol
-  | null
-  | undefined;
-
-/**
- * The definition of each kind the walker reads fields from, with the schemas
- * it holds typed as schemas. Every other kind is a name and nothing more.
- */
-type ZodDef =
-  | ZodOptionalDef
-  | ZodNullableDef
-  | ZodDefaultDef
-  | ZodCatchDef
-  | ZodReadonlyDef
-  | ZodPromiseDef
-  | ZodBrandedDef<ZodTypeAny>
-  | ZodEffectsDef
-  | ZodLazyDef
-  | ZodPipelineDef<ZodTypeAny, ZodTypeAny>
-  | ZodObjectDef
-  | ZodUnionDef
-  | ZodDiscriminatedUnionDef<string, ZodDiscriminatedUnionOption<string>[]>
-  | ZodArrayDef
-  | ZodTupleDef
-  | ZodRecordDef
-  | ZodIntersectionDef
-  | ZodLiteralDef<LiteralValue>
-  | ZodEnumDef
-  | ZodNativeEnumDef
-  | (ZodTypeDef & {
-      typeName: Exclude<
-        ZodFirstPartyTypeKind,
-        | ZodFirstPartyTypeKind.ZodOptional
-        | ZodFirstPartyTypeKind.ZodNullable
-        | ZodFirstPartyTypeKind.ZodDefault
-        | ZodFirstPartyTypeKind.ZodCatch
-        | ZodFirstPartyTypeKind.ZodReadonly
-        | ZodFirstPartyTypeKind.ZodPromise
-        | ZodFirstPartyTypeKind.ZodBranded
-        | ZodFirstPartyTypeKind.ZodEffects
-        | ZodFirstPartyTypeKind.ZodLazy
-        | ZodFirstPartyTypeKind.ZodPipeline
-        | ZodFirstPartyTypeKind.ZodObject
-        | ZodFirstPartyTypeKind.ZodUnion
-        | ZodFirstPartyTypeKind.ZodDiscriminatedUnion
-        | ZodFirstPartyTypeKind.ZodArray
-        | ZodFirstPartyTypeKind.ZodTuple
-        | ZodFirstPartyTypeKind.ZodRecord
-        | ZodFirstPartyTypeKind.ZodIntersection
-        | ZodFirstPartyTypeKind.ZodLiteral
-        | ZodFirstPartyTypeKind.ZodEnum
-        | ZodFirstPartyTypeKind.ZodNativeEnum
-      >;
-    });
-
-type DefOf<Kind extends ZodFirstPartyTypeKind> = Extract<
-  ZodDef,
-  { typeName: Kind }
->;
+/** The kind of a schema, as its definition names it. */
+type ZodKind = z.core.$ZodTypeDef["type"];
 
 interface UnwrapResult {
-  schema: ZodTypeAny;
+  schema: z.core.$ZodType;
   optional: boolean;
   nullable: boolean;
   /** The wrapper budget ran out before a describable node was reached. */
@@ -119,50 +32,42 @@ interface UnwrapResult {
 
 /**
  * The accessor of the schema a wrapper kind wraps, `undefined` for any other
- * kind. Nothing is read from the wrapper until the accessor is called.
+ * kind. Nothing is read from the wrapper until the accessor is called. A pipe
+ * is described by what it accepts: its input, unless that input is a
+ * transform, as `z.preprocess` builds, which accepts anything.
  */
-function innerAccessor(def: ZodDef): (() => ZodTypeAny) | undefined {
-  switch (def.typeName) {
-    case ZodFirstPartyTypeKind.ZodOptional:
-    case ZodFirstPartyTypeKind.ZodNullable:
-    case ZodFirstPartyTypeKind.ZodDefault:
-    case ZodFirstPartyTypeKind.ZodCatch:
-    case ZodFirstPartyTypeKind.ZodReadonly:
-      return () => def.innerType;
-    case ZodFirstPartyTypeKind.ZodPromise:
-    case ZodFirstPartyTypeKind.ZodBranded:
-      return () => def.type;
-    case ZodFirstPartyTypeKind.ZodEffects:
-      return () => def.schema;
-    case ZodFirstPartyTypeKind.ZodLazy:
-      return () => def.getter();
-    case ZodFirstPartyTypeKind.ZodPipeline:
-      return () => def.in;
-    default:
-      return undefined;
+function innerAccessor(
+  schema: z.core.$ZodType,
+): (() => z.core.$ZodType) | undefined {
+  if (
+    schema instanceof z.core.$ZodOptional ||
+    schema instanceof z.core.$ZodNullable ||
+    schema instanceof z.core.$ZodDefault ||
+    schema instanceof z.core.$ZodPrefault ||
+    schema instanceof z.core.$ZodCatch ||
+    schema instanceof z.core.$ZodReadonly ||
+    schema instanceof z.core.$ZodNonOptional ||
+    schema instanceof z.core.$ZodPromise
+  ) {
+    return () => schema._zod.def.innerType;
   }
+  if (schema instanceof z.core.$ZodLazy) {
+    return () => schema._zod.def.getter();
+  }
+  if (schema instanceof z.core.$ZodPipe) {
+    const { in: input, out } = schema._zod.def;
+    return () => (input instanceof z.core.$ZodTransform ? out : input);
+  }
+  return undefined;
 }
 
-function defOf(schema: ZodTypeAny): ZodDef {
-  // oxlint-disable-next-line typescript/no-unsafe-return -- zod 3 declares _def as any on ZodTypeAny, and the walker reads the def of every schema kind, including kinds no zod class here types.
-  return schema._def;
-}
-
-/**
- * The walker reads zod 3's internal `_def.typeName`. A zod whose schemas carry
- * none would describe every option as shapeless, which is worse than not
- * answering at all — so say so instead.
- */
-function assertDescribable(def: ZodDef): void {
-  if (def.typeName === undefined) {
-    throw new Error(
-      "block-registry: this zod exposes no _def.typeName; the option walker supports zod 3",
-    );
-  }
+/** The description `.describe()` or `.meta()` gave a schema, if any. */
+function descriptionOf(schema: z.core.$ZodType): string | undefined {
+  return z.globalRegistry.get(schema)?.description;
 }
 
 /** Peel wrappers off a schema, collecting the flags and hints they carry. */
-function unwrap(schema: ZodTypeAny): UnwrapResult {
+function unwrap(schema: z.core.$ZodType): UnwrapResult {
   const result: UnwrapResult = {
     schema,
     optional: false,
@@ -174,22 +79,22 @@ function unwrap(schema: ZodTypeAny): UnwrapResult {
   let peeled = true;
   for (let step = 0; step < MAX_WRAPPERS && peeled; step++) {
     hints.push(getUiHints(current));
-    const def = defOf(current);
-    descriptions.push(def.description);
-    const inner = innerAccessor(def);
+    descriptions.push(descriptionOf(current));
+    const inner = innerAccessor(current);
     if (!inner) {
       peeled = false;
       break;
     }
-    result.optional ||= def.typeName === ZodFirstPartyTypeKind.ZodOptional;
-    result.nullable ||= def.typeName === ZodFirstPartyTypeKind.ZodNullable;
-    if (def.typeName === ZodFirstPartyTypeKind.ZodDefault) {
-      result.defaultValue = def.defaultValue();
+    result.optional ||= current instanceof z.core.$ZodOptional;
+    result.nullable ||= current instanceof z.core.$ZodNullable;
+    if (current instanceof z.core.$ZodDefault) {
+      result.defaultValue = current._zod.def.defaultValue;
     }
     current = inner();
   }
   hints.push(getUiHints(current));
-  result.exhausted = peeled && innerAccessor(defOf(current)) !== undefined;
+  descriptions.push(descriptionOf(current));
+  result.exhausted = peeled && innerAccessor(current) !== undefined;
   result.schema = current;
   result.ui = mergeUiHints(hints);
   result.description = descriptions.find((entry) => !!entry);
@@ -220,35 +125,24 @@ export function cloneDefault<T>(value: T): T {
   }
 }
 
-const PRIMITIVE: Partial<Record<ZodFirstPartyTypeKind, BlockOptionType>> = {
-  [ZodFirstPartyTypeKind.ZodString]: "string",
-  [ZodFirstPartyTypeKind.ZodNumber]: "number",
-  [ZodFirstPartyTypeKind.ZodBigInt]: "number",
-  [ZodFirstPartyTypeKind.ZodBoolean]: "boolean",
-  [ZodFirstPartyTypeKind.ZodDate]: "string",
-  [ZodFirstPartyTypeKind.ZodAny]: "unknown",
-  [ZodFirstPartyTypeKind.ZodUnknown]: "unknown",
-  [ZodFirstPartyTypeKind.ZodNull]: "unknown",
-  [ZodFirstPartyTypeKind.ZodUndefined]: "unknown",
-  [ZodFirstPartyTypeKind.ZodVoid]: "unknown",
-  [ZodFirstPartyTypeKind.ZodNever]: "unknown",
-  [ZodFirstPartyTypeKind.ZodSymbol]: "unknown",
-  [ZodFirstPartyTypeKind.ZodFunction]: "unknown",
-  [ZodFirstPartyTypeKind.ZodMap]: "unknown",
-  [ZodFirstPartyTypeKind.ZodSet]: "unknown",
+const PRIMITIVE: Partial<Record<ZodKind, BlockOptionType>> = {
+  string: "string",
+  template_literal: "string",
+  number: "number",
+  bigint: "number",
+  boolean: "boolean",
+  date: "string",
 };
 
 /** The kinds whose shape the walker descends into, and what they report as. */
-const STRUCTURED_TYPE: Partial<Record<ZodFirstPartyTypeKind, BlockOptionType>> =
-  {
-    [ZodFirstPartyTypeKind.ZodObject]: "object",
-    [ZodFirstPartyTypeKind.ZodArray]: "array",
-    [ZodFirstPartyTypeKind.ZodRecord]: "record",
-    [ZodFirstPartyTypeKind.ZodTuple]: "array",
-    [ZodFirstPartyTypeKind.ZodUnion]: "union",
-    [ZodFirstPartyTypeKind.ZodDiscriminatedUnion]: "union",
-    [ZodFirstPartyTypeKind.ZodIntersection]: "object",
-  };
+const STRUCTURED_TYPE: Partial<Record<ZodKind, BlockOptionType>> = {
+  object: "object",
+  array: "array",
+  record: "record",
+  tuple: "array",
+  union: "union",
+  intersection: "object",
+};
 
 /**
  * A literal is described by the value it fixes when the descriptor protocol can
@@ -257,9 +151,7 @@ const STRUCTURED_TYPE: Partial<Record<ZodFirstPartyTypeKind, BlockOptionType>> =
  * is reported as `unknown` with no `enum`, the same as the schema kinds of
  * those values.
  */
-function describeLiteral(
-  value: DefOf<ZodFirstPartyTypeKind.ZodLiteral>["value"],
-): BlockOptionSchema {
+function describeLiteralValue(value: z.core.util.Literal): BlockOptionSchema {
   if (isString(value)) return { type: "string", enum: [value] };
   if (isBoolean(value)) return { type: "boolean", enum: [value] };
   if (isNumber(value) && Number.isFinite(value)) {
@@ -287,80 +179,98 @@ function mergeLiteralBranches(
 }
 
 function describeUnion(
-  def: DefOf<
-    ZodFirstPartyTypeKind.ZodUnion | ZodFirstPartyTypeKind.ZodDiscriminatedUnion
-  >,
+  { _zod: { def } }: z.core.$ZodUnion,
   depth: number,
 ): BlockOptionSchema {
-  const options: readonly ZodTypeAny[] = def.options ?? [];
-  const branches = options.map((option) => describeSchema(option, depth + 1));
+  const branches = def.options.map((option) =>
+    describeSchema(option, depth + 1),
+  );
   const merged = mergeLiteralBranches(branches);
   if (merged) {
     return merged;
   }
-  const discriminator =
-    def.typeName === ZodFirstPartyTypeKind.ZodDiscriminatedUnion
-      ? def.discriminator
-      : undefined;
   const described: BlockOptionSchema = {
     type: "union",
     oneOf: branches,
   };
-  if (discriminator) described.discriminator = discriminator;
+  if ("discriminator" in def && isString(def.discriminator)) {
+    described.discriminator = def.discriminator;
+  }
   return described;
 }
 
-function describeObject(
-  def: DefOf<ZodFirstPartyTypeKind.ZodObject>,
-  depth: number,
-): BlockOptionSchema {
-  return {
-    type: "object",
-    properties: describeProperties(def.shape(), depth + 1),
-  };
+function describeLiteral({
+  _zod: { def },
+}: z.core.$ZodLiteral): BlockOptionSchema {
+  const branches = def.values.map(describeLiteralValue);
+  return (
+    (branches.length === 1 ? branches[0] : mergeLiteralBranches(branches)) ?? {
+      type: "unknown",
+    }
+  );
 }
 
 function describeKind(
-  def: ZodDef,
+  schema: z.core.$ZodType,
   depth: number,
 ): BlockOptionSchema | undefined {
-  switch (def.typeName) {
-    case ZodFirstPartyTypeKind.ZodObject:
-      return describeObject(def, depth);
-    case ZodFirstPartyTypeKind.ZodUnion:
-    case ZodFirstPartyTypeKind.ZodDiscriminatedUnion:
-      return describeUnion(def, depth);
-    case ZodFirstPartyTypeKind.ZodArray:
-      return { type: "array", items: describeSchema(def.type, depth + 1) };
-    case ZodFirstPartyTypeKind.ZodTuple: {
-      const items: ZodTypeAny[] = def.items;
-      return {
-        type: "array",
-        prefixItems: items.map((item) => describeSchema(item, depth + 1)),
-      };
-    }
-    case ZodFirstPartyTypeKind.ZodRecord:
-      return {
-        type: "record",
-        keys: describeSchema(def.keyType, depth + 1),
-        values: describeSchema(def.valueType, depth + 1),
-      };
-    case ZodFirstPartyTypeKind.ZodIntersection:
-      return {
-        type: "object",
-        allOf: [
-          describeSchema(def.left, depth + 1),
-          describeSchema(def.right, depth + 1),
-        ],
-      };
-    case ZodFirstPartyTypeKind.ZodLiteral:
-      return describeLiteral(def.value);
-    case ZodFirstPartyTypeKind.ZodEnum:
-      return { type: "string", enum: [...def.values] };
-    case ZodFirstPartyTypeKind.ZodNativeEnum:
-      return { type: "string", enum: Object.values(def.values) };
-    default:
-      return undefined;
+  const at = depth + 1;
+  if (schema instanceof z.core.$ZodObject) {
+    return {
+      type: "object",
+      properties: describeProperties(schema._zod.def.shape, at),
+    };
+  }
+  if (schema instanceof z.core.$ZodUnion) return describeUnion(schema, depth);
+  if (schema instanceof z.core.$ZodArray) {
+    return {
+      type: "array",
+      items: describeSchema(schema._zod.def.element, at),
+    };
+  }
+  if (schema instanceof z.core.$ZodTuple) {
+    return {
+      type: "array",
+      prefixItems: schema._zod.def.items.map((item) =>
+        describeSchema(item, at),
+      ),
+    };
+  }
+  if (schema instanceof z.core.$ZodRecord) {
+    return {
+      type: "record",
+      keys: describeSchema(schema._zod.def.keyType, at),
+      values: describeSchema(schema._zod.def.valueType, at),
+    };
+  }
+  if (schema instanceof z.core.$ZodIntersection) {
+    return {
+      type: "object",
+      allOf: [
+        describeSchema(schema._zod.def.left, at),
+        describeSchema(schema._zod.def.right, at),
+      ],
+    };
+  }
+  if (schema instanceof z.core.$ZodLiteral) return describeLiteral(schema);
+  if (schema instanceof z.core.$ZodEnum) {
+    return {
+      type: "string",
+      enum: z.core.util.getEnumValues(schema._zod.def.entries),
+    };
+  }
+  return undefined;
+}
+
+/**
+ * The walker reads zod 4's `_zod.def`. A schema built by another zod major
+ * carries none, and would be described as nothing at all, so say so instead.
+ */
+function assertDescribable(schema: z.core.$ZodType): void {
+  if (!isObject(schema._zod) || schema._zod === null) {
+    throw new Error(
+      "block-registry: this schema exposes no _zod.def; the option walker supports zod 4",
+    );
   }
 }
 
@@ -370,19 +280,19 @@ function describeKind(
  * @internal
  */
 export function describeSchema(
-  schema: ZodTypeAny,
+  schema: z.core.$ZodType,
   depth = 0,
 ): BlockOptionSchema {
+  assertDescribable(schema);
   const unwrapped = unwrap(schema);
-  const def = defOf(unwrapped.schema);
-  assertDescribable(def);
+  const kind = unwrapped.schema._zod.def.type;
   const truncated =
     unwrapped.exhausted === true ||
-    (depth >= MAX_DEPTH && def.typeName in STRUCTURED_TYPE);
+    (depth >= MAX_DEPTH && kind in STRUCTURED_TYPE);
   const base: BlockOptionSchema = (truncated
     ? undefined
-    : describeKind(def, depth)) ?? {
-    type: STRUCTURED_TYPE[def.typeName] ?? PRIMITIVE[def.typeName] ?? "unknown",
+    : describeKind(unwrapped.schema, depth)) ?? {
+    type: STRUCTURED_TYPE[kind] ?? PRIMITIVE[kind] ?? "unknown",
   };
   if (truncated) base.truncated = true;
   if (unwrapped.optional) base.optional = true;
@@ -395,7 +305,7 @@ export function describeSchema(
 }
 
 function describeProperties(
-  properties: Record<string, ZodTypeAny>,
+  properties: Readonly<Record<string, z.core.$ZodType>>,
   depth: number,
 ): BlockTypeDescriptor["config"] {
   const described: Record<string, BlockOptionSchema> = {};
@@ -412,17 +322,16 @@ function describeProperties(
  * @internal
  */
 export function describeOptions(
-  schema?: ZodTypeAny,
+  schema?: z.core.$ZodType,
 ): Record<string, BlockOptionSchema> {
   if (!schema) {
     return {};
   }
-  const unwrapped = unwrap(schema);
-  const def = defOf(unwrapped.schema);
-  if (def.typeName !== ZodFirstPartyTypeKind.ZodObject) {
-    return {};
-  }
-  return describeProperties(def.shape(), 0);
+  assertDescribable(schema);
+  const { schema: unwrapped } = unwrap(schema);
+  return unwrapped instanceof z.core.$ZodObject
+    ? describeProperties(unwrapped._zod.def.shape, 0)
+    : {};
 }
 
 /**

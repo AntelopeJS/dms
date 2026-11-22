@@ -4,7 +4,7 @@ import type {
 } from "@antelopejs/interface-dms-builder";
 import { z } from "zod";
 
-const TextByName = z.record(z.string());
+const TextByName = z.record(z.string(), z.string());
 
 const UploadSchema = z.object({
   slot: z.string(),
@@ -20,12 +20,12 @@ const ThemeDraftSchema = z.object({
     dark: TextByName.optional(),
   }),
   colors: TextByName.optional(),
-  logos: z.record(TextByName).optional(),
+  logos: z.record(z.string(), TextByName).optional(),
   uploads: z.array(UploadSchema).optional(),
 });
 
-function pointerOf(path: (string | number)[]): string {
-  return path.map((segment) => `/${segment}`).join("");
+function pointerOf(path: PropertyKey[]): string {
+  return path.map((segment) => `/${String(segment)}`).join("");
 }
 
 /**

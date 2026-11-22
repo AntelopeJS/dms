@@ -53,7 +53,7 @@ export interface BlockTree {
   >;
 }
 
-const nodeViewSchema: z.ZodType<TreeNode, z.ZodTypeDef, unknown> = z.object({
+const nodeViewSchema: z.ZodType<TreeNode, unknown> = z.object({
   id: z.string().optional().catch(undefined),
   children: z
     .array(

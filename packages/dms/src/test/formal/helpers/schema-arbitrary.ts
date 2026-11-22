@@ -20,8 +20,9 @@ function isScalar(node: SchemaNode): boolean {
 }
 
 /**
- * A JSON Schema node, as far as `zod-to-json-schema` writes one for an MCP tool: the keywords the
- * generator reads, and a `$ref` into the same schema.
+ * A JSON Schema node, as far as `z.toJSONSchema` writes one for an MCP tool: the keywords the
+ * generator reads, and a `$ref` into the same schema. A discriminated union's `oneOf` is read as
+ * its `anyOf`, since its branches never overlap.
  */
 interface SchemaNode {
   $ref?: string;
@@ -42,23 +43,28 @@ interface SchemaNode {
 }
 
 const SchemaNodeSchema: z.ZodType<SchemaNode> = z.lazy(() =>
-  z.object({
-    $ref: z.string().optional(),
-    type: z.union([z.string(), z.array(z.string())]).optional(),
-    properties: z.record(z.string(), SchemaNodeSchema).optional(),
-    required: z.array(z.string()).optional(),
-    additionalProperties: z.union([z.boolean(), SchemaNodeSchema]).optional(),
-    items: SchemaNodeSchema.optional(),
-    anyOf: z.array(SchemaNodeSchema).optional(),
-    enum: z.array(JsonValueSchema).optional(),
-    const: JsonValueSchema.optional(),
-    pattern: z.string().optional(),
-    minLength: z.number().optional(),
-    minItems: z.number().optional(),
-    minimum: z.number().optional(),
-    exclusiveMinimum: z.number().optional(),
-    maximum: z.number().optional(),
-  }),
+  z
+    .object({
+      $ref: z.string().optional(),
+      type: z.union([z.string(), z.array(z.string())]).optional(),
+      properties: z.record(z.string(), SchemaNodeSchema).optional(),
+      required: z.array(z.string()).optional(),
+      additionalProperties: z.union([z.boolean(), SchemaNodeSchema]).optional(),
+      items: SchemaNodeSchema.optional(),
+      anyOf: z.array(SchemaNodeSchema).optional(),
+      oneOf: z.array(SchemaNodeSchema).optional(),
+      enum: z.array(JsonValueSchema).optional(),
+      const: JsonValueSchema.optional(),
+      pattern: z.string().optional(),
+      minLength: z.number().optional(),
+      minItems: z.number().optional(),
+      minimum: z.number().optional(),
+      exclusiveMinimum: z.number().optional(),
+      maximum: z.number().optional(),
+    })
+    .transform(({ oneOf, ...node }) =>
+      oneOf === undefined ? node : { ...node, anyOf: oneOf },
+    ),
 );
 
 /** The strings a generated argument draws from, by the first of these patterns its property name matches. */

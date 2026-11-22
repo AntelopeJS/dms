@@ -80,7 +80,7 @@ const rules: readonly PropertyCheck[] = [
     "BuiltPathRuleIsPatternAndLength",
     fc.property(candidateOf(anyPadding), fc.nat(MAX_RELATIVE_ROUTE + 4), (text, extra) => {
       const longer = text + "a".repeat(extra);
-      return relativeRouteSchema.safeParse(longer).success === (longer.length <= MAX_RELATIVE_ROUTE && isDashboardPath(longer));
+      return relativeRouteSchema.safeParse(longer).success === (Array.from(longer).length <= MAX_RELATIVE_ROUTE && isDashboardPath(longer));
     }),
   ),
   rule(

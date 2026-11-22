@@ -67,9 +67,9 @@ const formSchema = z.object({
 
 const tableFormsSchema = z.object({
   rowActions: z.object({
-    add: z.unknown(),
-    edit: z.unknown(),
-    details: z.unknown(),
+    add: z.unknown().optional(),
+    edit: z.unknown().optional(),
+    details: z.unknown().optional(),
   }),
   formContainer: z.object({ type: z.string() }),
   formComponents: z

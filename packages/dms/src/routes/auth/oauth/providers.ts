@@ -99,7 +99,7 @@ async function fetchProviderJson<T>(
   accessToken: string,
   headers: Record<string, string>,
   failureMessage: string,
-  schema: z.ZodType<T, z.ZodTypeDef, unknown>,
+  schema: z.ZodType<T, unknown>,
 ): Promise<T> {
   const response = await fetch(url, {
     headers: {

@@ -17,7 +17,10 @@ const statusSchema = z
   .min(HTTP_FAILURE_MIN)
   .max(HTTP_STATUS_MAX);
 const severitySchema = z.enum(["info", "warning", "error"]);
-const paramsSchema = z.record(z.union([z.string(), z.number(), z.boolean()]));
+const paramsSchema = z.record(
+  z.string(),
+  z.union([z.string(), z.number(), z.boolean()]),
+);
 const recordSchema = z.object({
   cause: z.unknown().optional(),
   response: z.unknown().optional(),

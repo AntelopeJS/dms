@@ -90,10 +90,19 @@ export interface ValidationIssue {
   path?: unknown;
   message?: unknown;
   code?: unknown;
-  validation?: unknown;
+  format?: unknown;
   minimum?: unknown;
-  received?: unknown;
+  origin?: unknown;
+  /** zod 3's `origin`, in an issue list a module still on zod 3 sends. */
   type?: unknown;
+  /** zod 3's `format`, in an issue list a module still on zod 3 sends. */
+  validation?: unknown;
+}
+
+/** What a size issue measured, as zod 4 (`origin`) or zod 3 (`type`) names it. */
+function sizeOrigin(issue: ValidationIssue): string | undefined {
+  const origin = issue.origin ?? issue.type;
+  return origin === undefined ? undefined : String(origin);
 }
 
 const HTTP_BAD_REQUEST = 400;
@@ -124,8 +133,8 @@ const FIELD_ERROR_KEYS = {
   tooLarge: "$dms.field_errors.too_large",
 } as const;
 
-/** Issue types whose size is a count (characters, items), not a value. */
-const COUNTED_TYPES = new Set(["string", "array", "set"]);
+/** Issue origins whose size is a count (characters, items), not a value. */
+const COUNTED_ORIGINS = new Set(["string", "array", "set"]);
 
 const DATA_API_CODES: Readonly<
   Record<ReturnType<typeof resolveApiErrorMessage>, ApiFieldError["message"]>
@@ -177,7 +186,8 @@ function isI18nKey(message: string): boolean {
 
 /** A zod issue's own message when it is a key, else a generic one. */
 function tooSmallMessage(issue: ValidationIssue): string {
-  if (issue.type !== undefined && !COUNTED_TYPES.has(String(issue.type))) {
+  const origin = sizeOrigin(issue);
+  if (origin !== undefined && !COUNTED_ORIGINS.has(origin)) {
     return FIELD_ERROR_KEYS.tooSmall;
   }
   return isNumber(issue.minimum) && issue.minimum <= 1
@@ -194,18 +204,17 @@ export function validationIssueMessage(issue: ValidationIssue): string {
     return issue.message;
   }
   switch (issue.code) {
-    case "invalid_type":
-      return issue.received === "undefined" || issue.received === "null"
-        ? FIELD_ERROR_KEYS.required
-        : FIELD_ERROR_KEYS.invalid;
     case "too_small":
       return tooSmallMessage(issue);
-    case "too_big":
-      return issue.type !== undefined && !COUNTED_TYPES.has(String(issue.type))
+    case "too_big": {
+      const origin = sizeOrigin(issue);
+      return origin !== undefined && !COUNTED_ORIGINS.has(origin)
         ? FIELD_ERROR_KEYS.tooLarge
         : FIELD_ERROR_KEYS.tooLong;
+    }
+    case "invalid_format":
     case "invalid_string":
-      return issue.validation === "email"
+      return (issue.format ?? issue.validation) === "email"
         ? FIELD_ERROR_KEYS.invalidEmail
         : FIELD_ERROR_KEYS.invalid;
     default:

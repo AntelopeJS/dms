@@ -27,7 +27,9 @@ const compiledColumnsSchema = z.object({
       id: z.string(),
       type: z.object({
         id: z.string(),
-        inputComponent: z.object({ options: z.record(z.unknown()) }),
+        inputComponent: z.object({
+          options: z.record(z.string(), z.unknown()),
+        }),
       }),
       display: z.unknown().optional(),
     }),
@@ -166,7 +168,9 @@ function buildsColumnDisplays(): void {
 }
 
 const compiledTableSchema = z.object({
-  displays: z.array(z.object({ id: z.string(), options: z.unknown() })),
+  displays: z.array(
+    z.object({ id: z.string(), options: z.unknown().optional() }),
+  ),
   defaultDisplay: z.string().optional(),
   tabs: z.unknown().optional(),
   views: z.unknown().optional(),

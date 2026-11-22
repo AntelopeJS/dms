@@ -122,7 +122,7 @@ const Layout = z.object({
               inputComponent: z.object({
                 options: z
                   .object({
-                    items: z.array(z.object({ value: z.unknown() })),
+                    items: z.array(z.object({ value: z.unknown().optional() })),
                     currency: z.string(),
                   })
                   .partial()

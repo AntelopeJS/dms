@@ -10,7 +10,7 @@
 import type { RequestContext } from "@antelopejs/interface-api";
 import { InterfaceFunction } from "@antelopejs/interface-core";
 import type { User } from "../auth/db";
-import type { ZodType, ZodTypeDef } from "zod";
+import type { ZodType } from "zod";
 import type { ExportJob } from "../db/tables/exportJobs.table";
 import { MILLISECONDS_PER_DAY } from "../utils/internal/time";
 import { readExportJobContext } from "./internal/export-jobs";
@@ -114,12 +114,12 @@ export interface RunExportJobOptions<TContext = unknown> {
  */
 export interface ExportJobContextCheck<TContext> {
   /**
-   * A zod 3 schema that reads back the `context` the job was started with,
+   * A zod schema that reads back the `context` the job was started with,
    * from the JSON it was stored as: `null` for a job started without one, a
    * `Date` as its ISO string. A stored context the schema refuses refuses the
    * job.
    */
-  contextSchema: ZodType<TContext, ZodTypeDef, unknown>;
+  contextSchema: ZodType<TContext, unknown>;
   /** Extra ACL beyond the userId check, on the context `contextSchema` read. */
   isOwnedBy: (record: ExportJob, context: TContext, user: User) => boolean;
 }

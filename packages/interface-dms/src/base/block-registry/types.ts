@@ -1,4 +1,4 @@
-import type { ZodType, ZodTypeAny, ZodTypeDef } from "zod";
+import type { z } from "zod";
 
 /**
  * Asserts an options schema against the factory's own options type: a schema
@@ -8,7 +8,7 @@ import type { ZodType, ZodTypeAny, ZodTypeDef } from "zod";
  * export const GridSchema = z.object({ … }) satisfies BlockOptionsFor<GridOptions>;
  * ```
  */
-export type BlockOptionsFor<Options> = ZodType<unknown, ZodTypeDef, Options>;
+export type BlockOptionsFor<Options> = z.ZodType<unknown, Options>;
 
 /**
  * The editor control a block option is best edited with. `text` is the fallback
@@ -254,7 +254,7 @@ export interface BlockTypeDefinition {
    * reactivity wiring `.watch()` emits, not a value an author sets by hand, so a
    * builder has no business offering it.
    */
-  schema?: ZodTypeAny;
+  schema?: z.ZodType;
   /** Whether the block accepts `.child(...)`. */
   container?: boolean;
   /** Block types accepted as children; any type when absent. */
@@ -262,7 +262,7 @@ export interface BlockTypeDefinition {
   slots?: BlockSlotDefinition[];
   dynamicSlots?: BlockDynamicSlots;
   /** Schema of the metadata a child carries, e.g. `{ colSpan }`. */
-  childMeta?: ZodTypeAny;
+  childMeta?: z.ZodType;
   /**
    * Options the factory sets itself, whatever the caller passes — a chart's
    * `type`, which is what tells `dms-chart-block` which chart to draw. A consumer

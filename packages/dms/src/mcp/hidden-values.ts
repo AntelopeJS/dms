@@ -31,17 +31,16 @@ const HIDDEN_VALUE = z
   .refine((object) => Object.hasOwn(object, "$hidden"));
 
 /** Whether a tool's arguments send a `{ $hidden: n }` value back. */
-export const containsHiddenValue: z.ZodType<boolean, z.ZodTypeDef, unknown> =
-  z.lazy(() =>
-    z.union([
-      HIDDEN_VALUE.transform(() => true),
-      z.array(containsHiddenValue).transform((items) => items.some(Boolean)),
-      z
-        .record(z.string(), containsHiddenValue)
-        .transform((members) => Object.values(members).some(Boolean)),
-      z.unknown().transform(() => false),
-    ]),
-  );
+export const containsHiddenValue: z.ZodType<boolean, unknown> = z.lazy(() =>
+  z.union([
+    HIDDEN_VALUE.transform(() => true),
+    z.array(containsHiddenValue).transform((items) => items.some(Boolean)),
+    z
+      .record(z.string(), containsHiddenValue)
+      .transform((members) => Object.values(members).some(Boolean)),
+    z.unknown().transform(() => false),
+  ]),
+);
 
 /** Why a tool refuses arguments that send a `{ $hidden: n }` value back. */
 export const HIDDEN_VALUE_REFUSAL =

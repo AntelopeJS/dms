@@ -23,7 +23,7 @@ const npmPackageSchema = z
   .regex(NPM_PACKAGE_PATTERN);
 
 /** The config an install request gives a dependency, written to its antelope.config.ts entry. */
-const storeDependencyConfigSchema = z.record(z.unknown());
+const storeDependencyConfigSchema = z.record(z.string(), z.unknown());
 
 /** A dependency's antelope.config.ts config, as {@link storeInstallSchema} parses it. */
 export type StoreDependencyConfig = z.infer<typeof storeDependencyConfigSchema>;

@@ -1,7 +1,6 @@
 import type { FieldGroupSerialized, FormBuilder } from "../../base/form";
 import type { WatchAction } from "../../base/types/watch";
-import type { ZodType, ZodTypeDef } from "zod";
-import type { JsonSchema7ObjectType } from "zod-to-json-schema";
+import type { z } from "zod";
 import type { InviteExtensionJson } from "../../invite-extension-payloads";
 import type { PlacementSide } from "../../component";
 import type {
@@ -45,7 +44,7 @@ export interface InviteDeliveryOptions {
 export interface InviteExtensionInfo {
   key: string;
   component: FormBuilder;
-  schema: ZodType<unknown, ZodTypeDef, unknown>;
+  schema: z.ZodType<unknown, unknown>;
   onAccept: InviteAcceptHandler<unknown>;
   onCleanup?: InviteCleanupHandler<unknown>;
   /** Unset reads as `true`, as it does on the options. */
@@ -73,7 +72,7 @@ export interface InviteFieldContribution {
   order: number;
   editable: boolean;
   group: FieldGroupSerialized;
-  properties: JsonSchema7ObjectType["properties"];
+  properties: NonNullable<z.core.JSONSchema.ObjectSchema["properties"]>;
   requiredProperties: string[];
   watchActions: WatchAction[];
 }

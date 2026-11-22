@@ -15,7 +15,7 @@ const PreviewSchema = z.object({
   ok: z.literal(true),
   data: z.object({
     status: z.string(),
-    body: z.unknown(),
+    body: z.unknown().optional(),
     truncated: z.boolean(),
   }),
 });

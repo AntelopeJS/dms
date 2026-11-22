@@ -65,7 +65,7 @@ export async function run(
 export async function answer<Answer>(
   tool: McpTool,
   args: JsonValue,
-  schema: z.ZodType<Answer, z.ZodTypeDef, unknown>,
+  schema: z.ZodType<Answer, unknown>,
 ): Promise<Answer> {
   const { text, isError } = await run(tool, args);
   expect(isError, text).to.equal(false);

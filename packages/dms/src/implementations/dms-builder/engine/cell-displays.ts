@@ -102,7 +102,7 @@ const indicator = z
 
 const statusPill = z
   .object({
-    tones: z.record(tone).optional(),
+    tones: z.record(z.string(), tone).optional(),
     toneField: z.string().optional(),
     subField: z.string().optional(),
     subTone: cellTone.optional(),
@@ -210,8 +210,8 @@ export interface CellDisplayIssue {
   message: string;
 }
 
-function pointerOf(path: (string | number)[]): string {
-  return ["options", ...path].map((segment) => `/${segment}`).join("");
+function pointerOf(path: PropertyKey[]): string {
+  return ["options", ...path].map((segment) => `/${String(segment)}`).join("");
 }
 
 /**

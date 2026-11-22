@@ -29,7 +29,7 @@ const CatalogEntrySchema = z
   .passthrough();
 
 const CatalogDocumentSchema = z.object({
-  version: z.unknown(),
+  version: z.unknown().optional(),
   modules: z.array(z.unknown()).nullish(),
 });
 

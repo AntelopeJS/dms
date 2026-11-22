@@ -49,7 +49,7 @@ const schemaSchema = z.object({
         widgets: z.object({
           items: z.object({
             required: z.array(z.string()),
-            properties: z.record(z.unknown()),
+            properties: z.record(z.string(), z.unknown()),
           }),
         }),
       }),

@@ -117,8 +117,8 @@ const tableSourceSchema = TableViewSchema.pick(TABLE_SOURCE_PICKED)
     periodScope: z.string().optional(),
     capabilities: capabilitiesSchema.optional(),
     formContainer: TableViewSchema.shape.formContainer,
-    columns: z.record(columnSchema),
-    columnGroups: z.record(columnGroupSchema).optional(),
+    columns: z.record(z.string(), columnSchema),
+    columnGroups: z.record(z.string(), columnGroupSchema).optional(),
     pagination: opaqueOption<TableViewOptions["pagination"]>().optional(),
     emptyStates: opaqueOption<TableViewOptions["emptyStates"]>().optional(),
     ...tableOptionsSchema.shape,
@@ -393,7 +393,7 @@ const tableView: ControllerBlock = {
       },
     },
     columnGroups: {
-      ...describeSchema(z.record(columnGroupSchema)),
+      ...describeSchema(z.record(z.string(), columnGroupSchema)),
       optional: true,
       description:
         "Each form group's title and layout, by the id the columns' group names, as @ColumnGroup(id, config) declares it on a controller.",

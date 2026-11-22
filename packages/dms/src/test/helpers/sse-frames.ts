@@ -11,7 +11,7 @@ const HelloData = z.object({ connectionId: z.string() });
  * instead of passing as an unchecked type.
  */
 export function parseFrameData<Data>(
-  schema: z.ZodType<Data, z.ZodTypeDef, unknown>,
+  schema: z.ZodType<Data, unknown>,
   frame: string,
 ): Data {
   const line = frame

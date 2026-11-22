@@ -1,6 +1,6 @@
 import { type Ref, watch } from "vue";
 import type { Form } from "@nuxt/ui";
-import type { ZodErrorMap, ZodType, ZodTypeDef } from "zod";
+import type { ZodType, z } from "zod";
 import {
   type I18nTranslate,
   resolveApiMessage,
@@ -96,8 +96,8 @@ export function formIssueMessage(
   return isBlankValue(data) ? REQUIRED_MESSAGE : validationIssueMessage(issue);
 }
 
-const issueErrorMap: ZodErrorMap = (issue, context) => ({
-  message: formIssueMessage(issue, context.data),
+const issueErrorMap: z.core.$ZodErrorMap = (issue) => ({
+  message: formIssueMessage(issue, issue.input),
 });
 
 /**
@@ -106,7 +106,7 @@ const issueErrorMap: ZodErrorMap = (issue, context) => ({
  * a message already in prose is kept.
  */
 export function localizeSchema<Output, Input>(
-  schema: ZodType<Output, ZodTypeDef, Input>,
+  schema: ZodType<Output, Input>,
   translate: Translate,
 ): LocalizedSchema<Output> {
   const resolve = (message: string) =>
@@ -117,7 +117,7 @@ export function localizeSchema<Output, Input>(
       vendor: "dms",
       validate: async (value) => {
         const result = await schema.safeParseAsync(value, {
-          errorMap: issueErrorMap,
+          error: issueErrorMap,
         });
         return result.success
           ? { value: result.data }
@@ -134,7 +134,7 @@ export function localizeSchema<Output, Input>(
 
 /** {@link localizeSchema} with the current locale. */
 export function useLocalizedSchema<Output, Input>(
-  schema: ZodType<Output, ZodTypeDef, Input>,
+  schema: ZodType<Output, Input>,
 ): LocalizedSchema<Output> {
   const { t } = useI18n();
   return localizeSchema(schema, (key, params = {}) => t(key, params));

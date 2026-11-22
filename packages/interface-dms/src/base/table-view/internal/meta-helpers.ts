@@ -5,6 +5,7 @@ import { GetMetadata } from "@antelopejs/interface-core";
 import type { MakeMethodAndPropertyDecorator } from "@antelopejs/interface-core/decorators";
 import {
   DataAPIMeta,
+  type FieldValue,
   Filter,
   Validator,
 } from "@antelopejs/interface-data-api/metadata";
@@ -18,7 +19,28 @@ import { ReadonlyBehaviorType } from "../../types";
 import type { ColumnOptions, TableViewMeta } from "../meta";
 import { serializeColumnDisplay } from "./column-display";
 import { decoratedClass } from "../../../utils/internal/decorated-class";
-import { isString } from "../../../utils/internal/type-check";
+import {
+  isBoolean,
+  isNumber,
+  isObject,
+  isString,
+} from "../../../utils/internal/type-check";
+
+/**
+ * Whether a value a data type's validation parsed is one data-api stores:
+ * text, a number, a flag, `null`, a `Date`, or a list or record of them.
+ */
+function isFieldValue(value: unknown): value is FieldValue {
+  if (value === null || value instanceof Date) return true;
+  if (isString(value) || isNumber(value) || isBoolean(value)) return true;
+  if (Array.isArray(value)) return value.every(isFieldValue);
+  return (
+    isObject(value) &&
+    Object.values(value).every(
+      (part) => part === undefined || isFieldValue(part),
+    )
+  );
+}
 
 type FieldDecoratorArguments = Parameters<
   Parameters<typeof MakeMethodAndPropertyDecorator>[0]
@@ -96,11 +118,14 @@ export function decorateColumn(
         : undefined,
     });
 
-    Validator((value) => zodSchema.safeParseAsync(value))(
-      target,
-      key,
-      descriptor ?? {},
-    );
+    Validator(async (value) => {
+      const result = await zodSchema.safeParseAsync(value);
+      if (!result.success) return { success: false };
+      const { data } = result;
+      return data === undefined || isFieldValue(data)
+        ? { success: true, data }
+        : { success: false };
+    })(target, key, descriptor ?? {});
   }
 
   if (options.filterable) {

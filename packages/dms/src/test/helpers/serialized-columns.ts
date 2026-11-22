@@ -4,7 +4,7 @@ import type { TableViewOptionsSerialized } from "@antelopejs/interface-dms/base/
 const SerializedColumnSchema = z.object({
   id: z.string(),
   size: z.number().optional(),
-  display: z.unknown(),
+  display: z.unknown().optional(),
   isVisible: z.boolean().optional(),
   listable: z.boolean().optional(),
   enableColumnFilter: z.boolean().optional(),

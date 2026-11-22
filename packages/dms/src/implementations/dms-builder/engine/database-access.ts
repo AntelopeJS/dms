@@ -63,8 +63,8 @@ export function redact(message: string, url: string): string {
 
 const ThrownMessage = z
   .instanceof(Error)
-  .pipe(z.object({ message: z.string() }))
-  .transform(({ message }) => message)
+  .transform((error) => error.message)
+  .pipe(z.string())
   .catch("The check ended with an error that carries no message.");
 
 /** The message of a thrown `Error`; any other thrown value, or a message that is no string, says nothing a person could use. */

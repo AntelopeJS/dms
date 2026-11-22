@@ -31,7 +31,7 @@ const PresignBody = z.object({
   uploadUrl: z.string(),
   resourceKey: z.string(),
   expiresAt: z.number(),
-  headers: z.record(z.string()),
+  headers: z.record(z.string(), z.string()),
 }) satisfies z.ZodType<PresignResponse>;
 
 const AttachmentMetadataBody = z.object({
@@ -40,7 +40,7 @@ const AttachmentMetadataBody = z.object({
   size: z.number(),
   mimetype: z.string(),
   lastModified: z.number(),
-  metadata: z.record(z.string()).optional(),
+  metadata: z.record(z.string(), z.string()).optional(),
   url: z.string(),
   expiresAt: z.number().optional(),
 }) satisfies z.ZodType<AttachmentMetadata>;
@@ -50,11 +50,11 @@ const SavedDocumentBody = z.object({
 }) satisfies z.ZodType<SavedDocument>;
 
 const ComponentBody = z
-  .object({ componentName: z.string(), options: z.unknown() })
+  .object({ componentName: z.string(), options: z.unknown().optional() })
   .passthrough();
 
 const PageLayoutBody = z
-  .object({ components: z.record(ComponentBody) })
+  .object({ components: z.record(z.string(), ComponentBody) })
   .passthrough() satisfies z.ZodType<PageLayout>;
 
 type FormComponent = NonNullable<
@@ -81,7 +81,7 @@ const TableLayoutBody = z.object({
       componentName: z.string(),
       options: z
         .object({
-          formComponents: z.record(ComponentBody.optional()),
+          formComponents: z.record(z.string(), ComponentBody.optional()),
           formPages: z
             .object({ new: z.string(), edit: z.string(), view: z.string() })
             .optional(),

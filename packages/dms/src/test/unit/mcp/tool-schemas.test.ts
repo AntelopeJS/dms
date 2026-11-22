@@ -16,6 +16,19 @@ const TreeNodeSchema: z.ZodType<TreeNode> = z.lazy(() =>
   }),
 );
 
+const RefSchema = z.object({ $ref: z.string() });
+
+/** A tree's input schema: its root a `$ref` to a definition whose children refer back to it. */
+const RecursiveInputSchema = z.object({
+  properties: z.object({ root: RefSchema }),
+  definitions: z.record(
+    z.string(),
+    z.object({
+      properties: z.object({ children: z.object({ items: RefSchema }) }),
+    }),
+  ),
+});
+
 describe("[unit] mcp tool schemas", () => {
   const { warn, error } = console;
   const written: unknown[][] = [];
@@ -45,8 +58,11 @@ describe("[unit] mcp tool schemas", () => {
       run: async () => textResult("ok"),
     });
     expect(written).to.deep.equal([]);
-    expect(JSON.stringify(tool.inputSchema)).to.contain(
-      '"$ref":"#/properties/root"',
+    const { properties, definitions } = RecursiveInputSchema.parse(
+      tool.inputSchema,
     );
+    const node =
+      definitions[properties.root.$ref.replace("#/definitions/", "")];
+    expect(node?.properties.children.items.$ref).to.equal(properties.root.$ref);
   });
 });

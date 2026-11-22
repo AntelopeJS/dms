@@ -283,7 +283,7 @@ export const FormSchema = z.object({
       group: "behavior",
     },
   ),
-  submitDefaults: ui(z.record(z.unknown()).optional(), {
+  submitDefaults: ui(z.record(z.string(), z.unknown()).optional(), {
     label: "Payload defaults",
     group: "advanced",
     widget: "json",

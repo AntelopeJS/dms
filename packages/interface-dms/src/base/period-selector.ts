@@ -248,14 +248,17 @@ export const PeriodSelectorSchema = z.object({
     label: "Available comparisons",
     group: "behavior",
   }),
-  presetLabels: ui(z.record(presetSchema, z.string()).optional(), {
+  presetLabels: ui(z.partialRecord(presetSchema, z.string()).optional(), {
     label: "Range labels",
     group: "content",
   }),
-  comparisonLabels: ui(z.record(comparisonSchema, z.string()).optional(), {
-    label: "Comparison labels",
-    group: "content",
-  }),
+  comparisonLabels: ui(
+    z.partialRecord(comparisonSchema, z.string()).optional(),
+    {
+      label: "Comparison labels",
+      group: "content",
+    },
+  ),
   align: ui(z.enum(PERIOD_ALIGNS).optional(), {
     label: "Alignment",
     group: "appearance",

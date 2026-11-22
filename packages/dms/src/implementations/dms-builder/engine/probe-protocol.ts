@@ -19,7 +19,7 @@ export type ProbeRequest = z.infer<typeof ProbeRequest>;
 
 /** What the child answers: the driver's answer, a driver not installed, or a failure. */
 export const ProbeOutcomeSchema = z.discriminatedUnion("kind", [
-  z.object({ kind: z.literal("answer"), answer: z.unknown() }),
+  z.object({ kind: z.literal("answer"), answer: z.unknown().optional() }),
   z.object({ kind: z.literal("missing") }),
   z.object({ kind: z.literal("failed"), message: z.string() }),
 ]);

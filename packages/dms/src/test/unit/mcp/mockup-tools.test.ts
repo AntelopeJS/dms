@@ -402,7 +402,7 @@ function describesNameChecks(): void {
       for (const [tool, args] of tools) {
         for (const mockup of TRAVERSALS) {
           const { text, isError } = await run(tool, {
-            ...z.record(z.unknown()).parse(args),
+            ...z.record(z.string(), z.unknown()).parse(args),
             mockup,
           });
           expect(isError, `${tool.name} ${JSON.stringify(mockup)}`).to.equal(

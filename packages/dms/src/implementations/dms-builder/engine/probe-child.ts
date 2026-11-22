@@ -14,24 +14,24 @@ const NotInstalled = z.object({
 });
 
 const ProbeModule = z.object({
-  probe: z
-    .function()
-    .args(
+  probe: z.function({
+    input: [
       z.object({
         url: z.string(),
         timeoutMs: z.number(),
         signal: z.instanceof(AbortSignal),
       }),
-    )
-    .returns(z.promise(z.unknown())),
+    ],
+    output: z.promise(z.unknown()),
+  }),
 });
 
 type LoadedProbe = z.infer<typeof ProbeModule>["probe"];
 
 const ThrownMessage = z
   .instanceof(Error)
-  .pipe(z.object({ message: z.string() }))
-  .transform(({ message }) => message)
+  .transform((error) => error.message)
+  .pipe(z.string())
   .catch("The driver's probe ended with an error that carries no message.");
 
 /** The driver's `probe`, from the first base that installs it, or `undefined` when none does. */

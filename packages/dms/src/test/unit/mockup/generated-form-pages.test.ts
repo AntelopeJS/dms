@@ -76,7 +76,7 @@ describe("[unit] mockup generated form pages", () => {
   it("draws the add, edit and details forms of a page-mode table with no custom pages on generated sub-pages of the table's page (fails when the mockup demands a spec page)", () => {
     const compiled = compile(specOf([table({})]));
     const urls = z
-      .object({ formPages: z.record(z.string()) })
+      .object({ formPages: z.record(z.string(), z.string()) })
       .parse(compiled.pages[0].tree[0].options).formPages;
 
     expect(compiled.issues).to.deep.equal([]);
@@ -229,7 +229,7 @@ describe("[unit] mockup generated form pages beside others", () => {
       ],
     });
     const urls = z
-      .object({ formPages: z.record(z.string()) })
+      .object({ formPages: z.record(z.string(), z.string()) })
       .parse(compiled.pages[0].tree[0].options).formPages;
 
     expect(compiled.issues).to.deep.equal([]);

@@ -32,7 +32,10 @@ function compile(options: JsonObject): CompiledSpec {
 }
 
 const drawnSchema = z
-  .object({ html: z.string(), states: z.record(z.string()).optional() })
+  .object({
+    html: z.string(),
+    states: z.record(z.string(), z.string()).optional(),
+  })
   .passthrough();
 
 const drawn = (compiled: CompiledSpec) =>

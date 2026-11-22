@@ -93,7 +93,7 @@ export const generatedFixtureSchema = z
   .object({ [GENERATE_KEY]: generateSchema })
   .strict();
 
-const objectSchema = z.record(z.unknown());
+const objectSchema = z.record(z.string(), z.unknown());
 
 /** Whether `value` is an object that holds {@link GENERATE_KEY}, well-formed or not. */
 export function holdsGenerate(value: Json): boolean {

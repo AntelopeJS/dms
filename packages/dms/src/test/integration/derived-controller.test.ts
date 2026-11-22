@@ -41,6 +41,7 @@ const TableLayoutBody = z.object({
           location: z.string(),
           columns: z.array(z.object({ id: z.string() })),
           formComponents: z.record(
+            z.string(),
             z.object({ componentName: z.string() }).passthrough().optional(),
           ),
         })
