@@ -48,7 +48,7 @@ A candidate is a string of edge characters (`/`, `\`, `{`, `}`, tab, newline, NU
 | Rule | Plain sentence | Harm when it breaks | On main |
 | --- | --- | --- | --- |
 | `BackendAndVueAgree` | `RELATIVE_ROUTE_PATTERN` and `isDashboardPath` accept the same strings. | A built path the backend lists hides the mockup list, or a path with a control character reads as a host. | holds |
-| `BuiltPathRuleIsPatternAndLength` | `relativeRouteSchema` accepts a string exactly when `isDashboardPath` does and it has at most 2,048 characters. | The schema and the dashboard stop reading one path the same way. | holds |
+| `BuiltPathRuleIsPatternAndLength` | `relativeRouteSchema` accepts a string exactly when `isDashboardPath` does and it has at most 2,048 code points, as zod 4.5 and later count a string's length. | The schema and the dashboard stop reading one path the same way. | holds |
 | `LiveRouteResolvesToBuiltPath` | A live route that `liveRouteSchema` accepts, its tokens padded with plain spaces and filled with any text the page carries, resolves through `resolveUrlVariables` to nothing (a token has no value) or to a path `isDashboardPath` accepts. | A saved spec's route, once its tokens are filled, is requested as a host or with a control character. | holds |
 | `ResolvedRouteIsALiveRoute` | A route with plain-space padded tokens that the dashboard resolves to a path of the dashboard is accepted by `liveRouteSchema`. | A converted page sketches a block that the dashboard reads, or a saved spec stops reading. | holds |
 | `ResolvedPaddedRouteIsALiveRoute` | The same, with the padding the dashboard's `\s*` reads: a tab, a newline, a non-breaking space. | The conversion sketches the block as `remote-route` instead of keeping its route. | finding F1 |

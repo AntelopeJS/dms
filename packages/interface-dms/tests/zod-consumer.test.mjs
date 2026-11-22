@@ -35,7 +35,7 @@ const packageRoot = join(import.meta.dirname, "..");
 const tsc = createRequire(import.meta.url).resolve("typescript/bin/tsc");
 
 /** A zod 4 range, as a module on zod 4 declares it. */
-const CONSUMER_ZOD_RANGE = "^4.4.0";
+const CONSUMER_ZOD_RANGE = "^4.5.0";
 
 const DATA_TYPE_SUBCLASS = `
 import { DataType, RegisterDataType } from "@antelopejs/interface-dms/base/data-types";
