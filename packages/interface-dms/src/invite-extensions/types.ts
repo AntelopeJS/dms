@@ -1,5 +1,5 @@
 import type { FormBuilder } from "../base/form";
-import type { ZodType, ZodTypeDef } from "zod";
+import type { ZodType } from "zod";
 import type { PlacementSide } from "../component";
 import type { TenantMember } from "../db";
 import type { MaybePromise } from "../types";
@@ -85,7 +85,7 @@ export interface InviteExtensionOptions<T> {
    * the submission — which also lets it transform, `onAccept` receiving the
    * output.
    */
-  schema: ZodType<T, ZodTypeDef, unknown>;
+  schema: ZodType<T, unknown>;
   /** Called after membership exists; durable deliveries can replay with the same deliveryId. */
   onAccept: InviteAcceptHandler<T>;
   /**

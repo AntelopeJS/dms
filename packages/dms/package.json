@@ -140,8 +140,7 @@
     "striptags": "^3.2.0",
     "ts-morph": "^28.0.0",
     "ua-parser-js": "^2.0.9",
-    "zod": "^3.25.0",
-    "zod-to-json-schema": "~3.24.6"
+    "zod": "^4.4.0"
   },
   "devDependencies": {
     "@antelopejs/api": "~1.7.8",

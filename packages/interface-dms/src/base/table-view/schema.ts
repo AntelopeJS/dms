@@ -181,7 +181,7 @@ const cardSchema = z.object({
 
 const displaySchema = z.object({
   id: z.string(),
-  options: z.record(z.unknown()).optional(),
+  options: z.record(z.string(), z.unknown()).optional(),
   component: ui(
     opaqueOption<TableViewDisplayOption["component"]>().optional(),
     { hidden: true },
@@ -390,12 +390,15 @@ export const TableViewSchema = z.object({
       .describe("Rows listed first whatever the sort: a rule on their fields."),
     { label: "Pinned rows", group: "data", widget: "json", advanced: true },
   ),
-  queryParamFilters: ui(z.record(queryParamFilterSchema).optional(), {
-    label: "Query parameter filters",
-    group: "advanced",
-    widget: "json",
-  }),
-  routeParamFilters: ui(z.record(paramFilterSchema).optional(), {
+  queryParamFilters: ui(
+    z.record(z.string(), queryParamFilterSchema).optional(),
+    {
+      label: "Query parameter filters",
+      group: "advanced",
+      widget: "json",
+    },
+  ),
+  routeParamFilters: ui(z.record(z.string(), paramFilterSchema).optional(), {
     label: "Route parameter filters",
     group: "advanced",
     widget: "json",

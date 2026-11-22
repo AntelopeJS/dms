@@ -1,5 +1,5 @@
 import { ComponentBuilder } from "../component";
-import { zodToJsonSchema } from "zod-to-json-schema";
+import type { z } from "zod";
 import type {
   FormField,
   FormFieldSerialized,
@@ -254,7 +254,7 @@ export interface FormPropsSerialized extends Omit<
   /** Every entry of the form: its own, then each section's. */
   fields: FormFieldOrGroupSerialized[];
   sections?: FormSectionSerialized[];
-  schema?: ReturnType<typeof zodToJsonSchema>;
+  schema?: z.core.JSONSchema.BaseSchema;
 }
 
 export type FormBuilder = ComponentBuilder<FormPropsSerialized> & {

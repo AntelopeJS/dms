@@ -50,7 +50,7 @@ export function buildSchema(
 
 const REQUIRED_MESSAGE = "$dms.field_errors.required";
 
-// oxlint-disable-next-line anti-slop/no-unknown-parameters -- Takes the output of a caller-supplied zod field schema, any on zod 3's ZodTypeAny, then trims text and checks that every other value is present.
+// oxlint-disable-next-line anti-slop/no-unknown-parameters -- Takes the output of a caller-supplied zod field schema, which zod types as unknown, then trims text and checks that every other value is present.
 function isFilledText(value: unknown): boolean {
   return isString(value) ? value.trim() !== "" : value != null;
 }

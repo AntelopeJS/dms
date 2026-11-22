@@ -34,8 +34,8 @@ function npm(args, options) {
 const packageRoot = join(import.meta.dirname, "..");
 const tsc = createRequire(import.meta.url).resolve("typescript/bin/tsc");
 
-/** A zod range whose newest 3.x is newer than the one interface-dms builds against. */
-const CONSUMER_ZOD_RANGE = "^3.25.0";
+/** A zod 4 range, as a module on zod 4 declares it. */
+const CONSUMER_ZOD_RANGE = "^4.4.0";
 
 const DATA_TYPE_SUBCLASS = `
 import { DataType, RegisterDataType } from "@antelopejs/interface-dms/base/data-types";
@@ -115,7 +115,7 @@ async function installedZodVersions(consumer) {
 }
 
 await test(
-  "a module on a newer zod 3.x shares one zod copy with interface-dms and type-checks its DataType subclass",
+  "a module on zod 4 shares one zod copy with interface-dms and type-checks its DataType subclass",
   {
     timeout: 300_000,
   },
@@ -133,7 +133,7 @@ await test(
 
       const versions = await installedZodVersions(consumer);
       assert.equal(versions.length, 1, `zod copies: ${versions.join(", ")}`);
-      assert.match(versions[0], /^3\.(2[5-9]|[3-9]\d)\./);
+      assert.match(versions[0], /^4\./);
     } finally {
       await rm(scratch, { recursive: true, force: true });
     }

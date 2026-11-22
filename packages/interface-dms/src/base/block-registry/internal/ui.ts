@@ -1,4 +1,4 @@
-import type { ZodTypeAny } from "zod";
+import type { z } from "zod";
 import type { BlockOptionUi } from "../types";
 
 /**
@@ -8,15 +8,19 @@ import type { BlockOptionUi } from "../types";
  *
  * @internal
  */
-export const UI_HINTS = new WeakMap<ZodTypeAny, BlockOptionUi>();
+export const UI_HINTS = new WeakMap<z.core.$ZodType, BlockOptionUi>();
 
 /**
- * The hints attached to a schema node, if any.
+ * The hints attached to a schema node or to a schema it was cloned from, as
+ * `.refine()`, `.describe()` and every check clone it. The clone's own hints
+ * win.
  *
  * @internal
  */
-export function getUiHints(schema: ZodTypeAny): BlockOptionUi | undefined {
-  return UI_HINTS.get(schema);
+export function getUiHints(schema: z.core.$ZodType): BlockOptionUi | undefined {
+  const parent = schema._zod.parent;
+  const own = UI_HINTS.get(schema);
+  return parent ? mergeUiHints([getUiHints(parent), own]) : own;
 }
 
 /**

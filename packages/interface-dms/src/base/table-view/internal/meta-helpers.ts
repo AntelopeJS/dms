@@ -5,6 +5,7 @@ import { GetMetadata } from "@antelopejs/interface-core";
 import type { MakeMethodAndPropertyDecorator } from "@antelopejs/interface-core/decorators";
 import {
   DataAPIMeta,
+  type FieldParseResult,
   Filter,
   Validator,
 } from "@antelopejs/interface-data-api/metadata";
@@ -96,11 +97,11 @@ export function decorateColumn(
         : undefined,
     });
 
-    Validator((value) => zodSchema.safeParseAsync(value))(
-      target,
-      key,
-      descriptor ?? {},
-    );
+    Validator(async (value) => {
+      const result = await zodSchema.safeParseAsync(value);
+      // SAFETY: A data type's validation parses a value to what its column stores, a FieldValue; zod types that output as `unknown`.
+      return result as FieldParseResult;
+    })(target, key, descriptor ?? {});
   }
 
   if (options.filterable) {

@@ -14,5 +14,4 @@ import { z } from "zod";
  */
 export const toneEnum = <T extends readonly [string, ...string[]]>(
   tones: T,
-): z.ZodEnum<[T[number], ...T[number][]]> =>
-  z.enum<T[number], Readonly<[T[number], ...T[number][]]>>(tones);
+): z.ZodEnum<{ [K in T[number]]: K }> => z.enum(tones);

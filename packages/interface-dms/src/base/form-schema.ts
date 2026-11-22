@@ -2,7 +2,6 @@ import type { ComponentInfoSerialized } from "../component";
 import "../component";
 import "../uploads";
 import { z } from "zod";
-import "zod-to-json-schema";
 import { getDataTypeId } from "./data-types/core";
 import type { DefaultDataTypes } from "./data-types/default-types";
 import type * as RelationPickers from "./form-relation-options";

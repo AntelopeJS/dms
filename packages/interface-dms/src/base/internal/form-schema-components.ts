@@ -1,7 +1,7 @@
 /** @internal */
 import { ComponentBuilder } from "../../component";
 import { StampUploadFieldTokens } from "../../uploads";
-import { zodToJsonSchema } from "zod-to-json-schema";
+import { z } from "zod";
 import type { buildFormSchema } from "../form-schema";
 import type {
   FormFieldOrGroup,
@@ -49,6 +49,33 @@ function serializeFormSections(
   }));
 }
 
+/**
+ * The JSON Schema of a form's values the browser validates against: what each
+ * field accepts as input, in draft-07, with a date written as a `date-time`
+ * string, an object that strips unknown keys refusing them, and a kind JSON
+ * Schema cannot express accepting anything.
+ *
+ * @internal
+ */
+export function formJsonSchema(
+  schema: z.core.$ZodType,
+): z.core.JSONSchema.BaseSchema {
+  return z.toJSONSchema(schema, {
+    target: "draft-07",
+    io: "input",
+    unrepresentable: "any",
+    override: ({ zodSchema, jsonSchema }) => {
+      const def = zodSchema._zod.def;
+      if (def.type === "date") {
+        jsonSchema.type = "string";
+        jsonSchema.format = "date-time";
+      } else if (def.type === "object" && def.catchall === undefined) {
+        jsonSchema.additionalProperties = false;
+      }
+    },
+  });
+}
+
 /** @internal */
 export function createForm(
   options: FormProps | undefined,
@@ -63,7 +90,7 @@ export function createForm(
       ...(options?.sections && {
         sections: serializeFormSections(options.sections),
       }),
-      schema: zodToJsonSchema(schema),
+      schema: formJsonSchema(schema),
     })
     .transformOptions(StampUploadFieldTokens)
     .meta({

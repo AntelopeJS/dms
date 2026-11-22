@@ -1,4 +1,4 @@
-import type { ZodTypeAny } from "zod";
+import type { z } from "zod";
 import {
   cloneDefault,
   collectDefaults,
@@ -82,12 +82,12 @@ export function GetBlockType(type: string): BlockTypeDescriptor | undefined {
 }
 
 /** The raw options schema of a block type, for callers that hold zod. */
-export function GetBlockSchema(type: string): ZodTypeAny | undefined {
+export function GetBlockSchema(type: string): z.ZodType | undefined {
   return DEFINITIONS.get(type)?.schema;
 }
 
 /** RFC 6901: the root is the empty string, and `~` and `/` are escaped. */
-function jsonPointer(path: Array<string | number>): string {
+function jsonPointer(path: PropertyKey[]): string {
   if (path.length === 0) {
     return "";
   }

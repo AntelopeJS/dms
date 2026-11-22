@@ -105,8 +105,8 @@ export class SelectType extends DataType {
 
   getValidation():
     | z.ZodNever
-    | z.ZodEnum<[string, ...string[]]>
-    | z.ZodArray<z.ZodNever | z.ZodEnum<[string, ...string[]]>>
+    | z.ZodEnum<Record<string, string>>
+    | z.ZodArray<z.ZodNever | z.ZodEnum<Record<string, string>>>
     | z.ZodString
     | z.ZodArray<z.ZodString> {
     if (this.options.itemsFrom) {

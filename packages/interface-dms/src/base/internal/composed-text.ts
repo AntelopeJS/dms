@@ -34,20 +34,22 @@ const TypedParamSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("count"), value: z.number() }),
 ]);
 
-const ComposedTextParamSchema: z.ZodType<ComposedTextParam> = z.lazy(() =>
-  z.union([z.string(), z.number(), TypedParamSchema, ComposedTextSchema]),
-);
+const ComposedTextParamSchema: z.ZodType<ComposedTextParam, ComposedTextParam> =
+  z.lazy(() =>
+    z.union([z.string(), z.number(), TypedParamSchema, ComposedTextSchema]),
+  );
 
 /**
  * The zod schema of a {@link ComposedText}.
  *
  * @internal
  */
-export const ComposedTextSchema: z.ZodType<ComposedText> = z.object({
-  key: z.string().min(1),
-  params: z.record(ComposedTextParamSchema).optional(),
-  plural: z.string().optional(),
-});
+export const ComposedTextSchema: z.ZodType<ComposedText, ComposedText> =
+  z.object({
+    key: z.string().min(1),
+    params: z.record(z.string(), ComposedTextParamSchema).optional(),
+    plural: z.string().optional(),
+  });
 
 /**
  * The schema of one value a composed text names, for an option that takes
@@ -55,13 +57,15 @@ export const ComposedTextSchema: z.ZodType<ComposedText> = z.object({
  *
  * @internal
  */
-export const composedTextParamSchema = (): z.ZodType<ComposedTextParam> =>
-  ComposedTextParamSchema;
+export const composedTextParamSchema = (): z.ZodType<
+  ComposedTextParam,
+  ComposedTextParam
+> => ComposedTextParamSchema;
 
 /**
  * The schema of a block text option: a plain string or a composed text.
  *
  * @internal
  */
-export const blockTextSchema = (): z.ZodType<BlockText> =>
+export const blockTextSchema = (): z.ZodType<BlockText, BlockText> =>
   z.union([z.string(), ComposedTextSchema]);
