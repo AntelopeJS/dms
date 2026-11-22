@@ -14,6 +14,7 @@ import type {
 import { isFieldGroup } from "../form-types";
 import { FORM_COMPONENT_NAME } from "./form-block-schema";
 import { serializeFormField } from "./form-schema";
+import { isString } from "../../utils/internal/type-check";
 
 /** @internal */
 export function serializeFormEntry(
@@ -50,10 +51,48 @@ function serializeFormSections(
 }
 
 /**
+ * The pattern a string format (an e-mail, a uuid, a date-time) checks with, as
+ * opposed to one `.regex()` adds.
+ */
+function formatPattern(
+  def: z.core.$ZodTypeDef | z.core.$ZodCheckDef,
+): string | undefined {
+  if (!("check" in def) || def.check !== "string_format") return undefined;
+  if (!("format" in def) || def.format === "regex") return undefined;
+  return "pattern" in def && def.pattern instanceof RegExp
+    ? def.pattern.source
+    : undefined;
+}
+
+/**
+ * Drops the patterns of a string's formats: the browser checks a format by
+ * its `format`, and the same check written twice reports every bad value
+ * twice.
+ */
+function dropFormatPatterns(
+  schema: z.core.$ZodType,
+  checks: readonly z.core.$ZodCheck<never>[],
+  json: z.core.JSONSchema.BaseSchema,
+): void {
+  const dropped = new Set(
+    [schema, ...checks].flatMap((node) => formatPattern(node._zod.def) ?? []),
+  );
+  const isDropped = (part: z.core.JSONSchema.BaseSchema) =>
+    isString(part.pattern) && dropped.has(part.pattern);
+  if (isDropped(json)) delete json.pattern;
+  if (!json.allOf) return;
+  const [only, ...others] = json.allOf.filter((part) => !isDropped(part));
+  delete json.allOf;
+  if (only && others.length > 0) json.allOf = [only, ...others];
+  else if (only) json.pattern = only.pattern;
+}
+
+/**
  * The JSON Schema of a form's values the browser validates against: what each
  * field accepts as input, in draft-07, with a date written as a `date-time`
- * string, an object that strips unknown keys refusing them, and a kind JSON
- * Schema cannot express accepting anything.
+ * string, an object that strips unknown keys refusing them, a string format
+ * checked by its `format` alone, and a kind JSON Schema cannot express
+ * accepting anything.
  *
  * @internal
  */
@@ -71,6 +110,8 @@ export function formJsonSchema(
         jsonSchema.format = "date-time";
       } else if (def.type === "object" && def.catchall === undefined) {
         jsonSchema.additionalProperties = false;
+      } else if (def.type === "string") {
+        dropFormatPatterns(zodSchema, def.checks ?? [], jsonSchema);
       }
     },
   });
