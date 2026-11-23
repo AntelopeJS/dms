@@ -139,7 +139,8 @@ function purposeItem(facts: RelationFacts): OpenItem {
 
 /** A TableView labelled by the preferred label candidate (R6, L1). */
 function labelledTableView(facts: RelationFacts): RelationVerdict {
-  const choice = preferredLabel(labelCandidates(facts))!;
+  const choice = preferredLabel(labelCandidates(facts));
+  if (!choice) return { kind: "open", item: purposeItem(facts) };
   return {
     kind: "proposed",
     tableView: { value: true, rule: "R6", kind: "default" },
@@ -163,7 +164,7 @@ function keyLabelledTableView(facts: RelationFacts): RelationVerdict {
 const hasRows = (facts: RelationFacts) => facts.rows !== 0;
 const isKeyed = (facts: RelationFacts) => facts.description.key !== null;
 
-/** R1 to R9, in order: the first that applies decides. */
+/** R1 to R8, in order: the first that applies decides, and R9 decides when none does. */
 const RELATION_RULES: readonly RelationRule[] = [
   {
     id: "R1",
@@ -203,19 +204,20 @@ const RELATION_RULES: readonly RelationRule[] = [
     applies: hasTimeAxis,
     verdict: () => statsOnly("R8", "default"),
   },
-  {
-    id: "R9",
-    applies: () => true,
-    verdict: (facts) => ({ kind: "open", item: purposeItem(facts) }),
-  },
 ];
+
+const FALLBACK_RULE: RelationRule = {
+  id: "R9",
+  applies: () => true,
+  verdict: (facts) => ({ kind: "open", item: purposeItem(facts) }),
+};
 
 export function classifyRelation(
   facts: RelationFacts,
   context: RelationContext,
 ): RelationVerdict {
-  const rule = RELATION_RULES.find((candidate) =>
-    candidate.applies(facts, context),
-  )!;
+  const rule =
+    RELATION_RULES.find((candidate) => candidate.applies(facts, context)) ??
+    FALLBACK_RULE;
   return rule.verdict(facts, context);
 }

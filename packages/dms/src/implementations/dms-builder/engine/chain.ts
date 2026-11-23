@@ -107,8 +107,14 @@ export function isBlockInitializer(init: Expression): boolean {
   );
 }
 
+/** A chain whose factory call was found. */
+export interface BuilderChain extends ChainInfo {
+  factory: string;
+  factoryCall: CallExpression;
+}
+
 export interface UnwrapResult {
-  chain?: ChainInfo;
+  chain?: BuilderChain;
   rootExpr?: Expression;
   opaqueReason?: string;
 }
@@ -119,8 +125,9 @@ export function resolveAndUnwrap(expr: Expression): UnwrapResult {
     return { opaqueReason: resolved.opaqueReason ?? "unresolved reference" };
   }
   const chain = unwrapBuilderChain(resolved.expr);
-  if (!chain.factory || !chain.factoryCall) {
+  const { factory, factoryCall } = chain;
+  if (!factory || !factoryCall) {
     return { opaqueReason: "not a block" };
   }
-  return { chain, rootExpr: resolved.expr };
+  return { chain: { ...chain, factory, factoryCall }, rootExpr: resolved.expr };
 }

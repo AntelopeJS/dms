@@ -89,7 +89,7 @@ export function pageParamsOf(
       .filter(Boolean)
       .flatMap((segment, index) =>
         segment.startsWith(":")
-          ? [[segment.slice(1), pathSegments[index]!]]
+          ? [[segment.slice(1), pathSegments[index]]]
           : [],
       ),
   );

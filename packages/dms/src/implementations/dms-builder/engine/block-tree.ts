@@ -80,16 +80,14 @@ interface BlockNodeMeta {
 function structureLockReason(
   expr: Expression,
   chain: ChainInfo,
+  extraFactoryArguments: boolean,
   children: BlockNode[],
   partial: boolean,
 ): string | undefined {
   if (chain.opaqueReason) return chain.opaqueReason;
   if (Node.isIdentifier(unwrapExpression(expr)))
     return "Shared block reference: edit it in code";
-  if (
-    chain.factoryCall!.getArguments().length >
-    (isControllerLeadingBlock(chain.factory!) ? 2 : 1)
-  )
+  if (extraFactoryArguments)
     return "Additional factory arguments require editing in code";
   const unsafeChildren = chain.childCalls.some((call) => {
     const args = call.getArguments();
@@ -154,6 +152,7 @@ function buildBlockNode(
     structureLockReason(
       expr,
       chain,
+      args.length > (controllerLeading ? 2 : 1),
       children,
       Object.keys(lockedOptions).length > 0,
     ) ?? reason;
