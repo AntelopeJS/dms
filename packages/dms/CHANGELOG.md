@@ -1,5 +1,25 @@
 # Changelog
 
+## v0.23.0
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/v0.22.1...v0.23.0)
+
+### 🚀 Enhancements
+
+- **interface-dms:** Run the DataType contract and dms on zod 4 ([#1236](https://github.com/AntelopeJS/dms/pull/1236))
+
+### 🏡 Chore
+
+- **deps:** Update dependency @antelopejs/nodemailer to v0.0.14 ([#1239](https://github.com/AntelopeJS/dms/pull/1239))
+
+#### ⚠️ Breaking Changes
+
+- **interface-dms:** Run the DataType contract and dms on zod 4 ([#1236](https://github.com/AntelopeJS/dms/pull/1236))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli
+
 ## v0.22.1
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/v0.22.0...v0.22.1)
