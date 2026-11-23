@@ -80,7 +80,8 @@ function keyLabel(token: string): string {
 }
 
 function groupKey(component: string): string {
-  return component.replace(/^\$/, "").split(".").pop()!.toLowerCase();
+  const name = component.replace(/^\$/, "");
+  return name.slice(name.lastIndexOf(".") + 1).toLowerCase();
 }
 
 function groupText(component: string, field: "title" | "description"): string {

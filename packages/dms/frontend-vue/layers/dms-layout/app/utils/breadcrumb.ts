@@ -77,9 +77,9 @@ export function foldBreadcrumb<T>(
 ): (T | FoldedCrumbs<T>)[] {
   if (crumbs.length <= 3) return [...crumbs];
   return [
-    crumbs[0]!,
+    ...crumbs.slice(0, 1),
     { isFolded: true, slot, children: crumbs.slice(1, -1) },
-    crumbs.at(-1)!,
+    ...crumbs.slice(-1),
   ];
 }
 
@@ -106,5 +106,5 @@ export function withParentCrumb<T extends object>(
   ) {
     return [...crumbs];
   }
-  return [...crumbs.slice(0, -1), parent, crumbs.at(-1)!];
+  return [...crumbs.slice(0, -1), parent, ...crumbs.slice(-1)];
 }

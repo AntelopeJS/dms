@@ -290,14 +290,15 @@ function isDesiredOpen(id: string): boolean {
 }
 
 function onStateChange(id: string, open: boolean): void {
-  if (!props.modelValue) return;
-  const set = new Set(props.modelValue);
+  const current = props.modelValue;
+  if (!current) return;
+  const set = new Set(current);
   if (open) set.add(id);
   else set.delete(id);
   const next = [...set];
   if (
-    next.length === props.modelValue.length &&
-    next.every((value, index) => value === props.modelValue![index])
+    next.length === current.length &&
+    next.every((value, index) => value === current[index])
   ) {
     return;
   }
