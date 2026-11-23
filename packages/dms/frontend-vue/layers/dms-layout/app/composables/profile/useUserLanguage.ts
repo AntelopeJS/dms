@@ -31,9 +31,7 @@ export function useUserLanguage() {
       });
 
       await userSession.fetch();
-    } catch {
-      // eslint-disable-line no-empty -- Profile-write and session-refresh failures remain silent.
-    }
+    } catch {}
   }
 
   return { changeLanguage };

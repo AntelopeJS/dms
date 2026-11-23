@@ -8,7 +8,7 @@
   "scripts": {
     "build": "rimraf dist && tsc",
     "test": "pnpm build && node --test dist/prototype-keys.test.js dist/form/demo-forms.test.js checks/client-lint.test.mjs && node --import ./checks/resolve-ts.mjs --test checks/docs-fixtures.test.mjs",
-    "lint:client": "cd frontend-vue && ESLINT_USE_FLAT_CONFIG=true ../../frontend-vue/node_modules/.bin/eslint --config ../checks/client-lint.config.mjs --max-warnings 0 .",
+    "lint:client": "cd frontend-vue && ../node_modules/.bin/eslint --config ../checks/client-lint.config.mjs --max-warnings 0 .",
     "dev": "ajs project run -w",
     "frontend:dev": "ajs dms dev",
     "types:prepare": "ajs dms prepare-types -q --out .frontend-vue-types --layer ../frontend-vue --module frontend-vue --local-package @antelopejs/dms=.. --local-package @antelopejs/interface-dms=../../interface-dms",
@@ -19,6 +19,9 @@
     "@antelopejs/core": "~1.24.5",
     "@antelopejs/dms-frontend": ">=0.11.8 <0.12.0",
     "@types/node": "^24.19.2",
+    "@typescript-eslint/parser": "^8.46.0",
+    "eslint": "^10.9.1",
+    "eslint-plugin-vue": "^10.5.0",
     "prettier": "^3.9.10",
     "rimraf": "^6.1.3",
     "typescript": "^6.0.3"
