@@ -54,12 +54,7 @@ async function categoryMeta(ref = REF) {
   return category ?? { ref, displayName: "" };
 }
 
-/**
- * A category's own options written as constants: the builder reads the
- * values they hold, and writes back only an option whose value the editor
- * changed.
- */
-describe("category options written as constants", () => {
+describe("category options written as constants: the builder reads the values they hold, and writes back only an option whose value the editor changed", () => {
   before(function () {
     this.timeout(120_000);
     app = createFixture();

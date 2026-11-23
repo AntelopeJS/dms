@@ -39,11 +39,7 @@ const sectionedForm = () =>
 const optionsOf = (form: ReturnType<typeof Form>) =>
   defined(form.serializeSync().options);
 
-/**
- * A form's sections are titled cards of one form: their fields are the form's
- * fields, validated and submitted together.
- */
-describe("[unit] interfaces/dms-base — form sections", () => {
+describe("[unit] interfaces/dms-base — form sections, titled cards of one form whose fields are the form's fields, validated and submitted together", () => {
   it("lists every entry in fields: its own first, then each section's", () => {
     const ids = optionsOf(sectionedForm()).fields.map((item) => item.id);
     expect(ids).to.deep.equal(["intro", "name", "contact", "notes"]);
@@ -93,8 +89,7 @@ describe("[unit] interfaces/dms-base — form sections", () => {
   });
 });
 
-/** A required box to tick is an agreement: only `true` satisfies it. */
-describe("[unit] interfaces/dms-base — required box to tick", () => {
+describe("[unit] interfaces/dms-base — required box to tick, an agreement that only `true` satisfies", () => {
   const terms = (
     inputComponent?: ReturnType<typeof FormComponents.InputCheckbox>,
   ) =>

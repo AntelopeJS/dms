@@ -48,8 +48,7 @@ const LAST_WITHOUT_PROBE: Record<Builder.DatabaseEngine, string> = {
 /** The first postgres release past the 0.4 line, which a closed range refuses. */
 const NEXT_POSTGRES_LINE = "0.5.0";
 
-/** Fails on an open driver range, which resolves a release built for another line of an interface. */
-describe("the driver range a project can install", () => {
+describe("the driver range a project can install (fails on an open driver range, which resolves a release built for another line of an interface)", () => {
   it("offers a 0.4.1 or later project each driver from its release in batches, closed before its next minor", () => {
     const drivers = driverPackages("0.4.2");
     expect(drivers.postgres?.version).to.equal(">=0.4.2 <0.5.0");
@@ -94,12 +93,7 @@ describe("the driver range a project can install", () => {
   });
 });
 
-/**
- * Fails on a project state that reads another interface-database than the one core resolves for
- * the project, or answers an open range. The test project resolves 0.4, through its MongoDB module,
- * whose batch-cursor release brings 0.4.1.
- */
-describe("connecting a driver to the project", function () {
+describe("connecting a driver to the project (fails on a project state that reads another interface-database than the one core resolves, 0.4 through the test project's MongoDB module whose batch-cursor release brings 0.4.1, or that answers an open range)", function () {
   this.timeout(OP_TIMEOUT);
 
   let root = "";

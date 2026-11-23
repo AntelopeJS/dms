@@ -286,12 +286,7 @@ function namesBlockDataAfterTheBlock(): void {
   });
 }
 
-/**
- * A block and the data it reads are one edit, so they are one write. These cover
- * what that means in practice: the draft carries both, an absent `queries` is not
- * an empty one, and a query a human has taken over survives either way.
- */
-describe("queries in a page draft", () => {
+describe("queries in a page draft: a block and the data it reads are one write, an absent `queries` is not an empty one, and a query a human has taken over survives either way", () => {
   before(async function () {
     this.timeout(120_000);
     app = createFixture();

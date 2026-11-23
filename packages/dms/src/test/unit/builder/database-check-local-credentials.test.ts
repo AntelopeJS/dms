@@ -133,8 +133,7 @@ describe("what a PostgreSQL check sends of this computer", function () {
   this.timeout(PROCESS_TIMEOUT_MS);
   const LOCAL_FILES = REFUSED;
 
-  /** Fails on a check that lets `pg` fill a missing password, user or option from `PG*` variables. */
-  it("sends no variable of this process to the server when the URL has no password, and says the server asks for one", async () => {
+  it("sends no variable of this process to the server when the URL has no password, and says the server asks for one (fails on a check that lets `pg` fill a missing password, user or option from `PG*` variables)", async () => {
     const server = await passwordAskingServer();
     try {
       const answer = await withEnvironment(ENV_SECRETS, () =>
@@ -160,8 +159,7 @@ describe("what a PostgreSQL check sends of this computer", function () {
     }
   });
 
-  /** Fails on a check that withholds the password the URL gives, or sends `PGPASSWORD` in its place. */
-  it("sends the password of the URL, and only it", async () => {
+  it("sends the password of the URL, and only it (fails on a check that withholds the password the URL gives, or sends `PGPASSWORD` in its place)", async () => {
     const server = await passwordAskingServer();
     try {
       await withEnvironment(ENV_SECRETS, () =>
@@ -178,8 +176,7 @@ describe("what a PostgreSQL check sends of this computer", function () {
     }
   });
 
-  /** Fails on a check that lets `pg` fill the user or the host from this computer, or present a certificate of it, or reads the URL otherwise than `pg`. */
-  it("refuses a URL with no user or host, naming a certificate or key, or holding a control character, before connecting", async () => {
+  it("refuses a URL with no user or host, naming a certificate or key, or holding a control character, before connecting (fails on a check that lets `pg` fill the user or the host from this computer, or present a certificate of it, or reads the URL otherwise than `pg`)", async () => {
     const server = await passwordAskingServer();
     try {
       const base = `127.0.0.1:${server.port}/shop`;
@@ -202,8 +199,7 @@ describe("what a PostgreSQL check sends of this computer", function () {
     }
   });
 
-  /** Fails on a refusal so wide that it turns away a URL that names a socket directory, which `pg` connects to as written. */
-  it("lets a URL that names a socket directory through", async () => {
+  it("lets a URL that names a socket directory through (fails on a refusal so wide that it turns away a URL that names a socket directory, which `pg` connects to as written)", async () => {
     for (const url of [
       "postgres://app:pw@%2Fnonexistent-dms-socket-dir/shop",
       "postgres://app:pw@/shop?host=/nonexistent-dms-socket-dir",
@@ -216,8 +212,7 @@ describe("what a PostgreSQL check sends of this computer", function () {
     }
   });
 
-  /** Fails on a check that lets `pg` read an `sslrootcert`, which it reads synchronously while it parses the URL, so a file that never ends holds the process before any deadline. */
-  it("refuses every sslrootcert at once, a device or a file that never ends included, before connecting", async () => {
+  it("refuses every sslrootcert at once, a device or a file that never ends included, before connecting (fails on a check that lets `pg` read an `sslrootcert`, which it reads synchronously while it parses the URL, so a file that never ends holds the process before any deadline)", async () => {
     const server = await passwordAskingServer();
     try {
       const base = `postgres://app:pw@127.0.0.1:${server.port}/shop?sslmode=require&`;
@@ -246,25 +241,24 @@ describe("what a PostgreSQL check sends of this computer", function () {
   });
 });
 
+/** A server that accepts TLS, which is when `pg` reads a key of the `ssl` it was given. */
+function tlsAcceptingServer(): Promise<Listener> {
+  const chunks: Buffer[] = [];
+  let count = 0;
+  const server = net.createServer((socket) => {
+    count += 1;
+    socket.once("data", (chunk) => {
+      chunks.push(Buffer.from(chunk));
+      socket.write("S");
+    });
+    socket.on("error", () => undefined);
+  });
+  return listen(server, chunks, () => count);
+}
+
 describe("an ssl value a PostgreSQL check refuses", function () {
   this.timeout(PROCESS_TIMEOUT_MS);
-  /** A server that accepts TLS, which is when `pg` reads a key of the `ssl` it was given. */
-  function tlsAcceptingServer(): Promise<Listener> {
-    const chunks: Buffer[] = [];
-    let count = 0;
-    const server = net.createServer((socket) => {
-      count += 1;
-      socket.once("data", (chunk) => {
-        chunks.push(Buffer.from(chunk));
-        socket.write("S");
-      });
-      socket.on("error", () => undefined);
-    });
-    return listen(server, chunks, () => count);
-  }
-
-  /** Fails on a check that hands `pg` an `ssl` it keeps as a string, which ends the process once the server accepts TLS. */
-  it("refuses an ssl value pg would keep as a string, before connecting, and keeps the ones it reads", async () => {
+  it("refuses an ssl value pg would keep as a string, before connecting, and keeps the ones it reads (fails on a check that hands `pg` an `ssl` it keeps as a string, which ends the process once the server accepts TLS)", async () => {
     const server = await tlsAcceptingServer();
     try {
       const base = `postgres://app:pw@127.0.0.1:${server.port}/shop?`;
@@ -304,8 +298,7 @@ describe("the URL options a MySQL check passes on", function () {
   this.timeout(PROCESS_TIMEOUT_MS);
   const SSL_SETTING = REFUSED;
 
-  /** Fails on a check that hands `mysql2` a client certificate of this computer, or an option value of a type it dereferences on a socket event. */
-  it("refuses an ssl with a certificate or a value of another type, and a socketPath that is not a path, before connecting", async () => {
+  it("refuses an ssl with a certificate or a value of another type, and a socketPath that is not a path, before connecting (fails on a check that hands `mysql2` a client certificate of this computer, or an option value of a type it dereferences on a socket event)", async () => {
     const server = await silentServer();
     try {
       const base = `mysql://app:pw@127.0.0.1:${server.port}/shop?`;
@@ -330,8 +323,7 @@ describe("the URL options a MySQL check passes on", function () {
     }
   });
 
-  /** Fails on a refusal so wide that it turns away a URL whose other options only shape how rows are read. */
-  it("lets the ssl settings it reads through, and drops the other options", async () => {
+  it("lets the ssl settings it reads through, and drops the other options (fails on a refusal so wide that it turns away a URL whose other options only shape how rows are read)", async () => {
     for (const query of [
       "ssl=%7B%7D",
       `ssl=${encodeURIComponent('{"rejectUnauthorized":false}')}`,
@@ -354,8 +346,7 @@ describe("what a MongoDB check sends of this computer", function () {
   const OTHER_MECHANISM = REFUSED;
   const LOCAL_FILES = REFUSED;
 
-  /** Fails on a check that lets `mongodb` sign in with an OIDC token file of this process. */
-  it("sends no token of this process for an OIDC URL, and opens no connection", async () => {
+  it("sends no token of this process for an OIDC URL, and opens no connection (fails on a check that lets `mongodb` sign in with an OIDC token file of this process)", async () => {
     const server = await silentServer();
     const folder = fs.mkdtempSync(path.join(os.tmpdir(), "dms-oidc-"));
     const tokenFile = path.join(folder, "token");
@@ -374,8 +365,7 @@ describe("what a MongoDB check sends of this computer", function () {
     }
   });
 
-  /** Fails on a refusal that a change of case, a repeated key, percent-encoding or a control character the client's parser drops gets past. */
-  it("refuses every other mechanism and every file option, however the URL spells it, before connecting", async () => {
+  it("refuses every other mechanism and every file option, however the URL spells it, before connecting (fails on a refusal that a change of case, a repeated key, percent-encoding or a control character the client's parser drops gets past)", async () => {
     const server = await silentServer();
     try {
       const base = `mongodb://app:pw@127.0.0.1:${server.port}/shop?directConnection=true`;
@@ -407,8 +397,7 @@ describe("what a MongoDB check sends of this computer", function () {
     }
   });
 
-  /** Fails on a check that hands `mongodb` an `authMechanism` it matches as a regular expression, which holds the process for seconds. */
-  it("answers an authMechanism written as a backtracking pattern at once", async () => {
+  it("answers an authMechanism written as a backtracking pattern at once (fails on a check that hands `mongodb` an `authMechanism` it matches as a regular expression, which holds the process for seconds)", async () => {
     const mechanism = encodeURIComponent(`${".*".repeat(19)}Z`);
     const started = performance.now();
     const answer = await checkDatabase(
@@ -420,8 +409,7 @@ describe("what a MongoDB check sends of this computer", function () {
     expect(answer.reason).to.match(OTHER_MECHANISM);
   });
 
-  /** Fails on a refusal so wide that it turns away the mechanisms that use the URL's credentials. */
-  it("lets the mechanisms that use the URL's user name and password through", async () => {
+  it("lets the mechanisms that use the URL's user name and password through (fails on a refusal so wide that it turns away the mechanisms that use the URL's credentials)", async () => {
     for (const mechanism of [
       "SCRAM-SHA-256",
       "scram-sha-1",
@@ -452,8 +440,7 @@ describe("how long the check takes to word a long message", function () {
     return Math.max(best, 1);
   }
 
-  /** Fails on a redaction or a query cut whose regular expression backtracks quadratically: a message ten times longer then takes a hundred times as long. */
-  it("grows linearly with the length of a server's message, up to a million characters", () => {
+  it("grows linearly with the length of a server's message, up to a million characters (fails on a redaction or a query cut whose regular expression backtracks quadratically: a message ten times longer then takes a hundred times as long)", () => {
     const url = "postgres://app:pw@db.example:5432/shop";
     const words = [
       (message: string) => signInRefusal(message, url),

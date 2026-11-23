@@ -250,12 +250,7 @@ function managesAPageSharingItsCategoryFile(): void {
   });
 }
 
-/**
- * What the builder's pages panel relies on: a page it creates is written and
- * registered, one it edits is patched in place, and one it deletes leaves
- * nothing of itself behind — and nothing else broken.
- */
-describe("the page lifecycle", () => {
+describe("the page lifecycle the builder's pages panel relies on: a page it creates is written and registered, one it edits is patched in place, and one it deletes leaves nothing of itself behind and nothing else broken", () => {
   before(async function () {
     this.timeout(120_000);
     app = createFixture();

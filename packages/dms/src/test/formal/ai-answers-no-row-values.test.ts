@@ -107,13 +107,7 @@ function reachedItsWork(text: string): boolean {
   return !text.split("\n").every((line) => SCHEMA_ISSUE.test(line));
 }
 
-/**
- * The AI gets the shape of a connected database, never its values. With the canary values of
- * `erp.orders` in the database and mapped into the project's code, every tool of the MCP registry
- * answers no canary for the arguments the generator draws from its own schema, and every tool that
- * writes refuses `{ $hidden }` sent back and writes nothing.
- */
-describe("[formal] the MCP tools answer the shape of a connected database, never its values", function () {
+describe("[formal] the MCP tools answer the shape of a connected database, never its values: no tool answers a canary of `erp.orders` for the arguments drawn from its schema, and every tool that writes refuses `{ $hidden }` sent back and writes nothing", function () {
   this.timeout(OP_TIMEOUT * 10);
 
   useWorkspace();

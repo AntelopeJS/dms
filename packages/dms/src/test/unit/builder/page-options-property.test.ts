@@ -440,13 +440,7 @@ function editKeepsSiblings(save: Save): () => Promise<string | undefined> {
 /** Where the known defects the property finds are run on demand: `DMS_PROPERTY_KNOWN_DEFECTS=1`. */
 const KNOWN_DEFECTS = process.env.DMS_PROPERTY_KNOWN_DEFECTS === "1";
 
-/**
- * A page's own options written as any constant expression — a literal, a named
- * constant, an enum member, a template literal of constants, a shorthand
- * property — read as the value they hold and, sent back unchanged, left as the
- * author wrote them.
- */
-describe("page options written as constant expressions (property)", () => {
+describe("page options written as constant expressions (property): a literal, a named constant, an enum member, a template literal of constants or a shorthand property reads as the value it holds and, sent back unchanged, is left as the author wrote it", () => {
   before(function () {
     this.timeout(120_000);
     app = createFixture();
@@ -491,12 +485,7 @@ describe("page options written as constant expressions (property)", () => {
     expect(await editKeepsSiblings(saveWithDraft)()).to.equal(undefined);
   });
 
-  /**
-   * ConfigurePage writes the sibling of a changed `live` member as its value
-   * (`rememberKey: "A"` for `rememberKey: KEY`) and prunes the constant, where a
-   * draft save keeps it. Runs with `DMS_PROPERTY_KNOWN_DEFECTS=1`.
-   */
-  it("ConfigurePage writes the member the editor changed and keeps its sibling as written", async function () {
+  it('ConfigurePage writes the member the editor changed and keeps its sibling as written (a known defect, run with `DMS_PROPERTY_KNOWN_DEFECTS=1`: ConfigurePage writes the sibling of a changed `live` member as its value, `rememberKey: "A"` for `rememberKey: KEY`, and prunes the constant, where a draft save keeps it)', async function () {
     if (!KNOWN_DEFECTS) {
       this.skip();
     }

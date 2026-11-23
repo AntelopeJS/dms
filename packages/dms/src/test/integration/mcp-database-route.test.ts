@@ -39,11 +39,7 @@ function declare(declared: InterfaceConnection[]): void {
   internal.interfaceConnections[OWN_MODULE][CATALOG_INTERFACE] = declared;
 }
 
-/**
- * A tool runs in the context of the module serving HTTP, with the builder off in this harness. The
- * `database_*` tools still read the DMS's own connections, both of them.
- */
-describe("[integration] database MCP tools over the route", () => {
+describe("[integration] database MCP tools over the route, which run in the module serving HTTP with the builder off and still read both of the DMS's own connections", () => {
   const client = createClient();
 
   async function call(name: string, args: { connection?: string }) {

@@ -79,12 +79,7 @@ const headerOptions = (layout: { options?: unknown } | undefined) =>
 const statusOptions = (layout: { options?: unknown } | undefined) =>
   ServedStatus.parse(layout?.options);
 
-/**
- * A header button's availability reads the query of the page URL: a language
- * page enables "Download" only for a language the workspace in `?workspace=`
- * has. The layout says which query it was served for.
- */
-describe("[unit] interfaces/dms/page — header availability reads the page query", () => {
+describe('[unit] interfaces/dms/page — header availability reads the page query: a language page enables "Download" only for a language the workspace in `?workspace=` has, and the layout says which query it was served for', () => {
   const cleanups: Array<() => void> = [];
   let slug = "";
 
@@ -209,11 +204,7 @@ describe("[unit] interfaces/dms/page — header availability reads the page quer
   });
 });
 
-/**
- * A detail page reads its record from a route parameter, not the query: its
- * header buttons hide themselves when `/:id` names no record.
- */
-describe("[unit] interfaces/dms/page — header availability reads the route parameters", () => {
+describe("[unit] interfaces/dms/page — header availability reads the route parameters, as a detail page reads its record from them and not the query: its header buttons hide themselves when `/:id` names no record", () => {
   const cleanups: Array<() => void> = [];
   let pattern = "";
 
@@ -423,12 +414,7 @@ function registerRecordCases(): void {
   });
 }
 
-/**
- * A detail page reads its record with its layout (`DefaultLayout({ record })`):
- * the header buttons acting on it take its fields as `{{record.X}}`, or are
- * left out without it, and every availability of the page reads it.
- */
-describe("[unit] interfaces/dms/page — the page's record, read with its layout", () => {
+describe("[unit] interfaces/dms/page — the page's record, read with its layout (`DefaultLayout({ record })`): the header buttons acting on it take its fields as `{{record.X}}`, or are left out without it, and every availability of the page reads it", () => {
   before(async () => {
     ImplementInterface(permissionsInterface, permissionsImpl);
     ImplementInterface(permissionsResolverInterface, permissionsResolverImpl);

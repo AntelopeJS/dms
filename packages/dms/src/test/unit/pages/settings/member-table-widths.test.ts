@@ -42,11 +42,7 @@ function gridWidth(
   }, 0);
 }
 
-/**
- * The members and invitations tables show every column on a 1440px screen:
- * none runs under the row actions pinned to the right.
- */
-describe("[unit] pages/settings/members — table widths", () => {
+describe("[unit] pages/settings/members — table widths: the members and invitations tables show every column on a 1440px screen, none running under the row actions pinned to the right", () => {
   it("fits the members table beside its menu", () => {
     const width = gridWidth(memberSettingDataAPI, [
       "name",

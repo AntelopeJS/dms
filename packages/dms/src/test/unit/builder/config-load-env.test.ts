@@ -53,8 +53,7 @@ async function coreLoad(): Promise<void> {
   );
 }
 
-/** A value the builder writes to `.env` reaches the project once it restarts, whatever builder call ran meanwhile. */
-describe("a .env value written before a restart", function () {
+describe("a .env value written before a restart reaches the project once it restarts, whatever builder call ran meanwhile", function () {
   this.timeout(OP_TIMEOUT);
 
   before(async () => {

@@ -1,18 +1,7 @@
 import { expect } from "chai";
 import { canonicalBody } from "../../../implementations/dms-builder/engine";
 
-/**
- * Two queries may share one model method only when they compute the same thing.
- * That judgement is this comparison, and it decides whether reconfiguring a query
- * rewrites its method or quietly reuses another — so what it does and does not
- * distinguish is worth stating outright.
- *
- * It compares compiled code rather than the parameters behind it: a template
- * applies defaults on the way out, and a chain read back off disk reports them
- * explicitly, so the parameters differ for a chain that is character for
- * character the same.
- */
-describe("a chain's identity", () => {
+describe("a chain's identity: two queries share one model method only when they compute the same thing, compared on compiled code rather than parameters, since a template applies defaults that a chain read back off disk reports explicitly", () => {
   it("ignores what a bound value is called", () => {
     const left = canonicalBody(
       '{ return this.table.filter((row) => row.key("price").lt(maxPrice)).count(); }',

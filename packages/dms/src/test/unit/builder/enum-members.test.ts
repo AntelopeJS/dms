@@ -108,12 +108,7 @@ async function createBoard(this: Mocha.Context): Promise<void> {
   app.write(PAGE_FILE, page);
 }
 
-/**
- * An option an author sets from an enum, `HttpMethod.get`, is as fixed as a
- * literal: the builder reads the member's value, and writes a member back
- * whenever one holds the value saved.
- */
-describe("a block option set from an enum member", () => {
+describe("a block option set from an enum member, `HttpMethod.get`, is as fixed as a literal: the builder reads the member's value, and writes a member back whenever one holds the value saved", () => {
   before(createBoard);
   after(() => destroyFixture());
 

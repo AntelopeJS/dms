@@ -29,12 +29,7 @@ const LIST_BLOCKS = [
   "ActivityFeed",
 ];
 
-/**
- * The blocks share one vocabulary: one set of tones, one `card` flag, `to`
- * for a link and `actions` for link buttons, `{ items }` and `empty` for a
- * list, a `dms-xxx-block` component name.
- */
-describe("[unit] interfaces/dms-base — block vocabulary", () => {
+describe("[unit] interfaces/dms-base — block vocabulary: the blocks share one set of tones, one `card` flag, `to` for a link and `actions` for link buttons, `{ items }` and `empty` for a list, and a `dms-xxx-block` component name", () => {
   it("names every block component dms-xxx-block", () => {
     const builders = [
       ActivityFeed(),

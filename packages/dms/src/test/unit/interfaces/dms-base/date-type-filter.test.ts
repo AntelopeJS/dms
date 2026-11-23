@@ -154,11 +154,7 @@ describe("[unit] interfaces/dms-base — order filters on a number", () => {
 });
 
 describe("[unit] interfaces/dms-base — is_between on a numeric field", () => {
-  /**
-   * Catches an IsBetween that hands the parsed Date objects to the numeric
-   * value proxy: the sibling order filters send epoch milliseconds.
-   */
-  it("sends epoch milliseconds for ISO date bounds", () => {
+  it("sends epoch milliseconds for ISO date bounds (catches an IsBetween that hands the parsed Date objects to the numeric value proxy: the sibling order filters send epoch milliseconds)", () => {
     const built = new DefaultDataCompareTypes.IsBetween().filter(
       context,
       field(),

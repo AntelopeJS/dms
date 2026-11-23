@@ -105,12 +105,7 @@ async function createBoard(this: Mocha.Context): Promise<void> {
   app.write(PAGE_FILE, page);
 }
 
-/**
- * A page's `permission` and `live` options an author wrote with named values
- * keep those names through a draft save that sends them back unchanged, as a
- * block's options do.
- */
-describe("a page option written with constants, saved through a draft", () => {
+describe("a page option written with constants, saved through a draft: `permission` and `live` keep their named values when a draft save sends them back unchanged, as a block's options do", () => {
   before(createBoard);
   after(() => destroyFixture());
 

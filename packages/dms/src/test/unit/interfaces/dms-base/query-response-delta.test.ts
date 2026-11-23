@@ -17,11 +17,7 @@ const FROM_ZERO: SeriesOptions = {
 };
 const EXPECTED_PERCENT = 12.5;
 
-/**
- * Every card prints a `delta` as a percent, so 100 to 112.5 has to arrive as
- * 12.5: handed the 0.125 ratio, the card printed +0.1 %.
- */
-describe("[unit] interfaces/dms-base/query-response — the delta a card reads", () => {
+describe("[unit] interfaces/dms-base/query-response — the delta a card reads, in percent as every card prints it, so 100 to 112.5 arrives as 12.5 (fails on the 0.125 ratio, which the card printed as +0.1 %)", () => {
   it("states a KPI's change in percent", () => {
     expect(kpiCardData(CURRENT, OPTIONS).delta).to.equal(EXPECTED_PERCENT);
   });

@@ -47,12 +47,7 @@ function readConfig(): string {
   return projectFile(app.root, "antelope.config.ts");
 }
 
-/**
- * Registering a connection with dms-database writes beside the connections it already holds. A
- * write that puts a plain pin after a named connection, which a plain import would then not reach,
- * or that replaces the connections map instead of joining it, fails these cases.
- */
-describe("registering a connection with dms-database", function () {
+describe("registering a connection with dms-database writes beside the connections it already holds (fails on a write that puts a plain pin after a named connection, which a plain import would then not reach, or that replaces the connections map instead of joining it)", function () {
   this.timeout(OP_TIMEOUT);
 
   beforeEach(() => {

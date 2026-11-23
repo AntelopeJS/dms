@@ -7,11 +7,7 @@ const tsMorphFilesAtStart = Object.keys(require.cache).filter((file) =>
   file.includes(TS_MORPH_SEGMENT),
 );
 
-/**
- * The harness starts the DMS with `mcp.enabled` and the builder off. This file loads before any
- * test runs, so it sees the modules the start loaded, not those a later tool call loads.
- */
-describe("[integration] mcp start with the builder off", () => {
+describe("[integration] mcp start with the builder off, read before any test runs, so it sees the modules the start loaded under `mcp.enabled` and not those a later tool call loads", () => {
   it("loads no ts-morph", () => {
     expect(tsMorphFilesAtStart).to.deep.equal([]);
   });

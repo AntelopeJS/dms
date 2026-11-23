@@ -96,11 +96,7 @@ async function refusalOf(args: JsonValue) {
     .error;
 }
 
-/**
- * An analysis asked for a module that is not the one bound to the connection, or without a
- * module, answers which modules are bound to it, so the next call names the right one.
- */
-describe("[unit] builder_analyse_database names the modules bound to the connection", function () {
+describe("[unit] builder_analyse_database names the modules bound to the connection when asked for another module or for none, so the next call names the right one", function () {
   this.timeout(OP_TIMEOUT);
 
   before(() => {

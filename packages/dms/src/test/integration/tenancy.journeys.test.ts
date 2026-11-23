@@ -18,15 +18,10 @@ const TENANT_ROUTES = [
   { method: "POST", url: "/api/tenant-gate-bypass/owner" },
 ] as const;
 
-/**
- * `tenant-routes-refuse-visitors` fails when a tenant guard serves a caller without a session,
- * the gate bypass of `AuthTenantMember` and `AuthTenantOwner` included, or refuses the workspace
- * owner too.
- */
 describe("[integration] tenancy journeys", () => {
   before(resetDatabase);
 
-  it("tenant-routes-refuse-visitors", async () => {
+  it("tenant-routes-refuse-visitors (fails when a tenant guard serves a caller without a session, the gate bypass of `AuthTenantMember` and `AuthTenantOwner` included, or refuses the workspace owner too)", async () => {
     const owner = authorizedClient(
       (await registerUser({ owner: true })).accessToken,
     );

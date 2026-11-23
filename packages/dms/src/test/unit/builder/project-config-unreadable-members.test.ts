@@ -50,13 +50,7 @@ function readConfig(): string {
   return projectFile(app.root, "antelope.config.ts");
 }
 
-/**
- * Before the builder writes a key it looks the key up among the members of its owner. A member
- * whose name it cannot read may be that key, so writing a second one beside it would let the later
- * key win at runtime and drop what the first held. A writer that looks keys up among plain names
- * only fails these cases: it appends a second key and answers ok.
- */
-describe("writing a key beside a member whose name the builder cannot read", function () {
+describe("writing a key beside a member whose name the builder cannot read, which may be that key, so a second one would let the later key win at runtime and drop what the first held (fails on a writer that looks keys up among plain names only, appends a second key and answers ok)", function () {
   this.timeout(OP_TIMEOUT);
 
   beforeEach(() => {
@@ -141,12 +135,7 @@ describe("writing a key beside a member whose name the builder cannot read", fun
   });
 });
 
-/**
- * A refusal tells the owner what to fix, so it names where: the module and the key path from its
- * entry. A refusal that says only that something "in the configuration" is not plain fails these
- * cases.
- */
-describe("refusing a value written as a variable", function () {
+describe('refusing a value written as a variable tells the owner what to fix by naming where, the module and the key path from its entry (fails on a refusal that says only that something "in the configuration" is not plain)', function () {
   this.timeout(OP_TIMEOUT);
 
   beforeEach(() => {

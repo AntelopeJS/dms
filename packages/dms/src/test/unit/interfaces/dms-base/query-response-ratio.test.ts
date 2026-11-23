@@ -16,11 +16,7 @@ function answering(answer: number | null | undefined) {
   return query;
 }
 
-/**
- * A KpiCard with `valueFormat: "percent"` reads percent units, so the helper
- * answers 25 for 1 of 4, and no figure where a share cannot be stated.
- */
-describe("[unit] interfaces/dms-base/query-response — percentOf", () => {
+describe('[unit] interfaces/dms-base/query-response — percentOf, in the percent units a KpiCard with `valueFormat: "percent"` reads, so 1 of 4 answers 25 and no figure where a share cannot be stated', () => {
   it("answers the numerator over the denominator in percent, not as a fraction", async () => {
     expect(await percentOf(answering(1), answering(4)).run()).to.equal(25);
   });
@@ -85,11 +81,7 @@ describe("[unit] interfaces/dms-base/query-response — percentOf", () => {
   });
 });
 
-/**
- * The same delta a card reads from `kpiCardData`: in percent, absent from a
- * preceding zero, so a block shows none rather than a stand-in.
- */
-describe("[unit] interfaces/dms-base/query-response — kpiValueData", () => {
+describe("[unit] interfaces/dms-base/query-response — kpiValueData, the same delta a card reads from `kpiCardData`: in percent, absent from a preceding zero, so a block shows none rather than a stand-in", () => {
   it("answers the figure alone when nothing precedes it", () => {
     expect(kpiValueData(50)).to.deep.equal({ value: 50 });
   });

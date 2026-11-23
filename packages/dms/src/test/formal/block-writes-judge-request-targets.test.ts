@@ -139,13 +139,7 @@ function unchanged(before: Map<string, string>): void {
   expect(project.files()).to.deep.equal(before);
 }
 
-/**
- * A block an agent writes runs in the owner's browser with the owner's session, so one that
- * posts, loads or links outside its page's data API acts for the owner. Every tool that persists
- * block options refuses the options the generator aims outside the data API, with the page's files
- * unchanged, and accepts the ones aimed inside it.
- */
-describe("[formal] every tool that writes blocks judges where their requests go", function () {
+describe("[formal] every tool that writes blocks judges where their requests go: it refuses the options aimed outside the page's data API with the page's files unchanged, and accepts those aimed inside, since a block acts with its owner's session", function () {
   this.timeout(OP_TIMEOUT * 6);
 
   useWorkspace();

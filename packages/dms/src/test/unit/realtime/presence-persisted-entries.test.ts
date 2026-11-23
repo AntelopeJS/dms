@@ -45,12 +45,7 @@ const createKv = (): KvStore => {
   };
 };
 
-/**
- * Catches a parser that checks only the routing and actor identifiers of a
- * persisted record: it would return entries without `since` or with a mistyped
- * optional field, though they do not satisfy `PresenceEntry`.
- */
-describe("[unit] realtime — persisted presence entries", () => {
+describe("[unit] realtime — persisted presence entries (catches a parser that checks only the routing and actor identifiers of a persisted record: it would return entries without `since` or with a mistyped optional field, though they do not satisfy `PresenceEntry`)", () => {
   const seed = async (
     records: Record<string, string>,
   ): Promise<{ tracker: PresenceTracker; kv: KvStore }> => {

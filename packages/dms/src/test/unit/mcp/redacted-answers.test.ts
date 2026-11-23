@@ -137,12 +137,7 @@ function verifyReport(): PageVerifyReport {
   };
 }
 
-/**
- * The query previews and the page checks the AI reads carry no value a page or a query read from
- * rows. An implementation that passes a preview body through, or keeps the names a page shows on
- * its tabs, links, buttons and menus, or a request's query string, fails here.
- */
-describe("[unit] the previews and page checks the AI reads", () => {
+describe("[unit] the previews and page checks the AI reads carry no value a page or a query read from rows (fails on an implementation that passes a preview body through, or keeps the names a page shows on its tabs, links, buttons and menus, or a request's query string)", () => {
   it("answer a query preview's types, not its values", () => {
     const redacted = redactPreview(
       {

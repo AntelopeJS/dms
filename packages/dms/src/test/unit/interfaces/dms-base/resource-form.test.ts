@@ -72,12 +72,7 @@ function fieldIds(options: FormPropsSerialized): string[] {
   return options.fields.map((field) => field.id);
 }
 
-/**
- * A form over a table is picked, not assembled: the table and the mode decide
- * its fields and the routes it loads and submits through — the very form a
- * TableView over the same table opens.
- */
-describe("[unit] interfaces/dms-base/resource-form — a form derived from its table", () => {
+describe("[unit] interfaces/dms-base/resource-form — a form derived from its table, picked and not assembled: the table and the mode decide its fields and the routes it loads and submits through, the very form a TableView over the same table opens", () => {
   it("is the form a TableView opens for the mode", () => {
     const table = defined(TableView(TicketAPI).serializeSync().options);
 

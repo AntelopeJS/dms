@@ -38,8 +38,7 @@ function refusal(write: () => void): string {
   throw new Error("the write was expected to be refused");
 }
 
-/** The URL the builder's form takes goes to a `.env` git ignores, and nowhere else. */
-describe("a project variable written by the builder", function () {
+describe("a project variable written by the builder: the URL its form takes goes to a `.env` git ignores, and nowhere else", function () {
   this.timeout(OP_TIMEOUT);
 
   before(async () => {
@@ -111,8 +110,7 @@ describe("a project variable written by the builder", function () {
   });
 });
 
-/** The form sends the URL with the batch that maps it, so a config never names a value that failed. */
-describe("a batch sent with its variable's value", function () {
+describe("a batch sent with its variable's value, as the form sends the URL with the batch that maps it, so a config never names a value that failed", function () {
   this.timeout(OP_TIMEOUT);
 
   const steps: ProjectConfigStep[] = [

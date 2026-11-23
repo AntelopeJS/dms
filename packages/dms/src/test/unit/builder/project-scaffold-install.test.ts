@@ -105,10 +105,11 @@ describe("scaffolding a module from a project with relative path dependencies", 
   });
 });
 
+/** The pnpm this repository's workspace pins: a nested `pnpm install` under it installs the whole workspace. */
+const PACKAGE_MANAGER = "pnpm@10.34.9";
+
 describe("scaffolding a module from a project inside a pnpm workspace", () => {
   const DMS_INTERFACE = "@antelopejs/interface-dms";
-  /** The pnpm this repository's workspace pins: a nested `pnpm install` under it installs the whole workspace. */
-  const PACKAGE_MANAGER = "pnpm@10.34.9";
   let workspace: string;
 
   before(() => {

@@ -85,8 +85,7 @@ async function ordersMapped(): Promise<MappedRelation> {
   return defined(found);
 }
 
-/** The orders mapped with tabs, then the page's tabs replaced the way a person editing the page would. */
-describe("mapping columns with a display and a TableView with tabs", function () {
+describe("mapping columns with a display and a TableView with tabs, then the page's tabs replaced the way a person editing the page would", function () {
   this.timeout(OP_TIMEOUT);
 
   before(() => {

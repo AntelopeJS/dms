@@ -9,8 +9,7 @@ const MOCKUP_ROUTES = [
   "/api/mockup/orders/annotations",
 ];
 
-/** The harness starts the module outside development, as a deployed build starts. */
-describe("[integration] mockup routes outside development", () => {
+describe("[integration] mockup routes outside development, as a deployed build starts the module", () => {
   beforeEach(resetDatabase);
 
   it("serves none of the mockup routes, not even to the platform owner", async () => {

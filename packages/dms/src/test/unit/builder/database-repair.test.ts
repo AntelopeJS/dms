@@ -138,12 +138,7 @@ function readConfig(): string {
   return projectFile(fixture.root, "antelope.config.ts");
 }
 
-/**
- * A project connected before the connect flow registered each database with dms-database has the
- * catalog connection and nothing dms-database reads. The repair adds what is missing and leaves
- * what the console set.
- */
-describe("the repair of the dms-database entries of connections made before", function () {
+describe("the repair of the dms-database entries of connections made before the connect flow registered each database with dms-database: it adds what is missing and leaves what the console set", function () {
   this.timeout(OP_TIMEOUT);
 
   beforeEach(() => {

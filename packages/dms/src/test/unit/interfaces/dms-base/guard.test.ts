@@ -25,12 +25,7 @@ const GUARD = {
   },
 };
 
-/**
- * A Guard wraps any blocks and shows one empty state in their place when a
- * route says there is nothing for them: the value it names is empty, or the
- * route answers 404.
- */
-describe("[unit] interfaces/dms-base — Guard", () => {
+describe("[unit] interfaces/dms-base — Guard wraps any blocks and shows one empty state in their place when a route says there is nothing for them: the value it names is empty, or the route answers 404", () => {
   it("is a layout container taking any child", () => {
     const block = declared("Guard");
     expect(block.container).to.equal(true);

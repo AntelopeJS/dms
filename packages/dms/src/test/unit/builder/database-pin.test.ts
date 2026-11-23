@@ -266,12 +266,7 @@ function unwritableEntryCases() {
     );
   });
 
-  /**
-   * A spread decides nothing about a key written after it, so a pin there is the pin the module
-   * runs with. A detector that refuses every entry with a spread fails the first case, and one
-   * that takes a pin written before the spread for a pin fails the second.
-   */
-  it("counts a plain pin written after the last spread, or computed name, as the module's pin", () => {
+  it("counts a plain pin written after the last spread, or computed name, as the module's pin (fails on a detector that refuses every entry with a spread, or that takes a pin written before the spread for a pin)", () => {
     const pin = `importOverrides: { "${DATABASE_INTERFACE}": "mongodb" }`;
     for (const written of [
       `{ ...SHARED, ${pin} }`,
@@ -327,12 +322,7 @@ function unwritableEntryCases() {
   });
 }
 
-/**
- * A tables module pins `interface-database` to its own database and the modules that import it
- * receive that pin, so each of them has to be pinned to the project's default database or it is
- * reached with two bindings.
- */
-describe("the database pins of the modules that import interface-database", () => {
+describe("the database pins of the modules that import interface-database: a tables module pins it to its own database and its importers receive that pin, so each is pinned to the project's default database or reached with two bindings", () => {
   before(() => {
     root = fs.mkdtempSync(path.join(os.tmpdir(), "dms-builder-database-pin-"));
     setBuilderConfig({ projectRoot: root });

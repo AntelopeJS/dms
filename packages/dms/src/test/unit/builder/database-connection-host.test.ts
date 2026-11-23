@@ -15,8 +15,7 @@ const DATABASE = "@antelopejs/interface-database";
 const VARIABLE = "BUILDER_DB_ERP_URL";
 const URL = "mysql://reader:pw@db.example:3306/erp";
 
-/** Fails on an edit that writes a MySQL host mysql2 would not read, or refuses one it reads. */
-describe("editing the URL of a MySQL connection", function () {
+describe("editing the URL of a MySQL connection (fails on an edit that writes a MySQL host mysql2 would not read, or refuses one it reads)", function () {
   this.timeout(OP_TIMEOUT);
 
   before(() => {

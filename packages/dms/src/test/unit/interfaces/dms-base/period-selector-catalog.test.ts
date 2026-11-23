@@ -10,12 +10,7 @@ function periodSelectorConfig() {
   return defined(declared).config;
 }
 
-/**
- * The labels an author can override are keyed by a closed set of ranges and
- * comparisons. The catalog has to say which, and what each one is called, or a
- * builder can only offer an object typed by hand.
- */
-describe("[unit] interfaces/dms-base/period-selector — its catalog entry", () => {
+describe("[unit] interfaces/dms-base/period-selector — its catalog entry says which closed set of ranges and comparisons keys the labels an author can override, and what each is called, or a builder can only offer an object typed by hand", () => {
   it("names the ranges a range label can be given for", () => {
     const labels = periodSelectorConfig().presetLabels;
 

@@ -66,12 +66,7 @@ function useFixture(this: Mocha.Suite): void {
   after(() => destroyFixture());
 }
 
-/**
- * A mockup's categories are sidebar sections, so the builder writes a section
- * the sidebar draws as a header beside Pages, lists it as one and files pages
- * in it.
- */
-describe("[unit] builder sidebar sections", function () {
+describe("[unit] builder sidebar sections: a mockup's categories are sections, so the builder writes one the sidebar draws as a header beside Pages, lists it as one and files pages in it", function () {
   useFixture.call(this);
 
   it("writes a section as a RootCategory beside Pages, its ref its name", async () => {
@@ -201,8 +196,7 @@ describe("[unit] builder sidebar sections", function () {
   });
 });
 
-/** A category directly under Pages becomes a section and back, its pages' routes kept. */
-describe("[unit] builder sidebar sections from categories", function () {
+describe("[unit] builder sidebar sections from categories: a category directly under Pages becomes a section and back, its pages' routes kept", function () {
   useFixture.call(this);
 
   before(async () => {

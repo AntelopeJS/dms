@@ -74,11 +74,7 @@ describe("[integration] auth/current password re-check", function () {
   const enableTotp = (currentPassword: string) =>
     client.post(`${SECURITY}/two-factor/enable-totp`, { currentPassword });
 
-  /**
-   * What the account, its sessions and its notifications hold. The account's
-   * activity stamps move on every authenticated request, so they are left out.
-   */
-  const storedState = async () => {
+  const storedStateWithoutActivityStamps = async () => {
     const {
       lastActiveAt: _lastActiveAt,
       updatedAt: _updatedAt,
@@ -104,14 +100,14 @@ describe("[integration] auth/current password re-check", function () {
   });
 
   it("enforces the sign-up password rules on a new password", async () => {
-    const before = await storedState();
+    const before = await storedStateWithoutActivityStamps();
     const weak = await client.post(`${SECURITY}/password`, {
       currentPassword: user.password,
       password: WEAK_PASSWORD,
     });
     expect(weak.status, JSON.stringify(weak.data)).to.equal(HTTP_BAD_REQUEST);
     expect(
-      await storedState(),
+      await storedStateWithoutActivityStamps(),
       "a refused password writes nothing",
     ).to.deep.equal(before);
 

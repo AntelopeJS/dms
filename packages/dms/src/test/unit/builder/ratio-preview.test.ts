@@ -85,11 +85,7 @@ async function previewed(
   return result.data;
 }
 
-/**
- * A KpiCard with `valueFormat: "percent"` reads percent units, so 1 bike rented of
- * 4 has to arrive as 25: an implementation that answers the fraction 0.25 shows 0.3 %.
- */
-describe("previewing a ratio query", () => {
+describe('previewing a ratio query: a KpiCard with `valueFormat: "percent"` reads percent units, so 1 bike rented of 4 arrives as 25 (fails on an implementation that answers the fraction 0.25, which shows 0.3 %)', () => {
   before(() => registerBuiltinQueryTemplates());
 
   it("is offered as a template that answers a scalar", async () => {

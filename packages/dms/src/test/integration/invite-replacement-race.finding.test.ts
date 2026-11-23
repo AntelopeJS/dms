@@ -14,14 +14,7 @@ const OPTIONS = {
   asTenantOwner: false,
 };
 
-/**
- * Finding F1 of the formal-invite-creation check (`NoCrash`): while one caller
- * has decided the replacement of an invite and not yet inserted it, a second
- * caller of the same content reads that decision, finds the replacement
- * missing and throws instead of answering. The test asserts the throw, so a
- * fix turns it red: remove it and the finding from the check then.
- */
-describe("[integration] finding: a second caller replaces the invite a first one is replacing", () => {
+describe("[integration] finding F1 of formal-invite-creation (`NoCrash`): a second caller replaces the invite a first one is replacing and throws, so a fix turns this red and the test and the finding leave the check then", () => {
   beforeEach(async () => {
     await resetDatabase();
   });

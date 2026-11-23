@@ -19,14 +19,7 @@ function add(file: SourceFile, ...names: string[]): string {
   return file.getFullText();
 }
 
-/**
- * What the builder leaves behind in an import it had to extend.
- *
- * Generated code lands in the author's own file, beside imports they wrote, and
- * a declaration the builder mangled is a diff they did not ask for — or, worse,
- * a file that no longer parses.
- */
-describe("extending an import", () => {
+describe("extending an import leaves no declaration the builder mangled in the author's own file, which would be a diff they did not ask for or a file that no longer parses", () => {
   it("keeps a declaration on one line while it fits", () => {
     const file = fileWith('import { Grid } from "./grid";\n');
     expect(add(file, "chartCardData", "ChartCardData")).to.contain(

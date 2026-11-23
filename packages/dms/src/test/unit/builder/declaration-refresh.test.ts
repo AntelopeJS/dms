@@ -41,13 +41,7 @@ async function addBanner(name: string) {
   });
 }
 
-/**
- * A dependency rebuilt or upgraded under a running builder changes a
- * declaration file the engine already parsed. The next operation must
- * typecheck against the new text; an engine that keeps the parse it read first
- * accepts code the dependency no longer does.
- */
-describe("[unit] a declaration file edited between two builder operations", () => {
+describe("[unit] a declaration file edited between two builder operations: the next operation typechecks against the new text (fails on an engine that keeps the parse it read first and accepts code the dependency no longer does)", () => {
   before(async function () {
     this.timeout(120_000);
     app = createFixture();
@@ -89,12 +83,7 @@ describe("[unit] a declaration file edited between two builder operations", () =
     ).to.deep.equal([path.join(app.root, "src", "labels.ts")]);
   });
 
-  /**
-   * A reinstall or a `rimraf dist` removes a declaration file for a moment. An
-   * engine that drops it leaves its importers unresolved after it is back,
-   * because TypeScript keeps the failed resolution of a file that did not change.
-   */
-  it("keeps its last text while it is gone and resolves it once it is back", async function () {
+  it("keeps its last text while it is gone and resolves it once it is back (a reinstall or `rimraf dist` removes the file for a moment; fails on an engine that drops it and leaves its importers unresolved after it is back, as TypeScript keeps the failed resolution of a file that did not change)", async function () {
     this.timeout(OP_TIMEOUT);
     writeLabelsPackage("draft");
     expectOk(await addBanner("third"), "AddBlock before the removal");

@@ -22,11 +22,7 @@ function declare(connections: InterfaceConnection[]): void {
   internal.interfaceConnections[OWN_MODULE][CATALOG_INTERFACE] = connections;
 }
 
-/**
- * A provider module exports the catalog's six functions and nothing else; the sample limits live
- * in `@antelopejs/interface-database-catalog` and belong to no provider.
- */
-describe("a declared catalog connection", () => {
+describe("a declared catalog connection: a provider module exports the catalog's six functions and nothing else, as the sample limits live in `@antelopejs/interface-database-catalog` and belong to no provider", () => {
   beforeEach(() => {
     kept = internal.interfaceConnections[OWN_MODULE]?.[CATALOG_INTERFACE];
   });

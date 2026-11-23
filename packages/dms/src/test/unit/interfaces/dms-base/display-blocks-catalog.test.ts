@@ -21,13 +21,7 @@ function declared(type: string) {
   return defined(block);
 }
 
-/**
- * The display blocks are placed and configured from the page builder, so each
- * one has to be in the catalog with its options described, and the frontend
- * component it names has to be the block wrapper that resolves `$` keys and
- * fetches its items — not the bare generic component.
- */
-describe("[unit] interfaces/dms-base/display blocks — in the catalog", () => {
+describe("[unit] interfaces/dms-base/display blocks — in the catalog, placed and configured from the page builder with their options described, and naming the block wrapper that resolves `$` keys and fetches its items, not the bare generic component", () => {
   it("declares every display block with a block component", () => {
     for (const type of DISPLAY_BLOCKS) {
       expect(declared(type).componentName, type).to.match(/^dms-.+-block$/);

@@ -8,12 +8,7 @@ function configOf(type: string) {
   return defined(declared).config;
 }
 
-/**
- * A table offers its row actions unless they are turned off. The catalog has
- * to say so, or a builder shows a table anyone can delete rows from with its
- * "Deleting data" switch off.
- */
-describe("[unit] interfaces/dms-base/table-view — its row actions in the catalog", () => {
+describe('[unit] interfaces/dms-base/table-view — its row actions in the catalog: a table offers them unless they are turned off, or a builder shows a table anyone can delete rows from with its "Deleting data" switch off', () => {
   const actions = () => configOf("TableView").rowActions?.properties ?? {};
 
   it("says the actions a table offers by itself are on", () => {
@@ -34,12 +29,7 @@ describe("[unit] interfaces/dms-base/table-view — its row actions in the catal
   });
 });
 
-/**
- * Someone building a page without code reads what the simple view shows: the
- * table's technical options are left to the developer view, and a meter's
- * source is one an editor can generate, its maximum staying the meter's own.
- */
-describe("[unit] interfaces/dms-base — options for a page built without code", () => {
+describe("[unit] interfaces/dms-base — options for a page built without code: the simple view shows what someone building without code reads, the table's technical options are left to the developer view, and a meter's source is one an editor can generate, its maximum staying the meter's own", () => {
   it("leaves a table's technical options to the developer view", () => {
     const table = configOf("TableView");
     for (const option of [
@@ -67,12 +57,7 @@ describe("[unit] interfaces/dms-base — options for a page built without code",
   });
 });
 
-/**
- * A chart inside a card draws the series the card fetched, under the card's
- * heading. Its own source and title are never read, and a builder offering
- * them would let an author wire a source that does nothing.
- */
-describe("[unit] interfaces/dms-base/chart-card — the chart it wraps, in the catalog", () => {
+describe("[unit] interfaces/dms-base/chart-card — the chart it wraps, in the catalog: it draws the series the card fetched under the card's heading, and its own source and title are never read, as a builder offering them would let an author wire a source that does nothing", () => {
   it("names the options of its chart it supplies itself", () => {
     const supplied = configOf("ChartCard").chart?.ui?.supplies;
 
@@ -96,12 +81,7 @@ describe("[unit] interfaces/dms-base/chart-card — the chart it wraps, in the c
   });
 });
 
-/**
- * A card and its chart draw their variation, legend, tooltip, grid, curve and
- * rounded bars unless those are turned off. A builder reading an unset switch
- * as off would show every one of them off on a card that draws them all.
- */
-describe("[unit] interfaces/dms-base/chart-card — the switches it draws on", () => {
+describe("[unit] interfaces/dms-base/chart-card — the switches it draws on: a card and its chart draw their variation, legend, tooltip, grid, curve and rounded bars unless turned off, so a builder reading an unset switch as off would show every one off", () => {
   it("says a card shows its variation and its legend", () => {
     const card = configOf("ChartCard");
 

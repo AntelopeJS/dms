@@ -44,8 +44,7 @@ async function pageIds(): Promise<string[]> {
   return (await ListPages()).map((page) => page.id).sort();
 }
 
-/** A mapping that removes a page only writes when the person approved that page. */
-describe("mapping with approved page removals", function () {
+describe("mapping with approved page removals: a mapping that removes a page only writes when the person approved that page", function () {
   this.timeout(OP_TIMEOUT);
 
   before(async () => {

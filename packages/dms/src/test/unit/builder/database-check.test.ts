@@ -47,8 +47,7 @@ function pause(ms: number): Promise<void> {
 }
 
 describe("the reasons a database check answers", () => {
-  /** Fails on an implementation that leaves the URL or the password in a message, in any of their spellings. */
-  it("redact removes the URL, the password as written, decoded and encoded, and any other connection string", () => {
+  it("redact removes the URL, the password as written, decoded and encoded, and any other connection string (fails on an implementation that leaves the URL or the password in a message, in any of their spellings)", () => {
     const message = `failed ${CHECKED_URL} for ${SAMPLE_SECRET} and ${ENCODED} and mongodb://other:${["secret", "2"].join("")}@h/x`;
     const redacted = redact(message, CHECKED_URL);
     for (const secret of [
@@ -62,15 +61,13 @@ describe("the reasons a database check answers", () => {
     }
   });
 
-  /** Fails on an implementation that redacts every message into noise. */
-  it("redact leaves a message that holds no secret as it is", () => {
+  it("redact leaves a message that holds no secret as it is (fails on an implementation that redacts every message into noise)", () => {
     expect(
       redact("Server selection timed out after 700 ms", CHECKED_URL),
     ).to.equal("Server selection timed out after 700 ms");
   });
 
-  /** Fails on an implementation that answers the driver's raw message for a refused port or a timeout. */
-  it("a refused port and a timeout each get a sentence of their own", () => {
+  it("a refused port and a timeout each get a sentence of their own (fails on an implementation that answers the driver's raw message for a refused port or a timeout)", () => {
     expect(
       noAnswerReason("connect ECONNREFUSED 127.0.0.1:1", CHECKED_URL),
     ).to.equal("Nothing is listening at this host and port.");
@@ -84,8 +81,7 @@ describe("the reasons a database check answers", () => {
     }
   });
 
-  /** Fails on an implementation that answers an empty message as "Could not check the database: " with nothing after it. */
-  it("a failure that carries no message, such as a refused localhost on Node 24, gets a sentence of its own", () => {
+  it('a failure that carries no message, such as a refused localhost on Node 24, gets a sentence of its own (fails on an implementation that answers an empty message as "Could not check the database: " with nothing after it)', () => {
     for (const message of ["", "  "]) {
       expect(
         noAnswerReason(message, CHECKED_URL),
@@ -94,8 +90,7 @@ describe("the reasons a database check answers", () => {
     }
   });
 
-  /** Fails on an implementation that answers a driver's message as it is. */
-  it("a message no sentence covers is answered without the URL or the password", () => {
+  it("a message no sentence covers is answered without the URL or the password (fails on an implementation that answers a driver's message as it is)", () => {
     const reason = noAnswerReason(
       `cannot parse ${CHECKED_URL} (${SAMPLE_SECRET})`,
       CHECKED_URL,
@@ -105,8 +100,7 @@ describe("the reasons a database check answers", () => {
     expect(reason).to.match(/^Could not check the database: /);
   });
 
-  /** Fails on a redaction or a query cut whose regular expression backtracks quadratically, which blocks the event loop past the deadline. */
-  it("words a message of hundreds of thousands of characters in well under a second", () => {
+  it("words a message of hundreds of thousands of characters in well under a second (fails on a redaction or a query cut whose regular expression backtracks quadratically, which blocks the event loop past the deadline)", () => {
     const started = performance.now();
     for (const filler of ["a", " ", "a1"]) {
       const message = filler.repeat(100_000);
@@ -116,15 +110,13 @@ describe("the reasons a database check answers", () => {
     expect(performance.now() - started).to.be.lessThan(1000);
   });
 
-  /** Fails on a redaction that only knows connection strings whose scheme starts the word. */
-  it("redact removes a connection string glued to the text before it", () => {
+  it("redact removes a connection string glued to the text before it (fails on a redaction that only knows connection strings whose scheme starts the word)", () => {
     expect(
       redact(`at1postgres://other:pw@h/x and x-mysql://u@h`, CHECKED_URL),
     ).to.equal("[hidden] and [hidden]");
   });
 
-  /** Fails on an implementation that answers a driver's message with the query it echoes: ReQL's backtrace, MongoDB's command. */
-  it("a reason holds no query a driver echoes in its message", () => {
+  it("a reason holds no query a driver echoes in its message (fails on an implementation that answers a driver's message with the query it echoes: ReQL's backtrace, MongoDB's command)", () => {
     const reql =
       'Database name `a.b` invalid (Use A-Z, a-z, 0-9, _ and - only) in:\nr.db("a.b").tableList()\n     ^^\n';
     expect(noAnswerReason(reql, CHECKED_URL)).to.equal(
@@ -137,8 +129,7 @@ describe("the reasons a database check answers", () => {
     );
   });
 
-  /** Fails on an implementation that matches a known sentence against the query a driver echoes, not against its message. */
-  it("a word of the echoed query does not pick the sentence of a refused port or a timeout", () => {
+  it("a word of the echoed query does not pick the sentence of a refused port or a timeout (fails on an implementation that matches a known sentence against the query a driver echoes, not against its message)", () => {
     const message =
       'Database `refused` does not exist in:\nr.db("ECONNREFUSED").tableList()\n';
     expect(noAnswerReason(message, CHECKED_URL)).to.match(
@@ -148,8 +139,7 @@ describe("the reasons a database check answers", () => {
 });
 
 describe("what a database check answers for its driver's probe", () => {
-  /** Fails on an implementation that recomputes, defaults or swaps the read and write verdict of the driver. */
-  it("answers the read and write verdict of the driver as it is, for every combination", async () => {
+  it("answers the read and write verdict of the driver as it is, for every combination (fails on an implementation that recomputes, defaults or swaps the read and write verdict of the driver)", async () => {
     for (const canRead of [true, false]) {
       for (const canWrite of [true, false]) {
         const answer = await checkWith(
@@ -169,8 +159,7 @@ describe("what a database check answers for its driver's probe", () => {
     }
   });
 
-  /** Fails on an implementation that parses the account the driver reports, which a user name holding `@` breaks. */
-  it("answers the account the driver reports as it is, `@` included", async () => {
+  it("answers the account the driver reports as it is, `@` included (fails on an implementation that parses the account the driver reports, which a user name holding `@` breaks)", async () => {
     const answer = await checkWith(
       answering({
         outcome: "signed-in",
@@ -190,8 +179,7 @@ describe("what a database check answers for its driver's probe", () => {
     });
   });
 
-  /** Fails on an implementation that sends `user: undefined`, or a reason with a readable database. */
-  it("answers no user when the driver reports none, and a reason only when the account cannot read", async () => {
+  it("answers no user when the driver reports none, and a reason only when the account cannot read (fails on an implementation that sends `user: undefined`, or a reason with a readable database)", async () => {
     expect(
       await checkWith(
         answering({
@@ -239,8 +227,7 @@ describe("what a database check answers for its driver's probe", () => {
 });
 
 describe("what a database check answers when its driver's probe gets no verdict", () => {
-  /** Fails on an implementation that shows a refusal's raw message, or the URL and password in it. */
-  it("answers each refusal of the driver with its sentence, and any other with the server's message without the secrets", async () => {
+  it("answers each refusal of the driver with its sentence, and any other with the server's message without the secrets (fails on an implementation that shows a refusal's raw message, or the URL and password in it)", async () => {
     const reasons: string[] = [];
     for (const refusal of [
       "credentials",
@@ -274,8 +261,7 @@ describe("what a database check answers when its driver's probe gets no verdict"
     ]);
   });
 
-  /** Fails on an implementation that answers a server nobody reached as reachable, or with the driver's raw message. */
-  it("answers a server the driver did not reach as unreachable, with the sentence of its failure", async () => {
+  it("answers a server the driver did not reach as unreachable, with the sentence of its failure (fails on an implementation that answers a server nobody reached as reachable, or with the driver's raw message)", async () => {
     expect(
       await checkWith(
         answering({
@@ -293,8 +279,7 @@ describe("what a database check answers when its driver's probe gets no verdict"
 });
 
 describe("what a database check answers for a driver that misbehaves", () => {
-  /** Fails on an implementation that trusts what a driver answers without reading it. */
-  it("answers a driver that answers in another shape as unreachable, holding nothing it sent", async () => {
+  it("answers a driver that answers in another shape as unreachable, holding nothing it sent (fails on an implementation that trusts what a driver answers without reading it)", async () => {
     for (const answer of [
       undefined,
       { reachable: true, canRead: true, canWrite: true },
@@ -320,8 +305,7 @@ describe("what a database check answers for a driver that misbehaves", () => {
     }
   });
 
-  /** Fails on an implementation that lets a driver's error through, with the password in it. */
-  it("answers a probe that throws without the password", async () => {
+  it("answers a probe that throws without the password (fails on an implementation that lets a driver's error through, with the password in it)", async () => {
     const throwing: Probe = async () => {
       throw new Error(`driver failed on ${CHECKED_URL}: ${SAMPLE_SECRET}`);
     };
@@ -331,8 +315,7 @@ describe("what a database check answers for a driver that misbehaves", () => {
     expect(JSON.stringify(answer).includes("db.example.com")).to.equal(false);
   });
 
-  /** Fails on an implementation that reads a thrown error's message as a string without checking it, which rejects the check. */
-  it("resolves when a probe throws an error whose message is not a string or cannot be read", async () => {
+  it("resolves when a probe throws an error whose message is not a string or cannot be read (fails on an implementation that reads a thrown error's message as a string without checking it, which rejects the check)", async () => {
     const unreadable = new Error("x");
     Object.defineProperty(unreadable, "message", {
       get() {
@@ -356,8 +339,7 @@ describe("what a database check answers for a driver that misbehaves", () => {
     ]);
   });
 
-  /** Fails on an implementation that answers a driver without `probe` with the error of its require. */
-  it("answers an engine whose driver is not installed with the sentence that installs it", async () => {
+  it("answers an engine whose driver is not installed with the sentence that installs it (fails on an implementation that answers a driver without `probe` with the error of its require)", async () => {
     setProbeLoaderForTests(() => undefined);
     try {
       const reasons: (string | undefined)[] = [];
@@ -377,8 +359,7 @@ describe("what a database check answers for a driver that misbehaves", () => {
 });
 
 describe("the driver a database check calls and the deadline it keeps", () => {
-  /** Fails on an implementation that sends an engine's URL to another engine's driver, or loads every driver. */
-  it("each engine is checked by the probe of its own driver, with the URL and the timeout", async () => {
+  it("each engine is checked by the probe of its own driver, with the URL and the timeout (fails on an implementation that sends an engine's URL to another engine's driver, or loads every driver)", async () => {
     const loaded: string[] = [];
     const asked: string[] = [];
     setProbeLoaderForTests((engine) => {
@@ -412,8 +393,7 @@ describe("the driver a database check calls and the deadline it keeps", () => {
     }
   });
 
-  /** Fails on an implementation with no deadline, or one that leaves the driver's connections open when it passes. */
-  it("a probe that never answers ends the check as unreachable within three timeouts, and its signal is aborted", async () => {
+  it("a probe that never answers ends the check as unreachable within three timeouts, and its signal is aborted (fails on an implementation with no deadline, or one that leaves the driver's connections open when it passes)", async () => {
     const signals: AbortSignal[] = [];
     const hung: Probe = ({ signal }: ProbeConfig) => {
       signals.push(signal);
@@ -431,8 +411,7 @@ describe("the driver a database check calls and the deadline it keeps", () => {
     expect(signals.map(({ aborted }) => aborted)).to.deep.equal([true]);
   }).timeout(3000);
 
-  /** Fails on an implementation that aborts the probe before it answers, or never tells it the check is over. */
-  it("the signal is aborted once the probe has answered, and not before", async () => {
+  it("the signal is aborted once the probe has answered, and not before (fails on an implementation that aborts the probe before it answers, or never tells it the check is over)", async () => {
     const seen: boolean[] = [];
     let handed: AbortSignal | undefined;
     const slow: Probe = async ({ signal }: ProbeConfig) => {

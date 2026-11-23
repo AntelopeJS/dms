@@ -317,14 +317,7 @@ function comparesAgainstThePeriodBefore(): void {
   });
 }
 
-/**
- * One calculation, arranged for whichever block reads it.
- *
- * A chart wants the points, a card wants a figure above them, a ranked list
- * wants entries — and the route stays one expression in every case, which is what
- * keeps it readable back into the parameters that produced it.
- */
-describe("how a query's answer is arranged", () => {
+describe("how a query's answer is arranged for whichever block reads it, a chart's points, a card's figure above them, a ranked list's entries, with the route staying one expression so it reads back into the parameters that produced it", () => {
   before(async function () {
     this.timeout(120_000);
     app = createFixture();

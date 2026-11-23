@@ -25,11 +25,7 @@ function inviteFormFields(): FormFieldSerialized[] {
   );
 }
 
-/**
- * A signup through an invitation always validates the address, so neither
- * the invite modal nor the invitation's edit form offers to skip it.
- */
-describe("[unit] pages/settings/users — invitation email validation option", () => {
+describe("[unit] pages/settings/users — invitation email validation option: a signup through an invitation always validates the address, so neither the invite modal nor the invitation's edit form offers to skip it", () => {
   it("leaves the option out of the invite form", () => {
     const fieldIds = inviteFormFields().map((field) => field.id);
 

@@ -52,12 +52,7 @@ function readConfig(): string {
   return projectFile(app.root, "antelope.config.ts");
 }
 
-/**
- * A one-time migration moves the connections of a disabled builder entry onto the DMS's entry, so
- * it must read every binding as written. A reader that skips a disabled entry, drops a binding it
- * cannot read, or writes, fails these cases.
- */
-describe("listing the database connections of a module entry", function () {
+describe("listing the database connections of a module entry, which a one-time migration moves onto the DMS's entry, so it reads every binding as written (fails on a reader that skips a disabled entry, drops a binding it cannot read, or writes)", function () {
   this.timeout(OP_TIMEOUT);
 
   before(() => {
@@ -160,12 +155,7 @@ const UNREADABLE: [string, string, string][] = [
   ],
 ];
 
-/**
- * A migration that reads part of an entry moves part of its connections. A reader that turns an
- * unreadable id into a plain pin, reads a shorthand as nothing, refuses an entry with no binding,
- * or reads the access elsewhere than dms-database does, fails these cases.
- */
-describe("reading a module entry's bindings exactly as written", function () {
+describe("reading a module entry's bindings exactly as written, so a migration moves all of its connections (fails on a reader that turns an unreadable id into a plain pin, reads a shorthand as nothing, refuses an entry with no binding, or reads the access elsewhere than dms-database does)", function () {
   this.timeout(OP_TIMEOUT);
 
   function writeConfig(declarations: string, modules: string): void {

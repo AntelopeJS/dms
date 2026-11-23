@@ -139,16 +139,14 @@ function accessCases(live: Live): void {
     expect(answer.reason).to.be.a("string");
   });
 
-  /** Fails on an implementation that counts INSERT or UPDATE on a relation the account cannot read. */
-  it("answers no access to an account that may only INSERT or UPDATE", async () => {
+  it("answers no access to an account that may only INSERT or UPDATE (fails on an implementation that counts INSERT or UPDATE on a relation the account cannot read)", async () => {
     for (const user of ["inserter", "updater"]) {
       const answer = await checkDatabase("mysql", live.url(user), TIMEOUT_MS);
       expect(answer, user).to.include({ canRead: false, canWrite: false });
     }
   });
 
-  /** Fails on an implementation that matches grantees by the account's name instead of the session's privileges. */
-  it("answers read access to an account named with @ that reads through a role another role holds", async () => {
+  it("answers read access to an account named with @ that reads through a role another role holds (fails on an implementation that matches grantees by the account's name instead of the session's privileges)", async () => {
     const answer = await checkDatabase(
       "mysql",
       live.url(encodeURIComponent(ROLE_USER), secretOf(ROLE_USER)),
@@ -301,9 +299,8 @@ function connectionCases(live: Live): void {
 }
 
 for (const flavour of FLAVOURS) {
-  /** Fails on a probe that reads privileges another way than `@antelopejs/mysql`'s catalog does. */
   suite(
-    `checking a ${flavour.label} database live${LIVE_SUITE_NOTE}`,
+    `checking a ${flavour.label} database live (fails on a probe that reads privileges another way than \`@antelopejs/mysql\`'s catalog does)${LIVE_SUITE_NOTE}`,
     function () {
       let server: Container | undefined;
       const live: Live = {

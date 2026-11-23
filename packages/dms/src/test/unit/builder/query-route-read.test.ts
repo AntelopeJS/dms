@@ -16,11 +16,7 @@ function routeMethod(body: string): MethodDeclaration {
   return file.getClassOrThrow("Page").getMethodOrThrow("revenue");
 }
 
-/**
- * Whether a route answers the period before is read off the route itself: the
- * calculation is the same one, handed to the helper a second time.
- */
-describe("reading whether a route compares", () => {
+describe("reading whether a route compares off the route itself, the calculation being the same one handed to the helper a second time", () => {
   it("reads a card handed the preceding period as comparing", () => {
     const call = parseQueryRouteCall(
       routeMethod(

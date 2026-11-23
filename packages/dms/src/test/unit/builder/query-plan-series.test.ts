@@ -168,13 +168,7 @@ function ordersFiltersAndBindsTheGroups(): void {
   });
 }
 
-/**
- * The grouped form of a plan: one point per group, which is what a chart, a KPI
- * with a breakdown and a top N all read. The chain shapes asserted here are the
- * ones checked against a real PostgreSQL and a real MongoDB before being written
- * into the emitter.
- */
-describe("a grouped query plan", () => {
+describe("a grouped query plan, one point per group as a chart, a KPI with a breakdown and a top N all read it, with chain shapes checked against a real PostgreSQL and a real MongoDB before they were written into the emitter", () => {
   projectsAndMeasuresEachGroup();
   ordersFiltersAndBindsTheGroups();
 });

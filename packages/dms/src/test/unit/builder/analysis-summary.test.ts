@@ -422,8 +422,7 @@ describe("[unit] builder_analyse_database: tables grouped past 30", () => {
   const [TEMPLATE] = PROPOSAL.resources;
   const PURPOSE = PROPOSAL.open.find((item) => item.kind === "purpose");
 
-  /** The compact answer of a proposal mapping `relations`, and asking the purpose of `asked`. */
-  function grouped(relations: string[], asked: string[] = []) {
+  function compactAnswerOf(relations: string[], asked: string[] = []) {
     if (!PURPOSE) throw new Error("the ERP proposal asks no purpose");
     return summariseAnalysis(
       redactAnalysis({
@@ -447,11 +446,11 @@ describe("[unit] builder_analyse_database: tables grouped past 30", () => {
   it("keeps the flat list at 30 tables and groups the 31st", () => {
     const thirty = [...named("sales", "t", 15), ...named("hr", "t", 15)];
 
-    const flat = grouped(thirty);
+    const flat = compactAnswerOf(thirty);
     expect(flat).to.not.have.property("groups");
     expect(flat?.hint).to.not.contain("groups");
 
-    const split = grouped(thirty.slice(1), ["sales.extra", "hr.extra"]);
+    const split = compactAnswerOf(thirty.slice(1), ["sales.extra", "hr.extra"]);
     expect(split?.groups?.map((group) => group.name)).to.deep.equal([
       "hr",
       "sales",
@@ -461,7 +460,7 @@ describe("[unit] builder_analyse_database: tables grouped past 30", () => {
   });
 
   it("groups by schema when the tables span several, a purpose item's table with its schema", () => {
-    const groups = grouped(
+    const groups = compactAnswerOf(
       [...named("sales", "t", 20), ...named("hr", "t", 10), "audit.log"],
       ["sales.legacy"],
     )?.groups;
@@ -476,7 +475,7 @@ describe("[unit] builder_analyse_database: tables grouped past 30", () => {
   });
 
   it("groups one schema's tables by the prefix past the one most share, the rest together", () => {
-    const groups = grouped([
+    const groups = compactAnswerOf([
       ...named("public", "wp_shop_", 12),
       ...named("public", "wp_blog_", 12),
       ...named("public", "wp_user_", 6),
@@ -500,7 +499,7 @@ describe("[unit] builder_analyse_database: tables grouped past 30", () => {
   });
 
   it("reads past leading underscores, naming no group by an empty prefix", () => {
-    const groups = grouped([
+    const groups = compactAnswerOf([
       ...named("public", "_audit_", 15),
       ...named("public", "__cache_", 15),
       "public._prisma_migrations",
@@ -514,7 +513,7 @@ describe("[unit] builder_analyse_database: tables grouped past 30", () => {
   });
 
   it("puts a table named as a prefix in that prefix's group", () => {
-    const groups = grouped([
+    const groups = compactAnswerOf([
       "app.orders",
       ...named("app", "orders_", 15),
       ...named("app", "users_", 15),
@@ -531,6 +530,6 @@ describe("[unit] builder_analyse_database: tables grouped past 30", () => {
       (_, at) => `app.${String.fromCharCode(97 + (at % 26))}${at}`,
     );
 
-    expect(grouped(loners)).to.not.have.property("groups");
+    expect(compactAnswerOf(loners)).to.not.have.property("groups");
   });
 });

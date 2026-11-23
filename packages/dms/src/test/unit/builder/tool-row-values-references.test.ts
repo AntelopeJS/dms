@@ -17,12 +17,7 @@ import {
   mappingOfOrders,
 } from "./helpers/mapped-orders";
 
-/**
- * The code a mapping writes reads its badge items, tabs and currency from columns. Each builder
- * tool that reads or edits it answers the references and keeps them; an implementation that
- * writes a value of a row on an edit fails here.
- */
-describe("[unit] the builder tools over a mapped module's code keep its column references", function () {
+describe("[unit] the builder tools over a mapped module's code keep its column references: the badge items, tabs and currency a mapping reads from columns are answered as references and kept by each tool that reads or edits it (fails on an implementation that writes a value of a row on an edit)", function () {
   this.timeout(OP_TIMEOUT);
 
   connectDatabase();

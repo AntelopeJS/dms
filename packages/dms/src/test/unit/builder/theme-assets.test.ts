@@ -449,7 +449,6 @@ describe("theme draft shape", function () {
     destroyFixture();
   });
 
-  /** Save what a request may hold, typed or not. */
   function save(body: Sent): ReturnType<typeof SetTheme> {
     return SetTheme(offContractTheme(body));
   }

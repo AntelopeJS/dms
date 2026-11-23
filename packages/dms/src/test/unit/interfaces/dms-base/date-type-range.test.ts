@@ -3,8 +3,7 @@ import { DefaultDataTypes } from "@antelopejs/interface-dms/base/data-types";
 
 const range = () => new DefaultDataTypes.DateType({ range: true });
 
-/** A date range validates to one shape, `{ start, end }`, whatever it came as. */
-describe("[unit] interfaces/dms-base — DateType range", () => {
+describe("[unit] interfaces/dms-base — DateType range validates to one shape, `{ start, end }`, whatever it came as", () => {
   it("keeps a { start, end } range as dates", () => {
     const parsed = range()
       .getValidation()

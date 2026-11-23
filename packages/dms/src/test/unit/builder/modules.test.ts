@@ -28,12 +28,7 @@ function NameField() {
   return [{ name: "name", label: "Name", dataType: { $dataType: "string" } }];
 }
 
-/**
- * A project can hold more than one local module, each bound to its own providers. The builder
- * writes into whichever one an operation names, and never lets one module's sources reach into
- * another's, since a module loads only its own.
- */
-describe("a project with more than one local module", function () {
+describe("a project with more than one local module, each bound to its own providers: the builder writes into whichever one an operation names, and never lets one module's sources reach into another's, since a module loads only its own", function () {
   this.timeout(OP_TIMEOUT);
 
   before(() => {

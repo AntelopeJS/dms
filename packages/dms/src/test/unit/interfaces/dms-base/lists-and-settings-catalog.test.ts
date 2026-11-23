@@ -14,12 +14,7 @@ function declared(type: string) {
   return defined(block);
 }
 
-/**
- * The list and settings blocks reach a builder through the catalog: the
- * factory's component name, whether it takes children, and the options an
- * editor offers have to agree with what the factory emits.
- */
-describe("[unit] interfaces/dms-base — list and settings blocks in the catalog", () => {
+describe("[unit] interfaces/dms-base — list and settings blocks in the catalog: the factory's component name, whether it takes children, and the options an editor offers agree with what the factory emits", () => {
   it("declares each block with the component its factory emits", () => {
     const pairs: Array<[string, string]> = [
       ["ActivityFeed", ActivityFeed().serializeSync().componentName],

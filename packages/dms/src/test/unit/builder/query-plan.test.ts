@@ -215,13 +215,7 @@ function warnsAndReadsTemplateFilters(): void {
   });
 }
 
-/**
- * The plan is the description three backends share, so what it renders is
- * asserted directly rather than only through a written file: these cases run in
- * milliseconds and cover the shapes a full round-trip would take a typecheck to
- * reach.
- */
-describe("the query plan", () => {
+describe("the query plan, the description three backends share, asserted directly rather than only through a written file, so these cases run in milliseconds and reach shapes a full round-trip would take a typecheck to reach", () => {
   rendersTheMeasureAndFilters();
   bindsValuesAsParameters();
   warnsAndReadsTemplateFilters();
