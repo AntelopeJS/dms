@@ -178,7 +178,7 @@ function canvasGeometry(find: Find) {
     const style =
       find("[data-dms-mockup-overview-world]")?.style.transform ?? "";
     const [, x, y, zoom] =
-      /translate\((-?[\d.e-]+)px, (-?[\d.e-]+)px\) scale\(([\d.e-]+)\)/.exec(
+      /translate\(([\d.e-]+)px, ([\d.e-]+)px\) scale\(([\d.e-]+)\)/.exec(
         style,
       ) ?? [];
     return { x: Number(x), y: Number(y), zoom: Number(zoom) };

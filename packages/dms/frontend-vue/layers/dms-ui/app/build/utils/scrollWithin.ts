@@ -1,4 +1,4 @@
-const SCROLLABLE_OVERFLOW = /(auto|scroll)/;
+const SCROLLABLE_OVERFLOW = /auto|scroll/;
 
 /** Where an element lands in its scroll container. */
 export type ScrollWithinBlock = "start" | "center" | "nearest";

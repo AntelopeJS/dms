@@ -8,7 +8,7 @@ export interface PasswordRequirement {
 
 const MIN_PASSWORD_LENGTH = 8;
 const ALLOWED_SPECIAL_CHARS = "@$!%*?&";
-const ALLOWED_CHARS_REGEX = /^[A-Za-z\d@$!%*?&]+$/;
+const ALLOWED_CHARS_REGEX = /^[a-z\d@$!%*?&]+$/i;
 
 const PASSWORD_REQUIREMENTS = [
   { regex: /.{8,}/, messageKey: "form.password_strength.min" },

@@ -10,7 +10,7 @@ interface ShellState {
 const COMMENT = /^#.*/;
 const VARIABLE = /^\$(?:\{[^}]*\}|\w+|[?!#$@*-])/;
 const STRING = /^(?:"(?:[^"\\]|\\.)*"?|'[^']*'?)/;
-const FLAG = /^--?[\w-]+/;
+const FLAG = /^-[\w-]+/;
 const SEPARATOR = /^(?:\|\|?|&&?|;)/;
 const WORD = /^[^\s|&;"'$]+/;
 const CONTINUATION = /^\\$/;

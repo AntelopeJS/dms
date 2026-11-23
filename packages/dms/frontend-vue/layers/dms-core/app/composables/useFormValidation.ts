@@ -44,7 +44,7 @@ export interface LocalizedSchema<Output> {
   };
 }
 
-const RICH_TEXT_MEDIA = /<(img|hr|iframe|video|audio|embed|object)\b/i;
+const RICH_TEXT_MEDIA = /<(?:img|hr|iframe|video|audio|embed|object)\b/i;
 const HTML_TAG = /<[^>]*>/g;
 const HTML_SPACE = /&nbsp;|&#160;|\u00A0/g;
 

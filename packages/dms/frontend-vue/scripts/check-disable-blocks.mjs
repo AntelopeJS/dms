@@ -17,7 +17,7 @@ const SCRIPT_EXTENSIONS = new Set([
   ".cts",
 ]);
 const DIRECTIVE =
-  /^(oxlint|eslint)-(disable|enable)(?:\s+(.*?))?\s*(?:--.*)?$/su;
+  /^(oxlint|eslint)-(disable|enable)(?:\s|(?=--|$))((?:(?!--).)*)(?:--.*)?$/su;
 
 /**
  * Every comment of a script, each once, in source order.

@@ -5,7 +5,7 @@ const SINGLE_COLUMN = 1;
 /** Track floor below which a column stops being usable, as a CSS length. */
 export const GRID_DEFAULT_MIN_COLUMN_WIDTH = "240px";
 
-const UNITLESS_NUMBER = /^[+-]?(\d+\.?\d*|\.\d+)$/;
+const UNITLESS_NUMBER = /^[+-]?(?:\d+(?:\.\d*)?|\.\d+)$/;
 
 /**
  * A length usable inside `calc()`. A bare `0` is a valid `gap` but not a

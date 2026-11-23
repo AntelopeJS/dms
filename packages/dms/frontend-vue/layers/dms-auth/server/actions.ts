@@ -26,7 +26,7 @@ const PENDING_LOGIN_PATH = "/auth/verify-2fa";
 const PENDING_LOGIN_LIFETIME_S = 300;
 
 const BACKEND_API_PATH =
-  /^\/api\/[A-Za-z0-9][A-Za-z0-9._~-]*(?:\/[A-Za-z0-9][A-Za-z0-9._~-]*)*$/;
+  /^\/api\/[A-Za-z0-9][\w.~-]*(?:\/[A-Za-z0-9][\w.~-]*)*$/;
 
 interface PendingLogin {
   token: string;

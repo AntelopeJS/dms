@@ -3,7 +3,7 @@ import { watch, type Ref } from "vue";
 /** The attribute naming a body row's id, which the anchor finds it by. */
 export const ROW_ID_ATTRIBUTE = "data-row-id";
 
-const SCROLLABLE_OVERFLOW = /(auto|scroll)/;
+const SCROLLABLE_OVERFLOW = /auto|scroll/;
 
 /** The row the reader has at the top of the view, before an update. */
 interface RowAnchor {

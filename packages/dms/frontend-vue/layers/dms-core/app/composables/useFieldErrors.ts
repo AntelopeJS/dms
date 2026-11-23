@@ -150,9 +150,9 @@ const NAMED_FIELD_ERROR_KEYS: Readonly<
   [FIELD_ERROR_KEYS.invalid]: "dms.field_errors.named_invalid",
 };
 
-const FIELD_PREFIXED_MESSAGE = /^([\w.]+):\s+(.+)$/s;
+const FIELD_PREFIXED_MESSAGE = /^([\w.]+):\s+(\S.*|\s)$/s;
 
-const BARE_I18N_KEY = /^[a-z0-9_]+(\.[a-z0-9_]+)+$/i;
+const BARE_I18N_KEY = /^\w+(?:\.\w+)+$/;
 
 /** The HTTP status of a fetch error; undefined for a network failure. */
 export function apiErrorStatus(

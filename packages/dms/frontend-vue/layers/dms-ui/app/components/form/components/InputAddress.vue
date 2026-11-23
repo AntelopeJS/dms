@@ -352,7 +352,7 @@ const splitHouseNumber = (raw?: string) => {
     };
   }
 
-  const slash = value.match(/^(.+?)\s*\/\s*(.+)$/);
+  const slash = value.match(/^(.[^/]*)\/(.+)$/);
   if (slash) {
     return {
       houseNumber: (slash[1] ?? "").trim(),

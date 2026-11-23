@@ -54,7 +54,7 @@ function collectSources(dir) {
     const file = join(dir, entry.name);
     if (entry.name === "node_modules" || entry.name.startsWith(".")) return [];
     if (entry.isDirectory()) return collectSources(file);
-    return /\.(vue|ts)$/.test(entry.name) ? [file] : [];
+    return /\.(?:vue|ts)$/.test(entry.name) ? [file] : [];
   });
 }
 
@@ -257,7 +257,7 @@ function checkFontAssetUrls() {
   );
   const urls = [
     ...readFileSync(stylesheet, "utf8").matchAll(
-      /@font-face\s*{[^}]*?src:\s*url\("([^"]+)"\)/g,
+      /@font-face\s*\{[^}]*?src:\s*url\("([^"]+)"\)/g,
     ),
   ].map(([, url]) => url);
   assert.ok(

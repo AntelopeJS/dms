@@ -11,10 +11,10 @@ const jsonScriptParser = javascriptParser.configure({
 });
 
 const JSON_SCRIPT_TYPE =
-  /^(importmap|speculationrules|application\/(.+\+)?json)$/i;
+  /^(?:importmap|speculationrules|application\/(?:.+\+)?json)$/i;
 const JAVASCRIPT_TYPE =
   /^(?:text|application)\/(?:x-)?(?:java|ecma)script$|^module$|^$/i;
-const CSS_TYPE = /^(text\/)?(x-)?(stylesheet|css)$/i;
+const CSS_TYPE = /^(?:text\/)?(?:x-)?(?:stylesheet|css)$/i;
 
 const NESTED_TAGS = [
   {

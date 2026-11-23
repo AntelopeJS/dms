@@ -380,7 +380,7 @@ describe("Preferences & access section", () => {
 
     expect(skeletonRows()).toBe(2);
 
-    expect(rowTexts()[2]).not.toMatch(/unread|[0-9]/);
+    expect(rowTexts()[2]).not.toMatch(/unread|\d/);
     expect(host.textContent).toContain(
       "x xxxxxx xxxxxxxxxxxxx · x xx x xxxxxxxx xx",
     );

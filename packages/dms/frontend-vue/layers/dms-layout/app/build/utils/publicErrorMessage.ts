@@ -1,4 +1,4 @@
-const FETCH_FAILURE = /^\[[A-Z]+\]\s+"[^"]*":\s*(.*)$/s;
+const FETCH_FAILURE = /^\[[A-Z]+\]\s+"[^"]*":\s*((?:\S.*)?)$/s;
 const ABSOLUTE_URL = /\b[a-z][a-z0-9+.-]*:\/\/[^\s"'<>]+/gi;
 const SPACES = /\s{2,}/g;
 

@@ -275,7 +275,7 @@ export function formatNumber(
   }
 }
 
-const CURRENCY_CODE = /^[A-Za-z]{3}$/;
+const CURRENCY_CODE = /^[a-z]{3}$/i;
 
 /**
  * The currency an amount is written in: `options.currency` when it is an

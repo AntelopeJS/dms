@@ -6,7 +6,7 @@ export interface AddTagsOptions {
   max?: number;
 }
 
-const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@][^\s@.]*\.[^\s@]+$/;
 
 const NORMALIZERS: Record<TagItemType, (item: string) => string> = {
   string: (item) => item.trim(),
