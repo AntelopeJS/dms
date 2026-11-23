@@ -19,6 +19,7 @@ import {
   insertUser,
   type MemberTenants,
   OTHER_TENANT,
+  pauseMemberChanges,
   seedMemberTenants,
   stepFailure,
   storedMember,
@@ -192,6 +193,17 @@ describe("[integration] automation action dms.remove-member", () => {
     for (const dryRun of [false, true])
       await stepFailure(removeMember(tenants.owner, { dryRun }));
     expect(await storedMember(tenants.owner)).to.not.equal(undefined);
+  });
+
+  it("refuses a workspace whose member changes are paused, in a real run and a test run", async () => {
+    await pauseMemberChanges();
+    expect(await stepFailure(removeMember(tenants.member))).to.contain(
+      "admission is paused",
+    );
+    expect(
+      await stepFailure(removeMember(tenants.member, { dryRun: true })),
+    ).to.contain("are paused");
+    expect(await storedMember(tenants.member)).to.not.equal(undefined);
   });
 
   it("refuses to remove the last platform owner outside SaaS mode", async () => {

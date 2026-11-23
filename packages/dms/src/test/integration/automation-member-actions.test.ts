@@ -9,6 +9,7 @@ import {
   HTTP_PAYMENT_REQUIRED,
   type MemberTenants,
   OTHER_TENANT,
+  pauseMemberChanges,
   seedMemberTenants,
   stepFailure,
   storedMember,
@@ -71,7 +72,7 @@ function registerModeCases(seeded: Seeded): void {
     expect(announced).to.deep.equal([]);
   });
 
-  it("refuses an unknown role, a non-member and an unknown tenant", async () => {
+  it("refuses an unknown role, a non-member and an unknown tenant, and leaves the workspace deletable", async () => {
     const { member } = seeded();
     expect(
       await stepFailure(setRoles({ userId: member, roleIds: ["typo-role"] })),
@@ -82,6 +83,7 @@ function registerModeCases(seeded: Seeded): void {
     expect(
       await stepFailure(setRoles({ tenantId: "nowhere", userId: member })),
     ).to.contain('unknown tenant "nowhere"');
+    await closeTenantLifecycleAdmission(TENANT);
   });
 }
 
@@ -117,11 +119,28 @@ function registerRefusalCases(seeded: Seeded): void {
   it("refuses a closed workspace, in a real run and a test run", async () => {
     const { member, editor, viewer } = seeded();
     await closeTenantLifecycleAdmission(TENANT);
-    for (const dryRun of [false, true]) {
+    expect(
+      await stepFailure(setRoles({ userId: member, roleIds: [editor] })),
+    ).to.contain("admission is closed");
+    expect(
       await stepFailure(
-        setRoles({ userId: member, roleIds: [editor] }, { dryRun }),
-      );
-    }
+        setRoles({ userId: member, roleIds: [editor] }, { dryRun: true }),
+      ),
+    ).to.contain("is being deleted");
+    expect((await storedMember(member))?.roleIds).to.deep.equal([viewer]);
+  });
+
+  it("refuses a workspace whose member changes are paused, in a real run and a test run", async () => {
+    const { member, editor, viewer } = seeded();
+    await pauseMemberChanges();
+    expect(
+      await stepFailure(setRoles({ userId: member, roleIds: [editor] })),
+    ).to.contain("admission is paused");
+    expect(
+      await stepFailure(
+        setRoles({ userId: member, roleIds: [editor] }, { dryRun: true }),
+      ),
+    ).to.contain("are paused");
     expect((await storedMember(member))?.roleIds).to.deep.equal([viewer]);
   });
 

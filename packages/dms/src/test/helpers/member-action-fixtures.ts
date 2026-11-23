@@ -12,6 +12,10 @@ import {
   RegisterHook,
   UnregisterHook,
 } from "@antelopejs/interface-dms/hooks";
+import {
+  observeTenantLifecycle,
+  pauseTenantLifecycleAdmission,
+} from "@antelopejs/interface-dms/tenant-lifecycle";
 import { expect } from "chai";
 import { automationLoopGuard } from "../../automation/loop-guard";
 import { resetDatabase } from "./db";
@@ -101,4 +105,12 @@ export async function seedMemberTenants(): Promise<MemberTenants> {
   await addMember(TENANT, member, [viewer]);
   await addMember(OTHER_TENANT, member, ["other-role"]);
   return { owner, member, editor, viewer };
+}
+
+/** Holds a lifecycle barrier on {@link TENANT}, as a deletion's preparation does. */
+export async function pauseMemberChanges(): Promise<void> {
+  const { revision } = await observeTenantLifecycle(TENANT);
+  expect(
+    await pauseTenantLifecycleAdmission(TENANT, "automation-test", revision),
+  ).to.equal(true);
 }
