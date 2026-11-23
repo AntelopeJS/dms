@@ -16,6 +16,7 @@ import { expect } from "chai";
 import { CORE_SCHEMA_NAME } from "@antelopejs/interface-dms/constants";
 import { DefaultDataTypes } from "@antelopejs/interface-dms/base/data-types/default-types";
 import { Column } from "@antelopejs/interface-dms/base/table-view";
+import { defined } from "../../../helpers/defined";
 
 const TABLE = "column-validator-events";
 
@@ -51,7 +52,7 @@ const meta = GetMetadata(EventAPI, DataAPIMeta);
 
 describe("[unit] interfaces/dms-base — @Column validator", () => {
   it("returns the parse result, with a date sent as text parsed to a date", async () => {
-    const result = await meta.fields.startsAt.validator!("2026-03-01");
+    const result = await defined(meta.fields.startsAt.validator)("2026-03-01");
 
     expect(result).to.deep.include({
       success: true,
@@ -60,7 +61,9 @@ describe("[unit] interfaces/dms-base — @Column validator", () => {
   });
 
   it("refuses a value its data type does not accept", async () => {
-    const result = await meta.fields.startsAt.validator!("next tuesday");
+    const result = await defined(meta.fields.startsAt.validator)(
+      "next tuesday",
+    );
 
     expect(result).to.include({ success: false });
   });

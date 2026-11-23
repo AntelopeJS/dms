@@ -300,22 +300,21 @@ export async function mappedChoices(
   const data = await Promise.all(
     found.flatMap(([relation]) => {
       const record = current.get(relation);
-      return record
-        ? [
-            withProfiledBadges(
-              catalog,
-              relationOf(
-                connection,
-                record,
-                descriptions.find(
-                  (description) =>
-                    `${description.schema}.${description.name}` === relation,
-                )!,
-                relations,
-              ),
-            ),
-          ]
-        : [];
+      if (!record) {
+        return [];
+      }
+      const description = descriptions.find(
+        (candidate) => `${candidate.schema}.${candidate.name}` === relation,
+      );
+      if (!description) {
+        throw new Error(`The catalog did not describe ${relation}`);
+      }
+      return [
+        withProfiledBadges(
+          catalog,
+          relationOf(connection, record, description, relations),
+        ),
+      ];
     }),
   );
   if (missing.length === 0) {

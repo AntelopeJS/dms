@@ -110,15 +110,20 @@ export function relabelPointingColumns(
   records: Map<string, ResourceRecord>,
   plan: MappingPlan,
 ): void {
-  const labelled = plan.resources.filter((resource) => resource.label);
+  const labelled = plan.resources.flatMap((resource) =>
+    resource.label
+      ? [{ apiName: resource.names.apiName, label: resource.label }]
+      : [],
+  );
   if (labelled.length === 0) {
     return;
   }
   for (const [, file] of otherFiles(project, records, plan)) {
-    const stale = labelled.flatMap((resource) =>
-      staleLabels(file, resource.names.apiName, resource.label!).map(
-        (property) => ({ property, label: resource.label! }),
-      ),
+    const stale = labelled.flatMap(({ apiName, label }) =>
+      staleLabels(file, apiName, label).map((property) => ({
+        property,
+        label,
+      })),
     );
     if (stale.length === 0) {
       continue;

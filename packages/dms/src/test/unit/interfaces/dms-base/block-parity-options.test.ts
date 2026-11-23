@@ -4,11 +4,12 @@ import {
   GetBlockType,
   ValidateBlockOptions,
 } from "@antelopejs/interface-dms/base/block-types";
+import { defined } from "../../../helpers/defined";
 
 function declared(type: string) {
   const block = GetBlockType(type);
   expect(block, `${type} is declared`).to.not.equal(undefined);
-  return block!;
+  return defined(block);
 }
 
 const valid = (type: string, options: Record<string, JsonValue | undefined>) =>

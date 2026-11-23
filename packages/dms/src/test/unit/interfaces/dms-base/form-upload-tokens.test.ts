@@ -11,6 +11,7 @@ import {
   isFieldGroupSerialized,
 } from "@antelopejs/interface-dms/base/form";
 import { verifyUploadToken } from "../../../../utils";
+import { defined } from "../../../helpers/defined";
 
 function fieldOptions(field: FormFieldSerialized): { uploadToken?: string } {
   return field.component.options ?? {};
@@ -44,12 +45,12 @@ describe("[unit] interfaces/dms-base/form — the form stamps its own upload fie
     });
 
     const serialized = await form.serialize();
-    const options = serialized.options!;
+    const options = defined(serialized.options);
     const field = leadingField(options);
 
     const token = fieldOptions(field).uploadToken;
     expect(token).to.be.a("string");
-    expect(verifyUploadToken(token!)).to.deep.equal({
+    expect(verifyUploadToken(defined(token))).to.deep.equal({
       storage: "s3-main",
       path: "docs/",
       field: "documents#attachment",
@@ -73,14 +74,14 @@ describe("[unit] interfaces/dms-base/form — the form stamps its own upload fie
     });
 
     const serialized = await form.serialize();
-    const options = serialized.options!;
+    const options = defined(serialized.options);
     const group = options.fields[0];
     if (!isFieldGroupSerialized(group)) {
       throw new Error("expected a field group");
     }
 
     const token = fieldOptions(group.fields[0]).uploadToken;
-    expect(verifyUploadToken(token!)).to.deep.equal({
+    expect(verifyUploadToken(defined(token))).to.deep.equal({
       storage: undefined,
       path: undefined,
       visibility: "private",
@@ -98,7 +99,7 @@ describe("[unit] interfaces/dms-base/form — the form stamps its own upload fie
     });
 
     const serialized = await form.serialize();
-    const options = serialized.options!;
+    const options = defined(serialized.options);
     const field = leadingField(options);
 
     expect(fieldOptions(field).uploadToken).to.equal(undefined);
@@ -138,7 +139,7 @@ describe("[unit] interfaces/dms-base/form — the form stamps its own upload fie
     const stamped = await StampUploadFieldTokens(hostOptions);
 
     const options = stamped.addForm.options.fields[0].component.options;
-    expect(verifyUploadToken(options.uploadToken!)).to.deep.equal({
+    expect(verifyUploadToken(defined(options.uploadToken))).to.deep.equal({
       storage: "s3-main",
       path: "docs/",
       field: "documents#attachment",
@@ -193,12 +194,12 @@ describe("[unit] interfaces/dms-base/form — the form stamps its own upload fie
     const first = await form.serialize();
     const second = await form.serialize();
 
-    const firstField = leadingField(first.options!);
-    const secondField = leadingField(second.options!);
+    const firstField = leadingField(defined(first.options));
+    const secondField = leadingField(defined(second.options));
     const firstToken = fieldOptions(firstField).uploadToken;
     const secondToken = fieldOptions(secondField).uploadToken;
-    expect(verifyUploadToken(firstToken!)).to.deep.equal(
-      verifyUploadToken(secondToken!),
+    expect(verifyUploadToken(defined(firstToken))).to.deep.equal(
+      verifyUploadToken(defined(secondToken)),
     );
   });
 });

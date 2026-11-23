@@ -20,7 +20,7 @@ export type JobRunStatus =
 const HOUR_MS = 60 * 60 * 1000;
 const RUN_SPREAD_HOURS = 7;
 const HISTORY_LENGTH = 12;
-const STEP_COUNTS = [8, 12, 20, 41, 44];
+const STEP_COUNTS: readonly [number, ...number[]] = [8, 12, 20, 41, 44];
 
 interface JobSeed {
   name: string;
@@ -97,7 +97,7 @@ function seedRuns() {
     Array.from({ length: RUNS_PER_JOB }, (_, runIndex) => {
       const index = jobIndex * RUNS_PER_JOB + runIndex;
       const startedAt = new Date(now - index * RUN_SPREAD_HOURS * HOUR_MS);
-      const total = STEP_COUNTS[index % STEP_COUNTS.length]!;
+      const total = STEP_COUNTS[index % STEP_COUNTS.length];
       const isLatest = runIndex === 0;
       const status: JobRunStatus = isLatest ? job.status : "healthy";
       const failed = status === "failing" ? 2 : 0;

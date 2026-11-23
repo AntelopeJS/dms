@@ -32,6 +32,7 @@ import { MODULE } from "../mapped-database";
 import { reloadedAtOnce } from "../reload-stub";
 import { fileText } from "./file-text";
 import { Column, Relation, STATUS } from "./shop-orders";
+import { defined } from "../../../helpers/defined";
 
 let current: Fixture | undefined;
 
@@ -140,7 +141,7 @@ export function ordersPage() {
   return ListPages().then((pages) => {
     const page = pages.find((entry) => entry.id === "shop-orders");
     expect(page, "the orders page").to.not.equal(undefined);
-    return page!;
+    return defined(page);
   });
 }
 
@@ -200,7 +201,7 @@ export async function ordersFlag(
     (resource) => resource.tableName === "orders",
   );
   expect(orders, "the orders resource").to.not.equal(undefined);
-  const structure = await GetResourceStructure(orders!.ref);
+  const structure = await GetResourceStructure(defined(orders).ref);
   expectOk(structure, "GetResourceStructure");
   return structure.ok
     ? structure.data.fields.find((field) => field.name === column)?.[flag]

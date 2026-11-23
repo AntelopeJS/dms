@@ -26,6 +26,7 @@ import {
   Column,
 } from "@antelopejs/interface-dms/base/table-view";
 import { captureWarnings } from "../../../helpers/logging";
+import { defined } from "../../../helpers/defined";
 
 const TABLE = "quick-filter-values-shops";
 const NO_VALUES = "has no values to pick";
@@ -131,7 +132,7 @@ describe("[unit] interfaces/dms-base/table-view — quick filters need values to
     quickFilterWarnings(() => {
       table = registerOn(["city"])();
     });
-    const options = table!.serializeSync().options!;
+    const options = defined(defined(table).serializeSync().options);
     expect(options.quickFilters).to.deep.equal([{ field: "city" }]);
   });
 

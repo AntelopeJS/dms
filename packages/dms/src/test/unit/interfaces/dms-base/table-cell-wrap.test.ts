@@ -4,6 +4,7 @@ import { expect } from "chai";
 import { z } from "zod";
 import { DefaultDataTypes } from "@antelopejs/interface-dms/base/data-types";
 import { TableViewMeta } from "@antelopejs/interface-dms/base/table-view/meta";
+import { defined } from "../../../helpers/defined";
 
 const SerializedColumns = z.object({
   columns: z.array(
@@ -32,10 +33,10 @@ describe("TableView cell wrapping", () => {
       const config = SerializedColumns.parse(
         JSON.parse(JSON.stringify(metadata.config)),
       );
-      expect(config.columns[0]!.cellWrap).to.equal(cellWrap);
-      expect(config.columns[0]!.accessorKey).to.equal("subject");
-      expect(config.columns[0]!.listable).to.equal(true);
-      expect(config.columns[0]!.type).to.be.an("object");
+      expect(defined(config.columns[0]).cellWrap).to.equal(cellWrap);
+      expect(defined(config.columns[0]).accessorKey).to.equal("subject");
+      expect(defined(config.columns[0]).listable).to.equal(true);
+      expect(defined(config.columns[0]).type).to.be.an("object");
     });
   }
 });

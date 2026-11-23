@@ -243,9 +243,10 @@ export function planMapping(
     }
   }
   dependents(input, refused);
-  const resources = input.resources.flatMap((resource) =>
-    refused.has(resource.relation) ? [] : [plans.get(resource.relation)!],
-  );
+  const resources = input.resources.flatMap((resource) => {
+    const plan = plans.get(resource.relation);
+    return plan && !refused.has(resource.relation) ? [plan] : [];
+  });
   const reasons = [...refused].map(
     ([relation, reason]) => `${relation}: ${reason}`,
   );

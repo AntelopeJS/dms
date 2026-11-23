@@ -14,11 +14,12 @@ import {
 } from "@antelopejs/interface-dms/base";
 import { GetBlockType } from "@antelopejs/interface-dms/base/block-types";
 import { TONES } from "@antelopejs/interface-dms/base/types/tone";
+import { defined } from "../../../helpers/defined";
 
 function declared(type: string) {
   const block = GetBlockType(type);
   expect(block, `${type} is declared`).to.not.equal(undefined);
-  return block!;
+  return defined(block);
 }
 
 const LIST_BLOCKS = [

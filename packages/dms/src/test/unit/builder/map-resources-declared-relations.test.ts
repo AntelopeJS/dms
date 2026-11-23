@@ -15,6 +15,7 @@ import { createFixture, destroyFixture, expectOk } from "./harness";
 import { SHOP } from "./helpers/shop-orders";
 import { MODULE, OP_TIMEOUT } from "./mapped-database";
 import { reloadedAtOnce } from "./reload-stub";
+import { defined } from "../../helpers/defined";
 
 let described: RelationDescription[] = SHOP;
 
@@ -56,8 +57,9 @@ async function customerRelation(): Promise<string | undefined> {
     (candidate) => candidate.resource.relation === "shop.orders",
   );
   expect(entry, "orders in GetMapping").to.not.equal(undefined);
-  return entry!.resource.fields.find((field) => field.column === "customer_id")
-    ?.relation?.value;
+  return defined(entry).resource.fields.find(
+    (field) => field.column === "customer_id",
+  )?.relation?.value;
 }
 
 describe("mapping a declared foreign key left without a relation", function () {

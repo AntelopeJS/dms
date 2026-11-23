@@ -14,6 +14,7 @@ import {
   removeShopCatalog,
 } from "./helpers/table-view-shop";
 import { MODULE, OP_TIMEOUT } from "./mapped-database";
+import { defined } from "../../helpers/defined";
 
 describe("the page options of a mapped table", function () {
   this.timeout(OP_TIMEOUT);
@@ -40,9 +41,9 @@ describe("the page options of a mapped table", function () {
       }),
       "CreatePage",
     );
-    const dashboard = (await ListPages()).find(
-      (page) => page.id === "dashboard",
-    )!;
+    const dashboard = defined(
+      (await ListPages()).find((page) => page.id === "dashboard"),
+    );
     expect(dashboard.order ?? 0).to.be.lessThan(100);
   });
 

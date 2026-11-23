@@ -12,6 +12,7 @@ import {
   expectOk,
   type Fixture,
 } from "./harness";
+import { defined } from "../../helpers/defined";
 
 const PAGE = "/shop/board";
 const FILE = "board/page.ts";
@@ -51,7 +52,9 @@ function readsAndEditsUnderstoodOptions(): void {
     expect(block.config).to.deep.equal({ title: "Revenue" });
     expectOk(
       await SetPageBlocks(PAGE, {
-        blocks: [{ name: block.name, type: block.type!, config: block.config }],
+        blocks: [
+          { name: block.name, type: defined(block.type), config: block.config },
+        ],
       }),
       "save shorthand",
     );

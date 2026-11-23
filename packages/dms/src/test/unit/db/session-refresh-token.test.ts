@@ -4,6 +4,7 @@ import {
   isCurrentRefreshToken,
   SessionModel,
 } from "@antelopejs/interface-dms/auth/db";
+import { defined } from "../../helpers/defined";
 
 const USER_ID = "session-refresh-token-user";
 const HASHED_SESSION_ID = "session-refresh-token-hashed";
@@ -49,6 +50,6 @@ describe("[unit] session refresh tokens — stored hashed, rotated against the d
     ).to.equal("T2");
     const session = await model.get(HASHED_SESSION_ID);
     expect(session).to.not.have.property("refreshToken");
-    expect(isCurrentRefreshToken(session!, "T2")).to.equal(true);
+    expect(isCurrentRefreshToken(defined(session), "T2")).to.equal(true);
   });
 });

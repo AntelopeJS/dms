@@ -18,15 +18,22 @@ export interface RequestLogEntry {
   at: string;
 }
 
-const METHODS = ["GET", "POST", "PUT", "DELETE"];
-const PATHS = [
+const METHODS: readonly [string, ...string[]] = [
+  "GET",
+  "POST",
+  "PUT",
+  "DELETE",
+];
+const PATHS: readonly [string, ...string[]] = [
   "/api/orders",
   "/api/customers",
   "/api/invoices/42",
   "/api/health",
   "/api/search?q=shoes&page=2",
 ];
-const STATUSES = [200, 200, 200, 201, 204, 404, 500];
+const STATUSES: readonly [number, ...number[]] = [
+  200, 200, 200, 201, 204, 404, 500,
+];
 const ENTRY_COUNT = 120;
 const MINUTE_MS = 60_000;
 const METHOD_FILTER_KEY = "filter_method";
@@ -46,9 +53,9 @@ const REQUEST_LOG_BATCH_EVENT = "request-log.batch";
 function buildEntry(sequence: number, at: Date): RequestLogEntry {
   return {
     _id: `req-${sequence}`,
-    method: METHODS[sequence % METHODS.length]!,
-    path: PATHS[(sequence * 7) % PATHS.length]!,
-    status: STATUSES[(sequence * 5) % STATUSES.length]!,
+    method: METHODS[sequence % METHODS.length],
+    path: PATHS[(sequence * 7) % PATHS.length],
+    status: STATUSES[(sequence * 5) % STATUSES.length],
     durationMs: 40 + ((sequence * 37) % 900),
     at: at.toISOString(),
   };

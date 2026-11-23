@@ -81,8 +81,8 @@ function helioNow(): number {
   );
 }
 
-const pick = <T>(list: readonly T[], index: number): T =>
-  list[index % list.length]!;
+const pick = <T>(list: readonly [T, ...T[]], index: number): T =>
+  list[index % list.length];
 
 const isoDay = (offsetDays: number): string =>
   new Date(helioNow() + offsetDays * DAY_MS).toISOString();
@@ -117,25 +117,25 @@ export function helioProjects(): FixtureRow[] {
   });
 }
 
-const TASK_TITLES = [
-  "Site survey and roof measurements",
-  "Grid connection request to ORES",
-  "Order panels and inverter",
-  "Mount rails and panels",
-  "Wire the inverter and battery",
-  "AREI inspection",
-  "Commissioning and customer handover",
+const TASKS = [
+  { title: "Site survey and roof measurements", estimateHours: 3 },
+  { title: "Grid connection request to ORES", estimateHours: 1 },
+  { title: "Order panels and inverter", estimateHours: 2 },
+  { title: "Mount rails and panels", estimateHours: 16 },
+  { title: "Wire the inverter and battery", estimateHours: 8 },
+  { title: "AREI inspection", estimateHours: 2 },
+  { title: "Commissioning and customer handover", estimateHours: 3 },
 ] as const;
 
 /** The tasks of project `CH-0104`, ordered by hand on `position`. */
 export function helioProjectTasks(): FixtureRow[] {
-  return TASK_TITLES.map((title, index) => ({
+  return TASKS.map(({ title, estimateHours }, index) => ({
     _id: `task-${index + 1}`,
     title,
     status: index < 3 ? "done" : index === 3 ? "doing" : "todo",
     assignee: pick(TECHNICIANS, index + 2),
     dueDate: isoDay(index * 4 - 10),
-    estimateHours: [3, 1, 2, 16, 8, 2, 3][index]!,
+    estimateHours,
     position: (index + 1) * 1000,
   }));
 }
@@ -221,28 +221,25 @@ const ACCOUNT_STATUSES = [
 
 /** Helio's customer accounts, with what their monitored sites produced. */
 export function helioCustomers(): FixtureRow[] {
-  return CUSTOMERS.slice(0, ACCOUNTS.length).map((name, index) => {
-    const account = ACCOUNTS[index]!;
-    return {
-      _id: `customer-${index + 1}`,
-      name,
-      email: account.email,
-      city: account.city,
-      country: account.country,
-      status: pick(ACCOUNT_STATUSES, index),
-      signedAt: isoDay(-40 - index * 23),
-      lifetimeRevenue: 7_900 + index * 6_350,
-      sites: 1 + (index % 4),
-      segments: [...SEGMENTS[index]!],
-      brandColor: BRAND_COLORS[index]!,
-      monthlyKwh: Array.from({ length: 12 }, (_, month) =>
-        Math.round(
-          (120 + index * 40) *
-            (0.35 + Math.sin(((month + 1) / 12) * Math.PI) * 0.9),
-        ),
+  return ACCOUNTS.map((account, index) => ({
+    _id: `customer-${index + 1}`,
+    name: pick(CUSTOMERS, index),
+    email: account.email,
+    city: account.city,
+    country: account.country,
+    status: pick(ACCOUNT_STATUSES, index),
+    signedAt: isoDay(-40 - index * 23),
+    lifetimeRevenue: 7_900 + index * 6_350,
+    sites: 1 + (index % 4),
+    segments: [...pick(SEGMENTS, index)],
+    brandColor: pick(BRAND_COLORS, index),
+    monthlyKwh: Array.from({ length: 12 }, (_, month) =>
+      Math.round(
+        (120 + index * 40) *
+          (0.35 + Math.sin(((month + 1) / 12) * Math.PI) * 0.9),
       ),
-    };
-  });
+    ),
+  }));
 }
 
 /** The account form's record: a business customer of Helio. */

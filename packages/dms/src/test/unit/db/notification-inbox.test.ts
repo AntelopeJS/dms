@@ -3,6 +3,7 @@ import { expect } from "chai";
 import type { NotificationTone } from "@antelopejs/interface-dms/notifications/types";
 import { UserNotificationsModel } from "../../../db/models";
 import { resolveNotificationTone } from "../../../utils";
+import { defined } from "../../helpers/defined";
 
 const USER_ID = "notification-inbox-user";
 const OTHER_USER_ID = "notification-inbox-other-user";
@@ -76,9 +77,9 @@ describe("[unit] user notifications — inbox filters, counts and undo", () => {
     expect(await model.countUnread(USER_ID)).to.equal(0);
 
     expect(
-      await model.undoMarkAllAsRead(OTHER_USER_ID, batchId!),
+      await model.undoMarkAllAsRead(OTHER_USER_ID, defined(batchId)),
     ).to.have.lengthOf(0);
-    const reopened = await model.undoMarkAllAsRead(USER_ID, batchId!);
+    const reopened = await model.undoMarkAllAsRead(USER_ID, defined(batchId));
     expect(reopened).to.have.members(unreadIds);
     expect(await model.countUnread(USER_ID)).to.equal(unreadIds.length);
     expect((await model.get(readId))?.isRead).to.equal(true);
@@ -137,7 +138,7 @@ describe("[unit] user notifications — inbox filters, counts and undo, batches"
 
     const { batchId } = await model.markAllAsRead(USER_ID);
     expect(await model.countUnread(USER_ID)).to.equal(0);
-    const reopened = await model.undoMarkAllAsRead(USER_ID, batchId!);
+    const reopened = await model.undoMarkAllAsRead(USER_ID, defined(batchId));
     expect(reopened).to.have.length(count);
     expect(await model.countUnread(USER_ID)).to.equal(count);
   });
@@ -160,9 +161,9 @@ describe("[unit] user notifications — inbox filters, counts and undo, batches"
     const { batchId } = await model.markAllAsRead(USER_ID);
     expect((await model.get(copy._id))?.isRead).to.equal(true);
 
-    expect(await model.undoMarkAllAsRead(USER_ID, batchId!)).to.deep.equal([
-      own._id,
-    ]);
+    expect(
+      await model.undoMarkAllAsRead(USER_ID, defined(batchId)),
+    ).to.deep.equal([own._id]);
     expect((await model.get(copy._id))?.isRead).to.equal(false);
   });
 
@@ -175,9 +176,9 @@ describe("[unit] user notifications — inbox filters, counts and undo, batches"
     await model.markAsUnread(toggled);
     await model.markAsRead(toggled);
 
-    expect(await model.undoMarkAllAsRead(USER_ID, batchId!)).to.deep.equal([
-      kept,
-    ]);
+    expect(
+      await model.undoMarkAllAsRead(USER_ID, defined(batchId)),
+    ).to.deep.equal([kept]);
     expect((await model.get(toggled))?.isRead).to.equal(true);
   });
 

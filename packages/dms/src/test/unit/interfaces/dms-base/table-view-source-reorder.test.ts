@@ -33,6 +33,7 @@ import {
   type SerializedColumn,
   serializedColumnsOf,
 } from "../../../helpers/serialized-columns";
+import { defined } from "../../../helpers/defined";
 
 const TABLE = "reorder-features";
 
@@ -82,8 +83,10 @@ type FeatureOptions = NonNullable<
 >;
 
 const optionsOf = (options: FeatureOptions) =>
-  TableView(FeatureAPI, { realtime: false, ...options }).serializeSync()
-    .options!;
+  defined(
+    TableView(FeatureAPI, { realtime: false, ...options }).serializeSync()
+      .options,
+  );
 
 type SourceOptions = Parameters<typeof TableView.fromSource>[0];
 

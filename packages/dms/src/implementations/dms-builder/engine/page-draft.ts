@@ -104,16 +104,12 @@ function collectBlock(
   if (!chain) {
     return;
   }
-  if (chain.factory && chain.factoryCall) {
-    originals.callees.set(path, chain.factoryCall.getExpression().getText());
-    const args = chain.factoryCall.getArguments();
-    originals.constants.set(path, {
-      config: constantsIn(
-        args[isControllerLeadingBlock(chain.factory) ? 1 : 0],
-      ),
-      meta: constantsIn(metaArg),
-    });
-  }
+  originals.callees.set(path, chain.factoryCall.getExpression().getText());
+  const args = chain.factoryCall.getArguments();
+  originals.constants.set(path, {
+    config: constantsIn(args[isControllerLeadingBlock(chain.factory) ? 1 : 0]),
+    meta: constantsIn(metaArg),
+  });
   for (const call of chain.childCalls) {
     const [idArg, valueArg, childMeta] = call.getArguments();
     const id = stringLiteralValue(idArg);
@@ -274,13 +270,15 @@ function draftText(
   if (block.preserve && preserved !== undefined) {
     return preserved;
   }
-  if (originals.nodes.get(path)?.lockedOptions) {
+  const expression = originals.expressions.get(path);
+  const lockedOptions = originals.nodes.get(path)?.lockedOptions;
+  if (expression && lockedOptions) {
     return patchSourceOptions(
-      originals.expressions.get(path)!,
-      originals.nodes.get(path)!,
+      expression,
+      lockedOptions,
       withConstants(block.config ?? {}, originals.constants.get(path)?.config),
       (block.children ?? []).map((child) => ({
-        expression: originals.expressions.get(`${path}/${child.name}`)!,
+        expression: originals.expressions.get(`${path}/${child.name}`),
         text: draftText(child, `${path}/${child.name}`, originals, ctx),
       })),
       ctx,

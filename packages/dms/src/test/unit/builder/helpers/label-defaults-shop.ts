@@ -15,6 +15,7 @@ import { createFixture, destroyFixture, expectOk } from "../harness";
 import { MODULE } from "../mapped-database";
 import { reloadedAtOnce } from "../reload-stub";
 import { SHOP } from "./shop-orders";
+import { defined } from "../../../helpers/defined";
 
 let described = SHOP;
 
@@ -64,7 +65,10 @@ export async function labelsOfOrders(): Promise<Record<string, string>> {
   );
   expect(entry, "orders in GetMapping").to.not.equal(undefined);
   return Object.fromEntries(
-    entry!.resource.fields.map((field) => [field.column, field.label.value]),
+    defined(entry).resource.fields.map((field) => [
+      field.column,
+      field.label.value,
+    ]),
   );
 }
 

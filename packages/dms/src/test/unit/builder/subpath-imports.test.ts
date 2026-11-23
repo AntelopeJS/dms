@@ -12,6 +12,7 @@ import {
   expectOk,
   type Fixture,
 } from "./harness";
+import { defined } from "../../helpers/defined";
 
 const OP_TIMEOUT = 60_000;
 const PAGE_FILE = "cockpit/page.ts";
@@ -64,7 +65,7 @@ describe("a page importing its blocks from subpaths", () => {
       entry.ref.endsWith("cockpit"),
     );
     expect(page, "the hand-written page is listed").to.not.equal(undefined);
-    ref = page!.ref;
+    ref = defined(page).ref;
   });
 
   after(() => destroyFixture());

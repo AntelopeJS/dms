@@ -12,6 +12,7 @@ import {
 } from "../../helpers/recorded-sse-stream";
 import { helloConnectionId } from "../../helpers/sse-frames";
 import { userFixture } from "../../helpers/user-fixture";
+import { defined } from "../../helpers/defined";
 
 const USER = userFixture({
   _id: "stop-closes-streams-user",
@@ -71,7 +72,7 @@ const openSession = async (stream: FakeStream): Promise<string> => {
     helloConnectionId(stream.frames),
     USER,
   );
-  return greeting.sessionId!;
+  return defined(greeting.sessionId);
 };
 
 describe("[unit] realtime — stopRealtime ends open SSE streams", () => {

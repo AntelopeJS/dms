@@ -53,7 +53,7 @@ function impliedTarget(
   descriptions: RelationDescription[],
   from: RelationDescription,
   column: string,
-): RelationDescription | undefined {
+): { target: RelationDescription; key: string } | undefined {
   const declared = declaredOf(from, column);
   const names = impliedTargetNames(column);
   const candidates = descriptions
@@ -63,13 +63,16 @@ function impliedTarget(
         Number(right.schema === from.schema) -
         Number(left.schema === from.schema),
     );
-  return candidates.find((target) => {
+  for (const target of candidates) {
     const key = singleKey(target);
-    return (
+    if (
       key !== undefined &&
       declaredOf(target, key).some((reading) => declared.includes(reading))
-    );
-  });
+    ) {
+      return { target, key };
+    }
+  }
+  return undefined;
 }
 
 /**
@@ -88,14 +91,14 @@ export function impliedReferenceChecks(
       .filter((column) => !referring.has(column.name))
       .filter((column) => !keyColumns.has(column.name))
       .flatMap((column) => {
-        const target = impliedTarget(descriptions, from, column.name);
-        return target
+        const implied = impliedTarget(descriptions, from, column.name);
+        return implied
           ? [
               {
                 from: { relation: relationName(from), column: column.name },
                 to: {
-                  relation: relationName(target),
-                  column: singleKey(target)!,
+                  relation: relationName(implied.target),
+                  column: implied.key,
                 },
               },
             ]

@@ -23,6 +23,7 @@ import {
   TableView,
   TableViewRoutes,
 } from "@antelopejs/interface-dms/base/table-view";
+import { defined } from "../../../helpers/defined";
 
 const TABLE = "footer-payments";
 
@@ -79,8 +80,10 @@ export const READ_ONLY = {
 };
 
 export const optionsOf = (options: PaymentOptions) =>
-  TableView(PaymentAPI, {
-    realtime: false,
-    rowActions: READ_ONLY,
-    ...options,
-  }).serializeSync().options!;
+  defined(
+    TableView(PaymentAPI, {
+      realtime: false,
+      rowActions: READ_ONLY,
+      ...options,
+    }).serializeSync().options,
+  );

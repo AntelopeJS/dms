@@ -27,6 +27,7 @@ import {
 } from "@antelopejs/interface-dms/base/table-view";
 import { Searchable } from "@antelopejs/interface-dms/base/searchable";
 import { serializedColumnsOf } from "../../../helpers/serialized-columns";
+import { defined } from "../../../helpers/defined";
 
 const TABLE = "reduced-chrome-orders";
 const LOCATION = "/api/reduced-chrome-orders";
@@ -133,7 +134,7 @@ export class StatusOrderAPI extends DataController(
 }
 
 export const optionsOf = (table: ReturnType<typeof TableView>) =>
-  table.serializeSync().options!;
+  defined(table.serializeSync().options);
 
 export const columnsOf = (table: ReturnType<typeof TableView>) =>
   serializedColumnsOf(optionsOf(table));

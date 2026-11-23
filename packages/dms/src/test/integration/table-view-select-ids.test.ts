@@ -2,6 +2,7 @@ import type { AxiosInstance } from "axios";
 import { expect } from "chai";
 import { authorizedClient, registerUser } from "../helpers/auth";
 import { resetDatabase } from "../helpers/db";
+import { defined } from "../helpers/defined";
 
 const LOCATION = "/api/archive/notes";
 const HTTP_OK = 200;
@@ -36,7 +37,7 @@ describe("[integration] table view select by ids", () => {
   }
 
   const idOf = (title: string) =>
-    notes.find((note) => note.title === title)!._id;
+    defined(notes.find((note) => note.title === title))._id;
   const titlesOf = (rows: Note[]) => rows.map((row) => row.title).sort();
 
   it("answers only the rows the ids name", async () => {

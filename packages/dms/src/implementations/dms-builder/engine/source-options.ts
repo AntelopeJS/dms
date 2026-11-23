@@ -1,7 +1,4 @@
-import type {
-  BlockNode,
-  ConfigObject,
-} from "@antelopejs/interface-dms-builder";
+import type { ConfigObject } from "@antelopejs/interface-dms-builder";
 import { type Expression, Node, SyntaxKind } from "ts-morph";
 import { isControllerLeadingBlock } from "./catalog";
 import { resolveAndUnwrap } from "./chain";
@@ -12,15 +9,16 @@ import { type EmitContext, serializeValue } from "./value";
 /** Replace understood spans, leaving all other bytes owned by the source. */
 export function patchSourceOptions(
   expr: Expression,
-  source: BlockNode,
+  lockedOptions: Record<string, string>,
   config: ConfigObject,
-  children: { expression: Expression; text: string }[],
+  children: { expression: Expression | undefined; text: string }[],
   ctx: EmitContext,
 ): string {
   const { chain } = resolveAndUnwrap(expr);
+  if (!chain) throw new Error("Expected a block");
   const arg =
-    chain!.factoryCall!.getArguments()[
-      isControllerLeadingBlock(chain!.factory!) ? 1 : 0
+    chain.factoryCall.getArguments()[
+      isControllerLeadingBlock(chain.factory) ? 1 : 0
     ];
   const object = unwrapExpression(arg);
   if (!Node.isObjectLiteralExpression(object))
@@ -34,7 +32,7 @@ export function patchSourceOptions(
     )
       continue;
     const key = propertyName(prop);
-    if (Object.hasOwn(source.lockedOptions!, key)) continue;
+    if (Object.hasOwn(lockedOptions, key)) continue;
     remaining.delete(key);
     if (!Object.hasOwn(config, key)) {
       const comma = prop.getNextSiblingIfKind(SyntaxKind.CommaToken);
@@ -59,6 +57,7 @@ export function patchSourceOptions(
     });
   }
   for (const child of children) {
+    if (!child.expression) throw new Error("Expected a block for each child");
     edits.push({
       start: child.expression.getStart(),
       end: child.expression.getEnd(),

@@ -4,6 +4,7 @@ import {
   ValidateBlockOptions,
 } from "@antelopejs/interface-dms/base/block-types";
 import { StatGroup } from "@antelopejs/interface-dms/base/stat-group";
+import { defined } from "../../../helpers/defined";
 
 const DISPLAY_BLOCKS = [
   "StatGroup",
@@ -17,7 +18,7 @@ const DISPLAY_BLOCKS = [
 function declared(type: string) {
   const block = GetBlockType(type);
   expect(block, `${type} is declared`).to.not.equal(undefined);
-  return block!;
+  return defined(block);
 }
 
 /**

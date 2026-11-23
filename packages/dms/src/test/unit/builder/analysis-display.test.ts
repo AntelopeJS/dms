@@ -15,6 +15,7 @@ import {
   Relation,
   type ColumnTraits,
 } from "./analysis-catalog";
+import { defined } from "../../helpers/defined";
 
 const ORDERS_CUSTOMER = Reference(
   "shop.orders",
@@ -72,13 +73,13 @@ function propose(
     (candidate) => candidate.relation === "shop.orders",
   );
   expect(found, "shop.orders").to.not.equal(undefined);
-  return found!;
+  return defined(found);
 }
 
 function fieldOf(resource: ProposedResource, column: string): ProposedField {
   const found = resource.fields.find((field) => field.column === column);
   expect(found, column).to.not.equal(undefined);
-  return found!;
+  return defined(found);
 }
 
 function badgeOf(field: ProposedField): BadgeItem[] {
@@ -321,9 +322,11 @@ function labelsRelationColumns(): void {
         ],
       ),
     );
-    const found = commented.resources.find(
-      (candidate) => candidate.relation === "shop.orders",
-    )!;
+    const found = defined(
+      commented.resources.find(
+        (candidate) => candidate.relation === "shop.orders",
+      ),
+    );
     expect(fieldOf(found, "customer_id").label.value).to.equal("Buyer");
   });
 }
@@ -388,9 +391,11 @@ describe("the tabs of a TableView (T1)", () => {
         ],
       ),
     );
-    const events = proposal.resources.find(
-      (candidate) => candidate.relation === "shop.events",
-    )!;
+    const events = defined(
+      proposal.resources.find(
+        (candidate) => candidate.relation === "shop.events",
+      ),
+    );
     expect(events.tableView.value).to.equal(false);
     expect(events.tabs).to.equal(undefined);
   });

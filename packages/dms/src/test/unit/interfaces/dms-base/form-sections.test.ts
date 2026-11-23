@@ -6,6 +6,7 @@ import {
   formSchema,
 } from "@antelopejs/interface-dms/base/form";
 import { ListBlockTypes } from "@antelopejs/interface-dms/base/block-types";
+import { defined } from "../../../helpers/defined";
 
 const text = () => new DefaultDataTypes.StringType();
 
@@ -36,7 +37,7 @@ const sectionedForm = () =>
   });
 
 const optionsOf = (form: ReturnType<typeof Form>) =>
-  form.serializeSync().options!;
+  defined(form.serializeSync().options);
 
 /**
  * A form's sections are titled cards of one form: their fields are the form's

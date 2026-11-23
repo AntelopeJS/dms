@@ -10,6 +10,7 @@ import { withPermissionAncestors } from "@antelopejs/interface-dms/internal/perm
 import { resolveCustomButtons } from "@antelopejs/interface-dms/base/table-view/internal/request-filter";
 import type { CustomButton } from "@antelopejs/interface-dms/base/types/custom-button";
 import { headerActionsOf } from "../../../helpers/serialized-options";
+import { defined } from "../../../helpers/defined";
 
 const CONTEXT = { tenantId: "tenant", user: undefined };
 
@@ -266,7 +267,9 @@ describe("[unit] interfaces/dms/page — header buttons served per caller, avail
       { ...CONTEXT, query: { workspace: "web" } },
       "pages.billing",
     );
-    expect(filtered!.options).to.not.have.property("headerActionsQuery");
+    expect(defined(filtered).options).to.not.have.property(
+      "headerActionsQuery",
+    );
   });
 
   it("does not load permissions when no button declares one", async () => {

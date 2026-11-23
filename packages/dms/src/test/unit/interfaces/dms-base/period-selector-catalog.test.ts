@@ -1,12 +1,13 @@
 import { expect } from "chai";
 import { ListBlockTypes } from "@antelopejs/interface-dms/base/block-types";
+import { defined } from "../../../helpers/defined";
 
 function periodSelectorConfig() {
   const declared = ListBlockTypes().find(
     (block) => block.type === "PeriodSelector",
   );
   expect(declared, "PeriodSelector is declared").to.not.equal(undefined);
-  return declared!.config;
+  return defined(declared).config;
 }
 
 /**

@@ -10,6 +10,7 @@ import {
   expectOk,
   type Fixture,
 } from "./harness";
+import { defined } from "../../helpers/defined";
 
 let app: Fixture;
 
@@ -35,7 +36,7 @@ describe("deleting a resource on Windows paths", () => {
     );
     const barrel = ["index.ts"].find((file) => app.exists(file));
     expect(barrel, "a root barrel exports the resource").to.be.a("string");
-    expect(app.read(barrel!)).to.contain("customer");
+    expect(app.read(defined(barrel))).to.contain("customer");
 
     const join = path.join;
     path.join = (...parts: string[]) =>
@@ -46,6 +47,6 @@ describe("deleting a resource on Windows paths", () => {
       path.join = join;
     }
 
-    expect(app.read(barrel!)).to.not.contain("customer");
+    expect(app.read(defined(barrel))).to.not.contain("customer");
   });
 });

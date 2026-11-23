@@ -9,6 +9,7 @@ import {
   type PaymentOptions,
   READ_ONLY,
 } from "./table-view-footer.fixture";
+import { defined } from "../../../helpers/defined";
 
 type FooterRule = NonNullable<
   NonNullable<NonNullable<PaymentOptions["footer"]>["summary"]>[number]["where"]
@@ -37,7 +38,7 @@ function registerSummaryCases(): void {
         ],
       },
     });
-    const [total, failed] = options.footer!.summary!;
+    const [total, failed] = defined(defined(options.footer).summary);
     expect(options.footer?.countLabel).to.equal("$payments.count");
     expect(total).to.deep.include({
       label: "Total",
@@ -47,7 +48,7 @@ function registerSummaryCases(): void {
     expect(failed).to.not.have.property("where");
     expect(failed?.format).to.deep.equal({ notation: "compact" });
     const meta = GetMetadata(PaymentAPI, TableViewMeta);
-    expect(meta.footerSummary(failed!.id)?.where).to.deep.equal({
+    expect(meta.footerSummary(defined(failed).id)?.where).to.deep.equal({
       field: "status",
       equals: "failed",
     });
@@ -151,7 +152,7 @@ function registerEmptyStateCases(): void {
         ],
       },
     });
-    const [refund, details] = options.rowActions!.custom!;
+    const [refund, details] = defined(defined(options.rowActions).custom);
     expect(refund?.bulk).to.deep.equal({ allMatching: true });
     expect(details?.deepLink).to.equal(true);
   });
