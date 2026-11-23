@@ -23,7 +23,7 @@ const rules = {
 
 /**
  * @param {OxlintRule} rule
- * @returns {CreateOnceRule}
+ * @returns {CreateOnceRule} The rule in the shape oxlint creates once.
  */
 function requireCreateOnce(rule) {
   if (!("createOnce" in rule))
@@ -33,7 +33,7 @@ function requireCreateOnce(rule) {
 
 /**
  * @param {unknown} value
- * @returns {value is OxlintContext}
+ * @returns {value is OxlintContext} Whether `value` is an oxlint context.
  */
 function isOxlintContext(value) {
   return (
@@ -47,7 +47,7 @@ function isOxlintContext(value) {
 
 /**
  * @param {unknown} value
- * @returns {value is EslintNode}
+ * @returns {value is EslintNode} Whether `value` is an ESLint node.
  */
 function isEslintNode(value) {
   return (

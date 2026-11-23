@@ -6,7 +6,10 @@ import type {
 import { isBranch, type PreferencesTree } from "./preferencesCookie";
 import { isNumber, isString } from "../../../utils/type-check";
 
-/** @internal A filter of a table view, as `TableFilter` shapes it. */
+/**
+ * A filter of a table view, as `TableFilter` shapes it.
+ * @internal
+ */
 export interface FilterEntry {
   accessorKey: string;
   value?: unknown;
@@ -16,10 +19,10 @@ export interface FilterEntry {
 }
 
 /**
- * @internal
  * The state of a table view that the server render reads to list and draw
  * the right rows: kept in the preferences cookie, compactly. Each field maps
  * to the type of its value.
+ * @internal
  */
 export interface ServerTableValues {
   sorting: SortingState;
@@ -34,13 +37,16 @@ export interface ServerTableValues {
   shownLink: string;
 }
 
-/** @internal The fields kept in the preferences cookie. */
+/**
+ * The fields kept in the preferences cookie.
+ * @internal
+ */
 export type ServerTableField = keyof ServerTableValues;
 
 /**
- * @internal
  * The state of a table view that only the browser draws: kept in
  * `localStorage`, applied once the table is mounted.
+ * @internal
  */
 export type LocalTableField =
   | "columnOrder"
@@ -54,13 +60,22 @@ export type LocalTableField =
 /** @internal */
 export type TableField = ServerTableField | LocalTableField;
 
-/** @internal A table's entry in the cookie, by short field key. */
+/**
+ * A table's entry in the cookie, by short field key.
+ * @internal
+ */
 export type CompactTableEntry = PreferencesTree;
 
-/** @internal The collection of the preferences tree holding table entries. */
+/**
+ * The collection of the preferences tree holding table entries.
+ * @internal
+ */
 export const TABLES_PREFERENCE_KEY = "tables";
 
-/** @internal The prefix of a table's `localStorage` key, versioned. */
+/**
+ * The prefix of a table's `localStorage` key, versioned.
+ * @internal
+ */
 export const LOCAL_TABLE_KEY_PREFIX = "dms-table-preferences:v1:";
 
 const TABLE_ID_LENGTH = 8;
@@ -77,9 +92,9 @@ const DEFAULT_FILTER_MODE = "is";
 const FIRST_PAGE_INDEX = 0;
 
 /**
- * @internal
  * A 53-bit hash of `text` in base 36 (cyrb53): short, stable on the server
  * and in the browser.
+ * @internal
  */
 export const hashText = (text: string): string => {
   let [first, second] = HASH_SEEDS;
@@ -98,9 +113,9 @@ export const hashText = (text: string): string => {
 };
 
 /**
- * @internal
  * The short key of a table view's preferences: its component and its page,
  * hashed, so that neither a long id nor a dotted page id reaches the cookie.
+ * @internal
  */
 export const tablePreferenceId = (
   componentId: string,
@@ -111,11 +126,11 @@ export const tablePreferenceId = (
     .slice(0, TABLE_ID_LENGTH);
 
 /**
- * @internal
  * How a server field's value of type `V` is kept: its key in the table's
  * entry, and its compact form. `encode` gets the field's default so that it
  * can keep only what differs from it; a value whose form equals the default's
  * is not written. `decode` throws on a stored value that is not a `V`'s form.
+ * @internal
  */
 export interface ServerFieldCodec<V> {
   key: string;
@@ -216,10 +231,10 @@ const stringField = (key: string): ServerFieldCodec<string> => ({
 });
 
 /**
- * @internal
  * The server fields, each with its one-letter key and compact form: a sort is
  * `"-name"`, a filter `["status", "open"]`, a hidden column `"-email"`, a
  * page size `50`.
+ * @internal
  */
 export const SERVER_TABLE_FIELDS = {
   sorting: { key: "s", encode: encodeSorting, decode: decodeSorting },
@@ -241,9 +256,9 @@ export const SERVER_TABLE_FIELDS = {
 };
 
 /**
- * @internal
  * `value`'s form in the entry, or `undefined` when it equals the default's
  * and is not to be written.
+ * @internal
  */
 export const encodeServerField = <V>(
   codec: ServerFieldCodec<V>,
@@ -260,9 +275,9 @@ export const encodeServerField = <V>(
 };
 
 /**
- * @internal
  * The value `entry` keeps under `codec`, else `defaultValue`: also when
  * what it keeps is not a form the codec reads.
+ * @internal
  */
 export const decodeServerField = <V, D extends V | undefined>(
   codec: ServerFieldCodec<V>,
@@ -278,7 +293,10 @@ export const decodeServerField = <V, D extends V | undefined>(
   }
 };
 
-/** @internal Whether `value` is the field's default, not to be written. */
+/**
+ * Whether `value` is the field's default, not to be written.
+ * @internal
+ */
 export const isDefaultValue = <V>(
   value: V | undefined,
   defaultValue: V | undefined,
@@ -290,9 +308,9 @@ const browserStorage = (): Storage | undefined =>
   typeof localStorage === "undefined" ? undefined : localStorage;
 
 /**
- * @internal
  * The browser-only state of a table; empty on the server, or when the
  * storage is unavailable or holds something else.
+ * @internal
  */
 export const readLocalTableEntry = (id: string): PreferencesTree => {
   try {
@@ -305,10 +323,10 @@ export const readLocalTableEntry = (id: string): PreferencesTree => {
 };
 
 /**
- * @internal
  * Writes the browser-only state of a table, removing its key once empty.
  * Answers whether the storage took it: `false` on the server, or when the
  * storage refuses the write (full, disabled), which leaves the table as it is.
+ * @internal
  */
 export const writeLocalTableEntry = (
   id: string,
@@ -325,7 +343,10 @@ export const writeLocalTableEntry = (
   }
 };
 
-/** @internal Drops the browser-only state of every table. */
+/**
+ * Drops the browser-only state of every table.
+ * @internal
+ */
 export const clearLocalTableEntries = (): void => {
   const storage = browserStorage();
   if (!storage) return;

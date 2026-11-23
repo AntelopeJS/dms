@@ -13,7 +13,7 @@ import { join } from "node:path";
  * @param {string} file
  * @param {string} source
  * @param {TypeScript} ts
- * @returns {import("typescript").SourceFile}
+ * @returns {import("typescript").SourceFile} The parsed source file.
  */
 export function parseScript(file, source, ts) {
   return ts.createSourceFile(
@@ -28,7 +28,7 @@ export function parseScript(file, source, ts) {
 /**
  * @param {Node} node
  * @param {TypeScript} ts
- * @returns {Node}
+ * @returns {Node} `node` without its parentheses and assertions.
  */
 function unwrap(node, ts) {
   /** @type {Node} */
@@ -47,7 +47,7 @@ function unwrap(node, ts) {
 /**
  * @param {Node} node
  * @param {TypeScript} ts
- * @returns {string | undefined}
+ * @returns {string | undefined} The text of a string literal node, or `undefined` for any other node.
  */
 function literalText(node, ts) {
   return ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)
@@ -58,7 +58,7 @@ function literalText(node, ts) {
 /**
  * @param {import("typescript").BindingName} name
  * @param {TypeScript} ts
- * @returns {string[]}
+ * @returns {string[]} The names `name` binds.
  */
 function bindingNames(name, ts) {
   if (ts.isIdentifier(name)) return [name.text];
@@ -72,7 +72,7 @@ function bindingNames(name, ts) {
  *
  * @param {import("typescript").Statement} statement
  * @param {TypeScript} ts
- * @returns {Node | undefined}
+ * @returns {Node | undefined} The name node the statement declares, or `undefined` when it declares none.
  */
 function declaredName(statement, ts) {
   return ts.isFunctionDeclaration(statement) ||
@@ -92,7 +92,7 @@ function declaredName(statement, ts) {
  *
  * @param {import("typescript").ImportDeclaration} statement
  * @param {TypeScript} ts
- * @returns {(Node | undefined)[]}
+ * @returns {(Node | undefined)[]} The name nodes the declaration imports.
  */
 function importedNames(statement, ts) {
   const bindings = statement.importClause?.namedBindings;
@@ -111,7 +111,7 @@ function importedNames(statement, ts) {
  * @param {readonly import("typescript").Statement[]} statements
  * @param {string} name
  * @param {TypeScript} ts
- * @returns {{ text?: string } | undefined}
+ * @returns {{ text?: string } | undefined} The declaration of `name`, or `undefined` when the statements do not declare it.
  */
 function declaredIn(statements, name, ts) {
   for (const statement of statements) {
@@ -138,7 +138,7 @@ function declaredIn(statements, name, ts) {
  * @param {Node} scope
  * @param {string} name
  * @param {TypeScript} ts
- * @returns {boolean}
+ * @returns {boolean} Whether `scope` binds `name` as a parameter, a loop variable or a catch variable.
  */
 function shadows(scope, name, ts) {
   const loop =
@@ -164,7 +164,7 @@ function shadows(scope, name, ts) {
  *
  * @param {import("typescript").Identifier} identifier
  * @param {TypeScript} ts
- * @returns {string | undefined}
+ * @returns {string | undefined} The string the constant holds, or `undefined` when the declaration is not a string constant.
  */
 function constantFor(identifier, ts) {
   for (let scope = identifier.parent; scope; scope = scope.parent) {
@@ -186,7 +186,7 @@ function constantFor(identifier, ts) {
  *
  * @param {Node | undefined} node
  * @param {TypeScript} ts
- * @returns {string | undefined}
+ * @returns {string | undefined} The string `node` holds, or `undefined` when it holds none.
  */
 function stringOf(node, ts) {
   if (!node) return undefined;
@@ -199,7 +199,7 @@ function stringOf(node, ts) {
 /**
  * @param {Node | undefined} node
  * @param {TypeScript} ts
- * @returns {string | undefined}
+ * @returns {string | undefined} The name `node` spells, or `undefined` when it spells none.
  */
 function nameOf(node, ts) {
   if (!node) return undefined;
@@ -211,7 +211,7 @@ function nameOf(node, ts) {
 /**
  * @param {import("typescript").ObjectLiteralExpression} object
  * @param {TypeScript} ts
- * @returns {boolean}
+ * @returns {boolean} Whether `object` has the `key` and `variant` properties of a layout banner.
  */
 function isBanner(object, ts) {
   const keys = new Set(object.properties.map((p) => nameOf(p.name, ts)));
@@ -226,7 +226,7 @@ function isBanner(object, ts) {
  *
  * @param {Node} node
  * @param {TypeScript} ts
- * @returns {NamedString | undefined}
+ * @returns {NamedString | undefined} The component name `node` names, or `undefined` when it names none.
  */
 function namedString(node, ts) {
   const call =
@@ -259,7 +259,7 @@ function namedString(node, ts) {
  *
  * @param {import("typescript").CallExpression | import("typescript").NewExpression | undefined} call
  * @param {TypeScript} ts
- * @returns {boolean}
+ * @returns {boolean} Whether the call passes `{ prefix: false }`.
  */
 function unprefixed(call, ts) {
   const options = call?.arguments?.[2];
@@ -280,7 +280,7 @@ function unprefixed(call, ts) {
  *
  * @param {import("typescript").SourceFile} tree
  * @param {TypeScript} ts
- * @returns {ScriptString[]}
+ * @returns {ScriptString[]} The component names the script names, each with its offset.
  */
 export function scriptStrings(tree, ts) {
   /** @type {ScriptString[]} */
@@ -307,7 +307,7 @@ export function scriptStrings(tree, ts) {
  *
  * @param {import("typescript").SourceFile} tree
  * @param {TypeScript} ts
- * @returns {string[]}
+ * @returns {string[]} The top-level names of the script.
  */
 export function scriptBindings(tree, ts) {
   return tree.statements.flatMap((statement) => {
@@ -342,7 +342,7 @@ export function scriptBindings(tree, ts) {
  *
  * @param {string} layer
  * @param {TypeScript} ts
- * @returns {string}
+ * @returns {string} The prefix `dms.frontend.ts` declares.
  */
 export function layerPrefix(layer, ts) {
   const entry = join(layer, "dms.frontend.ts");

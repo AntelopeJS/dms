@@ -96,7 +96,7 @@ export function useRegionalFormat(options: RegionalFormatOptions = {}) {
      * `new Intl.DateTimeFormat` in the user's language with their
      * preferences applied, for a format the helpers below do not cover.
      *
-     * @param options What the screen asks for; explicit options win
+     * @param dateOptions What the screen asks for; explicit options win
      * @param settings `keepLocalZone` for calendar days computed in the browser
      */
     dateTimeFormat: (

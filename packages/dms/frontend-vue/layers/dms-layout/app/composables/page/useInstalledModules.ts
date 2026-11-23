@@ -18,6 +18,7 @@ import { useModulesListing } from "./useModulesListing";
  *
  * @param modulesListing The registered modules
  * @param moduleStore The module store
+ * @param moduleStore.listing The store's listing of modules
  */
 export const useInstalledModules = (
   modulesListing: ReturnType<typeof useModulesListing>,

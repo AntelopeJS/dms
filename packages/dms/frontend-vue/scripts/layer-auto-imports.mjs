@@ -8,41 +8,41 @@ const require = createRequire(import.meta.url);
 
 /**
  * @typedef {object} ScannedImport
- * @property {string} name
- * @property {string} [as]
+ * @property {string} name The imported name.
+ * @property {string} [as] The name it is auto-imported under.
  */
 
 /**
  * @typedef {object} Unimport
- * @property {() => Promise<ScannedImport[]>} scanImportsFromDir
+ * @property {() => Promise<ScannedImport[]>} scanImportsFromDir Lists the imports found in the directories.
  */
 
 /**
  * @typedef {object} UnimportOptions
- * @property {string[]} dirs
- * @property {{ types: boolean, cwd: string }} dirsScanOptions
+ * @property {string[]} dirs The directories to scan.
+ * @property {{ types: boolean, cwd: string }} dirsScanOptions The scan options: whether to include types, and the working directory.
  */
 
 /**
  * @typedef {object} UnimportModule
- * @property {(options: UnimportOptions) => Unimport} createUnimport
+ * @property {(options: UnimportOptions) => Unimport} createUnimport Creates the importer.
  */
 
 /**
  * @typedef {object} LayerRoot
- * @property {string} id
- * @property {string} root
+ * @property {string} id The layer id.
+ * @property {string} root The layer root directory.
  */
 
 /**
  * @typedef {object} LayerSetup
- * @property {string} id
- * @property {unknown} setup
+ * @property {string} id The layer id.
+ * @property {unknown} setup The layer's setup.
  */
 
 /**
  * @typedef {object} FrontendBuildLoader
- * @property {(layers: LayerRoot[], setups: LayerSetup[], fail: (message: string) => never) => string[]} autoImportDirectories
+ * @property {(layers: LayerRoot[], setups: LayerSetup[], fail: (message: string) => never) => string[]} autoImportDirectories Resolves the directories a layer auto-imports from.
  */
 
 /** @type {(id: string) => UnimportModule} */
@@ -60,7 +60,7 @@ const jiti = createJiti(import.meta.url, {
 
 /**
  * @param {unknown} loaded
- * @returns {loaded is FrontendBuildLoader}
+ * @returns {loaded is FrontendBuildLoader} Whether `loaded` is the module that loads the frontend build.
  */
 function isFrontendBuildLoader(loaded) {
   return (
@@ -74,7 +74,7 @@ function isFrontendBuildLoader(loaded) {
  * Every name the DMS renderer auto-imports from the directories this layer
  * declares in `dms.frontend.build.ts`, types included, sorted. It runs the
  * renderer's own directory resolution and the auto-importer's own scanner.
- * @returns {Promise<string[]>}
+ * @returns {Promise<string[]>} The sorted auto-imported names.
  */
 export async function layerAutoImportNames() {
   const loader = await jiti.import(

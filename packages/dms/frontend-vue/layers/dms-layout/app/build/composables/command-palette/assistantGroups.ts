@@ -6,7 +6,10 @@ export const ASSISTANT_ASK_GROUP_ID = "dms-assistant-ask";
 export const ASSISTANT_PROMPT_GROUP_ID = "dms-assistant-prompt";
 /** @internal */
 export const ASSISTANT_SUGGESTIONS_GROUP_ID = "dms-assistant-suggestions";
-/** @internal The hint shown on the item that Tab also reaches. */
+/**
+ * The hint shown on the item that Tab also reaches.
+ * @internal
+ */
 export const ASSISTANT_MODE_KEY = "Tab";
 
 const ASSISTANT_ITEM_CLASS = [
@@ -16,14 +19,20 @@ const ASSISTANT_ITEM_CLASS = [
   "[&_[data-slot=itemLeadingIcon]]:text-secondary",
 ].join(" ");
 
-/** @internal A suggestion with its label and prompt resolved for display. */
+/**
+ * A suggestion with its label and prompt resolved for display.
+ * @internal
+ */
 export interface ResolvedAssistantSuggestion {
   label: string;
   prompt: string;
   icon: string;
 }
 
-/** @internal What the search-mode "Ask the assistant" group needs. */
+/**
+ * What the search-mode "Ask the assistant" group needs.
+ * @internal
+ */
 export interface AssistantAskGroupOptions {
   /** Group header: the assistant's resolved label. */
   label: string;
@@ -32,7 +41,10 @@ export interface AssistantAskGroupOptions {
   onAsk: (query: string) => void;
 }
 
-/** @internal What the assistant-mode groups need. */
+/**
+ * What the assistant-mode groups need.
+ * @internal
+ */
 export interface AssistantModeGroupsOptions {
   icon: string;
   promptLabel: string;

@@ -89,6 +89,8 @@ export function openTabBus(
  * Runs `lead` in one tab at a time per `name`. When the leading tab resigns
  * or goes, the next waiting tab takes over and runs its own `lead`.
  *
+ * @param name The lock and channel the tabs elect on
+ * @param environment The browser APIs the election uses
  * @param lead Starts the leader's work; returns what stops it
  * @returns Resigns: stops the work when leading, or stops waiting
  */
@@ -180,8 +182,11 @@ export function whenReleased(
  * One source for every tab of the browser: the elected tab opens it, and what
  * it emits reaches each tab's `onMessage`, the leader's included.
  *
+ * @param name The lock and channel the tabs share
  * @param open Opens the source, handing it what relays a message; returns
  *   what closes it
+ * @param onMessage Receives each message the source emits, in every tab
+ * @param environment The browser APIs the sharing uses
  * @returns Leaves: closes the source when leading, and stops listening
  */
 export function shareAcrossTabs(

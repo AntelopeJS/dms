@@ -10,13 +10,19 @@ import {
 /** @internal */
 export type CommandPaletteMode = "search" | "assistant";
 
-/** @internal One submitted prompt; `id` changes on every submission. */
+/**
+ * One submitted prompt; `id` changes on every submission.
+ * @internal
+ */
 export interface CommandPaletteSubmission {
   id: number;
   prompt: string;
 }
 
-/** @internal The registered assistant's fields, resolved for display. */
+/**
+ * The registered assistant's fields, resolved for display.
+ * @internal
+ */
 export interface ResolvedCommandPaletteAssistant {
   label: string;
   icon: string;

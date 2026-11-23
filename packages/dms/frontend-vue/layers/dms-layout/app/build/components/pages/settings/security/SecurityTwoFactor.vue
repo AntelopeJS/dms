@@ -194,6 +194,8 @@ const codeRefusal = (error: Ref<string | undefined>): FieldRefusal => ({
 });
 
 /**
+ * @param action The request to run
+ * @param fallbackKey The message key of the toast for a failure that is not a refusal
  * @param refusal Where a refused code or password shows (in the open dialog)
  *   instead of a toast
  */
