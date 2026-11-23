@@ -61,10 +61,6 @@ export const useModuleStoreActions = (
   const errorPresenter = useApiErrorPresenter();
   const { confirm } = useConfirm();
 
-  /**
-   * Runs `kind` from a dialog: a refusal is worded as the toast words it and
-   * shown in the dialog, which stays open.
-   */
   async function runFromDialog(
     kind: StoreOperationKind,
     entry: ModuleStoreEntry,
@@ -85,13 +81,8 @@ export const useModuleStoreActions = (
     }
   }
 
-  /** What the owner last picked in a module's install dialog, for a retry. */
   const lastDependencyDrafts = new Map<string, DependencyDraft[]>();
 
-  /**
-   * Asks which modules implement the interfaces the release misses, then
-   * installs them with it. A refusal shows in the dialog, kept open.
-   */
   async function installWithDependencies(
     entry: ModuleStoreEntry,
   ): Promise<void> {
@@ -159,7 +150,6 @@ export const useModuleStoreActions = (
     }
   }
 
-  /** Store modules whose interface the running frontend does not match yet. */
   const frontendNotice = computed<StoreFrontendNotice | null>(() => {
     const lagging = entries.value.filter(
       (entry) =>

@@ -6,6 +6,8 @@
  * tailwind-merged over it, and compound variants run after the defaults.
  *
  * Every class stays a literal string so Tailwind finds it when scanning.
+ *
+ * @packageDocumentation
  */
 
 import { EYEBROW_CLASS } from "#dms-ui/app/entries/utils/eyebrow";

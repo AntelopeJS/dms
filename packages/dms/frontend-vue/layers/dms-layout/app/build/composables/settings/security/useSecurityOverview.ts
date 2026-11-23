@@ -90,11 +90,6 @@ export function useSecurityOverview() {
     () => overview.value?.attentionTone ?? undefined,
   );
 
-  /**
-   * The strongest tone the server gives to those of `items` that need
-   * attention; undefined when none does. A block concerned by several items
-   * (the backup codes: unsaved, running low) is drawn in it.
-   */
   function attentionToneOf(items: SecurityAttention[]): Tone | undefined {
     const tones = overview.value?.attentionTones ?? {};
     const present = items
@@ -103,7 +98,6 @@ export function useSecurityOverview() {
     return ATTENTION_TONE_ORDER.find((tone) => present.includes(tone));
   }
 
-  /** Reads the summary again after a change: every block follows. */
   async function refresh(): Promise<void> {
     await summary.refresh({ dedupe: "defer" });
     if (summary.error.value) return;

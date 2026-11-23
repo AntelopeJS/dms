@@ -52,7 +52,6 @@ export function usePageRecordDeletion(source: PageRecordDeletionSource): void {
 
   const pageRoute = () => siteLayout.findMatchingRoute(route.path);
   const currentQuery = () => pageQueryValues(route.query);
-  /** The page URL the record is named by, leaving out the view's state. */
   const recordKey = () =>
     JSON.stringify([
       route.path,

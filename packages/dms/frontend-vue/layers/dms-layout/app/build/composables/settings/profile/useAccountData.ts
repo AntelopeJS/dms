@@ -156,10 +156,6 @@ function createDeletionPresentation(
     ];
   }
 
-  /**
-   * The password of the deletion dialog; a wrong one shows under it (the
-   * field marks itself invalid and describes the input with it).
-   */
   function passwordField(
     password: Ref<string>,
     error: Ref<string | undefined>,
@@ -219,7 +215,6 @@ function createDeletionPresentation(
     });
   }
 
-  /** The password is required: an empty one is flagged, not sent. */
   function passwordCheck(
     password: Ref<string>,
     error: Ref<string | undefined>,
@@ -255,11 +250,6 @@ export function useAccountData() {
   const { impactList, passwordField, explainBlockers, passwordCheck } =
     createDeletionPresentation(context);
 
-  /**
-   * Sends the deletion. A wrong password shows under the password field, a
-   * refused e-mail under the typed one; anything else is a toast. The dialog
-   * stays open on every failure.
-   */
   async function submitDeletion(
     impact: AccountDeletionImpact,
     password: string,

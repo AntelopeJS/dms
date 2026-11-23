@@ -66,14 +66,12 @@ export const useNotificationCatalog = (enabled: () => boolean = () => true) => {
   );
   const categories = computed(() => catalog.data.value?.categories ?? []);
   const subjects = computed(() => catalog.data.value?.subjects ?? []);
-  /** A module registered the e-mail channel: its column holds switches. */
   const hasEmailChannel = computed(
     () => catalog.data.value?.emailChannel === true,
   );
   const isLoaded = computed(() => !!catalog.data.value);
   const loadFailed = computed(() => !isLoaded.value && hasFailed(catalog));
 
-  /** Reads the catalog again (a retry). */
   const loadCatalog = (): Promise<void> => catalog.refresh({ dedupe: "defer" });
 
   const subjectsOf = (categoryId: string) =>
