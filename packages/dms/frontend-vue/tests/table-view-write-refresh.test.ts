@@ -1,10 +1,12 @@
-/** @vitest-environment jsdom */
 /**
  * A write through a table view (a row or bulk action, a form it opened) can
  * move what the rest of the page shows of the same records: a KPI counting
  * them, a tab's badge. The table asks every block of the page to read its data
  * again, itself among them, instead of reloading its own rows alone; its
  * refresh button still reloads only the table.
+ *
+ * @packageDocumentation
+ * @vitest-environment jsdom
  */
 import { createApp, defineComponent, h } from "vue";
 import { afterEach, describe, expect, it, vi } from "vitest";

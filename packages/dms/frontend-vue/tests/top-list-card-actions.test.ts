@@ -2,6 +2,8 @@
  * A TopListCard's head carries link buttons ("Catalogue →") after its period
  * badge, quiet like an ActivityFeed's; a card without them draws its head as
  * before.
+ *
+ * @packageDocumentation
  */
 import { createSSRApp, defineComponent, h, ref } from "vue";
 import { renderToString } from "vue/server-renderer";

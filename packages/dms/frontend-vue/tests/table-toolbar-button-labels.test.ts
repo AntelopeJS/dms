@@ -1,4 +1,7 @@
-/** @vitest-environment jsdom */
+/**
+ * @packageDocumentation
+ * @vitest-environment jsdom
+ */
 import { afterEach, beforeEach, expect, it } from "vitest";
 import {
   mountTableView,

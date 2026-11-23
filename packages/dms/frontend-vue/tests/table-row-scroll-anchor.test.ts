@@ -1,9 +1,11 @@
-/** @vitest-environment jsdom */
 /**
  * Rows added above the ones the reader scrolled to (a live list's new rows)
  * do not push them down: the table scrolls as far as they moved, in the same
  * frame. At the top of the list the new rows show, and a reorder, a filter or
  * another page is left alone.
+ *
+ * @packageDocumentation
+ * @vitest-environment jsdom
  */
 import { createApp, defineComponent, h, nextTick, ref, type App } from "vue";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";

@@ -1,6 +1,8 @@
 /**
  * A TopListCard writes its unit after each formatted value (`valueSuffix`),
  * and a row's `valueLabel` replaces the formatted value outright.
+ *
+ * @packageDocumentation
  */
 import { createSSRApp, defineComponent, h, ref, shallowRef } from "vue";
 import { renderToString } from "vue/server-renderer";

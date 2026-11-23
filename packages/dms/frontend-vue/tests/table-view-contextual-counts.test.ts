@@ -3,6 +3,8 @@
  * list, the rest of the table's state kept: a tab under the open view's
  * filters, the search and the page's URL filters; a view under the open tab.
  * The menu badge of a `navBadge` tab stays the page's global count.
+ *
+ * @packageDocumentation
  */
 import { describe, expect, it } from "vitest";
 import type { TableFilter } from "../layers/dms-ui/app/entries/components/table/TableRoot";

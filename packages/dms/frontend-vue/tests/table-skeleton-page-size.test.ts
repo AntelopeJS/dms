@@ -3,6 +3,8 @@
  * (or cards) as the page will list, up to the largest page size, so the
  * pagination footer under them already stands where the loaded page puts it
  * and does not move when the rows land.
+ *
+ * @packageDocumentation
  */
 import { computed, createSSRApp, defineComponent, h } from "vue";
 import { renderToString } from "vue/server-renderer";

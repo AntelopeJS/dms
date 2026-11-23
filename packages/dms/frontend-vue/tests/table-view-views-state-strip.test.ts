@@ -1,4 +1,7 @@
-/** @vitest-environment jsdom */
+/**
+ * @packageDocumentation
+ * @vitest-environment jsdom
+ */
 import { computed, createApp, defineComponent, h, ref, type App } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import TableViews from "../layers/dms-ui/app/entries/components/table/TableViews";

@@ -1,8 +1,10 @@
-/** @vitest-environment jsdom */
 /**
  * A `string_time` value reads as a duration in the reader's locale, wherever
  * a formatter shows it (a cell, a field's "before" note): the formatter's
  * second argument is the locale, never a separator (`7hfr30m`).
+ *
+ * @packageDocumentation
+ * @vitest-environment jsdom
  */
 import { h } from "vue";
 import { beforeAll, describe, expect, it, vi } from "vitest";

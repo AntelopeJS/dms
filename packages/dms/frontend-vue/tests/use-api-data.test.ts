@@ -1,9 +1,11 @@
-/** @vitest-environment jsdom */
 /**
  * `useApiData` through the runtime's real async data and the real
  * `$authFetch`: a server render reads, renders and hands over the data, the
  * browser hydrates with it and follows reactive requests, and every request
  * keeps `$authFetch`'s headers and session retry.
+ *
+ * @packageDocumentation
+ * @vitest-environment jsdom
  */
 import { surfaceRejection } from "./surface-rejection";
 import {

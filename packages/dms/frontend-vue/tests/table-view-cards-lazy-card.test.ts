@@ -1,9 +1,11 @@
-/** @vitest-environment jsdom */
 /**
  * A cards display whose custom card loads lazily keeps its skeleton until the
  * card's code is there, and the code of the components the card draws: an
  * empty grid would lift the pagination footer for a beat, then drop it when
  * the cards land.
+ *
+ * @packageDocumentation
+ * @vitest-environment jsdom
  */
 import { isObject } from "../layers/dms-core/app/utils/type-check";
 import "./helpers/table-runtime";

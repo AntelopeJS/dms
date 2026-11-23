@@ -1,4 +1,3 @@
-/** @vitest-environment jsdom */
 /**
  * A TopListCard's period badge across a server render and its hydration,
  * through the runtime's real payload: once its selector set up before it, the
@@ -6,6 +5,9 @@
  * preset reads the same in every zone, and a relative one at every instant),
  * and the browser hydrates it without a mismatch. A selector further down the
  * page leaves a skeleton on both sides, which the label replaces once mounted.
+ *
+ * @packageDocumentation
+ * @vitest-environment jsdom
  */
 import {
   createSSRApp,
