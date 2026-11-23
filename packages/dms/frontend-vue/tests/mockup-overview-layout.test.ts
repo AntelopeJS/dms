@@ -19,6 +19,7 @@ import {
   zoomAt,
   type OverviewFrame,
 } from "../layers/dms-ui/app/entries/utils/mockupOverview";
+import { defined } from "./helpers/defined";
 
 const pages = (count: number) =>
   Array.from({ length: count }, (_, index) => ({ id: `p${index + 1}` }));
@@ -163,7 +164,7 @@ describe("zooming", () => {
 describe("fitting every page", () => {
   it("shows every frame inside the viewport, off its edges, centred (fails when a frame is cut off or the canvas sits in a corner)", () => {
     const frames = layoutFrames(pages(10));
-    const camera = fitCamera(framesBounds(frames)!, VIEWPORT, 48);
+    const camera = fitCamera(defined(framesBounds(frames)), VIEWPORT, 48);
     const boxes = frames.map((frame) => onScreen(frame, camera));
 
     for (const box of boxes) {
@@ -192,7 +193,7 @@ describe("bringing a frame into view", () => {
   const camera = { x: 40, y: 60, zoom: 0.25 };
 
   it("pans the least that shows a frame off to the right, at the same zoom (fails when it recentres or zooms)", () => {
-    const frame = frames[4]!;
+    const frame = defined(frames[4]);
     const revealed = revealCamera(camera, frame.rect, VIEWPORT, 32);
 
     expect(revealed.zoom).toBe(camera.zoom);
@@ -201,11 +202,13 @@ describe("bringing a frame into view", () => {
   });
 
   it("leaves the camera alone when the frame is already in view", () => {
-    expect(revealCamera(camera, frames[0]!.rect, VIEWPORT, 32)).toEqual(camera);
+    expect(revealCamera(camera, defined(frames[0]).rect, VIEWPORT, 32)).toEqual(
+      camera,
+    );
   });
 
   it("shows a frame larger than the viewport from its top left corner", () => {
-    const frame = frames[3]!;
+    const frame = defined(frames[3]);
     const revealed = revealCamera(
       { x: 0, y: 0, zoom: 1 },
       frame.rect,
@@ -222,7 +225,7 @@ describe("the page under the pointer", () => {
   const camera = { x: 50, y: 80, zoom: 0.5 };
 
   it("names the frame's page and the point of that page, whatever the pan and the zoom (fails when the point is read on the canvas, not the page)", () => {
-    const second = frames[1]!.rect;
+    const second = defined(frames[1]).rect;
     const at = {
       x: camera.x + (second.x + 640) * camera.zoom,
       y: camera.y + (second.y + 200) * camera.zoom,
@@ -235,7 +238,7 @@ describe("the page under the pointer", () => {
   });
 
   it("names no page between two frames", () => {
-    const first = frames[0]!.rect;
+    const first = defined(frames[0]).rect;
     const at = {
       x: camera.x + (first.x + first.width + 20) * camera.zoom,
       y: camera.y + 100 * camera.zoom,
@@ -249,7 +252,9 @@ describe("the frames drawn live", () => {
 
   it("keeps to the frames in view and within half a viewport of it, nearest first (fails when every frame of the mockup loads)", () => {
     const camera = {
-      x: VIEWPORT.width / 2 - (frames[3]!.rect.x + OVERVIEW_FRAME_WIDTH / 2),
+      x:
+        VIEWPORT.width / 2 -
+        (defined(frames[3]).rect.x + OVERVIEW_FRAME_WIDTH / 2),
       y: 0,
       zoom: 1,
     };

@@ -25,6 +25,7 @@ import {
   ref,
   watch,
 } from "vue";
+import { defined } from "./helpers/defined";
 
 const flushPromises = () => new Promise((resolve) => setTimeout(resolve));
 
@@ -192,14 +193,22 @@ describe("a card dropped on a column the server refuses", () => {
         .filter((list) => list !== undefined);
       expect(lists).toHaveLength(2);
       const [source, target] = lists;
-      const item = source!.el.children[0];
+      const item = defined(source).el.children[0];
       if (!(item instanceof HTMLElement))
         throw new Error("the board has no card");
-      source!.option("onStart")!(new CardDragEvent(item, 0, undefined));
-      target!.el.append(item);
-      target!.option("onAdd")!(new CardDragEvent(item, undefined, 0));
-      source!.option("onRemove")!(new CardDragEvent(item, 0, undefined));
-      source!.option("onEnd")!(new CardDragEvent(item, undefined, undefined));
+      defined(defined(source).option("onStart"))(
+        new CardDragEvent(item, 0, undefined),
+      );
+      defined(target).el.append(item);
+      defined(defined(target).option("onAdd"))(
+        new CardDragEvent(item, undefined, 0),
+      );
+      defined(defined(source).option("onRemove"))(
+        new CardDragEvent(item, 0, undefined),
+      );
+      defined(defined(source).option("onEnd"))(
+        new CardDragEvent(item, undefined, undefined),
+      );
       await flushPromises();
       await flushPromises();
 
@@ -212,8 +221,8 @@ describe("a card dropped on a column the server refuses", () => {
       expect(addToast).toHaveBeenCalledExactlyOnceWith(
         expect.objectContaining(expected),
       );
-      expect(source!.el.children).toHaveLength(1);
-      expect(target!.el.children).toHaveLength(0);
+      expect(defined(source).el.children).toHaveLength(1);
+      expect(defined(target).el.children).toHaveLength(0);
     },
   );
 });

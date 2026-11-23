@@ -16,6 +16,7 @@ import {
 import { resolveCodeLanguage } from "../layers/dms-ui/app/entries/utils/codeLanguages";
 import { CODE_PALETTE } from "../layers/dms-ui/app/entries/utils/codePalette";
 import { shellParser } from "../layers/dms-ui/app/entries/utils/shellParser";
+import { defined } from "./helpers/defined";
 
 const KEYWORD = "var(--ui-primary)";
 const STRING = "var(--ui-success)";
@@ -51,7 +52,7 @@ function editorTokens(code: string, language: string): CodeToken[] {
   const tokens: CodeToken[] = [];
   let cursor = 0;
   highlightTree(
-    editorParsers.get(language)!.parse(code),
+    defined(editorParsers.get(language)).parse(code),
     PALETTE_HIGHLIGHTER,
     (from, to, classes) => {
       if (from > cursor) tokens.push({ text: code.slice(cursor, from) });

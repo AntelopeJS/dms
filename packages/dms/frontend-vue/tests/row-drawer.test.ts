@@ -21,6 +21,10 @@ import {
   openOn,
   mountHeader,
 } from "./row-drawer-runtime";
+import { defined } from "./helpers/defined";
+
+const elementIn = (host: ParentNode, selector: string) =>
+  defined(host.querySelector<HTMLElement>(selector));
 
 describe("a row drawer's header", () => {
   it("draws the row header with the row's title and position", async () => {
@@ -29,7 +33,7 @@ describe("a row drawer's header", () => {
     );
     expect(drawer.options.headerComponent).toBe(RowHeader);
     expect(drawer.options.title).toBe("First");
-    const header = headerOf(drawer)!;
+    const header = defined(headerOf(drawer));
     expect(header.heading).toBe("First");
     expect(header.positionLabel).toBe("$orders.position");
     expect(header.navigation).toMatchObject({ index: 0, total: 3 });
@@ -104,7 +108,7 @@ describe("the row header", () => {
     expect(
       host.querySelector("[data-dms-row-drawer-position]")?.textContent?.trim(),
     ).toBe("$api.request.position(4/50)");
-    app!.unmount();
+    defined(app).unmount();
     host = mountHeader({ part: "dms-row-drawer", navigation: navigation(0) });
     expect(
       host.querySelector("[data-dms-row-drawer-position]")?.textContent?.trim(),
@@ -134,7 +138,7 @@ describe("the row header", () => {
       part: "dms-row-drawer",
       navigation: navigation(3, next),
     });
-    host.querySelector<HTMLElement>("[data-dms-row-drawer-next]")!.click();
+    elementIn(host, "[data-dms-row-drawer-next]").click();
     await nextTick();
     expect(next).toHaveBeenCalledOnce();
   });
@@ -142,7 +146,7 @@ describe("the row header", () => {
   it("wraps a long title onto two lines before cutting it", () => {
     const heading = "Inverter offline since the storm, site 26 (north roof)";
     const host = mountHeader({ part: "dms-row-drawer", heading });
-    const title = host.querySelector("h2")!;
+    const title = elementIn(host, "h2");
     expect(title.className).toContain("line-clamp-2");
     expect(title.className).not.toContain("truncate");
     expect(title.title).toBe(heading);
@@ -160,7 +164,7 @@ describe("the row header", () => {
       heading: "billing.invoice.title",
       headingBreakAfter: ".",
     });
-    const title = host.querySelector("h2")!;
+    const title = elementIn(host, "h2");
     expect(
       [...title.querySelectorAll("span")].map((s) => s.textContent),
     ).toEqual(["billing.", "invoice.", "title"]);
@@ -175,10 +179,8 @@ describe("the row header", () => {
       subtitle: "helio › catalog",
       subtitleClass: "font-mono",
     });
-    const subtitle = host.querySelector<HTMLElement>(
-      "[data-dms-row-drawer-subtitle]",
-    )!;
-    const line = subtitle.parentElement!;
+    const subtitle = elementIn(host, "[data-dms-row-drawer-subtitle]");
+    const line = defined(subtitle.parentElement);
     expect([...line.children].map((part) => part.textContent?.trim())).toEqual([
       "side_panel.position(12/50)",
       "·",
@@ -203,9 +205,11 @@ describe("the row header", () => {
       component: Pills,
       componentOptions: { count: 2 },
     });
-    const pills = host.querySelector("[data-pills]")!;
+    const pills = elementIn(host, "[data-pills]");
     expect(pills.textContent).toBe("2 missing");
-    const column = host.querySelector("h2")!.parentElement!.parentElement!;
+    const column = defined(
+      defined(elementIn(host, "h2").parentElement).parentElement,
+    );
     expect(pills.parentElement).toBe(column);
     expect(column.className).toContain("space-y-1.5");
   });
@@ -249,7 +253,7 @@ describe("a row drawer's not-found state", () => {
     });
     targets.handleMissingRow(action, "r9");
     await vi.waitFor(() => expect(opened).toHaveLength(1));
-    const drawer = opened[0]!;
+    const drawer = defined(opened[0]);
     expect(drawer.options.component).toBe(RowNotFound);
     expect(drawer.options.title).toBe("Order details");
     expect(drawer.options.componentOptions).toMatchObject({

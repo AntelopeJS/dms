@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { extractRouteParams } from "../layers/dms-core/app/composables/page/useSiteLayout";
 import { resolveFormSuccessTarget } from "../layers/dms-ui/app/entries/composables/table-view/registerDefaultFunctions";
+import { defined } from "./helpers/defined";
 
 const EDIT_PATTERN = "/workspaces/:id/invoiceTable/:id/edit";
 const NEW_PATTERN = "/workspaces/:id/invoiceTable/new";
@@ -11,7 +12,7 @@ const routeOf = (
   pattern: string,
   path: string,
   query: Record<string, string> = {},
-) => ({ params: extractRouteParams(pattern, path)!, query });
+) => ({ params: defined(extractRouteParams(pattern, path)), query });
 
 describe("page-mode form redirect", () => {
   it("sends the edit form back to the page, not to the row", () => {

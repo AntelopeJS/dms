@@ -5,6 +5,7 @@
 import { createApp } from "vue";
 import { describe, expect, it, vi } from "vitest";
 import { dmsAppContext } from "./fixtures/dmsAppContext";
+import { defined } from "./helpers/defined";
 
 interface HeadInput {
   link: Array<Record<string, string>>;
@@ -33,7 +34,7 @@ describe("the dashboard fonts", () => {
       type: "font/woff2",
       crossorigin: "anonymous",
     });
-    expect(links[0]!.href).toMatch(/Geist-Variable\.woff2$/);
-    expect(links[0]!.href).not.toMatch(/^\/fonts\//);
+    expect(defined(links[0]).href).toMatch(/Geist-Variable\.woff2$/);
+    expect(defined(links[0]).href).not.toMatch(/^\/fonts\//);
   });
 });

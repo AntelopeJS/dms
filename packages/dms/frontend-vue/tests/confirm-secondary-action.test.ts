@@ -20,6 +20,7 @@ import {
   readOnlyFailure,
   installReadOnlyRefusal,
 } from "./helpers/read-only-refusal";
+import { defined } from "./helpers/defined";
 
 const i18n = createI18n({
   legacy: false,
@@ -53,7 +54,7 @@ describe("a confirmation's secondary action, resolved", () => {
       label: "Download fr.json",
       icon: "i-ph-download-simple",
     });
-    await options.secondaryAction!.run();
+    await defined(options.secondaryAction).run();
     expect(runTarget).toHaveBeenCalledWith({
       type: "download",
       url: "/legacy/lang/site/fr.json",
@@ -236,9 +237,9 @@ describe("ConfirmModal secondary action", () => {
     const run = vi.fn().mockRejectedValue(readOnlyFailure());
     mount({ title: "Remove?", secondaryAction: { label: "Download", run } });
     await flush();
-    button("Download")!.click();
+    defined(button("Download")).click();
     await flush();
-    button("Download")!.click();
+    defined(button("Download")).click();
     await flush();
     expect(run).toHaveBeenCalledTimes(2);
     expect(closed).not.toHaveBeenCalled();
@@ -258,14 +259,14 @@ describe("ConfirmModal secondary action", () => {
     });
     await flush();
 
-    button("Download fr.json")!.click();
+    defined(button("Download fr.json")).click();
     await flush();
 
     expect(run).toHaveBeenCalledTimes(1);
     expect(closed).not.toHaveBeenCalled();
     expect(onConfirm).not.toHaveBeenCalled();
 
-    button("dms.confirm.confirm")!.click();
+    defined(button("dms.confirm.confirm")).click();
     await flush();
     expect(closed).toHaveBeenCalledWith(true);
   });
@@ -278,7 +279,7 @@ describe("ConfirmModal secondary action", () => {
     });
     await flush();
 
-    button("Download fr.json")!.click();
+    defined(button("Download fr.json")).click();
     await flush();
 
     expect(host.querySelector("[data-alert]")).not.toBeNull();

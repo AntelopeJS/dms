@@ -12,6 +12,7 @@ import {
   BlockFunctions,
   refreshPageBlocks,
 } from "../layers/dms-ui/app/utils/blockRefresh";
+import { defined } from "./helpers/defined";
 
 const requests: string[] = [];
 let answer = 1;
@@ -183,14 +184,14 @@ it("keeps both refresh callers waiting for the replacement read", async () => {
   await settle();
 
   expect(deferredReads).toHaveLength(2);
-  expect(deferredReads[0]!.signal.aborted).toBe(true);
+  expect(defined(deferredReads[0]).signal.aborted).toBe(true);
   expect(block.probe.data?.value).toEqual({ value: 1 });
   expect(block.probe.isLoading?.value).toBe(true);
   expect({ firstDone, secondDone }).toEqual({
     firstDone: false,
     secondDone: false,
   });
-  deferredReads[1]!.resolve({ value: 2 });
+  defined(deferredReads[1]).resolve({ value: 2 });
   await Promise.all([first, second]);
   expect(block.probe.data?.value).toEqual({ value: 2 });
   expect(block.probe.isLoading?.value).toBe(false);
@@ -221,7 +222,7 @@ it.each([new Error("Unavailable"), new DOMException("Aborted", "AbortError")])(
     deferredReads = [];
     const refreshed = refreshPageBlocks();
     await settle();
-    deferredReads[0]!.reject(failure);
+    defined(deferredReads[0]).reject(failure);
     await expect(refreshed).resolves.toBeUndefined();
     expect(block.probe.isLoading?.value).toBe(false);
     expect(block.probe.data?.value).toEqual({ value: 1 });

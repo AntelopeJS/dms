@@ -2,6 +2,7 @@ import { computed, effectScope, nextTick, reactive, ref, watch } from "vue";
 import type { EffectScope } from "vue";
 import { afterEach, expect, it, vi } from "vitest";
 import { usePageLayout } from "../layers/dms-layout/app/composables/page/usePageLayout";
+import { defined } from "./helpers/defined";
 
 let scope: EffectScope;
 
@@ -30,7 +31,7 @@ it("loads a page registered after setup without changing the route", async () =>
     loadPageLayout,
   }));
   scope = effectScope();
-  const { pageLayout } = await scope.run(usePageLayout)!;
+  const { pageLayout } = await defined(scope.run(usePageLayout));
   expect(pageLayout.value).toBeNull();
   expect(loadPageLayout).not.toHaveBeenCalled();
 
@@ -60,8 +61,8 @@ it("keeps persistent consumers on the hydrated navigation cache without fetching
     }),
   }));
   scope = effectScope();
-  const layout = await scope.run(usePageLayout)!;
-  const page = await scope.run(usePageLayout)!;
+  const layout = await defined(scope.run(usePageLayout));
+  const page = await defined(scope.run(usePageLayout));
   expect(layout.pageLayout.value).toBe("first");
   pageLayouts.value = { "/second/layout": "second" };
   route.path = "/second";

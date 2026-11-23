@@ -20,6 +20,7 @@ import {
 } from "../layers/dms-ui/app/composables/usePasswordStrength";
 import type { localizeSchema } from "../layers/dms-core/app/composables/useFormValidation";
 import { mountInBrowser } from "./helpers/api-data-runtime";
+import { defined } from "./helpers/defined";
 
 type FormSchema = ReturnType<typeof localizeSchema>;
 
@@ -178,7 +179,7 @@ async function submit(container: HTMLElement) {
     );
     if (!(input instanceof HTMLInputElement))
       throw new Error(`Missing input ${autocomplete}`);
-    input.value = value!;
+    input.value = defined(value);
     input.dispatchEvent(new Event("input", { bubbles: true }));
   }
   await nextTick();
@@ -293,7 +294,7 @@ it("opens the first accessible page from the Ready step once the session is refr
   button(container, "page.onboarding.ready.submit").click();
   await settle();
   expect(redirect).toHaveBeenCalledOnce();
-  expect(redirect.mock.calls[0]![0]()).toBe("/dashboard");
+  expect(defined(redirect.mock.calls[0])[0]()).toBe("/dashboard");
 });
 
 it("opens a next step's page from the Ready step", async () => {
@@ -336,7 +337,9 @@ it("asks for the setup token when the address has none, and sends what is typed"
   field.value = "  typed-token  ";
   field.dispatchEvent(new Event("input", { bubbles: true }));
   await submit(container);
-  expect(register.mock.calls[0]![1].body.setupToken).toBe("typed-token");
+  expect(defined(register.mock.calls[0])[1].body.setupToken).toBe(
+    "typed-token",
+  );
 });
 
 it("takes the token out of the address once the wizard has it, and passes it to the register step", async () => {
@@ -350,5 +353,5 @@ it("takes the token out of the address once the wizard has it, and passes it to 
   button(container, "page.onboarding.platform.submit").click();
   await settle();
   await submit(container);
-  expect(register.mock.calls[0]![1].body.setupToken).toBe(SETUP_TOKEN);
+  expect(defined(register.mock.calls[0])[1].body.setupToken).toBe(SETUP_TOKEN);
 });

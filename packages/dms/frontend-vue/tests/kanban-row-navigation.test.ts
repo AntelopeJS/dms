@@ -21,6 +21,7 @@ import {
   ref,
   watch,
 } from "vue";
+import { defined } from "./helpers/defined";
 
 const flushPromises = () => new Promise((resolve) => setTimeout(resolve));
 
@@ -63,7 +64,7 @@ let host: HTMLDivElement;
 
 const authFetch = vi.fn(
   async (_url: string, { query }: { query: Record<string, string> }) => {
-    const stage = query.filter_stage!.replace("is:", "");
+    const stage = defined(query.filter_stage).replace("is:", "");
     const results = DEALS.filter((deal) => deal.stage === stage);
     return { results, total: results.length };
   },

@@ -9,6 +9,7 @@ import { createApp, h, nextTick, reactive, type App } from "vue";
 import { afterEach, describe, expect, it } from "vitest";
 import Sortable from "sortablejs";
 import type { SortableListChange } from "../layers/dms-ui/app/entries/components/sortable/SortableList";
+import { defined } from "./helpers/defined";
 
 interface FakeSortable {
   el: HTMLElement;
@@ -93,7 +94,7 @@ function mountLists(columns: Card[][], changes: Change[][]) {
             "onUpdate:list": (next: Card[]) => (lists[index] = next),
             itemKey: (card: Card) => card.id,
             group: "board",
-            onChange: (change: Change) => changes[index]!.push(change),
+            onChange: (change: Change) => defined(changes[index]).push(change),
           },
           { item: ({ element }: { element: Card }) => h("p", element.id) },
         ),
@@ -120,7 +121,9 @@ function moveElement(
   to: HTMLElement,
   newIndex: number,
 ) {
-  const item = from.querySelectorAll<HTMLElement>(":scope > *")[oldIndex]!;
+  const item = defined(
+    from.querySelectorAll<HTMLElement>(":scope > *")[oldIndex],
+  );
   item.remove();
   to.insertBefore(item, to.children[newIndex] ?? null);
   return item;
@@ -136,19 +139,24 @@ describe("a sortable list", () => {
     await nextTick();
     const [sortable] = instances;
     const call = (name: DragCallback, event: DragReplay) =>
-      drag(sortable!, name, event);
+      drag(defined(sortable), name, event);
 
     call("onStart", {
-      item: sortable!.el.querySelectorAll<HTMLElement>(":scope > *")[0],
+      item: defined(sortable).el.querySelectorAll<HTMLElement>(":scope > *")[0],
       oldIndex: 0,
     });
-    const item = moveElement(sortable!.el, 0, sortable!.el, 2);
-    call("onUpdate", { from: sortable!.el, item, oldIndex: 0, newIndex: 2 });
+    const item = moveElement(defined(sortable).el, 0, defined(sortable).el, 2);
+    call("onUpdate", {
+      from: defined(sortable).el,
+      item,
+      oldIndex: 0,
+      newIndex: 2,
+    });
     call("onEnd", {});
     await nextTick();
 
-    expect(ids(lists[0]!)).toEqual(["b", "c", "a"]);
-    expect(texts(sortable!)).toEqual(["b", "c", "a"]);
+    expect(ids(defined(lists[0]))).toEqual(["b", "c", "a"]);
+    expect(texts(defined(sortable))).toEqual(["b", "c", "a"]);
     expect(changes[0]).toEqual([
       { moved: { element: { id: "a" }, oldIndex: 0, newIndex: 2 } },
     ]);
@@ -162,31 +170,31 @@ describe("a sortable list", () => {
     );
     await nextTick();
     const [source, target] = instances;
-    drag(source!, "onStart", {
-      item: source!.el.querySelectorAll<HTMLElement>(":scope > *")[1],
+    drag(defined(source), "onStart", {
+      item: defined(source).el.querySelectorAll<HTMLElement>(":scope > *")[1],
       oldIndex: 1,
     });
-    const item = moveElement(source!.el, 1, target!.el, 0);
+    const item = moveElement(defined(source).el, 1, defined(target).el, 0);
 
-    drag(target!, "onAdd", {
-      from: source!.el,
+    drag(defined(target), "onAdd", {
+      from: defined(source).el,
       item,
       oldIndex: 1,
       newIndex: 0,
     });
-    drag(source!, "onRemove", {
-      from: source!.el,
+    drag(defined(source), "onRemove", {
+      from: defined(source).el,
       item,
       oldIndex: 1,
       newIndex: 0,
     });
-    drag(source!, "onEnd", {});
+    drag(defined(source), "onEnd", {});
     await nextTick();
 
-    expect(ids(lists[0]!)).toEqual(["a"]);
-    expect(ids(lists[1]!)).toEqual(["b", "c"]);
-    expect(texts(source!)).toEqual(["a"]);
-    expect(texts(target!)).toEqual(["b", "c"]);
+    expect(ids(defined(lists[0]))).toEqual(["a"]);
+    expect(ids(defined(lists[1]))).toEqual(["b", "c"]);
+    expect(texts(defined(source))).toEqual(["a"]);
+    expect(texts(defined(target))).toEqual(["b", "c"]);
     expect(changes[1]).toEqual([
       { added: { element: { id: "b" }, newIndex: 0 } },
     ]);
@@ -198,7 +206,7 @@ describe("a sortable list", () => {
   it("passes SortableJS the options of the list", async () => {
     mountLists([[{ id: "a" }]], [[]]);
     await nextTick();
-    expect(instances[0]!.options).toMatchObject({
+    expect(defined(instances[0]).options).toMatchObject({
       group: { name: "board" },
       preventOnFilter: false,
     });

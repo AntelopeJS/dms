@@ -5,6 +5,7 @@ import {
   readSetFieldValueParams,
   resolveFieldValueWrite,
 } from "../layers/dms-ui/app/entries/composables/form/fieldValueRule";
+import { defined } from "./helpers/defined";
 
 const PROBABILITY_BY_STAGE = {
   targetField: "probability",
@@ -111,10 +112,13 @@ describe("readSetFieldValueParams", () => {
     const params = readSetFieldValueParams(PROBABILITY_BY_STAGE);
     expect(params).toBeDefined();
     expect(
-      resolveFieldValueWrite(params!, { fieldId: "stage", value: "won" }),
+      resolveFieldValueWrite(defined(params), {
+        fieldId: "stage",
+        value: "won",
+      }),
     ).toEqual({ value: 100 });
     expect(
-      resolveFieldValueWrite(params!, { value: "toString" }),
+      resolveFieldValueWrite(defined(params), { value: "toString" }),
     ).toBeUndefined();
   });
 
@@ -124,7 +128,7 @@ describe("readSetFieldValueParams", () => {
       value: 1,
       valueMap: null,
     });
-    expect(resolveFieldValueWrite(params!, { value: "a" })).toEqual({
+    expect(resolveFieldValueWrite(defined(params), { value: "a" })).toEqual({
       value: 1,
     });
   });
@@ -179,7 +183,9 @@ describe("readFieldFlagParams", () => {
 
   it("reads nothing from params that name no string target", () => {
     expect(readFieldFlagParams(undefined, "setHidden")).toBeUndefined();
-    expect(readFieldFlagParams({ setHidden: true }, "setHidden")).toBeUndefined();
+    expect(
+      readFieldFlagParams({ setHidden: true }, "setHidden"),
+    ).toBeUndefined();
     expect(
       readFieldFlagParams({ targetField: 7, setHidden: true }, "setHidden"),
     ).toBeUndefined();

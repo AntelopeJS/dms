@@ -23,6 +23,7 @@ import {
   shownName,
   press,
 } from "./row-side-panel-runtime";
+import { defined } from "./helpers/defined";
 
 describe("sidePanel action target", () => {
   it("opens a docked panel on the row, the DMS drawing its header", async () => {
@@ -129,10 +130,10 @@ describe("row side panel navigation", () => {
     const { host, targets } = mountPanel(shown);
     targets.handleCustomRowAction(panelAction(), rows[1]);
     await settle();
-    shown.value = [rows[1]!];
+    shown.value = [defined(rows[1])];
     await settle();
     expect(position(host)).toBe("side_panel.position(1/1)");
-    shown.value = [rows[0]!];
+    shown.value = [defined(rows[0])];
     await settle();
     expect(position(host)).toBeUndefined();
     expect(query(host, "[data-dms-row-side-panel-next]")).toBeNull();

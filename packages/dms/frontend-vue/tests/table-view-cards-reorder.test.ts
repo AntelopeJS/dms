@@ -17,6 +17,7 @@ import { moveRow } from "../layers/dms-ui/app/entries/composables/table-view/uti
 import type { TableViewDisplayContext } from "../layers/dms-ui/app/composables/table-view/types/display";
 import { displayContext } from "./fixtures/displayContext";
 import { fetchClient } from "./fixtures/fetchClient";
+import { defined } from "./helpers/defined";
 
 type Row = TableViewDisplayContext["items"][number];
 
@@ -139,13 +140,15 @@ describe("dragging the cards of a hand-ordered table", () => {
     const { context, moves, items } = createContext();
     view.mount(context);
     expect(view.handles()).toHaveLength(3);
-    expect(view.handles()[0]!.getAttribute("aria-label")).toBe(
+    expect(defined(view.handles()[0]).getAttribute("aria-label")).toBe(
       "dms.table.reorder.move",
     );
-    view.handles()[2]!.dispatchEvent(dragEvent("dragstart"));
+    defined(view.handles()[2]).dispatchEvent(dragEvent("dragstart"));
     await nextTick();
-    expect(view.cards()[2]!.classList.contains("opacity-50")).toBe(true);
-    view.cards()[0]!.dispatchEvent(dragEvent("drop"));
+    expect(defined(view.cards()[2]).classList.contains("opacity-50")).toBe(
+      true,
+    );
+    defined(view.cards()[0]).dispatchEvent(dragEvent("drop"));
     expect(moves).toEqual([[2, 0]]);
     expect(items.value.map((row) => row._id)).toEqual(["t2", "t0", "t1"]);
   });
@@ -161,14 +164,14 @@ describe("dragging the cards of a hand-ordered table", () => {
       );
     const marks = () => view.cards().map((card) => card.dataset.reorderDrop);
 
-    view.handles()[2]!.dispatchEvent(pointer("dragstart", 10, 10));
-    view.cards()[0]!.dispatchEvent(pointer("dragover", 40, 30));
+    defined(view.handles()[2]).dispatchEvent(pointer("dragstart", 10, 10));
+    defined(view.cards()[0]).dispatchEvent(pointer("dragover", 40, 30));
     await nextTick();
     expect(preview()?.textContent).toContain("Task t2");
     expect(preview()?.getAttribute("style")).toContain("translate: 30px 20px");
     expect(marks()).toEqual(["before", undefined, undefined]);
 
-    view.cards()[0]!.dispatchEvent(pointer("drop", 40, 30));
+    defined(view.cards()[0]).dispatchEvent(pointer("drop", 40, 30));
     await nextTick();
     expect(preview()).toBe(undefined);
     expect(marks()).toEqual([undefined, undefined, undefined]);
@@ -177,15 +180,15 @@ describe("dragging the cards of a hand-ordered table", () => {
   it("moves a card by one with the arrow keys and keeps the focus on its handle", async () => {
     const { context, moves, items } = createContext();
     view.mount(context);
-    const handle = view.handles()[1]!;
+    const handle = defined(view.handles()[1]);
     handle.focus();
     handle.dispatchEvent(key("ArrowLeft"));
     await nextTick();
     await nextTick();
     expect(items.value.map((row) => row._id)).toEqual(["t1", "t0", "t2"]);
     expect(document.activeElement).toBe(handle);
-    view.handles()[2]!.dispatchEvent(key("ArrowDown"));
-    view.handles()[0]!.dispatchEvent(key("ArrowUp"));
+    defined(view.handles()[2]).dispatchEvent(key("ArrowDown"));
+    defined(view.handles()[0]).dispatchEvent(key("ArrowUp"));
     expect(moves).toEqual([[1, 0]]);
   });
 });
@@ -196,25 +199,25 @@ describe("the cards of a hand-ordered table beside their handles", () => {
   it("keeps its selection and its default action beside the handle", () => {
     const { context, opened, selected } = createContext();
     view.mount(context);
-    view.handles()[0]!.click();
-    view.handles()[0]!.dispatchEvent(key("Enter"));
+    defined(view.handles()[0]).click();
+    defined(view.handles()[0]).dispatchEvent(key("Enter"));
     expect(opened).toEqual([]);
-    view.container
-      .querySelectorAll("input")[0]!
-      .dispatchEvent(new Event("change"));
+    defined(view.container.querySelectorAll("input")[0]).dispatchEvent(
+      new Event("change"),
+    );
     expect(selected.value).toEqual(["t1", "t0"]);
-    view.cards()[2]!.click();
+    defined(view.cards()[2]).click();
     expect(opened).toEqual([context.items[2]]);
   });
 
   it("disables the handle while moving is off, saying how to turn it on", () => {
     const { context, moves } = createContext(false);
     view.mount(context);
-    const handle = view.container.querySelector("header button")!;
+    const handle = defined(view.container.querySelector("header button"));
     expect(handle.hasAttribute("disabled")).toBe(true);
     expect(handle.getAttribute("title")).toBe("dms.table.reorder.disabled");
     handle.dispatchEvent(dragEvent("dragstart"));
-    view.cards()[0]!.dispatchEvent(dragEvent("drop"));
+    defined(view.cards()[0]).dispatchEvent(dragEvent("drop"));
     expect(moves).toEqual([]);
   });
 
@@ -233,10 +236,10 @@ describe("the cards of a hand-ordered table beside their handles", () => {
       "true",
       "false",
     ]);
-    view.handles()[0]!.dispatchEvent(dragEvent("dragstart"));
-    view.cards()[2]!.dispatchEvent(dragEvent("drop"));
+    defined(view.handles()[0]).dispatchEvent(dragEvent("dragstart"));
+    defined(view.cards()[2]).dispatchEvent(dragEvent("drop"));
     expect(moves).toEqual([[0, 2]]);
-    view.handles()[1]!.dispatchEvent(key("ArrowRight"));
+    defined(view.handles()[1]).dispatchEvent(key("ArrowRight"));
     expect(moves).toEqual([
       [0, 2],
       [1, 2],

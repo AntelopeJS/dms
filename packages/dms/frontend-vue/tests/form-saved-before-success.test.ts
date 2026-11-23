@@ -10,6 +10,7 @@ import {
   readOnlyFailure,
   installReadOnlyRefusal,
 } from "./helpers/read-only-refusal";
+import { defined } from "./helpers/defined";
 
 const authFetch = vi.fn();
 const sendComponentEvent = vi.fn();
@@ -20,18 +21,20 @@ const FIELDS = [
 ];
 
 function setupForm(onSaved: () => void) {
-  return scope.run(() =>
-    useForm(
-      {
-        componentId: "form-1",
-        pageId: "page-1",
-        fields: FIELDS,
-        fetchUrl: "/api/invites/get?id=invite-1",
-        submitUrl: "/api/invites/edit?id=invite-1",
-      },
-      { onSaved },
+  return defined(
+    scope.run(() =>
+      useForm(
+        {
+          componentId: "form-1",
+          pageId: "page-1",
+          fields: FIELDS,
+          fetchUrl: "/api/invites/get?id=invite-1",
+          submitUrl: "/api/invites/edit?id=invite-1",
+        },
+        { onSaved },
+      ),
     ),
-  )!;
+  );
 }
 
 beforeEach(() => {

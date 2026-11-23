@@ -5,6 +5,7 @@ import { createI18n } from "vue-i18n";
 import uiEn from "../layers/dms-ui/app/entries/i18n/locales/ui-en-GB.json";
 import SaveStatus from "../layers/dms-ui/app/components/save-bar/SaveStatus.vue";
 import InstantSaveBadge from "../layers/dms-ui/app/components/save-bar/InstantSaveBadge.vue";
+import { defined } from "./helpers/defined";
 
 const i18n = createI18n({
   legacy: false,
@@ -51,13 +52,15 @@ describe("DmsSaveStatus: a failed save", () => {
     await mount(() => h(SaveStatus, { state: "error", onRetry }));
 
     expect(host.textContent).toContain("Not saved");
-    host.querySelector("button")!.click();
+    defined(host.querySelector("button")).click();
     expect(onRetry).toHaveBeenCalledOnce();
   });
 
   it("turns the header pill red and says it was not saved", async () => {
     await mount(() => h(InstantSaveBadge, { state: "error" }));
-    const pill = host.querySelector<HTMLElement>("[data-instant-save-badge]")!;
+    const pill = defined(
+      host.querySelector<HTMLElement>("[data-instant-save-badge]"),
+    );
 
     expect(pill.textContent?.trim()).toBe("Not saved");
     expect(pill.className).toContain("text-error");

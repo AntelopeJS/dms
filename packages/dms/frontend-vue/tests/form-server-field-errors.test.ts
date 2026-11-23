@@ -12,6 +12,7 @@ import {
   resolveFormFieldErrors,
   useForm,
 } from "../layers/dms-ui/app/composables/form/useForm";
+import { defined } from "./helpers/defined";
 
 const authFetch = vi.fn();
 const addToast = vi.fn(() => ({ id: "failure" }));
@@ -37,17 +38,19 @@ const zodRefusal = (issues: unknown[]) => ({
 });
 
 function setupForm() {
-  return scope.run(() =>
-    useForm(
-      {
-        componentId: "form-1",
-        pageId: "page-1",
-        fields: FIELDS,
-        submitUrl: "/api/things/new",
-      },
-      { showFieldErrors },
+  return defined(
+    scope.run(() =>
+      useForm(
+        {
+          componentId: "form-1",
+          pageId: "page-1",
+          fields: FIELDS,
+          submitUrl: "/api/things/new",
+        },
+        { showFieldErrors },
+      ),
     ),
-  )!;
+  );
 }
 
 const submit = (form: ReturnType<typeof setupForm>) =>

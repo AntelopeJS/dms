@@ -19,6 +19,7 @@ import {
   formFieldInjectionKey,
   useFormField,
 } from "@nuxt/ui/composables/useFormField";
+import { defined } from "./helpers/defined";
 
 const fieldError = ref<string | undefined>();
 type FormBus =
@@ -122,7 +123,7 @@ it("requests an email keyboard without autocompleting the administrator's addres
   );
   await mountInField(InputEmail);
 
-  const input = host.querySelector("input")!;
+  const input = defined(host.querySelector("input"));
   expect(input.type).toBe("email");
   expect(input.autocomplete).toBe("off");
 });
@@ -132,7 +133,7 @@ it("marks the date picker trigger invalid and describes it by the error", async 
     "../layers/dms-ui/app/components/form/components/DatePicker.vue"
   );
   await mountInField(DatePicker);
-  const trigger = () => host.querySelector("button")!;
+  const trigger = () => defined(host.querySelector("button"));
 
   expect(trigger().getAttribute("aria-invalid")).not.toBe("true");
   expect(trigger().getAttribute("class")).not.toContain("ring-error");
@@ -154,7 +155,7 @@ it("keeps the date bounds on the calendar", async () => {
     minDate: "2026-01-01",
     maxDate: "2026-12-31",
   });
-  const calendar = host.querySelector("[min-value]")!;
+  const calendar = defined(host.querySelector("[min-value]"));
 
   expect(calendar.getAttribute("min-value")).toContain("2026");
   expect(calendar.getAttribute("max-value")).toContain("2026");
@@ -165,8 +166,8 @@ it("marks the colour field invalid on both its swatch and its input", async () =
     "../layers/dms-ui/app/components/form/components/InputColor.vue"
   );
   await mountInField(InputColor);
-  const swatch = () => host.querySelector("label")!;
-  const input = () => host.querySelector("input:not([type=color])")!;
+  const swatch = () => defined(host.querySelector("label"));
+  const input = () => defined(host.querySelector("input:not([type=color])"));
 
   expect(swatch().className).toContain("border-accented");
 

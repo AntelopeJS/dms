@@ -21,6 +21,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import CardsDisplay from "../layers/dms-ui/app/entries/components/table-view/CardsDisplay";
 import type { TableViewDisplayContext } from "../layers/dms-ui/app/composables/table-view/types/display";
 import { displayContext } from "./fixtures/displayContext";
+import { defined } from "./helpers/defined";
 
 type Row = TableViewDisplayContext["items"][number];
 
@@ -130,9 +131,13 @@ describe("the row actions of the cards display", () => {
       "Actions for Printer jam",
       "Actions for VPN down",
     ]);
-    const header = container.querySelector("article header")!;
-    expect(header.lastElementChild!.contains(menus()[0]!)).toBe(true);
-    expect(header.lastElementChild!.className).toContain("[&>div]:opacity-100");
+    const header = defined(container.querySelector("article header"));
+    expect(defined(header.lastElementChild).contains(defined(menus()[0]))).toBe(
+      true,
+    );
+    expect(defined(header.lastElementChild).className).toContain(
+      "[&>div]:opacity-100",
+    );
   });
 
   it("runs the action without opening the card, by click or by key", () => {
@@ -141,13 +146,13 @@ describe("the row actions of the cards display", () => {
       createTable([actionsColumn(edited)]),
     );
     mount(context);
-    menus()[1]!.click();
-    menus()[1]!.dispatchEvent(
+    defined(menus()[1]).click();
+    defined(menus()[1]).dispatchEvent(
       new KeyboardEvent("keydown", { key: "Enter", bubbles: true }),
     );
     expect(edited).toEqual(["t2"]);
     expect(opened).toEqual([]);
-    container.querySelector("article")!.click();
+    defined(container.querySelector("article")).click();
     expect(opened).toEqual([rows[0]]);
   });
 
@@ -155,7 +160,7 @@ describe("the row actions of the cards display", () => {
     mount(createContext(createTable([])).context);
     expect(container.querySelectorAll("article")).toHaveLength(2);
     expect(menus()).toHaveLength(0);
-    app!.unmount();
+    defined(app).unmount();
     container.remove();
     mount(createContext().context);
     expect(menus()).toHaveLength(0);
@@ -178,7 +183,7 @@ describe("the row actions of the cards display", () => {
     vi.stubGlobal("resolveDmsComponent", () => Spy);
     mount(context);
     expect(menus()).toHaveLength(2);
-    menus()[0]!.click();
+    defined(menus()[0]).click();
     expect(edited).toEqual(["t1"]);
     expect(opened).toEqual([]);
     const first = received.slice(0, 2);

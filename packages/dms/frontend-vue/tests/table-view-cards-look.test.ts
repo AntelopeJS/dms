@@ -11,6 +11,7 @@ import type {
 import type { DataTypeFormatter } from "../layers/dms-core/app/composables/data-types/useDataType";
 import { displayContext } from "./fixtures/displayContext";
 import { tableViewColumn } from "./fixtures/tableViewColumn";
+import { defined } from "./helpers/defined";
 
 const column = (
   accessorKey: string,
@@ -80,7 +81,7 @@ describe("the cards display", () => {
       [column("name", "string"), column("progress", "number", progress)],
       { fields: ["progress"] },
     );
-    expect(container.querySelector("dd")!.textContent).toBe(
+    expect(defined(container.querySelector("dd")).textContent).toBe(
       "progress-empty(team-05)",
     );
   });

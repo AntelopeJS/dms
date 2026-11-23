@@ -11,6 +11,7 @@ import {
   type App,
 } from "vue";
 import type { DmsFooterConfig } from "../layers/dms-core/app/entries/shared/types/app-config";
+import { defined } from "./helpers/defined";
 
 let app: App | undefined;
 let host: HTMLDivElement;
@@ -147,9 +148,9 @@ describe("footer", () => {
 
   it("switches only the screen's language for a visitor", async () => {
     await mountFooter();
-    host
-      .querySelector("[data-locale-switcher]")!
-      .dispatchEvent(new Event("change"));
+    defined(host.querySelector("[data-locale-switcher]")).dispatchEvent(
+      new Event("change"),
+    );
     await nextTick();
     expect(setLocale).toHaveBeenCalledWith("fr");
     expect(changeLanguage).not.toHaveBeenCalled();
@@ -158,9 +159,9 @@ describe("footer", () => {
   it("stores a signed-in user's switch on their profile", async () => {
     isLoggedIn = true;
     await mountFooter();
-    host
-      .querySelector("[data-locale-switcher]")!
-      .dispatchEvent(new Event("change"));
+    defined(host.querySelector("[data-locale-switcher]")).dispatchEvent(
+      new Event("change"),
+    );
     await nextTick();
     expect(changeLanguage).toHaveBeenCalledWith("fr");
     expect(setLocale).not.toHaveBeenCalled();

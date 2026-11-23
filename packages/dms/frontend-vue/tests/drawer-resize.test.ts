@@ -32,6 +32,7 @@ import {
 import { DialogRoot } from "reka-ui";
 import type { DrawerOptions } from "../layers/dms-ui/app/composables/containers/types";
 import type { formFieldInjectionKey as FormFieldKey } from "@nuxt/ui/composables/useFormField";
+import { defined } from "./helpers/defined";
 
 type FieldInjection =
   typeof FormFieldKey extends InjectionKey<infer Value> ? Value : never;
@@ -147,9 +148,10 @@ async function mountDrawer(props: DrawerProps): Promise<void> {
   await nextTick();
 }
 
-const content = () => host.querySelector<HTMLElement>("[data-slot='content']")!;
-const handle = () =>
-  host.querySelector<HTMLElement>("[data-dms-drawer-handle]")!;
+const elementAt = (selector: string) =>
+  defined(host.querySelector<HTMLElement>(selector));
+const content = () => elementAt("[data-slot='content']");
+const handle = () => elementAt("[data-dms-drawer-handle]");
 const drawerSize = () => content().style.getPropertyValue(SIZE_VARIABLE);
 
 const press = async (key: string) => {
@@ -376,7 +378,7 @@ describe("a drawer opened through useDrawer", () => {
   });
 
   it("reopens at the size given to the same component", async () => {
-    const sizeKey = componentSizeKey(SetupEditor)!;
+    const sizeKey = defined(componentSizeKey(SetupEditor));
     await mountDrawer({ direction: "right", sizeKey });
     await press("ArrowLeft");
     await mountDrawer({ direction: "right", sizeKey });
@@ -431,10 +433,10 @@ describe("a drawer's body", () => {
     await nextTick();
     expect(rendered.ui?.body).toContain("flex");
     expect(rendered.ui?.body).toContain("flex-col");
-    const wrapper = host.querySelector("[data-body]")!.parentElement!;
+    const wrapper = defined(elementAt("[data-body]").parentElement);
     expect(wrapper.className).toContain("flex-1");
     expect(wrapper.className).toContain("flex-col");
-    const footer = host.querySelector("footer")!;
+    const footer = elementAt("footer");
     expect(footer.className).toContain("mt-auto");
     expect(footer.className).toContain("sticky");
     expect(footer.className).toContain("justify-between");

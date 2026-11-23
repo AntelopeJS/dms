@@ -26,6 +26,7 @@ import {
   sorted,
   withoutDependencies,
 } from "./helpers/role-permissions-fixtures";
+import { defined } from "./helpers/defined";
 
 describe("role permissions", () => {
   const fixture = createRolePermissionsFixture();
@@ -352,8 +353,8 @@ function registerPermissionSelectionTests(
       let before = [...start];
       let after = new Set(start);
       for (let click = 0; click < 12; click++) {
-        const id = ids[Math.floor(random() * ids.length)]!;
-        const node = plain.nodes.get(id)!;
+        const id = defined(ids[Math.floor(random() * ids.length)]);
+        const node = defined(plain.nodes.get(id));
         const originalState = original.checkbox(before, node);
         expect(checkboxState(plain, id, after)).toBe(originalState);
         before = original.check(before, node, clickedValue(originalState));

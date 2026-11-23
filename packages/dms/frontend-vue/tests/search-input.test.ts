@@ -13,6 +13,7 @@ import {
 import { freshDmsState } from "./state-stub";
 import { defineShortcuts } from "@nuxt/ui/runtime/composables/defineShortcuts.js";
 import type SearchInputComponent from "../layers/dms-ui/app/entries/components/form/SearchInput";
+import { defined } from "./helpers/defined";
 
 const Input = defineComponent({
   inheritAttrs: false,
@@ -51,7 +52,7 @@ async function mount(
   await nextTick();
 }
 
-const input = () => host.querySelector("input")!;
+const input = () => defined(host.querySelector("input"));
 const hints = () =>
   [...host.querySelectorAll("kbd")].map((kbd) => kbd.textContent);
 

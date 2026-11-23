@@ -1,5 +1,6 @@
 import type { CommandPaletteGroup, CommandPaletteItem } from "@nuxt/ui";
 import { defineComponent, h } from "vue";
+import { defined } from "../helpers/defined";
 
 function matchingItems(
   group: CommandPaletteGroup,
@@ -73,7 +74,7 @@ export const PaletteStub = defineComponent(
           }),
           groups.length
             ? groups.flatMap((group) =>
-                group.items!.map((item) => renderItem(group, item)),
+                defined(group.items).map((item) => renderItem(group, item)),
               )
             : slots.empty?.(),
           slots.footer?.(),

@@ -8,6 +8,7 @@ import {
   SETTINGS_ROUTE,
   isAccountMenuRoute,
 } from "../layers/dms-layout/app/utils/account-menu";
+import { defined } from "./helpers/defined";
 
 interface TreeNodeStub {
   id: string;
@@ -76,7 +77,7 @@ it("leaves the account destinations to the session group", async () => {
   );
   await setup(dmsAppContext(createApp({ render: () => null })));
 
-  const targets = registered!
+  const targets = defined(registered)
     .groups()
     .flatMap((group) => group.items ?? [])
     .map((item) => item.to);

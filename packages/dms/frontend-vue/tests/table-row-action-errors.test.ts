@@ -21,6 +21,7 @@ import {
 } from "../layers/dms-ui/app/composables/confirm/types";
 import core from "../layers/dms-core/app/entries/i18n/locales/core-en-GB.json";
 import ui from "../layers/dms-ui/app/entries/i18n/locales/ui-en-GB.json";
+import { defined } from "./helpers/defined";
 
 vi.stubGlobal("shallowRef", shallowRef);
 const { useTableRowActions } = await import(
@@ -181,13 +182,13 @@ function registerRowActionRefusalTests() {
       { _id: "i1" },
     );
     await vi.waitFor(() => expect(dialogs).toHaveLength(1));
-    await vi.waitFor(() => expect(dialogs[0]!.error).toBeDefined());
+    await vi.waitFor(() => expect(defined(dialogs[0]).error).toBeDefined());
 
     expect(api).toHaveBeenCalledWith("/api/invites/i1/resend", {
       method: HttpMethod.post,
     });
 
-    expect(dialogs[0]!.error).toHaveProperty("statusCode", 404);
+    expect(defined(dialogs[0]).error).toHaveProperty("statusCode", 404);
     expect(toast.add).not.toHaveBeenCalled();
     expect(refresh).not.toHaveBeenCalled();
   });
@@ -230,7 +231,7 @@ function registerRowActionRefusalTests() {
     const done = await archiveRows(["1", "2", "3", "4", "5"], true);
 
     expect(done).toBe(true);
-    expect(dialogs[0]!.outcome).toEqual({
+    expect(defined(dialogs[0]).outcome).toEqual({
       partial: {
         title: "2 of 5 items couldn’t be archived.",
         description:
@@ -255,7 +256,7 @@ function registerBulkActionRefusalTests() {
     const done = await deleteRows(["1", "2"], true);
 
     expect(done).toBe(false);
-    const error = dialogs[0]!.error;
+    const error = defined(dialogs[0]).error;
     expect(error).toBeInstanceOf(ConfirmActionError);
     expect(error).toHaveProperty("message", "dms.table.bulk_refused.delete");
     expect(toast.add).not.toHaveBeenCalled();
@@ -267,7 +268,7 @@ function registerBulkActionRefusalTests() {
     const { archiveRows } = rowActions();
 
     expect(await archiveRows(["1"], true)).toBe(false);
-    expect(dialogs[0]!.error).toHaveProperty("name", "FetchError");
+    expect(defined(dialogs[0]).error).toHaveProperty("name", "FetchError");
     expect(toast.add).not.toHaveBeenCalled();
   });
 
@@ -314,7 +315,7 @@ function registerBulkActionRefusalTests() {
     );
     await vi.waitFor(() => expect(api).toHaveBeenCalled());
 
-    expect(dialogs[0]!.options.title).toBe("Ban Ada?");
+    expect(defined(dialogs[0]).options.title).toBe("Ban Ada?");
     expect(api).toHaveBeenCalledWith("/api/users/u1/ban", {
       method: HttpMethod.post,
       body: { notify: false, scope: "all", reason: "spam" },
@@ -336,7 +337,7 @@ function registerRowActionDialogTests() {
     });
 
     expect(done).toBe(true);
-    expect(dialogs[0]!.options.title).toBe("1 item deleted");
+    expect(defined(dialogs[0]).options.title).toBe("1 item deleted");
     expect(api).toHaveBeenLastCalledWith("/api/task/delete", {
       method: HttpMethod.delete,
       query: { id: ["t1"] },
@@ -349,7 +350,7 @@ function registerRowActionDialogTests() {
 
     await deleteRows(["t1"], { confirm: { title: "Delete {name}?" } });
 
-    expect(dialogs[0]!.options.title).toBe("Delete Write the report?");
+    expect(defined(dialogs[0]).options.title).toBe("Delete Write the report?");
   });
 
   it("words a fixed dialog with the row its caller hands (a kanban card)", async () => {
@@ -362,7 +363,7 @@ function registerRowActionDialogTests() {
       { rows: [{ _id: "t9", name: "Plan the launch" }] },
     );
 
-    expect(dialogs[0]!.options.title).toBe("Delete Plan the launch?");
+    expect(defined(dialogs[0]).options.title).toBe("Delete Plan the launch?");
     expect(getRow).not.toHaveBeenCalled();
   });
 
@@ -374,7 +375,7 @@ function registerRowActionDialogTests() {
     await deleteRows(["t9"], { confirm: { title: "Delete {name}?" } });
 
     expect(getRow).toHaveBeenCalledWith("t9");
-    expect(dialogs[0]!.options.title).toBe("Delete Plan the launch?");
+    expect(defined(dialogs[0]).options.title).toBe("Delete Plan the launch?");
   });
 
   it("asks a fixed dialog anyway when the row cannot be read", async () => {
@@ -387,7 +388,7 @@ function registerRowActionDialogTests() {
     });
 
     expect(done).toBe(true);
-    expect(dialogs[0]!.options.title).toBe("Delete 1 task?");
+    expect(defined(dialogs[0]).options.title).toBe("Delete 1 task?");
   });
 
   it("words a fixed dialog with the count of the rows it deletes", async () => {
@@ -398,7 +399,7 @@ function registerRowActionDialogTests() {
       confirm: { title: "Delete {count} tasks?" },
     });
 
-    expect(dialogs[0]!.options.title).toBe("Delete 2 tasks?");
+    expect(defined(dialogs[0]).options.title).toBe("Delete 2 tasks?");
   });
 
   it("keeps the generic confirmation for several rows of a `from` dialog", async () => {
@@ -410,7 +411,7 @@ function registerRowActionDialogTests() {
     });
 
     expect(api).not.toHaveBeenCalledWith("/api/task/t1/delete-confirm");
-    expect(dialogs[0]!.options.title).toBe("Delete 2 items?");
+    expect(defined(dialogs[0]).options.title).toBe("Delete 2 items?");
   });
 }
 
@@ -431,7 +432,7 @@ function registerRowActionConfirmationTests() {
 
     expect(done).toBe(true);
     expect(api).toHaveBeenCalledWith("/api/roles/delete-confirm?ids=r1&ids=r2");
-    expect(dialogs[0]!.options.title).toBe("Delete 2 roles?");
+    expect(defined(dialogs[0]).options.title).toBe("Delete 2 roles?");
     expect(api).toHaveBeenLastCalledWith("/api/task/delete", {
       method: HttpMethod.delete,
       query: { id: ["r1", "r2"] },
@@ -448,7 +449,7 @@ function registerRowActionConfirmationTests() {
       { _id: "t1", name: "Docs" },
       proceed,
     );
-    expect(dialogs[0]!.options.title).toBe("Edit Docs?");
+    expect(defined(dialogs[0]).options.title).toBe("Edit Docs?");
     expect(proceed).toHaveBeenCalledOnce();
 
     confirm.mockResolvedValueOnce(false);

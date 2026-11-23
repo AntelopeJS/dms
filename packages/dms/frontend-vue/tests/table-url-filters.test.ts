@@ -19,6 +19,7 @@ import {
   visibleUrlFilters,
   withoutQueryParam,
 } from "../layers/dms-ui/app/entries/composables/table-view/utils/urlFilters";
+import { defined } from "./helpers/defined";
 
 describe("visibleUrlFilters", () => {
   const declared = {
@@ -149,11 +150,11 @@ describe("filters row URL chips", () => {
     ]);
     const chips = container.querySelectorAll("[data-dms-url-filter]");
     expect(chips).toHaveLength(2);
-    expect(chips[0]!.textContent).toContain("t:app.email");
-    expect(chips[0]!.textContent).toContain("a@b.test");
-    expect(chips[1]!.textContent).toContain("Template");
+    expect(defined(chips[0]).textContent).toContain("t:app.email");
+    expect(defined(chips[0]).textContent).toContain("a@b.test");
+    expect(defined(chips[1]).textContent).toContain("Template");
 
-    chips[1]!.querySelector("button")!.click();
+    defined(defined(chips[1]).querySelector("button")).click();
     await nextTick();
     expect(emits).toHaveBeenCalledWith("removeUrlFilter", "template");
   });

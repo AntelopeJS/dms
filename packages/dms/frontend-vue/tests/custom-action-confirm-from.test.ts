@@ -5,6 +5,7 @@ import { unusedApi } from "./fixtures/unusedApi";
 import { useActionTargets } from "../layers/dms-ui/app/entries/composables/actions/useActionTargets";
 import { interpolateUrl } from "../layers/dms-core/app/utils/url-interpolation";
 import type { CustomRowAction } from "../layers/dms-ui/app/types/row-action";
+import { defined } from "./helpers/defined";
 
 const authFetch = vi.fn(async () => ({ title: "Refund?" }));
 const navigateDms = vi.fn();
@@ -27,7 +28,7 @@ function mountTargets(rowIdKey?: string) {
     }),
   );
   app.mount(document.createElement("div"));
-  return targets!;
+  return defined(targets);
 }
 
 const REFUND: CustomRowAction = {

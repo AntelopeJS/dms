@@ -29,6 +29,7 @@ import type {
   TableNewRowsCounter,
 } from "../layers/dms-ui/app/entries/composables/table-view/useTableLiveHold";
 import type { TableViewLiveHoldOptions } from "../layers/dms-core/app/types/live";
+import { defined } from "./helpers/defined";
 
 const { useRefreshTriggers } = await import(
   "../layers/dms-ui/app/entries/composables/blocks/useRefreshTriggers"
@@ -71,7 +72,7 @@ function mountTable(options: MountedTableOptions) {
   );
   app.mount(document.createElement("div"));
   apps.push(app);
-  return { refresh, hold: hold! };
+  return { refresh, hold: defined(hold) };
 }
 
 beforeEach(async () => {
@@ -233,7 +234,7 @@ function placedTable(tableTop: number, rowBottom: number) {
   const element = document.createElement("div");
   element.innerHTML = "<table><tbody><tr><td>1</td></tr></tbody></table>";
   document.body.append(element);
-  const row = element.querySelector("tr")!;
+  const row = defined(element.querySelector("tr"));
   const place = (top: number, bottom: number) => {
     element.getBoundingClientRect = () => new DOMRect(0, top, 0, 400);
     row.getBoundingClientRect = () => new DOMRect(0, bottom - 40, 0, 40);

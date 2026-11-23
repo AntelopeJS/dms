@@ -9,6 +9,7 @@ import {
   SWITCH_ACCOUNT_ROUTE,
   isAccountMenuRoute,
 } from "../layers/dms-layout/app/utils/account-menu";
+import { defined } from "./helpers/defined";
 
 interface Messages {
   [key: string]: string | Messages;
@@ -38,9 +39,9 @@ describe("account menu entries", () => {
     ["en-GB", enGB, "Settings"],
     ["fr", fr, "Paramètres"],
   ])("labels Settings in %s", (_locale, messages, label) => {
-    const entry = ACCOUNT_MENU_ENTRIES.find(
-      (item) => item.to === SETTINGS_ROUTE,
-    )!;
+    const entry = defined(
+      ACCOUNT_MENU_ENTRIES.find((item) => item.to === SETTINGS_ROUTE),
+    );
     expect(lookup(messages, entry.labelKey)).toBe(label);
     ACCOUNT_MENU_ENTRIES.forEach((item) =>
       expect(isString(lookup(messages, item.labelKey))).toBe(true),

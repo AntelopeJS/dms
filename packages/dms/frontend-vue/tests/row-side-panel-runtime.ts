@@ -25,6 +25,7 @@ import {
 import { closeRowSidePanel } from "../layers/dms-ui/app/entries/composables/layout/rowSidePanel";
 import { useActionTargets } from "../layers/dms-ui/app/entries/composables/actions/useActionTargets";
 import type { CustomRowAction } from "../layers/dms-ui/app/types/row-action";
+import { defined } from "./helpers/defined";
 
 const PANEL_COMPONENT = "RunPanel";
 const ROW_PANEL_COMPONENT = "DmsRowSidePanel";
@@ -219,7 +220,7 @@ function mountPanel(
   app.component(ROW_PANEL_COMPONENT, RowSidePanel);
   app.component("DmsRecursiveComponent", RecursiveComponent);
   app.mount(host);
-  return { host, targets: targets!, showTable };
+  return { host, targets: defined(targets), showTable };
 }
 
 const settle = async () => {

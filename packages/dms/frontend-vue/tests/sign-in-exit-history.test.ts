@@ -21,6 +21,7 @@ import {
   installAuthSettingsRuntime,
   PinInput,
 } from "./helpers/auth-settings-runtime";
+import { defined } from "./helpers/defined";
 
 const { default: OAuthCompletePage } = await import(
   "../layers/dms-auth/app/custom-pages/auth/oauth-complete.vue"
@@ -124,7 +125,7 @@ async function submit(code: string) {
     input.dispatchEvent(new Event("input"));
     await settle();
   }
-  host.querySelector("form")!.dispatchEvent(new Event("submit"));
+  defined(host.querySelector("form")).dispatchEvent(new Event("submit"));
   await settle();
 }
 
@@ -176,7 +177,7 @@ it("replaces the backup code page with the destination", async () => {
   fetchApi.mockResolvedValueOnce(undefined);
   mountPage(BackupCodePage);
   await settle();
-  host.querySelector("form")!.dispatchEvent(new Event("submit"));
+  defined(host.querySelector("form")).dispatchEvent(new Event("submit"));
   await settle();
 
   expect(fetchApi).toHaveBeenCalledWith(

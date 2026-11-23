@@ -6,6 +6,7 @@ import type { ChartClickPayload } from "../layers/dms-ui/app/composables/chart/e
 import type { ChartSeries } from "../layers/dms-ui/app/composables/chart/types";
 import { isNumber, isString } from "../layers/dms-core/app/utils/type-check";
 import { chartRuntime } from "./helpers/charts-runtime";
+import { defined } from "./helpers/defined";
 
 type LabelFormatter = (
   value: string,
@@ -83,7 +84,7 @@ async function draw(
   app.component("DmsApexChartHost", PlotProbe);
   await chartRuntime(app);
   await renderToString(app);
-  return probed!;
+  return defined(probed);
 }
 
 function xCoordinate(point: ChartSeries["data"][number]): string {
@@ -94,8 +95,10 @@ function xCoordinate(point: ChartSeries["data"][number]): string {
 }
 
 function axisLabels(chart: Probed): string[] {
-  const format = chart.options.xaxis.labels.formatter!;
-  return chart.series[0]!.data.map((point) => format(xCoordinate(point)));
+  const format = defined(chart.options.xaxis.labels.formatter);
+  return defined(chart.series[0]).data.map((point) =>
+    format(xCoordinate(point)),
+  );
 }
 
 beforeEach(() => {
@@ -120,7 +123,7 @@ describe("a column chart of calendar buckets on a datetime axis", () => {
       "2026-09-01T00:00:00.000Z",
     ]);
     expect(chart.options.xaxis.type).toBe("category");
-    expect(chart.series[0]!.data.map(xCoordinate)).toEqual([
+    expect(defined(chart.series[0]).data.map(xCoordinate)).toEqual([
       "2026-08-01",
       "2026-09-01",
     ]);
@@ -142,17 +145,24 @@ describe("a column chart of calendar buckets on a datetime axis", () => {
     ) {
       return `${format}:${date.getMonth() + 1}:${String(this.w)}`;
     });
-    const label = chart.options.xaxis.labels.formatter!("2026-09-01", 0, {
-      dateFormatter,
-      w: "apex",
-    });
+    const label = defined(chart.options.xaxis.labels.formatter)(
+      "2026-09-01",
+      0,
+      {
+        dateFormatter,
+        w: "apex",
+      },
+    );
     expect(label).toBe("MMM:9:apex");
   });
 
   it("keeps an empty month in its slot", async () => {
     const chart = await draw(["2026-06-01", "2026-07-01", "2026-09-01"]);
     expect(axisLabels(chart)).toEqual(["Jun 26", "Jul 26", "Aug 26", "Sep 26"]);
-    expect(chart.series[0]!.data[2]).toEqual({ x: "2026-08-01", y: null });
+    expect(defined(chart.series[0]).data[2]).toEqual({
+      x: "2026-08-01",
+      y: null,
+    });
   });
 
   it("names the route's point when a column after a gap is clicked", async () => {
@@ -161,10 +171,14 @@ describe("a column chart of calendar buckets on a datetime axis", () => {
     const chart = await draw(["2026-06-01", "2026-07-01", "2026-09-01"], {
       onPointClick: (payload: ChartClickPayload) => clicks.push(payload),
     });
-    chart.options.chart.events!.dataPointSelection!(null, null, {
-      seriesIndex: 0,
-      dataPointIndex: 3,
-    });
+    defined(defined(chart.options.chart.events).dataPointSelection)(
+      null,
+      null,
+      {
+        seriesIndex: 0,
+        dataPointIndex: 3,
+      },
+    );
     expect(clicks[0]).toMatchObject({ dataPointIndex: 2, value: 12 });
   });
 

@@ -2,6 +2,7 @@ import type { Ref } from "vue";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { sharedDmsState, type StateValue } from "./state-stub";
 import { useSiteLayout } from "../layers/dms-core/app/composables/page/useSiteLayout";
+import { defined } from "./helpers/defined";
 
 const state = new Map<string, Ref<StateValue>>();
 const authFetch = vi.fn();
@@ -32,7 +33,7 @@ it("deduplicates consumers but never writes an old account response into a new c
   const joined = second.loadPageLayout("/layout");
   expect(authFetch).toHaveBeenCalledTimes(1);
 
-  state.get("dms-pageLayouts")!.value = {};
+  defined(state.get("dms-pageLayouts")).value = {};
   authFetch.mockResolvedValueOnce({ components: { fresh: {} } });
   await second.loadPageLayout("/layout");
   finish({ components: { secret: {} } });
@@ -54,7 +55,10 @@ it("does not overwrite an Inertia site payload with a pre-navigation fetch", asy
   );
   const layout = useSiteLayout();
   const request = layout.loadSiteLayout();
-  state.get("dms-siteLayout")!.value = { pages: { fresh: {} }, categories: {} };
+  defined(state.get("dms-siteLayout")).value = {
+    pages: { fresh: {} },
+    categories: {},
+  };
   finish({ siteLayout: { pages: { secret: {} }, categories: {} } });
   await request;
   expect(layout.siteLayout.value).toEqual({
@@ -74,7 +78,10 @@ it("does not show a stale request error after successful Inertia navigation", as
   vi.stubGlobal("showDmsError", showDmsError);
   const layout = useSiteLayout();
   const request = layout.loadSiteLayout();
-  state.get("dms-siteLayout")!.value = { pages: { fresh: {} }, categories: {} };
+  defined(state.get("dms-siteLayout")).value = {
+    pages: { fresh: {} },
+    categories: {},
+  };
   fail(new Error("old account request"));
   await expect(request).rejects.toThrow("old account request");
   expect(showDmsError).not.toHaveBeenCalled();

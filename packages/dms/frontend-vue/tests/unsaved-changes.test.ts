@@ -15,6 +15,7 @@ import {
   registerUnsavedChanges,
   resetUnsavedChanges,
 } from "../layers/dms-ui/app/entries/composables/unsaved-changes/registry";
+import { defined } from "./helpers/defined";
 
 describe("sameFormValue", () => {
   it("compares nested objects and lists by value", () => {
@@ -56,8 +57,8 @@ describe("sameFormValue", () => {
     const file = new Blob(["x"]);
     const value = { list: [{ a: 1 }], file };
     const copy = snapshotFormValue(value);
-    value.list[0]!.a = 2;
-    expect(copy.list[0]!.a).toBe(1);
+    defined(value.list[0]).a = 2;
+    expect(defined(copy.list[0]).a).toBe(1);
     expect(copy.file).toBe(file);
   });
 });

@@ -12,6 +12,9 @@ import {
   headerOf,
   press,
 } from "./row-drawer-runtime";
+import { defined } from "./helpers/defined";
+
+const firstDrawer = () => defined(opened[0]);
 
 describe("a row drawer's steps across the table's pages", () => {
   const PAGE_SIZE = 2;
@@ -39,16 +42,20 @@ describe("a row drawer's steps across the table's pages", () => {
     return { targets, loadAdjacent };
   }
 
-  const navigationOf = (drawer: OpenedDrawer) => headerOf(drawer)!.navigation!;
+  const navigationOf = (drawer: OpenedDrawer) =>
+    defined(defined(headerOf(drawer)).navigation);
+  const openRowAt = (targets: ReturnType<typeof mountTargets>, index: number) =>
+    targets.handleCustomRowAction(
+      drawerAction({ positionLabel: "$p" }),
+      allRows[index],
+    );
+  const firstNavigation = () => navigationOf(firstDrawer());
 
   it("counts every row the table lists, not the page loaded", async () => {
     const { targets } = pagedTable();
-    targets.handleCustomRowAction(
-      drawerAction({ positionLabel: "$p" }),
-      allRows[1],
-    );
+    openRowAt(targets, 1);
     await vi.waitFor(() => expect(opened).toHaveLength(1));
-    expect(navigationOf(opened[0]!)).toMatchObject({
+    expect(firstNavigation()).toMatchObject({
       index: 1,
       total: 5,
       hasNext: true,
@@ -57,12 +64,9 @@ describe("a row drawer's steps across the table's pages", () => {
 
   it("loads the next page past the last row loaded, and steps back", async () => {
     const { targets, loadAdjacent } = pagedTable();
-    targets.handleCustomRowAction(
-      drawerAction({ positionLabel: "$p" }),
-      allRows[1],
-    );
+    openRowAt(targets, 1);
     await vi.waitFor(() => expect(opened).toHaveLength(1));
-    const drawer = opened[0]!;
+    const drawer = firstDrawer();
     press("j");
     await vi.waitFor(() => expect(latest(drawer).componentKey).toBe("p2"));
     expect(loadAdjacent).toHaveBeenCalledWith(1);
@@ -77,12 +81,9 @@ describe("a row drawer's steps across the table's pages", () => {
     const { targets, loadAdjacent } = pagedTable();
     await loadAdjacent(1);
     await loadAdjacent(1);
-    targets.handleCustomRowAction(
-      drawerAction({ positionLabel: "$p" }),
-      allRows[4],
-    );
+    openRowAt(targets, 4);
     await vi.waitFor(() => expect(opened).toHaveLength(1));
-    expect(navigationOf(opened[0]!)).toMatchObject({
+    expect(firstNavigation()).toMatchObject({
       index: 4,
       total: 5,
       hasNext: false,
@@ -100,26 +101,25 @@ describe("a row drawer's steps across the table's pages", () => {
         return true;
       },
     });
-    targets.handleCustomRowAction(
-      drawerAction({ positionLabel: "$p" }),
-      allRows[1],
-    );
+    openRowAt(targets, 1);
     await vi.waitFor(() => expect(opened).toHaveLength(1));
-    navigationOf(opened[0]!).next();
-    await vi.waitFor(() => expect(latest(opened[0]!).componentKey).toBe("p2"));
-    expect(navigationOf(opened[0]!)).toMatchObject({ index: 2, total: 5 });
+    firstNavigation().next();
+    await vi.waitFor(() =>
+      expect(latest(firstDrawer()).componentKey).toBe("p2"),
+    );
+    expect(firstNavigation()).toMatchObject({
+      index: 2,
+      total: 5,
+    });
   });
 
   it("keeps to the rows loaded without a loader", async () => {
     const targets = mountTargets(ref(allRows.slice(0, PAGE_SIZE)), {
       total: () => allRows.length,
     });
-    targets.handleCustomRowAction(
-      drawerAction({ positionLabel: "$p" }),
-      allRows[1],
-    );
+    openRowAt(targets, 1);
     await vi.waitFor(() => expect(opened).toHaveLength(1));
-    expect(navigationOf(opened[0]!)).toMatchObject({
+    expect(firstNavigation()).toMatchObject({
       index: 1,
       total: 5,
       hasNext: false,
@@ -128,12 +128,9 @@ describe("a row drawer's steps across the table's pages", () => {
 
   it("lands on no closed drawer", async () => {
     const { targets, loadAdjacent } = pagedTable();
-    targets.handleCustomRowAction(
-      drawerAction({ positionLabel: "$p" }),
-      allRows[1],
-    );
+    openRowAt(targets, 1);
     await vi.waitFor(() => expect(opened).toHaveLength(1));
-    const drawer = opened[0]!;
+    const drawer = firstDrawer();
     press("j");
     drawer.close();
     await vi.waitFor(() => expect(loadAdjacent).toHaveBeenCalled());
@@ -174,7 +171,7 @@ describe("a row drawer off the rows loaded", () => {
       allRows[4],
     );
     await vi.waitFor(() => expect(opened).toHaveLength(1));
-    const drawer = opened[0]!;
+    const drawer = firstDrawer();
     await vi.waitFor(() =>
       expect(navigationOf(drawer)).toMatchObject({
         index: 4,
@@ -202,7 +199,7 @@ describe("a row drawer off the rows loaded", () => {
       allRows[1],
     );
     await vi.waitFor(() => expect(opened).toHaveLength(1));
-    const drawer = opened[0]!;
+    const drawer = firstDrawer();
 
     live.value = [{ _id: "new", name: "New" }, ...live.value];
     expect(navigationOf(drawer)).toMatchObject({ index: 2, total: 4 });
@@ -224,7 +221,7 @@ describe("a row drawer off the rows loaded", () => {
       allRows[1],
     );
     await vi.waitFor(() => expect(opened).toHaveLength(1));
-    const drawer = opened[0]!;
+    const drawer = firstDrawer();
     all.value = [
       { _id: "a", name: "A" },
       { _id: "b", name: "B" },

@@ -15,6 +15,7 @@ import {
   type PageLiveController,
 } from "../layers/dms-ui/app/entries/composables/live/pageLiveController";
 import { setCurrentPageLive } from "../layers/dms-ui/app/entries/composables/live/currentPageLive";
+import { defined } from "./helpers/defined";
 
 const ROW_OPEN_NOTICE = "dms.live.table_held · dms.live.held_row_open";
 
@@ -96,7 +97,7 @@ it("says the table is on hold while a drawer has one of its rows open, and stops
   const container = await openRowIn({ type: "drawer", direction: "right" });
   expect(notice(container)).toBe(ROW_OPEN_NOTICE);
 
-  openDrawers[0]!();
+  defined(openDrawers[0])();
   await settleTable();
   expect(notice(container)).toBeUndefined();
 });

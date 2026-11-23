@@ -19,6 +19,7 @@ import {
   relationSelectSource,
 } from "../layers/dms-ui/app/entries/composables/data-types/relationRows";
 import { isObject } from "../layers/dms-core/app/utils/type-check";
+import { defined } from "./helpers/defined";
 
 const RELATION_TYPE = { selectSource: relationSelectSource };
 
@@ -214,16 +215,18 @@ describe("a read-only list's rows", () => {
     const { host } = await mountTable([{ product: "p1", unitPrice: 319 }]);
     const [, priceHead] = host.querySelectorAll("th");
     const [productCell, priceCell] = host.querySelectorAll("tbody td");
-    expect(priceHead!.className).toContain("text-end");
-    expect(priceCell!.className).toContain("text-end");
-    expect(productCell!.className).not.toContain("text-end");
-    const scroller = host.querySelector("table")!.parentElement!;
+    expect(defined(priceHead).className).toContain("text-end");
+    expect(defined(priceCell).className).toContain("text-end");
+    expect(defined(productCell).className).not.toContain("text-end");
+    const scroller = defined(
+      defined(host.querySelector("table")).parentElement,
+    );
     expect(scroller.className).toContain("overflow-x-auto");
   });
 
   it("draw amounts in the form's tabular figures, not the grid's mono", async () => {
     const { host } = await mountTable([{ product: "p1", unitPrice: 319 }]);
-    const amount = host.querySelector("tbody td:last-child span")!;
+    const amount = defined(host.querySelector("tbody td:last-child span"));
     expect(amount.className).toContain("tabular-nums");
     expect(amount.className).not.toContain("font-mono");
   });
@@ -231,8 +234,10 @@ describe("a read-only list's rows", () => {
   it("wrap text between words, never inside one", async () => {
     const { host } = await mountTable([{ product: "p1", unitPrice: 319 }]);
     const [productCell] = host.querySelectorAll("tbody td");
-    expect(productCell!.className).toContain("[overflow-wrap:break-word]");
-    expect(productCell!.className).not.toContain("anywhere");
+    expect(defined(productCell).className).toContain(
+      "[overflow-wrap:break-word]",
+    );
+    expect(defined(productCell).className).not.toContain("anywhere");
   });
 });
 
@@ -249,7 +254,7 @@ describe("a read-only list in a narrow container", () => {
     );
     const blocks = [...host.querySelectorAll("li")];
     expect(blocks).toHaveLength(2);
-    const lines = [...blocks[1]!.querySelectorAll("dt")].map((term) => [
+    const lines = [...defined(blocks[1]).querySelectorAll("dt")].map((term) => [
       term.textContent?.trim(),
       term.nextElementSibling?.textContent?.trim(),
     ]);
@@ -262,24 +267,30 @@ describe("a read-only list in a narrow container", () => {
 
   it("swaps the table for the blocks below the container's `@md` width", async () => {
     const { host } = await mountTable([{ product: "p1" }], COLUMNS);
-    expect(host.firstElementChild!.className).toContain("@container");
-    const scroller = host.querySelector("table")!.parentElement!;
+    expect(defined(host.firstElementChild).className).toContain("@container");
+    const scroller = defined(
+      defined(host.querySelector("table")).parentElement,
+    );
     expect(scroller.className).toContain("hidden @md:block");
-    expect(host.querySelector("ul")!.className).toContain("@md:hidden");
+    expect(defined(host.querySelector("ul")).className).toContain("@md:hidden");
   });
 
   it("never wraps an amount, which keeps its whole value", async () => {
     const { host } = await mountTable([{ product: "p1" }], COLUMNS);
     const [productValue, , priceValue] = host.querySelectorAll("dd");
-    expect(priceValue!.className).toContain("whitespace-nowrap");
-    expect(priceValue!.className).toContain("text-end");
-    expect(productValue!.className).toContain("[overflow-wrap:break-word]");
+    expect(defined(priceValue).className).toContain("whitespace-nowrap");
+    expect(defined(priceValue).className).toContain("text-end");
+    expect(defined(productValue).className).toContain(
+      "[overflow-wrap:break-word]",
+    );
   });
 
   it("keeps a two-field list a table at any width", async () => {
     const { host } = await mountTable([{ product: "p1", unitPrice: 319 }]);
     expect(host.querySelector("ul")).toBeNull();
-    const scroller = host.querySelector("table")!.parentElement!;
+    const scroller = defined(
+      defined(host.querySelector("table")).parentElement,
+    );
     expect(scroller.className).not.toContain("hidden");
   });
 });

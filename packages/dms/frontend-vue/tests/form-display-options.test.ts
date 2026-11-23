@@ -3,6 +3,7 @@ import { computed, createApp, h, useAttrs } from "vue";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import Display from "../layers/dms-ui/app/components/form/components/DisplayValue.vue";
 import type { DataTypeFormatter } from "../layers/dms-core/app/composables/data-types/useDataType";
+import { defined } from "./helpers/defined";
 
 interface StatusOptions {
   onlineLabel?: string;
@@ -85,7 +86,7 @@ it("hands the formatter the field's label and its record", () => {
     row: record,
   });
 
-  const [, , options, row] = seen[0]!;
+  const [, , options, row] = defined(seen[0]);
   expect(options).toEqual({ preview: "avatar", fieldLabel: "Photo" });
   expect(row).toBe(record);
   app.unmount();

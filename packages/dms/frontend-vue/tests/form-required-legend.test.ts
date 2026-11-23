@@ -8,6 +8,7 @@ import { resolve } from "node:path";
 import { createApp, h } from "vue";
 import { expect, it } from "vitest";
 import FormRequiredLegend from "../layers/dms-ui/app/components/form/FormRequiredLegend.vue";
+import { defined } from "./helpers/defined";
 
 it("lives with the public components, not the layer's internals", () => {
   const layer = resolve(__dirname, "../layers/dms-ui/app");
@@ -26,7 +27,7 @@ it("prints the asterisk and the translated legend, with the caller's class", () 
   });
   app.config.globalProperties.$t = (key: string) => `t(${key})`;
   app.mount(host);
-  const legend = host.querySelector("p")!;
+  const legend = defined(host.querySelector("p"));
   expect(legend.classList.contains("mt-4")).toBe(true);
   expect(legend.textContent).toContain("*");
   expect(legend.textContent).toContain("t(dms.form.required_legend)");

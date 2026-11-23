@@ -20,6 +20,7 @@ import {
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import CardsDisplay from "../layers/dms-ui/app/entries/components/table-view/CardsDisplay";
 import { displayContext } from "./fixtures/displayContext";
+import { defined } from "./helpers/defined";
 
 const SiteCard = {
   props: { rowId: String },
@@ -104,7 +105,7 @@ it("draws the cards at once when the card's code is already there", async () => 
   mount();
   resolveCard(SiteCard);
   await vi.waitFor(() => expect(cards()).toHaveLength(2));
-  app!.unmount();
+  defined(app).unmount();
   container.remove();
 
   mount();
@@ -122,7 +123,7 @@ it("keeps the skeleton while a component the card draws loads", async () => {
   expect(skeletons().length).toBeGreaterThan(0);
   expect(cards()).toHaveLength(0);
 
-  resolveRecordCard!(SiteCard);
+  defined(resolveRecordCard)(SiteCard);
   await vi.waitFor(() => expect(cards()).toHaveLength(2));
   expect(skeletons()).toHaveLength(0);
 });

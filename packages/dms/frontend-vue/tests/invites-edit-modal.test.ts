@@ -14,6 +14,7 @@ import layout from "../layers/dms-layout/app/entries/i18n/locales/layout-en-GB.j
 import { isFunction, isObject } from "../layers/dms-core/app/utils/type-check";
 import type { ModalOptions } from "../layers/dms-ui/app/composables/containers/types";
 import { FormContainerType } from "../layers/dms-ui/app/entries/composables/table-view/types";
+import { defined } from "./helpers/defined";
 
 vi.stubGlobal("shallowRef", shallowRef);
 const { useTableRowActions } = await import(
@@ -129,16 +130,16 @@ describe("Invitations table: Edit invitation", () => {
 
     expect(navigateDms).not.toHaveBeenCalled();
     expect(openModal).toHaveBeenCalledTimes(1);
-    const [opened] = openModal.mock.calls[0]!;
+    const [opened] = defined(openModal.mock.calls[0]);
     expect(opened.title).toBe("Edit invitation · zz-invitee@example.com");
     expect(opened.description).toBe(
       "The name, roles and language the invitee gets on accepting.",
     );
     expect(opened.size).toBe("md");
-    expect(opened.componentOptions!.fetchUrl).toBe(
+    expect(defined(opened.componentOptions).fetchUrl).toBe(
       "/api/tables/admin-invites/get?id=invite-1",
     );
-    expect(opened.componentOptions!.submitUrl).toBe(
+    expect(defined(opened.componentOptions).submitUrl).toBe(
       "/api/tables/admin-invites/edit?id=invite-1",
     );
   });
@@ -147,7 +148,7 @@ describe("Invitations table: Edit invitation", () => {
     const { editRow } = invitesRowActions();
     await editRow(INVITE);
 
-    const [opened] = openModal.mock.calls[0]!;
+    const [opened] = defined(openModal.mock.calls[0]);
     const onSuccess = opened.componentOptions?.onSuccessCallback;
     if (!isFunction(onSuccess))
       throw new Error("the modal hands no onSuccessCallback");

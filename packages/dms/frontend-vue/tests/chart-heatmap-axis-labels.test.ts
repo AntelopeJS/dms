@@ -7,6 +7,7 @@ import { useApexChart } from "../layers/dms-ui/app/composables/chart/useApexChar
 import type { UseApexChartInput } from "../layers/dms-ui/app/composables/chart/useApexChart.types";
 import { isFunction, isString } from "../layers/dms-core/app/utils/type-check";
 import { sectionIn } from "./fixtures/axisCallbacks";
+import { defined } from "./helpers/defined";
 
 type LabelFormatter = ReturnType<typeof thinnedCategoryFormatter>;
 
@@ -61,18 +62,20 @@ describe("heatmap x-axis labels", () => {
   it("keeps one label every few columns on a narrow plot", () => {
     const step = categoryLabelStep(PHONE_GRID_WIDTH, 24, 5);
     expect(step).toBeGreaterThan(2);
-    const labels = drawnLabels(heatmapFormatter()!, PHONE_GRID_WIDTH);
+    const labels = drawnLabels(defined(heatmapFormatter()), PHONE_GRID_WIDTH);
     labels.forEach((label, i) =>
       expect(label).toBe(i % step === 0 ? HOURS[i] : ""),
     );
   });
 
   it("draws every hour on a wide plot", () => {
-    expect(drawnLabels(heatmapFormatter()!, DESKTOP_GRID_WIDTH)).toEqual(HOURS);
+    expect(
+      drawnLabels(defined(heatmapFormatter()), DESKTOP_GRID_WIDTH),
+    ).toEqual(HOURS);
   });
 
   it("leaves the tooltip's label whole", () => {
-    const formatter = heatmapFormatter()!;
+    const formatter = defined(heatmapFormatter());
     expect(formatter("07:00", undefined, { w: {} })).toBe("07:00");
     expect(formatter("07:00")).toBe("07:00");
   });
@@ -137,7 +140,7 @@ describe("category x-axis labels of a long series", () => {
     "thins 90 daily labels on a %s chart",
     (type) => {
       const shown = drawn(
-        categoryFormatter(DAYS, { type })!,
+        defined(categoryFormatter(DAYS, { type })),
         DAYS,
         WIDE_GRID_WIDTH,
       ).filter(Boolean);
@@ -148,17 +151,21 @@ describe("category x-axis labels of a long series", () => {
 
   it("keeps every label of a short series", () => {
     const six = DAYS.slice(0, 6);
-    expect(drawn(categoryFormatter(six)!, six, WIDE_GRID_WIDTH)).toEqual(six);
+    expect(
+      drawn(defined(categoryFormatter(six)), six, WIDE_GRID_WIDTH),
+    ).toEqual(six);
   });
 
   it("thins a datetime series drawn as buckets", () => {
     const keys = Array.from({ length: 90 }, (_, day) =>
       new Date(Date.UTC(2026, 7, 4 + day)).toISOString().slice(0, 10),
     );
-    const formatter = categoryFormatter(keys, {
-      type: "column",
-      xaxisType: "datetime",
-    })!;
+    const formatter = defined(
+      categoryFormatter(keys, {
+        type: "column",
+        xaxisType: "datetime",
+      }),
+    );
     const shown = drawn(formatter, keys, WIDE_GRID_WIDTH).filter(Boolean);
     expect(shown.length).toBeGreaterThan(5);
     expect(shown.length).toBeLessThan(keys.length / 2);

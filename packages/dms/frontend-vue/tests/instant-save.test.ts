@@ -6,6 +6,7 @@ import {
   INSTANT_SAVED_STATE_MS,
   useInstantSave,
 } from "../layers/dms-ui/app/entries/composables/instant-save/useInstantSave";
+import { defined } from "./helpers/defined";
 
 interface Settings {
   name: string;
@@ -42,16 +43,18 @@ function setup(save: (changes: Partial<Settings>) => Promise<void>) {
   });
   const onError = vi.fn();
   const scope = effectScope();
-  const instant = scope.run(() =>
-    useInstantSave<Settings>({
-      read: (key) => values[key],
-      write: (key, value) => {
-        if (value !== undefined) values[key] = value;
-      },
-      save,
-      onError,
-    }),
-  )!;
+  const instant = defined(
+    scope.run(() =>
+      useInstantSave<Settings>({
+        read: (key) => values[key],
+        write: (key, value) => {
+          if (value !== undefined) values[key] = value;
+        },
+        save,
+        onError,
+      }),
+    ),
+  );
   return { values, instant, onError, scope };
 }
 
@@ -73,7 +76,7 @@ function registerSaveLifecycleTests() {
     expect(server.save).toHaveBeenCalledWith({ theme: "dark" });
     expect(instant.states.theme).toBe("saving");
 
-    server.calls[0]!.resolve();
+    defined(server.calls[0]).resolve();
     await settle();
     expect(instant.states.theme).toBe("saved");
 
@@ -101,7 +104,7 @@ function registerSaveLifecycleTests() {
 
     instant.change("theme", "dark");
     const refusal = new Error("refused");
-    server.calls[0]!.reject(refusal);
+    defined(server.calls[0]).reject(refusal);
     await settle();
 
     expect(values.theme).toBe("light");
@@ -112,7 +115,7 @@ function registerSaveLifecycleTests() {
     instant.retry();
     expect(values.theme).toBe("dark");
     expect(server.save).toHaveBeenLastCalledWith({ theme: "dark" });
-    server.calls[1]!.resolve();
+    defined(server.calls[1]).resolve();
     await settle();
     expect(instant.failed.value).toBeNull();
     expect(instant.states.theme).toBe("saved");
@@ -123,10 +126,10 @@ function registerSaveLifecycleTests() {
     const { values, instant } = setup(server.save);
 
     instant.change("theme", "dark");
-    server.calls[0]!.resolve();
+    defined(server.calls[0]).resolve();
     await settle();
     instant.change("theme", "blue");
-    server.calls[1]!.reject(new Error("refused"));
+    defined(server.calls[1]).reject(new Error("refused"));
     await settle();
 
     expect(values.theme).toBe("dark");
@@ -140,7 +143,7 @@ function registerSaveLifecycleTests() {
     instant.change("theme", "blue");
     expect(server.save).toHaveBeenCalledTimes(1);
 
-    server.calls[0]!.resolve();
+    defined(server.calls[0]).resolve();
     await settle();
     expect(server.save).toHaveBeenLastCalledWith({ theme: "blue" });
     expect(values.theme).toBe("blue");
@@ -152,7 +155,7 @@ function registerSaveLifecycleTests() {
 
     instant.change("theme", "dark");
     instant.change("theme", "blue");
-    server.calls[0]!.reject(new Error("refused"));
+    defined(server.calls[0]).reject(new Error("refused"));
     await settle();
 
     expect(values.theme).toBe("blue");
@@ -190,7 +193,7 @@ function registerPendingSaveTests() {
 
     values.name = "Typed";
     instant.queue("name", "Typed");
-    server.calls[0]!.reject(new Error("refused"));
+    defined(server.calls[0]).reject(new Error("refused"));
     await settle();
 
     expect(values.name).toBe("Acme");
@@ -203,7 +206,7 @@ function registerPendingSaveTests() {
     instant.change("name", "Acme Inc", { debounce: true });
     const flushed = instant.flush();
     expect(server.save).toHaveBeenCalledWith({ name: "Acme Inc" });
-    server.calls[0]!.resolve();
+    defined(server.calls[0]).resolve();
     await flushed;
   });
 

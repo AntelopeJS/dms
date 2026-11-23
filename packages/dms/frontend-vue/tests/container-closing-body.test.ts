@@ -44,6 +44,7 @@ import {
   isNull,
   isObject,
 } from "../layers/dms-core/app/utils/type-check";
+import { defined } from "./helpers/defined";
 
 const nuxtUiDir = realpathSync(join(process.cwd(), "node_modules/@nuxt/ui"));
 const nuxtUiRequire = createRequire(join(nuxtUiDir, "package.json"));
@@ -229,9 +230,11 @@ describe.each(CONTAINERS)("closing a %s", (_name, load, props) => {
   it("gives them back as soon as it starts closing, while still mounted", async () => {
     const { default: container } = await load();
     await mountContainer(container, props);
-    host
-      .querySelector<HTMLButtonElement>("button[aria-label='dms.a11y.close']")!
-      .click();
+    defined(
+      host.querySelector<HTMLButtonElement>(
+        "button[aria-label='dms.a11y.close']",
+      ),
+    ).click();
     await vi.advanceTimersByTimeAsync(0);
 
     expect(host.querySelector("[data-slot='content']")).not.toBeNull();
@@ -260,11 +263,11 @@ describe.each(CONTAINERS)("closing a %s", (_name, load, props) => {
     belowApp.mount(below);
     try {
       await mountContainer(container, props);
-      host
-        .querySelector<HTMLButtonElement>(
+      defined(
+        host.querySelector<HTMLButtonElement>(
           "button[aria-label='dms.a11y.close']",
-        )!
-        .click();
+        ),
+      ).click();
       await vi.advanceTimersByTimeAsync(0);
       expect(bodyPointerEvents()).toBe("none");
     } finally {
@@ -278,7 +281,7 @@ describe("a drawer resized by its handle", () => {
   async function resize(): Promise<void> {
     const { default: DynamicDrawer } = await loadDrawer();
     await mountContainer(DynamicDrawer, { direction: "right" });
-    const handle = host.querySelector("[data-dms-drawer-handle]")!;
+    const handle = defined(host.querySelector("[data-dms-drawer-handle]"));
     pointer("pointerdown", handle);
     pointer("pointermove", handle);
     pointer("pointerup", handle);
@@ -367,9 +370,11 @@ describe("a dialog closing over one that stays open", () => {
   }
 
   const layer = (title: string) =>
-    [...document.querySelectorAll("[role='dialog']")].find(
-      (dialog) => dialog.textContent === title,
-    )!;
+    defined(
+      [...document.querySelectorAll("[role='dialog']")].find(
+        (dialog) => dialog.textContent === title,
+      ),
+    );
   const isUncovered = (title: string) =>
     layer(title).hasAttribute(UNCOVERED_ATTRIBUTE);
 
@@ -481,7 +486,7 @@ describe("a dialog unmounting after its close", () => {
   it("gives it back when closing over one that stays open", async () => {
     mountDialog(ref(true));
     await vi.advanceTimersByTimeAsync(0);
-    const inDrawer = mounted[0]![1].querySelector("button")!;
+    const inDrawer = defined(defined(mounted[0])[1].querySelector("button"));
     inDrawer.focus();
     await closeThenUnmount(() => {});
     expect(document.activeElement).toBe(inDrawer);

@@ -29,6 +29,7 @@ import {
   type MarkFieldSaved,
 } from "../layers/dms-ui/app/composables/form/types/field-saved";
 import { registerDmsComponent } from "#dms/frontend-module";
+import { defined } from "./helpers/defined";
 
 const Cell = defineComponent({
   props: {
@@ -133,11 +134,15 @@ async function mount(
   app.mount(host);
   await nextTick();
   const addButton = () =>
-    [...host.querySelectorAll("button")].find(
-      (button) => button.textContent === "dms.form.repeater.add",
-    )!;
+    defined(
+      [...host.querySelectorAll("button")].find(
+        (button) => button.textContent === "dms.form.repeater.add",
+      ),
+    );
   const cell = (row: number, column: string) =>
-    host.querySelector<HTMLInputElement>(`[id="lines.${row}.${column}"]`)!;
+    defined(
+      host.querySelector<HTMLInputElement>(`[id="lines.${row}.${column}"]`),
+    );
   return { host, events, saved, model, addButton, cell };
 }
 

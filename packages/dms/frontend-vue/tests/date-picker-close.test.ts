@@ -23,6 +23,7 @@ import {
   isString,
 } from "../layers/dms-core/app/utils/type-check";
 import type { CalendarProps } from "@nuxt/ui/components/Calendar.vue";
+import { defined } from "./helpers/defined";
 
 let app: App | undefined;
 let host: HTMLDivElement;
@@ -79,12 +80,12 @@ async function mount(
   app.component("UCalendar", Calendar);
   app.mount(host);
   await flush();
-  host.querySelector<HTMLButtonElement>("[data-toggle]")!.click();
+  defined(host.querySelector<HTMLButtonElement>("[data-toggle]")).click();
   await flush();
 }
 
 const isOpen = () =>
-  host.querySelector("[data-open]")!.getAttribute("data-open");
+  defined(host.querySelector("[data-open]")).getAttribute("data-open");
 const day = (date: number) => new CalendarDate(2026, 10, date);
 
 beforeEach(() => {

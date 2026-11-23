@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import Chart from "../layers/dms-ui/app/components/chart/ChartBlock.vue";
 import { chartRuntime } from "./helpers/charts-runtime";
 import { clearChartColorCache } from "../layers/dms-ui/app/composables/chart/useChartTheme";
+import { defined } from "./helpers/defined";
 
 const LIGHT_SURFACE = "rgb(255, 255, 255)";
 const DARK_SURFACE = "rgb(10, 10, 10)";
@@ -74,7 +75,7 @@ async function heatmapOptions(
   drawn = undefined;
   await chartRuntime(app);
   await renderToString(app);
-  return drawn!;
+  return defined(drawn);
 }
 
 function rangeColors(options: HeatmapOptions): string[] {

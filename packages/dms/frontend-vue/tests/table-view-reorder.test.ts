@@ -8,6 +8,7 @@ import {
 import { fetchClient } from "./fixtures/fetchClient";
 import { fetchClientMock } from "./fixtures/unusedApi";
 import type { TableViewListResponse } from "../layers/dms-ui/app/composables/table-view/types";
+import { defined } from "./helpers/defined";
 
 type Api = Parameters<typeof useTableReorder>[0]["api"];
 
@@ -82,7 +83,7 @@ describe("rows ordered by hand", () => {
     const api = fetchClient(async () => ({}));
     const { reorderState, data } = reorderOf(api);
     expect(reorderState.value?.enabled).toBe(true);
-    reorderState.value!.move(2, 0);
+    defined(reorderState.value).move(2, 0);
     await vi.waitFor(() => expect(api).toHaveBeenCalledTimes(1));
     await new Promise<void>((resolve) => {
       setTimeout(resolve, 0);
@@ -106,7 +107,7 @@ describe("rows ordered by hand", () => {
       throw new Error("denied");
     });
     const { reorderState, refresh, onError } = reorderOf(api);
-    reorderState.value!.move(0, 1);
+    defined(reorderState.value).move(0, 1);
     await vi.waitFor(() => {
       expect(onError).toHaveBeenCalled();
       expect(refresh).toHaveBeenCalled();

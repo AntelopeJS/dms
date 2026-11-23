@@ -23,6 +23,7 @@ import {
 import { FORM_LAYOUT_CLASSES } from "../layers/dms-ui/app/entries/composables/form/formLayout";
 import type { FormData } from "../layers/dms-ui/app/composables/form/types/value";
 import type { TableFilter } from "../layers/dms-ui/app/entries/components/table/TableRoot";
+import { defined } from "./helpers/defined";
 
 type SearchParams = Record<string, string | string[] | undefined>;
 
@@ -172,9 +173,9 @@ async function mountRelation(options: MountOptions = {}) {
 }
 
 async function openMenu() {
-  const trigger = host.querySelector<HTMLButtonElement>(
-    '[aria-haspopup="listbox"]',
-  )!;
+  const trigger = defined(
+    host.querySelector<HTMLButtonElement>('[aria-haspopup="listbox"]'),
+  );
   trigger.click();
   await vi.waitFor(() =>
     expect(host.querySelector('[role="listbox"]')).not.toBeNull(),
@@ -186,9 +187,11 @@ it("rejects a relation add action selected as a value or opened before its menu 
   await openMenu();
   const options = [...host.querySelectorAll('[role="option"]')];
   expect(options.map((option) => option.textContent)).toEqual(["Ann", "Bob"]);
-  const add = [...host.querySelectorAll("button")].find((entry) =>
-    entry.textContent?.includes(t("dms.form.relation.add_new")),
-  )!;
+  const add = defined(
+    [...host.querySelectorAll("button")].find((entry) =>
+      entry.textContent?.includes(t("dms.form.relation.add_new")),
+    ),
+  );
   add.click();
   await vi.waitFor(() =>
     expect(host.querySelector('[role="dialog"] input')).not.toBeNull(),
@@ -196,7 +199,9 @@ it("rejects a relation add action selected as a value or opened before its menu 
   expect(open).toHaveBeenCalledOnce();
   expect(selected.value).toBe("ann");
   expect(updates).not.toHaveBeenCalled();
-  const input = host.querySelector<HTMLInputElement>('[role="dialog"] input')!;
+  const input = defined(
+    host.querySelector<HTMLInputElement>('[role="dialog"] input'),
+  );
   input.focus();
   input.value = "Carol";
   input.dispatchEvent(new Event("input", { bubbles: true }));
@@ -211,7 +216,7 @@ it("rejects a relation add action selected as a value or opened before its menu 
 it("rejects forwarding a repeated relation pick before its deselection", async () => {
   const { selected, updates } = await mountRelation();
   await openMenu();
-  const option = host.querySelector<HTMLElement>('[role="option"]')!;
+  const option = defined(host.querySelector<HTMLElement>('[role="option"]'));
   option.dispatchEvent(
     new KeyboardEvent("keydown", { key: "Enter", bubbles: true }),
   );

@@ -16,6 +16,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import TableActions from "../layers/dms-ui/app/entries/components/table/TableActions";
 import type { JsonValue } from "../layers/dms-core/app/types/json";
 import { FULL_TABLE_CHROME } from "../layers/dms-ui/app/entries/composables/table-view/utils/chrome";
+import { defined } from "./helpers/defined";
 
 const presentError = vi.fn();
 
@@ -154,13 +155,15 @@ async function importCode(code: string) {
   );
   entry?.click();
   await nextTick();
-  const field = container.querySelector("textarea")!;
+  const field = defined(container.querySelector("textarea"));
   field.value = code;
   field.dispatchEvent(new Event("input"));
   await nextTick();
-  const apply = [...container.querySelectorAll("button")].find(
-    (button) => button.textContent === "dms.table.import_config_apply",
-  )!;
+  const apply = defined(
+    [...container.querySelectorAll("button")].find(
+      (button) => button.textContent === "dms.table.import_config_apply",
+    ),
+  );
   apply.click();
   await nextTick();
   return container;

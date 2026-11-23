@@ -5,6 +5,7 @@ import {
   replaceUrlVariables,
   resolveSubmitDefaults,
 } from "../layers/dms-ui/app/composables/form/useForm";
+import { defined } from "./helpers/defined";
 
 const EDIT_PATTERN = "/workspaces/:id/invoiceTable/:id/edit";
 const NEW_PATTERN = "/workspaces/:id/invoiceTable/new";
@@ -13,7 +14,7 @@ const NEW_DEFAULTS = { _instance: "{{params.id}}" };
 const EDIT_SUBMIT_URL = "/api/invoices/edit?id={{params.id}}";
 
 const contextOf = (pattern: string, path: string) => ({
-  routeParams: extractRouteParams(pattern, path)!,
+  routeParams: defined(extractRouteParams(pattern, path)),
   routeQuery: {},
 });
 

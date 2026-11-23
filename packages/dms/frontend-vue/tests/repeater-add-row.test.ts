@@ -27,6 +27,7 @@ import type { FormEvent } from "@nuxt/ui";
 import { useEventBus } from "@vueuse/core";
 import Repeater from "../layers/dms-ui/app/components/form/components/InputRepeater.vue";
 import { registerDmsComponent } from "#dms/frontend-module";
+import { defined } from "./helpers/defined";
 
 registerDmsComponent(
   "dms-input-text",
@@ -109,7 +110,9 @@ async function mount(
 describe("an array field's rows", () => {
   it("adds an empty row without validating the field", async () => {
     const { host, events, model } = await mount([]);
-    host.querySelector<HTMLButtonElement>("button:last-of-type")!.click();
+    defined(
+      host.querySelector<HTMLButtonElement>("button:last-of-type"),
+    ).click();
     await nextTick();
     expect(model.value).toEqual([{}]);
     expect(events).toEqual([]);
@@ -117,7 +120,7 @@ describe("an array field's rows", () => {
 
   it("validates once a row is removed", async () => {
     const { host, events } = await mount([{ name: "a" }, { name: "b" }]);
-    host.querySelector<HTMLButtonElement>("button")!.click();
+    defined(host.querySelector<HTMLButtonElement>("button")).click();
     await nextTick();
     expect(events).toEqual(["change"]);
   });

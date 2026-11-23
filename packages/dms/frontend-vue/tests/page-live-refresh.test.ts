@@ -19,6 +19,7 @@ import type {
   PageLiveRefresh,
   PageLiveRefreshOptions,
 } from "../layers/dms-ui/app/composables/live/usePageLiveRefresh";
+import { defined } from "./helpers/defined";
 
 const realtime = liveShellRuntime();
 
@@ -57,7 +58,7 @@ function mountComponent(
   );
   app.mount(document.createElement("div"));
   mounted.push(app);
-  return { onRefresh, handle: handle! };
+  return { onRefresh, handle: defined(handle) };
 }
 
 function installLive(): PageLiveController {

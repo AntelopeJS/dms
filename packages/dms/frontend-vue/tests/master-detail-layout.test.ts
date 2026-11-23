@@ -1,6 +1,7 @@
 /** @vitest-environment jsdom */
 import { afterEach, beforeEach, expect, it } from "vitest";
 import { type App, createApp, h, nextTick } from "vue";
+import { defined } from "./helpers/defined";
 
 const ITEMS = [
   { value: "a", label: "Alpha" },
@@ -42,8 +43,8 @@ afterEach(() => {
 
 it("lays the panes out from its own width, not the viewport's", async () => {
   await mount();
-  const container = host.firstElementChild!;
-  const grid = container.firstElementChild!;
+  const container = defined(host.firstElementChild);
+  const grid = defined(container.firstElementChild);
   expect(container.classList).toContain("@container");
   expect(grid.classList).toContain("grid-cols-1");
   expect(grid.classList).toContain(SIDE_BY_SIDE_COLUMNS);

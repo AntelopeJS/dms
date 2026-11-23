@@ -16,6 +16,7 @@ import {
 import { rowLocator } from "../layers/dms-ui/app/entries/composables/table-view/utils/locateRow";
 import { fetchClient } from "./fixtures/fetchClient";
 import { tableViewColumn } from "./fixtures/tableViewColumn";
+import { defined } from "./helpers/defined";
 
 interface LanguageRow extends Record<string, unknown> {
   _id: string;
@@ -100,7 +101,7 @@ describe("rows a route sorts", () => {
       pinnedRows: () => BASE,
     });
     const page = await rows.list({ sortKey: "coverage", sortDirection: "asc" });
-    expect(ids(page!.results)).toEqual(["en", "es", "de", "fr"]);
+    expect(ids(defined(page).results)).toEqual(["en", "es", "de", "fr"]);
   });
 
   it("pins within the page a controller answers, read on each request", async () => {
@@ -117,14 +118,14 @@ describe("rows a route sorts", () => {
       columns: COLUMNS,
       pinnedRows: () => pinned,
     });
-    expect(ids((await rows.list({}))!.results)).toEqual([
+    expect(ids(defined(await rows.list({})).results)).toEqual([
       "en",
       "de",
       "fr",
       "es",
     ]);
     pinned = undefined;
-    expect(ids((await rows.list({}))!.results)).toEqual(ids(LANGUAGES));
+    expect(ids(defined(await rows.list({})).results)).toEqual(ids(LANGUAGES));
   });
 });
 
@@ -167,8 +168,8 @@ describe("the rows a paging table shows, pinned page by page", () => {
   it("reads any rows in the order the pages show them", async () => {
     const { api, rows } = controllerRows();
     const window = await rows.listAsShown({ offset: 3, limit: 4 }, PAGE_SIZE);
-    expect(idsOf(window!.results)).toEqual(SHOWN.slice(3, 7));
-    expect(window!.total).toBe(10);
+    expect(idsOf(defined(window).results)).toEqual(SHOWN.slice(3, 7));
+    expect(defined(window).total).toBe(10);
 
     expect(api).toHaveBeenCalledWith("/api/customers/list", {
       query: { offset: 0, limit: 8 },

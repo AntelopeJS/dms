@@ -7,6 +7,7 @@ import {
   resolveActivityParams,
   relativeDayBucket,
 } from "../layers/dms-ui/app/entries/components/activity-feed/activityFeedDays";
+import { defined } from "./helpers/defined";
 
 const NOW = new Date(2026, 8, 29, 10, 0);
 const LABELS = { today: "Today", yesterday: "Yesterday" };
@@ -49,7 +50,10 @@ describe("activity feed day groups", () => {
     );
 
     expect(days).toHaveLength(2);
-    expect(days[0]!.items.map((item) => item.title)).toEqual(["late", "early"]);
+    expect(defined(days[0]).items.map((item) => item.title)).toEqual([
+      "late",
+      "early",
+    ]);
   });
 
   it("puts entries without a usable date last, under no heading", () => {
@@ -65,8 +69,8 @@ describe("activity feed day groups", () => {
     );
 
     expect(days.map((day) => day.key)).toEqual(["2026-09-29", "undated"]);
-    expect(days[1]!.name).toBeUndefined();
-    expect(days[1]!.items).toHaveLength(2);
+    expect(defined(days[1]).name).toBeUndefined();
+    expect(defined(days[1]).items).toHaveLength(2);
   });
 
   it("adds the year to a date from another year", () => {
@@ -77,7 +81,7 @@ describe("activity feed day groups", () => {
       NOW,
     );
 
-    expect(day!.name).toBe("3 Dec 2025");
+    expect(defined(day).name).toBe("3 Dec 2025");
   });
 
   it("formats the time of an entry and ignores a broken date", () => {

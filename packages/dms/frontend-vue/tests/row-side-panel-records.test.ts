@@ -24,6 +24,7 @@ import {
   shownName,
   press,
 } from "./row-side-panel-runtime";
+import { defined } from "./helpers/defined";
 
 describe("row side panel deep link", () => {
   it("keeps the open row in the URL, following the steps", async () => {
@@ -169,7 +170,7 @@ describe("showing another row from the panel", () => {
     expect(position(host)).toBe("side_panel.position(3/3)");
     expect(useRowSidePanelContent().value?.rowKey).toBe("r3");
     expect(window.location.search).toBe("?record=r3");
-    await showRow(rows[1]!);
+    await showRow(defined(rows[1]));
     await settle();
     expect(position(host)).toBe("side_panel.position(2/3)");
   });

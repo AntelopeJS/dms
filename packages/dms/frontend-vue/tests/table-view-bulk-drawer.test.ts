@@ -18,6 +18,7 @@ import {
 } from "../layers/dms-ui/app/entries/composables/table-view/utils/recordLink";
 import type { CustomRowAction } from "../layers/dms-ui/app/types/row-action";
 import type { RowNavigation } from "../layers/dms-ui/app/types/row-navigation";
+import { defined } from "./helpers/defined";
 
 describe("bulk selection requests", () => {
   it("sends the ids, or the filters of every matching row", () => {
@@ -109,7 +110,7 @@ describe("row navigation", () => {
     let navigation: RowNavigation | undefined;
     const stop = trackRowNavigation(
       source,
-      rows[1]!,
+      defined(rows[1]),
       (row) => opened.push(row),
       (next) => {
         navigation = next;
@@ -121,8 +122,8 @@ describe("row navigation", () => {
       hasPrev: true,
       hasNext: true,
     });
-    navigation!.next();
-    navigation!.prev();
+    defined(navigation).next();
+    defined(navigation).prev();
     expect(opened).toEqual([rows[2], rows[0]]);
     stop();
     trackRowNavigation(

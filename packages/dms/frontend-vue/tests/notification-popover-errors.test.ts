@@ -16,6 +16,7 @@ import {
 import NotificationPopover from "../layers/dms-layout/app/entries/components/notification/NotificationPopover";
 import { useNavBadges } from "../layers/dms-ui/app/entries/composables/navigation/useNavBadges";
 import { stubDmsState } from "./helpers/dms-state-stub";
+import { defined } from "./helpers/defined";
 
 const HTTP_FORBIDDEN = 403;
 const UNREAD_COUNT = 4;
@@ -86,10 +87,7 @@ const Card = defineComponent({
   setup:
     (_, { slots }) =>
     () =>
-      h("div", { "data-card": "" }, [
-        slots.default?.(),
-        slots.description?.(),
-      ]),
+      h("div", { "data-card": "" }, [slots.default?.(), slots.description?.()]),
 });
 
 const Passthrough = defineComponent({
@@ -145,7 +143,7 @@ async function mountPopover(): Promise<void> {
 }
 
 async function openPopover(): Promise<void> {
-  host.querySelector<HTMLElement>("[data-trigger]")!.click();
+  defined(host.querySelector<HTMLElement>("[data-trigger]")).click();
   await vi.waitFor(() =>
     expect(notifications.fetchNotifications).toHaveBeenCalled(),
   );
@@ -153,7 +151,7 @@ async function openPopover(): Promise<void> {
 }
 
 async function closePopover(): Promise<void> {
-  host.querySelector<HTMLElement>("[data-close]")!.click();
+  defined(host.querySelector<HTMLElement>("[data-close]")).click();
   await nextTick();
   await nextTick();
 }
@@ -202,7 +200,9 @@ it("badges every unread notification, in the tone of the most important", async 
   });
   await mountPopover();
   expect(badgeText()).toBe(String(UNREAD_COUNT));
-  expect(badge()!.className).toContain("bg-(--ui-color-error-500) text-white");
+  expect(defined(badge()).className).toContain(
+    "bg-(--ui-color-error-500) text-white",
+  );
 });
 
 it("shows the same count and tone as the Notifications entry", async () => {
@@ -212,13 +212,13 @@ it("shows the same count and tone as the Notifications entry", async () => {
   });
   await mountPopover();
   expect(menuBadge()).toEqual({ label: String(UNREAD_COUNT), tone: "warning" });
-  expect(badge()!.className).toContain("bg-(--ui-color-warning-400)");
+  expect(defined(badge()).className).toContain("bg-(--ui-color-warning-400)");
 
   notifications.unreadCount.value = UNREAD_COUNT + 1;
   notifications.unreadTone.value = "error";
   await nextTick();
   expect(badgeText()).toBe(String(UNREAD_COUNT + 1));
-  expect(badge()!.className).toContain("bg-(--ui-color-error-500)");
+  expect(defined(badge()).className).toContain("bg-(--ui-color-error-500)");
   expect(menuBadge()).toEqual({
     label: String(UNREAD_COUNT + 1),
     tone: "error",
@@ -231,7 +231,7 @@ it("draws an untoned count in the accent, and hides the badge at zero", async ()
     notifications.unreadTone.value = "primary";
   });
   await mountPopover();
-  expect(badge()!.className).toContain("bg-(--dms-accent-fill)");
+  expect(defined(badge()).className).toContain("bg-(--dms-accent-fill)");
 
   notifications.unreadCount.value = 0;
   notifications.unreadTone.value = undefined;
@@ -276,7 +276,7 @@ it("marks a notification read when it is clicked", async () => {
   notifications.notifications.value = [UNREAD_NOTIFICATION];
   await mountPopover();
   await openPopover();
-  host.querySelector<HTMLElement>("[data-card]")!.click();
+  defined(host.querySelector<HTMLElement>("[data-card]")).click();
   await vi.waitFor(() =>
     expect(notifications.markAsRead).toHaveBeenCalledWith("n1"),
   );
@@ -297,7 +297,7 @@ it("does not mark an already read notification again", async () => {
   ];
   await mountPopover();
   await openPopover();
-  host.querySelector<HTMLElement>("[data-card]")!.click();
+  defined(host.querySelector<HTMLElement>("[data-card]")).click();
   await nextTick();
   expect(notifications.markAsRead).not.toHaveBeenCalled();
 });

@@ -6,6 +6,7 @@ import type { TableViewExpandableConfig } from "../layers/dms-ui/app/composables
 import { displayContext } from "./fixtures/displayContext";
 import { tableViewColumn } from "./fixtures/tableViewColumn";
 import type { ExpandedRowLoadState } from "../layers/dms-ui/app/entries/composables/table-view/useExpandedRowDetails";
+import { defined } from "./helpers/defined";
 
 const OrderLines = defineComponent({
   props: { row: Object, rowId: String, refresh: Function, open: Function },
@@ -98,7 +99,7 @@ describe("TableView expanded row band", () => {
 
   it("hands the component the table's refresh", () => {
     const container = mount({ component: { componentName: "OrderLines" } });
-    container.querySelector<HTMLButtonElement>("[data-lines]")!.click();
+    defined(container.querySelector<HTMLButtonElement>("[data-lines]")).click();
     expect(refresh).toHaveBeenCalledOnce();
   });
 
@@ -113,7 +114,7 @@ describe("TableView expanded row band", () => {
     const failed = mount(config, "error", onRetry);
     expect(failed.querySelector("[data-lines]")).toBeNull();
     expect(failed.textContent).toContain("dms.table.load_error_title");
-    failed.querySelector<HTMLButtonElement>("[data-retry]")!.click();
+    defined(failed.querySelector<HTMLButtonElement>("[data-retry]")).click();
     expect(onRetry).toHaveBeenCalledOnce();
   });
 

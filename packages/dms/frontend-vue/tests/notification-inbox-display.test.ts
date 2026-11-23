@@ -8,6 +8,7 @@ import { browserRuntime, stubApiData } from "./helpers/api-data-runtime";
 import { installAuthSettingsRuntime } from "./helpers/auth-settings-runtime";
 import { requestRefusal } from "./helpers/api-error-runtime";
 import type { useOverlay } from "@nuxt/ui/composables/useOverlay";
+import { defined } from "./helpers/defined";
 
 const BASE = "/dms/pages/settings/user/notifications";
 const authFetch = vi.fn(async (url: string) =>
@@ -94,12 +95,12 @@ function mount() {
   app.mount(container);
   const feed = app.runWithContext(useNotifications);
   const action = (row: number, label: string) => {
-    const article = container.querySelectorAll("article")[row]!;
-    article
-      .querySelector<HTMLButtonElement>(
+    const article = defined(container.querySelectorAll("article")[row]);
+    defined(
+      article.querySelector<HTMLButtonElement>(
         `button[aria-label="page.settings.notifications.${label}"]`,
-      )!
-      .click();
+      ),
+    ).click();
   };
   return { container, refresh, feed, action };
 }

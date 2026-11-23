@@ -9,12 +9,13 @@ import {
   pageSearchAriaKeyshortcuts,
 } from "../layers/dms-ui/app/entries/composables/global/searchShortcuts";
 import * as publicSearchShortcuts from "../layers/dms-ui/app/composables/global/searchShortcuts";
+import { defined } from "./helpers/defined";
 
 let app: App;
 let host: HTMLDivElement;
 
-const navInput = () => document.getElementById("nav-search")!;
-const pageInput = () => document.getElementById("page-search")!;
+const navInput = () => defined(document.getElementById("nav-search"));
+const pageInput = () => defined(document.getElementById("page-search"));
 
 /**
  * The settings shell and the Shortcuts page bind their keys with two separate

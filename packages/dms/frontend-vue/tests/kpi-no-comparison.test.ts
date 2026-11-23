@@ -17,6 +17,7 @@ import {
   createRealtimeServer,
   installRealtimeFetch,
 } from "./fixtures/realtimeServer";
+import { defined } from "./helpers/defined";
 
 type CardResponse =
   import("../layers/dms-ui/app/composables/chart/types").KpiCardResponse;
@@ -163,7 +164,7 @@ describe("a live KPI card", () => {
       expect(requests).toHaveLength(1);
       expect(requests[0]).toContain("preset=this-month");
       response.value = { value: 2500 };
-      server.send(server.sessions[0]!.id, "event", {
+      server.send(defined(server.sessions[0]).id, "event", {
         topic: "api:requests",
         type: "request",
         ts: 1,

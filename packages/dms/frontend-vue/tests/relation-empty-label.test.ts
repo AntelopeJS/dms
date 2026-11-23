@@ -12,6 +12,7 @@ import type {
 } from "../layers/dms-core/app/composables/data-types/useDataType";
 import { Size } from "../layers/dms-core/app/types/size";
 import { isObject } from "../layers/dms-core/app/utils/type-check";
+import { defined } from "./helpers/defined";
 
 interface RelationOptions {
   multiple?: boolean;
@@ -42,7 +43,7 @@ beforeAll(async () => {
 const renderRelation = (
   value: RelationRow | RelationRow[],
   options: RelationOptions,
-) => formatters.get("relation")!(value, "en-GB", options);
+) => defined(formatters.get("relation"))(value, "en-GB", options);
 
 describe("relation cell without a label", () => {
   const options = { keyMapping: { label: "id", value: "_id" } };

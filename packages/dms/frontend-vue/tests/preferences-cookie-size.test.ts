@@ -28,6 +28,7 @@ import {
 } from "../layers/dms-core/app/entries/composables/user/tablePreferences";
 import { useTablePreferences } from "../layers/dms-ui/app/entries/composables/table-view/useTablePreferences";
 import { isNull, isObject } from "../layers/dms-core/app/utils/type-check";
+import { defined } from "./helpers/defined";
 
 const COMPONENT_ID = "content-child-main-child-main-child-languages";
 const PAGE_ID = "modules.lang.manage.workspace";
@@ -230,7 +231,7 @@ describe("a table's state in the preferences cookie", () => {
     table.set("density", "compact", "default");
     expect(stored.value).toBe("");
     const key = `${LOCAL_TABLE_KEY_PREFIX}${tablePreferenceId(COMPONENT_ID, PAGE_ID)}`;
-    expect(JSON.parse(localStorage.getItem(key)!)).toEqual({
+    expect(JSON.parse(defined(localStorage.getItem(key)))).toEqual({
       columnOrder: ["email", "name"],
       columnSizing: { name: 240 },
       density: "compact",

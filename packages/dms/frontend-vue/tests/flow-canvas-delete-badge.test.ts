@@ -2,6 +2,7 @@
 import { createApp, h, nextTick, type App } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import FlowCanvas from "../layers/dms-ui/app/components/flow-canvas/FlowCanvas.vue";
+import { defined } from "./helpers/defined";
 
 let app: App | undefined;
 
@@ -44,7 +45,7 @@ async function mountCanvas(
   document.body.append(container);
   app.mount(container);
   await nextTick();
-  return { root: container.firstElementChild!, deleted };
+  return { root: defined(container.firstElementChild), deleted };
 }
 
 afterEach(() => {
@@ -61,7 +62,7 @@ describe("flow canvas delete badge", () => {
     const { root, deleted } = await mountCanvas({});
     const badge = root.querySelector<HTMLButtonElement>(BADGE);
     expect(badge).not.toBeNull();
-    badge!.click();
+    defined(badge).click();
     expect(deleted).toEqual([["users"]]);
   });
 

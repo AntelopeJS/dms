@@ -21,6 +21,7 @@ import coreEn from "../layers/dms-core/app/entries/i18n/locales/core-en-GB.json"
 import coreFr from "../layers/dms-core/app/entries/i18n/locales/core-fr-FR.json";
 import uiEn from "../layers/dms-ui/app/entries/i18n/locales/ui-en-GB.json";
 import uiFr from "../layers/dms-ui/app/entries/i18n/locales/ui-fr-FR.json";
+import { defined } from "./helpers/defined";
 
 type Messages = { [key: string]: string | Messages };
 
@@ -139,14 +140,14 @@ describe("data-type formatters outside a component setup", () => {
   });
 
   it("writes its texts in the application's active locale", () => {
-    const date = dataTypes.get("date")!.formatter!;
-    const count = dataTypes.get("array")!.formatter!.default;
+    const date = defined(defined(dataTypes.get("date")).formatter);
+    const count = defined(defined(dataTypes.get("array")).formatter).default;
     const english = date.default(undefined, "en-GB");
     const englishCount = count(["a", "b"], "en-GB");
     i18n.global.locale.value = "fr-FR";
     try {
       expect(date.default(undefined, "fr-FR")).not.toBe(english);
-      expect(date.cell!(undefined, "fr-FR")).toBe(
+      expect(defined(date.cell)(undefined, "fr-FR")).toBe(
         i18n.global.t("dms.date.undefined"),
       );
       expect(count(["a", "b"], "fr-FR")).not.toBe(englishCount);
@@ -189,7 +190,7 @@ const dataType = (
 
 describe("the price formatter", () => {
   it("writes euros by default and the currency the field states", () => {
-    const price = dataTypes.get("price")!.formatter!.default;
+    const price = defined(defined(dataTypes.get("price")).formatter).default;
     expect(price(12, "en-GB", undefined)).toBe("€12.00");
     expect(price(12, "en-GB", { currency: "USD" })).toBe("US$12.00");
   });

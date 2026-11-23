@@ -23,6 +23,7 @@ import {
   useRenderedSiteLayout,
   useSiteLayout,
 } from "../layers/dms-core/app/composables/page/useSiteLayout";
+import { defined } from "./helpers/defined";
 
 const RESPONSE = {
   siteLayout: { pages: { "/orders": { fullId: "orders" } }, categories: {} },
@@ -55,7 +56,7 @@ beforeEach(() => {
 
   vi.stubGlobal(
     "useDmsApp",
-    () => getCurrentInstance()!.appContext.config.globalProperties,
+    () => defined(getCurrentInstance()).appContext.config.globalProperties,
   );
   vi.stubGlobal("showDmsError", vi.fn());
 });

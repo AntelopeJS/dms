@@ -17,6 +17,7 @@ import { FORM_FIELD_SAVED_KEY } from "../layers/dms-ui/app/composables/form/type
 import type { FormData } from "../layers/dms-ui/app/composables/form/types/value";
 import { computeResetState } from "../layers/dms-ui/app/composables/form/useForm";
 import { useFormDirty } from "../layers/dms-ui/app/composables/unsaved-changes/useFormDirty";
+import { defined } from "./helpers/defined";
 
 const OLD_KEY = "sk_live_old0000619e";
 const NEW_KEY = "sk_live_new00004b2d";
@@ -166,7 +167,7 @@ describe("DmsInputSecret", () => {
     const rotate = [...host.querySelectorAll("button")].find(
       (button) => button.textContent === "dms.form.secret.rotate",
     );
-    rotate!.click();
+    defined(rotate).click();
     for (let tick = 0; tick < 3; tick++) await nextTick();
 
     expect(value.value).toBe(NEW_KEY);

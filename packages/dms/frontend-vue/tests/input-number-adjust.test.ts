@@ -15,6 +15,7 @@ import {
 import type { InputNumberAdjustment } from "../layers/dms-ui/app/types/input-number";
 import type InputNumber from "../layers/dms-ui/app/components/form/components/InputNumber.vue";
 import { NumberFieldInput, NumberFieldRoot } from "reka-ui";
+import { defined } from "./helpers/defined";
 
 let app: App | undefined;
 let host: HTMLDivElement;
@@ -48,11 +49,11 @@ const NumberField = defineComponent({
       h("input", {
         ref: input,
         onBlur: (event: FocusEvent) => {
-          apply(input.value!);
+          apply(defined(input.value));
           emit("blur", event);
         },
         onKeydown: (event: KeyboardEvent) => {
-          if (event.key === "Enter") apply(input.value!);
+          if (event.key === "Enter") apply(defined(input.value));
         },
       });
   },
@@ -80,7 +81,7 @@ async function mount(
   app.mount(host);
   await nextTick();
   await untilListenersAttached();
-  return { value, adjustments, input: host.querySelector("input")! };
+  return { value, adjustments, input: defined(host.querySelector("input")) };
 }
 
 async function untilListenersAttached() {
@@ -228,7 +229,7 @@ describe("the number field Nuxt UI draws", () => {
       });
       app.mount(host);
       await nextTick();
-      const input = host.querySelector("input")!;
+      const input = defined(host.querySelector("input"));
       input.value = `1${space}234${space}567,5`;
       input.dispatchEvent(new Event("input"));
       input.dispatchEvent(new Event("change"));

@@ -18,6 +18,7 @@ import {
   type App,
 } from "vue";
 import CascaderPath from "../layers/dms-ui/app/components/table-view/CascaderPath.vue";
+import { defined } from "./helpers/defined";
 
 const SEARCH_URL = "/api/categories/select";
 const KEY_MAPPING = { label: "name", value: "_id", parent: "parent" };
@@ -145,7 +146,7 @@ describe("a cascader cell", () => {
 
   it("reads a row the route does not answer as not found, its id on hover", async () => {
     const { host } = await mountCell("gone");
-    const cell = host.querySelector("[title]")!;
+    const cell = defined(host.querySelector("[title]"));
     expect(cell.textContent?.trim()).toBe("dms.form.relation.not_found");
     expect(cell.getAttribute("title")).toBe("gone");
   });

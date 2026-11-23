@@ -9,6 +9,7 @@ import {
   useForm,
 } from "../layers/dms-ui/app/composables/form/useForm";
 import { sameRelationValue } from "../layers/dms-ui/app/entries/composables/data-types/relationValue";
+import { defined } from "./helpers/defined";
 
 const authFetch = vi.fn();
 const RELATION_TYPE = {
@@ -32,16 +33,18 @@ function setupForm(
   submitUrlMethod?: HttpMethod,
   fields: Parameters<typeof useForm>[0]["fields"] = FIELDS,
 ) {
-  return scope.run(() =>
-    useForm({
-      componentId: "form-1",
-      pageId: "page-1",
-      fields,
-      fetchUrl: "/api/rows/get?id=row-1",
-      submitUrl: "/api/rows/edit?id=row-1",
-      submitUrlMethod,
-    }),
-  )!;
+  return defined(
+    scope.run(() =>
+      useForm({
+        componentId: "form-1",
+        pageId: "page-1",
+        fields,
+        fetchUrl: "/api/rows/get?id=row-1",
+        submitUrl: "/api/rows/edit?id=row-1",
+        submitUrlMethod,
+      }),
+    ),
+  );
 }
 
 /** Edits only the notes of the loaded row, then saves. */

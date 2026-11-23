@@ -12,6 +12,7 @@ import { appendPeriodToUrl } from "../layers/dms-core/app/composables/period/use
 import { usePeriodDraft } from "../layers/dms-ui/app/entries/composables/period/usePeriodDraft";
 import { formatRelativeInstant } from "../layers/dms-ui/app/entries/composables/period/periodDisplay";
 import { resolveComparisonControl } from "../layers/dms-ui/app/entries/composables/period/periodComparisonControl";
+import { defined } from "./helpers/defined";
 
 const NOW = new Date(2026, 9, 11, 19, 54);
 const FALLBACK = { from: new Date(2026, 0, 1), to: new Date(2026, 0, 31) };
@@ -42,7 +43,9 @@ describe("every period", () => {
     expect(state.value.range).toBeNull();
     expect(state.value.compareRange).toBeNull();
 
-    const url = appendPeriodToUrl("/api/requests?route=1", state.value)!;
+    const url = defined(
+      appendPeriodToUrl("/api/requests?route=1", state.value),
+    );
     const params = new URL(url, "http://dms.local").searchParams;
     expect(params.has("from")).toBe(false);
     expect(params.has("to")).toBe(false);
@@ -57,8 +60,8 @@ describe("every period", () => {
     expect(draft.range.value).toBeNull();
     draft.selectPreset("custom");
     const today = new Date();
-    expect(draft.range.value!.from.getDate()).toBe(today.getDate());
-    expect(draft.range.value!.to.getHours()).toBe(23);
+    expect(defined(draft.range.value).from.getDate()).toBe(today.getDate());
+    expect(defined(draft.range.value).to.getHours()).toBe(23);
     stop();
   });
 });

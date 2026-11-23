@@ -5,6 +5,7 @@ import {
   COMMAND_PALETTE_SEARCH_TEXT_KEY,
   hideSearchTextMatches,
 } from "../layers/dms-layout/app/composables/useCommandPaletteSources";
+import { defined } from "./helpers/defined";
 
 const MESSAGES = new Map([
   ["settings.billing.description", "Manage your plan and invoices"],
@@ -59,20 +60,20 @@ describe("resolveOptionalI18nKey", () => {
 describe("hideSearchTextMatches", () => {
   it("drops search text matches so they cannot render as a suffix", () => {
     const group = hideSearchTextMatches({ id: "navigation" });
-    const [filtered] = group.postFilter!("plan", [
+    const [filtered] = defined(group.postFilter)("plan", [
       item([COMMAND_PALETTE_SEARCH_TEXT_KEY]),
     ]);
 
-    expect(filtered!.matches).to.deep.equal([]);
+    expect(defined(filtered).matches).to.deep.equal([]);
   });
 
   it("keeps matches on rendered keys", () => {
     const group = hideSearchTextMatches({ id: "navigation" });
-    const [filtered] = group.postFilter!("settings", [
+    const [filtered] = defined(group.postFilter)("settings", [
       item(["suffix", COMMAND_PALETTE_SEARCH_TEXT_KEY]),
     ]);
 
-    expect(filtered!.matches).to.deep.equal([
+    expect(defined(filtered).matches).to.deep.equal([
       { key: "suffix", value: "match" },
     ]);
   });
@@ -90,13 +91,12 @@ describe("hideSearchTextMatches", () => {
     );
     expect(leaked).to.contain("<mark>shareable</mark>");
 
-    const [guarded] = hideSearchTextMatches({ id: "navigation" }).postFilter!(
-      "shareable",
-      [{ ...matched, matches: [SEARCH_TEXT_MATCH] }],
-    );
+    const [guarded] = defined(
+      hideSearchTextMatches({ id: "navigation" }).postFilter,
+    )("shareable", [{ ...matched, matches: [SEARCH_TEXT_MATCH] }]);
 
     expect(
-      highlight(guarded!, "shareable", undefined, [PALETTE_LABEL_KEY]),
+      highlight(defined(guarded), "shareable", undefined, [PALETTE_LABEL_KEY]),
     ).to.equal(undefined);
   });
 
@@ -105,12 +105,12 @@ describe("hideSearchTextMatches", () => {
       id: "navigation",
       postFilter: (_searchTerm, items) => items.slice(1),
     });
-    const filtered = group.postFilter!("plan", [
+    const filtered = defined(group.postFilter)("plan", [
       item(["label"]),
       item([COMMAND_PALETTE_SEARCH_TEXT_KEY]),
     ]);
 
     expect(filtered).to.have.length(1);
-    expect(filtered[0]!.matches).to.deep.equal([]);
+    expect(defined(filtered[0]).matches).to.deep.equal([]);
   });
 });

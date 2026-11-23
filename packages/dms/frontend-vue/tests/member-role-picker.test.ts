@@ -18,6 +18,7 @@ import {
 } from "@nuxt/ui/composables/useFormField";
 import { sameFormValue } from "../layers/dms-ui/app/entries/composables/unsaved-changes/formValue";
 import { browserRuntime, stubApiData } from "./helpers/api-data-runtime";
+import { defined } from "./helpers/defined";
 
 const ROLES_URL = "/settings/workspace/members/role-options";
 const ROLE_OPTIONS = {
@@ -92,9 +93,11 @@ async function mountPicker(props: NonNullable<VNode["props"]> = {}) {
 }
 
 const pill = (name: string) =>
-  [...host.querySelectorAll<HTMLButtonElement>("button[data-value]")].find(
-    (button) => button.textContent?.trim() === name,
-  )!;
+  defined(
+    [...host.querySelectorAll<HTMLButtonElement>("button[data-value]")].find(
+      (button) => button.textContent?.trim() === name,
+    ),
+  );
 const pressed = () =>
   [...host.querySelectorAll("button[aria-pressed='true']")].map((button) =>
     button.textContent?.trim(),
@@ -168,7 +171,7 @@ it("asks for a role while none is picked when one is required", async () => {
 it("rings the unpicked pills and marks the group invalid on a field error", async () => {
   model.value = ["admin"];
   await mountPicker();
-  const group = host.querySelector("[role=group]")!;
+  const group = defined(host.querySelector("[role=group]"));
   expect(group.getAttribute("aria-invalid")).toBe("false");
   expect(pill("Finance").className).not.toContain("border-error");
 

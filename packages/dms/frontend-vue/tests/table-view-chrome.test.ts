@@ -15,6 +15,7 @@ import {
 import type { TableViewColumn } from "../layers/dms-ui/app/composables/table-view/types/column";
 import type { DataType } from "../layers/dms-core/app/composables/data-types/useDataType";
 import { relationSelectSource } from "../layers/dms-ui/app/entries/composables/data-types/relationRows";
+import { defined } from "./helpers/defined";
 
 const column = (
   id: string,
@@ -167,7 +168,7 @@ function registerQuickFilterSourceTests(translate: (key: string) => string) {
       keyMapping: { label: "title" },
     });
     expect(staticQuickFilterItems(relation, translate)).toBe(undefined);
-    const source = relationQuickFilterSource(relation, dataTypes)!;
+    const source = defined(relationQuickFilterSource(relation, dataTypes));
     expect(source).toEqual({
       searchUrl: "/api/roles/select",
       keyMapping: { label: "title" },
@@ -182,10 +183,12 @@ function registerQuickFilterSourceTests(translate: (key: string) => string) {
   });
 
   it("names a relation's values by the route's label and value keys by default", () => {
-    const source = relationQuickFilterSource(
-      column("relation", { searchUrl: "/api/customers/select" }),
-      dataTypes,
-    )!;
+    const source = defined(
+      relationQuickFilterSource(
+        column("relation", { searchUrl: "/api/customers/select" }),
+        dataTypes,
+      ),
+    );
     expect(
       relationQuickFilterItems(
         [{ value: "cust-060", label: "Acme", _id: "row", name: "other" }],

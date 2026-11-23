@@ -4,6 +4,7 @@ import {
   openSseStream,
 } from "../layers/dms-core/app/composables/realtime/useSseStream";
 import { runDeduped } from "../layers/dms-core/app/utils/dedupedRefresh";
+import { defined } from "./helpers/defined";
 
 const realFetch = globalThis.fetch;
 
@@ -18,7 +19,7 @@ function streamingResponse(frames: string[]) {
   const body = new ReadableStream<Uint8Array>({
     pull(controller) {
       if (index < frames.length) {
-        controller.enqueue(encoder.encode(frames[index]!));
+        controller.enqueue(encoder.encode(defined(frames[index])));
         index += 1;
       } else {
         controller.close();

@@ -14,6 +14,7 @@ import {
   validateFormState,
 } from "../layers/dms-ui/app/entries/composables/form/formValidation";
 import { createBaseValidationSchema } from "../layers/dms-ui/app/entries/composables/form/useFormModel";
+import { defined } from "./helpers/defined";
 
 function roundTrip(
   fields: Record<string, z.ZodTypeAny>,
@@ -293,8 +294,8 @@ describe("validateFormState: other errors", () => {
       { email: "nope" },
     );
     expect(issues).toHaveLength(1);
-    expect(issues[0]!.path).toEqual(["email"]);
-    expect(issues[0]!.message).not.toBe(REQUIRED);
+    expect(defined(issues[0]).path).toEqual(["email"]);
+    expect(defined(issues[0]).message).not.toBe(REQUIRED);
   });
 });
 
@@ -365,14 +366,14 @@ describe("unwrapUnionIssue", () => {
     const schema = z.union([z.string().email(), z.string().url()]);
     const result = schema.safeParse("nope");
     expect(result.success).toBe(false);
-    const [issue] = result.error!.issues;
-    expect(unwrapUnionIssue(issue!)).toEqual([issue]);
+    const [issue] = defined(result.error).issues;
+    expect(unwrapUnionIssue(defined(issue))).toEqual([issue]);
   });
 
   it("takes the issues of the one branch of the value's type", () => {
     const schema = z.union([z.object({ a: z.string() }), z.null()]);
     const result = schema.safeParse({});
-    const issues = result.error!.issues.flatMap(unwrapUnionIssue);
+    const issues = defined(result.error).issues.flatMap(unwrapUnionIssue);
     expect(issues.map((issue) => issue.path)).toEqual([["a"]]);
   });
 });

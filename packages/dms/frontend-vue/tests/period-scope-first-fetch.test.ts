@@ -23,6 +23,7 @@ import { renderToString } from "vue/server-renderer";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useRealDataEngine } from "./fixtures/dataEngine";
 import type { PeriodState } from "../layers/dms-core/app/composables/period/types";
+import { defined } from "./helpers/defined";
 
 const requests: string[] = [];
 
@@ -239,7 +240,8 @@ describe("period-scoped cards on first paint", () => {
       await nextTick();
       await new Promise((resolve) => setTimeout(resolve, SETTLE_MS));
       expect(requests).toHaveLength(2);
-      const query = new URL(requests[1]!, "https://example.test").searchParams;
+      const query = new URL(defined(requests[1]), "https://example.test")
+        .searchParams;
       expect(query.get("from")).toBe("2026-02-01T00:00:00.000Z");
       expect(query.get("to")).toBe("2026-03-01T00:00:00.000Z");
     } finally {
@@ -351,7 +353,7 @@ describe("chart fetch loading state", () => {
     expect(pending).toHaveLength(2);
     expect(loading?.value).toBe(true);
 
-    pending[1]!.resolve({ value: 2 });
+    defined(pending[1]).resolve({ value: 2 });
     await new Promise((resolve) => setTimeout(resolve, 0));
     expect(loading?.value).toBe(false);
     await refreshed;

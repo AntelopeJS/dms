@@ -17,6 +17,7 @@ import {
   readOnlyFailure,
   installReadOnlyRefusal,
 } from "./helpers/read-only-refusal";
+import { defined } from "./helpers/defined";
 
 const GENERIC_KEY = "dms.action_error.generic";
 
@@ -146,12 +147,12 @@ function registerConfirmationRetryTests(
       onConfirm: vi.fn().mockRejectedValue(readOnlyFailure()),
     });
     await fixture.flush();
-    fixture.button("Delete")!.click();
+    defined(fixture.button("Delete")).click();
     await fixture.flush();
     expect(fixture.closed).not.toHaveBeenCalled();
     expect(fixture.alert()?.textContent).toContain("error.read_only_demo");
-    expect(fixture.button("Delete")!.disabled).toBe(false);
-    expect(fixture.button("Delete")!.dataset.loading).toBeUndefined();
+    expect(defined(fixture.button("Delete")).disabled).toBe(false);
+    expect(defined(fixture.button("Delete")).dataset.loading).toBeUndefined();
     expect(add).not.toHaveBeenCalled();
   });
 
@@ -170,7 +171,7 @@ function registerConfirmationRetryTests(
     });
     await fixture.flush();
 
-    fixture.button("Delete")!.click();
+    defined(fixture.button("Delete")).click();
     await fixture.flush();
     expect(fixture.closed).not.toHaveBeenCalled();
     expect(fixture.alert()?.dataset.alert).toBe("warning");
@@ -178,11 +179,11 @@ function registerConfirmationRetryTests(
 
     expect(fixture.host.textContent).not.toContain("[DELETE]");
 
-    expect(fixture.button("Delete")!.dataset.loading).toBeUndefined();
-    expect(fixture.button("Delete")!.disabled).toBe(false);
-    expect(fixture.button("dms.confirm.cancel")!.disabled).toBe(false);
+    expect(defined(fixture.button("Delete")).dataset.loading).toBeUndefined();
+    expect(defined(fixture.button("Delete")).disabled).toBe(false);
+    expect(defined(fixture.button("dms.confirm.cancel")).disabled).toBe(false);
 
-    fixture.button("Delete")!.click();
+    defined(fixture.button("Delete")).click();
     await fixture.flush();
     expect(onConfirm).toHaveBeenCalledTimes(2);
     expect(fixture.closed).toHaveBeenCalledWith(true);
@@ -221,14 +222,14 @@ function registerConfirmationRetryTests(
     });
     await fixture.flush();
 
-    fixture.button("Archive")!.click();
+    defined(fixture.button("Archive")).click();
     await fixture.flush();
     expect(fixture.alert()?.textContent).toBe(GENERIC_KEY);
 
-    fixture.button("Archive")!.click();
+    defined(fixture.button("Archive")).click();
     await fixture.flush();
     expect(fixture.alert()).toBeNull();
-    expect(fixture.button("Archive")!.dataset.loading).toBe("true");
+    expect(defined(fixture.button("Archive")).dataset.loading).toBe("true");
     settle();
     await fixture.flush();
     expect(fixture.closed).toHaveBeenCalledWith(true);
@@ -243,9 +244,9 @@ function registerConfirmationRetryTests(
       onConfirm,
     });
     await fixture.flush();
-    fixture.button("Delete")!.click();
+    defined(fixture.button("Delete")).click();
     await fixture.flush();
-    fixture.button("dms.confirm.cancel")!.click();
+    defined(fixture.button("dms.confirm.cancel")).click();
     expect(fixture.closed).toHaveBeenCalledWith(false);
   });
 }
@@ -277,7 +278,7 @@ function registerConfirmationOutcomeTests(
         onConfirm,
       });
       await fixture.flush();
-      fixture.button("Delete")!.click();
+      defined(fixture.button("Delete")).click();
       await fixture.flush();
       expect(fixture.alert()?.querySelector("strong")?.textContent).toBe(
         expected,
@@ -300,7 +301,7 @@ function registerConfirmationOutcomeTests(
       onConfirm,
     });
     await fixture.flush();
-    fixture.button("Archive")!.click();
+    defined(fixture.button("Archive")).click();
     await fixture.flush();
 
     expect(fixture.closed).not.toHaveBeenCalled();
@@ -310,7 +311,7 @@ function registerConfirmationOutcomeTests(
     );
 
     expect(fixture.button("Archive")).toBeUndefined();
-    fixture.button("dms.confirm.close")!.click();
+    defined(fixture.button("dms.confirm.close")).click();
     expect(fixture.closed).toHaveBeenCalledWith(true);
   });
 }

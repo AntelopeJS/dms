@@ -2,6 +2,7 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { effectScope } from "vue";
 import { useCopyFeedback } from "../layers/dms-ui/app/entries/composables/clipboard/useCopyFeedback";
+import { defined } from "./helpers/defined";
 
 const writeText = vi.fn(async () => undefined);
 
@@ -19,7 +20,7 @@ afterEach(() => {
 });
 
 function inScope<T>(setup: () => T): T {
-  return effectScope().run(setup)!;
+  return defined(effectScope().run(setup));
 }
 
 it("copies a text and marks its button copied for a moment", async () => {

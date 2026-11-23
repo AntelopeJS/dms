@@ -17,6 +17,7 @@ import {
   useEnclosingForm,
 } from "../layers/dms-ui/app/composables/form/useEnclosingForm";
 import type { FormValidator } from "../layers/dms-ui/app/composables/form/types/validation";
+import { defined } from "./helpers/defined";
 
 const FIELD_IDS = ["retentionDays", "requestLogMaxBodyKb"];
 const mounted: Array<{ unmount: () => void }> = [];
@@ -61,6 +62,11 @@ function mountField(
   return app;
 }
 
+/** The form a mounted field reported, once it has mounted. */
+interface CapturedForm {
+  form?: EnclosingForm | null;
+}
+
 describe("useEnclosingForm", () => {
   it("is null outside a Form", () => {
     let form: EnclosingForm | null | undefined;
@@ -70,11 +76,11 @@ describe("useEnclosingForm", () => {
 
   it("submits the form and focuses a field through the form", async () => {
     const { handle } = fakeForm();
-    let form: EnclosingForm | null = null;
-    mountField(handle, (enclosing) => (form = enclosing));
+    const captured: CapturedForm = {};
+    mountField(handle, (enclosing) => (captured.form = enclosing));
 
-    await form!.submit();
-    await form!.focusField("retentionDays");
+    await defined(captured.form).submit();
+    await defined(captured.form).focusField("retentionDays");
 
     expect(handle.submit).toHaveBeenCalledOnce();
     expect(handle.revealField).toHaveBeenCalledWith("retentionDays");

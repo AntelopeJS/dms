@@ -6,6 +6,7 @@ import { useMultiAccount } from "../layers/dms-core/app/composables/auth/useMult
 import { installAuthSettingsRuntime } from "./helpers/auth-settings-runtime";
 import { browserRuntime } from "./helpers/api-data-runtime";
 import type { useAuthFetch } from "../layers/dms-core/app/composables/auth/useAuthFetch";
+import { defined } from "./helpers/defined";
 
 const session = ref({ accountId: "account-before" });
 const user = ref({ _id: "user", email: "member@example.test", name: "Member" });
@@ -69,7 +70,9 @@ it("reopens the session from the handoff, then drops the account it replaced", a
   expect(useMultiAccount().accounts.value).toEqual([
     expect.objectContaining({ userId: "user", accountId: "account-after" }),
   ]);
-  expect(JSON.parse(localStorage.getItem("antelopejs-accounts")!)).toEqual([
+  expect(
+    JSON.parse(defined(localStorage.getItem("antelopejs-accounts"))),
+  ).toEqual([
     expect.objectContaining({
       email: "member@example.test",
       accountId: "account-after",

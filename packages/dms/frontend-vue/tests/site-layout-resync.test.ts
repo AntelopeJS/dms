@@ -3,6 +3,7 @@ import { http, router, usePage } from "@inertiajs/vue3";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { installShellRuntime } from "./helpers/live-shell-runtime";
 import { useSiteLayout } from "../layers/dms-core/app/composables/page/useSiteLayout";
+import { defined } from "./helpers/defined";
 
 type Request = Parameters<ReturnType<typeof http.getClient>["request"]>[0];
 type Response = Awaited<
@@ -53,8 +54,8 @@ describe("useSiteLayout resync", () => {
   it("reloads the site layout and the page through Inertia", async () => {
     await useSiteLayout().resync();
     expect(requests).toHaveLength(1);
-    expect(new URL(requests[0]!.url).pathname).toBe("/projects");
-    expect(requests[0]!.headers?.["X-Inertia-Partial-Data"]).toBe(
+    expect(new URL(defined(requests[0]).url).pathname).toBe("/projects");
+    expect(defined(requests[0]).headers?.["X-Inertia-Partial-Data"]).toBe(
       "shared,page",
     );
     expect(usePage().props).toMatchObject({
@@ -101,7 +102,7 @@ describe("useSiteLayout resync", () => {
     await vi.waitFor(() => expect(finishReload).toBeTypeOf("function"));
     router.push({ url: "/tasks", preserveScroll: true });
     await vi.waitFor(() => expect(usePage().url).toBe("/tasks"));
-    finishReload!(answer(requests[0]!));
+    defined(finishReload)(answer(defined(requests[0])));
     await resync;
     expect(requests.map((request) => new URL(request.url).pathname)).toEqual([
       "/projects",

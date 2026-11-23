@@ -4,6 +4,7 @@ import { createApp, h, nextTick, Suspense, type App } from "vue";
 import Input from "@nuxt/ui/components/Input.vue";
 import SelectMenu from "@nuxt/ui/components/SelectMenu.vue";
 import { host, i18n, t } from "./helpers/form-runtime";
+import { defined } from "./helpers/defined";
 
 let app: App | undefined;
 afterEach(() => app?.unmount());
@@ -42,7 +43,7 @@ const places = {
 };
 
 function typeStreet(value: string) {
-  const input = host.querySelector<HTMLInputElement>("#street")!;
+  const input = defined(host.querySelector<HTMLInputElement>("#street"));
   input.focus();
   input.value = value;
   input.dispatchEvent(new Event("input", { bubbles: true }));
@@ -60,7 +61,7 @@ it("rejects street suggestions reopened by an answer arriving after focus left",
   );
   const street = typeStreet("Station");
   await vi.waitFor(() => expect(fetch).toHaveBeenCalledOnce());
-  const house = host.querySelectorAll("input")[1]!;
+  const house = defined(host.querySelectorAll("input")[1]);
   house.focus();
   await new Promise((resolve) => setTimeout(resolve, 170));
   answer(places);

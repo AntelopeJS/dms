@@ -19,6 +19,7 @@ import {
   serverRender,
   stubApiData,
 } from "./helpers/api-data-runtime";
+import { defined } from "./helpers/defined";
 
 interface ImageValue {
   key: string;
@@ -253,7 +254,7 @@ it("refreshes an expiring image preview and retries a transient failure", async 
   expect(container.querySelector("img")?.getAttribute("src")).toBe(
     "https://example.test/refreshed.png",
   );
-  expect(authFetch.mock.calls[0]![1].headers).toEqual({
+  expect(defined(authFetch.mock.calls[0])[1].headers).toEqual({
     "x-content-language": "*",
   });
 });

@@ -13,6 +13,7 @@ import { fetchClient } from "./fixtures/fetchClient";
 import type { CustomButton } from "../layers/dms-ui/app/composables/table-view/types/custom-button";
 import type { CustomRowAction } from "../layers/dms-ui/app/types/row-action";
 import type { ConfirmOptions } from "../layers/dms-ui/app/composables/confirm/types";
+import { defined } from "./helpers/defined";
 
 const route = reactive<{ path: string; query: Record<string, string> }>({
   path: "/sales/quotes/q1",
@@ -40,7 +41,7 @@ function mountTargets() {
     }),
   );
   app.mount(document.createElement("div"));
-  return targets!;
+  return defined(targets);
 }
 
 const createButton = (redirect: string): CustomButton => ({
@@ -106,7 +107,7 @@ describe("an api target's redirect", () => {
       expect.objectContaining({ title: "Created" }),
     );
     expect(toastAdd.mock.invocationCallOrder[0]).toBeLessThan(
-      navigateDms.mock.invocationCallOrder[0]!,
+      defined(navigateDms.mock.invocationCallOrder[0]),
     );
   });
 

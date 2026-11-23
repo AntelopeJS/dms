@@ -9,6 +9,7 @@ import {
   ref,
 } from "vue";
 import type PasswordInputComponent from "../layers/dms-ui/app/entries/components/form/PasswordInput";
+import { defined } from "./helpers/defined";
 
 interface InputStubProps {
   modelValue?: string;
@@ -74,8 +75,8 @@ async function mount(props: PasswordInputProps = {}) {
   return visible;
 }
 
-const input = () => host.querySelector("input")!;
-const toggle = () => host.querySelector("button")!;
+const input = () => defined(host.querySelector("input"));
+const toggle = () => defined(host.querySelector("button"));
 
 beforeEach(() => {
   vi.stubGlobal("useI18n", () => ({ t: (key: string) => key }));

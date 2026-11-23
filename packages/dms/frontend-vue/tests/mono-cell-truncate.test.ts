@@ -2,6 +2,7 @@
 import { createApp, defineComponent, h, type App } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import MonoCell from "../layers/dms-ui/app/entries/components/table/MonoCell";
+import { defined } from "./helpers/defined";
 
 const ButtonStub = defineComponent({
   setup: () => () => h("button"),
@@ -16,7 +17,7 @@ function mountCell(copy: boolean) {
   app.component("UButton", ButtonStub);
   const container = document.createElement("div");
   app.mount(container);
-  return container.firstElementChild!;
+  return defined(container.firstElementChild);
 }
 
 beforeEach(() => {

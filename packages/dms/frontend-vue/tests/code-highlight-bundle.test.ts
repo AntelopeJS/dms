@@ -1,6 +1,7 @@
 import { resolve } from "node:path";
 import { build, type Rollup } from "vite";
 import { beforeAll, describe, expect, it } from "vitest";
+import { defined } from "./helpers/defined";
 
 const ROOT = resolve(__dirname, "..");
 const HIGHLIGHTER = resolve(
@@ -19,7 +20,7 @@ function closure(start: Chunk): Chunk[] {
   const visit = (chunk: Chunk) => {
     if (seen.has(chunk.fileName)) return;
     seen.set(chunk.fileName, chunk);
-    for (const name of chunk.imports) visit(chunks.get(name)!);
+    for (const name of chunk.imports) visit(defined(chunks.get(name)));
   };
   visit(start);
   return [...seen.values()];
@@ -31,7 +32,7 @@ const modulesOf = (loaded: Chunk[]) =>
 function modulesLoadedFor(facade: RegExp): string[] {
   const loaded = closure(entry)
     .flatMap((chunk) => chunk.dynamicImports)
-    .map((name) => chunks.get(name)!)
+    .map((name) => defined(chunks.get(name)))
     .filter((chunk) => facade.test(chunk.facadeModuleId ?? ""))
     .flatMap(closure);
   expect(loaded.length, `no chunk loads ${facade}`).toBeGreaterThan(0);
@@ -75,7 +76,7 @@ beforeAll(async () => {
     (item): item is Chunk => item.type === "chunk",
   );
   chunks = new Map(built.map((chunk) => [chunk.fileName, chunk]));
-  entry = built.find((chunk) => chunk.isEntry)!;
+  entry = defined(built.find((chunk) => chunk.isEntry));
 }, BUILD_TIMEOUT_MS);
 
 describe("the read-only highlighter's bundle", () => {

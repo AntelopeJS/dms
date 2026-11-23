@@ -16,6 +16,7 @@ import {
   installAuthSettingsRuntime,
   PinInput,
 } from "./helpers/auth-settings-runtime";
+import { defined } from "./helpers/defined";
 
 const { default: ForgotValidationPage } = await import(
   "../layers/dms-auth/app/custom-pages/auth/forgot-validation.vue"
@@ -123,7 +124,9 @@ function resendButton(): HTMLButtonElement {
 }
 
 async function typeCode(code: string) {
-  const input = host.querySelector<HTMLInputElement>('[data-testid="code"]')!;
+  const input = defined(
+    host.querySelector<HTMLInputElement>('[data-testid="code"]'),
+  );
   input.value = code;
   input.dispatchEvent(new Event("input"));
   await settle();

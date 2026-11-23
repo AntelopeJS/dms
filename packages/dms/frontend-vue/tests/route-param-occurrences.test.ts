@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { extractRouteParams } from "../layers/dms-core/app/composables/page/useSiteLayout";
 import { replaceUrlVariables } from "../layers/dms-ui/app/composables/form/useForm";
+import { defined } from "./helpers/defined";
 
 const NESTED_FORM_PATTERN = "/workspaces/:id/invoiceTable/:id/edit";
 const NESTED_FORM_PATH = "/workspaces/ws-1/invoiceTable/row-7/edit";
@@ -66,7 +67,9 @@ describe("extractRouteParams", () => {
 
 describe("form URL variables on a repeated placeholder", () => {
   const context = {
-    routeParams: extractRouteParams(NESTED_FORM_PATTERN, NESTED_FORM_PATH)!,
+    routeParams: defined(
+      extractRouteParams(NESTED_FORM_PATTERN, NESTED_FORM_PATH),
+    ),
     routeQuery: {},
   };
 
@@ -103,10 +106,9 @@ describe("form URL variables on a repeated placeholder", () => {
   it("resolves the bare name on a single-placeholder route as before", () => {
     expect(
       replaceUrlVariables("/customers/edit?id={{params.id}}", {
-        routeParams: extractRouteParams(
-          "/customers/:id/edit",
-          "/customers/c-1/edit",
-        )!,
+        routeParams: defined(
+          extractRouteParams("/customers/:id/edit", "/customers/c-1/edit"),
+        ),
         routeQuery: {},
       }),
     ).toBe("/customers/edit?id=c-1");

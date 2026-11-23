@@ -7,6 +7,7 @@
 import { createApp, defineComponent, h, type App } from "vue";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { createI18n } from "vue-i18n";
+import { defined } from "./helpers/defined";
 
 const i18n = createI18n({ legacy: false, locale: "en", missingWarn: false });
 
@@ -42,9 +43,9 @@ it.each([
   [3, ["@min-[560px]:grid-cols-2", "@min-[840px]:grid-cols-3"]],
 ])("lays %i columns out by the list's own width", async (columns, steps) => {
   const root = await mountList(columns);
-  const wrapper = root.firstElementChild!;
+  const wrapper = defined(root.firstElementChild);
   expect(wrapper.classList).toContain("@container");
-  const list = wrapper.querySelector("dl")!;
+  const list = defined(wrapper.querySelector("dl"));
   for (const step of steps) expect(list.classList).toContain(step);
   expect(list.className).not.toMatch(/(^|\s)(sm|md|lg):grid-cols/);
 });

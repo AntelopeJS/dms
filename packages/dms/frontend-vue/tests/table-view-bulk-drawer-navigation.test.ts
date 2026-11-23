@@ -8,6 +8,7 @@ import {
   drawers,
   mountTargets,
 } from "./table-view-bulk-drawer-runtime";
+import { defined } from "./helpers/defined";
 
 it("fills a row drawer's component options with each row it steps to", () => {
   const rows = [{ _id: "r1" }, { _id: "r2" }];
@@ -41,7 +42,7 @@ it("fills a row drawer's component options with each row it steps to", () => {
     custom: [{ target: { type: "page", url: "/s/{{row._id}}" } }],
   });
   expect(opened.fetchRowUrl).toBe("/api/steps/{{row.id}}");
-  opened.navigation!.next();
+  defined(opened.navigation).next();
   const patched = drawerBody(drawers[0]?.patches[0]?.componentOptions);
   expect(patched.fetchUrl).toBe("/api/runs/get?id=r2");
   expect(patched.submitUrl).toBe("/api/runs/edit?id=r2");
@@ -99,14 +100,14 @@ it("draws a container drawer with its children, filled with each row", () => {
   expect(drawers[0]?.options.component).toBe(TargetComponentTree);
   const opened = drawerBody(drawers[0]?.options.componentOptions);
   expect(opened.title).toBe("First");
-  expect(opened.targetTree!.componentName).toBe("Card");
-  expect(opened.targetTree!.children).toMatchObject([
+  expect(defined(opened.targetTree).componentName).toBe("Card");
+  expect(defined(opened.targetTree).children).toMatchObject([
     { id: "facts", options: { fetchUrl: "/x/r1" } },
   ]);
-  opened.navigation!.next();
+  defined(opened.navigation).next();
   const patched = drawerBody(drawers[0]?.patches[0]?.componentOptions);
   expect(patched.title).toBe("Second");
-  expect(patched.targetTree!.children).toMatchObject([
+  expect(defined(patched.targetTree).children).toMatchObject([
     { id: "facts", options: { fetchUrl: "/x/r2" } },
   ]);
 });
@@ -118,7 +119,7 @@ it("hands a bulk container drawer its children as declared", () => {
     { ids: ["a"], count: 1 },
   );
   const opened = drawerBody(drawers[0]?.options.componentOptions);
-  expect(opened.targetTree!.children).toMatchObject([
+  expect(defined(opened.targetTree).children).toMatchObject([
     { id: "facts", options: { fetchUrl: "/x/{{row._id}}" } },
   ]);
 });
@@ -142,7 +143,7 @@ it("steps a row's drawer through the rows shown and keeps it in the URL", async 
   );
   await vi.waitFor(() => expect(drawers).toHaveLength(1));
   const [drawer] = drawers;
-  const options = drawerBody(drawer!.options.componentOptions);
+  const options = drawerBody(defined(drawer).options.componentOptions);
   expect(options.rowData).toBe(rows[0]);
   expect(options.navigation).toMatchObject({
     index: 0,
@@ -152,20 +153,20 @@ it("steps a row's drawer through the rows shown and keeps it in the URL", async 
   expect(window.location.search).toBe("?record=r1");
 
   window.dispatchEvent(new KeyboardEvent("keydown", { key: "j" }));
-  expect(drawer!.patches).toHaveLength(1);
-  expect(drawer!.patches[0]).toMatchObject({ componentKey: "r2" });
-  expect(drawerBody(drawer!.patches[0]!.componentOptions).rowData).toBe(
-    rows[1],
-  );
+  expect(defined(drawer).patches).toHaveLength(1);
+  expect(defined(drawer).patches[0]).toMatchObject({ componentKey: "r2" });
+  expect(
+    drawerBody(defined(defined(drawer).patches[0]).componentOptions).rowData,
+  ).toBe(rows[1]);
   expect(window.location.search).toBe("?record=r2");
 
-  drawer!.settle();
+  defined(drawer).settle();
   await nextTick();
   await Promise.resolve();
   expect(window.location.search).toBe("");
   expect(onRecordShown.mock.calls).toEqual([["r1"], ["r2"], [undefined]]);
   window.dispatchEvent(new KeyboardEvent("keydown", { key: "k" }));
-  expect(drawer!.patches).toHaveLength(1);
+  expect(defined(drawer).patches).toHaveLength(1);
 });
 
 it("shows another row in a row's drawer by id, read when unlisted", async () => {
@@ -187,24 +188,26 @@ it("shows another row in a row's drawer by id, read when unlisted", async () => 
   );
   await vi.waitFor(() => expect(drawers).toHaveLength(1));
   const [drawer] = drawers;
-  const options = drawerBody(drawer!.options.componentOptions);
-  const showRow = options.showRow!;
+  const options = drawerBody(defined(drawer).options.componentOptions);
+  const showRow = defined(options.showRow);
 
   await showRow("r9");
-  expect(drawer!.patches[0]).toMatchObject({ componentKey: "r9" });
-  const patched = drawerBody(drawer!.patches[0]!.componentOptions);
+  expect(defined(drawer).patches[0]).toMatchObject({ componentKey: "r9" });
+  const patched = drawerBody(
+    defined(defined(drawer).patches[0]).componentOptions,
+  );
   expect(patched.rowData).toBe(older);
   expect(patched.navigation).toBeUndefined();
   expect(window.location.search).toBe("?record=r9");
 
   await showRow("r2");
   expect(getRow).toHaveBeenCalledTimes(1);
-  expect(drawer!.patches[1]).toMatchObject({ componentKey: "r2" });
+  expect(defined(drawer).patches[1]).toMatchObject({ componentKey: "r2" });
   expect(window.location.search).toBe("?record=r2");
 
   await expect(showRow("r404")).rejects.toThrow("r404");
-  expect(drawer!.patches).toHaveLength(2);
-  drawer!.settle();
+  expect(defined(drawer).patches).toHaveLength(2);
+  defined(drawer).settle();
 });
 
 const deferredRows = () => {
@@ -215,7 +218,10 @@ const deferredRows = () => {
         pending.set(id, resolve),
       ),
   );
-  return { getRow, resolve: (id: string) => pending.get(id)!({ _id: id }) };
+  return {
+    getRow,
+    resolve: (id: string) => defined(pending.get(id))({ _id: id }),
+  };
 };
 
 const openDeepLinkedDrawer = (
@@ -240,22 +246,22 @@ const openDeepLinkedDrawer = (
 };
 
 const showRowOf = (drawer: (typeof drawers)[number]) =>
-  drawerBody(drawer.options.componentOptions).showRow!;
+  defined(drawerBody(drawer.options.componentOptions).showRow);
 
 it("drops a row read that resolves after its drawer closed", async () => {
   const rows = deferredRows();
   openDeepLinkedDrawer(rows.getRow);
   await vi.waitFor(() => expect(drawers).toHaveLength(1));
   const [drawer] = drawers;
-  const shown = showRowOf(drawer!)("r9");
+  const shown = showRowOf(defined(drawer))("r9");
 
-  drawer!.settle();
+  defined(drawer).settle();
   await vi.waitFor(() => expect(window.location.search).toBe(""));
   rows.resolve("r9");
   await shown;
 
   expect(window.location.search).toBe("");
-  expect(drawer!.patches).toHaveLength(0);
+  expect(defined(drawer).patches).toHaveLength(0);
   expect(drawers).toHaveLength(1);
 });
 
@@ -264,7 +270,7 @@ it("applies only the latest of two rows read at once", async () => {
   openDeepLinkedDrawer(rows.getRow);
   await vi.waitFor(() => expect(drawers).toHaveLength(1));
   const [drawer] = drawers;
-  const showRow = showRowOf(drawer!);
+  const showRow = showRowOf(defined(drawer));
   const first = showRow("r8");
   const second = showRow("r9");
 
@@ -273,10 +279,10 @@ it("applies only the latest of two rows read at once", async () => {
   rows.resolve("r8");
   await first;
 
-  expect(drawer!.patches).toHaveLength(1);
-  expect(drawer!.patches[0]).toMatchObject({ componentKey: "r9" });
+  expect(defined(drawer).patches).toHaveLength(1);
+  expect(defined(drawer).patches[0]).toMatchObject({ componentKey: "r9" });
   expect(window.location.search).toBe("?record=r9");
-  drawer!.settle();
+  defined(drawer).settle();
 });
 
 it("hands a bulk drawer the selection instead of a row", async () => {
@@ -293,7 +299,7 @@ it("hands a bulk drawer the selection instead of a row", async () => {
     { ids: ["a"], count: 1 },
   );
   await vi.waitFor(() => expect(drawers).toHaveLength(1));
-  const options = drawerBody(drawers[0]!.options.componentOptions);
+  const options = drawerBody(defined(drawers[0]).options.componentOptions);
   expect(options.rowData).toBe(undefined);
   expect(options.selection).toEqual({ ids: ["a"], count: 1 });
 });

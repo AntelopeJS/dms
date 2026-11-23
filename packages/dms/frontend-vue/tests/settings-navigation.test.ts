@@ -4,6 +4,7 @@ import {
   findActiveSettingsPath,
   useSettingsNavigation,
 } from "../layers/dms-layout/app/entries/composables/settings/useSettingsNavigation";
+import { defined } from "./helpers/defined";
 
 interface NodeFixture {
   fullId: string;
@@ -40,9 +41,11 @@ function category(
     fullSlug: `/${fullId.replaceAll(".", "/")}`,
     order,
     children: Object.fromEntries(
-      children.map((child) => [child.fullId.split(".").pop()!, child]),
+      children.map((child) => [defined(child.fullId.split(".").pop()), child]),
     ),
-    childrenOrders: children.map((child) => child.fullId.split(".").pop()!),
+    childrenOrders: children.map((child) =>
+      defined(child.fullId.split(".").pop()),
+    ),
   };
 }
 
@@ -51,9 +54,11 @@ const tree = ref<NodeFixture | undefined>();
 const withChildren = (node: NodeFixture, children: NodeFixture[]) => ({
   ...node,
   children: Object.fromEntries(
-    children.map((child) => [child.fullId.split(".").pop()!, child]),
+    children.map((child) => [defined(child.fullId.split(".").pop()), child]),
   ),
-  childrenOrders: children.map((child) => child.fullId.split(".").pop()!),
+  childrenOrders: children.map((child) =>
+    defined(child.fullId.split(".").pop()),
+  ),
 });
 
 beforeEach(() => {
@@ -135,8 +140,8 @@ it("leaves out the overview and the pages the viewer cannot open", () => {
 });
 
 it("carries each page's badge and status to its entry", () => {
-  const settings = tree.value!.children.settings!;
-  Object.assign(settings.children.user!.children.region!, {
+  const settings = defined(defined(tree.value).children.settings);
+  Object.assign(defined(defined(settings.children.user).children.region), {
     badge: "3",
     status: "warning",
   });

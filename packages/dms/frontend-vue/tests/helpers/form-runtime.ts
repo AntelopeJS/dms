@@ -10,6 +10,7 @@ import { isString } from "../../layers/dms-core/app/utils/type-check";
 import type { FormProps } from "../../layers/dms-ui/app/composables/form/types/props";
 import en from "../../layers/dms-ui/app/entries/i18n/locales/ui-en-GB.json";
 import fr from "../../layers/dms-ui/app/entries/i18n/locales/ui-fr-FR.json";
+import { defined } from "./defined";
 
 export const i18n = createI18n({
   legacy: false,
@@ -206,7 +207,7 @@ export function registerFormComponents(app: Vue.App) {
 }
 
 export async function typeName() {
-  const input = host.querySelector("input")!;
+  const input = defined(host.querySelector("input"));
   input.value = "Grace";
   input.dispatchEvent(new Event("input", { bubbles: true }));
   await Vue.nextTick();
@@ -217,7 +218,7 @@ export function button(label: string) {
     (entry) => entry.textContent === label,
   );
   expect(found, `button ${label}`).toBeDefined();
-  return found!;
+  return defined(found);
 }
 
 beforeEach(() => {

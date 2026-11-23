@@ -13,6 +13,7 @@ import {
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import TableMenuDensity from "../layers/dms-ui/app/entries/components/table/MenuDensity";
 import TableMenuRoot from "../layers/dms-ui/app/entries/components/table/MenuRoot";
+import { defined } from "./helpers/defined";
 
 /** The global name `@nuxt/icon` registers and the sources resolve. */
 
@@ -78,16 +79,18 @@ describe("table density menu", () => {
       "dms.table.density_default",
       "dms.table.density_compact",
     ]);
-    expect(items[0]!.querySelector('[data-icon="i-check"]')).not.toBeNull();
+    expect(
+      defined(items[0]).querySelector('[data-icon="i-check"]'),
+    ).not.toBeNull();
 
-    items[1]!.click();
+    defined(items[1]).click();
     await nextTick();
 
     expect(densityState.value).toBe("compact");
     expect(
-      container
-        .querySelectorAll("li")[1]!
-        .querySelector('[data-icon="i-check"]'),
+      defined(container.querySelectorAll("li")[1]).querySelector(
+        '[data-icon="i-check"]',
+      ),
     ).not.toBeNull();
   });
 

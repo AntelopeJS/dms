@@ -1,6 +1,7 @@
 import ApexCharts from "apexcharts";
 import { useApexChart } from "../../layers/dms-ui/app/composables/chart/useApexChart";
 import type { UseApexChartInput } from "../../layers/dms-ui/app/composables/chart/useApexChart.types";
+import { defined } from "../helpers/defined";
 
 const SHORT_MONTH_DAYS = 5;
 const LONG_MONTH_DAYS = 31;
@@ -27,7 +28,7 @@ async function renderChart(title: string, input: Partial<UseApexChartInput>) {
   heading.textContent = title;
   const host = document.createElement("div");
   article.append(heading, host);
-  document.querySelector("main")!.append(article);
+  defined(document.querySelector("main")).append(article);
   const chart = useApexChart(() => ({
     type: "line",
     series: dailySeries(LONG_MONTH_DAYS),
@@ -55,7 +56,7 @@ await renderChart("Mois complet · 31 jours", {});
 await renderChart("Comparaison · 5 jours / 31 jours", {
   series: [
     ...dailySeries(SHORT_MONTH_DAYS),
-    { ...dailySeries(LONG_MONTH_DAYS)[0]!, name: "Précédent" },
+    { ...defined(dailySeries(LONG_MONTH_DAYS)[0]), name: "Précédent" },
   ],
 });
 await renderChart("Dates · format serveur dd MMM", {

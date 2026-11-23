@@ -4,6 +4,7 @@ import { type App, type Component, type VNode, createApp, h, ref } from "vue";
 import { isFunction } from "../layers/dms-core/app/utils/type-check";
 import { browserRuntime } from "./helpers/api-data-runtime";
 import { stubBlockRuntime } from "./helpers/block-runtime";
+import { defined } from "./helpers/defined";
 
 type SnippetAnswer = { code: string; language?: string } | null;
 
@@ -54,7 +55,7 @@ const mountBlock = (props: ComponentProps) =>
     ...props,
   });
 
-const pre = () => host.querySelector("pre")!;
+const pre = () => defined(host.querySelector("pre"));
 const copyButton = () => host.querySelector("button");
 
 beforeEach(async () => {
@@ -195,7 +196,7 @@ describe("CodeBlock", () => {
     expect(host.querySelector("pre")).toBeNull();
     expect(host.textContent).toContain("dms.blocks.load_error");
     authFetch.mockResolvedValue({ code: "retried" });
-    host.querySelector<HTMLElement>('[data-stub="UButton"]')!.click();
+    defined(host.querySelector<HTMLElement>('[data-stub="UButton"]')).click();
     await flushPromises();
     expect(authFetch).toHaveBeenCalledTimes(2);
     expect(pre().textContent).toBe("retried");

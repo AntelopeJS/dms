@@ -13,6 +13,7 @@ import {
   query,
   press,
 } from "./row-side-panel-runtime";
+import { defined } from "./helpers/defined";
 
 describe("row tokens in a row panel's component options", () => {
   let loadedRowIds: Array<string | undefined> = [];
@@ -61,7 +62,10 @@ describe("row tokens in a row panel's component options", () => {
     const row = document.createElement("tr");
     row.addEventListener("click", (event) => {
       if (!isRowClickTrigger("single", event)) return;
-      const clicked = resolveRowClickAction({ custom: [action] }, rows[1]!);
+      const clicked = resolveRowClickAction(
+        { custom: [action] },
+        defined(rows[1]),
+      );
       if (clicked && !isString(clicked))
         targets.handleCustomRowAction(clicked, rows[1]);
     });
@@ -93,7 +97,7 @@ describe("row tokens in a row panel's component options", () => {
     expect(shownBlock(host)).toBe(
       "/api/runs/get?id=r3&site={{query.site}}|r3|Third run",
     );
-    useRowSidePanelContent().value?.showRow?.(rows[0]!);
+    useRowSidePanelContent().value?.showRow?.(defined(rows[0]));
     await settle();
     expect(shownBlock(host)).toBe(
       "/api/runs/get?id=r1&site={{query.site}}|r1|First run",

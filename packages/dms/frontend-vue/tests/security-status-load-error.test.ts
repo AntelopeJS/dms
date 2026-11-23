@@ -13,6 +13,7 @@ import {
 import type DmsEmptyState from "../layers/dms-ui/app/components/empty-state/EmptyState.vue";
 import { browserRuntime, stubApiData } from "./helpers/api-data-runtime";
 import { installAuthSettingsRuntime } from "./helpers/auth-settings-runtime";
+import { defined } from "./helpers/defined";
 
 const authFetch = vi.fn();
 
@@ -98,7 +99,7 @@ it("says a failed summary failed, with a retry, instead of loading forever", asy
   expect(host.textContent).toContain("dms.table.load_error_title");
 
   authFetch.mockClear();
-  host.querySelector("button")!.click();
+  defined(host.querySelector("button")).click();
   await vi.waitFor(() => {
     expect(authFetch).toHaveBeenCalledOnce();
     expect(authFetch.mock.calls[0]).toHaveLength(2);

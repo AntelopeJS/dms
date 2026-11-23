@@ -6,6 +6,7 @@ import en from "../layers/dms-layout/app/entries/i18n/locales/layout-en-GB.json"
 import fr from "../layers/dms-layout/app/entries/i18n/locales/layout-fr-FR.json";
 import type { DmsBrandingLogo } from "../layers/dms-core/app/entries/shared/types/app-config";
 import { isString } from "../layers/dms-core/app/utils/type-check";
+import { defined } from "./helpers/defined";
 
 interface EmailModule {
   default: Component;
@@ -129,9 +130,9 @@ describe("built-in emails", () => {
   });
 
   it("words the code lifetime in the recipient's language", async () => {
-    const [, component] = templates.find(
-      ([name]) => name === "EmailResetPassword",
-    )!;
+    const [, component] = defined(
+      templates.find(([name]) => name === "EmailResetPassword"),
+    );
     expect(await renderEmail(component, PUBLIC_PNG_LOGO)).toContain(
       "This code expires in 24 hours.",
     );
@@ -141,18 +142,18 @@ describe("built-in emails", () => {
   });
 
   it("marks a partial export in French", async () => {
-    const [, component] = templates.find(
-      ([name]) => name === "EmailExportReady",
-    )!;
+    const [, component] = defined(
+      templates.find(([name]) => name === "EmailExportReady"),
+    );
     const html = await renderEmail(component, PUBLIC_PNG_LOGO, "fr");
     expect(html).toContain("<strong>incomplet</strong>");
     expect(html.replace(/<!--[^>]*-->/g, "")).toContain("— media.");
   });
 
   it("puts the two-factor disclaimer under the separator", async () => {
-    const [, component] = templates.find(
-      ([name]) => name === "EmailTwoFactor",
-    )!;
+    const [, component] = defined(
+      templates.find(([name]) => name === "EmailTwoFactor"),
+    );
     const html = await renderEmail(component, PUBLIC_PNG_LOGO);
     const separator = html.indexOf("<hr>");
     expect(separator).toBeGreaterThan(-1);

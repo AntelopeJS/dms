@@ -27,6 +27,7 @@ import {
 } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { dmsAppContext } from "./fixtures/dmsAppContext";
+import { defined } from "./helpers/defined";
 
 interface ColorSchemeChange {
   matches: boolean;
@@ -99,12 +100,12 @@ function loadDocument(cookie?: string): void {
 
 /** What `@nuxt/ui/vue-plugin` runs when the app installs it. */
 function bootNuxtUi() {
-  return scope.run(() => useDark())!;
+  return defined(scope.run(() => useDark()));
 }
 
 /** A Nuxt UI color-mode component's store, `UDashboardSearch`'s theme group. */
 function mountNuxtUiComponent() {
-  return scope.run(() => useColorMode())!;
+  return defined(scope.run(() => useColorMode()));
 }
 
 async function bootDmsPlugin(): Promise<void> {

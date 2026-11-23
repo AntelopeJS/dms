@@ -12,6 +12,7 @@ import {
 import ConfirmModal from "../layers/dms-ui/app/components/confirm/ConfirmModal.vue";
 
 import { DialogRoot } from "reka-ui";
+import { defined } from "./helpers/defined";
 
 let app: App | undefined;
 let host: HTMLDivElement;
@@ -93,10 +94,12 @@ function mount(props: InstanceType<typeof ConfirmModal>["$props"]): void {
 }
 
 const confirmButton = () =>
-  [...host.querySelectorAll("button")].find(
-    (button) => button.textContent === "Delete",
-  )!;
-const typedInput = () => host.querySelector("input")!;
+  defined(
+    [...host.querySelectorAll("button")].find(
+      (button) => button.textContent === "Delete",
+    ),
+  );
+const typedInput = () => defined(host.querySelector("input"));
 const typedError = () => host.querySelector("[data-error]")?.textContent;
 
 async function type(value: string): Promise<void> {

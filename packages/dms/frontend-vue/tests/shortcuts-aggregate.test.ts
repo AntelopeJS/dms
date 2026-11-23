@@ -3,6 +3,7 @@ import { createApp, defineComponent, h, nextTick, type App } from "vue";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { installShellRuntime } from "./helpers/live-shell-runtime";
 import { engine } from "./helpers/api-data-runtime";
+import { defined } from "./helpers/defined";
 
 describe("the shortcuts plugin", () => {
   let app: App | undefined;
@@ -67,7 +68,7 @@ describe("the shortcuts plugin", () => {
     expect(
       [...host.querySelectorAll("h2")].map((group) => group.textContent),
     ).toEqual(["GLOBAL", "TAB", "TABLEVIEW", "LIVETOGGLE", "FINDER"]);
-    const finder = [...host.querySelectorAll("section")].at(-1)!;
+    const finder = defined([...host.querySelectorAll("section")].at(-1));
     expect(finder.querySelectorAll("article")).toHaveLength(1);
     expect(finder.querySelector("article")?.textContent).toContain(
       "finder.open",
