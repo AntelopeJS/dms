@@ -8,6 +8,7 @@ import { createHead, renderSSRHead } from "@unhead/vue/server";
 import { createSSRApp, ref } from "vue";
 import { beforeEach, expect, it, vi } from "vitest";
 import { dmsAppContext } from "./fixtures/dmsAppContext";
+import { defined } from "./helpers/defined";
 
 interface CookieOptions {
   default: () => string;
@@ -69,7 +70,7 @@ it("reads the dms-color-mode cookie, kept a year and defaulting to system", asyn
   await renderHead();
 
   expect(cookieReads).toHaveBeenCalledOnce();
-  const [name, options] = cookieReads.mock.calls[0]!;
+  const [name, options] = defined(cookieReads.mock.calls[0]);
   expect(name).toBe(COLOR_MODE_COOKIE);
   expect(options.maxAge).toBe(ONE_YEAR_IN_SECONDS);
   expect(options.default()).toBe("system");

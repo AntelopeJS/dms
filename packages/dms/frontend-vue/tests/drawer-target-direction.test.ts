@@ -18,6 +18,7 @@ import type { ActionTarget } from "../layers/dms-ui/app/composables/table-view/t
 import type { useDrawer } from "../layers/dms-ui/app/composables/containers/useDrawer";
 
 import { DialogRoot } from "reka-ui";
+import { defined } from "./helpers/defined";
 
 let app: App | undefined;
 let host: HTMLDivElement;
@@ -53,7 +54,7 @@ describe("a drawer action target's direction", () => {
       }),
     );
     app.mount(host);
-    return targets!;
+    return defined(targets);
   };
 
   const drawerTarget = (
@@ -100,7 +101,7 @@ describe("a drawer action target's direction", () => {
       target: drawerTarget("right"),
     });
     await vi.waitFor(() => expect(opened).toHaveLength(1));
-    expect(opened[0]!.direction).toBe("right");
+    expect(defined(opened[0]).direction).toBe("right");
   });
 
   it("opens a row action's drawer from the edge it names", async () => {
@@ -110,14 +111,14 @@ describe("a drawer action target's direction", () => {
       { _id: "r1" },
     );
     await vi.waitFor(() => expect(opened).toHaveLength(1));
-    expect(opened[0]!.direction).toBe("left");
+    expect(defined(opened[0]).direction).toBe("left");
   });
 
   it("leaves the direction to the drawer when the target names none", async () => {
     const targets = mountTargets();
     targets.handleCustomButton({ label: "Inspect", target: drawerTarget() });
     await vi.waitFor(() => expect(opened).toHaveLength(1));
-    expect(opened[0]!.direction).toBe(undefined);
+    expect(defined(opened[0]).direction).toBe(undefined);
   });
 });
 
@@ -199,8 +200,8 @@ describe("the drawer container", () => {
     expect(rendered.direction).toBe("bottom");
     expect(rendered.ui?.content).toBe(undefined);
     const containers = host.querySelectorAll("[data-container]");
-    expect(containers[0]!.className).toContain("max-sm:px-0");
-    expect(containers[0]!.className).not.toContain("lg:px-0");
+    expect(defined(containers[0]).className).toContain("max-sm:px-0");
+    expect(defined(containers[0]).className).not.toContain("lg:px-0");
   });
 
   it("is a side sheet as wide as a side panel below lg, resizable from it", async () => {
@@ -208,6 +209,6 @@ describe("the drawer container", () => {
     expect(rendered.direction).toBe("right");
     expect(rendered.ui?.content).toBe("w-[440px] lg:w-(--dms-drawer-size)");
     const containers = host.querySelectorAll("[data-container]");
-    expect(containers[0]!.className).toContain("px-0 sm:px-0 lg:px-0");
+    expect(defined(containers[0]).className).toContain("px-0 sm:px-0 lg:px-0");
   });
 });

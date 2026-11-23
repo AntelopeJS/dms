@@ -10,6 +10,7 @@ import { computed, createApp, defineComponent, h, nextTick, ref } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fetchClient } from "./fixtures/fetchClient";
 import { tableViewColumn } from "./fixtures/tableViewColumn";
+import { defined } from "./helpers/defined";
 
 const engine = await import("#dms/frontend-module");
 vi.stubGlobal("computed", computed);
@@ -232,7 +233,7 @@ describe("a source table's requests", () => {
     await expect(list).rejects.toBeDefined();
     await expect(counts).resolves.toEqual({ all: 1 });
     expect(calls).toHaveLength(1);
-    expect(calls[0]!.signal?.aborted).toBe(false);
+    expect(defined(calls[0]).signal?.aborted).toBe(false);
   });
 
   it("cancel the request once every caller gave up", async () => {
@@ -248,12 +249,12 @@ describe("a source table's requests", () => {
     const list = rows.list({}, listing.signal);
     const counts = rows.countBatch([{ id: "all", query: {} }], counting.signal);
     listing.abort();
-    expect(calls[0]!.signal?.aborted).toBe(false);
+    expect(defined(calls[0]).signal?.aborted).toBe(false);
     counting.abort();
 
     await expect(list).rejects.toBeDefined();
     await expect(counts).rejects.toBeDefined();
     expect(calls).toHaveLength(1);
-    expect(calls[0]!.signal?.aborted).toBe(true);
+    expect(defined(calls[0]).signal?.aborted).toBe(true);
   });
 });

@@ -22,6 +22,7 @@ import {
   useCommandPaletteAssistant,
   type CommandPaletteAssistant,
 } from "../layers/dms-layout/app/composables/useCommandPaletteAssistant";
+import { defined } from "./helpers/defined";
 
 const SOURCE_GROUPS: CommandPaletteGroup[] = [
   {
@@ -136,11 +137,11 @@ async function settle(): Promise<void> {
 }
 
 function dialog(): HTMLElement {
-  return host.querySelector<HTMLElement>('[role="dialog"]')!;
+  return defined(host.querySelector<HTMLElement>('[role="dialog"]'));
 }
 
 function input(): HTMLInputElement {
-  return host.querySelector("input")!;
+  return defined(host.querySelector("input"));
 }
 
 async function type(value: string): Promise<void> {
@@ -326,7 +327,7 @@ describe("command palette assistant mode", () => {
     const answer = host.querySelector<HTMLElement>('[data-testid="answer"]');
     expect(answer?.textContent).toBe("Which orders are late?");
 
-    answer!.click();
+    defined(answer).click();
     await nextTick();
     expect(dialog().dataset.open).toBe("false");
   });

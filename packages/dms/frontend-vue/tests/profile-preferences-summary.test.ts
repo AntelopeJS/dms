@@ -36,6 +36,7 @@ import { useNotifications } from "../layers/dms-layout/app/composables/notificat
 import { useComponentEvent } from "../layers/dms-core/app/composables/components/useComponentEvent";
 import { useColorModePreference } from "../layers/dms-layout/app/composables/general/useColorModePreference";
 import { useAccessibilityPreferences } from "../layers/dms-layout/app/composables/general/useAccessibilityPreferences";
+import { defined } from "./helpers/defined";
 
 const KEY = "page.settings.profile.preferences";
 
@@ -72,9 +73,9 @@ const MESSAGES = new Map(
 
 /** vue-i18n's plural choice: 2 forms are one|other, 3 are zero|one|other. */
 function pickPlural(forms: string[], count?: number): string {
-  if (count === undefined || forms.length === 1) return forms[0]!;
-  if (forms.length === 2) return forms[count === 1 ? 0 : 1]!;
-  return forms[Math.min(count, 2)]!;
+  if (count === undefined || forms.length === 1) return defined(forms[0]);
+  if (forms.length === 2) return defined(forms[count === 1 ? 0 : 1]);
+  return defined(forms[Math.min(count, 2)]);
 }
 
 const t: SummaryTranslate = (key, params = {}, plural) => {
@@ -290,14 +291,10 @@ async function mountSection(): Promise<void> {
   await flush();
 }
 
-const rowTexts = () =>
-  [...host.querySelectorAll(":scope > div > div")].map(
-    (row) => row.textContent,
-  );
+const sectionRows = () => [...host.querySelectorAll(":scope > div > div")];
+const rowTexts = () => sectionRows().map((row) => row.textContent);
 const skeletonRows = () =>
-  [...host.querySelectorAll(":scope > div > div")].filter((row) =>
-    row.querySelector("[data-skeleton]"),
-  ).length;
+  sectionRows().filter((row) => row.querySelector("[data-skeleton]")).length;
 const buttons = () =>
   [...host.querySelectorAll("a")].map((a) => a.getAttribute("href"));
 
@@ -416,8 +413,7 @@ describe("Preferences & access section", () => {
       ),
     ]);
     expect(
-      host
-        .querySelectorAll(":scope > div > div")[2]
+      sectionRows()[2]
         ?.querySelector("span[aria-hidden='true']")
         ?.classList.contains("text-error"),
     ).toBe(true);
@@ -428,7 +424,7 @@ describe("Preferences & access section", () => {
     resolvePreferences({});
     feed.applyBellCounts({ all: 2, unread: 2, unreadTone: "warning" });
     await flush();
-    const notificationRow = host.querySelectorAll(":scope > div > div")[2]!;
+    const notificationRow = defined(sectionRows()[2]);
     const well = () =>
       notificationRow.querySelector("span[aria-hidden='true']");
     const ringing = document.createElement("div");
@@ -463,7 +459,7 @@ describe("Preferences & access section", () => {
   it("hides the rows of pages the user cannot open and keeps Your access informative", async () => {
     navPages.value = [];
     await mountSection();
-    expect(host.querySelectorAll(":scope > div > div")).toHaveLength(1);
+    expect(sectionRows()).toHaveLength(1);
     expect(buttons()).toEqual([]);
     expect(readsPreferences()).toBe(false);
 
@@ -485,7 +481,7 @@ describe("Preferences & access section", () => {
   });
 
   it("says the roles could not be loaded rather than spinning forever", async () => {
-    const normal = authFetch.getMockImplementation()!;
+    const normal = defined(authFetch.getMockImplementation());
     authFetch.mockImplementation((url: string) => {
       if (url.endsWith("/access")) return Promise.reject(new Error("403"));
       return normal(url);

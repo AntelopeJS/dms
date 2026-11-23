@@ -18,6 +18,7 @@ import {
 import type { ConfirmDialogField } from "../layers/dms-core/app/types/confirm-dialog";
 
 import { DialogRoot } from "reka-ui";
+import { defined } from "./helpers/defined";
 
 const i18n = createI18n({
   legacy: false,
@@ -200,11 +201,13 @@ function createConfirmDialogFieldsFixture() {
   }
 
   const confirmButton = () =>
-    [...host.querySelectorAll("button")].find(
-      (button) => button.textContent === "dms.confirm.confirm",
-    )!;
+    defined(
+      [...host.querySelectorAll("button")].find(
+        (button) => button.textContent === "dms.confirm.confirm",
+      ),
+    );
   const typeIn = async (value: string) => {
-    const input = host.querySelector("input")!;
+    const input = defined(host.querySelector("input"));
     input.value = value;
     input.dispatchEvent(new Event("input"));
     await flush();

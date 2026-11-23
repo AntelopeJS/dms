@@ -18,6 +18,7 @@ import TargetComponentTree from "../layers/dms-ui/app/entries/components/contain
 import type { ActionTarget } from "../layers/dms-ui/app/composables/table-view/types/action-target";
 import type { ModalOptions } from "../layers/dms-ui/app/composables/containers/types";
 import type { useDrawer } from "../layers/dms-ui/app/composables/containers/useDrawer";
+import { defined } from "./helpers/defined";
 
 const received: Array<Record<string, string> | undefined> = [];
 
@@ -50,7 +51,7 @@ const mountTargets = () => {
     }),
   );
   app.mount(document.createElement("div"));
-  return targets!;
+  return defined(targets);
 };
 
 const container = () => {
@@ -130,7 +131,7 @@ describe("the component a header button's container opens", () => {
         target: target(type),
       });
       await vi.waitFor(() => expect(opened).toHaveLength(1));
-      expect(opened[0]!.componentOptions).toMatchObject({
+      expect(defined(opened[0]).componentOptions).toMatchObject({
         routeParams: { id: "s1" },
       });
     },
@@ -142,7 +143,7 @@ describe("the component a header button's container opens", () => {
       { _id: "r1" },
     );
     await vi.waitFor(() => expect(opened).toHaveLength(1));
-    expect(opened[0]!.componentOptions).toMatchObject({
+    expect(defined(opened[0]).componentOptions).toMatchObject({
       routeParams: { id: "s1" },
     });
   });
@@ -153,10 +154,10 @@ describe("the component a header button's container opens", () => {
       target: target("modal", true),
     });
     await vi.waitFor(() => expect(opened).toHaveLength(1));
-    expect(opened[0]!.component).toBe(TargetComponentTree);
+    expect(defined(opened[0]).component).toBe(TargetComponentTree);
     const tree: Component = TargetComponentTree;
     const host = createApp({
-      render: () => h(tree, opened[0]!.componentOptions),
+      render: () => h(tree, defined(opened[0]).componentOptions),
     });
     host.component("DmsRecursiveComponent", RecursiveComponent);
     host.mount(document.createElement("div"));

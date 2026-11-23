@@ -7,6 +7,7 @@ import {
   sectionState,
 } from "../layers/dms-ui/app/entries/composables/form/formSections";
 import type { FormFieldOrGroup } from "../layers/dms-ui/app/composables/form/types/field";
+import { defined } from "./helpers/defined";
 
 const field = (id: string, label?: string) => ({
   id,
@@ -83,12 +84,18 @@ describe("form sections", () => {
 
   it("marks a section changed or invalid from its fields", () => {
     const [general] = layoutSections(ENTRIES, SECTIONS).sections;
-    expect(sectionState(general!, new Set(["phone"]), new Set())).toEqual({
+    expect(
+      sectionState(defined(general), new Set(["phone"]), new Set()),
+    ).toEqual({
       dirty: true,
       invalidCount: 0,
     });
     expect(
-      sectionState(general!, new Set(), new Set(["name", "email", "notes"])),
+      sectionState(
+        defined(general),
+        new Set(),
+        new Set(["name", "email", "notes"]),
+      ),
     ).toEqual({ dirty: false, invalidCount: 2 });
   });
 });

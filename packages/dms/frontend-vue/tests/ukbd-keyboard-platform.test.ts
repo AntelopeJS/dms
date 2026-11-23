@@ -28,6 +28,7 @@ import type {
 } from "#dms/frontend-module";
 import { dmsAppContext } from "./fixtures/dmsAppContext";
 import { KEYBOARD_PLATFORM_COOKIE } from "../layers/dms-ui/app/composables/global/keyboardPlatform";
+import { defined } from "./helpers/defined";
 
 type Engine = typeof import("#dms/frontend-module");
 
@@ -137,7 +138,9 @@ function dmsApp(
   const created = createSSRApp(root);
   engine.provideDmsFrontendRuntime(created, runtime);
   if (withPlugin)
-    created.runWithContext(() => kbdPlatformPlugin!(dmsAppContext(created)));
+    created.runWithContext(() =>
+      defined(kbdPlatformPlugin)(dmsAppContext(created)),
+    );
   return created;
 }
 

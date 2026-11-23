@@ -15,6 +15,7 @@ import {
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import Image from "../layers/dms-ui/app/components/form/components/InputImage.vue";
 import { hydrate, serverRender, stubApiData } from "./helpers/api-data-runtime";
+import { defined } from "./helpers/defined";
 
 const STORED_IMAGE = { key: "files/profile/cover.png", alt: "Cover" };
 
@@ -93,9 +94,11 @@ it("hydrates a stored single image without an attribute mismatch", async () => {
   expect(consoleError).not.toHaveBeenCalledWith(
     expect.stringContaining("Hydration"),
   );
-  const label = container.querySelector("label")!;
+  const label = defined(container.querySelector("label"));
   expect(label.htmlFor).not.toBe("");
-  expect(container.querySelector("input:not([type])")!.id).toBe(label.htmlFor);
+  expect(defined(container.querySelector("input:not([type])")).id).toBe(
+    label.htmlFor,
+  );
   app.unmount();
   consoleError.mockRestore();
 });

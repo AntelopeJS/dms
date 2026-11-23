@@ -22,6 +22,7 @@ import TableFiltersRow from "../layers/dms-ui/app/entries/components/table/Filte
 import type { TableFilter } from "../layers/dms-ui/app/entries/components/table/TableRoot";
 import { relationSelectSource } from "../layers/dms-ui/app/entries/composables/data-types/relationRows";
 import { isString } from "../layers/dms-core/app/utils/type-check";
+import { defined } from "./helpers/defined";
 
 const SEARCH_URL = "/api/customers/select";
 
@@ -167,7 +168,7 @@ describe("a relation filter chip", () => {
     expect(chipValues(container)).toEqual([
       "Globex, dms.form.relation.not_found",
     ]);
-    const chip = container.querySelector("li button[title]")!;
+    const chip = defined(container.querySelector("li button[title]"));
     expect(chip.getAttribute("title")).toContain("cust-999");
     expect(chip.getAttribute("title")).not.toContain("cust-061");
     expect(authFetch).toHaveBeenCalledTimes(1);

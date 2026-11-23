@@ -15,6 +15,7 @@ import {
   it,
   vi,
 } from "vitest";
+import { defined } from "./helpers/defined";
 
 interface Task {
   id: string;
@@ -78,12 +79,12 @@ describe("useDmsData on a useApiData read", () => {
     await settle();
     expect(element.textContent).toBe("Write|Write");
 
-    const previous = tasks!.data.value!;
-    tasks!.data.value = [...previous, { id: "2", title: "Review" }];
+    const previous = defined(defined(tasks).data.value);
+    defined(tasks).data.value = [...previous, { id: "2", title: "Review" }];
     await nextTick();
     expect(element.textContent).toBe("Write,Review|Write,Review");
 
-    tasks!.data.value = previous;
+    defined(tasks).data.value = previous;
     await nextTick();
     expect(element.textContent).toBe("Write|Write");
     expect(requests).toEqual(["/api/tasks"]);
@@ -106,16 +107,16 @@ describe("useDmsData on a useApiData read", () => {
       archive = engine.useDmsData<Task[]>("task-archive");
       return () => h("div", [h(Archive)]);
     });
-    expect(archive!.data.value).toBeUndefined();
+    expect(defined(archive).data.value).toBeUndefined();
     await settle();
     expect(element.textContent).toBe("Old");
 
-    archive!.data.value = archive!.data.value!.map((task) =>
-      task.id === "9" ? { ...task, title: "Renamed" } : task,
+    defined(archive).data.value = defined(defined(archive).data.value).map(
+      (task) => (task.id === "9" ? { ...task, title: "Renamed" } : task),
     );
     await nextTick();
     expect(element.textContent).toBe("Renamed");
-    archive!.data.value![0]!.title = "Renamed again";
+    defined(defined(defined(archive).data.value)[0]).title = "Renamed again";
     await nextTick();
     expect(element.textContent).toBe("Renamed again");
     expect(requests).toEqual(["/api/archive"]);

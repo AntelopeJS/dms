@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { createTrailingDeduper } from "../layers/dms-core/app/utils/trailingDeduper";
+import { defined } from "./helpers/defined";
 
 function deferred() {
   let resolve!: () => void;
@@ -15,7 +16,7 @@ describe("createTrailingDeduper", () => {
   it("runs a trailing pass for a call made while one is in flight", async () => {
     const first = deferred();
     const runs = [first.promise, Promise.resolve()];
-    const task = vi.fn(() => runs.shift()!);
+    const task = vi.fn(() => defined(runs.shift()));
     const deduper = createTrailingDeduper();
 
     const inFlight = deduper.run(task);
@@ -33,7 +34,7 @@ describe("createTrailingDeduper", () => {
   it("collapses a burst into a single trailing pass", async () => {
     const first = deferred();
     const runs = [first.promise, Promise.resolve()];
-    const task = vi.fn(() => runs.shift()!);
+    const task = vi.fn(() => defined(runs.shift()));
     const deduper = createTrailingDeduper();
 
     const inFlight = deduper.run(task);
@@ -49,7 +50,7 @@ describe("createTrailingDeduper", () => {
   it("still runs the trailing pass when the in-flight one fails", async () => {
     const first = deferred();
     const runs = [first.promise, Promise.resolve()];
-    const task = vi.fn(() => runs.shift()!);
+    const task = vi.fn(() => defined(runs.shift()));
     const deduper = createTrailingDeduper();
 
     const inFlight = deduper.run(task).catch(() => undefined);

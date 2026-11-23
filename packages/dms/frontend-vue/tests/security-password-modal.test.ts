@@ -10,6 +10,7 @@ import {
   watch,
 } from "vue";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
+import { defined } from "./helpers/defined";
 
 const FIELD_ID = "security-confirm-current-password";
 
@@ -36,7 +37,7 @@ const Input = defineComponent({
         ...attrs,
         ref: input,
         value: props.modelValue,
-        onInput: () => emit("update:modelValue", input.value!.value),
+        onInput: () => emit("update:modelValue", defined(input.value).value),
       });
   },
 });
@@ -45,12 +46,13 @@ async function flush(): Promise<void> {
   for (let tick = 0; tick < 4; tick++) await nextTick();
 }
 
-const input = () => host.querySelector<HTMLInputElement>(`#${FIELD_ID}`)!;
+const input = () =>
+  defined(host.querySelector<HTMLInputElement>(`#${FIELD_ID}`));
 const errorText = () =>
   host.querySelector(`#${FIELD_ID}-error`)?.textContent?.trim();
 
 async function submit(): Promise<void> {
-  host.querySelector("form")!.dispatchEvent(new Event("submit"));
+  defined(host.querySelector("form")).dispatchEvent(new Event("submit"));
   await flush();
 }
 

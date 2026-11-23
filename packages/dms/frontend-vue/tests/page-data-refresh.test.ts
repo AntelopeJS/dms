@@ -24,6 +24,7 @@ import {
   type PageLiveController,
 } from "../layers/dms-ui/app/entries/composables/live/pageLiveController";
 import { setCurrentPageLive } from "../layers/dms-ui/app/entries/composables/live/currentPageLive";
+import { defined } from "./helpers/defined";
 
 const requests: string[] = [];
 
@@ -49,7 +50,7 @@ const pageTopics = ref<string[]>([]);
 const handlers = new Map<string, Set<RealtimeTopicHandler>>();
 function subscribe(topic: string, handler: RealtimeTopicHandler) {
   if (!handlers.has(topic)) handlers.set(topic, new Set());
-  handlers.get(topic)!.add(handler);
+  defined(handlers.get(topic)).add(handler);
   return () => handlers.get(topic)?.delete(handler);
 }
 function publish(

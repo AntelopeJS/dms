@@ -11,6 +11,7 @@ import { defineComponent, h, nextTick, ref, type App } from "vue";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { dmsAppContext, emptyApp } from "./fixtures/dmsAppContext";
 import { mountInBrowser, stubApiData } from "./helpers/api-data-runtime";
+import { defined } from "./helpers/defined";
 
 type Tone = "neutral" | "primary" | "warning" | "error";
 interface Row {
@@ -51,9 +52,9 @@ const authFetch = vi.fn(async (url: string, options?: { method?: string }) => {
   if (failWrites) throw new Error("refused");
   const id = url.split("/").pop();
   const row = feed.find((entry) => entry._id === id);
-  if (url.includes("/mark-read/")) row!.isRead = true;
-  else if (url.includes("/mark-unread/")) row!.isRead = false;
-  else if (url.includes("/delete/")) feed.splice(feed.indexOf(row!), 1);
+  if (url.includes("/mark-read/")) defined(row).isRead = true;
+  else if (url.includes("/mark-unread/")) defined(row).isRead = false;
+  else if (url.includes("/delete/")) feed.splice(feed.indexOf(defined(row)), 1);
   const counts = countsOf();
   await holdWrites;
   return { success: true, counts };
@@ -144,7 +145,7 @@ it("takes the counts a write answers, and reads nothing for its echo after the a
 
   expect(bell.unreadTone.value).toBe("warning");
 
-  streamHandler!(echo("notification:read", ["risk"]));
+  defined(streamHandler)(echo("notification:read", ["risk"]));
   await settle();
   expect(requests).toEqual([
     "PUT /dms/pages/settings/user/notifications/mark-read/risk",
@@ -169,7 +170,7 @@ it("reads nothing when the write's echo comes before its answer", async () => {
   });
   const writing = bell.markAsRead("check");
   await settle();
-  streamHandler!(echo("notification:read", ["check"]));
+  defined(streamHandler)(echo("notification:read", ["check"]));
   await settle();
   expect([bell.unreadCount.value, bell.unreadTone.value]).toEqual([1, "error"]);
   release();
@@ -182,21 +183,21 @@ it("reads nothing when the write's echo comes before its answer", async () => {
 });
 
 it("takes another tab's changes from their events, without reading", async () => {
-  feed[0]!.isRead = true;
-  streamHandler!(echo("notification:read", ["risk"]));
+  defined(feed[0]).isRead = true;
+  defined(streamHandler)(echo("notification:read", ["risk"]));
   await settle();
   expect([bell.unreadCount.value, bell.unreadTone.value]).toEqual([
     1,
     "warning",
   ]);
 
-  feed[0]!.isRead = false;
-  streamHandler!(echo("notification:unread", ["risk"]));
+  defined(feed[0]).isRead = false;
+  defined(streamHandler)(echo("notification:unread", ["risk"]));
   await settle();
   expect(bell.unreadTone.value).toBe("error");
 
   for (const row of feed) row.isRead = true;
-  streamHandler!({
+  defined(streamHandler)({
     type: "notification:all-read",
     payload: { counts: countsOf() },
   });
@@ -209,8 +210,11 @@ it("takes another tab's changes from their events, without reading", async () =>
 });
 
 it("reads the counts when an event carries none", async () => {
-  feed[0]!.isRead = true;
-  streamHandler!({ type: "notification:read", payload: { ids: ["risk"] } });
+  defined(feed[0]).isRead = true;
+  defined(streamHandler)({
+    type: "notification:read",
+    payload: { ids: ["risk"] },
+  });
   await settle();
   expect(requests).toEqual([
     "GET /dms/pages/settings/user/notifications/counts",

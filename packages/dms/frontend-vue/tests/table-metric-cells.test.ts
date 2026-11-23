@@ -12,13 +12,15 @@ import {
   progressShares,
   registerMetricCellTypes,
 } from "../layers/dms-ui/app/entries/composables/data-types/metricCells";
+import { defined } from "./helpers/defined";
 
 type DataTypeFormatter = NonNullable<DataType["formatter"]>["default"];
 
 const formatters = new Map<string, DataTypeFormatter>();
 registerMetricCellTypes((dataType: DataType) => {
-  formatters.set(dataType.id, dataType.formatter!.default);
+  formatters.set(dataType.id, defined(dataType.formatter).default);
 });
+const formatterOf = (id: string) => defined(formatters.get(id));
 
 describe("metric cell formats", () => {
   it("reads a duration in its most fitting unit", () => {
@@ -70,7 +72,7 @@ describe("metric cells", () => {
     Object.defineProperty(document, "execCommand", {
       configurable: true,
       value: () => {
-        copiedValues.push(document.querySelector("textarea")!.value);
+        copiedValues.push(defined(document.querySelector("textarea")).value);
         return true;
       },
     });
@@ -92,7 +94,7 @@ describe("metric cells", () => {
 
   it("names a status pill after the select item, in the tone its value maps to, the cause under it", () => {
     const cell = render(
-      formatters.get("status_pill")!(
+      formatterOf("status_pill")(
         "failing",
         "en-GB",
         {
@@ -113,8 +115,7 @@ describe("metric cells", () => {
   it("tones a status pill by the row's tone field before the column's map", () => {
     const options = { tones: { "404": "info" }, toneField: "statusTone" };
     const pill = (row: Parameters<DataTypeFormatter>[3]) =>
-      render(formatters.get("status_pill")!(404, "en-GB", options, row))
-        .innerHTML;
+      render(formatterOf("status_pill")(404, "en-GB", options, row)).innerHTML;
 
     expect(pill({ statusTone: "warning" })).toContain("text-warning");
     app?.unmount();
@@ -122,7 +123,7 @@ describe("metric cells", () => {
     app?.unmount();
     expect(
       render(
-        formatters.get("status_pill")!(
+        formatterOf("status_pill")(
           503,
           "en-GB",
           { toneField: "statusTone" },
@@ -134,7 +135,7 @@ describe("metric cells", () => {
 
   it("draws a progress bar with its figures", () => {
     const cell = render(
-      formatters.get("progress")!(
+      formatterOf("progress")(
         undefined,
         "en-GB",
         {
@@ -153,22 +154,23 @@ describe("metric cells", () => {
 
   it("draws a duration and a size as right-aligned figures, a stored second as one", () => {
     expect(
-      render(formatters.get("duration")!(1.8, "en-GB", { unit: "s" }))
-        .textContent,
+      render(formatterOf("duration")(1.8, "en-GB", { unit: "s" })).textContent,
     ).toBe("1.8 s");
     app?.unmount();
-    expect(render(formatters.get("bytes")!(2048, "en-GB")).textContent).toBe(
+    expect(render(formatterOf("bytes")(2048, "en-GB")).textContent).toBe(
       "2 kB",
     );
   });
 
   it("hands a mono value its copy button", async () => {
     const cell = render(
-      formatters.get("mono")!("run_8f3a2c", "en-GB", { copy: true }),
+      formatterOf("mono")("run_8f3a2c", "en-GB", { copy: true }),
     );
-    cell
-      .querySelector<HTMLButtonElement>('[aria-label="dms.table.cell.copy"]')!
-      .click();
+    defined(
+      cell.querySelector<HTMLButtonElement>(
+        '[aria-label="dms.table.cell.copy"]',
+      ),
+    ).click();
     await vi.waitFor(() => expect(copiedValues).toEqual(["run_8f3a2c"]));
     expect(toast).toHaveBeenCalledWith(
       expect.objectContaining({

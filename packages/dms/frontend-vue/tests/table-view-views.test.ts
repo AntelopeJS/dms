@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { PHONE_VIEWPORT_QUERY } from "../layers/dms-ui/app/entries/composables/table-view/useMobileDisplay";
 import { pinnedStatus, DEFAULTS } from "./helpers/table-view-views-fixtures";
 import { createTableViewViewsFixture } from "./helpers/table-view-views-harness";
+import { defined } from "./helpers/defined";
 
 describe("useTableViews", () => {
   const fixture = createTableViewViewsFixture();
@@ -208,7 +209,7 @@ function registerViewDefaultsAndSavingTests(
     await nextTick();
     expect(api.change.value).toBe("unchanged");
 
-    await api.deleteView(saved!.id);
+    await api.deleteView(defined(saved).id);
     await nextTick();
     expect(api.activeViewId.value).toBe(undefined);
     expect(api.items.value).toHaveLength(2);

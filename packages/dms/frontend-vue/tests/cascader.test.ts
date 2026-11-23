@@ -12,6 +12,7 @@ import {
   searchCascaderTree,
   type CascaderKeyMapping,
 } from "../layers/dms-ui/app/utils/cascader";
+import { defined } from "./helpers/defined";
 
 const keyMapping: CascaderKeyMapping = {
   label: "name",
@@ -136,24 +137,24 @@ describe("isCascaderNodeSelectable", () => {
   const roots = buildCascaderTree(categories, keyMapping);
 
   it("rejects disabled nodes", () => {
-    expect(isCascaderNodeSelectable(findCascaderNode(roots, "video")!)).toBe(
-      false,
-    );
+    expect(
+      isCascaderNodeSelectable(defined(findCascaderNode(roots, "video"))),
+    ).toBe(false);
   });
 
   it("allows intermediate nodes unless leafOnly is set", () => {
-    const audio = findCascaderNode(roots, "audio")!;
+    const audio = defined(findCascaderNode(roots, "audio"));
     expect(isCascaderNodeSelectable(audio)).toBe(true);
     expect(isCascaderNodeSelectable(audio, { leafOnly: true })).toBe(false);
     expect(
-      isCascaderNodeSelectable(findCascaderNode(roots, "headphones")!, {
+      isCascaderNodeSelectable(defined(findCascaderNode(roots, "headphones")), {
         leafOnly: true,
       }),
     ).toBe(true);
   });
 
   it("rejects nodes deeper than maxDepth", () => {
-    const headphones = findCascaderNode(roots, "headphones")!;
+    const headphones = defined(findCascaderNode(roots, "headphones"));
     expect(isCascaderNodeSelectable(headphones, { maxDepth: 2 })).toBe(false);
     expect(isCascaderNodeSelectable(headphones, { maxDepth: 3 })).toBe(true);
   });

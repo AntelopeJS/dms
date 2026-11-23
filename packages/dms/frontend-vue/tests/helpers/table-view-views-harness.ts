@@ -31,6 +31,7 @@ import type {
 } from "../../layers/dms-ui/app/entries/components/table/TableRoot";
 import type { ConfirmOptions } from "../../layers/dms-ui/app/composables/confirm/types";
 import { DEFAULTS } from "./table-view-views-fixtures";
+import { defined } from "./defined";
 
 interface HarnessOptions {
   views: TableViewViewsConfig;
@@ -121,7 +122,7 @@ export function createTableViewViewsFixture() {
     );
     app.mount(document.createElement("div"));
     await nextTick();
-    return { api: api!, state, preferences };
+    return { api: defined(api), state, preferences };
   };
 
   const VIEWS: TableViewViewsConfig = {

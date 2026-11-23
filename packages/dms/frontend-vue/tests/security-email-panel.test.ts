@@ -16,6 +16,7 @@ import {
   installAuthSettingsRuntime,
   PinInput,
 } from "./helpers/auth-settings-runtime";
+import { defined } from "./helpers/defined";
 
 const overview = ref({
   email: "admin@example.com",
@@ -63,7 +64,7 @@ const Input = defineComponent({
           ...attrs,
           ref: input,
           value: props.modelValue,
-          onInput: () => emit("update:modelValue", input.value!.value),
+          onInput: () => emit("update:modelValue", defined(input.value).value),
         }),
         slots.trailing?.(),
       ]);
@@ -152,13 +153,13 @@ const cancelButton = () =>
   );
 
 async function type(input: HTMLInputElement | null, value: string) {
-  input!.value = value;
-  input!.dispatchEvent(new Event("input"));
+  defined(input).value = value;
+  defined(input).dispatchEvent(new Event("input"));
   await flush();
 }
 
 async function openPanel(): Promise<void> {
-  trigger()!.click();
+  defined(trigger()).click();
   await flush();
 }
 
@@ -222,14 +223,14 @@ it("closes on Cancel and Escape, returns focus and resets the form", async () =>
   await mountEmail();
   await openPanel();
   await type(emailInput(), "new@example.com");
-  cancelButton()!.click();
+  defined(cancelButton()).click();
   await flush();
   expect(form()).toBeNull();
   expect(document.activeElement).toBe(trigger());
 
   await openPanel();
   expect(emailInput()?.value).toBe("");
-  emailInput()!.dispatchEvent(
+  defined(emailInput()).dispatchEvent(
     new KeyboardEvent("keydown", { key: "Escape", bubbles: true }),
   );
   await flush();
@@ -244,7 +245,7 @@ it("validates the address inline once the field is left", async () => {
   await type(emailInput(), "not-an-email");
 
   expect(host.querySelector("#security-new-email-error")).toBeNull();
-  emailInput()!.dispatchEvent(new Event("blur"));
+  defined(emailInput()).dispatchEvent(new Event("blur"));
   await flush();
   expect(host.querySelector("#security-new-email-error")?.textContent).toBe(
     "page.settings.security.email.invalid",
@@ -270,7 +271,7 @@ it("flags every empty field on submit, focuses the first and sends nothing", asy
   expect(submitButton()).toBeFalsy();
   expect(host.querySelector("#security-new-email-error")).toBeNull();
 
-  form()!.dispatchEvent(new Event("submit"));
+  defined(form()).dispatchEvent(new Event("submit"));
   await flush();
   expect(authFetch).not.toHaveBeenCalled();
   expect(host.querySelector("#security-new-email-error")?.textContent).toBe(
@@ -285,7 +286,7 @@ it("flags every empty field on submit, focuses the first and sends nothing", asy
   await type(emailInput(), "new@example.com");
   expect(submitButton()).toBeTruthy();
   expect(host.querySelector("#security-new-email-error")).toBeNull();
-  form()!.dispatchEvent(new Event("submit"));
+  defined(form()).dispatchEvent(new Event("submit"));
   await flush();
   expect(document.activeElement).toBe(passwordInput());
   await type(passwordInput(), "secret");
@@ -300,7 +301,7 @@ it("posts the new address with the current password, then asks for the code", as
   await openPanel();
   await type(emailInput(), "  new@example.com ");
   await type(passwordInput(), "secret");
-  form()!.dispatchEvent(new Event("submit"));
+  defined(form()).dispatchEvent(new Event("submit"));
   await flush();
 
   expect(authFetch).toHaveBeenCalledWith(
@@ -326,7 +327,7 @@ it("moves to the new address once its code is confirmed", async () => {
   await openPanel();
   await type(emailInput(), "new@example.com");
   await type(passwordInput(), "secret");
-  form()!.dispatchEvent(new Event("submit"));
+  defined(form()).dispatchEvent(new Event("submit"));
   await flush();
   addToast.mockReset();
 
@@ -357,7 +358,7 @@ it("shows a wrong current password under its field, without a toast", async () =
   await openPanel();
   await type(emailInput(), "new@example.com");
   await type(passwordInput(), "wrong");
-  form()!.dispatchEvent(new Event("submit"));
+  defined(form()).dispatchEvent(new Event("submit"));
   await flush();
 
   expect(form()).not.toBeNull();

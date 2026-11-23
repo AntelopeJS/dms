@@ -6,6 +6,7 @@ import type {
   WatchActionFunction,
 } from "../layers/dms-core/app/types/watch";
 import { registerFormFunctions } from "../layers/dms-ui/app/entries/composables/form/registerFormFunctions";
+import { defined } from "./helpers/defined";
 
 const FUNCTIONS = {
   SET_FIELD_DISABLED: "disabled",
@@ -23,7 +24,7 @@ function run(
   state: Parameters<WatchActionFunction>[2]["value"] = {},
 ) {
   const box = shallowRef(state);
-  handlers.get(id)!(
+  defined(handlers.get(id))(
     { component: "c", event: "e", functionId: id, params },
     { component: "c", data },
     box,

@@ -4,20 +4,23 @@ import { computed, effectScope, ref, watch, type EffectScope } from "vue";
 import { useForm } from "../layers/dms-ui/app/composables/form/useForm";
 import { isString } from "../layers/dms-core/app/utils/type-check";
 import type { Toast } from "@nuxt/ui/composables/useToast";
+import { defined } from "./helpers/defined";
 
 const authFetch = vi.fn();
 const toastAdd = vi.fn((_toast: Toast) => ({ id: "failure" }));
 let scope: EffectScope;
 
 function readRecord() {
-  const form = scope.run(() =>
-    useForm({
-      componentId: "form-1",
-      pageId: "page-1",
-      fields: [],
-      fetchUrl: "/api/plans/get?id=pro",
-    }),
-  )!;
+  const form = defined(
+    scope.run(() =>
+      useForm({
+        componentId: "form-1",
+        pageId: "page-1",
+        fields: [],
+        fetchUrl: "/api/plans/get?id=pro",
+      }),
+    ),
+  );
   return form.fetchData();
 }
 

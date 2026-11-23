@@ -22,6 +22,7 @@ import {
   parsePeriodDate,
 } from "../layers/dms-ui/app/entries/composables/period/periodQuery";
 import { formatPeriodRange } from "../layers/dms-ui/app/entries/composables/period/periodDisplay";
+import { defined } from "./helpers/defined";
 
 const READER_ZONE =
   browserTimeZone() === "Pacific/Kiritimati"
@@ -78,12 +79,14 @@ describe("the clock a period is resolved in", () => {
 describe("a server render for a browser in another zone", () => {
   it("resolves presets and comparisons on the browser's calendar days", () => {
     readFor(READER_ZONE);
-    const range = resolvePresetRange("this-month", NOW, FALLBACK)!;
+    const range = defined(resolvePresetRange("this-month", NOW, FALLBACK));
     const reader = zonedClock(READER_ZONE);
     expect(inZone(READER_ZONE, range.from)).toMatch(/-1 0:0$/);
     expect(reader.wall(range.to).hours).toBe(23);
     expect(reader.wall(range.to).month).toBe(reader.wall(range.from).month);
-    const previous = resolveComparisonRange("previous-year", range, null)!;
+    const previous = defined(
+      resolveComparisonRange("previous-year", range, null),
+    );
     expect(reader.wall(previous.from).year).toBe(
       reader.wall(range.from).year - 1,
     );
@@ -92,7 +95,7 @@ describe("a server render for a browser in another zone", () => {
 
   it("reads and writes the URL's days as the browser's", () => {
     readFor(READER_ZONE);
-    const from = parsePeriodDate("2026-10-01", "start")!;
+    const from = defined(parsePeriodDate("2026-10-01", "start"));
     expect(inZone(READER_ZONE, from)).toBe("2026-10-1 0:0");
     expect(formatPeriodDate(from, "start")).toBe("2026-10-01");
     expect(parsePeriodDate("2026-02-30", "start")).toBeNull();
@@ -100,7 +103,7 @@ describe("a server render for a browser in another zone", () => {
 
   it("writes the period's label and other dates in the browser's zone", () => {
     readFor(READER_ZONE);
-    const range = resolvePresetRange("this-month", NOW, FALLBACK)!;
+    const range = defined(resolvePresetRange("this-month", NOW, FALLBACK));
     const expected = new Intl.DateTimeFormat("en", {
       month: "short",
       day: "numeric",
@@ -127,7 +130,7 @@ describe("a server render for a browser in another zone", () => {
   it("changes nothing without the browser's zone, or in the server's own", () => {
     for (const zone of [null, browserTimeZone()]) {
       readFor(zone);
-      const range = resolvePresetRange("this-month", NOW, FALLBACK)!;
+      const range = defined(resolvePresetRange("this-month", NOW, FALLBACK));
       expect(range.from).toEqual(
         new Date(NOW.getFullYear(), NOW.getMonth(), 1),
       );

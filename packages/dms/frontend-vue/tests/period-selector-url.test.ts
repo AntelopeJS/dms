@@ -29,6 +29,7 @@ import { router as inertiaRouter } from "@inertiajs/vue3";
 import type { PeriodPreset } from "../layers/dms-core/app/composables/period/types";
 import type { JsonValue } from "../layers/dms-core/app/types/json";
 import { storedPeriod } from "../layers/dms-ui/app/entries/composables/period/periodQuery";
+import { defined } from "./helpers/defined";
 
 const route = reactive<{ query: Record<string, string> }>({ query: {} });
 const preferences = new Map<string, JsonValue>();
@@ -164,8 +165,8 @@ describe("the period a selector starts from", () => {
       period: "last-30-days",
     });
     mount("page");
-    expect(handles.page!.preset.value).toBe("last-7-days");
-    expect(handles.page!.comparison.value).toBe("previous-year");
+    expect(defined(handles.page).preset.value).toBe("last-7-days");
+    expect(defined(handles.page).comparison.value).toBe("previous-year");
   });
 
   it("is the user's last choice when the URL names none", () => {
@@ -174,8 +175,8 @@ describe("the period a selector starts from", () => {
       compare: "previous-period",
     });
     mount("page");
-    expect(handles.page!.preset.value).toBe("last-30-days");
-    expect(handles.page!.comparison.value).toBe("previous-period");
+    expect(defined(handles.page).preset.value).toBe("last-30-days");
+    expect(defined(handles.page).comparison.value).toBe("previous-period");
   });
 
   it("is the user's last choice when another selector's is corrupt", () => {
@@ -184,7 +185,7 @@ describe("the period a selector starts from", () => {
       "other#page": { period: 7 },
     });
     mount("page");
-    expect(handles.page!.preset.value).toBe("last-30-days");
+    expect(defined(handles.page).preset.value).toBe("last-30-days");
   });
 
   it("is the default when neither names a valid one", () => {
@@ -193,15 +194,15 @@ describe("the period a selector starts from", () => {
       period: "ytd",
     });
     mount("page");
-    expect(handles.page!.preset.value).toBe("this-month");
-    expect(handles.page!.comparison.value).toBe("none");
+    expect(defined(handles.page).preset.value).toBe("this-month");
+    expect(defined(handles.page).comparison.value).toBe("none");
   });
 
   it("is a custom range read from the URL", () => {
     route.query = { "page.from": "2026-10-01", "page.to": "2026-10-15" };
     mount("page");
-    expect(handles.page!.preset.value).toBe("custom");
-    expect(handles.page!.state.value.range).toEqual({
+    expect(defined(handles.page).preset.value).toBe("custom");
+    expect(defined(handles.page).state.value.range).toEqual({
       from: new Date(2026, 9, 1),
       to: new Date(2026, 9, 15, 23, 59, 59, 999),
     });
@@ -240,7 +241,7 @@ describe("the URL on load", () => {
 describe("a change of period", () => {
   it("reaches the route, so a tab written from it keeps the new period", async () => {
     mount("page");
-    handles.page!.setPreset("last-7-days");
+    defined(handles.page).setPreset("last-7-days");
     await nextTick();
 
     const query = { ...route.query, tab: "2" };
@@ -251,14 +252,14 @@ describe("a change of period", () => {
     );
     expect(search().get("tab")).toBe("2");
     expect(search().get("page.period")).toBe("last-7-days");
-    expect(handles.page!.preset.value).toBe("last-7-days");
+    expect(defined(handles.page).preset.value).toBe("last-7-days");
   });
 
   it("replaces the URL in place and remembers the choice", async () => {
     mount("page");
     const entries = window.history.length;
-    handles.page!.setPreset("last-7-days");
-    handles.page!.setComparison("previous-period");
+    defined(handles.page).setPreset("last-7-days");
+    defined(handles.page).setComparison("previous-period");
     await nextTick();
     expect(search().get("page.period")).toBe("last-7-days");
     expect(search().get("page.compare")).toBe("previous-period");
@@ -278,7 +279,7 @@ describe("a change of period", () => {
       `${PAGE_PATH}?page.period=last-7-days`,
     );
     mount("page");
-    handles.page!.setCustomRange({
+    defined(handles.page).setCustomRange({
       from: new Date(2026, 9, 1),
       to: new Date(2026, 9, 2, 23, 59, 59, 999),
     });
@@ -291,9 +292,9 @@ describe("a change of period", () => {
   it("leaves another selector's keys and the other parameters alone", async () => {
     window.history.replaceState(null, "", `${PAGE_PATH}?requests.tab=get`);
     mount("sales", "traffic");
-    handles.sales!.setPreset("last-7-days");
+    defined(handles.sales).setPreset("last-7-days");
     await nextTick();
-    handles.traffic!.setPreset("last-30-days");
+    defined(handles.traffic).setPreset("last-30-days");
     await nextTick();
     expect(Object.fromEntries(search())).toEqual({
       "requests.tab": "get",
@@ -302,7 +303,7 @@ describe("a change of period", () => {
       "traffic.period": "last-30-days",
       "traffic.compare": "none",
     });
-    expect(handles.sales!.preset.value).toBe("last-7-days");
+    expect(defined(handles.sales).preset.value).toBe("last-7-days");
   });
 });
 
@@ -310,7 +311,7 @@ describe("the route while Inertia catches up", () => {
   it("holds the new period at once", async () => {
     inertiaReplace.mockImplementation(() => {});
     mount("page");
-    handles.page!.setPreset("last-7-days");
+    defined(handles.page).setPreset("last-7-days");
     await nextTick();
     expect(route.query["page.period"]).toBe("last-7-days");
     expect(search().get("page.period")).toBe("last-7-days");
@@ -321,11 +322,11 @@ describe("the route while Inertia catches up", () => {
     mount("page");
     await nextTick();
     const before = { ...route.query };
-    handles.page!.setPreset("last-7-days");
+    defined(handles.page).setPreset("last-7-days");
     await nextTick();
     route.query = before;
     await nextTick();
-    expect(handles.page!.preset.value).toBe("last-7-days");
+    expect(defined(handles.page).preset.value).toBe("last-7-days");
     expect(search().get("page.period")).toBe("last-7-days");
   });
 });
@@ -335,17 +336,17 @@ describe("a route changed from outside", () => {
     mount("sales", "traffic");
     navigate({ "sales.period": "last-30-days" });
     await nextTick();
-    expect(handles.sales!.preset.value).toBe("last-30-days");
-    expect(handles.traffic!.preset.value).toBe("this-month");
+    expect(defined(handles.sales).preset.value).toBe("last-30-days");
+    expect(defined(handles.traffic).preset.value).toBe("this-month");
   });
 
   it("keeps the period when it names an invalid one", async () => {
     mount("page");
-    handles.page!.setPreset("last-7-days");
+    defined(handles.page).setPreset("last-7-days");
     await nextTick();
     navigate({ "page.period": "last-decade" });
     await nextTick();
-    expect(handles.page!.preset.value).toBe("last-7-days");
+    expect(defined(handles.page).preset.value).toBe("last-7-days");
   });
 });
 
@@ -355,23 +356,23 @@ describe("a remembered choice shared by a rememberKey", () => {
 
   it("follows the user from one page to the next", async () => {
     mountApp(onPage("overview"));
-    handles.api!.setPreset("last-7-days");
+    defined(handles.api).setPreset("last-7-days");
     await nextTick();
     mounted.splice(0).forEach((app) => app.unmount());
     route.query = {};
     window.history.replaceState(null, "", "/logs");
     mountApp(onPage("logs"));
-    expect(handles.api!.preset.value).toBe("last-7-days");
+    expect(defined(handles.api).preset.value).toBe("last-7-days");
   });
 
   it("stays per page without one", async () => {
     mountApp(selector("api", "last-30-days", { pageId: "overview" }));
-    handles.api!.setPreset("last-7-days");
+    defined(handles.api).setPreset("last-7-days");
     await nextTick();
     mounted.splice(0).forEach((app) => app.unmount());
     route.query = {};
     mountApp(selector("api", "last-30-days", { pageId: "logs" }));
-    expect(handles.api!.preset.value).toBe("last-30-days");
+    expect(defined(handles.api).preset.value).toBe("last-30-days");
   });
 });
 
@@ -386,7 +387,7 @@ describe("a link framing a window no preset matches", () => {
     };
     mountApp(selector("page", "last-24h", { presets: PILLS }));
     await nextTick();
-    const period = handles.page!;
+    const period = defined(handles.page);
     expect(period.preset.value).toBe("custom");
     expect(PILLS).not.toContain(period.preset.value);
     expect(period.state.value.range).toEqual({

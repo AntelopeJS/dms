@@ -33,6 +33,7 @@ import {
   installRealtimeFetch,
 } from "./fixtures/realtimeServer";
 import type { UserRealtimeApi } from "../layers/dms-core/app/composables/realtime/useUserRealtime";
+import { defined } from "./helpers/defined";
 
 const USER_ID = "user-1";
 const PAGE_ID = "shop.orders";
@@ -248,7 +249,7 @@ describe("a save made while the page's subscription is not in place", () => {
     await vi.advanceTimersByTimeAsync(500);
     await settle();
 
-    expect(pageOf(tab.api.sessionId.value!)).toBe(PAGE_ID);
+    expect(pageOf(defined(tab.api.sessionId.value))).toBe(PAGE_ID);
     expect(tab.shown()).toBe(1);
   });
 
@@ -260,7 +261,7 @@ describe("a save made while the page's subscription is not in place", () => {
     write();
     await closeTab(leader);
 
-    expect(pageOf(tab.api.sessionId.value!)).toBe(PAGE_ID);
+    expect(pageOf(defined(tab.api.sessionId.value))).toBe(PAGE_ID);
     expect(tab.shown()).toBe(1);
   });
 });

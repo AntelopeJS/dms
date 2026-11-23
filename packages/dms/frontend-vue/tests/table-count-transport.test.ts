@@ -8,6 +8,7 @@ import {
   provideDmsFrontendRuntime,
 } from "#dms/frontend-module";
 import { useTableRows } from "../layers/dms-ui/app/entries/composables/table-view/useTableRows";
+import { defined } from "./helpers/defined";
 
 const LOCATION = "https://backend.test/api/invoices";
 const targets: URL[] = [];
@@ -63,7 +64,7 @@ it("round-trips arbitrary ids, repeated filters, false and zero through the real
       },
     },
   ]);
-  const entry = targets[0]!.searchParams.getAll("query")[0]!;
+  const entry = defined(defined(targets[0]).searchParams.getAll("query")[0]);
   const separator = entry.indexOf("?");
   expect(decodeURIComponent(entry.slice(0, separator))).toBe(id);
   const query = new URLSearchParams(entry.slice(separator + 1));
@@ -103,7 +104,7 @@ it("packs an approximately 11.5 KB page into two bounded GETs and merges distinc
   expect(Object.keys(result)).toEqual(queries.map(({ id }) => id));
   expect(result["group-0"]).toBe(1);
   expect(result["group-49"]).toBe(
-    targets[1]!.searchParams.getAll("query").length + 1,
+    defined(targets[1]).searchParams.getAll("query").length + 1,
   );
 });
 

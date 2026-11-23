@@ -8,6 +8,7 @@ import {
   nextTick,
 } from "vue";
 import type SaveBarComponent from "../layers/dms-ui/app/components/save-bar/SaveBar.vue";
+import { defined } from "./helpers/defined";
 
 interface ButtonStubProps {
   label?: string;
@@ -75,12 +76,14 @@ it("shows a modal action form's way out and its ready submit", async () => {
     saveLabel: "Invite",
   });
 
-  expect(host.firstElementChild!.getAttribute("aria-hidden")).toBeNull();
+  expect(
+    defined(host.firstElementChild).getAttribute("aria-hidden"),
+  ).toBeNull();
   expect(buttons()).toEqual([
     { label: "dms.button.cancel", disabled: false },
     { label: "Invite", disabled: false },
   ]);
-  host.querySelector("button")!.click();
+  defined(host.querySelector("button")).click();
   expect(onCancel).toHaveBeenCalledOnce();
 });
 
@@ -92,7 +95,9 @@ it("sends an untouched page action form as it is, its submit alone", async () =>
     saveLabel: "Send",
   });
 
-  expect(host.firstElementChild!.getAttribute("aria-hidden")).toBeNull();
+  expect(
+    defined(host.firstElementChild).getAttribute("aria-hidden"),
+  ).toBeNull();
   expect(buttons()).toEqual([{ label: "Send", disabled: false }]);
 });
 
@@ -124,8 +129,8 @@ it("lists a record form's unsaved changes beside Discard and Save", async () => 
 
 const classesOf = (element: Element | null | undefined) =>
   (element?.className ?? "").split(/\s+/);
-const anchor = () => host.firstElementChild!;
-const bar = () => anchor().firstElementChild!;
+const anchor = () => defined(host.firstElementChild);
+const bar = () => defined(anchor().firstElementChild);
 
 it("takes no space while a clean page form's bar hides", async () => {
   await mount({ variant: "floating", dirty: false });

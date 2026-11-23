@@ -18,6 +18,7 @@ import { readSubline } from "../layers/dms-ui/app/entries/composables/data-types
 import { registerMetricCellTypes } from "../layers/dms-ui/app/entries/composables/data-types/metricCells";
 import { registerTwoLineCellType } from "../layers/dms-ui/app/entries/composables/data-types/twoLineCell";
 import { registerDefaultDataTypes } from "../layers/dms-ui/app/entries/composables/data-types/registerDefaults";
+import { defined } from "./helpers/defined";
 
 const IdentityCell = (
   await import(
@@ -93,7 +94,7 @@ register({
 });
 
 const format = (id: string, kind: "default" | "empty" = "default") =>
-  formatters.get(id)![kind];
+  defined(formatters.get(id))[kind];
 
 let app: App | undefined;
 
@@ -452,7 +453,7 @@ describe("identity sub-line", () => {
         registered.set(dataType.id, dataType.formatter),
     }));
     registerDefaultDataTypes();
-    return registered.get("identity")!;
+    return defined(registered.get("identity"));
   };
 
   it("composes a subtitle the row gives as a composed text, in its tone", () => {

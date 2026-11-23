@@ -21,6 +21,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { router as inertiaRouter } from "@inertiajs/vue3";
 import type { PeriodPreset } from "@antelopejs/interface-dms/base/period-selector";
 import PeriodSelector from "../layers/dms-ui/app/components/period/PeriodSelector.vue";
+import { defined } from "./helpers/defined";
 
 const NOW = new Date(2026, 10, 18, 13, 57);
 
@@ -95,7 +96,7 @@ async function mountSelector(
 }
 
 const [START, END] = [0, 1];
-const fieldValue = (index: number) => fields[index]!.element.value;
+const fieldValue = (index: number) => defined(fields[index]).element.value;
 const range = () => `${fieldValue(START)} → ${fieldValue(END)}`;
 const selectedPreset = () =>
   host
@@ -103,7 +104,7 @@ const selectedPreset = () =>
     ?.textContent?.trim();
 
 async function leave(index: number, to: Element | null = null) {
-  fields[index]!.element.dispatchEvent(
+  defined(fields[index]).element.dispatchEvent(
     new FocusEvent("focusout", { bubbles: true, relatedTarget: to }),
   );
   await nextTick();
@@ -112,7 +113,7 @@ async function leave(index: number, to: Element | null = null) {
 async function typeDays(index: number, days: CalendarDate[]) {
   const seen: string[] = [];
   for (const day of days) {
-    await fields[index]!.type(day);
+    await defined(fields[index]).type(day);
     seen.push(range());
   }
   return seen;
@@ -157,8 +158,8 @@ describe("typing in the date fields", () => {
     await mountSelector();
     expect(range()).toBe("2026-11-01 → 2026-11-30");
 
-    await fields[START]!.type(nov(5));
-    await leave(START, fields[END]!.element);
+    await defined(fields[START]).type(nov(5));
+    await leave(START, defined(fields[END]).element);
     expect(await typeDays(END, [nov(2), nov(20)])).toEqual([
       "2026-11-05 → 2026-11-02",
       "2026-11-05 → 2026-11-20",
@@ -171,7 +172,7 @@ describe("typing in the date fields", () => {
     await mountSelector();
     await typeDays(END, [nov(30, 2), nov(30, 20), nov(30, 202)]);
     expect(range()).toBe("2026-11-01 → 0202-11-30");
-    await fields[END]!.type(nov(30, 2027));
+    await defined(fields[END]).type(nov(30, 2027));
     await leave(END);
     expect(range()).toBe("2026-11-01 → 2027-11-30");
   });
@@ -185,7 +186,7 @@ describe("typing in the date fields", () => {
         "0202-11-05 → 2026-11-30",
       ],
     );
-    await fields[START]!.type(nov(5, 2026));
+    await defined(fields[START]).type(nov(5, 2026));
     await leave(START);
     expect(range()).toBe("2026-11-05 → 2026-11-30");
   });
@@ -193,14 +194,14 @@ describe("typing in the date fields", () => {
   it("switches the preset to the custom range on the first typed day", async () => {
     await mountSelector();
     expect(selectedPreset()).toContain("this-month");
-    await fields[END]!.type(nov(2));
+    await defined(fields[END]).type(nov(2));
     expect(selectedPreset()).toBe("dms.period.popover.custom_range");
   });
 
   it("collapses the range onto a day typed past the other bound once the field is left", async () => {
     await mountSelector();
-    await fields[START]!.type(nov(5));
-    await fields[END]!.type(new CalendarDate(2026, 10, 20));
+    await defined(fields[START]).type(nov(5));
+    await defined(fields[END]).type(new CalendarDate(2026, 10, 20));
     expect(range()).toBe("2026-11-05 → 2026-10-20");
     await leave(END);
     expect(range()).toBe("2026-10-20 → 2026-10-20");
@@ -208,7 +209,7 @@ describe("typing in the date fields", () => {
 
   it("cuts a range to maxDays once the field is left, keeping the typed day", async () => {
     await mountSelector({ maxDays: 31 });
-    await fields[START]!.type(new CalendarDate(2026, 9, 1));
+    await defined(fields[START]).type(new CalendarDate(2026, 9, 1));
     expect(range()).toBe("2026-09-01 → 2026-11-30");
     await leave(START);
     expect(range()).toBe("2026-09-01 → 2026-10-01");
@@ -216,17 +217,17 @@ describe("typing in the date fields", () => {
 
   it("keeps a move between the segments of one field from settling the range", async () => {
     await mountSelector();
-    await fields[END]!.type(nov(2, 2025));
+    await defined(fields[END]).type(nov(2, 2025));
     const segment = document.createElement("span");
-    fields[END]!.element.after(segment);
+    defined(fields[END]).element.after(segment);
     await leave(END, segment);
     expect(range()).toBe("2026-11-01 → 2025-11-02");
   });
 
   it("applies the range the fields show", async () => {
     await mountSelector();
-    await fields[START]!.type(nov(5));
-    await fields[END]!.type(nov(2));
+    await defined(fields[START]).type(nov(5));
+    await defined(fields[END]).type(nov(2));
     host.querySelectorAll("button").forEach((button) => {
       if (button.textContent?.trim() === "dms.period.popover.apply")
         button.click();

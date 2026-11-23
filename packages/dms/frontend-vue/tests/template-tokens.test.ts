@@ -35,6 +35,7 @@ import { buttonLinkProps } from "../layers/dms-ui/app/entries/utils/link";
 import { resolveConfirmDialog } from "../layers/dms-ui/app/entries/composables/confirm/confirmDialogTexts";
 import type { CustomButton } from "../layers/dms-ui/app/composables/table-view/types/custom-button";
 import type { CustomRowAction } from "../layers/dms-ui/app/types/row-action";
+import { defined } from "./helpers/defined";
 
 const route = reactive<{ path: string; query: Record<string, string> }>({
   path: "/modules/shop/stores/s1",
@@ -60,7 +61,7 @@ function mountTargets() {
     }),
   );
   app.mount(document.createElement("div"));
-  return targets!;
+  return defined(targets);
 }
 
 beforeEach(() => {
@@ -193,7 +194,7 @@ describe("page tokens in links and requested routes", () => {
       (key) => key,
       runTarget,
     );
-    await dialog.secondaryAction!.run();
+    await defined(dialog.secondaryAction).run();
     expect(runTarget).toHaveBeenCalledWith({
       type: "download",
       url: "/api/stores/s1/orders/o1",
@@ -214,7 +215,7 @@ describe("an action target's URL", () => {
     };
     mountTargets().handleCustomRowAction(action, { _id: "o 1" });
     await vi.waitFor(() => expect(api).toHaveBeenCalled());
-    expect(api.mock.calls[0]![0]).toBe(
+    expect(defined(api.mock.calls[0])[0]).toBe(
       "/api/stores/s1/orders/o%201/refund?store=north",
     );
   });
@@ -231,7 +232,7 @@ describe("an action target's URL", () => {
     };
     mountTargets().handleCustomButton(button);
     await vi.waitFor(() => expect(api).toHaveBeenCalled());
-    expect(api.mock.calls[0]![0]).toBe("/api/stores/s1/sync?period=7d");
+    expect(defined(api.mock.calls[0])[0]).toBe("/api/stores/s1/sync?period=7d");
   });
 
   it("runs a quick action button from its click without a Vue warning", () => {
@@ -258,7 +259,7 @@ describe("an action target's URL", () => {
     };
     mountTargets().handleCustomButton(button);
     await vi.waitFor(() => expect(runJob).toHaveBeenCalled());
-    const job = runJob.mock.calls[0]![0];
+    const job = defined(runJob.mock.calls[0])[0];
     expect(job.startUrl).toBe("/api/stores/s1/export?store=north");
     expect(job.statusUrl?.({ jobId: "j1" })).toBe("/api/stores/s1/export/j1");
     expect(job.downloadUrl?.({ jobId: "j1" })).toBe(

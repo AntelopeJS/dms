@@ -10,6 +10,7 @@ import {
   viewSnapshot,
 } from "../layers/dms-ui/app/entries/composables/table-view/utils/views";
 import { pinnedStatus, DEFAULTS } from "./helpers/table-view-views-fixtures";
+import { defined } from "./helpers/defined";
 describe("table view states", () => {
   registerViewSnapshotTests();
   registerViewOrderAndUrlTests();
@@ -109,12 +110,12 @@ describe("table views strip", () => {
       "Past due 3",
       "Mine",
     ]);
-    expect(pills[0]!.getAttribute("aria-pressed")).toBe("true");
-    pills[1]!.click();
+    expect(defined(pills[0]).getAttribute("aria-pressed")).toBe("true");
+    defined(pills[1]).click();
     const saveCurrent = [...container.querySelectorAll("button")].find(
       (button) => button.textContent?.includes("dms.table.views.save_current"),
     );
-    saveCurrent!.click();
+    defined(saveCurrent).click();
     expect(emitted).toEqual([["open", "late"], ["saveAs"]]);
   });
 
@@ -134,11 +135,11 @@ describe("table views strip", () => {
       "dms.table.views.save",
       "dms.table.views.delete",
     ]);
-    container
-      .querySelector<HTMLButtonElement>(
+    defined(
+      container.querySelector<HTMLButtonElement>(
         'button[aria-label="dms.table.views.delete"]',
-      )!
-      .click();
+      ),
+    ).click();
     expect(emitted).toEqual([["delete", "user-1"]]);
   });
 });
@@ -165,11 +166,11 @@ describe("table views strip when the table diverged", () => {
         button.textContent?.includes("dms.table.views.save_current"),
       ),
     ).toBe(true);
-    container
-      .querySelector<HTMLButtonElement>(
+    defined(
+      container.querySelector<HTMLButtonElement>(
         'button[aria-label="dms.table.views.reset"]',
-      )!
-      .click();
+      ),
+    ).click();
     expect(emitted).toEqual([["reset"]]);
   });
 

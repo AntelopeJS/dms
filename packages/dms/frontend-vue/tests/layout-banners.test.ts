@@ -26,6 +26,7 @@ import {
   type LayoutBanner,
   type SiteLayout,
 } from "../layers/dms-core/app/types/page";
+import { defined } from "./helpers/defined";
 
 const DISMISSED_BANNERS_COOKIE = "dms-dismissed-banners";
 const APP_PAGE = "/finance/invoices";
@@ -372,7 +373,7 @@ function registerBannerScopeAndDismissalTests() {
 
     const buttons = host.querySelectorAll("button");
     expect(buttons).toHaveLength(1);
-    buttons[0]!.click();
+    defined(buttons[0]).click();
     await nextTick();
 
     expect(dismissedCookie.value).toEqual(["closable"]);

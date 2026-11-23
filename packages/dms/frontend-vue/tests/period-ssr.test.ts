@@ -13,6 +13,7 @@ import {
   browserTimeZone,
   setReaderTimeZoneSource,
 } from "../layers/dms-core/app/utils/regional";
+import { defined } from "./helpers/defined";
 
 const engine = await import("#dms/frontend-module");
 vi.stubGlobal("useDmsAsyncData", engine.useDmsAsyncData);
@@ -132,9 +133,12 @@ describe("a period-scoped card in a server render", () => {
     );
 
     expect(html).toContain("value:this-month");
-    const query = new URL(requests[0]!, "http://dms.local").searchParams;
-    const from = zonedClock(elsewhere).wall(new Date(query.get("from")!));
-    const to = zonedClock(elsewhere).wall(new Date(query.get("to")!));
+    const query = new URL(defined(requests[0]), "http://dms.local")
+      .searchParams;
+    const from = zonedClock(elsewhere).wall(
+      new Date(defined(query.get("from"))),
+    );
+    const to = zonedClock(elsewhere).wall(new Date(defined(query.get("to"))));
     expect([from.day, from.hours, from.minutes]).toEqual([1, 0, 0]);
     expect([to.hours, to.minutes, to.milliseconds]).toEqual([23, 59, 999]);
     expect(to.month).toBe(from.month);
@@ -148,9 +152,10 @@ describe("a period-scoped card in a server render", () => {
 
     expect(html).toContain("value:last-24h");
     expect(requests).toHaveLength(1);
-    const query = new URL(requests[0]!, "http://dms.local").searchParams;
+    const query = new URL(defined(requests[0]), "http://dms.local")
+      .searchParams;
     expect(payload.state["dms-render-now"]).toBe(
-      new Date(query.get("to")!).getTime(),
+      new Date(defined(query.get("to"))).getTime(),
     );
   });
 

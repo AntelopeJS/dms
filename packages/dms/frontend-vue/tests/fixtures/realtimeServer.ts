@@ -3,6 +3,7 @@ import type {
   RealtimeEvent,
   RealtimeSnapshotEvent,
 } from "../../layers/dms-core/app/composables/realtime/useUserRealtime";
+import { defined } from "../helpers/defined";
 
 /**
  * The backend's realtime routes as the browser sees them: shared connections
@@ -203,7 +204,8 @@ export function createRealtimeServer(): FakeRealtimeServer {
     unknownConnectionAnswers: 0,
     openConnections: () =>
       server.connections.filter((connection) => connection.isOpen()),
-    lastConnection: () => server.connections[server.connections.length - 1]!,
+    lastConnection: () =>
+      defined(server.connections[server.connections.length - 1]),
     send: (sessionId, eventName, data) => {
       const session = server.sessions.find(
         (candidate) => candidate.id === sessionId,
@@ -253,7 +255,7 @@ export function installRealtimeFetch(server: FakeRealtimeServer): void {
           headers: { "Retry-After": String(retryAfterSeconds) },
         });
       }
-      return openConnection(server, init!.signal!);
+      return openConnection(server, defined(defined(init).signal));
     }
     if (url === SESSION_URL) {
       return openSession(server, headers[CONNECTION_HEADER] ?? "");
@@ -271,7 +273,7 @@ export function installRealtimeFetch(server: FakeRealtimeServer): void {
       return json({ ok: true });
     }
     if (url.startsWith(SUBSCRIBE_URL_PREFIX) || url === UNSUBSCRIBE_URL) {
-      return recordPageCall(server, url, headers[SESSION_HEADER]!);
+      return recordPageCall(server, url, defined(headers[SESSION_HEADER]));
     }
     return json({}, HTTP_NOT_FOUND);
   });

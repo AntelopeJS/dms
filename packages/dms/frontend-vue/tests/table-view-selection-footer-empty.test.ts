@@ -15,6 +15,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import TableRowSelection from "../layers/dms-ui/app/entries/components/table/RowSelection";
 import TableEmpty from "../layers/dms-ui/app/entries/components/table/TableEmpty";
 import TablePagination from "../layers/dms-ui/app/entries/components/table/TablePagination";
+import { defined } from "./helpers/defined";
 
 const ButtonStub = defineComponent({
   props: { label: String, ariaLabel: String, to: String },
@@ -170,7 +171,7 @@ describe("selection bar", () => {
     const selectAll = [...container.querySelectorAll("button")].find((button) =>
       button.textContent?.includes("select_all_matching"),
     );
-    selectAll!.click();
+    defined(selectAll).click();
     await nextTick();
     expect(allMatching.value).toBe(true);
     expect(
@@ -182,12 +183,16 @@ describe("selection bar", () => {
     expect(labels()).not.toContain("Tag");
     expect(labels()).not.toContain("dms.button.delete");
 
-    [...container.querySelectorAll("button")]
-      .find((button) => button.textContent === "Re-run")!
-      .click();
-    [...container.querySelectorAll("button")]
-      .find((button) => button.textContent === "dms.button.export_data")!
-      .click();
+    defined(
+      [...container.querySelectorAll("button")].find(
+        (button) => button.textContent === "Re-run",
+      ),
+    ).click();
+    defined(
+      [...container.querySelectorAll("button")].find(
+        (button) => button.textContent === "dms.button.export_data",
+      ),
+    ).click();
     expect(emitted).toEqual([["bulkAction", rerun], ["exportAll"]]);
   });
 });
@@ -346,9 +351,9 @@ describe("footer figures", () => {
       },
     );
 
-    const pager = container.querySelector(
-      '[data-keypath="dms.pagination.current_page"]',
-    )!;
+    const pager = defined(
+      container.querySelector('[data-keypath="dms.pagination.current_page"]'),
+    );
     pager.textContent = "PAGER";
     const text = container.textContent ?? "";
     const order = [
@@ -362,7 +367,9 @@ describe("footer figures", () => {
     expect(order.every((index) => index >= 0)).toBe(true);
     expect(order).toEqual([...order].sort((a, b) => a - b));
 
-    const lead = container.querySelector("label")!.parentElement!;
+    const lead = defined(
+      defined(container.querySelector("label")).parentElement,
+    );
     expect(lead.textContent).toContain("invoices.count");
     expect(lead.querySelector('[aria-hidden="true"]')).not.toBeNull();
     expect(lead.textContent).not.toContain("Billed");
@@ -398,7 +405,7 @@ describe("footer figures", () => {
     const more = [...container.querySelectorAll("button")].find(
       (button) => button.textContent === "dms.pagination.load_more",
     );
-    more!.click();
+    defined(more).click();
     expect(load).toHaveBeenCalledTimes(1);
   });
 });

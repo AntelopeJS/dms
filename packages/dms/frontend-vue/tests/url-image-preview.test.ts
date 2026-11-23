@@ -9,6 +9,7 @@ import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import type { DataType } from "../layers/dms-core/app/composables/data-types/useDataType";
 import { isObject, isString } from "../layers/dms-core/app/utils/type-check";
 import { registerDefaultDataTypes } from "../layers/dms-ui/app/entries/composables/data-types/registerDefaults";
+import { defined } from "./helpers/defined";
 
 type Formatter = NonNullable<DataType["formatter"]>["default"];
 
@@ -22,7 +23,12 @@ function renderUrl(
   options: Parameters<Formatter>[2] = {},
   row?: Parameters<Formatter>[3],
 ): HTMLElement {
-  const content = registered.get("url")!.default(value, "en", options, row);
+  const content = defined(registered.get("url")).default(
+    value,
+    "en",
+    options,
+    row,
+  );
   const container = document.createElement("div");
   app = createApp(defineComponent({ setup: () => () => content }));
   app.mount(container);

@@ -10,6 +10,7 @@ import { useRealDataEngine } from "./fixtures/dataEngine";
 import { createI18n } from "vue-i18n";
 import type { ApiAnswer } from "./helpers/api-data-runtime";
 import { stubBlockRuntime } from "./helpers/block-runtime";
+import { defined } from "./helpers/defined";
 
 const i18n = createI18n({
   legacy: false,
@@ -91,7 +92,7 @@ describe("KeyValueList copy button", () => {
 
     const buttons = copyButtons(root);
     expect(buttons).toHaveLength(1);
-    buttons[0]!.click();
+    defined(buttons[0]).click();
     await settle();
     expect(copied).toEqual(["https://api.example.com"]);
   });
@@ -107,7 +108,7 @@ describe("KeyValueList copy button", () => {
     const root = render({ fetchUrl: "/api/media/42/urls" });
     await settle();
 
-    copyButtons(root)[0]!.click();
+    defined(copyButtons(root)[0]).click();
     await settle();
     expect(copied).toEqual(["https://cdn.example.com/media/42/thumb.webp"]);
   });

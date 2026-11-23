@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { convertSiteLayoutTreeToTreeItems } from "../layers/dms-ui/app/entries/types/tree";
+import { defined } from "./helpers/defined";
 
 type TreeNode = NonNullable<
   Parameters<typeof convertSiteLayoutTreeToTreeItems>[0]
@@ -30,7 +31,7 @@ const page = (
   hasAccess = true,
   children: NodeFixture[] = [],
 ) => ({
-  id: fullId.split(".").pop()!,
+  id: defined(fullId.split(".").pop()),
   fullId,
   hasAccess,
   layoutUrl: `/${fullId}/pagelayout`,

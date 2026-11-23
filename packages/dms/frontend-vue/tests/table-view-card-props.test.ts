@@ -22,6 +22,7 @@ import {
 import type { TableViewColumn } from "../layers/dms-ui/app/composables/table-view/types/column";
 import { displayContext } from "./fixtures/displayContext";
 import { tableViewColumn } from "./fixtures/tableViewColumn";
+import { defined } from "./helpers/defined";
 
 type DisplayRow = TableViewDisplayContext["items"][number];
 
@@ -63,7 +64,7 @@ function createContext() {
 describe("table view card props", () => {
   it("hands a card its row, selection and default action", () => {
     const { context, selected, opened } = createContext();
-    const props = buildCardProps(rows[0]!, context);
+    const props = buildCardProps(defined(rows[0]), context);
     expect(props).toMatchObject({
       row: rows[0],
       rowId: "t1",
@@ -74,7 +75,7 @@ describe("table view card props", () => {
     expect(selected.value).toContain("t1");
     props.open();
     expect(opened).toEqual([rows[0]]);
-    expect(buildCardProps(rows[1]!, context).selected).toBe(true);
+    expect(buildCardProps(defined(rows[1]), context).selected).toBe(true);
   });
 });
 
@@ -136,7 +137,7 @@ describe("cards display with a custom card", () => {
     const buttons = [...container.querySelectorAll("button")];
     expect(buttons.map((button) => button.textContent)).toEqual(["t1", "t2"]);
     expect(received.map((props) => props.selected)).toEqual([false, true]);
-    buttons[0]!.click();
+    defined(buttons[0]).click();
     expect(opened).toEqual([rows[0]]);
   });
 });
@@ -173,9 +174,9 @@ describe("the default cards", () => {
     expect(cards.map((card) => card.tabIndex)).toEqual([0, 0]);
     const enter = () =>
       new KeyboardEvent("keydown", { key: "Enter", bubbles: true });
-    cards[1]!.dispatchEvent(enter());
+    defined(cards[1]).dispatchEvent(enter());
     expect(opened).toEqual([rows[1]]);
-    cards[0]!.querySelector("button")!.dispatchEvent(enter());
+    defined(defined(cards[0]).querySelector("button")).dispatchEvent(enter());
     expect(opened).toEqual([rows[1]]);
   });
 
@@ -206,8 +207,12 @@ describe("the default cards", () => {
       }),
     ];
     context.items = [
-      { ...rows[0]!, email: "ann@example.com", photo: { key: "ann.png" } },
-      rows[1]!,
+      {
+        ...defined(rows[0]),
+        email: "ann@example.com",
+        photo: { key: "ann.png" },
+      },
+      defined(rows[1]),
     ];
     app = createApp({ render: () => h(CardsDisplay, { context }) });
     app.component("UCheckbox", { render: () => null });
@@ -222,13 +227,13 @@ describe("the default cards", () => {
     app.mount(next);
     await new Promise((resolve) => setTimeout(resolve));
     const [first, second] = [...next.querySelectorAll("article")];
-    expect(first!.textContent).toContain("ann@example.com");
-    expect(first!.querySelector("img")?.getAttribute("src")).toBe(
+    expect(defined(first).textContent).toContain("ann@example.com");
+    expect(defined(first).querySelector("img")?.getAttribute("src")).toBe(
       "/files/ann.png",
     );
 
-    expect(second!.querySelector("img")).toBeNull();
-    expect(second!.textContent).toContain("SI");
+    expect(defined(second).querySelector("img")).toBeNull();
+    expect(defined(second).textContent).toContain("SI");
   });
 });
 

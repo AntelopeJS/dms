@@ -6,6 +6,7 @@ import {
   whenReleased,
 } from "../layers/dms-core/app/entries/utils/crossTab";
 import { createFakeBrowser } from "./fixtures/fakeBrowser";
+import { defined } from "./helpers/defined";
 
 const NAME = "test-source";
 
@@ -110,7 +111,7 @@ describe("shareAcrossTabs", () => {
     }
     await flush();
 
-    emit!("ping");
+    defined(emit)("ping");
     await flush();
 
     expect(open).toHaveBeenCalledOnce();

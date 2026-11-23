@@ -4,6 +4,7 @@ import { computed, effectScope, ref, watch, type EffectScope } from "vue";
 import { useForm } from "../layers/dms-ui/app/composables/form/useForm";
 import { isString } from "../layers/dms-core/app/utils/type-check";
 import { formSubmitEvent } from "./helpers/form-submit-event";
+import { defined } from "./helpers/defined";
 
 const authFetch = vi.fn();
 const addToast = vi.fn(() => ({ id: "failure" }));
@@ -20,15 +21,17 @@ const FIELDS = [
 ];
 
 function setupForm(kind?: "record" | "action") {
-  return scope.run(() =>
-    useForm({
-      componentId: "form-1",
-      pageId: "page-1",
-      fields: FIELDS,
-      submitUrl: "/api/messages/send",
-      kind,
-    }),
-  )!;
+  return defined(
+    scope.run(() =>
+      useForm({
+        componentId: "form-1",
+        pageId: "page-1",
+        fields: FIELDS,
+        submitUrl: "/api/messages/send",
+        kind,
+      }),
+    ),
+  );
 }
 
 /** Fills the form as the user would, from the values it opened with. */

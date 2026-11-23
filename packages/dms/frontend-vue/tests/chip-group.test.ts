@@ -1,6 +1,7 @@
 /** @vitest-environment jsdom */
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { type App, createApp, h, nextTick } from "vue";
+import { defined } from "./helpers/defined";
 
 const ITEMS = [
   { value: "all", label: "All", count: 12 },
@@ -33,7 +34,9 @@ async function mount(
 }
 
 const chip = (value: string) =>
-  host.querySelector<HTMLButtonElement>(`button[data-value="${value}"]`)!;
+  defined(
+    host.querySelector<HTMLButtonElement>(`button[data-value="${value}"]`),
+  );
 
 beforeEach(() => {
   host = document.createElement("div");
@@ -47,7 +50,9 @@ afterEach(() => {
 
 it("reads a single pick as radios, with each chip's count", async () => {
   const { onPick } = await mount({ selected: ["data"] });
-  expect(host.firstElementChild!.getAttribute("role")).toBe("radiogroup");
+  expect(defined(host.firstElementChild).getAttribute("role")).toBe(
+    "radiogroup",
+  );
   expect(chip("data").getAttribute("role")).toBe("radio");
   expect(chip("data").getAttribute("aria-checked")).toBe("true");
   expect(chip("all").getAttribute("aria-checked")).toBe("false");
@@ -60,7 +65,7 @@ it("reads a single pick as radios, with each chip's count", async () => {
 
 it("reads several picks as toggles, checking the picked ones", async () => {
   await mount({ selected: ["all", "mail"], multiple: true });
-  expect(host.firstElementChild!.getAttribute("role")).toBe("group");
+  expect(defined(host.firstElementChild).getAttribute("role")).toBe("group");
   expect(chip("all").getAttribute("aria-pressed")).toBe("true");
   expect(chip("data").getAttribute("aria-pressed")).toBe("false");
   expect(host.querySelectorAll("[data-check]")).toHaveLength(2);

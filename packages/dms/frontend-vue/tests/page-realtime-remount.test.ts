@@ -11,6 +11,7 @@ import {
 } from "vue";
 import type { UserRealtimeApi } from "../layers/dms-core/app/composables/realtime/useUserRealtime";
 import { createFakeBrowser } from "./fixtures/fakeBrowser";
+import { defined } from "./helpers/defined";
 
 const BASE_URL = "http://api";
 const CONNECTION_URL = `${BASE_URL}/api/realtime/connection`;
@@ -94,7 +95,7 @@ let mountPage: (pageId: string) => EffectScope;
 const releaseHeldCalls = async (): Promise<void> => {
   server.isHoldingCalls = false;
   while (server.heldCalls.length) {
-    server.heldCalls.shift()!();
+    defined(server.heldCalls.shift())();
     await settle();
   }
 };

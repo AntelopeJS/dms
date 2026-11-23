@@ -4,6 +4,7 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import TopListCard from "../layers/dms-ui/app/components/top-list/TopListCard.vue";
 import { refreshPageBlocks } from "../layers/dms-ui/app/utils/blockRefresh";
 import { extraRuntime, mountExtra } from "./helpers/chart-extra-runtime";
+import { defined } from "./helpers/defined";
 
 let fail = false;
 let items = [{ id: "a", title: "GET /orders", value: 1864 }];
@@ -47,7 +48,7 @@ it("shows a failed load as an error with a retry, not as an empty list", async (
   expect(root.textContent).toContain("dms.table.load_error_retry");
   expect(root.textContent).not.toContain("Nothing slow");
   fail = false;
-  root.querySelector("button")!.click();
+  defined(root.querySelector("button")).click();
   await vi.waitFor(() => expect(root.textContent).toContain("GET /orders"));
   expect(fetch).toHaveBeenCalledTimes(2);
 });

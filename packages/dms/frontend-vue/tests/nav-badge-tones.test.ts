@@ -22,6 +22,7 @@ import NavigationMenu from "../layers/dms-layout/app/components/navigation/Navig
 import SettingsNav from "../layers/dms-layout/app/entries/components/pages/settings/shell/SettingsNav";
 import type { SiteLayoutTree } from "../layers/dms-core/app/types/page";
 import { useNavBadges } from "../layers/dms-ui/app/entries/composables/navigation/useNavBadges";
+import { defined } from "./helpers/defined";
 
 let state: Map<string, Ref<unknown>>;
 let app: App | undefined;
@@ -163,7 +164,8 @@ describe("NavigationMenu badges", () => {
   ] satisfies NavigationMenuItem[];
 
   const badgeOf = (fullId: string) =>
-    host.querySelector<HTMLElement>(`[data-entry="${fullId}"]`)!.dataset;
+    defined(host.querySelector<HTMLElement>(`[data-entry="${fullId}"]`))
+      .dataset;
 
   function mount(items: NavigationMenuItem[] = ITEMS): void {
     state.set("dms-permission-preview-session", ref(null));
@@ -211,9 +213,9 @@ describe("NavigationMenu badges", () => {
     mount();
     for (const item of ITEMS)
       expect(badgeOf(item.fullId).prefetch).toBe("true");
-    host
-      .querySelector("nav")!
-      .dispatchEvent(new MouseEvent("mouseover", { bubbles: true }));
+    defined(host.querySelector("nav")).dispatchEvent(
+      new MouseEvent("mouseover", { bubbles: true }),
+    );
     expect(fetch).not.toHaveBeenCalled();
   });
 
@@ -313,7 +315,9 @@ describe("SettingsNav badges", () => {
   });
 
   const trailBadge = (to: string) =>
-    host.querySelector<HTMLElement>(`[data-to="${to}"] span:last-child`)!;
+    defined(
+      host.querySelector<HTMLElement>(`[data-to="${to}"] span:last-child`),
+    );
 
   function mount(): void {
     vi.stubGlobal("useSiteLayout", () => ({ siteLayoutTree: tree }));
@@ -372,7 +376,7 @@ describe("Security page badge", () => {
     }));
     browserRuntime();
     const scope = effectScope();
-    const overview = scope.run(() => useSecurityOverview())!;
+    const overview = defined(scope.run(() => useSecurityOverview()));
     await overview.refresh();
     scope.stop();
     expect(liveBadges()["settings.user.security"]).toEqual({

@@ -16,6 +16,7 @@ import {
   type UsePeriodReturn,
 } from "../layers/dms-core/app/composables/period/usePeriod";
 import { registerPeriodScope } from "../layers/dms-core/app/composables/period/usePeriodScope";
+import { defined } from "./helpers/defined";
 
 const requests: string[] = [];
 
@@ -55,7 +56,7 @@ function mountPageWithChart(): UsePeriodReturn {
   );
   app.mount(document.createElement("div"));
   apps.push(() => app.unmount());
-  return period!;
+  return defined(period);
 }
 
 beforeEach(() => useRealDataEngine());

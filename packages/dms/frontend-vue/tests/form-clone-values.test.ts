@@ -9,20 +9,23 @@ import {
   useForm,
 } from "../layers/dms-ui/app/composables/form/useForm";
 import type { DataType } from "../layers/dms-core/app/composables/data-types/useDataType";
+import { defined } from "./helpers/defined";
 
 const authFetch = vi.fn();
 let scope: EffectScope;
 
 function formOf(props: Partial<Parameters<typeof useForm>[0]> = {}) {
-  return scope.run(() =>
-    useForm({
-      componentId: "form-1",
-      pageId: "page-1",
-      fields: [],
-      fetchUrl: "/api/plans/get?id=pro",
-      ...props,
-    }),
-  )!;
+  return defined(
+    scope.run(() =>
+      useForm({
+        componentId: "form-1",
+        pageId: "page-1",
+        fields: [],
+        fetchUrl: "/api/plans/get?id=pro",
+        ...props,
+      }),
+    ),
+  );
 }
 
 beforeEach(() => {

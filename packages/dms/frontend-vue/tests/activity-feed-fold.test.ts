@@ -8,6 +8,7 @@ import { createApp, defineComponent, h, nextTick, ref } from "vue";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import ActivityFeed from "../layers/dms-ui/app/components/activity-feed/ActivityFeed.vue";
 import { chartRuntime } from "./helpers/charts-runtime";
+import { defined } from "./helpers/defined";
 
 type FeedProps = InstanceType<typeof ActivityFeed>["$props"];
 const items = ref<FeedProps["items"]>([]);
@@ -82,9 +83,9 @@ it("shows every entry, without a fold, by default", async () => {
 it("shows the first visibleItems and unfolds the rest, then folds them back", async () => {
   const host = await mountFeed({ visibleItems: 3 });
   expect(entryTitles(host)).toEqual(["Route 0", "Route 1", "Route 2"]);
-  const button = host.querySelector<HTMLButtonElement>(
-    ".dms-activity-feed__fold button",
-  )!;
+  const button = defined(
+    host.querySelector<HTMLButtonElement>(".dms-activity-feed__fold button"),
+  );
   expect(button.textContent).toBe("dms.activity_feed.show_more:2");
 
   button.click();

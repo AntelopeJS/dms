@@ -24,6 +24,7 @@ import {
   periodQueryKeys,
   withPeriodQuery,
 } from "../layers/dms-core/app/composables/period/periodLink";
+import { defined } from "./helpers/defined";
 
 const PAGE_QUERY = {
   website: "site-1",
@@ -144,7 +145,7 @@ describe("a TopList row link", () => {
   it("fills the page's tokens and drops a pair the page has no value for", async () => {
     const html = await renderTopList();
     const hrefs = [...html.matchAll(/href="([^"]*)"/g)].map((match) =>
-      match[1]!.replaceAll("&amp;", "&"),
+      defined(match[1]).replaceAll("&amp;", "&"),
     );
     expect(hrefs).toEqual([
       "/modules/marketing/pages?path=%2Fpricing&website=site-1&mk.period=last-7-days",
@@ -169,7 +170,7 @@ function mountTargets() {
     }),
   );
   app.mount(document.createElement("div"));
-  return targets!;
+  return defined(targets);
 }
 
 describe("a link row action", () => {

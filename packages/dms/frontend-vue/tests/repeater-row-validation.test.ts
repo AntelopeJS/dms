@@ -13,6 +13,7 @@ import FormField from "@nuxt/ui/components/FormField.vue";
 import Repeater from "../layers/dms-ui/app/components/form/components/InputRepeater.vue";
 import { registerDmsComponent } from "#dms/frontend-module";
 import { host, mountForm } from "./helpers/form-runtime";
+import { defined } from "./helpers/defined";
 
 const Cell = defineComponent({
   props: { modelValue: { type: String, default: undefined } },
@@ -94,8 +95,8 @@ async function type(row: number, column: string, value: string) {
     `#lines\\.${row}\\.${column}`,
   );
   expect(input, `cell ${row}.${column}`).not.toBeNull();
-  input!.value = value;
-  input!.dispatchEvent(new Event("input"));
+  defined(input).value = value;
+  defined(input).dispatchEvent(new Event("input"));
   await settle();
 }
 
@@ -107,9 +108,9 @@ function flaggedRows(): number[] {
 }
 
 async function submit() {
-  host
-    .querySelector("form")!
-    .dispatchEvent(new Event("submit", { cancelable: true }));
+  defined(host.querySelector("form")).dispatchEvent(
+    new Event("submit", { cancelable: true }),
+  );
   await settle();
 }
 

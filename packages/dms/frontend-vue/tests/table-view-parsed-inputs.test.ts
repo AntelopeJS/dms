@@ -16,6 +16,7 @@ import type { JsonValue } from "../layers/dms-core/app/types/json";
 import { isNull, isObject } from "../layers/dms-core/app/utils/type-check";
 import type { useModal } from "../layers/dms-ui/app/composables/containers/useModal";
 import { rowGroupKey } from "../layers/dms-ui/app/entries/composables/table-view/utils/groupedRows";
+import { defined } from "./helpers/defined";
 
 vi.stubGlobal("ref", ref);
 vi.stubGlobal("shallowRef", shallowRef);
@@ -104,9 +105,11 @@ describe("a row action", () => {
     await rowActions()
       .openRow({ _id: "t1" })
       ?.catch(() => undefined);
-    const [, , payload] = sendComponentEvent.mock.calls.find(
-      ([event]) => event === TableViewEvents.ROW_CLICK_ERROR,
-    )!;
+    const [, , payload] = defined(
+      sendComponentEvent.mock.calls.find(
+        ([event]) => event === TableViewEvents.ROW_CLICK_ERROR,
+      ),
+    );
     if (!isObject(payload) || isNull(payload))
       throw new Error("The row click error event carried no payload");
     return payload.error;

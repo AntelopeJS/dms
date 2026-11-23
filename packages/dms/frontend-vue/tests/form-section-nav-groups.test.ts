@@ -11,6 +11,7 @@ import {
   layoutSections,
 } from "../layers/dms-ui/app/entries/composables/form/formSections";
 import FormSectionNav from "../layers/dms-ui/app/entries/components/form/FormSectionNav";
+import { defined } from "./helpers/defined";
 
 const field = (id: string) => ({
   id,
@@ -102,13 +103,13 @@ describe("the side navigation", () => {
     await mount("list");
     const lists = [...host.querySelectorAll("ul")];
     expect(lists).toHaveLength(3);
-    expect(lists[0]!.hasAttribute("aria-labelledby")).toBe(false);
+    expect(defined(lists[0]).hasAttribute("aria-labelledby")).toBe(false);
     const headings = lists.slice(1).map((list) => {
-      const id = list.getAttribute("aria-labelledby")!;
+      const id = defined(list.getAttribute("aria-labelledby"));
       return document.getElementById(id)?.textContent?.trim();
     });
     expect(headings).toEqual(["t($billing)", "Legal"]);
-    expect(lists[1]!.querySelectorAll("li")).toHaveLength(2);
+    expect(defined(lists[1]).querySelectorAll("li")).toHaveLength(2);
   });
 });
 
@@ -137,7 +138,7 @@ describe("the row of chips", () => {
 
   it("wraps the runs instead of scrolling one line", async () => {
     await mount("chips");
-    const nav = host.querySelector("nav")!;
+    const nav = defined(host.querySelector("nav"));
     expect(nav.classList.contains("flex-wrap")).toBe(true);
     for (const list of host.querySelectorAll("ul")) {
       expect(list.classList.contains("overflow-x-auto")).toBe(false);
@@ -150,7 +151,7 @@ describe("the row of chips", () => {
     expect(host.querySelectorAll("li")).toHaveLength(2);
     expect(host.querySelector("[aria-labelledby]")).toBeNull();
     expect(host.querySelector("p")).toBeNull();
-    expect(host.querySelector("ul")!.className).toBe(
+    expect(defined(host.querySelector("ul")).className).toBe(
       "flex gap-1.5 overflow-x-auto pb-1",
     );
   });
@@ -171,7 +172,7 @@ describe("the row of chips", () => {
     expect(
       host.querySelector("[aria-current='location']")?.textContent?.trim(),
     ).toBe("Tax");
-    chips[3]!.click();
+    defined(chips[3]).click();
     expect(selected).toEqual(["terms"]);
   });
 });

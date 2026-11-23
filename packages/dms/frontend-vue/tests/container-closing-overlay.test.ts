@@ -36,6 +36,7 @@ import { CLOSING_OVERLAY_CLASS } from "../layers/dms-ui/app/entries/components/c
 
 import { DialogRoot } from "reka-ui";
 import type DynamicDrawer from "../layers/dms-ui/app/entries/components/containers/drawer/DynamicDrawer";
+import { defined } from "./helpers/defined";
 
 const require = createRequire(import.meta.url);
 let overlayCss = "";
@@ -103,13 +104,16 @@ async function mountContainer(
 }
 
 async function closeContainer(): Promise<void> {
-  host
-    .querySelector<HTMLButtonElement>("button[aria-label='dms.a11y.close']")!
-    .click();
+  defined(
+    host.querySelector<HTMLButtonElement>(
+      "button[aria-label='dms.a11y.close']",
+    ),
+  ).click();
   await vi.waitFor(() => expect(overlay().dataset.state).toBe("closed"));
 }
 
-const overlay = () => host.querySelector<HTMLElement>("[data-slot='overlay']")!;
+const overlay = () =>
+  defined(host.querySelector<HTMLElement>("[data-slot='overlay']"));
 const pointerEvents = () => getComputedStyle(overlay()).pointerEvents;
 
 beforeAll(async () => {

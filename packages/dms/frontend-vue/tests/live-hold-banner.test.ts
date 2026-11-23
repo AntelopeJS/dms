@@ -5,6 +5,7 @@
  */
 import { createApp, h, type App } from "vue";
 import { afterEach, expect, it, vi } from "vitest";
+import { defined } from "./helpers/defined";
 
 let app: App | undefined;
 
@@ -79,7 +80,7 @@ it("words the count with missedLabel and adds the paused page's breakdown", asyn
 it("draws a pill over the rows when floating, in place of the strip", async () => {
   const onShow = vi.fn();
   const host = await mountBanner({ count: 6, floating: true, onShow });
-  const pill = host.querySelector(".dms-live-hold-banner")!;
+  const pill = defined(host.querySelector(".dms-live-hold-banner"));
 
   expect(pill.className).toContain("rounded-full");
   expect(pill.className).not.toContain("border-b");
@@ -90,7 +91,7 @@ it("draws a pill over the rows when floating, in place of the strip", async () =
 
 it("draws the pill opaque and lifted, announced, its Show a real button", async () => {
   const host = await mountBanner({ count: 4, floating: true });
-  const pill = host.querySelector(".dms-live-hold-banner")!;
+  const pill = defined(host.querySelector(".dms-live-hold-banner"));
 
   expect(pill.getAttribute("role")).toBe("status");
   expect(pill.getAttribute("aria-live")).toBe("polite");

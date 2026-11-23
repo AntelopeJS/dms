@@ -21,6 +21,7 @@ import {
 import { MENU_STATUS_TEXT_CLASSES } from "#dms-core/app/utils/menu";
 import NavigationMenu from "../layers/dms-layout/app/components/navigation/NavigationMenu.vue";
 import { stubDmsState } from "./helpers/dms-state-stub";
+import { defined } from "./helpers/defined";
 
 const HIDDEN = new Set(["pages.sales.invoices"]);
 const PARTIAL = new Set(["pages.sales", "pages.sales.orders", "settings"]);
@@ -139,10 +140,10 @@ describe("PermissionVeil partial state (settings overview cards)", () => {
     app.component("UIcon", Stub);
     app.mount(host);
 
-    const root = host.querySelector("[data-permission-veil]")!;
+    const root = defined(host.querySelector("[data-permission-veil]"));
     expect(root.getAttribute("data-permission-veil")).toBe("partial");
     expect(root.querySelector("[inert]")).toBeNull();
-    const veil = root.querySelector(".absolute.inset-0")!;
+    const veil = defined(root.querySelector(".absolute.inset-0"));
     expect(veil.className).toContain("pointer-events-none");
     expect(veil.className).toContain("var(--ui-warning)");
     expect(root.querySelector('[data-icon="i-ph-lock-simple"]')).not.toBeNull();
@@ -230,7 +231,7 @@ function createPermissionPreviewPartialFixture() {
   }
 
   const entry = (fullId: string): HTMLAnchorElement =>
-    host.querySelector(`[data-entry="${fullId}"] > a`)!;
+    defined(host.querySelector(`[data-entry="${fullId}"] > a`));
 
   beforeEach(() => {
     state = new Map();

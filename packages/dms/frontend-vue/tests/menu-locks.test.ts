@@ -20,6 +20,7 @@ import NavigationMenu from "../layers/dms-layout/app/components/navigation/Navig
 import CollapsedMenuItem from "../layers/dms-layout/app/components/navigation/CollapsedMenuItem.vue";
 import { useMenuLocks } from "../layers/dms-layout/app/composables/useMenuLocks";
 import { browserRuntime } from "./helpers/api-data-runtime";
+import { defined } from "./helpers/defined";
 
 const DIAGRAM = "database.diagram";
 const REASON = "Not available on an external database";
@@ -95,7 +96,7 @@ function mountMenu(items: NavigationMenuItem[] = ITEMS): void {
 }
 
 const entry = (fullId: string) =>
-  host.querySelector<HTMLElement>(`[data-entry="${fullId}"]`)!;
+  defined(host.querySelector<HTMLElement>(`[data-entry="${fullId}"]`));
 
 describe("useMenuLocks in the sidebar menu", () => {
   it("draws a locked entry muted, with a lock, its reason as tooltip, and no link", async () => {

@@ -10,6 +10,7 @@ import { renderToString } from "vue/server-renderer";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import type { DataType } from "../layers/dms-core/app/composables/data-types/useDataType";
 import { isObject } from "../layers/dms-core/app/utils/type-check";
+import { defined } from "./helpers/defined";
 
 type Formatter = NonNullable<DataType["formatter"]>["default"];
 
@@ -68,7 +69,7 @@ const cell = (
   value: Parameters<Formatter>[0],
   options: Parameters<Formatter>[2],
   row: NonNullable<Parameters<Formatter>[3]> = {},
-) => formatters.get(id)!(value, "en-GB", options, row);
+) => defined(formatters.get(id))(value, "en-GB", options, row);
 
 describe("milliseconds format", () => {
   it("writes every duration in milliseconds, its digits grouped", () => {
@@ -94,14 +95,16 @@ describe("duration cell", () => {
   });
 
   it("colours the figure in the row's tone, without a pill", () => {
-    const figure = render(
-      cell(
-        "duration",
-        2149,
-        { toneField: "durationTone" },
-        { durationTone: "warning" },
-      ),
-    ).firstElementChild!;
+    const figure = defined(
+      render(
+        cell(
+          "duration",
+          2149,
+          { toneField: "durationTone" },
+          { durationTone: "warning" },
+        ),
+      ).firstElementChild,
+    );
     expect(figure.className).toContain("text-warning");
     expect(figure.className).not.toContain("text-toned");
     expect(figure.className).not.toMatch(/bg-|rounded/);
@@ -109,9 +112,10 @@ describe("duration cell", () => {
 
   it("keeps today's colour for a row whose field holds no tone", () => {
     for (const row of [{}, { durationTone: null }, { durationTone: "slow" }]) {
-      const figure = render(
-        cell("duration", 120, { toneField: "durationTone" }, row),
-      ).firstElementChild!;
+      const figure = defined(
+        render(cell("duration", 120, { toneField: "durationTone" }, row))
+          .firstElementChild,
+      );
       expect(figure.className).toContain("text-toned");
       expect(figure.className).not.toContain("text-warning");
       app?.unmount();
@@ -134,14 +138,16 @@ describe("plain text cell", () => {
   });
 
   it("colours the text in the row's tone, without a pill", () => {
-    const text = render(
-      cell(
-        "string",
-        "ECONNRESET",
-        { toneField: "messageTone" },
-        { messageTone: "error" },
-      ),
-    ).firstElementChild!;
+    const text = defined(
+      render(
+        cell(
+          "string",
+          "ECONNRESET",
+          { toneField: "messageTone" },
+          { messageTone: "error" },
+        ),
+      ).firstElementChild,
+    );
     expect(text.textContent).toBe("ECONNRESET");
     expect(text.className).toBe("text-error");
   });
@@ -151,9 +157,10 @@ describe("plain text cell", () => {
     for (const value of [2149, ["a", "b"], 0]) {
       const plain = render(cell("string", value, options, {})).textContent;
       app?.unmount();
-      const toned = render(
-        cell("string", value, options, { messageTone: "error" }),
-      ).firstElementChild!;
+      const toned = defined(
+        render(cell("string", value, options, { messageTone: "error" }))
+          .firstElementChild,
+      );
       expect(toned.textContent).toBe(plain);
       expect(toned.textContent).not.toContain("[object");
       expect(toned.className).toBe("text-error");

@@ -6,6 +6,7 @@ import {
   toasterClearance,
   trackToasterClearance,
 } from "../layers/dms-ui/app/entries/composables/form/toasterClearance";
+import { defined } from "./helpers/defined";
 
 const VIEWPORT_HEIGHT = 800;
 
@@ -75,7 +76,7 @@ afterEach(() => {
 });
 
 it("lifts the toaster while a shown bar sits on the bottom edge", async () => {
-  app!.mount(host);
+  defined(app).mount(host);
   await flushFrame();
   expect(clearance()).toBe("66px");
 
@@ -87,7 +88,7 @@ it("lifts the toaster while a shown bar sits on the bottom edge", async () => {
   await flushFrame();
   expect(clearance()).toBe("66px");
 
-  app!.unmount();
+  defined(app).unmount();
   app = undefined;
   await flushFrame();
   expect(clearance()).toBe("");

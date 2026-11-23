@@ -16,6 +16,7 @@ import { useConfirm } from "../layers/dms-ui/app/composables/confirm/useConfirm"
 import SaveBar from "../layers/dms-ui/app/components/save-bar/SaveBar.vue";
 import { browserRuntime, stubApiData } from "./helpers/api-data-runtime";
 import { installAuthSettingsRuntime } from "./helpers/auth-settings-runtime";
+import { defined } from "./helpers/defined";
 
 const BASE = "/dms/pages/settings/workspace/roles";
 const ROLE = {
@@ -59,7 +60,7 @@ const Input = defineComponent({
       h("input", {
         ref: inputRef,
         value: props.modelValue,
-        onInput: () => emit("update:modelValue", inputRef.value!.value),
+        onInput: () => emit("update:modelValue", defined(inputRef.value).value),
       });
   },
 });
@@ -131,9 +132,11 @@ async function mountRolesPage() {
 }
 
 const nameInput = () =>
-  host.querySelector<HTMLInputElement>(
-    'input[placeholder="page.settings.roles.editor.placeholder_name"]',
-  )!;
+  defined(
+    host.querySelector<HTMLInputElement>(
+      'input[placeholder="page.settings.roles.editor.placeholder_name"]',
+    ),
+  );
 const nameError = () =>
   host.querySelector('[data-field="page.settings.roles.editor.field_name"] p');
 async function typeName(value: string) {
@@ -142,9 +145,11 @@ async function typeName(value: string) {
   await flush();
 }
 const button = (label: string) =>
-  [...host.querySelectorAll("button")].find(
-    (element) => element.textContent?.trim() === label,
-  )!;
+  defined(
+    [...host.querySelectorAll("button")].find(
+      (element) => element.textContent?.trim() === label,
+    ),
+  );
 async function save() {
   button("dms.save_bar.save").click();
   await flush();

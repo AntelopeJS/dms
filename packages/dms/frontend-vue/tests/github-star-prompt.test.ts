@@ -30,6 +30,7 @@ import { useSidePanel } from "../layers/dms-ui/app/composables/useSidePanel";
 import type { useDmsCookie } from "#dms/frontend-module";
 import { stubDmsState } from "./helpers/dms-state-stub";
 import { registerSidePanel } from "../layers/dms-ui/app/composables/useAppSidePanels";
+import { defined } from "./helpers/defined";
 
 const MINUTE_MS = 60 * 1000;
 const HOUR_MS = 60 * MINUTE_MS;
@@ -102,7 +103,9 @@ function prompt(): HTMLElement | null {
 }
 
 async function click(action: string): Promise<void> {
-  host.querySelector<HTMLButtonElement>(`[data-action="${action}"]`)!.click();
+  defined(
+    host.querySelector<HTMLButtonElement>(`[data-action="${action}"]`),
+  ).click();
   await nextTick();
 }
 
@@ -212,7 +215,7 @@ function registerStarPromptTimingTests() {
     await advance(MINUTE_MS);
 
     expect(prompt()).not.toBeNull();
-    expect(prompt()!.getAttribute("aria-labelledby")).toBeTruthy();
+    expect(defined(prompt()).getAttribute("aria-labelledby")).toBeTruthy();
   });
 
   it("does not count the time the tab is hidden", async () => {
@@ -260,7 +263,7 @@ function registerStarPromptTimingTests() {
     expect(prompt()).toBeNull();
     expect(storage.get(GITHUB_STAR_PROMPT_KEYS.dismissed)).toBe("1");
 
-    app!.unmount();
+    defined(app).unmount();
     host.remove();
     await mount();
     await advance(GITHUB_STAR_PROMPT_SNOOZE_MS);
@@ -358,26 +361,32 @@ function registerStarPromptObstructionTests() {
     seedActiveTime(GITHUB_STAR_PROMPT_DELAY_MS);
     await mount(DefaultLayout);
     expect(prompt()).not.toBeNull();
-    host
-      .querySelector<HTMLButtonElement>('[aria-label="header.open_sidebar"]')!
-      .click();
+    defined(
+      host.querySelector<HTMLButtonElement>(
+        '[aria-label="header.open_sidebar"]',
+      ),
+    ).click();
     await nextTick();
     expect(prompt()).toBeNull();
 
-    app!.unmount();
+    defined(app).unmount();
     host.remove();
     await mount(DefaultLayout);
     expect(prompt()).toBeNull();
 
-    host
-      .querySelector<HTMLButtonElement>('[aria-label="header.close_sidebar"]')!
-      .click();
+    defined(
+      host.querySelector<HTMLButtonElement>(
+        '[aria-label="header.close_sidebar"]',
+      ),
+    ).click();
     await nextTick();
     expect(prompt()).not.toBeNull();
 
-    host
-      .querySelector<HTMLButtonElement>('[aria-label="header.open_sidebar"]')!
-      .click();
+    defined(
+      host.querySelector<HTMLButtonElement>(
+        '[aria-label="header.open_sidebar"]',
+      ),
+    ).click();
     await nextTick();
     expect(prompt()).toBeNull();
   });

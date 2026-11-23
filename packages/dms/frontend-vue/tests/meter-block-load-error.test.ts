@@ -4,6 +4,7 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import MeterBlock from "../layers/dms-ui/app/components/meter/MeterBlock.vue";
 import { refreshPageBlocks } from "../layers/dms-ui/app/utils/blockRefresh";
 import { extraRuntime, mountExtra } from "./helpers/chart-extra-runtime";
+import { defined } from "./helpers/defined";
 
 let fail = false;
 let app: ReturnType<typeof mountExtra>["app"] | undefined;
@@ -45,7 +46,7 @@ it("shows a failed load as an error with a retry, not as 0 / 100", async () => {
   expect(root.textContent).toContain("Seats");
   expect(root.textContent).not.toContain("100");
   fail = false;
-  root.querySelector("button")!.click();
+  defined(root.querySelector("button")).click();
   await vi.waitFor(() => expect(root.textContent).toMatch(/8\s*\/\s*10/));
   expect(fetch).toHaveBeenCalledTimes(2);
 });

@@ -13,6 +13,7 @@ import {
 } from "vue";
 import { browserRuntime, stubApiData } from "./helpers/api-data-runtime";
 import { installAuthSettingsRuntime } from "./helpers/auth-settings-runtime";
+import { defined } from "./helpers/defined";
 
 const authFetch = vi.fn();
 
@@ -102,7 +103,7 @@ it("shows a failed load as an error with a retry, not as no sessions", async () 
   ).toBe("error");
 
   authFetch.mockResolvedValueOnce([]);
-  host.querySelector("button")!.click();
+  defined(host.querySelector("button")).click();
   await flush();
   expect(host.textContent).not.toContain("dms.table.load_error_title");
   expect(host.textContent).toContain("page.settings.sessions.empty");

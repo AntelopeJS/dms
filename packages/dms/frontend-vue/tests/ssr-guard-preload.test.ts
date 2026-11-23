@@ -11,6 +11,7 @@ import { renderToString } from "vue/server-renderer";
 import { createI18n } from "vue-i18n";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { DmsAppContext } from "#dms/frontend-module";
+import { defined } from "./helpers/defined";
 
 const engine = await import("#dms/frontend-module");
 for (const name of [
@@ -106,7 +107,8 @@ async function answerRounds(): Promise<string[][]> {
     const waiting = pending.splice(0);
     if (waiting.length === 0) continue;
     rounds.push(waiting.map((request) => request.url).sort());
-    for (const request of waiting) request.resolve(ANSWERS.get(request.url)!);
+    for (const request of waiting)
+      request.resolve(defined(ANSWERS.get(request.url)));
   }
   return rounds;
 }

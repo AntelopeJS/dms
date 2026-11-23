@@ -16,6 +16,7 @@ import {
   readOnlyFailure,
   installReadOnlyRefusal,
 } from "./helpers/read-only-refusal";
+import { defined } from "./helpers/defined";
 
 const authFetch = vi.fn();
 const confirm = vi.fn<(options: ConfirmOptions) => Promise<boolean>>(
@@ -35,7 +36,7 @@ function mountComposable<T>(use: () => T): T {
     }),
   );
   app.mount(document.createElement("div"));
-  return api!;
+  return defined(api);
 }
 
 const mountConfirmFrom = () => mountComposable(useConfirmFrom);

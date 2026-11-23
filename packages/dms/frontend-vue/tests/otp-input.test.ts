@@ -9,6 +9,7 @@ import {
   ref,
 } from "vue";
 import type OtpInputComponent from "../layers/dms-ui/app/entries/components/form/OtpInput";
+import { defined } from "./helpers/defined";
 
 const CELLS = 6;
 
@@ -72,18 +73,18 @@ afterEach(() => {
 
 it("names its cells and reports a full code", async () => {
   const { onComplete } = await mount();
-  const group = host.querySelector("[role=group]")!;
+  const group = defined(host.querySelector("[role=group]"));
   expect(group.getAttribute("aria-label")).toBe("Code");
   expect(group.getAttribute("aria-describedby")).toBeNull();
 
-  cells()[0]!.dispatchEvent(new Event("input"));
+  defined(cells()[0]).dispatchEvent(new Event("input"));
   expect(onComplete).toHaveBeenCalledOnce();
 });
 
 it("describes the cells with a refused code's message", async () => {
   await mount({ error: "Wrong code" });
-  const group = host.querySelector("[role=group]")!;
-  const errorId = group.getAttribute("aria-describedby")!;
+  const group = defined(host.querySelector("[role=group]"));
+  const errorId = defined(group.getAttribute("aria-describedby"));
   expect(document.getElementById(errorId)?.textContent).toBe("Wrong code");
   expect(
     host.querySelector("[aria-invalid]")?.getAttribute("aria-invalid"),
@@ -92,7 +93,7 @@ it("describes the cells with a refused code's message", async () => {
 
 it("focuses the first empty cell, once the form gives the cells back", async () => {
   const { exposed } = await mount({ modelValue: ["1", "2"] });
-  exposed.value!.focus();
+  defined(exposed.value).focus();
   expect(document.activeElement).not.toBe(cells()[2]);
 
   vi.runAllTimers();

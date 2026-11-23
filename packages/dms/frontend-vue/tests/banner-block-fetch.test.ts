@@ -15,6 +15,7 @@ import {
 import { refreshPageBlocks } from "../layers/dms-ui/app/utils/blockRefresh";
 import type { JsonValue } from "../layers/dms-core/app/types/json";
 import type { ConfirmValues } from "../layers/dms-ui/app/composables/confirm/types";
+import { defined } from "./helpers/defined";
 
 const requests: string[] = [];
 let answer: JsonValue | undefined = null;
@@ -167,7 +168,7 @@ it("runs a button target the route answers", async () => {
   const banner = mountBanner({});
   await settle();
 
-  banner.root.querySelector("button")!.click();
+  defined(banner.root.querySelector("button")).click();
   await settle();
   expect(confirm).toHaveBeenCalledOnce();
   expect(requests.filter((url) => url === "/api/replay")).toEqual([

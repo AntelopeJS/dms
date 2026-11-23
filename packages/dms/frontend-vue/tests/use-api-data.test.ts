@@ -19,6 +19,7 @@ import {
 import { renderToString } from "vue/server-renderer";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { DmsFrontendRuntime, DmsPayload } from "#dms/frontend-module";
+import { defined } from "./helpers/defined";
 
 const engine = await import("#dms/frontend-module");
 vi.stubGlobal("$fetch", engine.$fetch);
@@ -156,21 +157,28 @@ describe("useApiPagedData", () => {
           {
             initialCursor: 1,
             nextCursor: (page) =>
-              (page.page ?? LAST_PAGE) < LAST_PAGE ? page.page! + 1 : null,
+              (page.page ?? LAST_PAGE) < LAST_PAGE
+                ? defined(page.page) + 1
+                : null,
           },
         );
         return () =>
-          h("p", list!.pages.value.map((page) => page.page).join(","));
+          h(
+            "p",
+            defined(list)
+              .pages.value.map((page) => page.page)
+              .join(","),
+          );
       },
     });
-    return { Explorer, list: () => list! };
+    return { Explorer, list: () => defined(list) };
   }
 
   it("renders the first page on the server, then loads more in the browser", async () => {
     const server = listing();
     const { html, payload } = await serverRender(server.Explorer);
     expect(html).toBe("<p>1</p>");
-    expect(sent[0]!.headers.get("x-content-language")).toBe("fr");
+    expect(defined(sent[0]).headers.get("x-content-language")).toBe("fr");
 
     sent.length = 0;
     const browser = listing();
@@ -218,10 +226,10 @@ function registerApiHydrationTests() {
     const { html, payload } = await serverRender(Orders);
     expect(html).toBe("<p>page:1</p>");
     expect(sent).toHaveLength(1);
-    expect(sent[0]!.headers.get("x-content-language")).toBe("fr");
-    expect(sent[0]!.signal).toBeInstanceOf(AbortSignal);
+    expect(defined(sent[0]).headers.get("x-content-language")).toBe("fr");
+    expect(defined(sent[0]).signal).toBeInstanceOf(AbortSignal);
     expect(payload.data).toEqual({
-      [engine.dmsRequestKey("/api/orders", { query: { page: 1 } })!]: {
+      [defined(engine.dmsRequestKey("/api/orders", { query: { page: 1 } }))]: {
         url: "/api/orders",
         page: 1,
       },
@@ -326,7 +334,7 @@ function registerApiPollingTests() {
     expect(sent).toEqual([]);
     expect(container.textContent).toBe("closed");
 
-    await execute!();
+    await defined(execute)();
     await settle();
     expect(sent.map(({ url }) => url)).toEqual(["/api/invoice"]);
     expect(container.textContent).toBe("/api/invoice");
@@ -413,7 +421,7 @@ function registerApiRequestContextTests() {
     try {
       appLocale.value = "de";
       await app.runWithContext(() => $authFetch("/api/orders"));
-      expect(sent[0]!.headers.get("x-content-language")).toBe("de");
+      expect(defined(sent[0]).headers.get("x-content-language")).toBe("de");
     } finally {
       appLocale.value = "fr";
       runtime.scope.stop();

@@ -19,6 +19,7 @@ import {
   ACCOUNT_MENU_ENTRIES,
   SETTINGS_ROUTE,
 } from "../layers/dms-layout/app/utils/account-menu";
+import { defined } from "./helpers/defined";
 
 interface MenuItemStub {
   to?: string;
@@ -154,7 +155,7 @@ it.each([
   route.path = path;
   mount();
   await nextTick();
-  const trigger = host.querySelector("button")!;
+  const trigger = defined(host.querySelector("button"));
   expect(trigger.hasAttribute("data-active")).toBe(isActive);
   expect(trigger.classList.contains("bg-elevated")).toBe(isActive);
 });
@@ -165,10 +166,12 @@ it.each(ACCOUNT_MENU_ENTRIES.map((entry) => [entry.to]))(
     user.value = { name: "Ada", email: "ada@example.test", avatar: null };
     mount();
     await nextTick();
-    const drawerOpen = states.get("dms-sidebar-open")!;
+    const drawerOpen = defined(states.get("dms-sidebar-open"));
     drawerOpen.value = true;
 
-    menuItems.flat().find((item) => item.to === to)!.onSelect!();
+    defined(
+      defined(menuItems.flat().find((item) => item.to === to)).onSelect,
+    )();
 
     expect(drawerOpen.value).toBe(false);
   },

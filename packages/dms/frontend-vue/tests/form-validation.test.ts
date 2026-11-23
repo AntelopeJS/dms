@@ -12,6 +12,7 @@ import {
 } from "../layers/dms-core/app/composables/useFormValidation";
 import { passwordSchema } from "../layers/dms-ui/app/composables/usePasswordStrength";
 import { useCodeFieldError } from "../layers/dms-layout/app/entries/composables/settings/security/useCodeFieldError";
+import { defined } from "./helpers/defined";
 
 /** Marks the keys it translates, so a test sees what went through i18n. */
 const translate = (key: string) => `t(${key})`;
@@ -143,7 +144,7 @@ describe("focusFirstFormError", () => {
       '<input id="first" disabled><input id="second"><input id="third">';
     focusFirstFormError([{ id: "third" }, { id: "first" }, { id: "missing" }]);
 
-    document.getElementById("first")!.removeAttribute("disabled");
+    defined(document.getElementById("first")).removeAttribute("disabled");
     vi.runAllTimers();
     expect(document.activeElement?.id).toBe("first");
   });
@@ -190,7 +191,7 @@ describe("useCodeFieldError", () => {
 
   it("keeps the digits of a code flagged before sending, focuses the gap", async () => {
     const { container, digits, error, flag } = setup();
-    container.querySelectorAll("input")[0]!.value = "1";
+    defined(container.querySelectorAll("input")[0]).value = "1";
     flag("Enter every digit of the code.");
     await nextTick();
     await nextTick();

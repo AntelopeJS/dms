@@ -7,6 +7,7 @@ import {
 } from "./fixtures/axisCallbacks";
 import { useApexChart } from "../layers/dms-ui/app/composables/chart/useApexChart";
 import type { UseApexChartInput } from "../layers/dms-ui/app/composables/chart/useApexChart.types";
+import { defined } from "./helpers/defined";
 
 function chartFor(input: Partial<UseApexChartInput> = {}) {
   return useApexChart(() => ({ type: "line", series: [], ...input }));
@@ -98,8 +99,8 @@ describe("annotation-aware auto Y range", () => {
     });
     const chart = useApexChart(() => input);
     expect(autoBoundsOf(chart.options.value).max(10)).toBe(22);
-    input.annotations![0]!.y = 40;
-    input.autoYRange!.padding = 0.2;
+    defined(defined(input.annotations)[0]).y = 40;
+    defined(input.autoYRange).padding = 0.2;
     expect(autoBoundsOf(chart.options.value).max(10)).toBe(48);
   });
 

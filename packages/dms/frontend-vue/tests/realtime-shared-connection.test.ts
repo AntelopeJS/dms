@@ -16,6 +16,7 @@ import {
   type FakeRealtimeServer,
   installRealtimeFetch,
 } from "./fixtures/realtimeServer";
+import { defined } from "./helpers/defined";
 
 const TAB_COUNT = 8;
 const USER_ID = "user-1";
@@ -77,7 +78,7 @@ const closeTab = async (tab: Tab): Promise<void> => {
   await settle();
 };
 
-const sessionOf = (tab: Tab): string => tab.api.sessionId.value!;
+const sessionOf = (tab: Tab): string => defined(tab.api.sessionId.value);
 
 const eventFor = (ts: number): RealtimeEvent => ({
   topic: TOPIC,
@@ -121,14 +122,14 @@ describe("useUserRealtime across tabs", () => {
 describe("useUserRealtime relaying a frame from another tab", () => {
   it("drops it when its data is not JSON", async () => {
     const [, follower] = await openTabs(2);
-    const relay = browser.openTab().environment.createChannel!(
+    const relay = defined(browser.openTab().environment.createChannel)(
       `dms-realtime:${BASE_URL}:${USER_ID}`,
     );
     const relayFrame = (data: RealtimeEvent) =>
       relay.postMessage({
         kind: "frame",
         connectionId: "connection-1",
-        sessionId: sessionOf(follower!),
+        sessionId: sessionOf(defined(follower)),
         event: TOPIC,
         data,
       });
@@ -137,7 +138,7 @@ describe("useUserRealtime relaying a frame from another tab", () => {
     relayFrame(eventFor(2));
     await settle();
 
-    expect(follower!.received).toEqual([eventFor(2)]);
+    expect(defined(follower).received).toEqual([eventFor(2)]);
   });
 });
 
@@ -157,28 +158,28 @@ function registerSharedConnectionDeliveryTests() {
   it("keeps each tab's page apart", async () => {
     const [first, second] = await openTabs(2);
 
-    await first!.api.setPage("orders");
-    await second!.api.setPage("invoices");
+    await defined(first).api.setPage("orders");
+    await defined(second).api.setPage("invoices");
     await settle();
 
     expect(server.pageCalls).toEqual([
-      { sessionId: sessionOf(first!), pageId: "orders" },
-      { sessionId: sessionOf(second!), pageId: "invoices" },
+      { sessionId: sessionOf(defined(first)), pageId: "orders" },
+      { sessionId: sessionOf(defined(second)), pageId: "invoices" },
     ]);
-    expect(first!.api.pageTopics.value).toEqual(["table:orders"]);
-    expect(second!.api.pageTopics.value).toEqual(["table:invoices"]);
+    expect(defined(first).api.pageTopics.value).toEqual(["table:orders"]);
+    expect(defined(second).api.pageTopics.value).toEqual(["table:invoices"]);
   });
 
   it("delivers a session's frames to its own tab only", async () => {
     const opened = await openTabs(3);
-    const target = opened[2]!;
+    const target = defined(opened[2]);
 
     server.send(sessionOf(target), TOPIC, eventFor(1));
     await settle();
 
     expect(target.received).toEqual([eventFor(1)]);
-    expect(opened[0]!.received).toEqual([]);
-    expect(opened[1]!.received).toEqual([]);
+    expect(defined(opened[0]).received).toEqual([]);
+    expect(defined(opened[1]).received).toEqual([]);
   });
 
   it("hands the connection's own frames to every tab once", async () => {
@@ -218,35 +219,35 @@ function registerSharedConnectionDeliveryTests() {
 
   it("ends the session of a tab that goes, and nothing else", async () => {
     const [leader, follower, other] = await openTabs(3);
-    const followerSession = sessionOf(follower!);
+    const followerSession = sessionOf(defined(follower));
 
-    await closeTab(follower!);
+    await closeTab(defined(follower));
 
     expect(server.closedSessions).toEqual([followerSession]);
     expect(server.openConnections()).toHaveLength(1);
-    expect(leader!.api.sessionId.value).toBeDefined();
-    expect(other!.api.sessionId.value).toBeDefined();
+    expect(defined(leader).api.sessionId.value).toBeDefined();
+    expect(defined(other).api.sessionId.value).toBeDefined();
   });
 
   it("sends only headers the renderer's backend proxy relays", async () => {
     const [first, second] = await openTabs(2);
-    await first!.api.setPage("orders");
-    await closeTab(second!);
+    await defined(first).api.setPage("orders");
+    await closeTab(defined(second));
 
     expect(server.droppedHeaders).toEqual([]);
-    expect(first!.api.sessionId.value).toBeDefined();
+    expect(defined(first).api.sessionId.value).toBeDefined();
     expect(server.closedSessions).toHaveLength(1);
   });
 
   it("hands the connection to another tab when the leader goes", async () => {
     const [leader, ...followers] = await openTabs(4);
-    await followers[0]!.api.setPage("orders");
-    await followers[1]!.api.setPage("invoices");
+    await defined(followers[0]).api.setPage("orders");
+    await defined(followers[1]).api.setPage("invoices");
     const before = followers.map(sessionOf);
 
-    await closeTab(leader!);
+    await closeTab(defined(leader));
 
-    expect(server.connections[0]!.isOpen()).toBe(false);
+    expect(defined(server.connections[0]).isOpen()).toBe(false);
     expect(server.openConnections()).toHaveLength(1);
     expect(server.maxOpenConnections).toBe(1);
     const after = followers.map(sessionOf);
@@ -262,9 +263,9 @@ function registerSharedConnectionDeliveryTests() {
       ]),
     );
 
-    server.send(after[2]!, TOPIC, eventFor(2));
+    server.send(defined(after[2]), TOPIC, eventFor(2));
     await settle();
-    expect(followers[2]!.received).toEqual([eventFor(2)]);
+    expect(defined(followers[2]).received).toEqual([eventFor(2)]);
   });
 }
 
@@ -303,19 +304,19 @@ function registerSharedConnectionRecoveryTests() {
 
   it("opens a new session for a tab whose session the backend ended alone", async () => {
     const [ended, kept] = await openTabs(2);
-    await ended!.api.setPage("orders");
-    const endedSession = sessionOf(ended!);
-    const keptSession = sessionOf(kept!);
+    await defined(ended).api.setPage("orders");
+    const endedSession = sessionOf(defined(ended));
+    const keptSession = sessionOf(defined(kept));
 
     server.send(endedSession, "session-ended", { sessionId: endedSession });
     await settle();
 
-    expect(sessionOf(ended!)).toBeDefined();
-    expect(sessionOf(ended!)).not.toBe(endedSession);
-    expect(sessionOf(kept!)).toBe(keptSession);
+    expect(sessionOf(defined(ended))).toBeDefined();
+    expect(sessionOf(defined(ended))).not.toBe(endedSession);
+    expect(sessionOf(defined(kept))).toBe(keptSession);
     expect(server.connections).toHaveLength(1);
     expect(server.pageCalls.at(-1)).toEqual({
-      sessionId: sessionOf(ended!),
+      sessionId: sessionOf(defined(ended)),
       pageId: "orders",
     });
   });

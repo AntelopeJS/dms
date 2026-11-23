@@ -32,6 +32,7 @@ import * as sizes from "../layers/dms-core/app/types/size";
 import { isFunction, isString } from "../layers/dms-core/app/utils/type-check";
 import type { CustomRowAction } from "../layers/dms-ui/app/types/row-action";
 import { TABLE_STYLE_SLOTS } from "./fixtures/tableStyleSlots";
+import { defined } from "./helpers/defined";
 
 type Row = { _id: string; name: string; code: string };
 
@@ -199,7 +200,7 @@ it("fills a custom action's label from the row, inline and in the menu", async (
   const host = renderCell(cell);
   const inline = host.querySelector('[aria-label="Translate Français"]');
   expect(inline?.textContent).toBe("Translate Français");
-  const menu = host.querySelector('[aria-haspopup="menu"]')!;
+  const menu = defined(host.querySelector('[aria-haspopup="menu"]'));
   menu.dispatchEvent(
     new KeyboardEvent("keydown", { key: "Enter", bubbles: true }),
   );
@@ -216,11 +217,9 @@ const LOCKED = { field: "code", notEquals: "fr" } as const;
 
 async function openMenu(cell: VNode) {
   const host = renderCell(cell);
-  host
-    .querySelector('[aria-haspopup="menu"]')!
-    .dispatchEvent(
-      new KeyboardEvent("keydown", { key: "Enter", bubbles: true }),
-    );
+  defined(host.querySelector('[aria-haspopup="menu"]')).dispatchEvent(
+    new KeyboardEvent("keydown", { key: "Enter", bubbles: true }),
+  );
   await nextTick();
   await new Promise((resolve) => setTimeout(resolve));
   return [...document.querySelectorAll('[role="menuitem"]')];

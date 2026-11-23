@@ -4,12 +4,13 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import type { DataType } from "../layers/dms-core/app/composables/data-types/useDataType";
 import { Color } from "../layers/dms-core/app/types/color";
 import { registerMetricCellTypes } from "../layers/dms-ui/app/entries/composables/data-types/metricCells";
+import { defined } from "./helpers/defined";
 
 type DataTypeFormatter = NonNullable<DataType["formatter"]>["default"];
 
 const formatters = new Map<string, DataTypeFormatter>();
 registerMetricCellTypes((dataType: DataType) => {
-  formatters.set(dataType.id, dataType.formatter!.default);
+  formatters.set(dataType.id, defined(dataType.formatter).default);
 });
 
 let app: App | undefined;
@@ -49,7 +50,7 @@ it("tones a status pill by its select item when the column's map has no tone for
     },
   };
   const pill = (value: string) =>
-    render(formatters.get("status_pill")!(value, "en-GB", options, {}));
+    render(defined(formatters.get("status_pill"))(value, "en-GB", options, {}));
 
   expect(pill("healthy")).toContain("text-success");
   expect(pill("paused")).toContain("text-warning");

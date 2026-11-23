@@ -13,6 +13,7 @@ import {
   headerOf,
   press,
 } from "./row-drawer-runtime";
+import { defined } from "./helpers/defined";
 
 describe("a row drawer on a table with pinned rows", () => {
   const PAGE_SIZE = 3;
@@ -24,7 +25,7 @@ describe("a row drawer on a table with pinned rows", () => {
   }));
 
   const shownOrder = ["v1", "v0", "v2", "v4", "v3", "v5", "v6"];
-  const byId = (id: string) => answered.find((row) => row._id === id)!;
+  const byId = (id: string) => defined(answered.find((row) => row._id === id));
   const pageRows = (pageIndex: number) =>
     shownOrder
       .slice(pageIndex * PAGE_SIZE, (pageIndex + 1) * PAGE_SIZE)
@@ -68,7 +69,7 @@ describe("a row drawer on a table with pinned rows", () => {
       byId("v3"),
     );
     await vi.waitFor(() => expect(opened).toHaveLength(1));
-    const drawer = opened[0]!;
+    const drawer = defined(opened[0]);
     expect(navigationOf(drawer)).toMatchObject({ index: 4, total: 7 });
     press("k");
     expect(latest(drawer).componentKey).toBe("v4");
@@ -88,7 +89,7 @@ describe("a row drawer on a table with pinned rows", () => {
       byId("v2"),
     );
     await vi.waitFor(() => expect(opened).toHaveLength(1));
-    const drawer = opened[0]!;
+    const drawer = defined(opened[0]);
 
     await vi.waitFor(() =>
       expect(navigationOf(drawer)).toMatchObject({

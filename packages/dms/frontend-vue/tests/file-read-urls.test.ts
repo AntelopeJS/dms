@@ -29,6 +29,7 @@ import {
 } from "./helpers/api-data-runtime";
 import { useFileReadUrls } from "../layers/dms-ui/app/composables/useFileReadUrls";
 import { FORM_CONTENT_LANGUAGE_KEY } from "../layers/dms-ui/app/composables/form/types/content-language";
+import { defined } from "./helpers/defined";
 
 const RESOURCE_KEY = "localized/private.png";
 const START_TIME = new Date("2026-09-14T12:00:00Z");
@@ -129,7 +130,7 @@ function registerFileUrlRefreshTests() {
       });
 
     const scope = effectScope();
-    const urls = scope.run(() => useFileReadUrls())!;
+    const urls = defined(scope.run(() => useFileReadUrls()));
     await urls.resolve(RESOURCE_KEY);
     expect(urls.getUrl(RESOURCE_KEY)).toBe("https://example.test/first");
 
@@ -152,7 +153,7 @@ function registerFileUrlRefreshTests() {
       });
 
     const scope = effectScope();
-    const urls = scope.run(() => useFileReadUrls())!;
+    const urls = defined(scope.run(() => useFileReadUrls()));
     await urls.resolve(RESOURCE_KEY);
     await vi.advanceTimersByTimeAsync(URL_TTL_MS - 5000);
     expect(urls.getUrl(RESOURCE_KEY)).toBe("https://example.test/first");
@@ -190,7 +191,7 @@ function registerFileUrlRefreshTests() {
       .mockRejectedValueOnce(new Error("offline"))
       .mockResolvedValueOnce({ url: "https://example.test/recovered" });
     const scope = effectScope();
-    const urls = scope.run(() => useFileReadUrls())!;
+    const urls = defined(scope.run(() => useFileReadUrls()));
     await urls.resolve(RESOURCE_KEY).catch(() => {});
     expect(urls.getUrl(RESOURCE_KEY)).toBeUndefined();
     await vi.advanceTimersByTimeAsync(5000);
@@ -203,7 +204,7 @@ function registerFileUrlRefreshTests() {
       Object.assign(new Error("Not found"), { statusCode: 404 }),
     );
     const scope = effectScope();
-    const urls = scope.run(() => useFileReadUrls())!;
+    const urls = defined(scope.run(() => useFileReadUrls()));
     await urls.resolve(RESOURCE_KEY).catch(() => {});
     await vi.advanceTimersByTimeAsync(60000);
     expect(authFetch).toHaveBeenCalledTimes(1);
@@ -221,7 +222,7 @@ function registerDeferredFileUrlTests() {
       }),
     );
     const scope = effectScope();
-    const urls = scope.run(() => useFileReadUrls())!;
+    const urls = defined(scope.run(() => useFileReadUrls()));
     const pending = urls.resolve(RESOURCE_KEY);
     scope.stop();
     finish({

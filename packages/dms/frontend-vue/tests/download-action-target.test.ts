@@ -11,6 +11,7 @@ import { interpolateUrl } from "../layers/dms-core/app/utils/url-interpolation";
 import { fetchClient } from "./fixtures/fetchClient";
 import type { CustomButton } from "../layers/dms-ui/app/composables/table-view/types/custom-button";
 import type { CustomRowAction } from "../layers/dms-ui/app/types/row-action";
+import { defined } from "./helpers/defined";
 
 const route = reactive<{ path: string; query: Record<string, string> }>({
   path: "/modules/lang/queue/de",
@@ -37,7 +38,7 @@ function mountTargets() {
     }),
   );
   app.mount(document.createElement("div"));
-  return targets!;
+  return defined(targets);
 }
 
 const downloadButton = (filename?: string): CustomButton => ({

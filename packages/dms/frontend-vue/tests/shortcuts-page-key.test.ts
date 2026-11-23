@@ -20,6 +20,7 @@ import {
 import DashboardSearch from "../layers/dms-layout/app/components/layout/DashboardSearch.vue";
 import shortcutsRegistry from "../layers/dms-ui/app/config/shortcuts-registry";
 import { PaletteStub } from "./fixtures/dashboard-search-stub";
+import { defined } from "./helpers/defined";
 
 const SHORTCUTS_PAGE = "/settings/user/shortcuts";
 
@@ -107,7 +108,7 @@ describe("the ? shortcut", () => {
   });
 
   it("only types the character in an input", () => {
-    const search = host.querySelector<HTMLInputElement>("#search")!;
+    const search = defined(host.querySelector<HTMLInputElement>("#search"));
     search.focus();
     const event = press("?", { shiftKey: true });
     expect(navigateDms).not.toHaveBeenCalled();

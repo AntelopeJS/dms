@@ -2,6 +2,7 @@
 import { afterEach, expect, it } from "vitest";
 import { createApp, defineComponent, h, type App } from "vue";
 import PasswordStrength from "../layers/dms-ui/app/components/PasswordStrength.vue";
+import { defined } from "./helpers/defined";
 
 let app: App | undefined;
 
@@ -27,7 +28,7 @@ it("scales the meter to the number of requirements", () => {
   app.component("UIcon", defineComponent({ render: () => null }));
   app.mount(host);
 
-  const meter = host.querySelector("progress")!;
+  const meter = defined(host.querySelector("progress"));
   expect(meter.getAttribute("max")).toBe("5");
   expect(meter.getAttribute("value")).toBe("5");
 });

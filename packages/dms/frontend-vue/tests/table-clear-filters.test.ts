@@ -28,6 +28,7 @@ import {
 import TableEmpty from "../layers/dms-ui/app/entries/components/table/TableEmpty";
 import { useTableViewEmptyState } from "../layers/dms-ui/app/composables/table-view/useTableViewEmptyState";
 import type { TableViewEmptyStatesConfig } from "../layers/dms-ui/app/composables/table-view/types";
+import { defined } from "./helpers/defined";
 
 const pinnedStatus = (value: TableFilter["value"]): TableFilter => ({
   accessorKey: "status",
@@ -278,7 +279,7 @@ function registerEmptyStateClearTests(
     const container = fixture.mountEmpty(state);
 
     expect(container.textContent).toContain("dms.table.no_results_title");
-    const button = container.querySelector("button")!;
+    const button = defined(container.querySelector("button"));
     expect(button.textContent).toBe("dms.table.clear_filters_and_search");
 
     button.click();
@@ -296,7 +297,7 @@ function registerEmptyStateClearTests(
     const state = createState({ globalFilter: "dfgdf" });
     const container = fixture.mountEmpty(state);
 
-    const button = container.querySelector("button")!;
+    const button = defined(container.querySelector("button"));
     expect(button.textContent).toBe("dms.table.clear_search");
     button.click();
     await nextTick();
@@ -336,14 +337,14 @@ function registerEmptyStateClearTests(
     fixture.mountEmpty(state, {
       filtered: { title: "", component: { componentName: "LogsEmpty" } },
     });
-    const props = received.at(-1)!;
+    const props = defined(received.at(-1));
     expect(props.state).toBe("filtered");
-    props.clearSearch!();
+    defined(props.clearSearch)();
     await nextTick();
     expect(state.globalFilter.value).toBe("");
     expect(state.columnFilters.value).toEqual([dueDate]);
-    expect(received.at(-1)!.clearSearch).toBeUndefined();
-    received.at(-1)!.clearFilters!();
+    expect(defined(received.at(-1)).clearSearch).toBeUndefined();
+    defined(defined(received.at(-1)).clearFilters)();
     expect(state.columnFilters.value).toEqual([]);
   });
 }
@@ -368,15 +369,15 @@ function registerEmptyStateCustomTests(
     fixture.mountEmpty(state, {
       filtered: { title: "", component: { componentName: "LogsEmpty" } },
     });
-    expect(controls!.search.value).toBe("late");
-    expect(controls!.isFiltered.value).toBe(true);
-    expect(controls!.canClearSearch.value).toBe(true);
-    expect(controls!.canClearFilters.value).toBe(true);
-    controls!.clearFilters();
-    expect(controls!.canClearFilters.value).toBe(false);
+    expect(defined(controls).search.value).toBe("late");
+    expect(defined(controls).isFiltered.value).toBe(true);
+    expect(defined(controls).canClearSearch.value).toBe(true);
+    expect(defined(controls).canClearFilters.value).toBe(true);
+    defined(controls).clearFilters();
+    expect(defined(controls).canClearFilters.value).toBe(false);
     expect(state.globalFilter.value).toBe("late");
-    controls!.clearSearch();
-    expect(controls!.isFiltered.value).toBe(false);
+    defined(controls).clearSearch();
+    expect(defined(controls).isFiltered.value).toBe(false);
   });
 
   it("offers no clear action when only default filters narrow the rows", () => {

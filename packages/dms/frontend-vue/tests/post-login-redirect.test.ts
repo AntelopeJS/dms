@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { usePostLoginRedirect } from "../layers/dms-auth/app/composables/usePostLoginRedirect";
+import { defined } from "./helpers/defined";
 
 const refreshUser = vi.fn();
 const refreshLayout = vi.fn();
@@ -39,7 +40,7 @@ describe("post-login redirect", () => {
     expect(resolveDestination).toHaveBeenCalledOnce();
     expect(navigateTo).toHaveBeenCalledWith("/dashboard", {});
     expect(refreshUser.mock.invocationCallOrder[0]).toBeLessThan(
-      refreshLayout.mock.invocationCallOrder[0]!,
+      defined(refreshLayout.mock.invocationCallOrder[0]),
     );
   });
 

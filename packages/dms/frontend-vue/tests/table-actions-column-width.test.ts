@@ -17,6 +17,7 @@ import * as colors from "../layers/dms-core/app/types/color";
 import { isFunction, isString } from "../layers/dms-core/app/utils/type-check";
 import { modelRef } from "./fixtures/modelRef";
 import { TABLE_STYLE_SLOTS } from "./fixtures/tableStyleSlots";
+import { defined } from "./helpers/defined";
 
 type Row = { _id: string; status?: boolean };
 
@@ -98,7 +99,7 @@ it("sizes an empty list's actions as a row with no values, through the rules", (
   const empty = actionsColumnSize([]);
   const pending = actionsColumnSize([{ _id: "1", status: true }]);
 
-  expect(empty).toBeLessThan(pending!);
+  expect(empty).toBeLessThan(defined(pending));
   expect(empty).toBe(actionsColumnSize([{ _id: "1" }]));
 });
 
@@ -129,13 +130,15 @@ it("resizes the table's actions column once the rows arrive", async () => {
       paginationState: modelRef({ pageIndex: 0, pageSize: 10 }),
     },
   });
-  const emptyWidth = table.getColumn("actions")!.getSize();
+  const emptyWidth = defined(table.getColumn("actions")).getSize();
 
   tableProps.data = [{ _id: "1", status: true }];
   await nextTick();
 
-  expect(table.getColumn("actions")!.getSize()).toBe(
+  expect(defined(table.getColumn("actions")).getSize()).toBe(
     actionsColumnSize([{ _id: "1", status: true }]),
   );
-  expect(table.getColumn("actions")!.getSize()).toBeGreaterThan(emptyWidth);
+  expect(defined(table.getColumn("actions")).getSize()).toBeGreaterThan(
+    emptyWidth,
+  );
 });

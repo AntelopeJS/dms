@@ -7,6 +7,7 @@
 import { createApp, defineComponent, type App } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { dmsAppContext, emptyTranslations } from "./fixtures/dmsAppContext";
+import { defined } from "./helpers/defined";
 
 const engine = await import("#dms/frontend-module");
 const { default: devErrorLogPlugin } = await import(
@@ -36,7 +37,7 @@ describe("dev error log", () => {
     const log = vi.spyOn(console, "error").mockImplementation(() => {});
     await install();
     const error = new Error("Must be called at the top of a `setup` function");
-    app.config.errorHandler!(error, null, "component update");
+    defined(app.config.errorHandler)(error, null, "component update");
     expect(log).toHaveBeenCalledWith(
       "[dms] Uncaught error (component update)",
       error,

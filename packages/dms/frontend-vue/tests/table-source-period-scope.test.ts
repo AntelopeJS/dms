@@ -18,6 +18,7 @@ import {
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fetchClient } from "./fixtures/fetchClient";
 import { tableViewColumn } from "./fixtures/tableViewColumn";
+import { defined } from "./helpers/defined";
 
 const engine = await import("#dms/frontend-module");
 vi.stubGlobal("useDmsAsyncData", engine.useDmsAsyncData);
@@ -95,7 +96,9 @@ function mountTable(): void {
 
 function registerSelector() {
   const scope = effectScope();
-  const period = scope.run(() => usePeriod({ defaultPreset: "last-7-days" }))!;
+  const period = defined(
+    scope.run(() => usePeriod({ defaultPreset: "last-7-days" })),
+  );
   cleanups.push(registerPeriodScope(SCOPE, period.state), () => scope.stop());
   return period;
 }
@@ -126,21 +129,21 @@ describe("a source table bound to a period scope", () => {
     await settle();
     expect(requests).toEqual([]);
     expect(listed).toBeDefined();
-    expect(listed!.value).toBeNull();
+    expect(defined(listed).value).toBeNull();
   });
 
   it("keeps its tab counters' skeleton too until the scope registers", async () => {
     mountTable();
     await settle();
     expect(counted).toBeDefined();
-    expect(counted!.value).toBeNull();
+    expect(defined(counted).value).toBeNull();
   });
 
   it("counts its tabs with the period once the scope registers", async () => {
     registerSelector();
     mountTable();
     await settle();
-    expect(counted!.value).toEqual({ all: 1 });
+    expect(defined(counted).value).toEqual({ all: 1 });
   });
 
   it("sends the period with its request once the scope registers", async () => {
@@ -149,9 +152,9 @@ describe("a source table bound to a period scope", () => {
     await settle();
 
     expect(requests).toHaveLength(1);
-    expect(listed!.value).toMatchObject({ total: 1 });
-    const range = period.state.value.range!;
-    expect(periodOf(requests[0]!)).toEqual({
+    expect(defined(listed).value).toMatchObject({ total: 1 });
+    const range = defined(period.state.value.range);
+    expect(periodOf(defined(requests[0]))).toEqual({
       from: range.from.toISOString(),
       to: range.to.toISOString(),
       preset: "last-7-days",
@@ -166,7 +169,7 @@ describe("a source table bound to a period scope", () => {
     period.setPreset("last-30-days");
     period.setComparison("previous-period");
     await settle();
-    const last = periodOf(requests.at(-1)!);
+    const last = periodOf(defined(requests.at(-1)));
     expect(last.preset).toBe("last-30-days");
     expect(last.comparison).toBe("previous-period");
     expect(last.compareFrom).toBeDefined();

@@ -6,6 +6,7 @@ import NavCardGridBlock from "../layers/dms-ui/app/components/blocks/NavCardGrid
 import { useRealDataEngine } from "./fixtures/dataEngine";
 import { stubBlockRuntime } from "./helpers/block-runtime";
 import type { SiteLayoutTree } from "../layers/dms-core/app/types/page";
+import { defined } from "./helpers/defined";
 
 const page = (fullId: string, extra: Partial<SiteLayoutTree> = {}) => ({
   fullId,
@@ -106,7 +107,7 @@ it("hands each card its page's badge for the corner, not as a state line", () =>
   const card = container.querySelector("a");
   expect(card?.textContent).toContain("Security");
   expect(
-    [...card!.querySelectorAll("span")].some(
+    [...defined(card).querySelectorAll("span")].some(
       (span) => span.textContent?.trim() === "1",
     ),
   ).toBe(true);

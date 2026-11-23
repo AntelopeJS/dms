@@ -3,6 +3,7 @@ import { useApexChart } from "../layers/dms-ui/app/composables/chart/useApexChar
 import type { UseApexChartInput } from "../layers/dms-ui/app/composables/chart/useApexChart.types";
 import { isFunction } from "../layers/dms-core/app/utils/type-check";
 import { sectionIn } from "./fixtures/axisCallbacks";
+import { defined } from "./helpers/defined";
 
 const WEEK = Date.UTC(2026, 8, 7);
 const euros = (value: number) =>
@@ -32,12 +33,18 @@ function labelFormatter(
 
 describe("a bar chart with datetime categories and a currency valueFormat", () => {
   it("writes dates on the category axis and euros on the values of a horizontal bar", () => {
-    expect(labelFormatter("horizontal", "yaxis")!(WEEK)).toBe("Sep 7, 2026");
-    expect(labelFormatter("horizontal", "xaxis")!(1788)).toBe("€1,788.00");
+    expect(defined(labelFormatter("horizontal", "yaxis"))(WEEK)).toBe(
+      "Sep 7, 2026",
+    );
+    expect(defined(labelFormatter("horizontal", "xaxis"))(1788)).toBe(
+      "€1,788.00",
+    );
   });
 
   it("writes euros on the values and no currency on the dates of a vertical bar", () => {
-    expect(labelFormatter("vertical", "yaxis")!(1788)).toBe("€1,788.00");
+    expect(defined(labelFormatter("vertical", "yaxis"))(1788)).toBe(
+      "€1,788.00",
+    );
     expect(labelFormatter("vertical", "xaxis")).toBeUndefined();
   });
 });

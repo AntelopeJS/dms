@@ -14,6 +14,7 @@ import {
 } from "../layers/dms-ui/app/entries/composables/live/pageLiveController";
 import { setCurrentPageLive } from "../layers/dms-ui/app/entries/composables/live/currentPageLive";
 import { formatElapsed } from "../layers/dms-ui/app/entries/composables/live/formatElapsed";
+import { defined } from "./helpers/defined";
 
 let app: App | undefined;
 let host: HTMLDivElement;
@@ -129,7 +130,7 @@ it("counts the seconds since the last update, every second", async () => {
 it("shows the polling hint once the stream stayed down, in a box always kept", async () => {
   const controller = installLive();
   await mountToggle();
-  const hint = () => host.querySelector(".dms-live-toggle__polling")!;
+  const hint = () => defined(host.querySelector(".dms-live-toggle__polling"));
   expect(hint().classList.contains("invisible")).toBe(true);
 
   controller.setStreamConnected(false);

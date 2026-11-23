@@ -11,6 +11,7 @@ import type { RowNavigation } from "../layers/dms-ui/app/types/row-navigation";
 import type { ShowRow } from "../layers/dms-ui/app/entries/composables/actions/rowNavigation";
 import type { BulkSelection } from "../layers/dms-ui/app/entries/composables/actions/bulkSelection";
 import type { resolveComponentChildren } from "../layers/dms-ui/app/utils/componentTree";
+import { defined } from "./helpers/defined";
 
 interface DrawerBody {
   rowData?: Parameters<ShowRow>[0];
@@ -64,7 +65,7 @@ const mountTargets = (
     }),
   );
   app.mount(document.createElement("div"));
-  return targets!;
+  return defined(targets);
 };
 
 beforeEach(() => {

@@ -26,6 +26,7 @@ import {
 } from "../layers/dms-ui/app/entries/composables/table-view/utils/groupedRows";
 import type { TableViewColumn } from "../layers/dms-ui/app/composables/table-view/types";
 import { tableViewColumn } from "./fixtures/tableViewColumn";
+import { defined } from "./helpers/defined";
 
 const LABELS = {
   today: "Today",
@@ -305,11 +306,11 @@ describe("useGroupedRows", () => {
         { id: "closed", query: { search: "late", filter_status: "is:closed" } },
       ],
     ]);
-    const grouping = grouped!.grouping.value!;
+    const grouping = defined(defined(grouped).grouping.value);
     expect(grouping.collapsible).toBe(true);
-    expect(grouping.keyOf(rows.value[0]!)).toBe("open");
+    expect(grouping.keyOf(defined(rows.value[0]))).toBe("open");
     expect(grouping.countOf?.("open")).toBe(12);
-    const noValue = grouping.header(NO_GROUP_KEY, rows.value[2]!);
+    const noValue = grouping.header(NO_GROUP_KEY, defined(rows.value[2]));
     expect(noValue).toHaveProperty("children", "dms.table.grouped.none");
   });
 

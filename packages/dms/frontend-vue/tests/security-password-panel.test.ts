@@ -14,6 +14,7 @@ import { usePasswordStrength } from "../layers/dms-ui/app/composables/usePasswor
 import { browserRuntime, stubApiData } from "./helpers/api-data-runtime";
 import { installAuthSettingsRuntime } from "./helpers/auth-settings-runtime";
 import type { useAuthFetch } from "../layers/dms-core/app/composables/auth/useAuthFetch";
+import { defined } from "./helpers/defined";
 
 installAuthSettingsRuntime();
 const { default: SecurityPassword } = await import(
@@ -72,7 +73,7 @@ const Input = defineComponent({
         ...attrs,
         ref: input,
         value: props.modelValue,
-        onInput: () => emit("update:modelValue", input.value!.value),
+        onInput: () => emit("update:modelValue", defined(input.value).value),
         onBlur: () => emit("blur"),
       });
   },
@@ -91,11 +92,12 @@ async function flush(): Promise<void> {
   await new Promise((resolve) => setTimeout(resolve));
 }
 
-const input = (id: string) => host.querySelector<HTMLInputElement>(`#${id}`)!;
+const input = (id: string) =>
+  defined(host.querySelector<HTMLInputElement>(`#${id}`));
 const errorOf = (id: string) =>
   host.querySelector(`#${id}-error`)?.textContent?.trim();
 const form = () =>
-  host.querySelector<HTMLFormElement>("#security-password-form")!;
+  defined(host.querySelector<HTMLFormElement>("#security-password-form"));
 
 async function type(id: string, value: string): Promise<void> {
   input(id).value = value;
@@ -128,9 +130,9 @@ async function mountAndOpen(): Promise<void> {
   app.component("UCollapsible", Collapsible);
   app.mount(host);
   await flush();
-  host
-    .querySelector<HTMLButtonElement>("#security-password-form-trigger")!
-    .click();
+  defined(
+    host.querySelector<HTMLButtonElement>("#security-password-form-trigger"),
+  ).click();
   await flush();
 }
 

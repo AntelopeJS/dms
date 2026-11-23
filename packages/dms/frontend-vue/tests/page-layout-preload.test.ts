@@ -4,6 +4,7 @@ import {
   PAGE_COMPONENTS_WAIT_MS,
   preloadPageLayoutComponents,
 } from "../layers/dms-layout/app/composables/page/usePageComponentPreload";
+import { defined } from "./helpers/defined";
 
 const LAYOUT = {
   layout: {
@@ -77,10 +78,10 @@ describe("the preload of a page's components", () => {
     const preloaded = preloadPageLayoutComponents(LAYOUT);
     expect(await settled(preloaded)).toBe(false);
 
-    pending.get("PageBanner")!();
-    pending.get("DmsCardPanel")!();
+    defined(pending.get("PageBanner"))();
+    defined(pending.get("DmsCardPanel"))();
     expect(await settled(preloaded)).toBe(false);
-    pending.get("DmsTableRoot")!();
+    defined(pending.get("DmsTableRoot"))();
     expect(await settled(preloaded)).toBe(true);
   });
 

@@ -6,6 +6,7 @@ import {
   MS_PER_HOUR,
   type PeriodRange,
 } from "../layers/dms-core/app/composables/period/types";
+import { defined } from "./helpers/defined";
 
 const NOW = new Date(2026, 6, 28, 14, 37, 12, 500);
 const FALLBACK: PeriodRange = {
@@ -73,21 +74,21 @@ describe("previous-period comparison", () => {
     const range = boundedPresetRange("last-7-days", NOW, FALLBACK);
     const compare = resolveComparisonRange("previous-period", range, null);
     expect(compare).not.toBeNull();
-    expect(durationOf(compare!)).toBe(durationOf(range));
-    expect(compare!.to.getTime()).toBe(range.from.getTime() - 1);
+    expect(durationOf(defined(compare))).toBe(durationOf(range));
+    expect(defined(compare).to.getTime()).toBe(range.from.getTime() - 1);
   });
 
   it("does not overlap the primary range", () => {
     const range = boundedPresetRange("this-month", NOW, FALLBACK);
     const compare = resolveComparisonRange("previous-period", range, null);
-    expect(compare!.to.getTime()).toBeLessThan(range.from.getTime());
+    expect(defined(compare).to.getTime()).toBeLessThan(range.from.getTime());
   });
 
   it("compares an intraday range to the hour right before it", () => {
     const range = boundedPresetRange("last-hour", NOW, FALLBACK);
     const compare = resolveComparisonRange("previous-period", range, null);
-    expect(durationOf(compare!)).toBe(MS_PER_HOUR);
-    expect(range.from.getTime() - compare!.to.getTime()).toBe(1);
+    expect(durationOf(defined(compare))).toBe(MS_PER_HOUR);
+    expect(range.from.getTime() - defined(compare).to.getTime()).toBe(1);
   });
 
   it("keeps whole-day comparisons on midnight across a DST change", () => {
@@ -96,15 +97,17 @@ describe("previous-period comparison", () => {
       to: new Date(new Date(2026, 10, 5).getTime() - 1),
     };
     const compare = resolveComparisonRange("previous-period", range, null);
-    expect(compare!.from).toEqual(new Date(2026, 8, 4));
-    expect(compare!.to.getTime()).toBe(range.from.getTime() - 1);
+    expect(defined(compare).from).toEqual(new Date(2026, 8, 4));
+    expect(defined(compare).to.getTime()).toBe(range.from.getTime() - 1);
   });
 
   it("keeps previous-year on the same calendar dates", () => {
     const range = boundedPresetRange("last-30-days", NOW, FALLBACK);
     const compare = resolveComparisonRange("previous-year", range, null);
-    expect(compare!.from.getFullYear()).toBe(range.from.getFullYear() - 1);
-    expect(compare!.from.getDate()).toBe(range.from.getDate());
+    expect(defined(compare).from.getFullYear()).toBe(
+      range.from.getFullYear() - 1,
+    );
+    expect(defined(compare).from.getDate()).toBe(range.from.getDate());
   });
 
   it("returns null when comparison is none", () => {

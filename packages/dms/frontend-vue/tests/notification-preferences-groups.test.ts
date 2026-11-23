@@ -20,6 +20,7 @@ import {
   stubApiData,
 } from "./helpers/api-data-runtime";
 import { installAuthSettingsRuntime } from "./helpers/auth-settings-runtime";
+import { defined } from "./helpers/defined";
 
 const categories = [
   { id: "system", labelKey: "System", icon: "i-ph-gear" },
@@ -143,17 +144,24 @@ async function hydrate(runOnClient: () => void) {
 }
 
 const chevronOf = (container: HTMLElement, categoryId: string) =>
-  container.querySelector<HTMLButtonElement>(
-    `button[aria-controls="notification-category-subjects-${categoryId}"]`,
-  )!;
+  defined(
+    container.querySelector<HTMLButtonElement>(
+      `button[aria-controls="notification-category-subjects-${categoryId}"]`,
+    ),
+  );
 
 const subjectNames = (container: HTMLElement) =>
   [...container.querySelectorAll('[role="rowgroup"] [role="rowheader"]')].map(
     (cell) => cell.textContent?.trim(),
   );
 
+const elementIn = (root: ParentNode, selector: string) =>
+  defined(root.querySelector<HTMLElement>(selector));
+
 const rowOf = (container: HTMLElement, categoryId: string) =>
-  chevronOf(container, categoryId).closest<HTMLElement>('[role="row"]')!;
+  defined(
+    chevronOf(container, categoryId).closest<HTMLElement>('[role="row"]'),
+  );
 
 beforeEach(() => {
   installAuthSettingsRuntime();
@@ -217,9 +225,7 @@ describe("notification preferences groups", () => {
   it("unfolds a group from its title area too", async () => {
     const container = await mount();
 
-    rowOf(container, "security")
-      .querySelector<HTMLElement>("[data-category-title]")!
-      .click();
+    elementIn(rowOf(container, "security"), "[data-category-title]").click();
     await nextTick();
     expect(subjectNames(container)).toEqual(["Security alerts"]);
   });
@@ -227,9 +233,7 @@ describe("notification preferences groups", () => {
   it("keeps the master switch working on a folded group without unfolding it", async () => {
     const container = await mount();
 
-    rowOf(container, "system")
-      .querySelector<HTMLButtonElement>('[role="switch"]')!
-      .click();
+    elementIn(rowOf(container, "system"), '[role="switch"]').click();
     await nextTick();
 
     await vi.waitFor(() =>

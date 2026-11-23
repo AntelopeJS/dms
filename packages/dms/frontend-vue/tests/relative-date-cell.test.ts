@@ -15,6 +15,7 @@ import {
   mountInBrowser,
   serverRender,
 } from "./helpers/api-data-runtime";
+import { defined } from "./helpers/defined";
 
 type Formatter = NonNullable<DataType["formatter"]>["default"];
 
@@ -63,7 +64,12 @@ const BROWSER_AT = DATE.getTime() + 211 * SECOND;
 
 const Cell = defineComponent({
   setup: () => () =>
-    formatters.get("relative_date")!(DATE.toISOString(), "en-GB", {}, {}),
+    defined(formatters.get("relative_date"))(
+      DATE.toISOString(),
+      "en-GB",
+      {},
+      {},
+    ),
 });
 const Row = { render: () => h("div", [h(Cell)]) };
 
@@ -110,7 +116,12 @@ describe("relative date cell, day style", () => {
   const DayCell = (value: string) =>
     defineComponent({
       setup: () => () =>
-        formatters.get("relative_date")!(value, "en-GB", { style: "day" }, {}),
+        defined(formatters.get("relative_date"))(
+          value,
+          "en-GB",
+          { style: "day" },
+          {},
+        ),
     });
   const shown = (value: string) => {
     const { app, container } = mountInBrowser(DayCell(value));

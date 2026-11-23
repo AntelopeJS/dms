@@ -18,6 +18,7 @@ import { defineComponent, type Component } from "vue";
 import RowHeader from "../layers/dms-ui/app/entries/components/containers/row/RowHeader";
 import type { RowNavigation } from "../layers/dms-ui/app/types/row-navigation";
 import type { DrawerOptions } from "../layers/dms-ui/app/composables/containers/types";
+import { defined } from "./helpers/defined";
 
 const Editor = defineComponent({ name: "KeyEditor", render: () => null });
 
@@ -102,7 +103,7 @@ describe("useDrawer's row header", () => {
         componentOptions: { missing: 2 },
       },
     });
-    const options = created[0]!.props.headerComponentOptions!;
+    const options = defined(defined(created[0]).props.headerComponentOptions);
     expect(options.headingClass).toMatch(/text-\[17px\].* font-mono$/);
     expect(options).toMatchObject({
       headingBreakAfter: ".",
@@ -114,7 +115,7 @@ describe("useDrawer's row header", () => {
     drawer.patch({
       rowHeader: { title: "billing.total", subtitle: "helio › other" },
     });
-    const patched = created[0]!.patch.mock.lastCall![0];
+    const patched = defined(defined(created[0]).patch.mock.lastCall)[0];
     expect(Object.keys(patched)).toEqual(["headerComponentOptions"]);
     expect(patched.headerComponentOptions).toMatchObject({
       heading: "billing.total",
@@ -128,7 +129,7 @@ describe("useDrawer's row header", () => {
 
   it("titles the header with the drawer's title without its own", async () => {
     await openDrawer({ rowHeader: {} });
-    expect(created[0]!.props.headerComponentOptions).toMatchObject({
+    expect(defined(created[0]).props.headerComponentOptions).toMatchObject({
       heading: "Key",
     });
   });
@@ -142,7 +143,7 @@ describe("useDrawer's row header", () => {
       componentOptions: { id: "k2" },
       rowHeader: { title: "Second", navigation: next },
     });
-    const patched = created[0]!.patch.mock.lastCall![0];
+    const patched = defined(defined(created[0]).patch.mock.lastCall)[0];
     expect(Object.keys(patched).sort()).toEqual([
       "componentOptions",
       "headerComponentOptions",
@@ -163,7 +164,7 @@ describe("useDrawer's row header", () => {
     drawer.patch({ rowHeader: { navigation: second } });
     pressKey("k");
     expect(second.prev).toHaveBeenCalledOnce();
-    created[0]!.settle();
+    defined(created[0]).settle();
     await Promise.resolve();
     await Promise.resolve();
     pressKey("j");
@@ -172,8 +173,8 @@ describe("useDrawer's row header", () => {
 
   it("keeps a drawer without one as it was", async () => {
     const drawer = await openDrawer({});
-    expect(created[0]!.props.headerComponent).toBeUndefined();
+    expect(defined(created[0]).props.headerComponent).toBeUndefined();
     drawer.patch({ title: "Other" });
-    expect(created[0]!.patch).toHaveBeenCalledWith({ title: "Other" });
+    expect(defined(created[0]).patch).toHaveBeenCalledWith({ title: "Other" });
   });
 });

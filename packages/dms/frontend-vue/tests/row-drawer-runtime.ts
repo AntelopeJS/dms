@@ -24,6 +24,7 @@ import type {
   DrawerOptions,
   DrawerPatch,
 } from "../layers/dms-ui/app/composables/containers/types";
+import { defined } from "./helpers/defined";
 
 const PANEL_COMPONENT = "OrderPanel";
 
@@ -144,7 +145,7 @@ function mountTargets(
     }),
   );
   app.mount(document.createElement("div"));
-  return targets!;
+  return defined(targets);
 }
 
 const latest = (drawer: OpenedDrawer): DrawerOptions =>
@@ -180,11 +181,11 @@ const headerOf = (drawer: OpenedDrawer): DrawerHeader | undefined => {
 const press = (key: string) =>
   window.dispatchEvent(new KeyboardEvent("keydown", { key }));
 
-const openOn = async (action: CustomRowAction, row: Row = rows[0]!) => {
+const openOn = async (action: CustomRowAction, row: Row = defined(rows[0])) => {
   const targets = mountTargets();
   targets.handleCustomRowAction(action, row);
   await vi.waitFor(() => expect(opened).toHaveLength(1));
-  return { targets, drawer: opened[0]! };
+  return { targets, drawer: defined(opened[0]) };
 };
 
 beforeEach(() => {

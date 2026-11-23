@@ -5,6 +5,7 @@ import type { JsonValue } from "../layers/dms-core/app/types/json";
 import { isString } from "../layers/dms-core/app/utils/type-check";
 import { formSubmitEvent } from "./helpers/form-submit-event";
 import { useForm } from "../layers/dms-ui/app/composables/form/useForm";
+import { defined } from "./helpers/defined";
 
 /**
  * A save the server normalizes (a VAT number stripped of its spaces, the
@@ -48,19 +49,21 @@ function setupForm(
   props: Partial<Parameters<typeof useForm>[0]> = {},
   onSaved: () => void = () => undefined,
 ) {
-  return scope.run(() =>
-    useForm(
-      {
-        componentId: "form-1",
-        pageId: "page-1",
-        fields: FIELDS,
-        fetchUrl: GET_URL,
-        submitUrl: EDIT_URL,
-        ...props,
-      },
-      { onSaved },
+  return defined(
+    scope.run(() =>
+      useForm(
+        {
+          componentId: "form-1",
+          pageId: "page-1",
+          fields: FIELDS,
+          fetchUrl: GET_URL,
+          submitUrl: EDIT_URL,
+          ...props,
+        },
+        { onSaved },
+      ),
     ),
-  )!;
+  );
 }
 
 async function saveTyped(form: ReturnType<typeof setupForm>) {

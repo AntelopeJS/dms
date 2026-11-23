@@ -15,6 +15,7 @@ import {
   nextTick,
 } from "vue";
 import { characterCountText } from "../layers/dms-ui/app/entries/utils/characterCount";
+import { defined } from "./helpers/defined";
 
 let app: App | undefined;
 let host: HTMLDivElement;
@@ -94,7 +95,7 @@ describe("a text field's counter", () => {
     expect(
       host.querySelector("[data-character-count]")?.textContent?.trim(),
     ).toBe("4 / 60");
-    const input = host.querySelector("input")!;
+    const input = defined(host.querySelector("input"));
     expect(input.getAttribute("maxlength")).toBe("60");
     expect(input.hasAttribute("showcount")).toBe(false);
   });
@@ -102,7 +103,9 @@ describe("a text field's counter", () => {
   it("draws no counter by default", async () => {
     await mount(await load("InputText"), { modelValue: "Acme", maxLength: 60 });
     expect(host.querySelector("[data-character-count]")).toBeNull();
-    expect(host.querySelector("input")!.getAttribute("maxlength")).toBe("60");
+    expect(defined(host.querySelector("input")).getAttribute("maxlength")).toBe(
+      "60",
+    );
   });
 
   it("counts under a text area", async () => {
@@ -114,9 +117,9 @@ describe("a text field's counter", () => {
     expect(
       host.querySelector("[data-character-count]")?.textContent?.trim(),
     ).toBe("5 / 280");
-    expect(host.querySelector("textarea")!.hasAttribute("showcount")).toBe(
-      false,
-    );
+    expect(
+      defined(host.querySelector("textarea")).hasAttribute("showcount"),
+    ).toBe(false);
   });
 });
 
@@ -126,19 +129,23 @@ describe("a number field's unit", () => {
       modelValue: 30,
       suffix: "$billing.days",
     });
-    const suffix = host.querySelector<HTMLElement>("[data-field-suffix]")!;
+    const suffix = defined(
+      host.querySelector<HTMLElement>("[data-field-suffix]"),
+    );
     expect(suffix.textContent?.trim()).toBe("t($billing.days)");
     expect(suffix.className).toContain("absolute");
-    expect(host.querySelector("input")!.hasAttribute("suffix")).toBe(false);
+    expect(defined(host.querySelector("input")).hasAttribute("suffix")).toBe(
+      false,
+    );
   });
 
   it("makes room for the unit at the end of the value", async () => {
     await mount(await load("InputNumber"), { modelValue: 30, suffix: "h" });
-    const wrapper = host.querySelector<HTMLElement>(":scope > *")!;
+    const wrapper = defined(host.querySelector<HTMLElement>(":scope > *"));
     expect(wrapper.style.getPropertyValue("--dms-field-suffix-width")).toBe(
       "1ch",
     );
-    expect(host.querySelector("input")!.getAttribute("ui")).toBeNull();
+    expect(defined(host.querySelector("input")).getAttribute("ui")).toBeNull();
     expect(ui.at(-1)?.base).toContain(
       "pe-[calc(var(--dms-field-suffix-width)+2.375rem)]",
     );

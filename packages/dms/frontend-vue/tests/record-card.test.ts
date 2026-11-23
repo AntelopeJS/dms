@@ -10,6 +10,7 @@ import {
 } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import DmsRecordCard from "../layers/dms-ui/app/components/record-card/RecordCard.vue";
+import { defined } from "./helpers/defined";
 
 let app: App | undefined;
 
@@ -67,10 +68,10 @@ describe("DmsRecordCard", () => {
       "0",
     );
 
-    container.querySelector("button")!.click();
+    defined(container.querySelector("button")).click();
     await nextTick();
     expect(onOpen).not.toHaveBeenCalled();
-    container.querySelector("article")!.click();
+    defined(container.querySelector("article")).click();
     expect(onOpen).toHaveBeenCalledTimes(1);
   });
 });

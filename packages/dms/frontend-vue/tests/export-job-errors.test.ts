@@ -2,6 +2,7 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { useExportJob } from "../layers/dms-ui/app/composables/useExportJob";
 import { requestRefusal } from "./helpers/api-error-runtime";
+import { defined } from "./helpers/defined";
 
 const add = vi.fn(() => ({ id: "export" }));
 interface ToastUpdate {
@@ -59,11 +60,11 @@ it.each([
         description: undefined,
       }),
     );
-    const [id, payload] = update.mock.calls[0]!;
+    const [id, payload] = defined(update.mock.calls[0]);
     expect(id).toBe("export");
-    expect(payload.actions[0]!.label).toBe("dms.table.export.retry");
+    expect(defined(payload.actions[0]).label).toBe("dms.table.export.retry");
     authFetch.mockRejectedValueOnce(requestRefusal());
-    payload.actions[0]!.onClick();
+    defined(payload.actions[0]).onClick();
     await vi.advanceTimersByTimeAsync(0);
     expect(authFetch).toHaveBeenCalledTimes(3);
     expect(remove).toHaveBeenCalledWith("export");

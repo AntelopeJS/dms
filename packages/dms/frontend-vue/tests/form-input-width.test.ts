@@ -20,6 +20,7 @@ import {
   isCompactTextInput,
 } from "../layers/dms-ui/app/entries/utils/inputWidth";
 import { isNumber } from "../layers/dms-core/app/utils/type-check";
+import { defined } from "./helpers/defined";
 
 const COMPACT_CLASS = "sm:max-w-44";
 
@@ -65,7 +66,7 @@ const loaders = {
 const load = async (name: keyof typeof loaders): Promise<Component> =>
   (await loaders[name]()).default;
 
-const control = () => host.querySelector("[data-control]")!;
+const control = () => defined(host.querySelector("[data-control]"));
 
 beforeEach(() => {
   vi.stubGlobal("useI18n", () => ({ locale: { value: "en" } }));
@@ -124,7 +125,9 @@ describe("a number field's width", () => {
     });
     expect(control().classList).toContain(COMPACT_CLASS);
     expect(control().classList).toContain("w-full");
-    expect(host.querySelector("input")!.hasAttribute("width")).toBe(false);
+    expect(defined(host.querySelector("input")).hasAttribute("width")).toBe(
+      false,
+    );
   });
 
   it("is compact beside its unit", async () => {
@@ -140,7 +143,7 @@ describe("a number field's width", () => {
   it("is compact by itself for a small max, full otherwise", async () => {
     await mount(await load("InputNumber"), { modelValue: 3, max: 100 });
     expect(control().classList).toContain(COMPACT_CLASS);
-    app!.unmount();
+    defined(app).unmount();
     host.replaceChildren();
     await mount(await load("InputNumber"), { modelValue: 3, min: 0 });
     expect(control().classList).not.toContain(COMPACT_CLASS);
@@ -148,15 +151,19 @@ describe("a number field's width", () => {
 
   it("is compact for a percentage, unless asked to fill the row", async () => {
     await mount(await load("InputPercentage"), { modelValue: 0.2 });
-    expect(host.firstElementChild!.classList).toContain(COMPACT_CLASS);
-    app!.unmount();
+    expect(defined(host.firstElementChild).classList).toContain(COMPACT_CLASS);
+    defined(app).unmount();
     host.replaceChildren();
     await mount(await load("InputPercentage"), {
       modelValue: 0.2,
       width: "full",
     });
-    expect(host.firstElementChild!.classList).not.toContain(COMPACT_CLASS);
-    expect(host.querySelector("input")!.hasAttribute("width")).toBe(false);
+    expect(defined(host.firstElementChild).classList).not.toContain(
+      COMPACT_CLASS,
+    );
+    expect(defined(host.querySelector("input")).hasAttribute("width")).toBe(
+      false,
+    );
   });
 });
 
@@ -164,8 +171,10 @@ describe("a text field's width", () => {
   it("is compact for a short maxLength, full otherwise", async () => {
     await mount(await load("InputText"), { modelValue: "EUR", maxLength: 3 });
     expect(control().classList).toContain(COMPACT_CLASS);
-    expect(host.querySelector("input")!.hasAttribute("width")).toBe(false);
-    app!.unmount();
+    expect(defined(host.querySelector("input")).hasAttribute("width")).toBe(
+      false,
+    );
+    defined(app).unmount();
     host.replaceChildren();
     await mount(await load("InputText"), { modelValue: "Acme", maxLength: 60 });
     expect(control().classList).not.toContain(COMPACT_CLASS);
