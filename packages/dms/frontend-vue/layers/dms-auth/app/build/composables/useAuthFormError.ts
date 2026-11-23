@@ -45,11 +45,6 @@ export function useAuthFormError() {
   const { i18n } = getPluginI18n();
   const formError = ref<AuthFormError | null>(null);
 
-  /**
-   * A page served to a visitor carries only the messages its render read,
-   * and the presenter's lookups do not complete that catalog: the error
-   * messages are loaded before any is resolved.
-   */
   async function loadErrorMessages(): Promise<void> {
     if (!i18n.te(CORE_ERROR_KEY)) await i18n.setLocale(i18n.locale.value);
   }
@@ -71,10 +66,6 @@ export function useAuthFormError() {
     formError.value = null;
   }
 
-  /**
-   * Focuses the first field in error. A page disables its fields while the
-   * request runs: the focus waits for its `finally` to enable them again.
-   */
   function focusFirstFormError(form: AuthFormHandle): void {
     setTimeout(() => {
       const [first] = form.getErrors();
@@ -82,11 +73,6 @@ export function useAuthFormError() {
     });
   }
 
-  /**
-   * Shows an API error under the field it belongs to, else above the form.
-   *
-   * @returns Whether it went under a field
-   */
   async function showError(
     error: Parameters<typeof resolveFieldErrors>[0],
     titleKey: string,
