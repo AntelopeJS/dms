@@ -31,7 +31,7 @@ it("settles a refused save whose error handler throws, with no rejection left un
     useInstantSave<Settings>({
       read: (key) => values[key],
       write: (key, value) => {
-        values[key] = value;
+        if (value !== undefined) values[key] = value;
       },
       save: () => Promise.reject(new Error("refused")),
       onError: () => {

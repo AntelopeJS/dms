@@ -71,7 +71,9 @@ export const useNotificationPreferences = (
   const instant = useInstantSave<PreferenceMap>({
     read,
     write: (key, enabled) => {
-      preferences.value = { ...preferences.value, [key]: enabled };
+      const { [key]: _stored, ...others } = preferences.value;
+      preferences.value =
+        enabled === undefined ? others : { ...others, [key]: enabled };
     },
     save: (changes) =>
       $authFetch(PREFERENCES_URL, { method: "PATCH", body: changes }),

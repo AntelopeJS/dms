@@ -49,7 +49,7 @@ function createAppearanceSave(): AppearanceSave {
     useInstantSave<AppearancePreferences>({
       read: (key) => preferenceValues[key].value,
       write: (key, value) => {
-        preferenceValues[key].value = value;
+        if (value !== undefined) preferenceValues[key].value = value;
       },
       save: () => Promise.resolve(),
     });
