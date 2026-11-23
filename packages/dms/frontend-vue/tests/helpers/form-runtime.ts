@@ -20,7 +20,7 @@ export const i18n = createI18n({
 export const t = (key: string) => i18n.global.t(key);
 export const router = { back: vi.fn(), push: vi.fn() };
 export const openPrompt = vi.fn(async () => false);
-export let host: HTMLDivElement;
+export const host = document.createElement("div");
 let app: Vue.App | undefined;
 
 const Slot = Vue.defineComponent({
@@ -223,7 +223,7 @@ export function button(label: string) {
 
 beforeEach(() => {
   i18n.global.locale.value = "en";
-  host = document.createElement("div");
+  host.replaceChildren();
   document.body.append(host);
   window.history.replaceState({}, "", "/edit");
   vi.stubEnv("SSR", false);

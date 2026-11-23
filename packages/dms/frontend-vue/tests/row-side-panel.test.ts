@@ -12,8 +12,7 @@ import {
 import { useAppSidePanels } from "../layers/dms-ui/app/composables/useAppSidePanels";
 import { useSidePanel } from "../layers/dms-ui/app/composables/useSidePanel";
 import {
-  panelMounts,
-  refreshes,
+  counters,
   useDmsCookie,
   openPanelId,
   rows,
@@ -91,7 +90,7 @@ describe("row side panel navigation", () => {
     await settle();
     expect(shownName(host)).toBe("Second");
     expect(position(host)).toBe("side_panel.position(2/3)");
-    expect(panelMounts).toBe(2);
+    expect(counters.panelMounts).toBe(2);
     expect(useRowSidePanelContent().value?.rowKey).toBe("r2");
   });
 
@@ -221,7 +220,7 @@ describe("closing the row side panel", () => {
     query(host, "[data-save]")?.click();
     await settle();
     expect(query(host, "[data-dms-side-panel]")).toBeNull();
-    expect(refreshes).toBe(1);
+    expect(counters.refreshes).toBe(1);
   });
 
   it("shows no empty panel for a stale cookie naming it", async () => {

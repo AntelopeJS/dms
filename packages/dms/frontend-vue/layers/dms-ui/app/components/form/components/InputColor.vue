@@ -18,7 +18,7 @@ const {
 const invalid = computed(() => color.value === "error");
 const modelValue = defineModel<string | null | undefined>();
 
-const HEX_PATTERN = /^#[0-9a-fA-F]{6}$/;
+const HEX_PATTERN = /^#[0-9a-f]{6}$/i;
 const FALLBACK_COLOR = "#000000";
 
 const validColor = computed(() => {

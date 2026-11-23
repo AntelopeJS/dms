@@ -14,7 +14,7 @@ import { isEligibleKanbanColumn } from "../../../composables/table-view/kanban";
 import { resolveTableChrome } from "./utils/chrome";
 import { isGroupedConfig, isKanbanConfig } from "./utils/displayOptions";
 import type { TableViewSwitcherItem } from "../../components/table/TableRoot.vue";
-import { type Component } from "vue";
+import type { Component } from "vue";
 import type { TableViewScope } from "./tableViewScope";
 
 export function useTableViewDisplayOptions<T extends Data>(

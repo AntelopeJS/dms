@@ -128,7 +128,7 @@ const settle = async () => {
  * Attaches `runtime` to `app` the way the DMS app does, and starts its
  * plugins. The result settles once they have.
  */
-function install(app: App, runtime: DmsFrontendRuntime): Promise<void[]> {
+async function install(app: App, runtime: DmsFrontendRuntime): Promise<void> {
   const context: DmsAppContext = {
     ...dmsAppContext(app),
     runWithContext: app.runWithContext.bind(app),
@@ -139,7 +139,7 @@ function install(app: App, runtime: DmsFrontendRuntime): Promise<void[]> {
   runtime.route.fullPath = "/orders";
   runtime.route.matched = [{}];
   engine.provideDmsFrontendRuntime(app, runtime);
-  return Promise.all(
+  await Promise.all(
     [onboardingPreload, permissionsPreload].map((plugin) =>
       app.runWithContext(async () => plugin(context)),
     ),

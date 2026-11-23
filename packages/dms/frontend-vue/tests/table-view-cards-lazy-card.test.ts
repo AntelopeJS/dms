@@ -7,7 +7,7 @@
  * @packageDocumentation
  * @vitest-environment jsdom
  */
-import { isObject } from "../layers/dms-core/app/utils/type-check";
+import type { isObject } from "../layers/dms-core/app/utils/type-check";
 import "./helpers/table-runtime";
 import {
   computed,

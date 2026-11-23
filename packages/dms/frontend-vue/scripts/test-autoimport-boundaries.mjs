@@ -59,7 +59,7 @@ function run() {
 
 /**
  * @param {unknown} value
- * @returns {value is import("vue").Component}
+ * @returns {value is import("vue").Component} Whether `value` is a Vue component.
  */
 function isComponent(value) {
   return value instanceof Object;

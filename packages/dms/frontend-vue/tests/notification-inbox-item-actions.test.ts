@@ -102,7 +102,7 @@ describe("notification inbox row actions", () => {
       expect(classes).toContain("sm:inline");
 
       const revealed = classes.filter((name) =>
-        /group-(hover|focus-within):/.test(name),
+        /group-(?:hover|focus-within):/.test(name),
       );
       expect(revealed.length).toBeGreaterThan(0);
       for (const name of revealed) expect(name).toMatch(/:opacity-/);

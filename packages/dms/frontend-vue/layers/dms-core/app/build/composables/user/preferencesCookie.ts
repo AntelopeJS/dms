@@ -9,11 +9,11 @@ export interface PreferencesTree {
 export const PREFERENCES_COOKIE_NAME = "dms-preferences";
 
 /**
- * @internal
  * The collections that grow with every place the user visits, holding one
  * entry per table view (`tables.<id>`) or per period selector
  * (`periods.<key>`). Over budget, their least recently written entries are
  * dropped, table states first; the rest of the tree is never evicted.
+ * @internal
  */
 export const EVICTABLE_COLLECTIONS = ["tables", "periods"];
 
@@ -45,18 +45,18 @@ const fromBase64Url = (text: string): string => {
 };
 
 /**
- * @internal
  * The cookie value of a tree: its JSON in base64url, which costs a third more
  * than the JSON where URI-encoding the JSON itself (what the cookie ref does
  * to any value) costs two thirds more, its quotes and braces escaped.
+ * @internal
  */
 export const encodePreferencesTree = (tree: PreferencesTree): string =>
   Object.keys(tree).length === 0 ? "" : toBase64Url(JSON.stringify(tree));
 
 /**
- * @internal
  * The tree a cookie value holds; an empty one for a value that is not one
  * (corrupt, cut by the browser), so that it never breaks the page.
+ * @internal
  */
 export const decodePreferencesTree = (value: string): PreferencesTree => {
   if (!value) return {};
@@ -69,9 +69,9 @@ export const decodePreferencesTree = (value: string): PreferencesTree => {
 };
 
 /**
- * @internal
  * What the cookie weighs in a request header, name included: the cookie ref
  * writes the JSON of its value, URI-encoded.
+ * @internal
  */
 export const preferencesCookieBytes = (
   value: ReturnType<typeof useDmsCookie>["value"],
@@ -80,9 +80,9 @@ export const preferencesCookieBytes = (
     .length;
 
 /**
- * @internal
  * Moves each key of `keys` last in its parent, so that the key order of a
  * branch is the order its children were last written in.
+ * @internal
  */
 export const markWritten = (tree: PreferencesTree, keys: string[]): void => {
   let current = tree;
@@ -110,10 +110,10 @@ const dropOldestEvictable = (tree: PreferencesTree): boolean =>
   });
 
 /**
- * @internal
  * Evicts entries of the growing collections until the encoded tree weighs at
  * most `maxBytes`. Whether it fits in the end: the rest of the tree alone may
  * not.
+ * @internal
  */
 export const fitPreferencesBudget = (
   tree: PreferencesTree,
@@ -125,7 +125,10 @@ export const fitPreferencesBudget = (
   return true;
 };
 
-/** @internal Writes `value` at `keys`, creating the branches on the way. */
+/**
+ * Writes `value` at `keys`, creating the branches on the way.
+ * @internal
+ */
 export const writeAt = (
   tree: PreferencesTree,
   keys: string[],
@@ -147,7 +150,10 @@ export const writeAt = (
   current[lastKey] = value;
 };
 
-/** @internal Reads the value at `keys`, `undefined` when a branch is missing. */
+/**
+ * Reads the value at `keys`, `undefined` when a branch is missing.
+ * @internal
+ */
 export const readAt = (
   tree: PreferencesTree,
   keys: string[],

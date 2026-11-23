@@ -60,7 +60,8 @@ function decodeCookieValue(
 function isReduceMotionPreference(
   value: unknown,
 ): value is ReduceMotionPreference {
-  return REDUCE_MOTION_PREFERENCES.some((preference) => preference === value);
+  const preferences: readonly unknown[] = REDUCE_MOTION_PREFERENCES;
+  return preferences.includes(value);
 }
 
 /**

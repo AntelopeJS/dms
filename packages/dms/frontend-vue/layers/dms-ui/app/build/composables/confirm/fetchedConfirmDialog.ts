@@ -127,6 +127,6 @@ export function drawableFetchedDialog(
   if (!isSafeSecondaryAction(drawn.secondaryAction)) return undefined;
   if (!fields) return drawn;
   const kept = fields.map(drawableField);
-  if (kept.some((field) => field === undefined)) return undefined;
+  if (kept.includes(undefined)) return undefined;
   return { ...drawn, fields: kept.filter((field) => field !== undefined) };
 }

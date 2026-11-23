@@ -83,7 +83,7 @@ it("keeps each day's separator on top of the scrolled entries", async () => {
 it("keeps the fold button in sight at the foot of the scrolled entries", async () => {
   const html = await render({ fillHeight: true, visibleItems: 3 });
   expect(html).toMatch(
-    /class="dms-activity-feed__fold[^"]*\bsticky bottom-0\b[^"]*"/,
+    /class="dms-activity-feed__fold[^"]+\bsticky bottom-0\b[^"]*"/,
   );
 });
 

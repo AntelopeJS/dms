@@ -198,7 +198,7 @@ describe("comments in the overview", () => {
       '[data-dms-mockup-pin-card="draft"] textarea',
     );
     if (!(field instanceof HTMLTextAreaElement)) {
-      throw new Error("No pin is being written");
+      throw new TypeError("No pin is being written");
     }
     field.value = text;
     field.dispatchEvent(new Event("input"));

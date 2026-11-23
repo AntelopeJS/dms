@@ -39,7 +39,7 @@ const Slot = defineComponent({
       h("div", slots.default?.()),
 });
 const Row = defineComponent({
-  props: ["formattedValue"],
+  props: { formattedValue: { type: null } },
   setup: (props) => () => h("span", props.formattedValue),
 });
 

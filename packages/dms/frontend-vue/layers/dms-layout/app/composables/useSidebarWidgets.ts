@@ -99,8 +99,8 @@ export const resolveSidebarWidgetPosition = (
 /**
  * Whether a widget renders while browsing the given module.
  *
- * The two axes are independent: this one answers *when*, the position answers
- * *where*. A global widget (no `module`) shows only outside modules, and a
+ * The two axes are independent: this one answers when, the position answers
+ * where. A global widget (no `module`) shows only outside modules, and a
  * scoped one only inside its own — an exact match either way, so a widget
  * scoped to one module can never appear in another.
  *

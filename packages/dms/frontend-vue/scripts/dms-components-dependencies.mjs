@@ -9,14 +9,14 @@ export const RENDERER = "@antelopejs/dms-frontend";
  * The parsers and the renderer's globals the check works with.
  *
  * @typedef {object} DmsComponentsTools
- * @property {typeof import("typescript")} ts
- * @property {typeof import("vue/compiler-sfc").parse} parse
- * @property {string | undefined} rendererGlobals
+ * @property {typeof import("typescript")} ts The TypeScript module.
+ * @property {typeof import("vue/compiler-sfc").parse} parse The Vue SFC parser.
+ * @property {string | undefined} rendererGlobals The path of the renderer's globals module, or `undefined` when it is not installed.
  */
 
 /**
  * @param {unknown} value
- * @returns {value is string}
+ * @returns {value is string} Whether `value` is a string.
  */
 function isString(value) {
   return typeof value === "string";
@@ -24,7 +24,7 @@ function isString(value) {
 
 /**
  * @param {unknown} value
- * @returns {value is Record<string, unknown>}
+ * @returns {value is Record<string, unknown>} Whether `value` is a non-null object.
  */
 function isRecord(value) {
   return typeof value === "object" && value !== null;
@@ -32,7 +32,7 @@ function isRecord(value) {
 
 /**
  * @param {unknown} value
- * @returns {value is Record<string, string>}
+ * @returns {value is Record<string, string>} Whether `value` is an object of strings.
  */
 function isStringRecord(value) {
   return isRecord(value) && Object.values(value).every(isString);
@@ -40,7 +40,7 @@ function isStringRecord(value) {
 
 /**
  * @param {string} path
- * @returns {{ peerDependencies: Record<string, string>, engines: Record<string, string> }}
+ * @returns {{ peerDependencies: Record<string, string>, engines: Record<string, string> }} The peer dependencies and engines of the package.json at `path`.
  */
 function manifest(path) {
   /** @type {unknown} */
@@ -91,7 +91,7 @@ const ADD_DEV_DEPENDENCY = {
  * The command that adds `packages` at their range, for the package manager running the check.
  *
  * @param {(keyof typeof DMS_COMPONENTS_DEPENDENCIES)[]} packages
- * @returns {string}
+ * @returns {string} The install command for `packages`.
  */
 export function addCommand(packages) {
   const manager = (process.env.npm_config_user_agent ?? "").split("/")[0];
@@ -107,7 +107,7 @@ export function addCommand(packages) {
 /**
  * @param {NodeJS.Require[]} requires
  * @param {string} specifier
- * @returns {string | undefined}
+ * @returns {string | undefined} The first path `specifier` resolves to through `requires`, or `undefined` when none does.
  */
 function resolveFirst(requires, specifier) {
   for (const require of requires) {
@@ -125,7 +125,7 @@ function resolveFirst(requires, specifier) {
  * `@antelopejs/dms`, and the renderer from the layer alone.
  *
  * @param {string} layer
- * @returns {DmsComponentsTools}
+ * @returns {DmsComponentsTools} The resolved tools for the check.
  */
 export function dependencies(layer) {
   const manifest = join(layer, "package.json");
@@ -156,7 +156,7 @@ export function dependencies(layer) {
 
 /**
  * @param {unknown} loaded
- * @returns {loaded is { default: Record<string, unknown> }}
+ * @returns {loaded is { default: Record<string, unknown> }} Whether `loaded` is a module with a default export that is an object.
  */
 function hasGlobals(loaded) {
   return (
@@ -170,7 +170,7 @@ function hasGlobals(loaded) {
  * The `Dms` components the `@antelopejs/dms-frontend` renderer registers itself, or none when it is not installed.
  *
  * @param {string | undefined} globalsPath
- * @returns {Promise<string[]>}
+ * @returns {Promise<string[]>} The component names the renderer registers.
  */
 export async function rendererComponentNames(globalsPath) {
   if (!globalsPath) return [];

@@ -8,7 +8,7 @@ const WHOLE_ROW_TOKEN = new RegExp(`^\\s*${ROW_TOKEN.source}\\s*$`);
 
 /** Whether a template names a field of a row (`{{row.X}}`). */
 export const namesRowField = (template: string): boolean =>
-  new RegExp(ROW_TOKEN.source).test(template);
+  template.search(ROW_TOKEN) !== -1;
 
 const RELATED_ROW_ID_KEYS = ["_id", "id"] as const;
 

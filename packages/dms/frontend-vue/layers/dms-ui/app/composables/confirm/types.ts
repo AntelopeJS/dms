@@ -69,9 +69,7 @@ export interface ConfirmOptions
    * dialog's `fields`; a field error the server answers shows under its
    * field.
    */
-  onConfirm?: (
-    values: ConfirmValues,
-  ) => Promise<void | boolean | ConfirmPartialOutcome>;
+  onConfirm?: (values: ConfirmValues) => ConfirmHandlerResult;
 }
 
 /**
@@ -106,6 +104,11 @@ export interface ConfirmNotice {
   title: string;
   description?: string;
 }
+
+/** What a confirmation handler settles with: nothing, `true`, `false` or a {@link ConfirmPartialOutcome}. */
+export type ConfirmHandlerResult =
+  | Promise<boolean | ConfirmPartialOutcome | undefined>
+  | Promise<void>;
 
 /**
  * Resolved by `onConfirm` when the action ran only part of the way (a bulk

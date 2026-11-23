@@ -47,16 +47,16 @@ const FIXTURE_FILES = {
 
 /**
  * @typedef {object} DiagnoseOptions
- * @property {string} [screen]
- * @property {string} [script]
- * @property {string} [backend]
- * @property {boolean} [renderer]
- * @property {boolean} [asserted]
+ * @property {string} [screen] The template of the screen.
+ * @property {string} [script] The script of the screen.
+ * @property {string} [backend] The backend source that names components.
+ * @property {boolean} [renderer] Whether the renderer is installed.
+ * @property {boolean} [asserted] Whether to run the asserting form of the check.
  */
 
 /**
  * @param {unknown} error
- * @returns {string}
+ * @returns {string} The message of `error`, which is thrown instead when it is not an `Error`.
  */
 function messageOf(error) {
   if (!(error instanceof Error)) throw error;
@@ -65,7 +65,7 @@ function messageOf(error) {
 
 /**
  * @param {unknown} value
- * @returns {value is Record<string, unknown>}
+ * @returns {value is Record<string, unknown>} Whether `value` is a non-null object.
  */
 function isRecord(value) {
   return typeof value === "object" && value !== null;
@@ -73,7 +73,7 @@ function isRecord(value) {
 
 /**
  * @param {unknown} value
- * @returns {value is { checkDmsComponents: typeof checkDmsComponents }}
+ * @returns {value is { checkDmsComponents: typeof checkDmsComponents }} Whether `value` is the module of the check.
  */
 function isChecker(value) {
   return (
@@ -85,7 +85,7 @@ function isChecker(value) {
 
 /**
  * @param {DiagnoseOptions} options
- * @returns {Promise<string[]>}
+ * @returns {Promise<string[]>} The diagnostics of the check.
  */
 async function diagnose({
   screen = "<div />",
@@ -271,7 +271,7 @@ const BROKEN_PARSERS = {
   },
 };
 
-/** @returns {Promise<string>} */
+/** @returns {Promise<string>} The diagnostics of the check run without the template parser. */
 async function checkWithoutParsers() {
   const root = mkdtempSync(join(tmpdir(), "dms-components-parsers-"));
   try {

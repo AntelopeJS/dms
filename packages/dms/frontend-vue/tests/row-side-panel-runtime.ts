@@ -41,8 +41,7 @@ type SidePanelCookie = Ref<ReturnType<typeof readSidePanelPreferences> | null>;
 
 let cookies: Map<string, SidePanelCookie>;
 let app: App | undefined;
-let panelMounts: number;
-let refreshes: number;
+const counters = { panelMounts: 0, refreshes: 0 };
 
 function useDmsState<T>(key: string, init?: () => T): Ref<T> {
   if (!sharedState.has(key)) sharedState.set(key, ref(init?.()));
@@ -75,7 +74,7 @@ const RunPanel = defineComponent({
   },
   setup(props) {
     onMounted(() => {
-      panelMounts += 1;
+      counters.panelMounts += 1;
     });
     return () =>
       h("p", { "data-run": "" }, [
@@ -199,7 +198,7 @@ function mountPanel(
         componentId: "requests",
         handleApiError: vi.fn(),
         refreshCallback: () => {
-          refreshes += 1;
+          counters.refreshes += 1;
         },
         rowNavigation: {
           rows: () => shownRows.value,
@@ -243,8 +242,8 @@ const press = (key: string, target: EventTarget = window) =>
 beforeEach(() => {
   sharedState = new Map();
   cookies = new Map();
-  panelMounts = 0;
-  refreshes = 0;
+  counters.panelMounts = 0;
+  counters.refreshes = 0;
   window.history.replaceState(null, "", "/requests");
   installRuntime();
 });
@@ -259,8 +258,7 @@ afterEach(() => {
 
 export {
   type Row,
-  panelMounts,
-  refreshes,
+  counters,
   useDmsCookie,
   openPanelId,
   rows,

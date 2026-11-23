@@ -1,4 +1,4 @@
-import { type VNode, type VNodeChild } from "vue";
+import type { VNode, VNodeChild } from "vue";
 import type {
   DataType,
   DataTypeFormatter,

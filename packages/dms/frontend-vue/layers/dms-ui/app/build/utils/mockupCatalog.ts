@@ -221,7 +221,7 @@ export function acceptsChild(
 export function nodeIdFor(type: string): string {
   return type
     .replace(/([a-z0-9])([A-Z])/g, "$1-$2")
-    .replace(/[^A-Za-z0-9]+/g, "-")
+    .replace(/[^a-z0-9]+/gi, "-")
     .toLowerCase();
 }
 

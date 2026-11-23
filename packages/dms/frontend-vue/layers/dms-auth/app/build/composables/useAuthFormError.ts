@@ -4,7 +4,7 @@ import {
   type FieldErrorCode,
   resolveFieldErrors,
 } from "#dms-core/app/composables/useFieldErrors";
-import { resolveApiErrorMessage } from "#dms-core/app/composables/resolveApiError";
+import type { resolveApiErrorMessage } from "#dms-core/app/composables/resolveApiError";
 
 const CORE_ERROR_KEY = "error.500.description";
 

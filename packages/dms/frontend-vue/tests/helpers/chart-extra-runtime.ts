@@ -82,7 +82,7 @@ export function mountExtra(
 }
 
 export const plainSpaces = (text: string) =>
-  text.replace(/[\u00a0\u202f]/g, " ");
+  text.replace(/[\u00A0\u202F]/g, " ");
 
 export function installApexDom() {
   vi.stubGlobal(

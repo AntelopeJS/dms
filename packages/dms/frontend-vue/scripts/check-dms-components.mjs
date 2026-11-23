@@ -63,7 +63,7 @@ const DMS_ALIASES = {
  * A file path as dms.frontend.ts names its component: `notice-banner.vue` is `NoticeBanner`.
  *
  * @param {string} name
- * @returns {string}
+ * @returns {string} The PascalCase name of `name`.
  */
 function pascalCase(name) {
   return name
@@ -78,7 +78,7 @@ function pascalCase(name) {
  * The last name Vue's `resolveComponent` tries for a tag: `dms-card-panel` is `DmsCardPanel`.
  *
  * @param {string} name
- * @returns {string}
+ * @returns {string} The PascalCase name Vue tries for `name`.
  */
 function vueName(name) {
   const camel = name.replace(
@@ -86,7 +86,7 @@ function vueName(name) {
     /**
      * @param {string} _
      * @param {string} letter
-     * @returns {string}
+     * @returns {string} The letter in upper case.
      */
     (_, letter) => letter.toUpperCase(),
   );
@@ -97,7 +97,7 @@ function vueName(name) {
  * A component name as the renderer's `resolveDmsComponent` compares it.
  *
  * @param {string} name
- * @returns {string}
+ * @returns {string} `name` without a leading `lazy` and its punctuation, in lower case.
  */
 function componentKey(name) {
   return name
@@ -110,7 +110,7 @@ function componentKey(name) {
  * A layout name as the renderer's `registerLayout` compares it.
  *
  * @param {string} name
- * @returns {string}
+ * @returns {string} `name` without a leading `lazy` or `dms` and its punctuation, in lower case.
  */
 function layoutKey(name) {
   return name
@@ -123,7 +123,7 @@ function layoutKey(name) {
 /**
  * @param {string} root
  * @param {(path: string) => boolean} keep
- * @returns {string[]}
+ * @returns {string[]} The files under `root`, at any depth, that `keep` accepts.
  */
 function files(root, keep) {
   if (!existsSync(root)) return [];
@@ -144,7 +144,7 @@ function files(root, keep) {
  *
  * @param {string} root
  * @param {Set<string>} [skip]
- * @returns {{ components: string[], layouts: string[] }}
+ * @returns {{ components: string[], layouts: string[] }} The registered component names and layout names.
  */
 function registeredFiles(root, skip = new Set()) {
   const components = [];
@@ -166,7 +166,7 @@ function registeredFiles(root, skip = new Set()) {
  * `dms.frontend.ts` does: each component with its `Dms` prefix and aliases,
  * and each layout.
  *
- * @returns {{ components: Set<string>, layouts: Set<string> }}
+ * @returns {{ components: Set<string>, layouts: Set<string> }} The registered component names and layout names.
  */
 export function dmsRegistrations() {
   const { components, layouts } = registeredFiles(
@@ -188,7 +188,7 @@ export function dmsRegistrations() {
 /**
  * @param {string} source
  * @param {number} offset
- * @returns {number}
+ * @returns {number} The one-based line of `offset` in `source`.
  */
 function lineAt(source, offset) {
   return source.slice(0, offset).split("\n").length;
@@ -196,7 +196,7 @@ function lineAt(source, offset) {
 
 /**
  * @param {TemplateNode} node
- * @returns {node is TemplateElement}
+ * @returns {node is TemplateElement} Whether `node` is an element.
  */
 function isElement(node) {
   return node.type === ELEMENT;
@@ -204,7 +204,7 @@ function isElement(node) {
 
 /**
  * @param {TemplateProp} prop
- * @returns {prop is StaticAttribute}
+ * @returns {prop is StaticAttribute} Whether `prop` is a static `is` attribute.
  */
 function isStaticIs(prop) {
   return (
@@ -217,7 +217,7 @@ function isStaticIs(prop) {
 
 /**
  * @param {TemplateNode} node
- * @returns {TemplateNode[]}
+ * @returns {TemplateNode[]} The child nodes of `node`.
  */
 function childrenOf(node) {
   /** @type {TemplateNode[]} */
@@ -230,7 +230,7 @@ function childrenOf(node) {
 
 /**
  * @param {unknown} value
- * @returns {value is TemplateNode}
+ * @returns {value is TemplateNode} Whether `value` is a template node.
  */
 function isTemplateNode(value) {
   return (
@@ -243,7 +243,7 @@ function isTemplateNode(value) {
 
 /**
  * @param {TemplateNode} node
- * @returns {{ kind: "vue", name: string, line: number }[]}
+ * @returns {{ kind: "vue", name: string, line: number }[]} The component tags `node` and its descendants use, each with its line.
  */
 function templateUses(node) {
   const children = childrenOf(node).flatMap(templateUses);
@@ -261,7 +261,7 @@ function templateUses(node) {
  *
  * @param {SourceText} sourceText
  * @param {Tools} tools
- * @returns {Use[]}
+ * @returns {Use[]} Each name the file names by string or tag, with its kind and line.
  */
 function fileStrings({ file, source }, tools) {
   if (!file.endsWith(".vue"))
@@ -300,7 +300,7 @@ function fileStrings({ file, source }, tools) {
 /**
  * @param {string[]} roots
  * @param {RegExp} pattern
- * @returns {SourceText[]}
+ * @returns {SourceText[]} The files under `roots` whose path matches `pattern`, with their text.
  */
 function readSources(roots, pattern) {
   return roots
@@ -319,7 +319,7 @@ function readSources(roots, pattern) {
  * @param {string} root
  * @param {Use[]} layerStrings
  * @param {Tools} tools
- * @returns {Promise<KnownNames>}
+ * @returns {Promise<KnownNames>} The component and layout names Vue and the renderer resolve.
  */
 async function knownNames(root, layerStrings, tools) {
   const dms = dmsRegistrations();
@@ -351,7 +351,7 @@ async function knownNames(root, layerStrings, tools) {
 /**
  * @param {Pick<Use, "kind" | "name">} use
  * @param {KnownNames} known
- * @returns {boolean}
+ * @returns {boolean} Whether `known` holds a registration for the name, looked up as its kind asks.
  */
 function isKnown({ kind, name }, known) {
   if (kind === "vue")
@@ -372,7 +372,7 @@ function isKnown({ kind, name }, known) {
  * the file, the line and the name.
  *
  * @param {DmsComponentsOptions} options
- * @returns {Promise<string[]>}
+ * @returns {Promise<string[]>} One diagnostic per unknown component name.
  */
 export async function checkDmsComponents(options) {
   return (await inspect(options)).diagnostics;
@@ -380,7 +380,7 @@ export async function checkDmsComponents(options) {
 
 /**
  * @param {DmsComponentsOptions} options
- * @returns {Promise<{ diagnostics: string[], root: string, rendererMissing: boolean }>}
+ * @returns {Promise<{ diagnostics: string[], root: string, rendererMissing: boolean }>} The diagnostics, the resolved root and whether the renderer is missing.
  */
 async function inspect({ layer, sources = [] }) {
   const root = resolve(layer);

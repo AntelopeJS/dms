@@ -27,23 +27,23 @@ const SKIP = new Set(["node_modules", "dist", "tests", "test", "fixtures"]);
 
 /**
  * @typedef {object} DestructuredBinding
- * @property {string} binding
- * @property {TsExpression} owner
+ * @property {string} binding The destructured property.
+ * @property {TsExpression} owner The object it is destructured from.
  */
 
 /** @typedef {Map<string, TsExpression | DestructuredBinding>} Bindings */
 
 /**
  * @typedef {object} Scope
- * @property {TypeScript} ts
- * @property {TsSourceFile} tree
- * @property {Bindings} bindings
+ * @property {TypeScript} ts The TypeScript module.
+ * @property {TsSourceFile} tree The parsed source file.
+ * @property {Bindings} bindings The variable bindings of the file.
  */
 
 /**
  * @typedef {object} Dependencies
- * @property {TypeScript} ts
- * @property {SfcParser["parse"]} parse
+ * @property {TypeScript} ts The TypeScript module.
+ * @property {SfcParser["parse"]} parse The Vue SFC parser.
  */
 
 /**
@@ -55,7 +55,7 @@ const requireFrom = createRequire;
 
 /**
  * @param {string} root
- * @returns {Dependencies}
+ * @returns {Dependencies} The `typescript` module and the Vue SFC parser resolved from the package of `root`.
  */
 function dependencies(root) {
   let directory = resolve(root);
@@ -82,7 +82,7 @@ function dependencies(root) {
 /**
  * Runtime sources only. Test fixtures and generated directories are excluded.
  * @param {string} root
- * @returns {string[]}
+ * @returns {string[]} The runtime source files under `root`.
  */
 export function apiErrorSources(root) {
   if (!statSync(root).isDirectory()) return [resolve(root)];
@@ -102,7 +102,7 @@ export function apiErrorSources(root) {
  * @param {string} file
  * @param {string} source
  * @param {SfcParser} tools
- * @returns {ApiErrorScript[]}
+ * @returns {ApiErrorScript[]} One entry per script block of the file.
  */
 export function apiErrorScripts(file, source, tools) {
   if (!file.endsWith(".vue")) return [{ source, offset: 0 }];
@@ -121,7 +121,7 @@ export function apiErrorScripts(file, source, tools) {
 /**
  * @param {TsSourceFile} tree
  * @param {TypeScript} ts
- * @returns {Bindings}
+ * @returns {Bindings} Each variable `tree` declares with an initializer, by name: its initializer, or the destructured property with its owner.
  */
 function bindingsOf(tree, ts) {
   /** @type {Bindings} */
@@ -150,7 +150,7 @@ function bindingsOf(tree, ts) {
 /**
  * @param {TypeScript} ts
  * @param {TsNode | undefined} node
- * @returns {TsNode | undefined}
+ * @returns {TsNode | undefined} `node` without its wrappers (parentheses, assertions), or `undefined` when it is missing.
  */
 function unwrap(ts, node) {
   while (
@@ -168,7 +168,7 @@ function unwrap(ts, node) {
  * @param {Scope} scope
  * @param {TsNode | undefined} node
  * @param {Set<string>} [seen]
- * @returns {TsNode | undefined}
+ * @returns {TsNode | undefined} The initializer `node` resolves to through the scope's bindings, or `undefined` when it does not resolve.
  */
 function resolveBinding(scope, node, seen = new Set()) {
   const { ts, bindings } = scope;
@@ -189,7 +189,7 @@ function resolveBinding(scope, node, seen = new Set()) {
 /**
  * @param {Scope} scope
  * @param {TsNode | undefined} node
- * @returns {boolean}
+ * @returns {boolean} Whether `node` resolves to `toast` or a `useToast()` call.
  */
 function isToast(scope, node) {
   const { ts, tree } = scope;
@@ -204,7 +204,7 @@ function isToast(scope, node) {
 
 /**
  * @param {string} name
- * @returns {name is "add" | "update"}
+ * @returns {name is "add" | "update"} Whether `name` is `add` or `update`.
  */
 function isToastMethod(name) {
   return name === "add" || name === "update";
@@ -213,7 +213,7 @@ function isToastMethod(name) {
 /**
  * @param {Scope} scope
  * @param {import("typescript").CallExpression} call
- * @returns {"add" | "update" | null}
+ * @returns {"add" | "update" | null} The toast method `call` invokes, or `null` when it is not one.
  */
 function methodOf(scope, call) {
   const { ts, bindings } = scope;
@@ -241,7 +241,7 @@ function methodOf(scope, call) {
 /**
  * @param {Scope} scope
  * @param {TsNode | undefined} payload
- * @returns {string}
+ * @returns {string} The toast color the payload sets: `neutral` when it sets none, `dynamic` when it cannot be read.
  */
 function colorOf(scope, payload) {
   const { ts, tree } = scope;
@@ -325,7 +325,7 @@ function collectToastCalls(scope, node, failure, calls) {
  * @param {string} source
  * @param {string} file
  * @param {TypeScript} ts
- * @returns {ApiErrorToastCall[]}
+ * @returns {ApiErrorToastCall[]} The `add` and `update` toast calls that show an error or sit in a failure region.
  */
 export function analyzeApiErrorScript(source, file, ts) {
   const tree = ts.createSourceFile(
@@ -349,7 +349,7 @@ export function analyzeApiErrorScript(source, file, ts) {
 /**
  * Returns diagnostics for local failure toasts outside the canonical presenter.
  * @param {string[]} roots
- * @returns {string[]}
+ * @returns {string[]} One diagnostic per local failure toast under `roots`.
  */
 export function checkApiErrorPresentation(roots) {
   return roots.flatMap((root) => {

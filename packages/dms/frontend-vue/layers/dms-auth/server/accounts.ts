@@ -188,8 +188,9 @@ export function removeAccount(
   event: DmsServerEvent,
   accountId: Parameters<typeof readAccount>[1],
 ) {
-  const accounts = { ...readAccounts(event) };
-  if (isString(accountId)) delete accounts[accountId];
+  const accounts = Object.fromEntries(
+    Object.entries(readAccounts(event)).filter(([id]) => id !== accountId),
+  );
   writeAccountIndex(event, accounts);
   if (isString(accountId) && UUID.test(accountId))
     event.cookies.clear(accountCookieName(accountId));

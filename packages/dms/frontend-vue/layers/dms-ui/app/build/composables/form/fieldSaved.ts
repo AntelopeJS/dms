@@ -28,10 +28,13 @@ export function fieldSavedMarker(targets: FieldSavedTargets): MarkFieldSaved {
   return (id, value) => {
     if (!targets.hasField(id)) return;
     const saved = cloneFormValue(value);
-    const initialValues = { ...targets.initialValues.value };
-    if (saved === undefined) delete initialValues[id];
-    else initialValues[id] = saved;
-    targets.initialValues.value = initialValues;
+    const initialValues = targets.initialValues.value;
+    targets.initialValues.value =
+      saved === undefined
+        ? Object.fromEntries(
+            Object.entries(initialValues).filter(([key]) => key !== id),
+          )
+        : { ...initialValues, [id]: saved };
     targets.dirty.markClean({ ...targets.dirty.baseline.value, [id]: value });
     targets.instantSave?.confirmField(id, value);
   };

@@ -60,7 +60,10 @@ const DateFieldStub = defineComponent(
         disabled: props.disabled,
       });
   },
-  { props: ["modelValue", "disabled"], emits: ["update:modelValue"] },
+  {
+    props: { modelValue: { type: null }, disabled: { type: null } },
+    emits: ["update:modelValue"],
+  },
 );
 
 async function mountSelector(

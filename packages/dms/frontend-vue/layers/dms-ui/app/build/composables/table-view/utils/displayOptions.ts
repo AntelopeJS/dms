@@ -15,8 +15,10 @@ const isOptionalOf = <T>(
   isType: (candidate: unknown) => candidate is T,
 ): value is T | undefined => value === undefined || isType(value);
 
-const isGroupBy = (value: unknown): value is TableViewGroupBy =>
-  GROUP_BY_VALUES.some((candidate) => candidate === value);
+const isGroupBy = (value: unknown): value is TableViewGroupBy => {
+  const groupBys: readonly unknown[] = GROUP_BY_VALUES;
+  return groupBys.includes(value);
+};
 
 /** Whether the config declares the `kanban` display's options whole. */
 export const isKanbanConfig = (

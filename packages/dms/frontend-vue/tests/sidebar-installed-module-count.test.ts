@@ -93,7 +93,7 @@ const ANSWERS = new Map<string, ApiAnswer>([
 ]);
 
 const Navigation = defineComponent({
-  props: ["items"],
+  props: { items: { type: null } },
   setup: (props) => () =>
     h(
       "nav",

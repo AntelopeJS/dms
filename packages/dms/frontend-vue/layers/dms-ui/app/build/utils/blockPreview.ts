@@ -153,7 +153,8 @@ export function isPreviewTree(value: unknown): value is PreviewTree {
 }
 
 export function isPreviewTheme(value: unknown): value is PreviewTheme {
-  return PREVIEW_THEMES.some((theme) => theme === value);
+  const themes: readonly unknown[] = PREVIEW_THEMES;
+  return themes.includes(value);
 }
 
 function isPreviewState(value: unknown): value is PreviewState {

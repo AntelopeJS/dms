@@ -13,9 +13,22 @@ import { FakeSpecFile } from "./mockup-spec-file";
 /** The pointer of the one block of the initial spec. */
 export const TITLE = "/pages/0/tree/0";
 
-export let file: FakeSpecFile;
-export let editor: MockupSpecEditor;
-export let notices: MockupSpecNotice[];
+let file: FakeSpecFile;
+let editor: MockupSpecEditor;
+let notices: MockupSpecNotice[];
+
+/** The `spec.json`, the editor and the notices of the test running. */
+export const session = {
+  get file() {
+    return file;
+  },
+  get editor() {
+    return editor;
+  },
+  get notices() {
+    return notices;
+  },
+};
 
 let app: App | undefined;
 const state = shallowRef(mockupState());

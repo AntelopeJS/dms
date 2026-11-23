@@ -19,14 +19,14 @@ const SearchMetadata = ShortcutKeys.extend({
 
 /**
  * @param {string} path
- * @returns {string}
+ * @returns {string} The text of the file at `path` under the layers.
  */
 const read = (path) => readFileSync(join(layers, path), "utf8");
 
 /**
  * @param {unknown} node
  * @param {string[]} path
- * @returns {unknown}
+ * @returns {unknown} The value at `path` in `node`, or `undefined` when a step is missing.
  */
 export function dig(node, path) {
   let current = node;
@@ -40,7 +40,7 @@ export function dig(node, path) {
 
 /**
  * @param {string} dir
- * @returns {string[]}
+ * @returns {string[]} The files under `dir`.
  */
 function files(dir) {
   return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
@@ -120,7 +120,7 @@ function checkSortableDependency() {
  * @param {string} layer
  * @param {string} prefix
  * @param {string} locale
- * @returns {unknown}
+ * @returns {unknown} The parsed locale file of the layer.
  */
 function readLocale(layer, prefix, locale) {
   return JSON.parse(read(`${layer}/i18n/locales/${prefix}-${locale}.json`));
@@ -199,7 +199,7 @@ async function checkShortcutTranslations() {
     const keys = search.map((metadata) => signature(metadata.key));
     const clashes = registry
       .flatMap(
-        /** @returns {unknown[]} */
+        /** @returns {unknown[]} The shortcuts of the group. */
         (group) => group.shortcuts,
       )
       .filter(

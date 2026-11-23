@@ -54,7 +54,7 @@ function registerUi(app: App) {
   app.component(
     "UTooltip",
     defineComponent({
-      props: ["text"],
+      props: { text: { type: String } },
       setup:
         (_, { slots }) =>
         () =>

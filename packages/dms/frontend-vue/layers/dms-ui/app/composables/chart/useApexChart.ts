@@ -57,7 +57,7 @@ import type {
 
 const DEFAULT_HEIGHT = 320;
 const ANIMATION_SPEED_MS = 300;
-const HEIGHT_NUMBER_REGEX = /[^0-9]/g;
+const HEIGHT_NUMBER_REGEX = /\D/g;
 const COMPARISON_LINE_TYPE = "line";
 const LINE_LEAD_TYPES: ChartType[] = ["line", "area"];
 
@@ -160,7 +160,8 @@ const DMS_APEX_TYPES = [
 function isDmsApexType(
   value: string,
 ): value is (typeof DMS_APEX_TYPES)[number] {
-  return DMS_APEX_TYPES.some((type) => type === value);
+  const types: readonly string[] = DMS_APEX_TYPES;
+  return types.includes(value);
 }
 
 function resolveApexType(

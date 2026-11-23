@@ -17,14 +17,14 @@ const SCRIPT_EXTENSIONS = new Set([
   ".cts",
 ]);
 const DIRECTIVE =
-  /^(oxlint|eslint)-(disable|enable)(?:\s+(.*?))?\s*(?:--.*)?$/su;
+  /^(oxlint|eslint)-(disable|enable)(?:\s|(?=--|$))((?:(?!--).)*)(?:--.*)?$/su;
 
 /**
  * Every comment of a script, each once, in source order.
  *
  * @param {string} source
  * @param {string} file
- * @returns {{ line: number; text: string }[]}
+ * @returns {{ line: number; text: string }[]} Each comment with its line and text.
  */
 function commentsOf(source, file) {
   const kind = /\.[jt]sx$/u.test(file) ? ts.ScriptKind.TSX : ts.ScriptKind.TS;
@@ -65,7 +65,7 @@ function commentsOf(source, file) {
  * @param {string} source
  * @param {string} file
  * @param {number} lineOffset
- * @returns {string[]}
+ * @returns {string[]} One diagnostic per block directive left open.
  */
 function unclosedBlocks(source, file, lineOffset) {
   /** @type {Map<string, string>} */
@@ -106,7 +106,7 @@ function unclosedBlocks(source, file, lineOffset) {
  * The unclosed block directives of one authored file.
  *
  * @param {string} file
- * @returns {string[]}
+ * @returns {string[]} One diagnostic per block directive `file` leaves open.
  */
 function checkFile(file) {
   const source = readFileSync(join(ROOT, file), "utf8");

@@ -129,7 +129,7 @@ function hasTimeBounds(range: PeriodRange): boolean {
 
 type FormatOptions = Intl.DateTimeFormatOptions;
 
-const ICU_SPACES = /[\u2009\u202f]/g;
+const ICU_SPACES = /[\u2009\u202F]/g;
 const PLAIN_SPACE = " ";
 
 function normalizeSpaces(text: string): string {

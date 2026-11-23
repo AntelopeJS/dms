@@ -79,7 +79,7 @@ const Slot = defineComponent({
       h("div", slots.default?.()),
 });
 const Link = defineComponent({
-  props: ["to"],
+  props: { to: { type: null } },
   setup: () => () => h("a"),
 });
 

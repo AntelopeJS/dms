@@ -44,7 +44,7 @@ export interface LocalizedSchema<Output> {
   };
 }
 
-const RICH_TEXT_MEDIA = /<(img|hr|iframe|video|audio|embed|object)\b/i;
+const RICH_TEXT_MEDIA = /<(?:img|hr|iframe|video|audio|embed|object)\b/i;
 const HTML_TAG = /<[^>]*>/g;
 const HTML_SPACE = /&nbsp;|&#160;|\u00A0/g;
 
@@ -61,6 +61,7 @@ export function isRichTextBlank(html: string): boolean {
  * translations) whose every part is blank. `false` and `0` are values;
  * inside an object a flag (an image's `principal`) is not content.
  *
+ * @param value The value to read
  * @param type The DMS data type id of the value, when it changes the reading
  */
 export function isBlankValue(

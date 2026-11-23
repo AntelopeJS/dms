@@ -1,5 +1,5 @@
 import { nextTick, reactive } from "vue";
-import { type I18nTranslate } from "./translation/useTranslation";
+import type { I18nTranslate } from "./translation/useTranslation";
 import { resolveApiErrorMessage } from "./resolveApiError";
 import { isBoolean, isNumber, isObject, isString } from "../utils/type-check";
 
@@ -150,9 +150,9 @@ const NAMED_FIELD_ERROR_KEYS: Readonly<
   [FIELD_ERROR_KEYS.invalid]: "dms.field_errors.named_invalid",
 };
 
-const FIELD_PREFIXED_MESSAGE = /^([\w.]+):\s+(.+)$/s;
+const FIELD_PREFIXED_MESSAGE = /^([\w.]+):\s+(\S.*|\s)$/s;
 
-const BARE_I18N_KEY = /^[a-z0-9_]+(\.[a-z0-9_]+)+$/i;
+const BARE_I18N_KEY = /^\w+(?:\.\w+)+$/;
 
 /** The HTTP status of a fetch error; undefined for a network failure. */
 export function apiErrorStatus(
@@ -526,7 +526,8 @@ export function useFieldErrors<F extends string>(
   }
 
   function clear(field?: F): void {
-    for (const key of field ? [field] : fieldIds) delete errors[key];
+    for (const key of field ? [field] : fieldIds)
+      Reflect.deleteProperty(errors, key);
   }
 
   async function focus(field: F): Promise<void> {

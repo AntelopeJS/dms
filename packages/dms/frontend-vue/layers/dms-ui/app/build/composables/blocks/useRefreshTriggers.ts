@@ -22,7 +22,9 @@ import { type LiveGate, useLiveGate } from "../live/currentPageLive";
  */
 export function useRefreshTriggers(
   realtimeTopic: string | string[] | undefined,
-  onRefresh: () => void | Parameters<typeof waitForPageBlocksRefresh>[1],
+  onRefresh:
+    | (() => void)
+    | (() => Parameters<typeof waitForPageBlocksRefresh>[1]),
 ): LiveGate {
   let pageRefresh: Event | undefined;
   const gate = useLiveGate(() => {

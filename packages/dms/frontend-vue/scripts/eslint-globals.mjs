@@ -7,7 +7,7 @@ const LINE_WIDTH = 78;
  * The names as lines of at most `LINE_WIDTH` characters, so the generated file
  * stays short however many names the layer auto-imports.
  * @param {string[]} names
- * @returns {string[]}
+ * @returns {string[]} The packed lines.
  */
 function packed(names) {
   return names.reduce(

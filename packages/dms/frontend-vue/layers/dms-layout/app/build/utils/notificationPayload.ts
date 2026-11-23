@@ -33,7 +33,8 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function isNotificationTone(value: unknown): value is NotificationTone {
-  return NOTIFICATION_TONES.some((tone) => tone === value);
+  const tones: readonly unknown[] = NOTIFICATION_TONES;
+  return tones.includes(value);
 }
 
 function isNotificationParams(

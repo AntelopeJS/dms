@@ -5,7 +5,7 @@ import type {
 import { isConfirmFrom } from "#dms-core/app/types/confirm-dialog";
 import type {
   ConfirmOptions,
-  ConfirmPartialOutcome,
+  ConfirmHandlerResult,
   ConfirmValues,
 } from "../../../composables/confirm/types";
 import { resolveConfirmDialog } from "./confirmDialogTexts";
@@ -31,9 +31,7 @@ export interface ActionConfirmRequest {
    * refusal stays on screen, under its field when it names one. Without it,
    * the caller runs the action once the confirmation resolved `true`.
    */
-  run?: (
-    values: ConfirmValues,
-  ) => Promise<void | boolean | ConfirmPartialOutcome>;
+  run?: (values: ConfirmValues) => ConfirmHandlerResult;
 }
 
 /**

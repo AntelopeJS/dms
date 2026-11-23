@@ -40,7 +40,7 @@ export function useRolesApi() {
     });
 
   const updateRole = (roleId: string, draft: RoleDraft) =>
-    $authFetch<void>(`${ROLES_API_PATH}/${encodeURIComponent(roleId)}`, {
+    $authFetch<undefined>(`${ROLES_API_PATH}/${encodeURIComponent(roleId)}`, {
       method: "PUT",
       body: toWriteBody(draft),
     });

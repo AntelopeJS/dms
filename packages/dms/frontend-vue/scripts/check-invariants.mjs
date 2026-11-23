@@ -21,7 +21,7 @@ const NonBlankText = z.string().regex(/\S/);
 
 /**
  * @param {string} file
- * @returns {unknown}
+ * @returns {unknown} The parsed JSON of `file`.
  */
 function readJson(file) {
   return JSON.parse(readFileSync(file, "utf8"));
@@ -47,14 +47,14 @@ function checkCoreErrorFallback() {
 
 /**
  * @param {string} dir
- * @returns {string[]}
+ * @returns {string[]} The source files under `dir`.
  */
 function collectSources(dir) {
   return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
     const file = join(dir, entry.name);
     if (entry.name === "node_modules" || entry.name.startsWith(".")) return [];
     if (entry.isDirectory()) return collectSources(file);
-    return /\.(vue|ts)$/.test(entry.name) ? [file] : [];
+    return /\.(?:vue|ts)$/.test(entry.name) ? [file] : [];
   });
 }
 
@@ -148,7 +148,7 @@ function checkFormErrorSummaryLabels() {
 /**
  * @param {Record<string, unknown>} messages
  * @param {string} [prefix]
- * @returns {string[]}
+ * @returns {string[]} The dotted key of every leaf of `messages`.
  */
 function messageKeys(messages, prefix = "") {
   return Object.entries(messages).flatMap(([key, value]) => {
@@ -161,7 +161,7 @@ function messageKeys(messages, prefix = "") {
 /**
  * @param {string} layer
  * @param {{ name: string; keys: Set<string> }[]} catalogs
- * @returns {string[]}
+ * @returns {string[]} One diagnostic per key a catalog lacks.
  */
 function catalogGaps(layer, catalogs) {
   /** @type {string[]} */
@@ -196,7 +196,7 @@ function checkLocaleKeyParity() {
 /**
  * @param {string} key
  * @param {string} source
- * @returns {string}
+ * @returns {string} The part of `key` before its first dynamic segment.
  */
 function staticPrefix(key, source) {
   const resolved = key.replace(
@@ -257,7 +257,7 @@ function checkFontAssetUrls() {
   );
   const urls = [
     ...readFileSync(stylesheet, "utf8").matchAll(
-      /@font-face\s*{[^}]*?src:\s*url\("([^"]+)"\)/g,
+      /@font-face\s*\{[^}]*?src:\s*url\("([^"]+)"\)/g,
     ),
   ].map(([, url]) => url);
   assert.ok(
@@ -305,7 +305,7 @@ const SEGMENT_MAPPING_FORMAT = 4;
 /**
  * @param {Buffer} data
  * @param {{ at: number }} cursor
- * @returns {number}
+ * @returns {number} The decoded integer, moving `cursor` past it.
  */
 function readBase128(data, cursor) {
   let value = 0;
@@ -319,7 +319,7 @@ function readBase128(data, cursor) {
 
 /**
  * @param {Buffer} file
- * @returns {Buffer}
+ * @returns {Buffer} The `cmap` table of the font `file`.
  */
 function readCmap(file) {
   const numTables = file.readUInt16BE(NUM_TABLES_OFFSET);
@@ -353,7 +353,7 @@ function readCmap(file) {
 /**
  * @param {Buffer} cmap
  * @param {number} codePoint
- * @returns {number}
+ * @returns {number} The glyph index of `codePoint`, or `0` when the font has none.
  */
 function glyphOf(cmap, codePoint) {
   const count = cmap.readUInt16BE(2);

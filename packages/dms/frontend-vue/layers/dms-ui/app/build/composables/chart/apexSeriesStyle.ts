@@ -137,7 +137,8 @@ const STROKE_CURVES: readonly StrokeCurve[] = [
 ];
 
 function isStrokeCurve(value: string): value is StrokeCurve {
-  return STROKE_CURVES.some((curve) => curve === value);
+  const curves: readonly unknown[] = STROKE_CURVES;
+  return curves.includes(value);
 }
 
 function defaultStroke(

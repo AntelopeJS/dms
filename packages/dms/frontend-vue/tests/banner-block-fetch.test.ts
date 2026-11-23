@@ -56,7 +56,7 @@ function mountBanner(
   app.component(
     "UAlert",
     defineComponent({
-      props: ["title", "description"],
+      props: { title: { type: String }, description: { type: String } },
       setup:
         (props, { slots }) =>
         () =>

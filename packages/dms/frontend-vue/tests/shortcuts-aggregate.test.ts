@@ -36,7 +36,7 @@ describe("the shortcuts plugin", () => {
     app.component(
       "DmsSectionPanel",
       defineComponent({
-        props: ["title"],
+        props: { title: { type: String } },
         setup:
           (props, { slots }) =>
           () =>
@@ -50,7 +50,7 @@ describe("the shortcuts plugin", () => {
     app.component(
       "DmsFieldRow",
       defineComponent({
-        props: ["label"],
+        props: { label: { type: String } },
         setup:
           (props, { slots }) =>
           () =>
@@ -61,7 +61,7 @@ describe("the shortcuts plugin", () => {
     app.component(
       "UKbd",
       defineComponent({
-        props: ["value"],
+        props: { value: { type: null } },
         setup: (props) => () => h("kbd", props.value),
       }),
     );

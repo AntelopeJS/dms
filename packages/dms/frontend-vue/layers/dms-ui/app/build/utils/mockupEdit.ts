@@ -396,16 +396,21 @@ function withHeader(
   page: MockupSpecPage,
   edit: Extract<MockupEdit, { kind: "updatePage" }>,
 ): MockupSpecPage {
-  const next: MockupSpecPage = { ...page };
+  let next: MockupSpecPage = { ...page };
   for (const field of ["icon", "description"] as const) {
     const value = edit[field];
     if (value === undefined) continue;
-    if (value === "") delete next[field];
-    else next[field] = value;
+    if (value === "") {
+      const { [field]: _removed, ...rest } = next;
+      next = rest;
+    } else next[field] = value;
   }
   if (edit.headerActions !== undefined) {
     if (edit.headerActions.length) next.headerActions = edit.headerActions;
-    else delete next.headerActions;
+    else {
+      const { headerActions: _removed, ...rest } = next;
+      next = rest;
+    }
   }
   return next;
 }

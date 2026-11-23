@@ -206,7 +206,7 @@ class InstantSaveQueue<V extends object> {
 
   private settleFailed(changes: Partial<V>, isRefused: boolean): void {
     const rest: Partial<V> = { ...this.failed.value };
-    for (const key of saveKeys(changes)) delete rest[key];
+    for (const key of saveKeys(changes)) Reflect.deleteProperty(rest, key);
     const next = isRefused ? { ...rest, ...changes } : rest;
     this.failed.value = Object.keys(next).length ? next : null;
   }

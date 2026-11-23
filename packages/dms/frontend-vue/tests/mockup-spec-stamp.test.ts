@@ -12,11 +12,9 @@ import type {
   MockupSpecNode,
 } from "../layers/dms-ui/app/entries/utils/mockupSpec";
 import {
-  editor,
-  file,
   mountEditor,
-  notices,
   retitle,
+  session,
   settle,
   streamSaysTheFileChanged,
   useSpecEditor,
@@ -51,14 +49,14 @@ function stamped(
 
 /** The title and the id of each root of `spec.json`. */
 function roots(): unknown[][] {
-  return (file.spec.pages[0]?.tree ?? []).map((node) => [
+  return (session.file.spec.pages[0]?.tree ?? []).map((node) => [
     node.options?.title,
     node.id,
   ]);
 }
 
 async function stampFile(ids?: Map<number, string>): Promise<void> {
-  file.writeFromOutside(stamped(file.spec, ids));
+  session.file.writeFromOutside(stamped(session.file.spec, ids));
   await streamSaysTheFileChanged();
 }
 
@@ -66,10 +64,13 @@ describe("an id a note stamped on the file", () => {
   it("counts a file that adds an id and changes anything else as another writer's change (fails when any added id passes for a stamp)", async () => {
     await mountEditor();
 
-    file.writeFromOutside({ ...stamped(file.spec), title: "From the AI" });
+    session.file.writeFromOutside({
+      ...stamped(session.file.spec),
+      title: "From the AI",
+    });
     await streamSaysTheFileChanged();
 
-    expect(notices).toEqual([{ kind: "adopted" }]);
+    expect(session.notices).toEqual([{ kind: "adopted" }]);
   });
 
   it("keeps the history and says nothing, and the spec shown takes the id (fails when a stamp counts as another writer's change)", async () => {
@@ -79,9 +80,9 @@ describe("an id a note stamped on the file", () => {
 
     await stampFile();
 
-    expect(editor.canUndo.value).toBe(true);
-    expect(notices).toEqual([]);
-    expect(editor.spec.value).toEqual(file.spec);
+    expect(session.editor.canUndo.value).toBe(true);
+    expect(session.notices).toEqual([]);
+    expect(session.editor.spec.value).toEqual(session.file.spec);
     expect(roots()).toEqual([["Mine", STAMP]]);
   });
 
@@ -90,18 +91,18 @@ describe("an id a note stamped on the file", () => {
     retitle("Mine");
     await settle(MOCKUP_WRITE_DELAY_MS);
 
-    file.writeFromOutside(stamped(file.spec));
+    session.file.writeFromOutside(stamped(session.file.spec));
     retitle("Mine, again");
     await settle(MOCKUP_WRITE_DELAY_MS * 4);
 
     expect(roots()).toEqual([["Mine, again", STAMP]]);
-    expect(editor.spec.value).toEqual(file.spec);
-    expect(editor.canUndo.value).toBe(true);
-    expect(notices).toEqual([]);
+    expect(session.editor.spec.value).toEqual(session.file.spec);
+    expect(session.editor.canUndo.value).toBe(true);
+    expect(session.notices).toEqual([]);
   });
 
   it("takes a stamp on a write whose answer was lost as its own, keeping the history (fails when only the spec last answered counts as the editor's)", async () => {
-    file.lostAnswers = 1;
+    session.file.lostAnswers = 1;
     await mountEditor();
     retitle("Mine");
     await settle(MOCKUP_WRITE_DELAY_MS);
@@ -109,9 +110,9 @@ describe("an id a note stamped on the file", () => {
     await stampFile();
     await settle(MOCKUP_RETRY_DELAY_MS * 4);
 
-    expect(notices.map((notice) => notice.kind)).toEqual(["failed"]);
-    expect(editor.canUndo.value).toBe(true);
-    expect(editor.hasFailed.value).toBe(false);
+    expect(session.notices.map((notice) => notice.kind)).toEqual(["failed"]);
+    expect(session.editor.canUndo.value).toBe(true);
+    expect(session.editor.hasFailed.value).toBe(false);
     expect(roots()).toEqual([["Mine", STAMP]]);
   });
 });
@@ -123,21 +124,21 @@ describe("an id a note stamped, through undo and redo", () => {
     await settle(MOCKUP_WRITE_DELAY_MS);
     await stampFile();
 
-    editor.undo();
+    session.editor.undo();
     await settle(MOCKUP_WRITE_DELAY_MS);
     const undone = roots();
-    editor.redo();
+    session.editor.redo();
     await settle(MOCKUP_WRITE_DELAY_MS);
 
     expect(undone).toEqual([["Revenue", STAMP]]);
     expect(roots()).toEqual([["Mine", STAMP]]);
-    expect(notices).toEqual([]);
+    expect(session.notices).toEqual([]);
   });
 
   it("gives an undone step each id on the very block it was stamped on, twins included (fails when a block is found by its content, which cannot tell twins apart)", async () => {
-    file.spec = onePage(kpi("A"), kpi("B"), kpi("B"));
+    session.file.spec = onePage(kpi("A"), kpi("B"), kpi("B"));
     await mountEditor();
-    editor.apply({
+    session.editor.apply({
       kind: "insertNode",
       parent: null,
       page: "orders",
@@ -152,7 +153,7 @@ describe("an id a note stamped, through undo and redo", () => {
       ]),
     );
 
-    editor.undo();
+    session.editor.undo();
     await settle(MOCKUP_WRITE_DELAY_MS);
 
     expect(roots()).toEqual([
@@ -160,20 +161,20 @@ describe("an id a note stamped, through undo and redo", () => {
       ["B", undefined],
       ["B", STAMP],
     ]);
-    expect(notices).toEqual([]);
+    expect(session.notices).toEqual([]);
   });
 
   it("gives the block a duplicate was made from none of the id a note stamped on the duplicate, through an undo and a redo (fails when the duplicate's id lands on its original)", async () => {
-    file.spec = onePage(kpi("A"));
+    session.file.spec = onePage(kpi("A"));
     await mountEditor();
-    editor.apply({ kind: "duplicateNode", pointer: "/pages/0/tree/0" });
+    session.editor.apply({ kind: "duplicateNode", pointer: "/pages/0/tree/0" });
     await settle(MOCKUP_WRITE_DELAY_MS);
     await stampFile(new Map([[1, STAMP]]));
 
-    editor.undo();
+    session.editor.undo();
     await settle(MOCKUP_WRITE_DELAY_MS);
     const undone = roots();
-    editor.redo();
+    session.editor.redo();
     await settle(MOCKUP_WRITE_DELAY_MS);
 
     expect(undone).toEqual([["A", undefined]]);
@@ -184,13 +185,13 @@ describe("an id a note stamped, through undo and redo", () => {
   });
 
   it("keeps the id on a block through the undo of a move of an earlier block into it, which shifts the block (fails when the undo looks for the block at its pointer alone)", async () => {
-    file.spec = onePage(kpi("K"), {
+    session.file.spec = onePage(kpi("K"), {
       type: "ChartCard",
       options: { title: "Sales" },
       children: [{ id: "chart", type: "ChartArea" }],
     });
     await mountEditor();
-    editor.apply({
+    session.editor.apply({
       kind: "moveNode",
       from: "/pages/0/tree/0",
       parent: "/pages/0/tree/1",
@@ -199,23 +200,23 @@ describe("an id a note stamped, through undo and redo", () => {
     await settle(MOCKUP_WRITE_DELAY_MS);
     await stampFile();
 
-    editor.undo();
+    session.editor.undo();
     await settle(MOCKUP_WRITE_DELAY_MS);
 
     expect(roots()).toEqual([
       ["K", undefined],
       ["Sales", STAMP],
     ]);
-    expect(notices).toEqual([]);
+    expect(session.notices).toEqual([]);
   });
 });
 
 describe("an id a note stamped while an edit is not written yet", () => {
   it("puts the id on the stamped block when a move took it from its place (fails when the spec shown takes the id at the block's old pointer)", async () => {
-    file.spec = onePage(kpi("A"), kpi("B"), kpi("C"));
+    session.file.spec = onePage(kpi("A"), kpi("B"), kpi("C"));
     await mountEditor();
 
-    editor.apply({
+    session.editor.apply({
       kind: "moveNode",
       from: "/pages/0/tree/0",
       parent: null,
@@ -229,14 +230,14 @@ describe("an id a note stamped while an edit is not written yet", () => {
       ["C", undefined],
       ["A", STAMP],
     ]);
-    expect(notices).toEqual([]);
+    expect(session.notices).toEqual([]);
   });
 
   it("puts the id on the twin the note was on when an insert shifted it (fails when a block is found by its content, which cannot tell twins apart)", async () => {
-    file.spec = onePage(kpi("B"), kpi("B"));
+    session.file.spec = onePage(kpi("B"), kpi("B"));
     await mountEditor();
 
-    editor.apply({
+    session.editor.apply({
       kind: "insertNode",
       parent: null,
       page: "orders",
@@ -251,18 +252,18 @@ describe("an id a note stamped while an edit is not written yet", () => {
       ["B", undefined],
       ["B", STAMP],
     ]);
-    expect(notices).toEqual([]);
+    expect(session.notices).toEqual([]);
   });
 
   it("gives no other block the id of a block a removal took out, and an undo puts the block back with it (fails when the id falls to the block now at the old pointer)", async () => {
-    file.spec = onePage(kpi("A"), kpi("B"));
+    session.file.spec = onePage(kpi("A"), kpi("B"));
     await mountEditor();
 
-    editor.apply({ kind: "removeNode", pointer: "/pages/0/tree/0" });
+    session.editor.apply({ kind: "removeNode", pointer: "/pages/0/tree/0" });
     await stampFile();
     await settle(MOCKUP_WRITE_DELAY_MS * 4);
     const removed = roots();
-    editor.undo();
+    session.editor.undo();
     await settle(MOCKUP_WRITE_DELAY_MS);
 
     expect(removed).toEqual([["B", undefined]]);
@@ -270,13 +271,13 @@ describe("an id a note stamped while an edit is not written yet", () => {
       ["A", STAMP],
       ["B", undefined],
     ]);
-    expect(notices).toEqual([]);
+    expect(session.notices).toEqual([]);
   });
 });
 
 describe("an id a note stamped on a step the history no longer holds", () => {
   const insertNew = () =>
-    editor.apply({
+    session.editor.apply({
       kind: "insertNode",
       parent: null,
       page: "orders",
@@ -288,7 +289,7 @@ describe("an id a note stamped on a step the history no longer holds", () => {
     await mountEditor();
     retitle("Mi");
     await settle(MOCKUP_WRITE_DELAY_MS);
-    file.writeFromOutside(stamped(file.spec));
+    session.file.writeFromOutside(stamped(session.file.spec));
 
     retitle("Mine");
     insertNew();
@@ -301,13 +302,13 @@ describe("an id a note stamped on a step the history no longer holds", () => {
   });
 
   it("gives a block inserted after an undo of the stamped step none of the id (fails when a new block of the same kind at the old pointer takes it)", async () => {
-    file.spec = onePage(kpi("A"), kpi("B"));
+    session.file.spec = onePage(kpi("A"), kpi("B"));
     await mountEditor();
     retitle("A2");
     await settle(MOCKUP_WRITE_DELAY_MS);
-    file.writeFromOutside(stamped(file.spec));
+    session.file.writeFromOutside(stamped(session.file.spec));
 
-    editor.undo();
+    session.editor.undo();
     insertNew();
     await settle(MOCKUP_WRITE_DELAY_MS * 4);
 

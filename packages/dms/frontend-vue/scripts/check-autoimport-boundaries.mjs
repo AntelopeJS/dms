@@ -8,31 +8,31 @@ import { parse } from "vue/compiler-sfc";
 
 /**
  * @typedef {object} ScannedExport
- * @property {string} name
- * @property {string} from
- * @property {string} [as]
+ * @property {string} name The exported name.
+ * @property {string} from The module that exports it.
+ * @property {string} [as] The name it is auto-imported under.
  */
 
 /**
  * @typedef {object} UnimportModule
- * @property {(directories: string[]) => Promise<ScannedExport[]>} scanDirExports
+ * @property {(directories: string[]) => Promise<ScannedExport[]>} scanDirExports Lists the exports of the directories.
  */
 
 /**
  * @typedef {object} BuildRegistration
- * @property {(directories: string[]) => void} registerAutoImports
+ * @property {(directories: string[]) => void} registerAutoImports Registers the auto-imported directories.
  */
 
 /**
  * @typedef {object} LayerRoot
- * @property {string} id
- * @property {string} root
+ * @property {string} id The layer id.
+ * @property {string} root The layer root directory.
  */
 
 /**
  * @typedef {object} LayerSetup
- * @property {string} id
- * @property {(build: BuildRegistration) => void} setup
+ * @property {string} id The layer id.
+ * @property {(build: BuildRegistration) => void} setup Registers the layer's auto-import directories on a build.
  */
 
 /**
@@ -82,7 +82,7 @@ const declaration = ts.createSourceFile(
 );
 /**
  * @param {readonly ts.Node[]} nodes
- * @returns {string[] | undefined}
+ * @returns {string[] | undefined} The texts of `nodes`, or `undefined` when one of them is not a string literal.
  */
 function literalTexts(nodes) {
   const texts = [];
