@@ -1,4 +1,7 @@
-/** @vitest-environment jsdom */
+/**
+ * @vitest-environment jsdom
+ * @packageDocumentation
+ */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { FormField } from "../layers/dms-ui/app/composables/form/types/field";
 import { host, mountForm } from "./helpers/form-runtime";

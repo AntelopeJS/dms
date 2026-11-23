@@ -1,8 +1,10 @@
-/** @vitest-environment jsdom */
 /**
  * Every drawer is resizable from `lg`: a handle on its inner edge (the width
  * of a side drawer, the height of a top or bottom one), driven by the pointer
  * or the keyboard, the size remembered per drawer key in a cookie.
+ *
+ * @vitest-environment jsdom
+ * @packageDocumentation
  */
 import {
   computed,

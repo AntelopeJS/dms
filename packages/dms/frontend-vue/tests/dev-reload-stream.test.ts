@@ -145,12 +145,7 @@ describe("dev reload stream", () => {
   });
 });
 
-/**
- * A signed-in tab hears of backend reloads through its user realtime stream:
- * a reload stream of its own as well made two long-lived connections per tab,
- * and three tabs then filled the six a browser allows per HTTP/1.1 host.
- */
-describe("dev reload over the user's realtime stream", () => {
+describe("a signed-in tab hears of backend reloads over its user realtime stream, so it holds one long-lived connection, not two (three tabs would fill the six a browser allows per HTTP/1.1 host)", () => {
   const NO_SHARING = {};
   const carrier = () => {
     const handlers = new Map<string, () => void>();

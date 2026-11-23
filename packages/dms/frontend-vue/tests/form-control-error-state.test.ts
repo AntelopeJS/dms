@@ -1,4 +1,7 @@
-/** @vitest-environment jsdom */
+/**
+ * @vitest-environment jsdom
+ * @packageDocumentation
+ */
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { isObject, isString } from "../layers/dms-core/app/utils/type-check";
 import {

@@ -3,6 +3,8 @@
  * filter's value need not have the column's shape: the tag typed against a
  * tags column is one text, which the tags formatter (drawing a list) cannot
  * write. The chip then shows the value as typed, not "—".
+ *
+ * @packageDocumentation
  */
 import { describe, expect, it } from "vitest";
 import type { DataType } from "../layers/dms-core/app/composables/data-types/useDataType";

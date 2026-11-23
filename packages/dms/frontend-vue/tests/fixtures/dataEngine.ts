@@ -4,6 +4,8 @@
  * stub, as the auto-imports a layer reaches. Each call starts a fresh runtime
  * — a browser one under jsdom, a server one otherwise — so no data a test
  * loaded leaks into the next.
+ *
+ * @packageDocumentation
  */
 import { createApp } from "vue";
 import { vi } from "vitest";

@@ -1,10 +1,12 @@
-/** @vitest-environment jsdom */
 /**
  * Stored files' read URLs through the runtime's real async data: a key
  * resolved in a component's setup is read with the page (the server waits for
  * it and hands it over), every component showing a file shares its read, and
  * in the browser the URL is read again before it expires and a failure that
  * may heal is retried.
+ *
+ * @vitest-environment jsdom
+ * @packageDocumentation
  */
 import {
   computed,

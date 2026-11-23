@@ -3,6 +3,8 @@
  * field's size, 16px on a phone (where a text field keeps 16px so iOS does
  * not zoom) and the v2 scale from md, on the same line height, so both are
  * as tall.
+ *
+ * @packageDocumentation
  */
 import { describe, expect, it } from "vitest";
 import { formControlsTheme } from "../layers/dms-layout/app/theme/form-controls";

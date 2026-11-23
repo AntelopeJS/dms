@@ -1,6 +1,8 @@
 /**
  * The faces of the dashboard: files of the build (named after their content,
  * cached for good), and only the one every page sets its text in preloaded.
+ *
+ * @packageDocumentation
  */
 import { createApp } from "vue";
 import { describe, expect, it, vi } from "vitest";

@@ -1,8 +1,10 @@
-/** @vitest-environment jsdom */
 /**
  * A long sectioned form groups its navigation under headings: the sections
  * naming the same `navGroup` one after the other share one, in the side list
  * and in the row of chips alike. Without a group, the chips stay one row.
+ *
+ * @vitest-environment jsdom
+ * @packageDocumentation
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { type App, createApp, defineComponent, h, nextTick } from "vue";

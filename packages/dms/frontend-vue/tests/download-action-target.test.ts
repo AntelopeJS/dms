@@ -1,8 +1,10 @@
-/** @vitest-environment jsdom */
 /**
  * A `download` action target fetches its file with the user's session and
  * saves it: its URL and file name take the page's `{{params.X}}` /
  * `{{query.X}}` and the row's `{field}`, and a refusal is toasted.
+ *
+ * @vitest-environment jsdom
+ * @packageDocumentation
  */
 import { createApp, defineComponent, h, reactive, type App } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";

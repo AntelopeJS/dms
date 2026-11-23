@@ -64,7 +64,6 @@ export function createServerRoutesFixture() {
     process.env = environment;
   });
 
-  /** Asks the DMS's routes. */
   async function askDms(
     path: string,
     init:

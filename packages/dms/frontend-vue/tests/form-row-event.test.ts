@@ -1,4 +1,7 @@
-/** @vitest-environment jsdom */
+/**
+ * @vitest-environment jsdom
+ * @packageDocumentation
+ */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { nextTick } from "vue";
 import { host, mountForm, t } from "./helpers/form-runtime";

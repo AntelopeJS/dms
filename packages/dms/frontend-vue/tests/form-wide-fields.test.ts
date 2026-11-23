@@ -6,6 +6,8 @@
  * the value column would leave a repeater too narrow for its table and drop
  * it into its stacked cards. They take the full width under their label,
  * read-only as editable.
+ *
+ * @packageDocumentation
  */
 import { describe, expect, it } from "vitest";
 import {

@@ -462,7 +462,11 @@ export async function flush(): Promise<void> {
   await nextTick();
 }
 
-/** Mounts `DmsMockupViewer` against the fake stream and a spied preview window. */
+/**
+ * Mounts `DmsMockupViewer` against the fake stream and a spied preview window.
+ * The spy follows the preview's current window, because switching Real data
+ * replaces the frame.
+ */
 export async function mountViewer(): Promise<MountedViewer> {
   const { default: MockupViewer } = await import(
     "../../layers/dms-ui/app/components/block-preview/MockupViewer.vue"
@@ -486,7 +490,6 @@ export async function mountViewer(): Promise<MountedViewer> {
   await flush();
   const posted: PreviewInboundMessage[] = [];
   const spied = new WeakSet<Window>();
-  /** The preview's current window, its posts recorded: switching Real data replaces the frame. */
   const frameWindow = (): Window => {
     const current = host.querySelector("iframe")?.contentWindow;
     if (!current) throw new Error("The viewer drew no preview");

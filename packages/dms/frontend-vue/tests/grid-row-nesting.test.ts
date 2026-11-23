@@ -4,6 +4,8 @@
  * children, at the default track floor, rather than inheriting the outer
  * grid's column count and leaving empty tracks beside its cells. A Grid inside
  * a cell keeps its own rows aligned.
+ *
+ * @packageDocumentation
  */
 import {
   computed,

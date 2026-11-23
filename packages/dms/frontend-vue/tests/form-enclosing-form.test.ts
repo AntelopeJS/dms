@@ -1,9 +1,11 @@
-/** @vitest-environment jsdom */
 /**
  * What a `Form` offers a custom field through `useEnclosingForm`: submitting
  * the form as its save button does, a validator that can stop a submit and
  * leaves with its component, and focusing a field by id. A page opened on a
  * field's anchor focuses that field.
+ *
+ * @vitest-environment jsdom
+ * @packageDocumentation
  */
 import { createApp, defineComponent, h } from "vue";
 import { afterEach, describe, expect, it, vi } from "vitest";

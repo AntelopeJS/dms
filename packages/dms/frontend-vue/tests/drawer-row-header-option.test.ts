@@ -1,9 +1,11 @@
-/** @vitest-environment jsdom */
 /**
  * A module opening a drawer on a row of its own list (`useDrawer`) asks for
  * the DMS's row header with `rowHeader`, rather than importing the layer's
  * header component: the row's title, its position, previous / next and J / K,
  * as on a row action's drawer, patched as the drawer steps.
+ *
+ * @vitest-environment jsdom
+ * @packageDocumentation
  */
 import {
   afterEach,
