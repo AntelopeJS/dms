@@ -7,7 +7,7 @@ export const HARNESS_MODULES = {
   mongodb: "1.8.13",
   "auth-jwt": "1.1.3",
   "file-storage-local": "0.2.2",
-  nodemailer: "0.0.13",
+  nodemailer: "0.0.14",
 } as const;
 
 /** The MongoDB server the harness runs its in-memory replica sets on. */
