@@ -83,7 +83,7 @@ it("rejects read-only rows that show editing hints or descriptions, including gr
     component: { componentName: "Text" },
   };
   const Field = defineComponent({
-    props: ["help"],
+    props: { help: { type: null } },
     setup:
       (props, { slots }) =>
       () =>

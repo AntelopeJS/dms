@@ -9,7 +9,7 @@ export function modelRef<T>(initial: T): ModelRef<T> {
         model = useModel(props, "modelValue");
         return () => null;
       },
-      { props: ["modelValue"] },
+      { props: { modelValue: { type: null } } },
     ),
     { modelValue: initial },
   ).mount(document.createElement("div"));

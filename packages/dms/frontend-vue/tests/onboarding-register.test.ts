@@ -78,13 +78,16 @@ function registerUi(app: App) {
             slots.default?.(),
           );
       },
-      { props: ["schema", "state"], emits: ["submit", "error"] },
+      {
+        props: { schema: { type: null }, state: { type: null } },
+        emits: ["submit", "error"],
+      },
     ),
   );
   app.component(
     "UFormField",
     defineComponent({
-      props: ["label", "name"],
+      props: { label: { type: String }, name: { type: String } },
       setup:
         (props, { slots }) =>
         () =>
@@ -94,7 +97,7 @@ function registerUi(app: App) {
   app.component(
     "UInput",
     defineComponent({
-      props: ["modelValue", "size"],
+      props: { modelValue: { type: null }, size: { type: String } },
       emits: ["update:modelValue"],
       setup:
         (props, { emit }) =>
@@ -118,7 +121,7 @@ function registerUi(app: App) {
   app.component(
     "UAlert",
     defineComponent({
-      props: ["title", "description"],
+      props: { title: { type: String }, description: { type: String } },
       setup: (props) => () =>
         h("div", { role: "alert" }, [props.title, props.description]),
     }),

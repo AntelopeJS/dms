@@ -62,7 +62,7 @@ const FIRST_FIELD = "input:not([type='hidden']):not([disabled]), textarea";
 
 let focusOnMount = false;
 
-function open(): void {
+function requestOpen(): void {
   emit("open");
   focusOnMount = true;
   isOpen.value = true;
@@ -120,7 +120,7 @@ watch(isOpen, async (value, previous) => {
         :disabled="props.triggerDisabled"
         :aria-expanded="isOpen"
         :aria-controls="props.formId"
-        @click="open"
+        @click="requestOpen"
       />
     </UTooltip>
   </DmsFieldRow>

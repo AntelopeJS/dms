@@ -104,7 +104,7 @@ function mountPage() {
   app.component("UPinInput", PinInput);
   app.component("DmsLink", Passthrough);
   app.component("UIcon", Passthrough);
-  app.component("i18n-t", Passthrough);
+  app.component("I18nT", Passthrough);
   app.mount(host);
 }
 

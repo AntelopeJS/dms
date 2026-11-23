@@ -46,7 +46,7 @@ afterEach(() => {
 async function mountThumbnail(): Promise<HTMLElement> {
   host = document.createElement("div");
   document.body.append(host);
-  app = createApp(MockupThumbnail, { name: "demo-mockup" });
+  app = createApp(MockupThumbnail, { name: "DemoMockup" });
   app.component("UIcon", defineComponent({ setup: () => () => h("span") }));
   app.mount(host);
   await flush();
@@ -70,7 +70,7 @@ it("reads nothing until the band scrolls into view (fails on reading every mocku
   await scrollIntoView();
 
   expect(authFetch).toHaveBeenCalledTimes(1);
-  expect(authFetch).toHaveBeenCalledWith("/api/mockup/demo-mockup");
+  expect(authFetch).toHaveBeenCalledWith("/api/mockup/DemoMockup");
 });
 
 it("draws the first page in an inert /dms-preview frame on its fixtures alone, at desktop width scaled to the band (fails on a frame at the band's width, which lays the page out as on a phone, one that is clickable, focusable or announced, another page's tree, or a deep ref over the mockup state, which a browser cannot clone)", async () => {

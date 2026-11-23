@@ -89,7 +89,7 @@ const renderMenuItem = (item: NavigationMenuItem): VNode => {
 const MenuStub = defineComponent(
   (props: { items: NavigationMenuItem[][] }) => () =>
     h("nav", props.items.flat().map(renderMenuItem)),
-  { props: ["items"] },
+  { props: { items: { type: null } } },
 );
 
 function mountMenu(items: NavigationMenuItem[] = ITEMS): void {

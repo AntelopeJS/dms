@@ -11,7 +11,7 @@ it.each(["array", "key_value"])(
   "rejects a %s field that collapses nonempty read-only rows to a count",
   async (type) => {
     const Control = defineComponent({
-      props: ["modelValue", "disabled"],
+      props: { modelValue: { type: null }, disabled: { type: null } },
       setup: (props) => () =>
         h("textarea", {
           disabled: props.disabled,
