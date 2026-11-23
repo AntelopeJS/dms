@@ -333,6 +333,11 @@ function createTableSource<T extends Record<string, unknown>>(
  * answers `null`, which the table draws as its skeleton. `sourceUrl` is the
  * URL requested, for the caller to list again when it changes. The rows
  * `pinnedRows` accepts lead each list answered.
+ *
+ * `listAsShown(query, span)` answers the rows `offset` and `limit` name as a
+ * table reading `span` rows at a time shows them: the pinned rows lead each
+ * such page, so the pages the query falls in are read whole and pinned one by
+ * one. A source answering every row pins them all first, as `list` does.
  */
 export function useTableRows<T extends Record<string, unknown>>(
   options: TableRowsOptions,
@@ -359,13 +364,6 @@ export function useTableRows<T extends Record<string, unknown>>(
   ): Promise<TableViewListResponse<T> | null> =>
     withPinnedRows(await listAnswered(query, signal));
 
-  /**
-   * The rows `query.offset` and `query.limit` name, in the order a table
-   * reading `span` rows at a time from the first shows them: the pinned
-   * rows lead each of its reads (a page), not the rows read here. The reads
-   * they fall in are read whole, then each pinned on its own. A source
-   * answering every row pins them all before its pages are cut: as `list`.
-   */
   const listAsShown = async (
     query: Query,
     span: number,
@@ -438,7 +436,6 @@ export function useTableRows<T extends Record<string, unknown>>(
     return url ? api<T>(url) : Promise.resolve(undefined);
   };
 
-  /** One row by id: a source's `fetchRowUrl`, a controller's `get` route. */
   const getRow = (id: string): Promise<T | undefined> =>
     source
       ? getSourceRow(source, id)

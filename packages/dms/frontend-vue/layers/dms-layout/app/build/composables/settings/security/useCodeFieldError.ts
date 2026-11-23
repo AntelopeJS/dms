@@ -44,12 +44,6 @@ export function useCodeFieldError(
     { deep: true },
   );
 
-  /**
-   * Shows a client-side error under the cells (nothing or part of the code
-   * typed) without emptying them.
-   *
-   * @param message The text, already translated
-   */
   function flag(message: string): void {
     if (error.value === message) {
       focusCell();

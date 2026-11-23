@@ -492,6 +492,10 @@ export interface HandleApiErrorOptions {
  *
  * Bind `errors[field]` to the message element (id `errorId(field)`) and
  * `aria(field)` onto the control; call `clear(field)` when its value changes.
+ *
+ * `applyApiError` resolves `true` only when the whole error went under
+ * fields; on `false` the rest is the caller's to show, even when part of it
+ * went under a field. `handleApiError` adds that toast and resolves the same.
  */
 export function useFieldErrors<F extends string>(
   options: UseFieldErrorsOptions<F>,
@@ -535,24 +539,11 @@ export function useFieldErrors<F extends string>(
     element?.focus();
   }
 
-  /**
-   * Shows an error under a field and focuses it (a client-side check that
-   * failed on submit).
-   *
-   * @param message The text, already translated
-   */
-  async function setError(field: F, message: string): Promise<void> {
-    errors[field] = message;
+  async function setError(field: F, translatedMessage: string): Promise<void> {
+    errors[field] = translatedMessage;
     await focus(field);
   }
 
-  /**
-   * Shows the field-tied part of an API error under its fields and focuses
-   * the first one.
-   *
-   * @returns Whether the error was a field one; `false` leaves it to the
-   *   caller (a toast)
-   */
   async function applyApiError(
     error: Parameters<typeof resolveApiErrorMessage>[0],
   ): Promise<boolean> {
@@ -574,7 +565,6 @@ export function useFieldErrors<F extends string>(
     return !hasUnmatched;
   }
 
-  /** The toast of an error that belongs to no field. */
   function toastError(
     error: Parameters<typeof resolveApiErrorMessage>[0],
     toastOptions: HandleApiErrorOptions,
@@ -584,11 +574,6 @@ export function useFieldErrors<F extends string>(
     });
   }
 
-  /**
-   * {@link applyApiError}, else a toast.
-   *
-   * @returns Whether the error went under a field
-   */
   async function handleApiError(
     error: Parameters<typeof resolveApiErrorMessage>[0],
     toastOptions: HandleApiErrorOptions,

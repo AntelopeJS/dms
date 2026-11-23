@@ -3,9 +3,10 @@
  * `DmsBlockPreview`, the `?state=` parameter carrying it, the `postMessage`
  * protocol of the embedded page, and the allowlist resolution that keeps the
  * preview to registered blocks reading relative URLs.
+ *
+ * @packageDocumentation
  */
 
-/** A block of a preview tree, named by its registry type or component name. */
 import {
   isObject,
   isString,
@@ -19,6 +20,8 @@ import {
   type JsonWritable,
   type JsonWritableObject,
 } from "./json";
+
+/** A block of a preview tree, named by its registry type or component name. */
 export interface PreviewNode {
   /** Block registry type, e.g. `KpiCard`. Wins over `componentName`. */
   type?: string;

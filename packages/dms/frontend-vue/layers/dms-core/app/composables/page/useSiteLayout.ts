@@ -287,14 +287,6 @@ const useSiteLayoutRequests = () => {
     await loadingPromise.value;
   };
 
-  /**
-   * Re-reads the menu and the page on screen from the server, for a change
-   * the backend announced (a realtime menu invalidation) or a switch of
-   * session. The pages prefetched on hover are dropped first: each carries
-   * the layout and the access of before. A navigation that starts meanwhile
-   * drops the reload's answer, and the page it opens still carries the layout
-   * the reload meant to replace: that page is reloaded in turn.
-   */
   const resync = async (): Promise<void> => {
     inertiaRouter.flushAll();
     const path = window.location.pathname;
@@ -413,6 +405,20 @@ export function servedQuickActions(): QuickActionsPayload | undefined {
   return useSiteLayoutState().quickActions.value;
 }
 
+/**
+ * The site layout and its page layouts, with the requests that refresh them.
+ *
+ * `resync` re-reads the menu and the page on screen, for a realtime menu
+ * invalidation or a session switch. It first drops the pages prefetched on
+ * hover, which carry the old layout and access; a navigation that starts
+ * meanwhile drops the reload's answer, so the page it opened is reloaded in
+ * turn.
+ *
+ * `loadPageLayout(slug, query, url)` caches the layout under `slug`. It asks
+ * `url`, the layout route with the page's `:id` filled in, and sends `query`,
+ * the page URL's, with the first request only, for the header buttons whose
+ * availability reads it; the header asks again for another query.
+ */
 export const useSiteLayout = () => {
   const {
     state,
@@ -432,15 +438,6 @@ export const useSiteLayout = () => {
     clearPageLayoutCaches,
   } = useSiteLayoutRequests();
 
-  /**
-   * The layout of a page, cached by its layout URL. `query` is the page
-   * URL's, which the first request carries for the header buttons whose
-   * availability reads it (the header asks again for another query).
-   */
-  /**
-   * The layout of the page at `slug`, cached under it. `url`, the layout
-   * route with the page's `:id` filled in, is what is asked when it differs.
-   */
   const loadPageLayout = async (
     slug: string,
     query?: Record<string, string>,

@@ -124,23 +124,19 @@ const useNotificationFeed = () => {
     );
   };
 
-  /** Takes the whole feed's unread total and its tone. */
   const applyFeedCounts = (counts: FeedCounts) => {
     unreadCount.value = counts.unread;
     unreadTone.value = counts.unread > 0 ? counts.unreadTone : undefined;
   };
 
-  /** Reads the whole feed's unread count and tone, the bell's badge. */
   const readBellCounts = (signal?: AbortSignal) =>
     $authFetch<FeedCounts>(`${API_BASE}/counts`, { signal });
 
-  /** Takes counts as the bell's: from now on, they are known. */
   const applyBellCounts = (counts: FeedCounts | undefined) => {
     if (counts) applyFeedCounts(counts);
     areCountsLoaded.value = true;
   };
 
-  /** Loads the whole feed's unread count and tone, the bell's badge. */
   const fetchBellCounts = async () => {
     try {
       applyBellCounts(await readBellCounts());
@@ -149,11 +145,6 @@ const useNotificationFeed = () => {
     }
   };
 
-  /**
-   * Takes the counts a write answered or its realtime event carried. A
-   * write's own event brings the same counts again, which changes nothing;
-   * without counts (a server before they were sent) they are read.
-   */
   const takeWriteCounts = async (counts: FeedCounts | undefined) => {
     if (counts) applyBellCounts(counts);
     else await fetchBellCounts();
@@ -226,6 +217,13 @@ function createRemoteFeedHandlers(
  * The bell and the Notifications entry show the same badge: `unreadCount`,
  * the whole feed's unread total, in `unreadTone`. Opening the bell changes
  * neither; a notification leaves the count once opened or marked read.
+ *
+ * A write takes the counts it answers or its event carries, twice changing
+ * nothing; from a server that sends none, they are read.
+ *
+ * A notification pushed in real time is counted and its tone weighed into the
+ * badge here, without asking the server: a broadcast would otherwise have every
+ * open tab fetch the counts at once.
  */
 export const useNotifications = () => {
   const feed = useNotificationFeed();
@@ -315,11 +313,6 @@ export const useNotifications = () => {
   const { handleRemoteRead, handleRemoteUnread, handleRemoteAllRead } =
     createRemoteFeedHandlers(feed);
 
-  /**
-   * A notification pushed in real time: listed first, counted unread, and its
-   * tone weighed into the badge's here, without asking the server again — a
-   * broadcast would otherwise have every open tab fetch the counts at once.
-   */
   const handleIncomingNotification = (incoming: UserNotification) => {
     const isAlreadyKnown = notifications.value.some(
       (n) => n._id === incoming._id,

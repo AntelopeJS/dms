@@ -24,6 +24,9 @@ const PREFERENCES_URL = pageRoutePath(
  * the shared instant save (a PATCH of the keys it changes); a failed save
  * puts the switches back and keeps the change for a retry.
  *
+ * `isEmailEnabled` answers as the server sends: a locked subject is mailed
+ * whatever is stored, and a subject off in the app is not mailed at all.
+ *
  * @param enabled Whether the page shows them: nothing is read otherwise
  */
 export const useNotificationPreferences = (
@@ -53,7 +56,6 @@ export const useNotificationPreferences = (
     () => !(isStoredRead.value && catalog.isLoaded.value) && !loadFailed.value,
   );
 
-  /** What an e-mail switch the user never touched reads, by its key. */
   const emailDefaults = computed<PreferenceMap>(() =>
     Object.fromEntries(
       catalog.subjects.value.flatMap((subject) =>
@@ -64,7 +66,6 @@ export const useNotificationPreferences = (
     ),
   );
 
-  /** What a switch reads: the stored choice, else its default. */
   const read = (key: string) =>
     preferences.value[key] ?? emailDefaults.value[key] ?? true;
 
@@ -82,15 +83,10 @@ export const useNotificationPreferences = (
   const isEnabled = (subject: NotificationSubject) =>
     read(subjectPreferenceKey(subject));
 
-  /**
-   * As the server sends it: a locked subject is mailed whatever is stored,
-   * and a subject off in the app is not mailed at all.
-   */
   const isEmailEnabled = (subject: NotificationSubject) =>
     subject.locked === true ||
     (isEnabled(subject) && read(emailPreferenceKey(subject)));
 
-  /** The row's state cell sums up its in-app and e-mail switches. */
   const rowState = (subject: NotificationSubject): SaveStatusState =>
     combineSaveStates([
       instant.states[subjectPreferenceKey(subject)],
@@ -116,7 +112,6 @@ export const useNotificationPreferences = (
       ),
     );
 
-  /** Reads the preferences and the catalog again (a retry). */
   const load = async () => {
     await Promise.all([
       stored.refresh({ dedupe: "defer" }),

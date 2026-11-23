@@ -160,7 +160,6 @@ function createFormNotices(
       : t(value.slice(1), params ?? {});
   };
 
-  /** Shows a server-authored notice next to the ordinary success toast. */
   const showSubmitNotice = (response: FormSubmitAnswer | undefined) => {
     const notice = response?.notice;
     if (!isFormSubmitNotice(notice) || !notice.title) return;
@@ -173,7 +172,6 @@ function createFormNotices(
     });
   };
 
-  /** Puts a refused submit's field errors under its fields, if any. */
   const showServerFieldErrors = (
     error: Parameters<typeof resolveFormFieldErrors>[0],
   ): boolean => {
@@ -236,7 +234,6 @@ function createSavedForm(context: ReturnType<typeof createFormNotices>) {
     allFields,
   } = context;
 
-  /** Puts every field back to the value it opened with. */
   const restoreInitialValues = (): void => {
     const restored = computeResetState(state.value, initialValues.value);
     Object.assign(state.value, {
@@ -249,7 +246,6 @@ function createSavedForm(context: ReturnType<typeof createFormNotices>) {
     });
   };
 
-  /** Marks values clean before the accepted submit emits its success event. */
   const markSubmitSaved = (): void => {
     submitSucceeded.value = true;
     if (props.kind === "action") restoreInitialValues();
@@ -257,7 +253,6 @@ function createSavedForm(context: ReturnType<typeof createFormNotices>) {
     options.onSaved?.();
   };
 
-  /** Applies the saved record without clearing the saved flag in the watcher. */
   const applyStoredRecord = async (stored: FormStateValues): Promise<void> => {
     lifecycle.isApplyingSavedRecord = true;
     Object.assign(state.value, stored);
@@ -266,7 +261,6 @@ function createSavedForm(context: ReturnType<typeof createFormNotices>) {
     lifecycle.isApplyingSavedRecord = false;
   };
 
-  /** Re-reads a saved record, keeping intervening edits or failed-read values. */
   const refreshSavedRecord = async (): Promise<void> => {
     let stored: FormStateValues | undefined;
     try {
@@ -279,7 +273,6 @@ function createSavedForm(context: ReturnType<typeof createFormNotices>) {
     await applyStoredRecord(stored);
   };
 
-  /** Uses response fields as the saved record, otherwise re-reads fetchUrl. */
   const showSavedRecord = async (
     response: FormSubmitAnswer | undefined,
   ): Promise<void> => {
@@ -343,7 +336,6 @@ function createFormSubmission(context: ReturnType<typeof createSavedForm>) {
     presenter.presentError(null, { fallbackKey: "dms.form.error_no_target" });
   };
 
-  /** Sends through submit events, marking accepted data clean before success. */
   const sendSubmit = async (
     submitUrl: string,
     body: FormData,
@@ -373,7 +365,6 @@ function createFormSubmission(context: ReturnType<typeof createSavedForm>) {
     return submitResponse;
   };
 
-  /** Reports a refused save under its field when possible, otherwise as a toast. */
   const reportSubmitError = (
     error: Parameters<typeof resolveFormFieldErrors>[0],
   ): void => {
@@ -442,7 +433,6 @@ function createFormActions(context: ReturnType<typeof createFormSubmission>) {
     }
   };
 
-  /** Saves only changed fields without success toasts, rejecting refused saves. */
   const submitChanges = async (
     changes: Parameters<typeof snapshotFormState>[0],
   ): Promise<void> => {
@@ -475,6 +465,18 @@ function createFormActions(context: ReturnType<typeof createFormSubmission>) {
   return { ...context, onSubmit, submitChanges, reset };
 }
 
+/**
+ * The state and the actions of a form block.
+ *
+ * An accepted submit marks the values clean before its success event goes out.
+ *
+ * After a save the form shows the record the response answers, else the one
+ * `fetchUrl` reads again; an edit made meanwhile, or a failed read, keeps the
+ * values on screen.
+ *
+ * `submitChanges` saves only changed fields without success toasts, and
+ * rejects a refused save.
+ */
 export const useForm = (props: FormProps, options: UseFormOptions = {}) => {
   const context = createFormActions(
     createFormSubmission(

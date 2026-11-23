@@ -1,10 +1,6 @@
 <script setup lang="ts">
 import { useMockupShortcutKeys } from "../../composables/block-preview/useMockupShortcutKeys";
 
-/**
- * What the canvas is waiting for while a tool is armed: a click to place a
- * comment, or a click to place the armed block, and the key that cancels it.
- */
 defineProps<{
   mode: { kind: "comment" } | { kind: "place"; name: string };
 }>();

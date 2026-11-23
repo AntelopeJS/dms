@@ -20,6 +20,9 @@ const FOLLOW_INTERVAL_MS = 1000;
  * The first read comes with the page (`useApiData`): a server render waits
  * for it and hands it over, so the tiles render with their store details and
  * never move once mounted.
+ *
+ * A frontend that never reports keeps the page as is: the page says what to
+ * run instead.
  */
 export const useModuleStore = () => {
   const { $authFetch } = useAuthFetch();
@@ -36,7 +39,6 @@ export const useModuleStore = () => {
       initial.data.value = value ?? null;
     },
   });
-  /** The last follow-up read's failure; `null` once one succeeds. */
   const followError = ref<unknown>(undefined);
   const loadingError = computed<unknown>(() =>
     followError.value === undefined
@@ -50,7 +52,6 @@ export const useModuleStore = () => {
         })
       : null,
   );
-  /** Modules an operation from this page changed, until the frontend follows. */
   const awaitingReload = ref(new Set<string>());
   let followTimer: ReturnType<typeof setTimeout> | undefined;
 
@@ -76,12 +77,6 @@ export const useModuleStore = () => {
   let isStopped = false;
   let stopWaiting: (() => void) | undefined;
 
-  /**
-   * Starts following once mounted: reads again only when the first read
-   * failed, or something moves; a listing already on screen stays as is.
-   * A read still in flight (a client navigation, or the background read of a
-   * return to the page) is waited for until it settles.
-   */
   function start(): void {
     isStopped = false;
     stopWaiting?.();
@@ -102,11 +97,6 @@ export const useModuleStore = () => {
     scheduleFollow();
   }
 
-  /**
-   * Reloads the page once every module an operation from here changed is
-   * served by the frontend (or has no interface at all). A frontend that
-   * never reported stays put: the page says what to run instead.
-   */
   function reloadWhenServed(): void {
     if (import.meta.env.SSR || awaitingReload.value.size === 0) return;
     const changed = (listing.value?.modules ?? []).filter((entry) =>
@@ -131,10 +121,6 @@ export const useModuleStore = () => {
     followTimer = setTimeout(() => void load(), FOLLOW_INTERVAL_MS);
   }
 
-  /**
-   * Starts `kind` on `entry`, with `body` when it carries more than the id;
-   * rejects with the server's answer when refused.
-   */
   async function run(
     kind: StoreOperationKind,
     entry: StoreListingEntry,

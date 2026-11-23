@@ -49,6 +49,10 @@ function always(act: () => void): () => boolean {
  * Escape a field of the inspector left, and by an Escape the preview frame
  * reports. Escape steps back from the innermost
  * thing going on: an armed block, the comment tool, a pin, the selection.
+ *
+ * A key pressed outside a field is read in the capture phase, before the
+ * page's other listeners, and none of them sees one a shortcut acted on; a
+ * field's Escape is read in the bubble phase, once the field had its turn.
  */
 export function useMockupViewerShortcuts(
   options: ViewerShortcutsOptions,
@@ -74,7 +78,6 @@ export function useMockupViewerShortcuts(
     return hasSelection;
   }
 
-  /** A shortcut that acts on the selected block: it does nothing, and leaves the key to the browser, without one. */
   function onSelection(act: () => void): () => boolean {
     return () => {
       if (editing.selection.value === undefined) return false;
@@ -83,7 +86,6 @@ export function useMockupViewerShortcuts(
     };
   }
 
-  /** What each shortcut of the table does; true when it did, so the browser's own action is held back. */
   const actions: Record<MockupShortcutId, () => boolean> = {
     left_panel: always(() => panels.toggle("left")),
     right_panel: always(() => panels.toggle("right")),
@@ -108,7 +110,6 @@ export function useMockupViewerShortcuts(
     close_preview: always(() => (options.isPreviewing.value = false)),
   };
 
-  /** What the canvas shows, which decides the shortcuts that fire. */
   const view = computed((): MockupView => {
     if (options.isOverview.value) {
       return options.isReadOnly.value ? "overview_version" : "overview";
@@ -121,14 +122,12 @@ export function useMockupViewerShortcuts(
     return matchShortcuts(event, view.value).some((id) => actions[id]());
   }
 
-  /** A key pressed outside a field, seen before the page's other listeners: once a shortcut acts, none of them sees it. */
   function onKeydown(event: KeyboardEvent): void {
     if (isFieldKey(event.target) || !run(event)) return;
     event.preventDefault();
     event.stopPropagation();
   }
 
-  /** An Escape a field of the inspector left, with a block selected to step back from, once the field had its turn. */
   function onFieldEscape(event: KeyboardEvent): void {
     if (!isFieldKey(event.target) || editing.selection.value === undefined) {
       return;

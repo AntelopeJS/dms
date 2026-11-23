@@ -1,9 +1,4 @@
 <script setup lang="ts">
-/**
- * What a side panel or a drawer opened on a row shows in place of its
- * component when the row its link names is gone (a 404): the state, and a
- * close button.
- */
 import { computed } from "vue";
 import DmsEmptyState from "../../../../components/empty-state/EmptyState.vue";
 

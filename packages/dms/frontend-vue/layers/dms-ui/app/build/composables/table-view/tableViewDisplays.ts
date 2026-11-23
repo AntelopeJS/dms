@@ -59,7 +59,6 @@ export function useTableViewDisplayOptions<T extends Data>(
         : fallbackDisplayId,
   );
 
-  /** A display the backend config renders by itself, with no client plugin. */
   const isConfigRenderedDisplay = (id: string): boolean =>
     !!resolvedDisplay(id)?.component;
 

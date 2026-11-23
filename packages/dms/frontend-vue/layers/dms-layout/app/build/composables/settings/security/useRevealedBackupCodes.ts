@@ -34,7 +34,6 @@ export function useRevealedBackupCodes(userId: Ref<string | undefined>) {
     isOpen.value = false;
   }
 
-  /** Keeps a freshly issued set for the signed-in account, until shown and closed. */
   function reveal(backupCodes: string[], regenerated = false): void {
     if (!userId.value || !backupCodes.length) return;
     revealed.value = {

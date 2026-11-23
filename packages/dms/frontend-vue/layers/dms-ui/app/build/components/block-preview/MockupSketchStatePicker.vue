@@ -1,12 +1,9 @@
 <script setup lang="ts">
-/**
- * Picks the state a sketch is drawn in: its own `html`, the default, or one
- * of its named states. The pick lives in the viewer, never in the spec.
- */
 defineProps<{
   /** The sketch's named states, in its order. */
   names: readonly string[];
 }>();
+/** The state the sketch is drawn in: its own `html` when undefined, else a named state. The pick lives in the viewer, never in the spec. */
 const state = defineModel<string | undefined>({ required: true });
 
 const { t } = useI18n();

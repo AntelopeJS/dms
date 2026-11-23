@@ -2,12 +2,8 @@
 import type { MockupBlockType } from "../../utils/mockupCatalog";
 import MockupBlockCatalog from "./MockupBlockCatalog.vue";
 
-/**
- * The catalog in a dialog, to pick the block that replaces the one at the
- * spec's `pointer`. It is open while a pointer is set, and picking a block
- * closes it.
- */
 defineProps<{ blocks: readonly MockupBlockType[] }>();
+/** The spec's `pointer` of the block to replace: the dialog is open while it is set, and picking a block closes it. */
 const pointer = defineModel<string>("pointer");
 const emit = defineEmits<{ pick: [pointer: string, type: string] }>();
 

@@ -43,7 +43,6 @@ export function useExpandedRowDetails<T>(
     setEntry(id, row ? { state: "ready", row } : { state: "error" });
   }
 
-  /** Reads the rows among `ids` not read yet. */
   function ensure(ids: string[]): void {
     for (const id of ids) {
       if (!entries.value[id]) detach(load(id));

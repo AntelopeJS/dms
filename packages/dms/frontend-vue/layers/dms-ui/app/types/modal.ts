@@ -1,3 +1,6 @@
+/** Near full-screen, with a scrolling body (imports, multi-step flows). */
+type FullModalSize = "full";
+
 export type ModalSize =
   | "sm"
   | "md"
@@ -7,5 +10,4 @@ export type ModalSize =
   | "3xl"
   | "4xl"
   | "5xl"
-  /** Near full-screen, with a scrolling body (imports, multi-step flows). */
-  | "full";
+  | FullModalSize;

@@ -6,6 +6,9 @@ const PROFILE_ENDPOINT = pageRoutePath("/settings/user/profile");
  * reads the session again: the interface follows the session's language, so
  * it would otherwise revert to the previously stored one. Every language
  * switcher goes through it.
+ *
+ * A failed profile write or session read stays silent: the interface has
+ * already switched.
  */
 export function useUserLanguage() {
   const dmsApp = useDmsApp();
@@ -13,11 +16,6 @@ export function useUserLanguage() {
   const userSession = useDmsUserSession();
   const { user } = userSession;
 
-  /**
-   * Switches the interface to `language`, then stores it on the profile and
-   * reads the session again. A failed profile write or session read stays
-   * silent: the interface has already switched.
-   */
   async function changeLanguage(language: string): Promise<void> {
     await dmsApp.$i18n.setLocale(language);
 

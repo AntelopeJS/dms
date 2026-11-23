@@ -136,6 +136,9 @@ function postText(path: string, element: Element): void {
  * the parent window, applies the theme and locale, and reports `ready`, each
  * height change and errors back to it. While inspecting, it also reports
  * where each block sits and the text a double-click lands on.
+ *
+ * Block positions post at the next frame, only when they differ from the last,
+ * except after a render, which the parent waits to see drawn.
  */
 export function useBlockPreviewEmbed(options: EmbedOptions): BlockPreviewEmbed {
   const tree = ref<PreviewTree | undefined>(options.initialState?.tree);
@@ -152,11 +155,6 @@ export function useBlockPreviewEmbed(options: EmbedOptions): BlockPreviewEmbed {
   let lastLayout: string | undefined;
   let isForced = false;
 
-  /**
-   * Posts where the blocks sit at the next frame. An observed change posts
-   * only a layout that differs from the last; `force` posts it anyway, for a
-   * render the parent waits to see drawn.
-   */
   function reportLayout(force = false): void {
     if (!inspecting.value) return;
     isForced ||= force;

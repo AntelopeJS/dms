@@ -5,15 +5,10 @@ import MockupPinTray from "./MockupPinTray.vue";
 import MockupResolveBar from "./MockupResolveBar.vue";
 import MockupShortcutTip from "./MockupShortcutTip.vue";
 
-/**
- * What floats over the canvas around the page or the Overview: the ✕ that
- * closes the page on screen, the tray of pins, the banner of the tool armed,
- * and the bar that resolves the open comments with the assistant. While the
- * canvas is locked, in Preview or on a past version, only the ✕ stays.
- */
 defineProps<{
   /** A page is on screen: the ✕ shows. */
   hasOpenPage: boolean;
+  /** In Preview or on a past version: only the ✕ stays over the canvas. */
   isLocked: boolean;
   pins: MockupPins;
   mode: { kind: "comment" } | { kind: "place"; name: string } | undefined;

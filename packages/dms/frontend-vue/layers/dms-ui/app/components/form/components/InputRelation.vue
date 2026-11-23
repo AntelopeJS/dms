@@ -74,9 +74,9 @@ export interface RelationProps<
 }
 
 const SEARCH_DEBOUNCE_MS = 200;
-// How long the menu's content gets to leave the page before the add form opens
-// anyway, and the beat its focus return takes once it has.
+/** How long the menu's content gets to leave the page before the add form opens anyway. */
 const MENU_CLOSE_MAX_MS = 1000;
+/** The beat the menu's focus return takes once its content has left. */
 const MENU_FOCUS_SETTLE_MS = 60;
 
 type ModelValue = SelectMenuEmits<T, "value", M>["update:modelValue"][0];
@@ -135,7 +135,7 @@ const instanceId = useId();
 const searchTerm = ref("");
 const searchTermDebounced = refDebounced(searchTerm, SEARCH_DEBOUNCE_MS);
 
-// The form this picker fills, whose `filterBy.from` field narrows it.
+/** The form this picker fills, whose `filterBy.from` field narrows it. */
 const formContext = inject(FORM_ENTRY_CONTEXT_KEY, null);
 const filterSourceValue = computed(() =>
   props.filterBy && formContext
@@ -151,9 +151,9 @@ const filterParams = computed(() =>
       )
     : {},
 );
-// A string, so a recomputed but equal filter does not search again.
+/** A string, so a recomputed but equal filter does not search again. */
 const filterKey = computed(() => JSON.stringify(filterParams.value));
-// The source value the record loaded with, which its loaded pick matches.
+/** The source value the record loaded with, which its loaded pick matches. */
 const loadedFilterSource = filterSourceValue.value;
 
 const { $authFetch } = useAuthFetch();
@@ -168,12 +168,18 @@ const { clearGuards } = useLeaveGuard();
 await loadPermissions().catch(() => {});
 
 const addContainerId = `relation-add-${useId()}`;
-// Shallow: `SelectMenuItem` carries a string index signature, so a deeply
-// unwrapped item is an unbounded type for the checker. The list is always
-// replaced, never mutated in place.
+/**
+ * Shallow: `SelectMenuItem` carries a string index signature, so a deeply
+ * unwrapped item is an unbounded type for the checker. The list is always
+ * replaced, never mutated in place.
+ */
 const locallyAddedItems: Ref<SelectMenuItem[]> = shallowRef([]);
-// The rows of the ids the value holds, read from the `select` route when the
-// form's data answers the ids rather than the joined rows.
+/**
+ * The rows of the ids the value holds, read from the `select` route when the
+ * form's data answers the ids rather than the joined rows. The picker shows a
+ * value through its item: an id no item carries yet is labelled (and given its
+ * avatar) from its row before the picker is opened.
+ */
 const valueItems: Ref<SelectMenuItem[]> = shallowRef([]);
 
 const canAdd = computed(
@@ -299,7 +305,7 @@ const { data, status, execute } = await useDmsAsyncData(
     lazy: true,
     immediate: false,
     watch: [searchTermDebounced, filterKey],
-    // Options to pick from, not the page's data.
+    /** Options to pick from, not the page's data. */
     refreshOnPageRefresh: false,
   },
 );
@@ -310,7 +316,6 @@ function isMappableObject(value: unknown): value is Record<string, unknown> {
 
 const initialItems = computed(() => {
   if (!props.initialValue) return [];
-  // The loaded row matched the loaded source value, not another one.
   if (!sameFormValue(filterSourceValue.value, loadedFilterSource)) return [];
 
   const values = Array.isArray(props.initialValue)
@@ -380,8 +385,10 @@ watch(
   { immediate: true },
 );
 
-// The pick as the form holds it, read alongside the source field: a record
-// loading both values changes them in the same tick.
+/**
+ * The pick as the form holds it, read alongside the source field: a record
+ * loading both values changes them in the same tick.
+ */
 const pickValue = computed(() =>
   formContext && props.id
     ? formContext.state.value[props.id]
@@ -389,7 +396,6 @@ const pickValue = computed(() =>
 );
 let pickSource = loadedFilterSource;
 
-// A pick made for another value of the source field is void once it changes.
 watch(
   [filterSourceValue, pickValue],
   ([source, pick], [prevSource, prevPick]) => {
@@ -441,12 +447,17 @@ const forwardedSlotNames = computed(() =>
 const labeledIds = computed(
   () => new Set(mergedItems.value.map((item) => String(itemValue(item)))),
 );
-// Asked once each: an id the route does not answer (deleted, out of reach)
-// keeps showing as is rather than being asked again.
+/**
+ * Asked once each: an id the route does not answer (deleted, out of reach)
+ * keeps showing as is rather than being asked again.
+ */
 const requestedIds = new Set<string>();
 
-// The ids the route did not answer (deleted, out of reach), shown as "Not
-// found" with the id on hover.
+/**
+ * The ids the route did not answer (deleted, out of reach), shown as "Not
+ * found" with the id on hover. Each stays a pickable item, so the value can
+ * still be deselected.
+ */
 const notFoundIds: Ref<ReadonlySet<string>> = shallowRef(new Set());
 
 async function loadValueItems(ids: string[]) {
@@ -459,7 +470,6 @@ async function loadValueItems(ids: string[]) {
   valueItems.value = [
     ...valueItems.value,
     ...rows.map(mapData),
-    // Kept pickable, so the value can still be deselected.
     ...missing.map((id) => ({
       label: t("dms.form.relation.not_found"),
       value: id,
@@ -475,8 +485,6 @@ const notFoundTitle = computed(() => {
   return ids.length ? ids.join(", ") : undefined;
 });
 
-// The picker shows a value through its item: an id no item carries yet is
-// labelled (and given its avatar) from its row before the picker is opened.
 onMounted(() => {
   watch(
     () =>

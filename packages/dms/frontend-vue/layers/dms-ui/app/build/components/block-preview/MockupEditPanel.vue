@@ -12,10 +12,6 @@ import MockupPagesList from "./MockupPagesList.vue";
 
 type PanelTab = "add" | "layers" | "pages";
 
-/**
- * Edit mode's left panel: the block catalog, the page's layers, the pages. A
- * click on a block of the catalog arms it for a click on the page.
- */
 defineProps<{
   blocks: readonly MockupBlockType[];
   hasCatalogFailed: boolean;
@@ -26,6 +22,7 @@ defineProps<{
   currentPage: string | undefined;
 }>();
 const emit = defineEmits<{
+  /** A block of the catalog was clicked: it is armed for a click on the page. */
   arm: [type: string];
   dragStart: [type: string];
   dragEnd: [];

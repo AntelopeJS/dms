@@ -1,8 +1,4 @@
 <script setup lang="ts">
-/**
- * An icon name typed in, drawn beside the field as it is typed: a page's
- * icon in its inspector, a section's from its menu.
- */
 defineProps<{ modelValue: string }>();
 const emit = defineEmits<{ "update:modelValue": [value: string] }>();
 </script>

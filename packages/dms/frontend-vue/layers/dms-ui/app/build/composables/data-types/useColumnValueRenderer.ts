@@ -76,7 +76,6 @@ export function useColumnValueRenderer() {
     };
   };
 
-  /** Whether the column renders right-aligned figures (amounts, numbers). */
   const isNumericColumn = (column: RenderableColumn): boolean => {
     const { typeId } = resolveRenderer(column);
     return !!typeId && !column.display && NUMERIC_TYPE_IDS.has(typeId);
@@ -119,7 +118,6 @@ export function useColumnValueRenderer() {
     return formatted;
   };
 
-  /** Renders the column's value read off `row`. */
   const renderColumnValue = (
     column: RenderableColumn,
     row: NonNullable<Parameters<DataTypeFormatter>[3]>,

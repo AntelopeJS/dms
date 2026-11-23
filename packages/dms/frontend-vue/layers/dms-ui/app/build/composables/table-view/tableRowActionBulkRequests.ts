@@ -31,10 +31,6 @@ const createBulkRequest = (config: TableRowActionsConfig) => {
     },
   });
 
-  /**
-   * Sends a bulk request; resolves how many of the rows it reached. A failed
-   * request rejects, for the caller to show where the user is looking.
-   */
   const requestBulkAction = async (
     ids: string[],
     bulkConfig: BulkActionConfig,
@@ -66,7 +62,6 @@ const createBulkReporter = (
   services: TableRowActionServices,
 ) => {
   const { toast, t, processI18n } = services;
-  /** Toasts what a bulk action changed, and refreshes the table. */
   const reportBulkSuccess = (
     processed: number,
     actionConfig: boolean | RowActionConfig | undefined,
@@ -95,13 +90,6 @@ export const createTableRowBulkOutcomes = (
   const errorPresenter = useApiErrorPresenter();
   const requestBulkAction = createBulkRequest(config);
   const reportBulkSuccess = createBulkReporter(config, services);
-  /**
-   * The `onConfirm` of a bulk action's dialog: the request runs inside it,
-   * so a refusal stays on screen, the dialog open for a retry or a cancel.
-   * Rows a row rule refuses are left out by the server: when none went the
-   * dialog says so (an error), when only some did the rest is done, the
-   * table refreshed, and the dialog sums up what was refused.
-   */
   const bulkActionRun =
     (
       ids: string[],
@@ -121,10 +109,6 @@ export const createTableRowBulkOutcomes = (
       if (shortfall) return { partial: shortfall };
     };
 
-  /**
-   * A bulk action without a dialog (a restore): its outcome is toasted, an
-   * error when the request failed or no row went through.
-   */
   const performDirectBulkAction = async (
     ids: string[],
     actionConfig: boolean | RowActionConfig | undefined,

@@ -1,10 +1,6 @@
 <script setup lang="ts">
 import { ref } from "vue";
 
-/**
- * The bar over the canvas while an old version is previewed: which one, that
- * a newer one arrived when it did, and the two ways out. Restoring asks first.
- */
 defineProps<{
   /** The number of the version previewed. */
   seq: number;

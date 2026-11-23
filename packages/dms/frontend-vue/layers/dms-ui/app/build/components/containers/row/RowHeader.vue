@@ -1,11 +1,4 @@
 <script setup lang="ts">
-/**
- * The header the DMS draws over a row opened in a side panel or a drawer:
- * the title (naming the row when the target words it), the row's position
- * among the rows the table shows, and previous / next (J and K too). The
- * container adds its close button in the default slot. A long title wraps
- * onto two lines before it is cut (a ticket subject, a site name on a phone).
- */
 import { computed } from "vue";
 import type { Component } from "vue";
 import type { ContainerOptions } from "../../../../composables/containers/types";

@@ -36,6 +36,9 @@ type DateInput = string | Date;
 /**
  * Locale-aware dates for the Security and Profile settings, plus the
  * translation of API error codes into sentences.
+ *
+ * `formatRelative` takes `now` so a list formats against its read time, which
+ * the server and the hydrating browser share.
  */
 export function useSecurityFormat() {
   const { locale } = useI18n();
@@ -58,10 +61,6 @@ export function useSecurityFormat() {
       Math.floor((Date.now() - new Date(value).getTime()) / MS_PER_DAY),
     );
 
-  /**
-   * "3 days ago", "in an hour"… or "now" under a minute, as of `now` (a
-   * list's read time, which the server and the hydrating browser share).
-   */
   const formatRelative = (value: DateInput, now = Date.now()): string => {
     const elapsed = new Date(value).getTime() - now;
     const formatter = new Intl.RelativeTimeFormat(locale.value, {
@@ -72,15 +71,10 @@ export function useSecurityFormat() {
     return formatter.format(Math.round(elapsed / fit.ms), fit.unit);
   };
 
-  /**
-   * @param cause What `$authFetch` threw
-   * @param fallbackKey Message used when the error carries no known code
-   */
   const errorMessage = (cause: unknown, fallbackKey: string): string => {
     return errorPresenter.resolveError(cause, { fallbackKey })?.message ?? "";
   };
 
-  /** @returns The error code (`error.xxx`) the API answered with, if any */
   const errorCode = (cause: unknown): string | undefined =>
     isCodedFetchError(cause) ? cause.data : undefined;
 

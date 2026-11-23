@@ -8,18 +8,18 @@ import {
   previewNavigation,
 } from "#dms-ui/app/entries/composables/block-preview/previewNavigation";
 
-/**
- * The block preview's frame: nothing around the blocks, so an embedding page
- * sizes the iframe to them and a capture crops to them. A mockup's `render`
- * adds the dashboard's own sidebar, listing its pages, and the top bar over
- * the page. The frame grows with its content, and keeps the sidebar's size
- * to itself, never in the dashboard's storage. A mockup's sidebar starts
- * open whatever the dashboard's starts as, so its pages show.
- */
 defineOptions({
   inheritAttrs: false,
 });
 
+/**
+ * Nothing around the blocks, so an embedding page sizes the iframe to them and
+ * a capture crops to them.
+ *
+ * The frame grows with its content, and keeps the sidebar's size to itself,
+ * never in the dashboard's storage. A mockup's sidebar starts open whatever
+ * the dashboard's starts as, so its pages show.
+ */
 const FRAME_CLASS = "static inset-auto items-stretch overflow-visible";
 
 useSidebarState().collapsed.value = false;

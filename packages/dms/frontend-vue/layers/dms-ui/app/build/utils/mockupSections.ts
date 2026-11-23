@@ -15,6 +15,12 @@ import {
  * each category of the spec in the menu's order.
  */
 
+/** Its pages go to the default section. */
+type RemoveCategoryEdit = { kind: "removeCategory"; category: string };
+
+/** `to` is the category's index among the categories once it moved. */
+type MoveCategoryEdit = { kind: "moveCategory"; category: string; to: number };
+
 /** One change to the sidebar's sections, from the left panel or the preview's sidebar. */
 export type MockupSectionEdit =
   | { kind: "addCategory"; title: string }
@@ -25,10 +31,8 @@ export type MockupSectionEdit =
       /** Empty removes it. */
       icon?: string;
     }
-  /** Its pages go to the default section. */
-  | { kind: "removeCategory"; category: string }
-  /** `to` is the category's index among the categories once it moved. */
-  | { kind: "moveCategory"; category: string; to: number }
+  | RemoveCategoryEdit
+  | MoveCategoryEdit
   | {
       kind: "movePageTo";
       page: string;

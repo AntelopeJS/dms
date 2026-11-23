@@ -1,32 +1,25 @@
 <script setup lang="ts">
-/**
- * Renders framed app widgets (see `useAppWidgets`) as a vertical stack of
- * low-opacity icon chips anchored in the bottom-left corner of the content
- * panel, inset 0.625rem (10px at the default interface scale) from its
- * edges. A chip lights up to full opacity on hover or keyboard focus and its
- * `body` component unfolds into an animated card that overlays the page to
- * the right — the other chips stay put.
- *
- * Meant to be dropped into the `#footer` slot of the dashboard panel, whose
- * root is `relative`, so the absolute positioning anchors to the content panel
- * (it does not scroll with the body).
- *
- * Shown from `sm` only: on a phone the chips sat for good over the start of
- * what a page pins to its bottom edge (a table's item count, a form's save
- * bar), and hover-to-unfold has no touch equivalent there. Below `xl`, where
- * the page gutter is narrow, several widgets fold behind a single launcher
- * chip that unfolds the stack on hover or focus (a tap focuses it), so the
- * dock covers one chip of the page instead of a column of them.
- */
 import { isNumber } from "#dms-core/app/utils/type-check";
 
 const LAUNCHER_ICON = "i-ph-squares-four-light";
 
+/**
+ * Drawn in the `#footer` slot of the dashboard panel, whose root is `relative`,
+ * so the dock anchors to the content panel and does not scroll with the body.
+ * Hidden below `sm`: there the chips sat over what a page pins to its bottom
+ * edge (a table's item count, a form's save bar), and hover-to-unfold has no
+ * touch equivalent.
+ */
 const { widgets } = useAppWidgets();
 
 const { t } = useI18n();
 const { processI18n } = useTranslation();
 
+/**
+ * Below `xl`, where the page gutter is narrow, several widgets fold behind a
+ * single launcher chip that unfolds the stack on hover or focus (a tap focuses
+ * it), so the dock covers one chip of the page instead of a column of them.
+ */
 const folds = computed(() => widgets.value.length > 1);
 const launcherDotted = computed(() =>
   widgets.value.some((widget) => widget.badge === "dot"),

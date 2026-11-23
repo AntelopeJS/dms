@@ -34,22 +34,35 @@ export interface AuthFieldErrorTarget {
 }
 
 /**
+ * Focuses the first field in error. A page disables its fields while the
+ * request runs: the focus waits for its `finally` to enable them again.
+ */
+function focusFirstFormError(form: AuthFormHandle): void {
+  setTimeout(() => {
+    const [first] = form.getErrors();
+    if (first?.id) document.getElementById(first.id)?.focus();
+  });
+}
+
+/**
  * The errors of an auth form, following the dashboard's error rule: one that
  * belongs to a field shows under that field (marked invalid, focused), any
  * other shows inline above the fields (`AuthFormAlert`) instead of a toast
  * that disappears before it is read. Translated when set, so it can be set
  * after an `await` without the i18n context.
+ *
+ * A page served to a visitor carries only the messages its render read, and
+ * the presenter's lookups do not load the rest, so the error messages are
+ * loaded before any is resolved.
+ *
+ * `showError` resolves whether the error went under a field; `false` means it
+ * went above the form.
  */
 export function useAuthFormError() {
   const errorPresenter = useApiErrorPresenter();
   const { i18n } = getPluginI18n();
   const formError = ref<AuthFormError | null>(null);
 
-  /**
-   * A page served to a visitor carries only the messages its render read,
-   * and the presenter's lookups do not complete that catalog: the error
-   * messages are loaded before any is resolved.
-   */
   async function loadErrorMessages(): Promise<void> {
     if (!i18n.te(CORE_ERROR_KEY)) await i18n.setLocale(i18n.locale.value);
   }
@@ -71,22 +84,6 @@ export function useAuthFormError() {
     formError.value = null;
   }
 
-  /**
-   * Focuses the first field in error. A page disables its fields while the
-   * request runs: the focus waits for its `finally` to enable them again.
-   */
-  function focusFirstFormError(form: AuthFormHandle): void {
-    setTimeout(() => {
-      const [first] = form.getErrors();
-      if (first?.id) document.getElementById(first.id)?.focus();
-    });
-  }
-
-  /**
-   * Shows an API error under the field it belongs to, else above the form.
-   *
-   * @returns Whether it went under a field
-   */
   async function showError(
     error: Parameters<typeof resolveFieldErrors>[0],
     titleKey: string,

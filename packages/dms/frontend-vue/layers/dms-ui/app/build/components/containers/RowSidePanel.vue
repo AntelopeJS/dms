@@ -1,15 +1,4 @@
 <script setup lang="ts">
-/**
- * The body of the side panel a `sidePanel` action target opens on a row (see
- * `rowSidePanel.ts`). The DMS draws the header (`RowHeader`, shared with a
- * row drawer): the title, the row's position among the rows the table shows,
- * previous and next (J and K too) and close (Escape too). Below it, the
- * module's component receives the row as a drawer's component does, mounted
- * anew on each row. The position follows the table: a refresh or live rows
- * that move it update it, and a row past the rows loaded (a deep link) is
- * located in the table's whole result. A row the link names but its route answered 404
- * for shows the "not found" state instead, with a close button.
- */
 import { computed, onBeforeUnmount, onMounted, shallowRef, watch } from "vue";
 import DmsRowHeader from "#dms-ui/app/build/components/containers/row/RowHeader.vue";
 import DmsRowNotFound from "#dms-ui/app/build/components/containers/row/RowNotFound.vue";
@@ -26,6 +15,11 @@ import {
 const { t } = useI18n();
 const content = useRowSidePanelContent();
 
+/**
+ * The row's position among the rows the table shows. It follows the table: a
+ * refresh or live rows that move it update it, and a row past the rows loaded
+ * (a deep link) is located in the table's whole result.
+ */
 const navigation = shallowRef<RowNavigation>();
 let stopNavigation: (() => void) | undefined;
 watch(

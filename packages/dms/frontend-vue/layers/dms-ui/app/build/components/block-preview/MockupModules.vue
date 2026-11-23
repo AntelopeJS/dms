@@ -1,13 +1,14 @@
 <script setup lang="ts">
 import type { MockupModule } from "../../utils/mockup";
 
-/**
- * The DMS modules the mockup's app needs, a strip under the top bar in every
- * view, the Overview included, so a reviewer sees them before any page.
- * Each shows its icon and its name, the package building installs on
- * hover. Nothing is drawn while the spec lists none.
- */
-defineProps<{ modules: readonly MockupModule[] }>();
+defineProps<{
+  /**
+   * What the mockup's app needs: nothing is drawn while the spec lists none.
+   * Drawn as a strip under the top bar in every view, the Overview included,
+   * so a reviewer sees them before any page.
+   */
+  modules: readonly MockupModule[];
+}>();
 
 const { t, te } = useI18n();
 
