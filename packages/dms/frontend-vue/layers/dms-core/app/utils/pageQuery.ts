@@ -65,8 +65,10 @@ export function fillRouteParams(
   layoutUrl: string,
   params: Record<string, string>,
 ): string {
-  return layoutUrl.replace(/:([^/]+)/g, (segment, name: string) =>
-    Object.hasOwn(params, name) ? params[name]! : segment,
+  return layoutUrl.replace(
+    /:([^/]+)/g,
+    (segment, name: string) =>
+      (Object.hasOwn(params, name) ? params[name] : undefined) ?? segment,
   );
 }
 

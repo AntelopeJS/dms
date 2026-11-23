@@ -222,9 +222,11 @@ export function validationIssueMessage(issue: ValidationIssue): string {
   }
 }
 
+type PathedIssue = ValidationIssue & { path: unknown[] };
+
 function isIssueList(
   body: ReturnType<typeof bodyOf>,
-): body is Array<ValidationIssue & { path: unknown[] }> {
+): body is [PathedIssue, ...PathedIssue[]] {
   return (
     Array.isArray(body) &&
     body.length > 0 &&
@@ -242,9 +244,7 @@ function partPath(path: readonly unknown[]): string | undefined {
     : undefined;
 }
 
-function fromIssues(
-  issues: Array<ValidationIssue & { path: unknown[] }>,
-): ApiFieldError[] {
+function fromIssues(issues: PathedIssue[]): ApiFieldError[] {
   return issues.map((issue) => {
     const path = issue.path;
     const [field] = path;
@@ -297,12 +297,13 @@ function fromCodedFields(body: FieldErrorBody): ApiFieldError[] | undefined {
 function fromText(text: string): ApiFieldError[] {
   const prefixed = FIELD_PREFIXED_MESSAGE.exec(text);
   if (prefixed) {
-    const [, field, message] = prefixed;
-    const part = partPath(field!.split("."));
+    const [, field = "", message = ""] = prefixed;
+    const segments = field.split(".");
+    const part = partPath(segments);
     return [
       {
-        field: field!.split(".")[0]!,
-        message: isI18nKey(message!) ? message! : FIELD_ERROR_KEYS.invalid,
+        field: segments[0] ?? field,
+        message: isI18nKey(message) ? message : FIELD_ERROR_KEYS.invalid,
         ...(part && { path: part }),
       },
     ];
@@ -415,11 +416,10 @@ export function describeFieldErrors(
   const entries = fromCodedFields(body);
   if (!entries?.length) return undefined;
   return entries
-    .map(({ field, message }) =>
-      translate(NAMED_FIELD_ERROR_KEYS[message]!, {
-        field: labelOf(field) ?? field,
-      }),
-    )
+    .flatMap(({ field, message }) => {
+      const key = NAMED_FIELD_ERROR_KEYS[message];
+      return key ? [translate(key, { field: labelOf(field) ?? field })] : [];
+    })
     .join(" ");
 }
 
@@ -443,7 +443,7 @@ export function apiErrorText(
   error: Parameters<typeof resolveApiErrorMessage>[0],
 ): string | undefined {
   const body = bodyOf(error);
-  if (isIssueList(body)) return validationIssueMessage(body[0]!);
+  if (isIssueList(body)) return validationIssueMessage(body[0]);
   const text = codeOf(body);
   return text || undefined;
 }
@@ -559,7 +559,8 @@ export function useFieldErrors<F extends string>(
       fields: fieldIds,
       codes: options.codes,
     });
-    if (fields.length === 0) return false;
+    const [firstEntry] = fields;
+    if (!firstEntry) return false;
     clear();
     for (const entry of fields) {
       if (!isField(entry.field)) continue;
@@ -568,7 +569,7 @@ export function useFieldErrors<F extends string>(
         params: entry.params,
       })?.message;
     }
-    const first = fields[0]!.field;
+    const first = firstEntry.field;
     if (isField(first)) await focus(first);
     return !hasUnmatched;
   }

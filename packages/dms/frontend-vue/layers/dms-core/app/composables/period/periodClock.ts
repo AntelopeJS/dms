@@ -80,19 +80,26 @@ function utcOf(wall: WallTime): number {
 /** The calendar of `timeZone`, through `Intl` whatever zone the code runs in. */
 export function zonedClock(timeZone: string): PeriodClock {
   const wall = (date: Date): WallTime => {
-    const parts = Object.fromEntries(
+    const parts = new Map<string, number>(
       zonedFormatter(timeZone)
         .formatToParts(date)
         .filter((part) => WALL_PARTS.includes(part.type))
         .map((part) => [part.type, Number(part.value)]),
     );
+    const part = (type: string): number => {
+      const value = parts.get(type);
+      if (value === undefined) {
+        throw new Error(`Intl returned no ${type} for ${timeZone}`);
+      }
+      return value;
+    };
     return {
-      year: parts.year!,
-      month: parts.month! - 1,
-      day: parts.day!,
-      hours: parts.hour!,
-      minutes: parts.minute!,
-      seconds: parts.second!,
+      year: part("year"),
+      month: part("month") - 1,
+      day: part("day"),
+      hours: part("hour"),
+      minutes: part("minute"),
+      seconds: part("second"),
       milliseconds: date.getUTCMilliseconds(),
     };
   };

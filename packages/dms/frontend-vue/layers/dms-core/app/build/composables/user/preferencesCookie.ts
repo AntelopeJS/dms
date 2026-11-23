@@ -131,7 +131,8 @@ export const writeAt = (
   keys: string[],
   value: PreferencesTree[string],
 ): void => {
-  const lastKey = keys.at(-1)!;
+  const lastKey = keys.at(-1);
+  if (lastKey === undefined) return;
   let current = tree;
   for (const key of keys.slice(0, -1)) {
     const next = current[key];

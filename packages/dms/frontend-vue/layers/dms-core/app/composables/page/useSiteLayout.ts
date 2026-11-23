@@ -68,11 +68,12 @@ function buildParamBag(names: string[], values: string[]) {
   const params: Record<string, string> = {};
 
   names.forEach((name, index) => {
-    const value = values[index]!;
+    const value = values[index];
+    if (value === undefined) return;
     const occurrence = (seen.get(name) ?? 0) + 1;
     seen.set(name, occurrence);
     params[name] = value;
-    if (totals.get(name)! > 1) {
+    if ((totals.get(name) ?? 0) > 1) {
       params[occurrenceKey(name, occurrence)] = value;
     }
   });
@@ -544,12 +545,15 @@ export function useRenderedSiteLayout(): void {
       const { siteLayout, siteLayoutTree, quickActions, modules, isOwner } =
         state;
 
-      return siteLayout.value
+      return siteLayout.value &&
+        siteLayoutTree.value &&
+        quickActions.value &&
+        modules.value
         ? {
             siteLayout: toRaw(siteLayout.value),
-            siteLayoutTree: toRaw(siteLayoutTree.value!),
-            quickActions: toRaw(quickActions.value!),
-            modules: toRaw(modules.value!),
+            siteLayoutTree: toRaw(siteLayoutTree.value),
+            quickActions: toRaw(quickActions.value),
+            modules: toRaw(modules.value),
             isOwner: isOwner.value,
           }
         : null;

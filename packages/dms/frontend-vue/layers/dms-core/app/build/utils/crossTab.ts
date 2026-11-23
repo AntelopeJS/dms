@@ -51,7 +51,9 @@ export function browserCrossTabEnvironment(): CrossTabEnvironment {
 }
 
 /** Whether the tabs can share: without both APIs each tab stays on its own. */
-export function canShareAcrossTabs(environment: CrossTabEnvironment): boolean {
+export function canShareAcrossTabs(
+  environment: CrossTabEnvironment,
+): environment is Required<CrossTabEnvironment> {
   return !!environment.locks && !!environment.createChannel;
 }
 
@@ -64,7 +66,7 @@ export function openTabBus(
     for (const listener of Array.from(listeners)) listener(message);
   };
   const channel = canShareAcrossTabs(environment)
-    ? environment.createChannel!(name)
+    ? environment.createChannel(name)
     : undefined;
   if (channel) channel.onmessage = (event) => deliver(event.data);
   return {
@@ -99,8 +101,8 @@ export function electLeader(
   const abort = new AbortController();
   let isResigned = false;
   let stepDown: (() => void) | undefined;
-  environment
-    .locks!.request(name, { signal: abort.signal }, () => {
+  environment.locks
+    .request(name, { signal: abort.signal }, () => {
       if (isResigned) return;
       return new Promise<void>((resolve) => {
         const stop = lead();
@@ -135,8 +137,8 @@ export function holdLock(
   let release: (() => void) | undefined;
   let isReleased = false;
   const held = new Promise<void>((resolveHeld) => {
-    environment
-      .locks!.request(name, { signal: abort.signal }, () => {
+    environment.locks
+      .request(name, { signal: abort.signal }, () => {
         if (isReleased) return;
         resolveHeld();
         return new Promise<void>((resolve) => {
@@ -167,8 +169,8 @@ export function whenReleased(
   signal: AbortSignal,
 ): void {
   if (!canShareAcrossTabs(environment)) return;
-  environment
-    .locks!.request(name, { signal }, () => {
+  environment.locks
+    .request(name, { signal }, () => {
       if (!signal.aborted) onReleased();
     })
     .catch(() => {});
