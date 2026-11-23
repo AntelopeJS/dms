@@ -124,12 +124,6 @@ export const useAuthFetch = () => {
     baseFetch.raw(request, options),
   );
 
-  /**
-   * The session-retrying fetch with `defaults` under each call's options, as
-   * `$fetch.create` merges them, so a retry resends the options of its first
-   * attempt: the call and `raw` retry, `native` is the platform fetch, and
-   * `create` adds defaults to a fetch that retries too.
-   */
   function withSession(defaults: AuthFetchArgs[1]): AuthFetch {
     const optionsOf = (options?: AuthFetchArgs[1]) => ({
       ...defaults,

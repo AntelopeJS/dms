@@ -287,14 +287,6 @@ const useSiteLayoutRequests = () => {
     await loadingPromise.value;
   };
 
-  /**
-   * Re-reads the menu and the page on screen from the server, for a change
-   * the backend announced (a realtime menu invalidation) or a switch of
-   * session. The pages prefetched on hover are dropped first: each carries
-   * the layout and the access of before. A navigation that starts meanwhile
-   * drops the reload's answer, and the page it opens still carries the layout
-   * the reload meant to replace: that page is reloaded in turn.
-   */
   const resync = async (): Promise<void> => {
     inertiaRouter.flushAll();
     const path = window.location.pathname;
@@ -432,15 +424,6 @@ export const useSiteLayout = () => {
     clearPageLayoutCaches,
   } = useSiteLayoutRequests();
 
-  /**
-   * The layout of a page, cached by its layout URL. `query` is the page
-   * URL's, which the first request carries for the header buttons whose
-   * availability reads it (the header asks again for another query).
-   */
-  /**
-   * The layout of the page at `slug`, cached under it. `url`, the layout
-   * route with the page's `:id` filled in, is what is asked when it differs.
-   */
   const loadPageLayout = async (
     slug: string,
     query?: Record<string, string>,

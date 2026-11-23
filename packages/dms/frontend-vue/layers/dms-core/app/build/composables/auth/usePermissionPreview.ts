@@ -120,7 +120,6 @@ function createPreviewSharing() {
     writeStorage(localStorage, storageKey(id), JSON.stringify(session));
   }
 
-  /** Open a preview tab on `path`; returns the id to keep it in sync. */
   function start(input: PermissionPreviewInput, path: string): string {
     pruneStaleSessions(Date.now());
     const id = newPreviewId();
@@ -129,7 +128,6 @@ function createPreviewSharing() {
     return id;
   }
 
-  /** Push the editor's latest edits to an open preview tab. */
   function update(id: string, input: PermissionPreviewInput): void {
     if (readStorage(localStorage, storageKey(id)) === null) return;
     share(id, input);
@@ -222,11 +220,6 @@ export function usePermissionPreview() {
     return isPreviewEntryLocked(isActive.value, hiddenEntries.value, fullId);
   }
 
-  /**
-   * How a menu entry, settings item or overview card is drawn: `hidden` when
-   * the role could not open it, `partial` when it opens it without some of
-   * its blocks, actions or entries. Always `null` outside a preview.
-   */
   function entryState(fullId: string | undefined): PreviewEntryState | null {
     return resolvePreviewEntryState(
       isActive.value,
@@ -236,12 +229,10 @@ export function usePermissionPreview() {
     );
   }
 
-  /** Whether a header action of the current page is drawn locked. */
   function isHeaderActionHidden(id: string | undefined): boolean {
     return isPreviewEntryLocked(isActive.value, hiddenHeaderActions.value, id);
   }
 
-  /** Whether a quick action (`category:id`) is drawn locked. */
   function isQuickActionHidden(key: string | undefined): boolean {
     return isPreviewEntryLocked(isActive.value, hiddenQuickActions.value, key);
   }
@@ -249,15 +240,10 @@ export function usePermissionPreview() {
   const sharing = createPreviewSharing();
   const { start, update } = sharing;
 
-  /**
-   * Turn this tab into a preview when it was opened as one (or reloaded while
-   * being one). Returns whether it did.
-   */
   function activate(): boolean {
     return activatePreviewTab(state, sharing);
   }
 
-  /** Ask the server what the role changes on the menu and on `path`. */
   async function refresh(path: string): Promise<void> {
     const session = state.session.value;
     if (!session) return;
@@ -283,7 +269,6 @@ export function usePermissionPreview() {
     }
   }
 
-  /** Leave the preview: close the tab it opened, or go back to the editor. */
   function exit(): void {
     const session = state.session.value;
     state.session.value = null;
@@ -298,10 +283,6 @@ export function usePermissionPreview() {
     }, CLOSE_FALLBACK_DELAY_MS);
   }
 
-  /**
-   * Forget every preview this browser holds, on sign-out: the next account to
-   * sign in here must not find the previous one's role and drafts.
-   */
   function purge(): void {
     state.session.value = null;
     state.result.value = null;
