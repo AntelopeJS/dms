@@ -69,6 +69,7 @@ export const usePreferences = () => {
 
   const getPreference = <T = unknown>(keyPath: string, defaultValue?: T): T => {
     const value = readAt(tree.value, keyPath.split("."));
+    // SAFETY: Holds while the preferences cookie was written by this version and each caller names as T the type its setPreference writes under keyPath: the tree is that cookie decoded, so the value read back has that type or is undefined.
     return (value === undefined ? defaultValue : value) as T;
   };
 

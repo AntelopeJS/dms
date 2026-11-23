@@ -21,7 +21,7 @@ const theme = tv({
 const emits = defineEmits<MenuImportEmits>();
 const { t } = useI18n();
 
-const { importConfig } = useTableConfigClipboard<T>();
+const { importConfig } = useTableConfigClipboard();
 
 const code = ref("");
 

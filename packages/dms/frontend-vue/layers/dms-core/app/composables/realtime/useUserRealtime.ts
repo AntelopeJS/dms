@@ -13,7 +13,7 @@ import {
   isString,
   isUndefined,
 } from "../../utils/type-check";
-import { isJsonObject } from "../../build/utils/json";
+import { isJsonObject, type JsonObject } from "../../build/utils/json";
 import { isRecord } from "../../build/utils/record";
 import type { JsonValue } from "../../types/json";
 
@@ -161,14 +161,16 @@ const isSnapshotEntry = (
 const isSnapshotEvent = (
   eventName: string,
   data: RealtimeFrameData,
-): data is RealtimeSnapshotEvent =>
+): data is RealtimeSnapshotEvent & JsonObject =>
   eventName === SNAPSHOT_EVENT &&
   isRecord(data) &&
   isString(data.topic) &&
   Array.isArray(data.entries) &&
   data.entries.every(isSnapshotEntry);
 
-const isRealtimeEvent = (data: RealtimeFrameData): data is RealtimeEvent =>
+const isRealtimeEvent = (
+  data: RealtimeFrameData,
+): data is RealtimeEvent & JsonObject =>
   !!data &&
   isObject(data) &&
   isString(data.topic) &&

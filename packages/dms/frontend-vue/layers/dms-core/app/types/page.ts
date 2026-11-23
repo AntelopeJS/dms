@@ -190,11 +190,11 @@ export interface QuickActionsPayload {
   actions: Record<string, QuickActionInfo>;
 }
 
-export interface ComponentChild<T = object> {
+export interface ComponentChild<T = object, Extra = unknown> {
   id: string;
   component: ComponentInfo<T>;
   slot?: string;
-  [key: string]: unknown;
+  [key: string]: string | ComponentInfo<T> | Extra | undefined;
 }
 
 export interface ComponentInfo<T = object> {

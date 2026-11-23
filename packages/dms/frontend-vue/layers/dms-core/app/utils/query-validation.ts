@@ -12,9 +12,10 @@ export function validateRequiredQueryParams(
   });
 }
 
-export interface ValidationRouteContext {
-  query: Record<string, unknown>;
-  params: ValidationRouteContext["query"];
+/** The route a validation reads: `Value` is what each query entry holds. */
+export interface ValidationRouteContext<Value = unknown> {
+  query: Record<string, Value>;
+  params: Record<string, Value>;
 }
 
 export type ValidationFunction = (route: ValidationRouteContext) => boolean;

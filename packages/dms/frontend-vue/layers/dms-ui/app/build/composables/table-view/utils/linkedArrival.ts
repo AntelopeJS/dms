@@ -5,7 +5,10 @@ import {
   type TableField,
 } from "#dms-core/app/entries/composables/user/tablePreferences";
 import type { QueryParamFilters } from "../../../../composables/table-view/types/config";
-import type { TablePreferences } from "../useTablePreferences";
+import type {
+  TablePreferences,
+  TablePreferenceValues,
+} from "../useTablePreferences";
 import { RECORD_URL_KEY } from "./recordLink";
 import { readTableUrlKey, type TableUrlScope, writeTableUrlKey } from "./views";
 
@@ -214,11 +217,13 @@ export function isLinkedVisit(visit: TableLinkVisit): boolean {
 }
 
 /** A kept field of the listing state, with its value shown and default. */
-export type KeptListingField = [
-  field: TableField,
-  value: unknown,
-  defaultValue: unknown,
-];
+export type KeptListingField = {
+  [F in TableField]: [
+    field: F,
+    value: TablePreferenceValues[F] | undefined,
+    defaultValue: TablePreferenceValues[F] | undefined,
+  ];
+}[TableField];
 
 /** What `linkFollowingPreferences` reads the table's link state from. */
 export interface LinkFollowingOptions {

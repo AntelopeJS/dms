@@ -5,6 +5,7 @@
  * row 2 once its unit changes, and row 3 once its own does, never row 1.
  * A submit still checks every row.
  */
+import type { z } from "zod";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { defineComponent, h, nextTick } from "vue";
 import Form from "@nuxt/ui/components/Form.vue";
@@ -50,7 +51,7 @@ const LINES = {
   },
 };
 
-const SCHEMA = {
+const SCHEMA: z.core.JSONSchema.BaseSchema = {
   type: "object",
   properties: {
     lines: {

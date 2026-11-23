@@ -1,8 +1,7 @@
-import type { jsonSchemaToZod } from "json-schema-to-zod";
+import type { z } from "zod";
 import type { FormFieldOrGroup, FormSection, FormSectionNav } from "./field";
 import type { FormSubmitResponse } from "./api";
 import type { FormData } from "./value";
-import type { validateFormState } from "../../../build/composables/form/formValidation";
 import type {
   FormKind,
   FormSaveMode,
@@ -54,14 +53,11 @@ export interface FormProps extends FormComponentProps {
   backTo?: string;
   successMessage?: string;
   errorMessage?: string;
-  schema?: Parameters<typeof jsonSchemaToZod>[0];
+  schema?: z.core.JSONSchema.BaseSchema;
   watchActions?: WatchAction[];
   onSuccessCallback?: (response?: FormSubmitResponse, data?: FormData) => void;
   fieldsOrientation?: "horizontal" | "vertical";
-  submitDefaults?: Record<
-    string,
-    Parameters<typeof validateFormState>[1][string]
-  >;
+  submitDefaults?: FormData;
   containerId?: string;
   redirectOnSuccess?: string;
   /** Field of the loaded row a page form names in the breadcrumb. */

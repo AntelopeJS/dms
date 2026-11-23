@@ -10,30 +10,47 @@ export type RecordWithDefault<T> = Record<string, T> & { default: T };
  * Keys of a data type's `formatter` record: `default` (required), `cell` (a
  * shorter grid rendering), `empty` (drawn instead of the fallback for a
  * null/undefined value), and one per compare mode for filter chips.
+ *
+ * @typeParam Value - What a field of the row holds, the formatted one included.
+ * @typeParam Options - The options of the field's control.
+ * @typeParam Display - What the formatter draws.
  */
-export type DataTypeFormatter = (
-  value: unknown,
+export type DataTypeFormatter<
+  Value = unknown,
+  Options = unknown,
+  Display = unknown,
+> = (
+  value: Value,
   locale: string,
-  options?: unknown,
-  row?: Record<string, unknown>,
-) => unknown;
+  options?: Options,
+  row?: Record<string, Value>,
+) => Display;
 
 /**
  * Reshapes a server value into its form-state representation.
  * Must be idempotent: form reset re-applies the mapper to values that
  * may already be mapped (e.g. restored from a submit-success snapshot).
+ *
+ * @typeParam Value - The field's value, as served and as held.
+ * @typeParam Options - The options of the field's control.
  */
-export type BeforeStateMapper = (value: unknown, options?: unknown) => unknown;
+export type BeforeStateMapper<Value = unknown, Options = unknown> = (
+  value: Value,
+  options?: Options,
+) => Value;
 
 /**
  * Whether two values of a data type are the same value, whatever shape each
  * comes in: a form compares the value it loaded from the server with the one
  * its control holds through it, to tell an edited field from an untouched one.
+ *
+ * @typeParam Value - The field's value, as served and as held.
+ * @typeParam Options - The options of the field's control.
  */
-export type DataTypeValueComparer = (
-  left: unknown,
-  right: unknown,
-  options?: unknown,
+export type DataTypeValueComparer<Value = unknown, Options = unknown> = (
+  left: Value,
+  right: Value,
+  options?: Options,
 ) => boolean;
 
 /**
@@ -42,7 +59,10 @@ export type DataTypeValueComparer = (
  * input refuses `"0"`, a date range wants its two days. The filter itself
  * keeps its text, so the query is unchanged.
  */
-export type DataTypeFilterEditorValue = (text: string, mode: string) => unknown;
+export type DataTypeFilterEditorValue<Value = unknown> = (
+  text: string,
+  mode: string,
+) => Value;
 
 /**
  * Where the rows a value names are read: the `select` route of the table a

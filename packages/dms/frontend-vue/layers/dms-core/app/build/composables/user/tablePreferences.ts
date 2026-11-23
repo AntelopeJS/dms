@@ -1,23 +1,41 @@
-import { isRecord } from "../../utils/record";
+import type {
+  PaginationState,
+  SortingState,
+  VisibilityState,
+} from "@tanstack/vue-table";
 import { isBranch, type PreferencesTree } from "./preferencesCookie";
 import { isNumber, isString } from "../../../utils/type-check";
+
+/** @internal A filter of a table view, as `TableFilter` shapes it. */
+export interface FilterEntry {
+  accessorKey: string;
+  value?: unknown;
+  mode: string;
+  pinned?: boolean;
+  initialValue?: unknown;
+}
 
 /**
  * @internal
  * The state of a table view that the server render reads to list and draw
- * the right rows: kept in the preferences cookie, compactly.
+ * the right rows: kept in the preferences cookie, compactly. Each field maps
+ * to the type of its value.
  */
-export type ServerTableField =
-  | "sorting"
-  | "columnFilters"
-  | "columnVisibility"
-  | "pagination"
-  | "paginationScope"
-  | "activeTab"
-  | "viewMode"
-  | "activeView"
-  | "linkScope"
-  | "shownLink";
+export interface ServerTableValues {
+  sorting: SortingState;
+  columnFilters: FilterEntry[];
+  columnVisibility: VisibilityState;
+  pagination: PaginationState;
+  paginationScope: string;
+  activeTab: string;
+  viewMode: string;
+  activeView: string;
+  linkScope: string;
+  shownLink: string;
+}
+
+/** @internal The fields kept in the preferences cookie. */
+export type ServerTableField = keyof ServerTableValues;
 
 /**
  * @internal
@@ -92,53 +110,27 @@ export const tablePreferenceId = (
     .padStart(TABLE_ID_LENGTH, "0")
     .slice(0, TABLE_ID_LENGTH);
 
-interface SortEntry {
-  id: string;
-  desc: boolean;
-}
-
-interface FilterEntry {
-  accessorKey: string;
-  value?: unknown;
-  mode: string;
-  pinned?: boolean;
-  initialValue?: unknown;
-}
-
-interface PaginationEntry {
-  pageIndex: number;
-  pageSize: number;
-}
-
 /**
  * @internal
- * How a server field is kept: its key in the table's entry, and its compact
- * form. `encode` gets the field's default so that it can keep only what
- * differs from it; a value whose form equals the default's is not written.
+ * How a server field's value of type `V` is kept: its key in the table's
+ * entry, and its compact form. `encode` gets the field's default so that it
+ * can keep only what differs from it; a value whose form equals the default's
+ * is not written. `decode` throws on a stored value that is not a `V`'s form.
  */
-export interface ServerFieldCodec {
+export interface ServerFieldCodec<V> {
   key: string;
-  encode: (
-    value: PreferencesTree[string],
-    defaultValue: PreferencesTree[string],
-  ) => PreferencesTree[string];
-  decode: (
-    stored: PreferencesTree[string],
-    defaultValue: PreferencesTree[string],
-  ) => PreferencesTree[string];
+  encode: (value: V, defaultValue: V | undefined) => PreferencesTree[string];
+  decode: (stored: PreferencesTree[string], defaultValue: V | undefined) => V;
 }
 
-const encodeSorting: ServerFieldCodec["encode"] = (value) => {
-  const sorts = Array.isArray(value) ? value : [];
-  const tokens = sorts.map(
+const encodeSorting: ServerFieldCodec<SortingState>["encode"] = (value) => {
+  const tokens = value.map(
     (sort) => `${sort.desc ? DESCENDING_PREFIX : ""}${sort.id}`,
   );
   return tokens.length === 1 ? tokens[0] : tokens;
 };
 
-const decodeSorting = (
-  stored: Parameters<ServerFieldCodec["decode"]>[0],
-): SortEntry[] => {
+const decodeSorting = (stored: PreferencesTree[string]): SortingState => {
   const tokens = isString(stored) ? [stored] : stored;
   if (!Array.isArray(tokens)) throw new TypeError("sorting");
   return tokens.map((token: string) => ({
@@ -147,26 +139,22 @@ const decodeSorting = (
   }));
 };
 
-const isSameValue = (
-  left: Parameters<ServerFieldCodec["encode"]>[0],
-  right: Parameters<ServerFieldCodec["encode"]>[0],
-): boolean => JSON.stringify(left) === JSON.stringify(right);
+const isSameValue = <V>(left: V, right: V): boolean =>
+  JSON.stringify(left) === JSON.stringify(right);
 
-const encodeFilters: ServerFieldCodec["encode"] = (value) =>
-  (Array.isArray(value) ? value : [])
+const encodeFilters: ServerFieldCodec<FilterEntry[]>["encode"] = (value) =>
+  value
     .filter(
-      (filter: FilterEntry) =>
+      (filter) =>
         !filter.pinned || !isSameValue(filter.value, filter.initialValue),
     )
-    .map((filter: FilterEntry) =>
+    .map((filter) =>
       filter.mode === DEFAULT_FILTER_MODE
         ? [filter.accessorKey, filter.value ?? null]
         : [filter.accessorKey, filter.value ?? null, filter.mode],
     );
 
-const decodeFilters = (
-  stored: Parameters<ServerFieldCodec["decode"]>[0],
-): FilterEntry[] => {
+const decodeFilters = (stored: PreferencesTree[string]): FilterEntry[] => {
   if (!Array.isArray(stored)) throw new TypeError("columnFilters");
   return stored.map(([accessorKey, value, mode]: unknown[]) => ({
     accessorKey: String(accessorKey),
@@ -175,12 +163,12 @@ const decodeFilters = (
   }));
 };
 
-const visibilityOf = (value: Parameters<ServerFieldCodec["encode"]>[0]) =>
-  isBranch(value) ? value : {};
-
-const encodeVisibility: ServerFieldCodec["encode"] = (value, defaultValue) => {
-  const defaults = visibilityOf(defaultValue);
-  return Object.entries(visibilityOf(value))
+const encodeVisibility: ServerFieldCodec<VisibilityState>["encode"] = (
+  value,
+  defaultValue,
+) => {
+  const defaults = defaultValue ?? {};
+  return Object.entries(value)
     .filter(([column, isShown]) => isShown !== (defaults[column] ?? true))
     .map(
       ([column, isShown]) =>
@@ -188,27 +176,26 @@ const encodeVisibility: ServerFieldCodec["encode"] = (value, defaultValue) => {
     );
 };
 
-const decodeVisibility: ServerFieldCodec["decode"] = (stored, defaultValue) => {
+const decodeVisibility: ServerFieldCodec<VisibilityState>["decode"] = (
+  stored,
+  defaultValue,
+) => {
   if (!Array.isArray(stored)) throw new TypeError("columnVisibility");
-  const changes = stored.map((token: string) => [
+  const changes = stored.map((token: string): [string, boolean] => [
     token.slice(1),
     token.startsWith(SHOWN_PREFIX),
   ]);
-  return { ...visibilityOf(defaultValue), ...Object.fromEntries(changes) };
+  return { ...defaultValue, ...Object.fromEntries(changes) };
 };
 
-const isPaginationEntry = (value: unknown): value is PaginationEntry =>
-  isRecord(value) && isNumber(value.pageIndex) && isNumber(value.pageSize);
-
-const encodePagination: ServerFieldCodec["encode"] = (value) => {
-  if (!isPaginationEntry(value)) return undefined;
+const encodePagination: ServerFieldCodec<PaginationState>["encode"] = (
+  value,
+) => {
   const { pageIndex, pageSize } = value;
   return pageIndex === FIRST_PAGE_INDEX ? pageSize : [pageSize, pageIndex];
 };
 
-const decodePagination = (
-  stored: Parameters<ServerFieldCodec["decode"]>[0],
-): PaginationEntry => {
+const decodePagination = (stored: PreferencesTree[string]): PaginationState => {
   const pair: unknown[] = Array.isArray(stored)
     ? stored
     : [stored, FIRST_PAGE_INDEX];
@@ -219,10 +206,13 @@ const decodePagination = (
   return { pageIndex, pageSize };
 };
 
-const plainField = (key: string): ServerFieldCodec => ({
+const stringField = (key: string): ServerFieldCodec<string> => ({
   key,
   encode: (value) => value,
-  decode: (stored) => stored,
+  decode: (stored) => {
+    if (!isString(stored)) throw new TypeError(key);
+    return stored;
+  },
 });
 
 /**
@@ -231,7 +221,7 @@ const plainField = (key: string): ServerFieldCodec => ({
  * `"-name"`, a filter `["status", "open"]`, a hidden column `"-email"`, a
  * page size `50`.
  */
-export const SERVER_TABLE_FIELDS: Record<ServerTableField, ServerFieldCodec> = {
+export const SERVER_TABLE_FIELDS = {
   sorting: { key: "s", encode: encodeSorting, decode: decodeSorting },
   columnFilters: { key: "f", encode: encodeFilters, decode: decodeFilters },
   columnVisibility: {
@@ -240,30 +230,26 @@ export const SERVER_TABLE_FIELDS: Record<ServerTableField, ServerFieldCodec> = {
     decode: decodeVisibility,
   },
   pagination: { key: "p", encode: encodePagination, decode: decodePagination },
-  paginationScope: plainField("q"),
-  activeTab: plainField("t"),
-  viewMode: plainField("d"),
-  activeView: plainField("w"),
-  linkScope: plainField("l"),
-  shownLink: plainField("k"),
+  paginationScope: stringField("q"),
+  activeTab: stringField("t"),
+  viewMode: stringField("d"),
+  activeView: stringField("w"),
+  linkScope: stringField("l"),
+  shownLink: stringField("k"),
+} satisfies {
+  [F in ServerTableField]: ServerFieldCodec<ServerTableValues[F]>;
 };
-
-/** @internal Whether `field` is kept in the cookie. */
-export const isServerTableField = (
-  field: TableField,
-): field is ServerTableField => Object.hasOwn(SERVER_TABLE_FIELDS, field);
 
 /**
  * @internal
  * `value`'s form in the entry, or `undefined` when it equals the default's
  * and is not to be written.
  */
-export const encodeServerField = (
-  field: ServerTableField,
-  value: Parameters<ServerFieldCodec["encode"]>[0],
-  defaultValue: Parameters<ServerFieldCodec["encode"]>[1],
-): ReturnType<ServerFieldCodec["encode"]> => {
-  const codec = SERVER_TABLE_FIELDS[field];
+export const encodeServerField = <V>(
+  codec: ServerFieldCodec<V>,
+  value: V | undefined,
+  defaultValue: V | undefined,
+): PreferencesTree[string] => {
   if (value === undefined) return undefined;
   const encoded = codec.encode(value, defaultValue);
   const encodedDefault =
@@ -273,26 +259,29 @@ export const encodeServerField = (
   return isSameValue(encoded, encodedDefault) ? undefined : encoded;
 };
 
-/** @internal The value `entry` keeps for `field`, else `defaultValue`. */
-export const decodeServerField = <T>(
-  field: ServerTableField,
+/**
+ * @internal
+ * The value `entry` keeps under `codec`, else `defaultValue`: also when
+ * what it keeps is not a form the codec reads.
+ */
+export const decodeServerField = <V, D extends V | undefined>(
+  codec: ServerFieldCodec<V>,
   entry: CompactTableEntry | undefined,
-  defaultValue: T,
-): T => {
-  const codec = SERVER_TABLE_FIELDS[field];
+  defaultValue: D,
+): V | D => {
   const stored = entry?.[codec.key];
   if (stored === undefined) return defaultValue;
   try {
-    return codec.decode(stored, defaultValue) as T;
+    return codec.decode(stored, defaultValue);
   } catch {
     return defaultValue;
   }
 };
 
 /** @internal Whether `value` is the field's default, not to be written. */
-export const isDefaultValue = (
-  value: Parameters<ServerFieldCodec["encode"]>[0],
-  defaultValue: Parameters<ServerFieldCodec["encode"]>[1],
+export const isDefaultValue = <V>(
+  value: V | undefined,
+  defaultValue: V | undefined,
 ): boolean => value === undefined || isSameValue(value, defaultValue);
 
 const localKey = (id: string): string => `${LOCAL_TABLE_KEY_PREFIX}${id}`;

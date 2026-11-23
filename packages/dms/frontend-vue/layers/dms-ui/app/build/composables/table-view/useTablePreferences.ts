@@ -1,19 +1,36 @@
 import { getCurrentInstance, onMounted, type Ref } from "vue";
+import type { ColumnSizingState } from "@tanstack/vue-table";
 import {
   type CompactTableEntry,
   decodeServerField,
   encodeServerField,
   isDefaultValue,
-  isServerTableField,
   type LocalTableField,
   readLocalTableEntry,
   SERVER_TABLE_FIELDS,
-  type ServerTableField,
+  type ServerFieldCodec,
+  type ServerTableValues,
   type TableField,
   TABLES_PREFERENCE_KEY,
   tablePreferenceId,
   writeLocalTableEntry,
 } from "#dms-core/app/entries/composables/user/tablePreferences";
+import type { TableDensity } from "../../components/table/Table.types";
+import type { UserTableView } from "./utils/views";
+
+/** The state of a table view that only the browser draws, by field. */
+export interface LocalTableValues extends Record<LocalTableField, unknown> {
+  columnOrder: string[];
+  columnSizing: ColumnSizingState;
+  density: TableDensity;
+  filtersOpen: boolean;
+  kanbanGroupBy: string;
+  groupedGroupBy: string;
+  userViews: UserTableView[];
+}
+
+/** The type of the value each preference field keeps. */
+export type TablePreferenceValues = ServerTableValues & LocalTableValues;
 
 /**
  * The preferences of one table view. A field the server render needs
@@ -23,20 +40,32 @@ import {
  */
 export interface TablePreferences {
   /** A server field's stored value, else `defaultValue`; a local field's default. */
-  get: <T>(field: TableField, defaultValue: T) => T;
+  get: <F extends TableField, D extends TablePreferenceValues[F] | undefined>(
+    field: F,
+    defaultValue: D,
+  ) => TablePreferenceValues[F] | D;
   /** Stores `value`, or forgets the field when `value` is its default. */
-  set: <T>(field: TableField, value: T, defaultValue: T) => void;
+  set: <F extends TableField>(
+    field: F,
+    value: TablePreferenceValues[F] | undefined,
+    defaultValue: TablePreferenceValues[F] | undefined,
+  ) => void;
   /**
    * Sets `state` to the local field's stored value once the table is
    * mounted, unless `isValid` refuses it or `state` already holds it: the
    * server and the hydrating client render the default, so no mismatch.
    */
-  restore: <T>(
-    field: LocalTableField,
-    state: Ref<T>,
-    isValid?: (value: T) => boolean,
+  restore: <F extends LocalTableField>(
+    field: F,
+    state: Ref<TablePreferenceValues[F]>,
+    isValid?: (value: TablePreferenceValues[F]) => boolean,
   ) => void;
 }
+
+/** The codec of each server field; a local field has none. */
+const SERVER_CODECS: {
+  [F in TableField]?: ServerFieldCodec<TablePreferenceValues[F]>;
+} = SERVER_TABLE_FIELDS;
 
 type StoredValue = ReturnType<typeof readLocalTableEntry>[string];
 
@@ -74,14 +103,14 @@ function useServerTableEntry(id: string) {
     removePreference(isLastEntry ? TABLES_PREFERENCE_KEY : path);
   };
 
-  const set = (
-    field: ServerTableField,
-    value: Parameters<typeof encodeServerField>[1],
-    defaultValue: Parameters<typeof encodeServerField>[2],
+  const set = <V>(
+    codec: ServerFieldCodec<V>,
+    value: V | undefined,
+    defaultValue: V | undefined,
   ) => {
-    const { key } = SERVER_TABLE_FIELDS[field];
+    const { key } = codec;
     const next = { ...entry() };
-    const encoded = encodeServerField(field, value, defaultValue);
+    const encoded = encodeServerField(codec, value, defaultValue);
     if (JSON.stringify(next[key]) === JSON.stringify(encoded)) return;
     if (encoded === undefined) Reflect.deleteProperty(next, key);
     else next[key] = encoded;
@@ -101,9 +130,9 @@ function useServerTableEntry(id: string) {
 
 const setLocalField = (
   id: string,
-  field: LocalTableField,
-  value: Parameters<typeof isDefaultValue>[0],
-  defaultValue: Parameters<typeof isDefaultValue>[1],
+  field: TableField,
+  value: TablePreferenceValues[TableField] | undefined,
+  defaultValue: TablePreferenceValues[TableField] | undefined,
 ) => {
   const entry = readLocalTableEntry(id);
   if (isDefaultValue(value, defaultValue)) {
@@ -142,14 +171,17 @@ export function useTablePreferences(
   }
 
   return {
-    get: (field, defaultValue) =>
-      isServerTableField(field)
-        ? decodeServerField(field, server.entry(), defaultValue)
-        : defaultValue,
-    set: (field, value, defaultValue) =>
-      isServerTableField(field)
-        ? server.set(field, value, defaultValue)
-        : setLocalField(id, field, value, defaultValue),
+    get: (field, defaultValue) => {
+      const codec = SERVER_CODECS[field];
+      return codec
+        ? decodeServerField(codec, server.entry(), defaultValue)
+        : defaultValue;
+    },
+    set: (field, value, defaultValue) => {
+      const codec = SERVER_CODECS[field];
+      if (codec) server.set(codec, value, defaultValue);
+      else setLocalField(id, field, value, defaultValue);
+    },
     restore: (field, state, isValid) => {
       const target: RestoreTarget = { state, isValid };
       pending.push({ field, apply: (value) => restoreInto(target, value) });

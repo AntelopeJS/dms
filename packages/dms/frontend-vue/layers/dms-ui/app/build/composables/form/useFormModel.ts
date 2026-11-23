@@ -1,6 +1,5 @@
 import { z } from "zod";
 import { onMounted, unref } from "vue";
-import { jsonSchemaToZod } from "json-schema-to-zod";
 import type { FormProps } from "../../../composables/form/types";
 import { FormEvents } from "../../../composables/form/types/events";
 import type {
@@ -48,9 +47,14 @@ const INTERNAL_STATE_KEYS = new Set([
 
 function isFormFieldValue(value: unknown): value is FormFieldValue {
   if (value === null || isString(value) || isNumber(value)) return true;
-  if (isBoolean(value)) return true;
+  if (isBoolean(value) || value instanceof Date) return true;
   if (Array.isArray(value)) return value.every(isFormFieldValue);
-  return isPlainObject(value) && Object.values(value).every(isFormFieldValue);
+  return (
+    isPlainObject(value) &&
+    Object.values(value).every(
+      (entry) => entry === undefined || isFormFieldValue(entry),
+    )
+  );
 }
 
 function parseClonedValue(json: string): FormFieldValue {
@@ -69,7 +73,12 @@ export function cloneFormValue(value: StateValue): FormFieldValue | undefined {
 /** The record a form loaded, cloned by value; what is not a plain record clones to none. */
 export function cloneRecordValues(record: FormData): FormData {
   const cloned = parseClonedValue(JSON.stringify(record));
-  return isPlainObject(cloned) ? { ...cloned } : {};
+  if (!isPlainObject(cloned)) return {};
+  const values: FormData = {};
+  for (const [key, value] of Object.entries(cloned)) {
+    if (value !== undefined) values[key] = value;
+  }
+  return values;
 }
 
 /**
@@ -142,13 +151,10 @@ export function createBaseValidationSchema(
 ): z.ZodObject<Record<string, z.ZodTypeAny>> {
   if (!schema) return z.object({});
   try {
-    const zodCode = jsonSchemaToZod(schema, { module: "none" }).replace(
-      /\.strict\(\)$/,
-      ".passthrough()",
-    );
-    return zodObjectSchema.parse(
-      new Function("z", `"use strict"; return (${zodCode})`)(z),
-    );
+    const built = zodObjectSchema.parse(z.fromJSONSchema(schema));
+    return schema.additionalProperties === false
+      ? built.loose()
+      : z.object(built.shape);
   } catch {
     return z.object({});
   }
@@ -167,23 +173,27 @@ export function resolveSubmitTarget(
   return url === undefined ? { missing: "token" } : { url };
 }
 
+/** The values a form's state holds per field, as its inputs read them. */
+export type FormStateValues = { [key: string]: StateValue };
+
+/** `data` with each field's value reshaped by its data type's `beforeStateMapper`. */
 export function processBeforeStateMappers(
   data: FormData,
   fields: FormFieldOrGroup[],
   getDataType: (type: string) => DataType | undefined,
-): FormData {
-  const result = { ...data };
-  const flatFields = flattenFields(fields);
-  for (const field of flatFields) {
-    if (!field.type || result[field.id] === undefined) continue;
+): FormStateValues {
+  const values = new Map<string, StateValue>(Object.entries({ ...data }));
+  for (const field of flattenFields(fields)) {
+    const value = values.get(field.id);
+    if (!field.type || value === undefined) continue;
     const dataType = getDataType(field.type);
     if (!dataType?.beforeStateMapper) continue;
-    result[field.id] = dataType.beforeStateMapper(
-      result[field.id],
-      field.component.options,
-    ) as FormFieldValue;
+    values.set(
+      field.id,
+      dataType.beforeStateMapper(value, field.component.options),
+    );
   }
-  return result;
+  return Object.fromEntries(values);
 }
 
 /** A cleared list submits an empty list; other cleared fields submit null. */
@@ -294,7 +304,11 @@ export function collectSubmitData(
     const initial = context.initialValues?.[field.id];
     if (context.onlyChanged && isSameValue(field, value, initial)) continue;
     if (!isClearedField(field, value)) {
-      fieldData[field.id] = submittedFieldValue(field, value) as FormFieldValue;
+      const submitted = submittedFieldValue(field, value);
+      const sent = isFormFieldValue(submitted)
+        ? submitted
+        : cloneFormValue(submitted);
+      if (sent !== undefined) fieldData[field.id] = sent;
       continue;
     }
     if (field.disabled || context.disabled?.has(field.id)) continue;
@@ -302,7 +316,7 @@ export function collectSubmitData(
     fieldData[field.id] = clearedFieldValue(initial);
   }
   return {
-    ...(context.submitDefaults as FormData | undefined),
+    ...context.submitDefaults,
     ...fieldData,
   };
 }
@@ -332,7 +346,7 @@ export function fieldValuesOfSubmitDefaults(
   if (!submitDefaults) return values;
   for (const { id } of fields) {
     if (id in submitDefaults) {
-      values[id] = submitDefaults[id] as FormFieldValue;
+      values[id] = submitDefaults[id];
     }
   }
   return values;

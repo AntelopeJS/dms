@@ -6,7 +6,8 @@ import {
 } from "../../../../../dms-core/app/utils/type-check";
 import type { UseApexChartInput } from "../../../composables/chart/useApexChart.types";
 
-export type RawOptionSection = Record<string, unknown>;
+/** An options tree for Apex, one entry per key: `Value` is what an entry holds. */
+export type RawOptionSection<Value = unknown> = Record<string, Value>;
 
 /** A value an override is written as: JSON, or the text itself when it is not JSON. */
 type RawOptionJson =

@@ -4,7 +4,7 @@ export type FormFieldValue =
   | boolean
   | Date
   | null
-  | Record<string, string>
+  | { [key: string]: FormFieldValue | undefined }
   | FormFieldValue[];
 
 export interface FormData {

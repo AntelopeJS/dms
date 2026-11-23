@@ -4,9 +4,11 @@ import { HttpMethod } from "../layers/dms-core/app/types/http";
 import { isString } from "../layers/dms-core/app/utils/type-check";
 import {
   cloneFormValue,
+  collectSubmitData,
   snapshotFormState,
   useForm,
 } from "../layers/dms-ui/app/composables/form/useForm";
+import type { DataType } from "../layers/dms-core/app/composables/data-types/useDataType";
 
 const authFetch = vi.fn();
 let scope: EffectScope;
@@ -87,6 +89,59 @@ describe("the record a form loaded", () => {
   });
 });
 
+/** An amount in cents that a custom input holds, sent as its decimal value. */
+class Money {
+  constructor(readonly cents: number) {}
+
+  toJSON(): number {
+    return this.cents / 100;
+  }
+}
+
+describe("a data type's beforeStateMapper", () => {
+  function loadWith(dataType: DataType, record: Record<string, string>) {
+    vi.stubGlobal("useDataTypes", () => ({ getDataType: () => dataType }));
+    authFetch.mockResolvedValue(record);
+    return formOf({
+      fields: [
+        {
+          id: "price",
+          type: dataType.id,
+          component: { componentName: "money-input" },
+        },
+      ],
+    }).fetchData();
+  }
+
+  it("puts the value it returns in the form state, whatever its class", async () => {
+    const loaded = await loadWith(
+      { id: "money", beforeStateMapper: (value) => new Money(Number(value)) },
+      { price: "1250" },
+    );
+    expect(loaded?.price).toEqual(new Money(1250));
+  });
+
+  it("clears the field when it returns undefined", async () => {
+    const loaded = await loadWith(
+      { id: "money", beforeStateMapper: () => undefined },
+      { price: "1250" },
+    );
+    expect(loaded).toHaveProperty("price", undefined);
+  });
+});
+
+describe("the body a form submits", () => {
+  it("sends a value that is no plain form value as its JSON form", () => {
+    const fields = [{ id: "price" }, { id: "range" }];
+    expect(
+      collectSubmitData(
+        { price: new Money(1250), range: ["2026-01-01", undefined] },
+        fields,
+      ),
+    ).toEqual({ price: 12.5, range: ["2026-01-01", null] });
+  });
+});
+
 describe("cloneFormValue", () => {
   it("keeps a value without clone as undefined", () => {
     expect(cloneFormValue(undefined)).toBeUndefined();
@@ -118,5 +173,27 @@ describe("the validation schema of a form", () => {
       schema: { type: "object", properties: { title: { type: "string" } } },
     });
     expect(Object.keys(form.validationSchema.value.shape)).toEqual(["title"]);
+  });
+
+  it("strips a key an open object schema does not name", () => {
+    const form = formOf({
+      schema: { type: "object", properties: { title: { type: "string" } } },
+    });
+    expect(form.validationSchema.value.parse({ title: "a", extra: 1 })).toEqual(
+      { title: "a" },
+    );
+  });
+
+  it("lets a key through when the object schema forbids extra keys", () => {
+    const form = formOf({
+      schema: {
+        type: "object",
+        properties: { title: { type: "string" } },
+        additionalProperties: false,
+      },
+    });
+    expect(form.validationSchema.value.parse({ title: "a", extra: 1 })).toEqual(
+      { title: "a", extra: 1 },
+    );
   });
 });

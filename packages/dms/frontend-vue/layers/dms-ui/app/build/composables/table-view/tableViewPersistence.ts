@@ -1,5 +1,7 @@
 import { watchDebounced } from "@vueuse/core";
-import type { TableStatePreference } from "./tableViewTypes";
+import type { MaybeRef, Ref } from "vue";
+import type { TableField } from "#dms-core/app/entries/composables/user/tablePreferences";
+import type { TablePreferenceValues } from "./useTablePreferences";
 import type { TableViewScope } from "./tableViewScope";
 
 export function useTableViewStatePersistence<T extends Data>(
@@ -33,24 +35,11 @@ export function useTableViewStatePersistence<T extends Data>(
   const { kanbanGroupBy, defaultKanbanGroupBy, density, defaultDensity } =
     scope.displayPreferences;
   const { groupedGroupBy, defaultGroupedGroupBy } = scope.groupingOptions;
-  const tableStatePreferences: TableStatePreference[] = [
-    ...(reorderConfig
-      ? []
-      : [
-          ["sorting", sorting, defaultSortState] satisfies TableStatePreference,
-        ]),
-    ["columnFilters", columnFilters, []],
-    ["columnVisibility", columnVisibility, initialVisibility],
-    ["filtersOpen", filtersRowOpen, hasEmptyDefaultFilter],
-    ["activeTab", activeTabId, ALL_TAB_ID],
-    ["viewMode", activeDisplayId, displayDefault],
-    ["columnOrder", columnOrder, []],
-    ["kanbanGroupBy", kanbanGroupBy, defaultKanbanGroupBy],
-    ["groupedGroupBy", groupedGroupBy, defaultGroupedGroupBy],
-    ["density", density, defaultDensity],
-  ];
-
-  tableStatePreferences.forEach(([field, state, defaultValue]) => {
+  const persist = <F extends TableField>(
+    field: F,
+    state: Ref<TablePreferenceValues[F]>,
+    defaultValue: MaybeRef<TablePreferenceValues[F]>,
+  ) => {
     watch(
       state,
       (newValue) => {
@@ -58,7 +47,18 @@ export function useTableViewStatePersistence<T extends Data>(
       },
       { deep: true },
     );
-  });
+  };
+
+  if (!reorderConfig) persist("sorting", sorting, defaultSortState);
+  persist("columnFilters", columnFilters, []);
+  persist("columnVisibility", columnVisibility, initialVisibility);
+  persist("filtersOpen", filtersRowOpen, hasEmptyDefaultFilter);
+  persist("activeTab", activeTabId, ALL_TAB_ID);
+  persist("viewMode", activeDisplayId, displayDefault);
+  persist("columnOrder", columnOrder, []);
+  persist("kanbanGroupBy", kanbanGroupBy, defaultKanbanGroupBy);
+  persist("groupedGroupBy", groupedGroupBy, defaultGroupedGroupBy);
+  persist("density", density, defaultDensity);
   return {};
 }
 

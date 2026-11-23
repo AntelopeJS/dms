@@ -106,6 +106,7 @@ const { option } = useSortable(root, list, {
     emit("change", { moved: { element, oldIndex, newIndex } });
   },
   onAdd: (event: SortableEvent) => {
+    // SAFETY: Holds while only onStart writes sharedDragged, under its list's group, with an element of that list, and lists of one group hold the same Item type: the group prop is the contract that makes them exchange items.
     const element = sharedDragged.get(draggedKey()) as Item | undefined;
     const { newIndex } = event;
     if (element === undefined || newIndex === undefined) return;

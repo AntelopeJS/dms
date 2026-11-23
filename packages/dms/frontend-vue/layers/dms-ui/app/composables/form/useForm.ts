@@ -22,6 +22,7 @@ import {
   collectSubmitData,
   computeResetState,
   processBeforeStateMappers,
+  type FormStateValues,
   resolveFormFieldErrors,
   resolveSubmitTarget,
   snapshotFormState,
@@ -257,7 +258,7 @@ function createSavedForm(context: ReturnType<typeof createFormNotices>) {
   };
 
   /** Applies the saved record without clearing the saved flag in the watcher. */
-  const applyStoredRecord = async (stored: FormData): Promise<void> => {
+  const applyStoredRecord = async (stored: FormStateValues): Promise<void> => {
     lifecycle.isApplyingSavedRecord = true;
     Object.assign(state.value, stored);
     options.onSaved?.();
@@ -267,7 +268,7 @@ function createSavedForm(context: ReturnType<typeof createFormNotices>) {
 
   /** Re-reads a saved record, keeping intervening edits or failed-read values. */
   const refreshSavedRecord = async (): Promise<void> => {
-    let stored: FormData | undefined;
+    let stored: FormStateValues | undefined;
     try {
       stored = await loadRecord();
     } catch {

@@ -19,6 +19,7 @@ import {
 } from "../layers/dms-core/app/composables/user/usePreferences";
 import {
   decodePreferencesTree,
+  encodePreferencesTree,
   preferencesCookieBytes,
 } from "../layers/dms-core/app/entries/composables/user/preferencesCookie";
 import {
@@ -150,6 +151,41 @@ describe("a table's state in the preferences cookie", () => {
     });
   });
 
+  it("reads a field kept in another shape as its default", () => {
+    const unreadableEntry = {
+      s: 5,
+      f: "x",
+      v: "x",
+      p: "x",
+      q: 7,
+      t: 7,
+      d: {},
+      w: 1,
+      l: [],
+      k: false,
+    };
+    installCookie(
+      encodePreferencesTree({
+        tables: { [tablePreferenceId(COMPONENT_ID, PAGE_ID)]: unreadableEntry },
+      }),
+    );
+    const table = useTablePreferences(COMPONENT_ID, PAGE_ID);
+    expect(table.get("sorting", DEFAULT_SORT)).toEqual(DEFAULT_SORT);
+    expect(table.get("columnFilters", [])).toEqual([]);
+    expect(table.get("columnVisibility", DEFAULT_VISIBILITY)).toEqual(
+      DEFAULT_VISIBILITY,
+    );
+    expect(table.get("pagination", DEFAULT_PAGINATION)).toEqual(
+      DEFAULT_PAGINATION,
+    );
+    expect(table.get("paginationScope", "scope")).toBe("scope");
+    expect(table.get("activeTab", "all")).toBe("all");
+    expect(table.get("viewMode", "table")).toBe("table");
+    expect(table.get("activeView", undefined)).toBeUndefined();
+    expect(table.get("linkScope", undefined)).toBeUndefined();
+    expect(table.get("shownLink", undefined)).toBeUndefined();
+  });
+
   it("does not write a value equal to its default, and forgets one back to it", () => {
     const table = useTablePreferences(COMPONENT_ID, PAGE_ID);
     table.set("sorting", DEFAULT_SORT, DEFAULT_SORT);
@@ -211,7 +247,7 @@ describe("the browser-only state of a table", () => {
   const Density = defineComponent({
     setup() {
       const table = useTablePreferences(COMPONENT_ID, PAGE_ID);
-      const density = ref("default");
+      const density = ref<"default" | "compact">("default");
       table.restore("density", density);
       return () => h("span", density.value);
     },
