@@ -50,14 +50,11 @@ function applyColumnOrder(ordered: ListedColumn[]) {
 const columnKey = (column: ListedColumn) => column.id;
 
 function mapColumns() {
-  return order.value
-    .map((id) => rawColumns.value.find((col) => col.id === id))
-    .filter((col): col is Column<T> => !!col?.columnDef.meta?.label)
-    .map((col) => ({
-      label: col.columnDef.meta!.label!,
-      id: col.id,
-      column: col,
-    }));
+  return order.value.flatMap((id) => {
+    const col = rawColumns.value.find((candidate) => candidate.id === id);
+    const label = col?.columnDef.meta?.label;
+    return col && label ? [{ label, id: col.id, column: col }] : [];
+  });
 }
 
 function toggleColumnVisibility(

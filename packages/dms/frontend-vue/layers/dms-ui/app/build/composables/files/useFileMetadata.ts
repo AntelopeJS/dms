@@ -109,7 +109,8 @@ export function useFileMetadata(storage?: string) {
         getCurrentInstance() || !app ? read() : app.runWithContext(read);
       if (!import.meta.env.SSR) follow(key, started);
       return started;
-    })!;
+    });
+    if (!result) throw new Error("The file metadata scope was stopped");
     reads.set(key, result);
     return result;
   }

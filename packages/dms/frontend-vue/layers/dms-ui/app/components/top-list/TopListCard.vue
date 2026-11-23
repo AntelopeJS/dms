@@ -167,7 +167,7 @@ watch(items, async () => {
 onMounted(measureOverflow);
 
 const rankFillClass = computed(
-  () => RANK_FILL_CLASSES[props.rankColor] ?? RANK_FILL_CLASSES.primary!,
+  () => RANK_FILL_CLASSES[props.rankColor] ?? RANK_FILL_CLASSES.primary,
 );
 
 function isHighlighted(index: number): boolean {

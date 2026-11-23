@@ -37,8 +37,9 @@ function copyOf(box: HTMLElement): HTMLElement {
   table.style.tableLayout = "fixed";
   table.style.width = "100%";
   table.style.borderCollapse = "collapse";
-  table.append(document.createElement("tbody"));
-  table.tBodies[0]!.append(copy);
+  const body = document.createElement("tbody");
+  body.append(copy);
+  table.append(body);
   return table;
 }
 

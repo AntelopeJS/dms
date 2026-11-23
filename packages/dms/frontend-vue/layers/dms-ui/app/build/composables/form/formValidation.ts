@@ -119,8 +119,9 @@ export function unwrapUnionIssue(issue: z.core.$ZodIssue): z.core.$ZodIssue[] {
   const branches = issue.errors.filter(
     (branch) => !branch.every(isTypeMismatch),
   );
-  if (branches.length !== 1) return [issue];
-  return branches[0]!.flatMap((inner) =>
+  const [branch] = branches;
+  if (!branch || branches.length !== 1) return [issue];
+  return branch.flatMap((inner) =>
     unwrapUnionIssue({ ...inner, path: [...issue.path, ...inner.path] }),
   );
 }

@@ -93,8 +93,9 @@ export function hasUnsavedChanges(scope: LeaveScope = {}): boolean {
  */
 export async function confirmLeave(scope: LeaveScope = {}): Promise<boolean> {
   const dirty = pendingUnsavedChanges(scope);
-  if (dirty.length === 0) return true;
-  pendingPrompt ??= dirty[0]!.prompt().finally(() => {
+  const [first] = dirty;
+  if (!first) return true;
+  pendingPrompt ??= first.prompt().finally(() => {
     pendingPrompt = null;
   });
   const shouldLeave = await pendingPrompt;

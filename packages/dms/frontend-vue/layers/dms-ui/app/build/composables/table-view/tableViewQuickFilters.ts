@@ -43,21 +43,22 @@ export function useTableViewQuickFilters<T extends Data>(
   const loadRelationQuickFilters = async () => {
     await Promise.allSettled(
       quickFilterDefinitions
-        .filter((definition) => !definition.items && definition.source)
+        .filter((definition) => !definition.items)
         .map(async ({ filter, source }) => {
+          if (!source) return;
           try {
             const response = await $authFetch<
               TableViewListResponse<
                 Parameters<typeof relationQuickFilterItems>[0][number]
               >
-            >(source!.searchUrl, {
+            >(source.searchUrl, {
               query: { limit: RELATION_QUICK_FILTER_LIMIT },
             });
             relationQuickFilterValues.value = {
               ...relationQuickFilterValues.value,
               [filter.field]: relationQuickFilterItems(
                 response.results,
-                source!,
+                source,
               ),
             };
           } catch (error: unknown) {

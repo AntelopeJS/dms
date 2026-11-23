@@ -34,7 +34,10 @@ export function useTableViewLiveHold<T extends Data>(
   const { props } = scope;
   const { deferred } = scope;
   const rowSidePanel = useRowSidePanelContent();
-  const rowSidePanelOwner = rowSidePanelOwnerKey(pageId!, componentId!);
+  const rowSidePanelOwner = rowSidePanelOwnerKey(
+    pageId ?? "",
+    componentId ?? "",
+  );
   const openRowId = computed(() =>
     rowSidePanel.value?.ownerKey === rowSidePanelOwner
       ? rowSidePanel.value.rowKey

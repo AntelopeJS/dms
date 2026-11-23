@@ -37,13 +37,13 @@ export function useTableReorder<T extends ReorderRow>(
 ) {
   const { reorder, data, rowIdKey } = options;
 
-  const save = (edits: { id: string; value: number }[]) =>
+  const save = (field: string, edits: { id: string; value: number }[]) =>
     Promise.all(
       edits.map(({ id, value }) =>
         options.api(`${options.location}/edit`, {
           method: "PUT",
           query: { id },
-          body: { [reorder!.field]: value },
+          body: { [field]: value },
         }),
       ),
     );
@@ -62,7 +62,7 @@ export function useTableReorder<T extends ReorderRow>(
       }),
     };
     try {
-      await save(edits);
+      await save(reorder.field, edits);
     } catch (error) {
       options.onError(error);
       await options.refresh();

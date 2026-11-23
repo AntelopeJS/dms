@@ -219,7 +219,13 @@ export function formatMilliseconds(ms: number, locale: string): string {
   return `${figure} ms`;
 }
 
-const BYTE_SYMBOLS = ["B", "kB", "MB", "GB", "TB"];
+const BYTE_SYMBOLS: readonly [string, ...string[]] = [
+  "B",
+  "kB",
+  "MB",
+  "GB",
+  "TB",
+];
 const BYTE_STEP = 1000;
 
 /** A size in bytes in its most readable unit: "12 kB", "1.4 MB". */
@@ -233,7 +239,7 @@ export function formatBytes(bytes: number, locale: string): string {
   return withSymbol(
     locale,
     size,
-    BYTE_SYMBOLS[unitIndex]!,
+    BYTE_SYMBOLS[unitIndex] ?? BYTE_SYMBOLS[0],
     unitIndex === 0 ? 0 : 1,
   );
 }
@@ -275,7 +281,7 @@ function renderDuration(
   const opts: DurationOptions = options ?? {};
   const ms = numberOf(value) * (DURATION_UNIT_MS[opts.unit ?? "ms"] ?? 1);
   const format =
-    DURATION_FORMATS[opts.format ?? "readable"] ?? DURATION_FORMATS.readable!;
+    DURATION_FORMATS[opts.format ?? "readable"] ?? DURATION_FORMATS.readable;
   return figure(
     format(ms, locale),
     rowToneTextClass(row, opts.toneField, FIGURE_TONE_CLASS),

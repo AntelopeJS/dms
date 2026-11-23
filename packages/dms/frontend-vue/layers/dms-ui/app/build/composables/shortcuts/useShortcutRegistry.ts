@@ -14,14 +14,12 @@ export function useShortcutRegistry() {
       ? component.slice(1)
       : component;
 
-    if (!shortcutsMap.has(componentKey)) {
-      shortcutsMap.set(componentKey, {
-        component,
-        shortcuts: [],
-      });
+    let componentShortcuts = shortcutsMap.get(componentKey);
+    if (!componentShortcuts) {
+      componentShortcuts = { component, shortcuts: [] };
+      shortcutsMap.set(componentKey, componentShortcuts);
     }
 
-    const componentShortcuts = shortcutsMap.get(componentKey)!;
     const signature = shortcutSignature(metadata);
     if (
       componentShortcuts.shortcuts.some(

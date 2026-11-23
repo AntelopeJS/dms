@@ -14,10 +14,13 @@ export function orderFormEntries<T extends FormFieldOrGroup>(
   entries: readonly T[],
 ): T[] {
   const ordered = entries
-    .filter((entry) => entryOrder(entry) !== undefined)
-    .sort((left, right) => entryOrder(left)! - entryOrder(right)!);
+    .flatMap((entry) => {
+      const order = entryOrder(entry);
+      return order === undefined ? [] : [{ entry, order }];
+    })
+    .sort((left, right) => left.order - right.order);
   let next = 0;
   return entries.map((entry) =>
-    entryOrder(entry) === undefined ? entry : ordered[next++]!,
+    entryOrder(entry) === undefined ? entry : (ordered[next++]?.entry ?? entry),
   );
 }

@@ -224,8 +224,12 @@ export function orderGroupedRows<
   const groupOf = new Map<string, number>();
   const entries = rows.map((row, index) => {
     const key = rowGroupKey(get(row, grouped.groupByField), by, locale);
-    if (!groupOf.has(key)) groupOf.set(key, groupOf.size);
-    return { row, index, group: groupOf.get(key)! };
+    let group = groupOf.get(key);
+    if (group === undefined) {
+      group = groupOf.size;
+      groupOf.set(key, group);
+    }
+    return { row, index, group };
   });
   const direction = sort.desc ? -1 : 1;
   const valueOf = (row: T): Parameters<typeof compareValues>[0] =>

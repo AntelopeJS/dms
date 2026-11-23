@@ -114,9 +114,10 @@ export function formatRecordLabel(
   if (!value || !isObject(value) || Array.isArray(value)) {
     return undefined;
   }
+  const language = locale?.split("-")[0];
   const candidates = [
     locale ? value[locale] : undefined,
-    locale ? value[locale.split("-")[0]!] : undefined,
+    language ? value[language] : undefined,
     ...Object.values(value),
   ];
   for (const candidate of candidates) {

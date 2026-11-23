@@ -79,8 +79,8 @@ function convertToTreeItems(
   const groups: NavigationMenuItem[][] = [];
 
   for (const nodeId of node.childrenOrders) {
-    const item = node.children[nodeId]!;
-    if (isExcludedFromRoot(item) || item.placement !== placement) {
+    const item = node.children[nodeId];
+    if (!item || isExcludedFromRoot(item) || item.placement !== placement) {
       continue;
     }
 
@@ -101,9 +101,8 @@ function convertToTreeItems(
 
 function convertChildrenToItems(node: SiteLayoutTree): NavigationMenuItem[] {
   return node.childrenOrders.flatMap((nodeId): NavigationMenuItem[] => {
-    const item = node.children[nodeId]!;
-
-    if (item.isModuleRoot) {
+    const item = node.children[nodeId];
+    if (!item || item.isModuleRoot) {
       return [];
     }
     if (item.hasAccess === false) {
@@ -128,9 +127,8 @@ export function convertSiteLayoutTreeToTreeItemsForModule(
   const pageItems: NavigationMenuItem[] = [];
 
   for (const nodeId of moduleRoot.childrenOrders) {
-    const item = moduleRoot.children[nodeId]!;
-
-    if (item.hasAccess === false) {
+    const item = moduleRoot.children[nodeId];
+    if (!item || item.hasAccess === false) {
       continue;
     }
 

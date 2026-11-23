@@ -52,13 +52,14 @@ const ids = computed(() => reads.value.idsToRead);
 
 const { data } = await useDmsAsyncData(
   () => `cascader-path-${props.searchUrl}-${ids.value.join(",")}`,
-  () =>
-    props.searchUrl && ids.value.length > 0
+  () => {
+    const searchUrl = props.searchUrl;
+    return searchUrl && ids.value.length > 0
       ? readCascaderAncestry(
           (pending) =>
             readRelationRows(
               {
-                searchUrl: props.searchUrl!,
+                searchUrl,
                 keyMapping: { value: keyMapping.value.value },
               },
               pending,
@@ -66,7 +67,8 @@ const { data } = await useDmsAsyncData(
           keyMapping.value,
           ids.value,
         )
-      : Promise.resolve(undefined),
+      : Promise.resolve(undefined);
+  },
 
   { lazy: true, refreshOnPageRefresh: false },
 );

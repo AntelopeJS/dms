@@ -92,7 +92,8 @@ const CELL_TONES: Record<
 export const toneClass = (
   tone: string | undefined,
   fallback = "default",
-): string => CELL_TONES[tone ?? fallback] ?? CELL_TONES[fallback]!;
+): string =>
+  CELL_TONES[tone ?? fallback] ?? CELL_TONES[fallback] ?? CELL_TONES.default;
 
 /**
  * A cell's secondary line with its tone, as a row field holds it. Mirror of

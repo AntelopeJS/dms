@@ -6,8 +6,8 @@ import type {
   FormFieldReadonly,
 } from "../../../composables/form/types/field";
 import {
-  FORM_ENTRY_CONTEXT_KEY,
   fieldErrorPattern,
+  injectFormEntryContext,
 } from "../../composables/form/formEntryContext";
 import { formErrorsInjectionKey } from "@nuxt/ui/composables/useFormField";
 import DmsFormErrorText from "./FormErrorText.vue";
@@ -20,7 +20,7 @@ interface FormFieldControlProps {
 }
 
 const props = defineProps<FormFieldControlProps>();
-const context = inject(FORM_ENTRY_CONTEXT_KEY)!;
+const context = injectFormEntryContext();
 const { state, initialValues, loading } = context;
 const { processI18n } = useTranslation();
 

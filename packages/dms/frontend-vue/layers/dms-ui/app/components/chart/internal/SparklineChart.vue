@@ -51,7 +51,7 @@ const props = withDefaults(defineProps<Props>(), {
 const gradientId = `dms-spark-grad-${useId()}`;
 
 const stroke = computed(
-  () => STROKE_BY_ACCENT[props.accent] ?? STROKE_BY_ACCENT.primary!,
+  () => STROKE_BY_ACCENT[props.accent] ?? STROKE_BY_ACCENT.primary,
 );
 
 const points = computed(() =>

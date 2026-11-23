@@ -72,8 +72,8 @@ export function useTableViewRowActions<T extends Data>(
     formContainer,
     formPages,
     routeParams,
-    componentId: componentId!,
-    pageId: pageId!,
+    componentId: componentId ?? "",
+    pageId: pageId ?? "",
     queryParamFilters,
     rowNavigation: {
       rows: navigableRows,

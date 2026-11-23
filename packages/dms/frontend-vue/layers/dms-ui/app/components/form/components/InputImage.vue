@@ -87,7 +87,7 @@ const createItemFromValue = storedImageItems(files);
 const currentSignature = (): string =>
   valueSignature(
     referencedItems.value.map((item) => ({
-      key: item.key!,
+      key: item.key,
       alt: item.alt || undefined,
       principal: item.principal || undefined,
     })),
@@ -110,7 +110,11 @@ watch(
   },
 );
 
-const referencedItems = computed(() => items.value.filter((item) => item.key));
+const referencedItems = computed(() =>
+  items.value.filter(
+    (item): item is GalleryItem & { key: string } => !!item.key,
+  ),
+);
 
 const maxCount = computed(() => (props.multiple ? (props.max ?? Infinity) : 1));
 const isFull = computed(() => items.value.length >= maxCount.value);
@@ -134,14 +138,15 @@ const formatsHint = computed(() => {
 const ensurePrincipal = () => {
   if (!props.multiple) return;
   const candidates = referencedItems.value;
-  if (!candidates.length) return;
+  const [first] = candidates;
+  if (!first) return;
   if (candidates.some((item) => item.principal)) return;
-  candidates[0]!.principal = true;
+  first.principal = true;
 };
 
 const emitValue = () => {
   const values: ImageItemValue[] = referencedItems.value.map((item) => ({
-    key: item.key!,
+    key: item.key,
     alt: item.alt || undefined,
     ...(props.multiple && { principal: item.principal || undefined }),
   }));
@@ -255,11 +260,12 @@ const addFiles = (files: FileList | File[] | null) => {
       accepted.push(file);
     }
   }
-  if (!accepted.length) return;
+  const [firstAccepted] = accepted;
+  if (!firstAccepted) return;
 
   if (!props.multiple) {
     items.value.forEach(releaseItem);
-    items.value = [createItemFromFile(accepted[0]!)];
+    items.value = [createItemFromFile(firstAccepted)];
     items.value.forEach(runUpload);
     return;
   }
@@ -349,7 +355,8 @@ const reorderItems = (dragId: string, overId: string) => {
 
   const next = [...items.value];
   const [moved] = next.splice(from, 1);
-  next.splice(to, 0, moved!);
+  if (!moved) return;
+  next.splice(to, 0, moved);
   items.value = next;
   emitValue();
 };

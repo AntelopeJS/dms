@@ -89,7 +89,8 @@ const DATE_LABEL_FORMAT: Intl.DateTimeFormatOptions = {
 const modelValue = defineModel<string | undefined | null>();
 
 function convertIsoStringToCalendarDate(value: string): CalendarDate {
-  return parseDate(value.split("T")[0]!);
+  const [date = value] = value.split("T");
+  return parseDate(date);
 }
 
 function convertToCalendarDate(

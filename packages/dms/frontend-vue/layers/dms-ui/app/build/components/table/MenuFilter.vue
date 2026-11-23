@@ -148,9 +148,10 @@ const resetForm = () => {
 };
 
 const addFilter = () => {
-  const filtersValue = tableSharedData.value?.columnFiltersState.value;
+  const shared = tableSharedData.value;
+  const filtersValue = shared?.columnFiltersState.value;
 
-  if (!filtersValue || !currentDataType.value) return;
+  if (!shared || !filtersValue || !currentDataType.value) return;
 
   const existingFilterIndex = filtersValue.findIndex(
     (f) => f.accessorKey === filterForm.value.accessorKey,
@@ -177,7 +178,7 @@ const addFilter = () => {
     filtersValue.push({ ...value, pinned: false });
   }
 
-  tableSharedData.value!.columnFiltersState.value = [...filtersValue];
+  shared.columnFiltersState.value = [...filtersValue];
 
   resetForm();
 

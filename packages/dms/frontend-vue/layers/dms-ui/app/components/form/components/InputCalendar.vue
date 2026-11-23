@@ -70,7 +70,8 @@ defineSlots<CalendarSlots>();
 const { weekStartsOn } = useUserRegionalPreferences();
 
 function convertIsoStringToCalendarDate(value: string): CalendarDate {
-  return parseDate(value.split("T")[0]!);
+  const [date = value] = value.split("T");
+  return parseDate(date);
 }
 
 function convertToCalendarDate(

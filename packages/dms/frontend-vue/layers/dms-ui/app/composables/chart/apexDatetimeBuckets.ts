@@ -70,9 +70,16 @@ function keyOf(day: CalendarDay): string {
   return `${day.year}-${pad(day.month)}-${pad(day.day)}`;
 }
 
+function dayOfKey(key: string): CalendarDay {
+  const match = DATE_ONLY.exec(key);
+  if (!match) throw new Error(`Not a bucket key: ${key}`);
+  const [, year, month, day] = match;
+  return { year: Number(year), month: Number(month), day: Number(day) };
+}
+
 function dateOfKey(key: string): Date {
-  const [, year, month, day] = DATE_ONLY.exec(key)!;
-  return new Date(Number(year), Number(month) - 1, Number(day));
+  const { year, month, day } = dayOfKey(key);
+  return new Date(year, month - 1, day);
 }
 
 function localDay(date: Date): CalendarDay | null {
@@ -166,7 +173,7 @@ function bucketKeys(
   bucket: CalendarBucket,
 ): string[] | null {
   const keys: string[] = [];
-  let cursor = calendarDayOf(first, localDay)!;
+  let cursor = dayOfKey(first);
   while (keyOf(cursor) <= last) {
     keys.push(keyOf(cursor));
     if (keys.length > MAX_BUCKETS) return null;
@@ -219,7 +226,10 @@ function layoutBuckets(
   bucket: CalendarBucket,
 ): DatetimeBuckets | null {
   const sorted = days.flat().map(keyOf).sort();
-  const keys = bucketKeys(sorted[0]!, sorted.at(-1)!, bucket);
+  const first = sorted[0];
+  const last = sorted.at(-1);
+  if (first === undefined || last === undefined) return null;
+  const keys = bucketKeys(first, last, bucket);
   if (!keys) return null;
   const sourceIndexes = sourceIndexesOf(days, keys);
   if (!sourceIndexes) return null;
@@ -259,7 +269,8 @@ export function toBucketSeries(
   return series.map((entry, seriesIndex) => ({
     ...entry,
     data: buckets.keys.map((key, position) => {
-      const point = entry.data[buckets.sourceIndexes[seriesIndex]![position]!];
+      const slots = buckets.sourceIndexes[seriesIndex] ?? [];
+      const point = entry.data[slots[position] ?? -1];
       return isNumber(point) || !isObject(point)
         ? { x: key, y: null }
         : { ...point, x: key };

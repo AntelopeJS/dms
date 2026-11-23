@@ -169,7 +169,7 @@ const searchSectionRef = ref<HTMLElement>();
 const { focused: searchAreaFocused } = useFocusWithin(searchSectionRef);
 
 watch(
-  () => tableSharedData!.globalFilterState.value,
+  () => tableSharedData.globalFilterState.value,
   (newValue) => {
     if (newValue === undefined && searchActive.value) {
       searchActive.value = false;
@@ -261,13 +261,13 @@ const quickFilterItems = (filter: ResolvedQuickFilter) => {
 };
 
 const closeSearch = () => {
-  tableSharedData!.globalFilterState.value = "";
+  tableSharedData.globalFilterState.value = "";
   searchActive.value = false;
 };
 
 const openSearchFromShortcut = createTableViewShiftFShortcut(
   searchActive,
-  tableSharedData!.globalFilterState,
+  tableSharedData.globalFilterState,
   focusSearchBar,
 );
 defineShortcuts(

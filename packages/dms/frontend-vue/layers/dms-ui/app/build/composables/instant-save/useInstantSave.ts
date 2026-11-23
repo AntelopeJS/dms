@@ -195,8 +195,9 @@ class InstantSaveQueue<V extends object> {
       const isShown =
         !this.pending.has(key) &&
         sameFormValue(this.source.read(key), changes[key]);
-      if (isShown) {
-        this.source.write(key, this.confirmed.get(key)!);
+      const confirmed = this.confirmed.get(key);
+      if (isShown && confirmed !== undefined) {
+        this.source.write(key, confirmed);
       }
       this.setState(key, "error");
     }
@@ -246,9 +247,10 @@ export function useInstantSave<V extends object>(
   const changeMany: InstantSave<V>["changeMany"] = (changes) => {
     const keys = saveKeys(changes);
     for (const key of keys) {
+      const value = changes[key];
       saves.remember(key);
-      source.write(key, changes[key]!);
-      saves.put(key, changes[key]);
+      if (value !== undefined) source.write(key, value);
+      saves.put(key, value);
     }
     saves.send(keys).catch(() => undefined);
   };

@@ -45,7 +45,8 @@ function captureAnchor(
   for (const row of root.querySelectorAll(`tr[${ROW_ID_ATTRIBUTE}]`)) {
     const top = row.getBoundingClientRect().top;
     if (top < viewTop) continue;
-    const id = row.getAttribute(ROW_ID_ATTRIBUTE)!;
+    const id = row.getAttribute(ROW_ID_ATTRIBUTE);
+    if (id === null) continue;
     return {
       id,
       row,

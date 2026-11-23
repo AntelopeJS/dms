@@ -132,9 +132,8 @@ const columnCount = computed(() => {
   return Math.min(MAX_COLUMNS, Math.max(MIN_COLUMNS, Math.round(wanted)));
 });
 const columnClass = computed(() => {
-  const steps = (isJoined.value ? JOINED_COLUMNS : CARD_COLUMNS)[
-    columnCount.value
-  ]!;
+  const columns = isJoined.value ? JOINED_COLUMNS : CARD_COLUMNS;
+  const steps = columns[columnCount.value] ?? columns[MIN_COLUMNS];
   const from =
     props.columnsFrom && COLUMNS_FROM[props.columnsFrom][columnCount.value];
   if (!from) return steps;

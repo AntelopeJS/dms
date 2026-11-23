@@ -48,7 +48,8 @@ function buildValueBasedRanges(
   values: number[],
   palette: string[],
 ): ColorScaleRange[] {
-  if (values.length === 0 || palette.length === 0) return [];
+  const lastColor = palette.at(-1);
+  if (values.length === 0 || lastColor === undefined) return [];
   const min = Math.floor(Math.min(...values));
   const max = Math.ceil(Math.max(...values));
   if (min === max) {
@@ -57,7 +58,7 @@ function buildValueBasedRanges(
         from: min,
         to: max,
         name: formatRangeBound(min),
-        color: palette[palette.length - 1]!,
+        color: lastColor,
       },
     ];
   }
@@ -82,10 +83,10 @@ export function applyValueBasedColorScale(
   series: ChartSeries[],
   palette: string[],
 ): void {
-  if (!VALUE_SCALED_TYPES.includes(input.type)) return;
+  const subKey = VALUE_SCALED_PLOT_KEY[input.type];
+  if (!subKey) return;
   if (input.distributed) return;
   if (palette.length < 2) return;
-  const subKey = VALUE_SCALED_PLOT_KEY[input.type]!;
   const subOptions = plotOptions[subKey] ?? {};
   const colors = heatmapRangeColors(
     palette,
