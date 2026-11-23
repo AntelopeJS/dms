@@ -41,7 +41,8 @@ const MODULE_SORT_MODES: readonly ModuleSortMode[] = ["name", "recent"];
 function isModuleSortMode(
   value: JsonValue | undefined,
 ): value is ModuleSortMode {
-  return MODULE_SORT_MODES.some((mode) => mode === value);
+  const modes: readonly unknown[] = MODULE_SORT_MODES;
+  return modes.includes(value);
 }
 
 /** A remembered sort mode, or the default when it is missing or unknown. */

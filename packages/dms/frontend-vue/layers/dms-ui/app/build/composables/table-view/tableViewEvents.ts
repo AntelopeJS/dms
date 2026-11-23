@@ -1,6 +1,6 @@
 import { TableViewEvents } from "../../../composables/table-view/types";
 import { selectedRowIds } from "./utils/bulkActions";
-import { type WatchOptions, type WatchSource } from "vue";
+import type { WatchOptions, WatchSource } from "vue";
 import type { TableViewScope } from "./tableViewScope";
 import { detach } from "../detach";
 

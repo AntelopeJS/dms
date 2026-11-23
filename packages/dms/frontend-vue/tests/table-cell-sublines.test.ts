@@ -141,7 +141,7 @@ const render = (content: () => ReturnType<DataTypeFormatter>): HTMLElement => {
 };
 
 const text = (element: Element | null | undefined) =>
-  element?.textContent?.replace(/[\u00a0\u202f]/g, " ");
+  element?.textContent?.replace(/[\u00A0\u202F]/g, " ");
 
 const retry = {
   key: "$saas.invoice.retry",

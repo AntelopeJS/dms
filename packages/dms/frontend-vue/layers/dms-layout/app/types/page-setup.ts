@@ -31,4 +31,8 @@ export interface PageSetupContext {
  */
 export type PageSetupFunction = (
   context: PageSetupContext,
-) => Promise<PageSetupCleanup | void> | PageSetupCleanup | void;
+) =>
+  | Promise<PageSetupCleanup | undefined>
+  | Promise<void>
+  | PageSetupCleanup
+  | undefined;

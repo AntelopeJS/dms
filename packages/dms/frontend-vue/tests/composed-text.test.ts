@@ -51,7 +51,7 @@ function makeI18n(locale: "en" | "fr" = "en") {
   });
 }
 
-const plainSpaces = (text: string) => text.replace(/[\u00a0\u202f]/g, " ");
+const plainSpaces = (text: string) => text.replace(/[\u00A0\u202F]/g, " ");
 
 function write(
   text: Parameters<typeof resolveComposedText>[0],

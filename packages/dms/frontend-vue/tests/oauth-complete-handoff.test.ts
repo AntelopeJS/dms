@@ -199,14 +199,14 @@ afterEach(() => {
 });
 
 it("consumes the handoff once when the identity refresh remounts the page", async () => {
-  const identityRefresh = Promise.withResolvers<void>();
+  const identityRefresh = Promise.withResolvers<undefined>();
   authFetch.mockImplementation(async (url: string) => {
     if (url === SITE_LAYOUT_URL) await identityRefresh.promise;
     return respond(url);
   });
   mountCompletionPage();
   await vi.waitFor(() => expect(mounts).toBeGreaterThanOrEqual(2));
-  identityRefresh.resolve();
+  identityRefresh.resolve(undefined);
   await vi.waitFor(() =>
     expect(navigate).toHaveBeenCalledWith(HOMEPAGE, { replace: true }),
   );

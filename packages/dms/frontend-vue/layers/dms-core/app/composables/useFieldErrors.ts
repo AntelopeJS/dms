@@ -1,5 +1,5 @@
 import { nextTick, reactive } from "vue";
-import { type I18nTranslate } from "./translation/useTranslation";
+import type { I18nTranslate } from "./translation/useTranslation";
 import { resolveApiErrorMessage } from "./resolveApiError";
 import { isBoolean, isNumber, isObject, isString } from "../utils/type-check";
 
@@ -526,7 +526,8 @@ export function useFieldErrors<F extends string>(
   }
 
   function clear(field?: F): void {
-    for (const key of field ? [field] : fieldIds) delete errors[key];
+    for (const key of field ? [field] : fieldIds)
+      Reflect.deleteProperty(errors, key);
   }
 
   async function focus(field: F): Promise<void> {

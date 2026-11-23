@@ -65,7 +65,7 @@ function type(selector: string, value: string): Promise<void> {
   if (
     !(field instanceof HTMLInputElement || field instanceof HTMLTextAreaElement)
   ) {
-    throw new Error(`no field ${selector}`);
+    throw new TypeError(`no field ${selector}`);
   }
   field.value = value;
   field.dispatchEvent(new Event("input"));

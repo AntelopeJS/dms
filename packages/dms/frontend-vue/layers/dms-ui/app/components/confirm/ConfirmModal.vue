@@ -16,6 +16,7 @@ import {
   ConfirmActionError,
   type ConfirmBodyRender,
   type ConfirmColor,
+  type ConfirmHandlerResult,
   type ConfirmInitialFocus,
   type ConfirmImpact,
   type ConfirmNotice,
@@ -76,9 +77,7 @@ interface ConfirmModalProps {
    * resolving `false` keeps it open (the handler reported the problem);
    * a partial outcome turns it into an acknowledgement of what went through.
    */
-  onConfirm?: (
-    values: ConfirmValues,
-  ) => Promise<void | boolean | ConfirmPartialOutcome>;
+  onConfirm?: (values: ConfirmValues) => ConfirmHandlerResult;
 }
 
 interface ConfirmModalSlots {
@@ -280,9 +279,7 @@ function showFieldErrors(
 }
 
 async function runConfirm(
-  action: (
-    values: ConfirmValues,
-  ) => Promise<void | boolean | ConfirmPartialOutcome>,
+  action: (values: ConfirmValues) => ConfirmHandlerResult,
 ) {
   isPending.value = true;
   notice.value = undefined;

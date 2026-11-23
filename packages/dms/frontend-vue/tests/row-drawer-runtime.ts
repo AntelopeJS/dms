@@ -46,7 +46,7 @@ const rows: Row[] = [
 ];
 
 let app: App | undefined;
-let opened: OpenedDrawer[];
+const opened: OpenedDrawer[] = [];
 
 const Panel = defineComponent({ render: () => null });
 
@@ -189,7 +189,7 @@ const openOn = async (action: CustomRowAction, row: Row = defined(rows[0])) => {
 };
 
 beforeEach(() => {
-  opened = [];
+  opened.length = 0;
   installRuntime();
   window.history.replaceState(null, "", "/orders");
 });
@@ -222,11 +222,13 @@ const mountHeader = (props: InstanceType<typeof RowHeader>["$props"]) => {
   return host;
 };
 
+const mountedApp = () => app;
+
 export {
   PANEL_COMPONENT,
   type Row,
   type OpenedDrawer,
-  app,
+  mountedApp,
   opened,
   drawerAction,
   mountTargets,

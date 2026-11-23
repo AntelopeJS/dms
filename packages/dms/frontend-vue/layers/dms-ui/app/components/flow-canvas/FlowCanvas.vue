@@ -130,8 +130,10 @@ const flow = useVueFlow(flowId);
 
 const slots = useSlots();
 
-const isPanelSlot = (name: string): name is PanelPosition =>
-  PANEL_POSITIONS.some((position) => position === name);
+const isPanelSlot = (name: string): name is PanelPosition => {
+  const positions: readonly string[] = PANEL_POSITIONS;
+  return positions.includes(name);
+};
 
 const activePanelPositions = computed(() =>
   PANEL_POSITIONS.filter((position) => slots[position]),

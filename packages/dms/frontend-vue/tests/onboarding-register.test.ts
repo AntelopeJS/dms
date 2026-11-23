@@ -233,7 +233,8 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  for (const key of Object.keys(routeQuery)) delete routeQuery[key];
+  for (const key of Object.keys(routeQuery))
+    Reflect.deleteProperty(routeQuery, key);
   mounted.splice(0).forEach((app) => app.unmount());
   document.body.replaceChildren();
   vi.unstubAllGlobals();

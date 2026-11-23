@@ -1,4 +1,4 @@
-import { type DmsAppContext, type DmsPluginSetup } from "#dms/frontend-module";
+import type { DmsAppContext, DmsPluginSetup } from "#dms/frontend-module";
 import dmsMenuSyncPlugin from "./layers/dms-layout/app/plugins/dms-menu-sync.client";
 import dmsMcpNavigatePlugin from "./layers/dms-layout/app/plugins/dms-mcp-navigate.client";
 import commandPaletteNavigationPlugin from "./layers/dms-layout/app/plugins/command-palette-navigation.client";

@@ -160,7 +160,8 @@ const DMS_APEX_TYPES = [
 function isDmsApexType(
   value: string,
 ): value is (typeof DMS_APEX_TYPES)[number] {
-  return DMS_APEX_TYPES.some((type) => type === value);
+  const types: readonly string[] = DMS_APEX_TYPES;
+  return types.includes(value);
 }
 
 function resolveApexType(

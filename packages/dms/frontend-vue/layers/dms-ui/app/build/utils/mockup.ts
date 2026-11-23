@@ -231,7 +231,8 @@ export const MOCKUP_DATA_MODES: readonly MockupDataMode[] = ["real", "sample"];
 export function isMockupDataMode(
   value: string | undefined,
 ): value is MockupDataMode {
-  return MOCKUP_DATA_MODES.some((mode) => mode === value);
+  const modes: readonly unknown[] = MOCKUP_DATA_MODES;
+  return modes.includes(value);
 }
 
 export const MOCKUP_WIDTH_OPTIONS: readonly MockupWidth[] = [
@@ -475,7 +476,8 @@ export function parseAnnotations(
 function isSource(
   value: Parameters<typeof isString>[0],
 ): value is MockupSource {
-  return MOCKUP_SOURCES.some((source) => source === value);
+  const sources: readonly unknown[] = MOCKUP_SOURCES;
+  return sources.includes(value);
 }
 
 /**

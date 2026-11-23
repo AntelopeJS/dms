@@ -79,7 +79,7 @@ export function handleComponentTarget(
   const source = config.rowNavigation;
   const drawerTarget = run.target.type === "drawer" ? run.target : undefined;
   const withRowHeader = hasRowHeader(run.target) && !run.selection;
-  let instance: ContainerInstance | undefined;
+  let instance: ContainerInstance | undefined = undefined;
   let navigation: RowNavigation | undefined;
   let stopNavigation: (() => void) | undefined;
   let closed = false;
@@ -169,7 +169,7 @@ function showMissingInDrawer(
   if (run.target.type !== "drawer") return;
   const { rows, texts, openContainer } = context;
   const recordId = rows.recordRecorder(run.deepLink);
-  let instance: ContainerInstance | undefined;
+  let instance: ContainerInstance | undefined = undefined;
   const notFound = texts.notFoundOf(run.target);
   instance = openContainer(run, DmsRowNotFound, {
     title: run.title,

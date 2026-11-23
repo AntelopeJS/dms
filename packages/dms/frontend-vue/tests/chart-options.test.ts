@@ -220,7 +220,7 @@ describe("annotations", () => {
       "annotations",
     ).yaxis;
     if (!Array.isArray(lines)) {
-      throw new Error("The chart annotations hold no yaxis list");
+      throw new TypeError("The chart annotations hold no yaxis list");
     }
     const line: unknown = lines[0];
     if (!isObject(line) || isNull(line)) {

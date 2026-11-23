@@ -14,7 +14,7 @@ import {
 } from "../layers/dms-ui/app/entries/composables/table-view/utils/recordLink";
 import {
   PANEL_COMPONENT,
-  app,
+  mountedApp,
   opened,
   drawerAction,
   mountTargets,
@@ -111,7 +111,7 @@ describe("the row header", () => {
     expect(
       host.querySelector("[data-dms-row-drawer-position]")?.textContent?.trim(),
     ).toBe("$api.request.position(4/50)");
-    defined(app).unmount();
+    defined(mountedApp()).unmount();
     host = mountHeader({ part: "dms-row-drawer", navigation: navigation(0) });
     expect(
       host.querySelector("[data-dms-row-drawer-position]")?.textContent?.trim(),

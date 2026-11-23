@@ -6,7 +6,7 @@ import { isString } from "#dms-core/app/utils/type-check";
 import UAvatar from "@nuxt/ui/components/Avatar.vue";
 import UIcon from "@nuxt/ui/runtime/vue/components/Icon.vue";
 import ULink from "@nuxt/ui/components/Link.vue";
-import { type Row } from "./cellHelpers";
+import type { Row } from "./cellHelpers";
 import { formatRecordLabel } from "../table-view/utils/formTexts";
 
 type CellOptions = Parameters<DataTypeFormatter>[2];

@@ -96,7 +96,9 @@ export const createTableRowBulkOutcomes = (
       actionConfig: boolean | RowActionConfig | undefined,
       bulkConfig: BulkActionConfig,
     ): ConfirmedRun =>
-    async (values: ConfirmValues): Promise<void | ConfirmPartialOutcome> => {
+    async (
+      values: ConfirmValues,
+    ): Promise<ConfirmPartialOutcome | undefined> => {
       const outcome = await requestBulkAction(ids, bulkConfig, values);
       const shortfall = bulkActionShortfall(bulkConfig.kind, outcome, t);
       if (outcome.processed === 0 && shortfall) {

@@ -1,9 +1,9 @@
 import type { PaginationState, SortingState } from "@tanstack/vue-table";
 import type { TableViewDisplayContext } from "../../../composables/table-view/types";
 import type { ComputedRef, Ref } from "vue";
-import { useRefreshTriggers } from "../blocks/useRefreshTriggers";
-import { useTableRecordLink } from "./useTableRecordLink";
-import { useTableListData } from "./useTableListData";
+import type { useRefreshTriggers } from "../blocks/useRefreshTriggers";
+import type { useTableRecordLink } from "./useTableRecordLink";
+import type { useTableListData } from "./useTableListData";
 export interface TableViewDeferred<T extends Data> {
   activeViewId: Ref<string | undefined>;
   activeTabId: Ref<string>;

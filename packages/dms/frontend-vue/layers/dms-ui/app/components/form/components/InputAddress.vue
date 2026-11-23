@@ -139,7 +139,8 @@ onMounted(() => {
 onBeforeUnmount(() => {
   const name = fieldName.value;
   if (!name || !formInputs) return;
-  for (const part of PARTS) delete formInputs.value[`${name}.${part}`];
+  for (const part of PARTS)
+    Reflect.deleteProperty(formInputs.value, `${name}.${part}`);
 });
 
 /** Whether a required part is still empty. */

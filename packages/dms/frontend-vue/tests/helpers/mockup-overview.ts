@@ -187,10 +187,10 @@ function canvasGeometry(find: Find) {
   function frameRect(id: string) {
     const style = find(`[data-dms-mockup-overview-frame="${id}"]`)?.style;
     return {
-      x: parseFloat(style?.left ?? "NaN"),
-      y: parseFloat(style?.top ?? "NaN"),
-      width: parseFloat(style?.width ?? "NaN"),
-      height: parseFloat(style?.height ?? "NaN"),
+      x: Number.parseFloat(style?.left ?? "NaN"),
+      y: Number.parseFloat(style?.top ?? "NaN"),
+      width: Number.parseFloat(style?.width ?? "NaN"),
+      height: Number.parseFloat(style?.height ?? "NaN"),
     };
   }
 
