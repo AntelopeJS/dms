@@ -6,6 +6,7 @@ import type { NotificationData } from "@antelopejs/interface-dms/notifications/t
 import { authorizedClient, registerUser } from "../helpers/auth";
 import { resetDatabase } from "../helpers/db";
 import { pageRoutePath } from "@antelopejs/interface-dms/page";
+import { defined } from "../helpers/defined";
 
 const LOCATION = pageRoutePath("/settings/user/notifications");
 const HTTP_OK = 200;
@@ -67,7 +68,9 @@ describe("[integration] notifications inbox table", () => {
       }).toUser(userId);
     }
     const [first] = (await inbox({ limit: 1 })).results;
-    const read = await client.put(`${LOCATION}/mark-read/${first!._id}`);
+    const read = await client.put(
+      `${LOCATION}/mark-read/${defined(first)._id}`,
+    );
     expect(read.status, JSON.stringify(read.data)).to.equal(HTTP_OK);
   });
 

@@ -28,6 +28,7 @@ import {
   type SerializedColumn,
   serializedColumnsOf,
 } from "../../../helpers/serialized-columns";
+import { defined } from "../../../helpers/defined";
 
 const TABLE = "hidden-columns-invoices";
 const LOCATION = "/api/hidden-columns-invoices";
@@ -101,7 +102,9 @@ describe("[unit] interfaces/dms-base — a table view's hidden columns", () => {
       workspace: false,
       total: false,
     });
-    const workspace = related.find((column) => column.id === "workspace")!;
+    const workspace = defined(
+      related.find((column) => column.id === "workspace"),
+    );
     expect(workspace.listable).to.equal(true);
     expect(workspace.enableColumnFilter).to.equal(true);
 

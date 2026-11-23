@@ -2,12 +2,13 @@ import { expect } from "chai";
 import { MCP_TOOLS } from "../../../mcp/tools";
 import { registerConnection, unregisterConnection } from "../../../realtime";
 import { pagesBySlug } from "../../../utils";
+import { defined } from "../../helpers/defined";
 
 const CONNECTION_ID = "navigate-to-page-connection";
 
-const navigateToPage = MCP_TOOLS.find(
-  (tool) => tool.name === "navigate_to_page",
-)!;
+const navigateToPage = defined(
+  MCP_TOOLS.find((tool) => tool.name === "navigate_to_page"),
+);
 
 const registeredRoute = (): string =>
   Object.keys(pagesBySlug).find((slug) => !slug.includes(":")) ?? "/orders";
@@ -30,7 +31,7 @@ describe("navigate_to_page", () => {
 
     expect(sent).to.have.lengthOf(1);
     expect(sent[0]).to.deep.include({ eventName: "leader" });
-    expect(sent[0]!.data).to.deep.include({
+    expect(defined(sent[0]).data).to.deep.include({
       topic: "dms:navigate",
       type: "navigate",
       payload: { path: route },

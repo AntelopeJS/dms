@@ -2,6 +2,7 @@ import type { AxiosInstance } from "axios";
 import { expect } from "chai";
 import { authorizedClient, registerUser } from "../helpers/auth";
 import { resetDatabase } from "../helpers/db";
+import { defined } from "../helpers/defined";
 
 const LOCATION = "/api/archive/notes";
 const HTTP_OK = 200;
@@ -51,7 +52,9 @@ describe("[integration] table view archive mode", () => {
     const draft = (await list("&showArchived=false")).find(
       (note) => note.title === "Draft",
     );
-    const archived = await client.put(`${LOCATION}/archive?ids=${draft!._id}`);
+    const archived = await client.put(
+      `${LOCATION}/archive?ids=${defined(draft)._id}`,
+    );
     expect(archived.status, JSON.stringify(archived.data)).to.equal(HTTP_OK);
     expect(await titles(ACTIVE)).to.deep.equal(["Plan"]);
     expect(await titles(ARCHIVED)).to.deep.equal(["Draft"]);
@@ -59,7 +62,9 @@ describe("[integration] table view archive mode", () => {
     const [archivedNote] = await list("&showArchived=true");
     expect(archivedNote?.isArchived).to.equal(true);
 
-    const restored = await client.put(`${LOCATION}/restore?ids=${draft!._id}`);
+    const restored = await client.put(
+      `${LOCATION}/restore?ids=${defined(draft)._id}`,
+    );
     expect(restored.status, JSON.stringify(restored.data)).to.equal(HTTP_OK);
     expect(await titles(ACTIVE)).to.deep.equal(["Draft", "Plan"]);
     expect(await titles(ARCHIVED)).to.deep.equal([]);
@@ -67,7 +72,9 @@ describe("[integration] table view archive mode", () => {
 
   it("filters the archive field by the boolean a list filter spells", async () => {
     const plan = (await list()).find((note) => note.title === "Plan");
-    const archived = await client.put(`${LOCATION}/archive?ids=${plan!._id}`);
+    const archived = await client.put(
+      `${LOCATION}/archive?ids=${defined(plan)._id}`,
+    );
     expect(archived.status, JSON.stringify(archived.data)).to.equal(HTTP_OK);
 
     const filtered = async (filter: string) =>

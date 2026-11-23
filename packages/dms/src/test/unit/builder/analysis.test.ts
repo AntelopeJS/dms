@@ -14,6 +14,7 @@ import {
   Reference,
   Relation,
 } from "./analysis-catalog";
+import { defined } from "../../helpers/defined";
 
 const ORDERS_CUSTOMER = Reference(
   "erp.orders",
@@ -79,7 +80,7 @@ function resource(
     (candidate) => candidate.relation === relation,
   );
   expect(found, relation).to.not.equal(undefined);
-  return found!;
+  return defined(found);
 }
 
 function field(resource: ProposedResource, column: string) {
@@ -87,7 +88,7 @@ function field(resource: ProposedResource, column: string) {
     (candidate) => candidate.column === column,
   );
   expect(found, column).to.not.equal(undefined);
-  return found!;
+  return defined(found);
 }
 
 describe("the analysis of a database", () => {

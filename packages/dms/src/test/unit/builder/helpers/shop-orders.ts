@@ -17,6 +17,7 @@ import {
 import { expectOk } from "../harness";
 import { MODULE } from "../mapped-database";
 import { fileText } from "./file-text";
+import { defined } from "../../../helpers/defined";
 
 export function Column(
   name: string,
@@ -134,7 +135,7 @@ export function ordersInput(
 export async function pageText(): Promise<string> {
   const page = (await ListPages()).find((entry) => entry.id === "shop-orders");
   expect(page, "the orders page").to.not.equal(undefined);
-  return fileText(page!.filepath);
+  return fileText(defined(page).filepath);
 }
 
 /** What the workspace sends to map a relation again from what `GetMapping` read back. */
@@ -142,7 +143,7 @@ export async function handEditedTabs(): Promise<void> {
   expectOk(await MapResources(ordersInput()), "MapResources");
   const page = (await ListPages()).find((entry) => entry.id === "shop-orders");
   expectOk(
-    await ConfigureBlock(`${page!.ref}#table`, {
+    await ConfigureBlock(`${defined(page).ref}#table`, {
       tabs: [
         { id: "all", label: "Everything" },
         {

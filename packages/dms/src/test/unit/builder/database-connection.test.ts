@@ -20,6 +20,7 @@ import {
 import { gitInit } from "./helpers/processes";
 import { builderRecord, moduleFolderExists } from "./helpers/module-manifest";
 import { projectFile, withFileEdited } from "./helpers/project-files";
+import { defined } from "../../helpers/defined";
 
 const OP_TIMEOUT = 120_000;
 const CATALOG = "@antelopejs/interface-database-catalog";
@@ -90,7 +91,7 @@ function editsTheConnectionUrl(): void {
       variable: "BUILDER_DB_ERP_URL",
       variables: ["BUILDER_DB_ERP_URL"],
     });
-    const details = connectionDetails(wiring!);
+    const details = connectionDetails(defined(wiring));
     expect(expectOk(details, "connectionDetails")).to.deep.equal({
       scheme: "postgres",
       host: "db.example",
@@ -174,7 +175,7 @@ function keepsThePasswordHoweverTheUrlGivesIt(): void {
       ),
       "setConnectionUrl",
     );
-    const read = connectionDetails(connectionWiring("erp")!);
+    const read = connectionDetails(defined(connectionWiring("erp")));
     expect(expectOk(read, "connectionDetails")).to.deep.include({
       hasPassword: true,
       options: {},
@@ -232,7 +233,7 @@ function keepsThePasswordHoweverTheUrlGivesIt(): void {
       ),
       "setConnectionUrl",
     );
-    const read = connectionDetails(connectionWiring("erp")!);
+    const read = connectionDetails(defined(connectionWiring("erp")));
     expect(expectOk(read, "connectionDetails").database).to.equal("app%2Fprod");
     expectOk(setConnectionUrl("erp", URL), "setConnectionUrl");
   });

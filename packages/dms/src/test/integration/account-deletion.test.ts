@@ -13,6 +13,7 @@ import { deleteAccount } from "../../pages/account";
 import { uploadExportToStorage } from "../../utils";
 import { authorizedClient, loginUser, registerUser } from "../helpers/auth";
 import { resetDatabase } from "../helpers/db";
+import { defined } from "../helpers/defined";
 
 const HTTP_OK = 200;
 const HTTP_CONFLICT = 409;
@@ -103,7 +104,7 @@ describe("[integration] account deletion", () => {
   it("refuses the last owner however it is reached", async () => {
     const owner = await registerUser({ owner: true });
     const user = await GetModel(UserModel).get(owner.userId);
-    const refusal = await deleteAccount(user!).then(
+    const refusal = await deleteAccount(defined(user)).then(
       () => undefined,
       (error: unknown) => error,
     );

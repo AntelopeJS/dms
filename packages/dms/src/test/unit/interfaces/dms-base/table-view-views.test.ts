@@ -39,6 +39,7 @@ import {
 import { resolveTableViewViews } from "@antelopejs/interface-dms/base/table-view/internal/views";
 import { withTableViewPlacements } from "@antelopejs/interface-dms/page/internal/table-view-ids";
 import type { ComponentInfoSerialized } from "@antelopejs/interface-dms/component";
+import { defined } from "../../../helpers/defined";
 
 const TABLE = "views-tickets";
 const LOCATION = "/api/views-tickets";
@@ -98,11 +99,13 @@ type TicketOptions = NonNullable<
 const READ_ONLY = { add: false, duplicate: false, edit: false, delete: false };
 
 const tableOptions = (options: TicketOptions): TableViewOptionsSerialized =>
-  TableView(TicketAPI, {
-    realtime: false,
-    rowActions: READ_ONLY,
-    ...options,
-  }).serializeSync().options!;
+  defined(
+    TableView(TicketAPI, {
+      realtime: false,
+      rowActions: READ_ONLY,
+      ...options,
+    }).serializeSync().options,
+  );
 
 const register = (options: TicketOptions) => () =>
   TableView(TicketAPI, { realtime: false, rowActions: READ_ONLY, ...options });

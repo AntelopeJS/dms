@@ -5,6 +5,7 @@ import { z } from "zod";
 import { authorizedClient, registerUser } from "../helpers/auth";
 import { countRawDocuments, resetDatabase } from "../helpers/db";
 import { parseBody } from "../helpers/parse-body";
+import { defined } from "../helpers/defined";
 
 const LOCATION = "/api/conditions/deals";
 const HTTP_OK = 200;
@@ -48,7 +49,7 @@ describe("[integration] table view column conditions", () => {
     expect(response.status, JSON.stringify(response.data)).to.equal(HTTP_OK);
     const deal = response.data.results.find((entry) => entry.title === title);
     expect(deal, title).to.not.equal(undefined);
-    return deal!;
+    return defined(deal);
   };
 
   it("creates an open deal without the hidden mandatory reason, ignoring the one sent", async () => {

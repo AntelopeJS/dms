@@ -29,6 +29,7 @@ import { installedPriceTypeHasCurrency } from "./helpers/installed-interface";
 import { MODULE, OP_TIMEOUT } from "./mapped-database";
 import { reloadedAtOnce } from "./reload-stub";
 import path from "node:path";
+import { defined } from "../../helpers/defined";
 
 let app: Fixture;
 
@@ -81,7 +82,7 @@ async function ordersMapped(): Promise<MappedRelation> {
     (entry) => entry.resource.relation === "shop.orders",
   );
   expect(found, "shop.orders mapped").to.not.equal(undefined);
-  return found!;
+  return defined(found);
 }
 
 /** The orders mapped with tabs, then the page's tabs replaced the way a person editing the page would. */

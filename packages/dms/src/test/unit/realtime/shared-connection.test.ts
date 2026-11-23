@@ -23,6 +23,7 @@ import {
 } from "../../helpers/recorded-sse-stream";
 import { helloConnectionId, parseFrameData } from "../../helpers/sse-frames";
 import { userFixture } from "../../helpers/user-fixture";
+import { defined } from "../../helpers/defined";
 
 const USER = userFixture({
   _id: "shared-connection-user",
@@ -64,7 +65,7 @@ const parseFrames = (stream: FakeStream): Frame[] =>
   stream.frames
     .filter((frame) => frame.startsWith("event: "))
     .map((frame) => ({
-      event: frame.split("\n")[0]!.slice("event: ".length),
+      event: defined(frame.split("\n")[0]).slice("event: ".length),
       data: parseFrameData(FrameData, frame),
     }));
 
@@ -111,11 +112,12 @@ function registerSessionLifecycleCases(): void {
     });
 
     for (const greeting of [first, second]) {
-      const delivered = sessionFramesOf(stream, greeting.sessionId!).filter(
-        (frame) => frame.data.data?.type === "notification:new",
-      );
+      const delivered = sessionFramesOf(
+        stream,
+        defined(greeting.sessionId),
+      ).filter((frame) => frame.data.data?.type === "notification:new");
       expect(delivered).to.have.length(1);
-      expect(delivered[0]!.data.event).to.equal(
+      expect(defined(delivered[0]).data.event).to.equal(
         buildUserNotificationTopic(USER._id),
       );
     }
@@ -130,13 +132,13 @@ function registerSessionLifecycleCases(): void {
     const ack = await controller.closeSession.call(
       undefined,
       connectionId,
-      first.sessionId!,
+      defined(first.sessionId),
       USER,
     );
 
     expect(ack.ok).to.equal(true);
-    expect(getSessionInfo(first.sessionId!)).to.equal(undefined);
-    expect(getSessionInfo(second.sessionId!)).to.not.equal(undefined);
+    expect(getSessionInfo(defined(first.sessionId))).to.equal(undefined);
+    expect(getSessionInfo(defined(second.sessionId))).to.not.equal(undefined);
     expect(stream.isEnded()).to.equal(false);
   });
 
@@ -146,17 +148,17 @@ function registerSessionLifecycleCases(): void {
     const first = await openSession(connectionId);
     const second = await openSession(connectionId);
 
-    await getSessionInfo(first.sessionId!)!.close();
+    await defined(getSessionInfo(defined(first.sessionId))).close();
 
-    expect(getSessionInfo(first.sessionId!)).to.equal(undefined);
-    expect(getSessionInfo(second.sessionId!)).to.not.equal(undefined);
+    expect(getSessionInfo(defined(first.sessionId))).to.equal(undefined);
+    expect(getSessionInfo(defined(second.sessionId))).to.not.equal(undefined);
     expect(stream.isEnded()).to.equal(false);
-    const ended = sessionFramesOf(stream, first.sessionId!).filter(
+    const ended = sessionFramesOf(stream, defined(first.sessionId)).filter(
       (frame) => frame.data.event === "session-ended",
     );
     expect(ended).to.have.length(1);
     expect(
-      sessionFramesOf(stream, second.sessionId!).some(
+      sessionFramesOf(stream, defined(second.sessionId)).some(
         (frame) => frame.data.event === "session-ended",
       ),
     ).to.equal(false);
@@ -169,12 +171,12 @@ function registerSessionLifecycleCases(): void {
     const ack = await controller.closeSession.call(
       undefined,
       connectionId,
-      greeting.sessionId!,
+      defined(greeting.sessionId),
       OTHER_USER,
     );
 
     expect(ack.ok).to.equal(false);
-    expect(getSessionInfo(greeting.sessionId!)).to.not.equal(undefined);
+    expect(getSessionInfo(defined(greeting.sessionId))).to.not.equal(undefined);
   });
 
   it("refuses to end a session through another connection", async () => {
@@ -185,12 +187,12 @@ function registerSessionLifecycleCases(): void {
     const ack = await controller.closeSession.call(
       undefined,
       otherConnectionId,
-      greeting.sessionId!,
+      defined(greeting.sessionId),
       USER,
     );
 
     expect(ack.ok).to.equal(false);
-    expect(getSessionInfo(greeting.sessionId!)).to.not.equal(undefined);
+    expect(getSessionInfo(defined(greeting.sessionId))).to.not.equal(undefined);
   });
 }
 
@@ -207,7 +209,7 @@ function registerConnectionCases(): void {
     await settle();
 
     for (const { sessionId } of sessions) {
-      expect(getSessionInfo(sessionId!)).to.equal(undefined);
+      expect(getSessionInfo(defined(sessionId))).to.equal(undefined);
     }
     expect((await openSession(connectionId)).ok).to.equal(false);
   });
@@ -249,7 +251,7 @@ function registerConnectionCases(): void {
       (frame) => frame.event === DEV_RELOAD_TOPIC,
     );
     expect(reloads).to.have.length(1);
-    expect(reloads[0]!.data).to.include({
+    expect(defined(reloads[0]).data).to.include({
       topic: DEV_RELOAD_TOPIC,
       type: "resync",
     });
@@ -267,7 +269,7 @@ function registerConnectionCases(): void {
 
     expect(idle.isEnded()).to.equal(true);
     expect(busy.isEnded()).to.equal(true);
-    expect(getSessionInfo(greeting.sessionId!)).to.equal(undefined);
+    expect(getSessionInfo(defined(greeting.sessionId))).to.equal(undefined);
   });
 }
 

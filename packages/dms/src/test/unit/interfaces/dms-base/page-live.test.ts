@@ -9,6 +9,7 @@ import {
   PageMetadata,
   pagesCategory,
 } from "@antelopejs/interface-dms/page";
+import { defined } from "../../../helpers/defined";
 
 const STRING = new DefaultDataTypes.StringType();
 
@@ -71,12 +72,14 @@ describe("[unit] interfaces/dms-base — page live mode", () => {
 
 describe("[unit] interfaces/dms-base — page live mode, table sources and cadence", () => {
   it("hands a source table's liveHold to its renderer", () => {
-    const options = TableView.fromSource({
-      fetchUrl: "/api/request-log",
-      columns: { path: { name: "Path", type: STRING } },
-      realtimeTopic: "api:requests",
-      liveHold: true,
-    }).serializeSync().options!;
+    const options = defined(
+      TableView.fromSource({
+        fetchUrl: "/api/request-log",
+        columns: { path: { name: "Path", type: STRING } },
+        realtimeTopic: "api:requests",
+        liveHold: true,
+      }).serializeSync().options,
+    );
     expect(options.liveHold).to.equal(true);
     expect(options.realtimeTopic).to.equal("api:requests");
   });
@@ -109,12 +112,14 @@ describe("[unit] interfaces/dms-base — page live mode, table sources and caden
   });
 
   it("hands a liveHold object to the renderer", () => {
-    const options = TableView.fromSource({
-      fetchUrl: "/api/request-log",
-      columns: { path: { name: "Path", type: STRING } },
-      realtimeTopic: "api:requests",
-      liveHold: { whileRowOpen: true, whileScrolled: true },
-    }).serializeSync().options!;
+    const options = defined(
+      TableView.fromSource({
+        fetchUrl: "/api/request-log",
+        columns: { path: { name: "Path", type: STRING } },
+        realtimeTopic: "api:requests",
+        liveHold: { whileRowOpen: true, whileScrolled: true },
+      }).serializeSync().options,
+    );
     expect(options.liveHold).to.deep.equal({
       whileRowOpen: true,
       whileScrolled: true,

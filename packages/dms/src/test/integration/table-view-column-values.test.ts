@@ -11,6 +11,7 @@ import { authorizedClient, parseAuthBody, registerUser } from "../helpers/auth";
 import { resetDatabase } from "../helpers/db";
 import { createClient } from "../helpers/http";
 import { parseBody } from "../helpers/parse-body";
+import { defined } from "../helpers/defined";
 
 const ORDERS_PAGE = "column-values-orders";
 const UNREACHABLE_PAGE = "column-values-unreachable";
@@ -272,7 +273,7 @@ describe("[integration] a table view reads the values of the columns it referenc
         .flatMap((other) => other.orders)
         .flatMap((order) => [order.status, order.currency, ...order.labels]);
       for (const { table, text } of await servedOnEveryRoute(
-        owners.get(tenantId)!,
+        defined(owners.get(tenantId)),
         ORDERS_PAGE,
       )) {
         expect(table, tenantId).to.deep.equal(served);
@@ -286,7 +287,7 @@ describe("[integration] a table view reads the values of the columns it referenc
   });
 
   it("serves the form the table view opens as a page with the statuses and currency of the tenant's rows", async () => {
-    const client = owners.get(NORTH)!;
+    const client = defined(owners.get(NORTH));
     const table = await client.get("/dms/pagelayout", {
       params: { slug: `/${ORDERS_PAGE}` },
     });
@@ -324,7 +325,7 @@ describe("[integration] a table view reads the values of the columns it referenc
 
   it("serves the page of a table whose rows cannot be read, its badges plain and without tabs", async () => {
     for (const { table } of await servedOnEveryRoute(
-      owners.get(NORTH)!,
+      defined(owners.get(NORTH)),
       UNREACHABLE_PAGE,
     )) {
       expect(table).to.deep.equal(PLAIN);
@@ -360,9 +361,9 @@ describe("[integration] a table view reads the values of the columns it referenc
   });
 
   it("keeps the items a select lists itself", async () => {
-    const response = await owners
-      .get(NORTH)!
-      .get("/dms/pagelayout", { params: { slug: `/${NOTES_PAGE}` } });
+    const response = await defined(owners.get(NORTH)).get("/dms/pagelayout", {
+      params: { slug: `/${NOTES_PAGE}` },
+    });
     const topics = inputOf(parseBody(Layout, response), "topics");
     expect(topics?.items?.map((item) => item.value)).to.deep.equal([
       "grid",

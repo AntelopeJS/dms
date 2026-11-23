@@ -4,11 +4,12 @@ import {
   GetBlockType,
   ValidateBlockOptions,
 } from "@antelopejs/interface-dms/base/block-types";
+import { defined } from "../../../helpers/defined";
 
 function declared(type: string) {
   const block = GetBlockType(type);
   expect(block, `${type} is declared`).to.not.equal(undefined);
-  return block!;
+  return defined(block);
 }
 
 /**
@@ -29,8 +30,9 @@ describe("[unit] interfaces/dms-base/code block — in the catalog", () => {
   });
 
   it("emits the copy button on unless the page turns it off", () => {
-    const options = CodeBlock({ code: "{}", language: "json" }).serializeSync()
-      .options!;
+    const options = defined(
+      CodeBlock({ code: "{}", language: "json" }).serializeSync().options,
+    );
 
     expect(options.copy).to.equal(true);
     expect(options.language).to.equal("json");

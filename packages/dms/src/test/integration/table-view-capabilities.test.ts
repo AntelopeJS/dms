@@ -7,6 +7,7 @@ import type { InvoiceBulkController } from "../attachment-host/capabilities";
 import { authorizedClient, registerUser } from "../helpers/auth";
 import { countRawDocuments, resetDatabase } from "../helpers/db";
 import { parseBody } from "../helpers/parse-body";
+import { defined } from "../helpers/defined";
 
 const LOCATION = "/api/capabilities/invoices";
 const BULK_LOCATION = "/api/capabilities/invoice-bulk";
@@ -163,16 +164,16 @@ describe("[integration] table view capabilities", () => {
     expect(all.status, JSON.stringify(all.data)).to.equal(HTTP_OK);
     const [total, open, openOrLarge] = summaryIds;
     expect(all.data).to.deep.equal({
-      [total!]: 975,
-      [open!]: 3,
-      [openOrLarge!]: 900,
+      [defined(total)]: 975,
+      [defined(open)]: 3,
+      [defined(openOrLarge)]: 900,
     });
 
     const paid = await client.get(summaryQuery("&filter_status=is:paid"));
     expect(paid.data).to.deep.equal({
-      [total!]: 575,
-      [open!]: 0,
-      [openOrLarge!]: 500,
+      [defined(total)]: 575,
+      [defined(open)]: 0,
+      [defined(openOrLarge)]: 500,
     });
   });
 
@@ -180,7 +181,7 @@ describe("[integration] table view capabilities", () => {
     const [invoice] = await list(client, "&filter_number=is:INV-3");
     const edit = async (body: JsonValue) => {
       const response = await client.put(`${LOCATION}/edit`, body, {
-        params: { id: invoice!._id },
+        params: { id: defined(invoice)._id },
       });
       expect(response.status, JSON.stringify(response.data)).to.equal(HTTP_OK);
     };
@@ -210,7 +211,7 @@ describe("[integration] table view capabilities", () => {
       const response = await client.put(
         `${LOCATION}/edit`,
         { number: cleared, status: "open" },
-        { params: { id: invoice!._id } },
+        { params: { id: defined(invoice)._id } },
       );
       expect(response.status).to.equal(HTTP_BAD_REQUEST);
       expect(response.data).to.deep.equal({
@@ -389,7 +390,7 @@ describe("[integration] table view capabilities, filters and bulk routes", () =>
       summaryQuery("&filter_labels=include:export"),
     );
     expect(summary.status, JSON.stringify(summary.data)).to.equal(HTTP_OK);
-    expect(summary.data[summaryIds[0]!]).to.equal(350);
+    expect(summary.data[defined(summaryIds[0])]).to.equal(350);
 
     const counts = await client.get(
       batchUrl(LOCATION, [
@@ -405,9 +406,11 @@ describe("[integration] table view capabilities, filters and bulk routes", () =>
     const open = await list(client, "&filter_status=is:open");
     const [first] = open;
     const selected = await client.post(
-      `${LOCATION}/mark-paid?ids=${first!._id}`,
+      `${LOCATION}/mark-paid?ids=${defined(first)._id}`,
     );
-    expect(parseBody(BulkIdsBody, selected).ids).to.deep.equal([first!._id]);
+    expect(parseBody(BulkIdsBody, selected).ids).to.deep.equal([
+      defined(first)._id,
+    ]);
 
     const matching = await client.post(
       `${LOCATION}/mark-paid?allMatching=true&filter_status=is:open&search=INV`,
@@ -425,7 +428,7 @@ describe("[integration] table view capabilities, filters and bulk routes", () =>
     expect(listed.status).to.equal(HTTP_FORBIDDEN);
 
     const selected = await memberClient.post(
-      `${LOCATION}/mark-paid?ids=${invoice!._id}`,
+      `${LOCATION}/mark-paid?ids=${defined(invoice)._id}`,
     );
     expect(selected.status, JSON.stringify(selected.data)).to.equal(
       HTTP_FORBIDDEN,
@@ -447,9 +450,11 @@ describe("[integration] table view capabilities, filters and bulk routes", () =>
     );
 
     const selected = await client.post(
-      `${BULK_LOCATION}/matching?ids=${mine[0]!._id}`,
+      `${BULK_LOCATION}/matching?ids=${defined(mine[0])._id}`,
     );
-    expect(parseBody(BulkIdsBody, selected).ids).to.deep.equal([mine[0]!._id]);
+    expect(parseBody(BulkIdsBody, selected).ids).to.deep.equal([
+      defined(mine[0])._id,
+    ]);
 
     const member = await registerUser();
     const refused = await authorizedClient(member.accessToken).post(

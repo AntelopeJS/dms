@@ -2,6 +2,7 @@ import type { AxiosInstance } from "axios";
 import { expect } from "chai";
 import { authorizedClient, registerUser } from "../helpers/auth";
 import { resetDatabase } from "../helpers/db";
+import { defined } from "../helpers/defined";
 
 const LOCATION = "/api/computed/tasks";
 const HTTP_OK = 200;
@@ -41,9 +42,12 @@ describe("[integration] table view guards amending the body", () => {
 
   it("writes the body an edit guard amended", async () => {
     const [task] = await listed();
-    const edited = await client.put(`${LOCATION}/edit?id=${task!._id}`, {
-      title: "  Ship  ",
-    });
+    const edited = await client.put(
+      `${LOCATION}/edit?id=${defined(task)._id}`,
+      {
+        title: "  Ship  ",
+      },
+    );
     expect(edited.status, JSON.stringify(edited.data)).to.equal(HTTP_OK);
     const [after] = await listed();
     expect(after).to.include({ title: "Ship", spent: 0 });

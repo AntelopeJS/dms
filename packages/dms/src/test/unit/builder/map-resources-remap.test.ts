@@ -35,6 +35,7 @@ import {
   OP_TIMEOUT,
 } from "./mapped-database";
 import { reloadedAtOnce } from "./reload-stub";
+import { defined } from "../../helpers/defined";
 
 let app: Fixture;
 
@@ -85,9 +86,9 @@ function readsTheMappingBack(): void {
     const read = await GetMapping("erp", MODULE);
     expectOk(read, "GetMapping");
     const relations = read.ok ? read.data : [];
-    const accounts = relations.find(
-      (entry) => entry.resource.relation === "sales.accounts",
-    )!;
+    const accounts = defined(
+      relations.find((entry) => entry.resource.relation === "sales.accounts"),
+    );
     expect(accounts.resource.label.value).to.equal("name");
     expect(accounts.resource.writable.value).to.equal(true);
     expect(accounts.included).to.include.members([
@@ -95,17 +96,17 @@ function readsTheMappingBack(): void {
       "status",
       "Order Date",
     ]);
-    const contacts = relations.find(
-      (entry) => entry.resource.relation === "sales.contacts",
-    )!;
+    const contacts = defined(
+      relations.find((entry) => entry.resource.relation === "sales.contacts"),
+    );
     expect(contacts.resource.writable.value).to.equal(false);
     expect(
       contacts.resource.fields.find((field) => field.column === "account_id")
         ?.relation?.value,
     ).to.equal("sales.accounts");
-    const log = relations.find(
-      (entry) => entry.resource.relation === "sales.raw_log",
-    )!;
+    const log = defined(
+      relations.find((entry) => entry.resource.relation === "sales.raw_log"),
+    );
     expect(log.resource.tableView.value).to.equal(false);
   });
 
@@ -309,7 +310,7 @@ function keepsRelationLabelsAndHandWrittenTitles(): void {
     const remapped = await MapResources({
       module: MODULE,
       connection: "erp",
-      resources: [{ ...asMapped(accounts!), label: other }],
+      resources: [{ ...asMapped(defined(accounts)), label: other }],
     });
     expectOk(remapped, "MapResources with a new label");
     expect(moduleFile("sales/contacts/data-api.ts")).to.include(
@@ -318,7 +319,7 @@ function keepsRelationLabelsAndHandWrittenTitles(): void {
     const again = await MapResources({
       module: MODULE,
       connection: "erp",
-      resources: [{ ...asMapped(accounts!), label: other }],
+      resources: [{ ...asMapped(defined(accounts)), label: other }],
     });
     expectOk(again, "MapResources with the same label");
     const touched = again.ok ? again.changes.map((change) => change.path) : [];
@@ -332,7 +333,7 @@ function keepsRelationLabelsAndHandWrittenTitles(): void {
     const accounts = (read.ok ? read.data : []).find(
       (entry) => entry.resource.relation === "sales.accounts",
     );
-    const { label: _label, ...unlabelled } = asMapped(accounts!);
+    const { label: _label, ...unlabelled } = asMapped(defined(accounts));
     const refused = await MapResources({
       module: MODULE,
       connection: "erp",
@@ -347,7 +348,7 @@ function keepsRelationLabelsAndHandWrittenTitles(): void {
     const page = (await ListPages()).find(
       (entry) => entry.id === "sales-accounts",
     );
-    const file = path.relative(app.root, page!.filepath);
+    const file = path.relative(app.root, defined(page).filepath);
     fs.writeFileSync(
       path.join(app.root, file),
       `const ACCOUNTS_TITLE = "Accounts";\n${projectFile(app.root, file).replace(/displayName: "[^"]*"/, "displayName: ACCOUNTS_TITLE")}`,
@@ -363,7 +364,11 @@ function keepsRelationLabelsAndHandWrittenTitles(): void {
         module: MODULE,
         connection: "erp",
         resources: [
-          { ...asMapped(accounts!), title: "Customers", writable: true },
+          {
+            ...asMapped(defined(accounts)),
+            title: "Customers",
+            writable: true,
+          },
         ],
       }),
       "MapResources with a new title",

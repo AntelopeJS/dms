@@ -31,6 +31,7 @@ import {
   OP_TIMEOUT,
 } from "./mapped-database";
 import { reloadedAtOnce } from "./reload-stub";
+import { defined } from "../../helpers/defined";
 
 let app: Fixture;
 let result: Awaited<ReturnType<typeof MapResources>>;
@@ -207,8 +208,8 @@ function refusesToChangeTheMappedDatabase(): void {
     const ok = expectOk(result, "MapResources");
     const page = ok.resources.find((resource) => resource.page)?.page;
     const locations: ResourceLocation[] = [
-      { category: ok.category! },
-      { page: page! },
+      { category: defined(ok.category) },
+      { page: defined(page) },
     ];
     for (const location of locations) {
       const placed = await CreateResource({

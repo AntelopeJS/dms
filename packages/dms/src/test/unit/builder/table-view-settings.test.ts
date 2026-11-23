@@ -25,6 +25,7 @@ import {
   removeShopCatalog,
 } from "./helpers/table-view-shop";
 import { MODULE, OP_TIMEOUT } from "./mapped-database";
+import { defined } from "../../helpers/defined";
 
 function setsTheDisplays(): void {
   it("offers a kanban grouped by a single-choice column", async () => {
@@ -382,7 +383,9 @@ describe("setting displays, views and footer figures on a table page", function 
         }),
         "CreatePage",
       );
-      const empty = (await ListPages()).find((entry) => entry.id === "empty")!;
+      const empty = defined(
+        (await ListPages()).find((entry) => entry.id === "empty"),
+      );
       expect(
         refusal(await ConfigureTableView(empty.ref, { kanban: null })),
       ).to.include("holds no TableView");

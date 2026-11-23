@@ -39,6 +39,7 @@ import {
   filterComponents,
 } from "@antelopejs/interface-dms/page/layout-filter";
 import { tableViewOptionsOf } from "../../../helpers/serialized-options";
+import { defined } from "../../../helpers/defined";
 
 const TABLE = "form-watch-contacts";
 const PAGE_PERMISSION_ID = "pages.form-watch-demo";
@@ -150,7 +151,7 @@ describe("[unit] interfaces/dms-base — table view form watches", () => {
 
   it("hands each kind's generated form to its callback, before embedding it", () => {
     const table = TableView(ContactAPI, { forms, realtime: false });
-    const options = table.serializeSync().options!;
+    const options = defined(table.serializeSync().options);
     const editOptions = options.formComponents.edit?.options;
     const [watch] = editOptions?.watchActions ?? [];
 
@@ -185,7 +186,7 @@ describe("[unit] interfaces/dms-base — table view form watches", () => {
 
   it("adds no watch unless a callback declares one", () => {
     const table = TableView(ContactAPI, { realtime: false });
-    const options = table.serializeSync().options!;
+    const options = defined(table.serializeSync().options);
 
     expect(watchesOf(options)).to.deep.equal({
       new: undefined,

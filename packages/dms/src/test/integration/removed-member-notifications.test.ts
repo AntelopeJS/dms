@@ -9,6 +9,7 @@ import { internal } from "../../implementations/dms-notifications";
 import { authorizedClient, registerUser } from "../helpers/auth";
 import { resetDatabase } from "../helpers/db";
 import { pageRoutePath } from "@antelopejs/interface-dms/page";
+import { defined } from "../helpers/defined";
 
 const HTTP_OK = 200;
 const HTTP_FORBIDDEN = 403;
@@ -81,10 +82,10 @@ describe("[integration] a member removed from their workspace", () => {
     expect(notification, JSON.stringify(rows)).to.not.equal(undefined);
 
     await expectOk(
-      removed.put(`${NOTIFICATIONS}/mark-read/${notification!._id}`),
+      removed.put(`${NOTIFICATIONS}/mark-read/${defined(notification)._id}`),
     );
     await expectOk(
-      removed.put(`${NOTIFICATIONS}/mark-unread/${notification!._id}`),
+      removed.put(`${NOTIFICATIONS}/mark-unread/${defined(notification)._id}`),
     );
   });
 

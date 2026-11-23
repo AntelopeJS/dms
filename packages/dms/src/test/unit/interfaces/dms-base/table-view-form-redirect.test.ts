@@ -43,6 +43,7 @@ import {
   TableViewRoutes,
 } from "@antelopejs/interface-dms/base/table-view";
 import { formOptionsOf } from "../../../helpers/serialized-options";
+import { defined } from "../../../helpers/defined";
 
 const TABLE = "form-redirect-documents";
 const LOCATION = "/api/form-redirect-placeholders";
@@ -166,7 +167,7 @@ async function formRedirects(formPageFullId: string) {
 async function redirectOf(formPageFullId: string) {
   const redirects = await formRedirects(formPageFullId);
   expect(redirects).to.have.length(1);
-  return redirects[0]!;
+  return defined(redirects[0]);
 }
 
 describe("[unit] interfaces/dms-base — table view form page redirect", () => {
@@ -233,8 +234,8 @@ describe("[unit] interfaces/dms-base — table view form page redirect", () => {
       const { pageInfo } = GetMetadata(page, PageMetadata);
       for (const kind of ["new", "edit"]) {
         expect(
-          await redirectOf(`${pageInfo!.id}.rows.${kind}`),
-        ).to.have.property("url", pageInfo!.fullSlug);
+          await redirectOf(`${defined(pageInfo).id}.rows.${kind}`),
+        ).to.have.property("url", defined(pageInfo).fullSlug);
       }
     }
     expect(await redirectOf("frd-top.rows.edit")).to.deep.equal({

@@ -13,6 +13,7 @@ import {
   rawTextPattern,
 } from "../../../db/models";
 import type { UserNotification } from "../../../db/tables";
+import { defined } from "../../helpers/defined";
 
 const INLINE_CASE_FLAG = "(?i)";
 
@@ -46,7 +47,7 @@ describe("[unit] db/notification-feed-filter", () => {
     it("reads no parameter as the whole feed", () => {
       const filter = parseNotificationFeedQuery({});
       expect(filter).to.deep.equal({});
-      expect(isFilteredFeed(filter!)).to.equal(false);
+      expect(isFilteredFeed(defined(filter))).to.equal(false);
     });
 
     it("keeps the read state, and reads the older `all` as none", () => {
@@ -86,7 +87,7 @@ describe("[unit] db/notification-feed-filter", () => {
         text: "new sign-in",
         keys: ["dms.a.title", "dms.b.description"],
       });
-      expect(isNarrowedFeed(filter!)).to.equal(true);
+      expect(isNarrowedFeed(defined(filter))).to.equal(true);
     });
 
     it("ignores keys without a search", () => {
@@ -195,7 +196,7 @@ describe("[unit] db/notification-feed-filter", () => {
     it("leaves the key match out when no translation matched", () => {
       const feed = new RecordingFeed();
       applyFeedFilter(feed, { search: { text: "alice", keys: [] } });
-      expect(stagesOf(feed.predicates[0]!)).to.not.contain('"$');
+      expect(stagesOf(defined(feed.predicates[0]))).to.not.contain('"$');
     });
   });
 });

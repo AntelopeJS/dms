@@ -2,6 +2,7 @@ import { expect } from "chai";
 import { DefaultDataTypes } from "@antelopejs/interface-dms/base/data-types/default-types";
 import { serializeType } from "@antelopejs/interface-dms/base/data-types";
 import { FormComponents } from "@antelopejs/interface-dms/base/form";
+import { defined } from "../../../../helpers/defined";
 
 const ITEMS = [
   { label: "Low", value: "low", description: "When there is time" },
@@ -248,7 +249,7 @@ describe("[unit] interfaces/dms-base — TagsType", () => {
 
 describe("[unit] interfaces/dms-base — TagsType filter", () => {
   it("filters the rows holding a tag, typed as a text", () => {
-    const tags = serializeType(new DefaultDataTypes.TagsType())!;
+    const tags = defined(serializeType(new DefaultDataTypes.TagsType()));
     expect(tags.compareModes).to.deep.equal([
       "array_contains_string",
       "is_empty",

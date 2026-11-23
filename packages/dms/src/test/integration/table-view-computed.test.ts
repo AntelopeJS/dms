@@ -2,6 +2,7 @@ import type { AxiosInstance } from "axios";
 import { expect } from "chai";
 import { authorizedClient, registerUser } from "../helpers/auth";
 import { resetDatabase } from "../helpers/db";
+import { defined } from "../helpers/defined";
 
 const LOCATION = "/api/computed/tasks";
 const HTTP_OK = 200;
@@ -85,7 +86,7 @@ describe("[integration] table view computed sub-query beside a relation", () => 
         "/api/computed/projects/list?limit=5",
       )
     ).data.results;
-    projectId = created!._id;
+    projectId = defined(created)._id;
     for (const title of ["Plan", "Build"]) {
       const task = await client.post(`${LOCATION}/new`, {
         title,
@@ -98,7 +99,7 @@ describe("[integration] table view computed sub-query beside a relation", () => 
     const listed = await client.get<{ results: { _id: string }[] }>(
       `${LOCATION}/list?limit=5&sortKey=title`,
     );
-    taskId = listed.data.results[0]!._id;
+    taskId = defined(listed.data.results[0])._id;
   });
 
   it("resolves a single relation of a row read alone", async () => {
@@ -116,7 +117,10 @@ describe("[integration] table view computed sub-query beside a relation", () => 
       results: { siblings: number; projectId: { _id: string; name: string } }[];
     }>(`${LOCATION}/list?limit=5`);
     const [task] = response.data.results;
-    expect(task!.siblings).to.equal(2);
-    expect(task!.projectId).to.include({ _id: projectId, name: "Apollo" });
+    expect(defined(task).siblings).to.equal(2);
+    expect(defined(task).projectId).to.include({
+      _id: projectId,
+      name: "Apollo",
+    });
   });
 });

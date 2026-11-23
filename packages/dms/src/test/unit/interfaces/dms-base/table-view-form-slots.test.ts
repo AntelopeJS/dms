@@ -23,6 +23,7 @@ import {
   TableView,
   TableViewRoutes,
 } from "@antelopejs/interface-dms/base/table-view";
+import { defined } from "../../../helpers/defined";
 
 const TABLE = "form-slot-notes";
 const EDIT_SLOT = "test.notes-edit";
@@ -53,7 +54,7 @@ class NoteAPI extends DataController(
 }
 
 function formSlotIds(table: ReturnType<typeof TableView>) {
-  const options = table.serializeSync().options!;
+  const options = defined(table.serializeSync().options);
   return Object.fromEntries(
     Object.entries(options.formComponents).map(([kind, form]) => [
       kind,

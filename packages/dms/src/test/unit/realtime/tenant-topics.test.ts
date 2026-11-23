@@ -27,6 +27,7 @@ import {
 } from "../../helpers/recorded-sse-stream";
 import { helloConnectionId, parseFrameData } from "../../helpers/sse-frames";
 import { userFixture } from "../../helpers/user-fixture";
+import { defined } from "../../helpers/defined";
 
 const USER = userFixture({ _id: "tenant-topics-user", email: "u@example.com" });
 const PAGE_ID = "tenant-topics-page";
@@ -83,7 +84,7 @@ const openTabOnPage = async (
     connectionId,
     USER,
   );
-  const sessionId = greeting.sessionId!;
+  const sessionId = defined(greeting.sessionId);
   const isOnPage = await ensureSessionOnPage(sessionId, pageId, {
     userId: USER._id,
     tenantId,

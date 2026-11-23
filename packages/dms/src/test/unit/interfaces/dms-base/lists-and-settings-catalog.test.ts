@@ -6,11 +6,12 @@ import {
   Meter,
   Section,
 } from "@antelopejs/interface-dms/base";
+import { defined } from "../../../helpers/defined";
 
 function declared(type: string) {
   const block = ListBlockTypes().find((entry) => entry.type === type);
   expect(block, `${type} is declared`).to.not.equal(undefined);
-  return block!;
+  return defined(block);
 }
 
 /**

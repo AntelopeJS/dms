@@ -27,6 +27,7 @@ import {
 } from "./helpers/table-view-shop";
 import { fileText } from "./helpers/file-text";
 import { MODULE, OP_TIMEOUT } from "./mapped-database";
+import { defined } from "../../helpers/defined";
 
 const PERIOD = [
   { field: "created_at", op: "ge", value: { $param: { name: "from" } } },
@@ -238,7 +239,7 @@ function extendsAPageAndPreviewsQueries(): void {
     );
     expect(page, "the orders page").to.not.equal(undefined);
     const added = await ComposePage({
-      page: page!.ref,
+      page: defined(page).ref,
       blocks: [row],
       placement: { before: "table" },
     });

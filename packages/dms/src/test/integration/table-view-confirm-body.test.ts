@@ -2,6 +2,7 @@ import type { AxiosInstance } from "axios";
 import { expect } from "chai";
 import { authorizedClient, registerUser } from "../helpers/auth";
 import { resetDatabase } from "../helpers/db";
+import { defined } from "../helpers/defined";
 
 const LOCATION = "/api/archive/notes";
 const HTTP_OK = 200;
@@ -39,7 +40,7 @@ describe("[integration] a guarded confirmation refuses a body that is not a JSON
     const listed = await client.get<{ results: Note[] }>(
       `${LOCATION}/list?limit=50`,
     );
-    note = listed.data.results[0]!;
+    note = defined(listed.data.results[0]);
   });
 
   const send = (action: (typeof ACTIONS)[number], body: string) =>

@@ -28,6 +28,7 @@ import {
 import { ResourceForm } from "@antelopejs/interface-dms/base/table-view/resource-form";
 import { TableViewRoutes } from "@antelopejs/interface-dms/base/table-view/routes";
 import { HttpMethod } from "@antelopejs/interface-dms/base/types/http";
+import { defined } from "../../../helpers/defined";
 
 const SCHEMA = "resource-form-test";
 const TABLE = "tickets";
@@ -64,7 +65,7 @@ class TicketAPI extends DataController(
 function optionsOf(
   builder: ReturnType<typeof ResourceForm>,
 ): FormPropsSerialized {
-  return builder.serializeSync().options!;
+  return defined(builder.serializeSync().options);
 }
 
 function fieldIds(options: FormPropsSerialized): string[] {
@@ -78,7 +79,7 @@ function fieldIds(options: FormPropsSerialized): string[] {
  */
 describe("[unit] interfaces/dms-base/resource-form — a form derived from its table", () => {
   it("is the form a TableView opens for the mode", () => {
-    const table = TableView(TicketAPI).serializeSync().options!;
+    const table = defined(TableView(TicketAPI).serializeSync().options);
 
     const created = optionsOf(ResourceForm(TicketAPI, { mode: "new" }));
 
@@ -86,7 +87,7 @@ describe("[unit] interfaces/dms-base/resource-form — a form derived from its t
     expect(created.submitUrlMethod).to.equal(HttpMethod.post);
 
     expect(created.kind).to.equal("create");
-    const opened = table.formComponents.new!.options!;
+    const opened = defined(defined(table.formComponents.new).options);
     expect(opened.kind).to.equal("create");
     expect(created.fetchUrl).to.equal(opened.fetchUrl);
     expect(fieldIds(created)).to.deep.equal(fieldIds(opened));
@@ -115,9 +116,9 @@ describe("[unit] interfaces/dms-base/resource-form — a form derived from its t
   });
 
   it("keeps the TableView's own pages on their :id segment", () => {
-    const table = TableView(TicketAPI).serializeSync().options!;
+    const table = defined(TableView(TicketAPI).serializeSync().options);
 
-    const opened = table.formComponents.edit!.options!;
+    const opened = defined(defined(table.formComponents.edit).options);
     expect(opened.submitUrl).to.equal(`${LOCATION}/edit?id={{params.id}}`);
   });
 

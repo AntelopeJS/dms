@@ -7,6 +7,7 @@ import type { JsonValue } from "@antelopejs/interface-dms/json";
 import { z } from "zod";
 import { getBaseUrl } from "./http";
 import { readBridgeConfig } from "./mcp";
+import { defined } from "./defined";
 
 const LAUNCHER = join(
   __dirname,
@@ -86,7 +87,7 @@ export async function startBridge(): Promise<BridgeProcess> {
     { stdio: ["pipe", "pipe", "inherit"] },
   );
   const waiting = new Map<number, (answer: BridgeAnswer) => void>();
-  const lines = createInterface({ input: child.stdout! });
+  const lines = createInterface({ input: defined(child.stdout) });
   lines.on("line", (line) => {
     const parsed = AnswerSchema.safeParse(JSON.parse(line));
     if (parsed.success) waiting.get(parsed.data.id)?.(parsed.data);
@@ -108,7 +109,7 @@ export async function startBridge(): Promise<BridgeProcess> {
           clearTimeout(timer);
           resolve(answer);
         });
-        child.stdin!.write(
+        defined(child.stdin).write(
           `${JSON.stringify({ jsonrpc: "2.0", id, method, params })}\n`,
         );
       });

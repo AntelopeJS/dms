@@ -35,6 +35,7 @@ import {
   type Fixture,
 } from "./harness";
 import { reloadedAtOnce } from "./reload-stub";
+import { defined } from "../../helpers/defined";
 
 const MODULE = "erp-tables";
 const OP_TIMEOUT = 120_000;
@@ -184,16 +185,18 @@ function proposesWhatIsMappable(): void {
       projectDirectory(app.root, path.join("modules", MODULE, "src")),
     ).to.deep.equal(["index.ts"]);
     expect(state.progress).to.include({ relations: 4, profiled: 3 });
-    const proposal = state.proposal!;
+    const proposal = defined(state.proposal);
     expect(
       proposal.resources.map((resource) => resource.relation),
     ).to.have.members(["erp.customers", "erp.orders", "erp.invoices"]);
     expect(proposal.excluded.map((entry) => entry.relation)).to.deep.equal([
       "erp.people",
     ]);
-    const invoice = proposal.resources.find(
-      (resource) => resource.relation === "erp.invoices",
-    )!;
+    const invoice = defined(
+      proposal.resources.find(
+        (resource) => resource.relation === "erp.invoices",
+      ),
+    );
     expect(
       invoice.fields.find((field) => field.column === "order_id")?.relation,
     ).to.include({ value: "erp.orders", rule: "F5" });
@@ -220,14 +223,16 @@ function proposesWhatIsMappable(): void {
       ),
     ).to.deep.equal([]);
   });
+}
 
+function answersLaterAnalyses(): void {
   it("profiles again after an analysis whose measures timed out", async () => {
     const slow = catalogOver(RELATIONS);
     setCatalogConnectionsForTests({
       erp: {
         ...slow,
         async Profile(request) {
-          const profile = await slow.Profile!(request);
+          const profile = await defined(slow.Profile)(request);
           return { ...profile, rows: { status: "timeout" } };
         },
       },
@@ -279,7 +284,7 @@ function proposesWhatIsMappable(): void {
     });
     expectOk(mapped, "MapResources");
     calls.length = 0;
-    const proposal = (await analysed()).proposal!;
+    const proposal = defined((await analysed()).proposal);
     expect(
       proposal.resources.map((resource) => resource.relation),
     ).to.deep.equal(["erp.invoices"]);
@@ -316,7 +321,7 @@ function tellsMappedFromUnreadable(): void {
       })),
     });
     expectOk(mapped, "MapResources");
-    const proposal = (await analysed()).proposal!;
+    const proposal = defined((await analysed()).proposal);
     expect(proposal.resources).to.deep.equal([]);
     expect(proposal.open).to.deep.equal([]);
     expect(proposal.mapped).to.deep.equal([
@@ -329,7 +334,7 @@ function tellsMappedFromUnreadable(): void {
   it("names no mapped relation when the account reads no table", async () => {
     setCatalogConnectionsForTests({ erp: catalogOver([]) });
     try {
-      const proposal = (await analysed()).proposal!;
+      const proposal = defined((await analysed()).proposal);
       expect(proposal.resources).to.deep.equal([]);
       expect(proposal.mapped).to.deep.equal([]);
     } finally {
@@ -376,7 +381,7 @@ function keepsOneJobPerConnection(): void {
     );
     setCatalogConnectionsForTests({ erp: catalogOver(many) });
     try {
-      const proposal = (await analysed()).proposal!;
+      const proposal = defined((await analysed()).proposal);
       expect(proposal.open.map((item) => item.kind)).to.deep.equal(["schemas"]);
       expect(calls.some((call) => call.startsWith("Profile:"))).to.equal(false);
     } finally {
@@ -405,6 +410,7 @@ describe("an analysis job", function () {
   });
 
   proposesWhatIsMappable();
+  answersLaterAnalyses();
   tellsMappedFromUnreadable();
   keepsOneJobPerConnection();
 });

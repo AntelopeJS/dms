@@ -1,10 +1,11 @@
 import { expect } from "chai";
 import { ListBlockTypes } from "@antelopejs/interface-dms/base/block-types";
+import { defined } from "../../../helpers/defined";
 
 function configOf(type: string) {
   const declared = ListBlockTypes().find((block) => block.type === type);
   expect(declared, `${type} is declared`).to.not.equal(undefined);
-  return declared!.config;
+  return defined(declared).config;
 }
 
 /**
