@@ -6,6 +6,6 @@
     "baseUrl": "../../dist/test/reload-host"
   },
   "dependencies": {
-    "@antelopejs/interface-dms": ">=0.15.0 <0.16.0"
+    "@antelopejs/interface-dms": ">=0.16.0 <0.17.0"
   }
 }
