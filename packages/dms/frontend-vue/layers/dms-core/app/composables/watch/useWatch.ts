@@ -104,9 +104,7 @@ export function useWatch(
         // prettier-ignore
         try {
           actionFn(action, detail, componentState);
-        } catch {
-          // eslint-disable-line no-empty -- A synchronous action failure does not stop subsequent actions.
-        }
+        } catch {}
       }
     } finally {
       isLoading.value = false;

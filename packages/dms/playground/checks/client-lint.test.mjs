@@ -1,52 +1,35 @@
 import assert from "node:assert/strict";
-import { spawnSync } from "node:child_process";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
+import { ESLint } from "eslint";
 
 const LAYER = fileURLToPath(new URL("../frontend-vue/", import.meta.url));
-const ESLINT = fileURLToPath(
-  new URL(
-    "../../frontend-vue/node_modules/eslint/bin/eslint.js",
-    import.meta.url,
-  ),
-);
+
+/** The client lint as `lint:client` runs it, from the layer, with its own config. */
+const eslint = new ESLint({
+  cwd: LAYER,
+  overrideConfigFile: "../checks/client-lint.config.mjs",
+});
 
 /**
  * The restricted-syntax messages `lint:client` reports for a probe file.
  * @param {string} file
  * @param {string} source
- * @returns {string[]}
+ * @returns {Promise<string[]>}
  */
-function findings(file, source) {
-  const { status, stdout, stderr } = spawnSync(
-    process.execPath,
-    [
-      ESLINT,
-      "--config",
-      "../checks/client-lint.config.mjs",
-      "--format",
-      "unix",
-      "--stdin",
-      "--stdin-filename",
-      file,
-    ],
-    {
-      cwd: LAYER,
-      input: source,
-      encoding: "utf8",
-      env: { ...process.env, ESLINT_USE_FLAT_CONFIG: "true" },
-    },
-  );
-  assert.equal(stderr, "");
-  const messages = stdout.split("\n").flatMap((line) => {
-    const finding =
-      /^.+?:\d+:\d+: (.+) \[Error\/(?:vue\/)?no-restricted-syntax\]$/u.exec(
-        line,
-      );
-    return finding?.[1] === undefined ? [] : [finding[1]];
+async function findings(file, source) {
+  const results = await eslint.lintText(source, {
+    filePath: `${LAYER}${file}`,
   });
-  assert.equal(status, messages.length === 0 ? 0 : 1, stdout);
-  return messages;
+  return results.flatMap((result) =>
+    result.messages
+      .filter(
+        (message) =>
+          message.ruleId === "no-restricted-syntax" ||
+          message.ruleId === "vue/no-restricted-syntax",
+      )
+      .map((message) => message.message),
+  );
 }
 
 /** Each form with the probes that reach server code and one that stays on the client. */
@@ -111,15 +94,15 @@ const PROBES = [
 ];
 
 for (const { form, file, server, client } of PROBES) {
-  await test(`${form} into server code is rejected`, () => {
+  await test(`${form} into server code is rejected`, async () => {
     for (const source of server) {
-      const [message, ...rest] = findings(file, source);
+      const [message, ...rest] = await findings(file, source);
       assert.equal(rest.length, 0, source);
       assert.ok(message?.includes(`server through ${form}.`), source);
     }
   });
 
-  await test(`${form} inside the client layer passes`, () => {
-    assert.deepEqual(findings(file, client), []);
+  await test(`${form} inside the client layer passes`, async () => {
+    assert.deepEqual(await findings(file, client), []);
   });
 }

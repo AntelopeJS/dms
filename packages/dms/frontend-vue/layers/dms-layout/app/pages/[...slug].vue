@@ -319,9 +319,7 @@ function tearDownPageSetup() {
     // prettier-ignore
     try {
       unsubscribe();
-    } catch {
-      // eslint-disable-line no-empty -- One failed cleanup does not prevent the remaining cleanups.
-    }
+    } catch {}
   }
 }
 

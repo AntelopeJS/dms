@@ -1,5 +1,5 @@
-import typescriptParser from "../../frontend-vue/node_modules/@typescript-eslint/parser/dist/index.js";
-import vue from "../../frontend-vue/node_modules/eslint-plugin-vue/lib/index.js";
+import typescriptParser from "@typescript-eslint/parser";
+import vue from "eslint-plugin-vue";
 
 /**
  * A path into the playground's server source or its build: a relative path that
