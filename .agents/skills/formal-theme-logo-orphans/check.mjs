@@ -2,12 +2,12 @@
 /**
  * Runs the property check of the theme logo orphan cleanup: builds
  * `packages/dms`, then runs `theme-logo-orphans.formal.test.ts` through the
- * module test runner. The file generates app configs with fast-check, saves a
- * theme through the real `SetTheme`, and also asserts that each version of the
- * orphan check before a fix still loses a generated config and that each
+ * module test runner. The file asserts that a theme save through the real
+ * `SetTheme` deletes no file a generated app config can name, and that each
  * recorded finding still reproduces. Prints nothing when the file passes.
- * Exits 0 when it passes, 1 when a property or a finding changed, and 2 when
- * the build or the runner could not run.
+ * Exits 0 when it passes, 1 and `BROKEN SetThemeKeepsReachableLogos` when a
+ * property or a finding changed, and 2 when the build or the runner could not
+ * run.
  *
  * @packageDocumentation
  */

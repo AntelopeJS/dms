@@ -83,7 +83,7 @@ describe("[unit] a declaration file edited between two builder operations: the n
     ).to.deep.equal([path.join(app.root, "src", "labels.ts")]);
   });
 
-  it("keeps its last text while it is gone and resolves it once it is back (a reinstall or `rimraf dist` removes the file for a moment; fails on an engine that drops it and leaves its importers unresolved after it is back, as TypeScript keeps the failed resolution of a file that did not change)", async function () {
+  it("keeps its last text while a reinstall or `rimraf dist` removes it, and resolves it once back (fails on an engine that drops it, which leaves its importers unresolved once it is back, as TypeScript keeps a failed resolution of an unchanged file)", async function () {
     this.timeout(OP_TIMEOUT);
     writeLabelsPackage("draft");
     expectOk(await addBanner("third"), "AddBlock before the removal");

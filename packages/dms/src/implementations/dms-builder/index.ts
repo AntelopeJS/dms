@@ -1,7 +1,7 @@
 /**
- * The builder interface implementation. Every operation reaches the template
- * registry (compiling a query, or recognizing one already written), so the
- * built-in query templates are registered as this module loads.
+ * Every operation reaches the template registry (compiling a query, or
+ * recognizing one already written), so the built-in query templates are
+ * registered as this module loads.
  *
  * @packageDocumentation
  */

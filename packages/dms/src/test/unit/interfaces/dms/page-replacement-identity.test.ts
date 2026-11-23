@@ -66,7 +66,7 @@ describe("[unit] interfaces/dms/page — a replaced page gives back its permissi
     ImplementInterface(pageInterfaceInternal, pageImplInternal);
   });
 
-  it("releases the old component and controller once another class takes the page id (fails on a teardown that skips everything once the page id belongs to the replacement: the old component and controller keep their entries in the permission map through every later disposal)", async () => {
+  it("releases the old component and controller once another class takes the page id (fails on a teardown that skips everything once the id is the replacement's, which leaves the old entries in the permission map through every later disposal)", async () => {
     const first = definePage("replacement-released");
     const firstPanel = panel("first");
     const firstInfo = await registerPage(first, firstPanel);
@@ -97,7 +97,7 @@ describe("[unit] interfaces/dms/page — a replaced page gives back its permissi
     expect(GetPermissionId(secondPanel)).to.equal(undefined);
   });
 
-  it("keeps the identity of a component the replacement mounts again (fails on a release left to the old page's own teardown, which arrives after the replacement mounted the same instance under the same id: the entry the departing position matches is by then the replacement's)", async () => {
+  it("keeps the identity of a component the replacement mounts again (fails on a release left to the old page's teardown, which runs after the remount)", async () => {
     const shared = panel("shared");
     const firstInfo = await registerPage(
       definePage("replacement-shared"),
@@ -121,7 +121,7 @@ describe("[unit] interfaces/dms/page — a replaced page gives back its permissi
     expect(GetPermissionId(shared)).to.equal(undefined);
   });
 
-  it("keeps the identity a live page holds when the replaced one drops it late (fails on a release that drops the entry without asking whether a live page holds it: the replaced page's extension sync, still in flight when it was disposed, takes up the next extension and drops its component after the replacement has mounted it at the same position)", async () => {
+  it("keeps the identity a live page holds when the replaced one drops it late (fails on a release that does not ask whether a live page holds the entry, as when the old page's extension sync, still in flight at its disposal, drops a component the replacement has mounted)", async () => {
     const first = heldComponent();
     const second = heldComponent();
     const firstInfo = await registerPage(

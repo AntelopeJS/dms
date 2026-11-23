@@ -52,7 +52,7 @@ function readConfig(): string {
   return projectFile(app.root, "antelope.config.ts");
 }
 
-describe("listing the database connections of a module entry, which a one-time migration moves onto the DMS's entry, so it reads every binding as written (fails on a reader that skips a disabled entry, drops a binding it cannot read, or writes)", function () {
+describe("listing the connections of a module entry, which a one-time migration moves onto the DMS's entry with every binding as written (fails on a reader that skips a disabled entry, drops a binding it cannot read, or writes)", function () {
   this.timeout(OP_TIMEOUT);
 
   before(() => {
@@ -155,7 +155,7 @@ const UNREADABLE: [string, string, string][] = [
   ],
 ];
 
-describe("reading a module entry's bindings exactly as written, so a migration moves all of its connections (fails on a reader that turns an unreadable id into a plain pin, reads a shorthand as nothing, refuses an entry with no binding, or reads the access elsewhere than dms-database does)", function () {
+describe("reading a module entry's bindings exactly as written, so a migration moves all its connections (fails on a reader that turns an unreadable id into a plain pin, reads a shorthand as nothing, refuses an entry with no binding, or reads the access elsewhere than dms-database)", function () {
   this.timeout(OP_TIMEOUT);
 
   function writeConfig(declarations: string, modules: string): void {

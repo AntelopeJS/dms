@@ -3,9 +3,9 @@
  * Model-checks the creation, withdrawal, cancel, accept, expiry and resend of
  * invitations of one email with TLC through the shared runner of
  * @antelopejs/tooling-configs: InviteCreation.tla under the code at the sync
- * commit (`Rules = "main"`), first with three callers of
- * createUserInviteToken, then with a resend, a cancel and an acceptance among
- * them.
+ * commit (`Rules = "main"`), first with four callers of
+ * createUserInviteToken, one of them with other content, then with three
+ * callers and a resend, a cancel and an acceptance among them.
  *
  * With no argument it runs the CI configuration of each (`<config>.ci.cfg`);
  * with `--full` it runs the full one (`<config>.cfg`). Exits 0 when both match

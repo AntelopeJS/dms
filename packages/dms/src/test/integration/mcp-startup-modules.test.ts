@@ -7,7 +7,7 @@ const tsMorphFilesAtStart = Object.keys(require.cache).filter((file) =>
   file.includes(TS_MORPH_SEGMENT),
 );
 
-describe("[integration] mcp start with the builder off, read before any test runs, so it sees the modules the start loaded under `mcp.enabled` and not those a later tool call loads", () => {
+describe("[integration] the modules an `mcp.enabled` start with the builder off loads, read as this file loads before any test runs, not those a later tool call loads", () => {
   it("loads no ts-morph", () => {
     expect(tsMorphFilesAtStart).to.deep.equal([]);
   });

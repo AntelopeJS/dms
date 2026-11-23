@@ -72,7 +72,7 @@ describe("[unit] mcp bridge publication", function () {
     );
   });
 
-  it("writes the backendUrl into the bridge config, whatever apiBaseUrl is", async () => {
+  it("writes the backendUrl into the bridge config, whatever apiBaseUrl is, and logs no MCP warning among the module-wide ones a stray timer may add", async () => {
     await publish(PUBLIC_API, "http://127.0.0.1:5123/");
     expect(readBridgeConfig(projectPath)).to.deep.equal({
       url: "http://127.0.0.1:5123/dms/mcp",

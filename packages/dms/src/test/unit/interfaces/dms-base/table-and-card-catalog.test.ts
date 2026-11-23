@@ -29,7 +29,7 @@ describe('[unit] interfaces/dms-base/table-view — its row actions in the catal
   });
 });
 
-describe("[unit] interfaces/dms-base — options for a page built without code: the simple view shows what someone building without code reads, the table's technical options are left to the developer view, and a meter's source is one an editor can generate, its maximum staying the meter's own", () => {
+describe("[unit] interfaces/dms-base — options for a page built without code: the simple view leaves a table's technical options to the developer view, and a meter's source is one an editor can generate, its maximum the meter's own", () => {
   it("leaves a table's technical options to the developer view", () => {
     const table = configOf("TableView");
     for (const option of [
@@ -57,7 +57,7 @@ describe("[unit] interfaces/dms-base — options for a page built without code: 
   });
 });
 
-describe("[unit] interfaces/dms-base/chart-card — the chart it wraps, in the catalog: it draws the series the card fetched under the card's heading, and its own source and title are never read, as a builder offering them would let an author wire a source that does nothing", () => {
+describe("[unit] interfaces/dms-base/chart-card — the chart it wraps offers no source or title, as it draws the series the card fetched under the card's heading and never reads them, so no author wires a source that does nothing", () => {
   it("names the options of its chart it supplies itself", () => {
     const supplied = configOf("ChartCard").chart?.ui?.supplies;
 

@@ -1,6 +1,4 @@
 /**
- * The export-job contract.
- *
  * Running an export is DMS behaviour -- it writes database rows, spools files
  * through temporary storage, zips and mails them -- so the module implements it
  * and this file only declares what a caller needs: the vocabulary, the

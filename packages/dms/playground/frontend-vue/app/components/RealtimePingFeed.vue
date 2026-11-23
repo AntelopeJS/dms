@@ -1,8 +1,8 @@
 <script setup lang="ts">
 /**
- * Shows each message published on a topic the backend bound to this page
- * with `RegisterPageTopic`, as `useRealtimeTopic` hands it over: the raw
- * `topic`, `type`, `payload`, `actorId` and `ts` of the message.
+ * Shows the latest messages published on a topic the backend bound to this
+ * page with `RegisterPageTopic`, as `useRealtimeTopic` hands them over: the raw
+ * `topic`, `type`, `payload`, `actorId` and `ts` of each message.
  *
  * @packageDocumentation
  */

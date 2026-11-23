@@ -139,7 +139,7 @@ function unchanged(before: Map<string, string>): void {
   expect(project.files()).to.deep.equal(before);
 }
 
-describe("[formal] every tool that writes blocks judges where their requests go: it refuses the options aimed outside the page's data API with the page's files unchanged, and accepts those aimed inside, since a block acts with its owner's session", function () {
+describe("[formal] every tool that writes blocks refuses options aimed outside the page's data API, the page's files unchanged, and accepts those aimed inside, since a block acts with its owner's session", function () {
   this.timeout(OP_TIMEOUT * 6);
 
   useWorkspace();

@@ -50,7 +50,7 @@ function readConfig(): string {
   return projectFile(app.root, "antelope.config.ts");
 }
 
-describe("writing a key beside a member whose name the builder cannot read, which may be that key, so a second one would let the later key win at runtime and drop what the first held (fails on a writer that looks keys up among plain names only, appends a second key and answers ok)", function () {
+describe("writing a key beside a member whose name the builder cannot read, which may be that key (fails on a writer that looks keys up among plain names only, appends a second key, which wins at runtime and drops what the first held, and answers ok)", function () {
   this.timeout(OP_TIMEOUT);
 
   beforeEach(() => {

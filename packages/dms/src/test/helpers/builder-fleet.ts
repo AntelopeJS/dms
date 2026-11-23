@@ -8,6 +8,7 @@ import type { BuilderSession } from "./builder-session";
 import { callTool } from "./mcp-bridge-process";
 import { parseBody } from "./parse-body";
 
+/** The fleet resource's own schema, registered once the app is loaded, since the DMS registers its core schema once, at its start. */
 const FLEET_SCHEMA = "builder-journeys-fleet";
 const HTTP_OK = 200;
 

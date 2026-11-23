@@ -42,7 +42,7 @@ function openTransaction() {
   return { transaction: new Transaction(sourceFile.getProject()), sourceFile };
 }
 
-describe("an outside save during a builder write, from the developer's editor after the builder read the page and before it wrote it back: the write refuses as `stale` and leaves the outside save on disk (fails on a flush that writes its own text without comparing)", () => {
+describe("an outside save from the developer's editor between a builder write's read and its flush: the write refuses as `stale` and leaves it on disk (fails on a flush that does not compare)", () => {
   before(async function () {
     this.timeout(120_000);
     app = createFixture();

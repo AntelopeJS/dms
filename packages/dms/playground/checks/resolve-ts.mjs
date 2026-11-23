@@ -1,9 +1,3 @@
-/**
- * Resolves the extensionless relative imports of the TypeScript sources the checks load directly.
- *
- * @packageDocumentation
- */
-
 import { registerHooks } from "node:module";
 
 registerHooks({

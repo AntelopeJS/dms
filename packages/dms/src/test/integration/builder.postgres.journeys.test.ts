@@ -197,7 +197,7 @@ async function read(route: string, params: Record<string, string>) {
 }
 
 suite(
-  `[integration] builder journeys: the app the builder writes, served over a real PostgreSQL server, where a \`date\` field is a timestamp column that parses each bound of a query, which MongoDB does not, so only this server tells a route that binds a malformed date from one that binds none${LIVE_SUITE_NOTE}`,
+  `[integration] builder journeys: stats routes of the app the builder writes, served over a real PostgreSQL server, whose timestamp column refuses a malformed date bound that MongoDB answers with no rows${LIVE_SUITE_NOTE}`,
   function () {
     this.timeout(START_TIMEOUT_MS + OP_TIMEOUT);
     const loaded: string[] = [];
@@ -216,7 +216,7 @@ suite(
       await loadAppOnPostgres(session(), postgres(), loaded);
     });
 
-    it("order-dates-are-timestamp-columns-in-postgres (fails when the app registers its schema with another database than the PostgreSQL server, such as the MongoDB of the test's own context, where the other tests would pass over a database that parses no timestamp)", async () => {
+    it("order-dates-are-timestamp-columns-in-postgres (fails when the app registers its schema with another database than the PostgreSQL server, such as the test context's MongoDB, where the other tests would pass over a database that parses no timestamp)", async () => {
       const database = new Client({ connectionString: postgres() });
       await database.connect();
       const columns = await database.query(
@@ -229,7 +229,7 @@ suite(
       ).to.deep.equal(["timestamp with time zone"]);
     });
 
-    it("stats-route-answers-the-period-without-comparison-bounds (fails when the card route of a query saved with `compare` binds `new Date(String(compareFrom))` for a request with no `compareFrom` and `compareTo`, which PostgreSQL refuses as an Invalid Date, so the route answers 500 where the `comparison=none` request needs the period's own figures)", async () => {
+    it("stats-route-answers-the-period-without-comparison-bounds (fails when a card route saved with `compare` binds `new Date(String(compareFrom))` for a request without comparison bounds, such as the dashboard's `comparison=none`, which PostgreSQL answers with a 500)", async () => {
       const answered = await read(routes.cardRoute, {
         from: daysAgo(50),
         to: daysAgo(20),
@@ -239,7 +239,7 @@ suite(
       expect([card.value, totalOf(card.series)]).to.deep.equal([705, 705]);
     });
 
-    it('stats-route-answers-every-order-without-period-bounds (fails when a route binds `new Date(String(from))` for the "All" period, whose request carries no `from` and `to`, so PostgreSQL refuses the Invalid Date and the route answers 500 where every order is due)', async () => {
+    it('stats-route-answers-every-order-without-period-bounds (fails when a route binds `new Date(String(from))` for the "All" period, a request with no `from` and `to`, which PostgreSQL answers with a 500)', async () => {
       const everything = await read(routes.seriesRoute, {});
 
       expect(pointsOf(parseBody(SeriesBody, everything))).to.equal(

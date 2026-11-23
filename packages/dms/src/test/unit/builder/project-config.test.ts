@@ -456,7 +456,7 @@ function refusesWhatItCannotRewrite(): void {
   });
 }
 
-describe("project-config operations: wiring a project to another database touches several entries of `antelope.config.ts` at once, so the builder writes them on a draft, refuses what contradicts the configuration, and never writes a secret's value, as a wrong pin binds a module to the wrong database", function () {
+describe("project-config operations write a database's wiring, which touches several entries of `antelope.config.ts`, on one draft, refuse what contradicts the configuration and never write a secret's value, since a wrong pin binds a module to the wrong database", function () {
   this.timeout(OP_TIMEOUT);
 
   beforeEach(() => {

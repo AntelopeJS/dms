@@ -93,7 +93,7 @@ describe("the driver range a project can install (fails on an open driver range,
   });
 });
 
-describe("connecting a driver to the project (fails on a project state that reads another interface-database than the one core resolves, 0.4 through the test project's MongoDB module whose batch-cursor release brings 0.4.1, or that answers an open range)", function () {
+describe("connecting a driver to the project (fails on a project state that reads another interface-database than the one core resolves, or answers an open range)", function () {
   this.timeout(OP_TIMEOUT);
 
   let root = "";
@@ -105,7 +105,7 @@ describe("connecting a driver to the project (fails on a project state that read
 
   after(destroyFixture);
 
-  it("answers and writes the range of the drivers built for 0.4, closed before the next line", async () => {
+  it("answers and writes the range of the drivers built for the 0.4 line the fixture's MongoDB module resolves, closed before the next line", async () => {
     const project = await GetDatabaseProject();
     const resolved = project.ok ? project.data.interfaceDatabase : undefined;
     expect(semver.satisfies(resolved ?? "", "0.4.x"), resolved).to.equal(true);

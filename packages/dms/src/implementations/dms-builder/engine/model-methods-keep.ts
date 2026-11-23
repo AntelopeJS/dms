@@ -1,6 +1,4 @@
 /**
- * Keeping the query methods of a model through a rewrite of its file.
- *
  * Mapping a relation again writes the table, model and controller from the
  * database's description. The query methods the builder added to the model since
  * belong to pages, not to the description, so they are carried over: dropping

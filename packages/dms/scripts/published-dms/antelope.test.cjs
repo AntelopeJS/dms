@@ -1,7 +1,6 @@
 /**
- * The project `published-dms.mjs` runs: the dms module at `PUBLISHED_DMS_PATH`
- * with the providers it requires, on the database `PUBLISHED_DMS_DATABASE` of
- * the MongoDB at `PUBLISHED_DMS_MONGO_URL`.
+ * The project `published-dms.mjs` runs against a published build of dms, with
+ * the providers it requires.
  *
  * @packageDocumentation
  */

@@ -99,7 +99,7 @@ function removeWritten(): void {
   written = [];
 }
 
-describe("[unit] a save that breaks a file the save did not write: once a typecheck of the app found no error, a save checks only what it could have broken, and fails on a file a full check fails on", () => {
+describe("[unit] a save after a clean typecheck checks only what it could have broken, and still fails on a file it did not write that a full check fails on", () => {
   before(async function () {
     this.timeout(120_000);
     await createBoard();

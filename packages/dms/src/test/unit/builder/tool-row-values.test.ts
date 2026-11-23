@@ -20,7 +20,7 @@ import {
   fixture,
 } from "./helpers/mapped-orders";
 
-describe("[unit] the tools that read a connected database answer no value of a row, as the AI gets its shape and never its values: no tool answers a profile's range, category values or months, a proposal's badge items or currency, or a written file's diff, and the module it maps holds none in any of its files (fails on an implementation that passes one through, or that writes a badge's items, a currency or tabs read from rows into the code)", function () {
+describe("[unit] the tools that read a connected database answer its shape, never a value of a row, such as a profile's range, category values or months, a proposal's badge items or currency, or a written file's diff, and write none into the module they map", function () {
   this.timeout(OP_TIMEOUT);
 
   connectDatabase();
@@ -93,7 +93,7 @@ describe("[unit] the tools that read a connected database answer no value of a r
   });
 });
 
-describe("[unit] the builder tools over a module mapped before references answer no value of a row: each tool that reads or edits the badge items, tabs and currency read from rows answers with them left out (fails on an implementation that shows a structure or a diff of the mapped code, or of a mapped page moved out of its module, or that lets an edit drop what it hides)", function () {
+describe("[unit] the builder tools over a module mapped before references hide the row values its code holds (badge items, tabs and a currency), in a structure, a diff or a moved page, and keep them on an edit", function () {
   this.timeout(OP_TIMEOUT);
 
   connectDatabase();

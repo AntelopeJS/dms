@@ -77,7 +77,7 @@ function unrecordRowLiterals(): () => void {
   return () => fs.writeFileSync(manifest, JSON.stringify(record));
 }
 
-describe("[unit] the builder tools over a mapped resource answer the literals the AI wrote: over a resource mapped by dms 0.20.8 or before, whose code holds the values of its rows, each tool that reads a page answers the tabs and select items of the AI as written and the mapping's still hidden (fails on an implementation that hides every literal of code over a mapped module)", function () {
+describe("[unit] the builder tools over a resource mapped by dms 0.20.8 or before show the literals the AI wrote, tabs and select items, and hide the mapping's (fails on hiding every literal of a mapped module)", function () {
   this.timeout(OP_TIMEOUT);
 
   connectDatabase();

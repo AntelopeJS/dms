@@ -1,7 +1,5 @@
 /**
- * Building or extending a whole page in one operation.
- *
- * The blocks and their queries are staged one after the other into a single
+ * A page's blocks and their queries are staged one after the other into a single
  * transaction, then the project is typechecked once and written, or nothing is.
  * Staging never throws away a refusal: the remaining blocks are still checked,
  * so one answer lists every block that needs fixing.

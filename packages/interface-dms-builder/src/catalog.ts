@@ -50,10 +50,10 @@ export type OptionWidget =
   | "json"
   | "block";
 
-/** How a builder UI should present one option. */
 /** A resource aspect a field must carry for an option naming it to work. */
 export type FieldAspect = "listable" | "searchable" | "sortable" | "filterable";
 
+/** How a builder UI should present one option. */
 export interface OptionUi {
   label?: string;
   widget?: OptionWidget;

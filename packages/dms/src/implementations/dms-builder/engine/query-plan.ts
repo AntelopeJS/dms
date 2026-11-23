@@ -350,7 +350,6 @@ export function bucketExpression(group: PlanGroup, row: string): string {
   return `${month}.mul(100).add(${part("day")})`;
 }
 
-/** The projected field a bucketed group is grouped on. */
 /**
  * Which period an emitted bucket expression computes, by rebuilding each
  * candidate and comparing — the emitter is the grammar, so a reader asking it
@@ -373,6 +372,7 @@ export function readBucketExpression(
   );
 }
 
+/** The projected field a bucketed group is grouped on. */
 const GROUP_KEY = "bucket";
 /** The projected field a bucketed aggregate measures, the row being replaced. */
 const VALUE_KEY = "value";

@@ -485,7 +485,7 @@ describe("page options written as constant expressions (property): a literal, a 
     expect(await editKeepsSiblings(saveWithDraft)()).to.equal(undefined);
   });
 
-  it('ConfigurePage writes the member the editor changed and keeps its sibling as written (a known defect, run with `DMS_PROPERTY_KNOWN_DEFECTS=1`: ConfigurePage writes the sibling of a changed `live` member as its value, `rememberKey: "A"` for `rememberKey: KEY`, and prunes the constant, where a draft save keeps it)', async function () {
+  it('ConfigurePage writes the member the editor changed and keeps its sibling as written (known defect, runs under `DMS_PROPERTY_KNOWN_DEFECTS=1`: for a changed `live` member it writes its sibling as its value, `rememberKey: "A"` for `rememberKey: KEY`, and prunes `KEY`, which a draft save keeps)', async function () {
     if (!KNOWN_DEFECTS) {
       this.skip();
     }

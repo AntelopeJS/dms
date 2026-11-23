@@ -237,7 +237,7 @@ async function memberOf(
   };
 }
 
-describe("[integration] a table view reads the values of the columns it references when it serves the page, so a select, a price and the tabs name a column instead of listing its values (fails on a read across tenants, for a caller who may not list the rows, on a page that fails when the rows cannot be read, and on a route that serves the layout outside the request it answers)", () => {
+describe("[integration] a table view reads the values of the columns its select, price and tabs reference, within the request it answers", () => {
   const owners = new Map<string, AxiosInstance>();
 
   before(async () => {

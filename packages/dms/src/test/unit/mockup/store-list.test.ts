@@ -127,7 +127,7 @@ describe("[unit] mockup list order and comments", () => {
 describe("[unit] mockup list status and source", () => {
   withMockupsDirectory();
 
-  it("lists the source and the built pages a spec writes, a page titled by its path when its title is absent or blank (fails on a store that keeps a blank title, an unlabelled link on the card, or on a spec reader that refuses a build time with a UTC offset, which the JSON Schema's `date-time` allows)", async () => {
+  it("lists the source and the built pages a spec writes, a page titled by its path when its title is absent or blank (fails on a store that keeps a blank title, which leaves the card's link unlabelled, or a spec reader that refuses a build time with a UTC offset, which the JSON Schema's `date-time` allows)", async () => {
     await writeFile(
       join(root, NAME, "spec.json"),
       JSON.stringify({

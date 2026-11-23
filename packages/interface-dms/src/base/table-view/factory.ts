@@ -36,6 +36,9 @@ import {
 /**
  * A table of the rows `controller` serves.
  *
+ * `TableView.fromSource` builds a read-only table over a module's own route,
+ * with no data controller: see {@link tableViewFromSource}.
+ *
  * @docsApi
  */
 export function TableView<T extends ControllerClass>(

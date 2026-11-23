@@ -1,7 +1,6 @@
 /**
- * Sidebar sections: the categories the sidebar draws as a header over their
- * pages, written with `RootCategory` beside the built-in Pages, and the
- * switch between such a section and a category folded under Pages.
+ * A section is a category the sidebar draws as a header over its pages, written
+ * with `RootCategory` beside the built-in Pages.
  *
  * @packageDocumentation
  */

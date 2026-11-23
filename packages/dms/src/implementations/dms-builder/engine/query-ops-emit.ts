@@ -199,11 +199,6 @@ export function addQuery(
 }
 
 /**
- * Recompiles a query from the merged patch and replaces both members. Refuses an
- * opaque target: a hash mismatch means a human owns that chain now, and
- * regenerating it from a marker it no longer matches would revert their edit.
- */
-/**
  * Walks a query ref down to the route it names and the structure currently
  * written there, refusing anything the builder cannot describe: a ref that does
  * not parse, a page or route that is gone, a stale version, or a route whose
@@ -242,6 +237,11 @@ function locateQuery(query: QueryRef, opts: MutationOpts | undefined) {
   };
 }
 
+/**
+ * Recompiles a query from the merged patch and replaces both members. Refuses an
+ * opaque target: a hash mismatch means a human owns that chain now, and
+ * regenerating it from a marker it no longer matches would revert their edit.
+ */
 export function configureQuery(
   query: QueryRef,
   patch: Partial<AddQueryInput>,

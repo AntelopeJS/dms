@@ -107,7 +107,7 @@ function reachedItsWork(text: string): boolean {
   return !text.split("\n").every((line) => SCHEMA_ISSUE.test(line));
 }
 
-describe("[formal] the MCP tools answer the shape of a connected database, never its values: no tool answers a canary of `erp.orders` for the arguments drawn from its schema, and every tool that writes refuses `{ $hidden }` sent back and writes nothing", function () {
+describe("[formal] the MCP tools answer the shape of a connected database, never its values: for the arguments drawn from their schemas, no answer holds a canary of `erp.orders`, and every tool that writes refuses `{ $hidden }` sent back and writes nothing", function () {
   this.timeout(OP_TIMEOUT * 10);
 
   useWorkspace();

@@ -358,7 +358,7 @@ function substitutesValuesSuppliedPerRequest(): void {
   }
 }
 
-describe("running a plan agrees with writing it: each case compares the two renderings on the calculation rather than the layout, so a formatting change of the emitter is no divergence, and a preview never disagrees with the code it previews", () => {
+describe("running a plan computes what writing it does, compared on the calculation, not the layout the emitter chooses, so a preview never disagrees with the code it previews", () => {
   rendersTheSameCalculationBothWays();
 
   describe("values supplied per request", () => {

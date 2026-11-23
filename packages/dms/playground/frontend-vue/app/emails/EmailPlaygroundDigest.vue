@@ -2,9 +2,8 @@
 /**
  * The playground's own email template, registered on the backend with
  * `RegisterHtmlTemplate("EmailPlaygroundDigest")` and rendered with
- * `GenerateHtml`. It reuses the DMS's `EmailLayout` without its heading
- * divider and with a logo only when a mail client can load it. The language
- * arrives as a prop: the template picks its texts and the document `lang`.
+ * `GenerateHtml`. The language arrives as a prop: the template picks its
+ * texts and the document `lang`.
  *
  * @packageDocumentation
  */
