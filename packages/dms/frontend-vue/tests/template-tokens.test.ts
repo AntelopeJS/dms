@@ -1,8 +1,8 @@
 /**
  * Every option naming a value with a token writes it `{{<scope>.<key>}}`, and
- * every URL or link option fills the page's `{{params.X}}` / `{{query.X}}`
- * the same way: an `api` or `exportJob` target as a `page` one, a
- * confirmation's `from`, a block's links, a form's `backTo`.
+ * every URL or link option fills the page's `{{params.X}}` / `{{query.X}}` the
+ * same way: an `api` or `exportJob` target as a `page` one, a confirmation's
+ * `from`, a block's links.
  *
  * @packageDocumentation
  * @vitest-environment jsdom

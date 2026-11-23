@@ -116,7 +116,7 @@ afterEach(() => {
 const created = (name: string, title?: string) =>
   JSON.stringify(title === undefined ? { name } : { name, title });
 
-it("opens the viewer of a mockup created while the Mockups page is shown, with no toast, from the created-mockups endpoint (fails on a toast there, or a stream opened at another endpoint)", () => {
+it("opens the viewer of a mockup the created-mockups stream announces while the Mockups page is shown, with no toast (fails on a toast there, or a stream opened at another endpoint)", () => {
   expect(latestSource().url).toBe(`${BASE}/api/mockup/events/created`);
 
   latestSource().send(created("orders", "Orders desk"));

@@ -133,7 +133,7 @@ it("keeps the rename form open and reports the failure when the API refuses (fai
   expect(root.querySelector("[data-modal]")).not.toBeNull();
 });
 
-it("hands the assistant a starter request from the New mockup card, and shows nothing when it claims it (fails on a first card that is not the New mockup one, a missing or foreign dispatch, or the copy modal despite a claim)", async () => {
+it("hands the assistant a starter request from the New mockup card, and shows nothing when it claims it (fails on a first card that is not the New mockup one, no dispatch or one from another source, or the copy modal despite a claim)", async () => {
   const root = await mountCards([built]);
   const details: unknown[] = [];
   const claim = (event: Event) => {

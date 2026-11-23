@@ -1,7 +1,7 @@
 /**
- * A card dropped on a column the server refuses for a mandatory field it
- * lacks (a deal moved to "Lost" without its reason): the toast names the
- * field by its column's label, translated, never the raw fetch error line.
+ * A card dropped on a column the server refuses (a deal moved to "Lost"
+ * without its mandatory reason, or a read-only demo) toasts the refusal as a
+ * warning and goes back to its column.
  *
  * @vitest-environment jsdom
  * @packageDocumentation

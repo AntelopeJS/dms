@@ -73,7 +73,7 @@ it("reads nothing until the band scrolls into view (fails on reading every mocku
   expect(authFetch).toHaveBeenCalledWith("/api/mockup/demo-mockup");
 });
 
-it("draws the first page in an inert /dms-preview frame on its fixtures alone, at desktop width scaled to the band (fails on a frame at the band's width, one that is clickable, focusable or announced, another page's tree, or a reactive proxy a browser cannot clone)", async () => {
+it("draws the first page in an inert /dms-preview frame on its fixtures alone, at desktop width scaled to the band (fails on a frame at the band's width, which lays the page out as on a phone, one that is clickable, focusable or announced, another page's tree, or a deep ref over the mockup state, which a browser cannot clone)", async () => {
   authFetch.mockResolvedValue(
     mockupState({
       pages: [

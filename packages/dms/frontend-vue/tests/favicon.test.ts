@@ -1,8 +1,4 @@
 /**
- * The favicon plugin: the `<link rel="icon">` tags it declares from
- * `branding.logo.favicon`, their type and color-scheme media, and the icon
- * following an app config the loader replaces in development.
- *
  * @vitest-environment jsdom
  * @packageDocumentation
  */

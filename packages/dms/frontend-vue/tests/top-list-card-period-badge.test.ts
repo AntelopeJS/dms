@@ -1,7 +1,6 @@
 /**
  * A TopListCard tied to a period selector names the selector's preset in its
- * head. The preset is the same name on both sides: the server prints it, and
- * the browser hydrates it, rather than a skeleton until the card mounts.
+ * head from the server render, rather than a skeleton until the card mounts.
  *
  * @packageDocumentation
  */

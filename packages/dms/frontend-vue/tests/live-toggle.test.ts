@@ -1,8 +1,4 @@
 /**
- * The LiveToggle block: Direct / Pause as a two-segment toggle, "updated N s
- * ago" counted every second in the browser, L switching the page outside a
- * text field, and nothing at all on a page without `live`.
- *
  * @vitest-environment jsdom
  * @packageDocumentation
  */

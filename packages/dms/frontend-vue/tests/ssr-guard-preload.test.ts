@@ -1,9 +1,8 @@
 /**
- * A server render of a protected page waits on two requests made by its
- * middlewares, one after the other: the onboarding status (`onboarding`),
- * then the permission set (`auth`). Both start with the app instead, through
- * the real renderer runtime, middlewares and composables, and each middleware
- * joins the request already in flight.
+ * A server render of a protected page waits on two requests its middlewares
+ * make, the onboarding status (`onboarding`) and the permission set (`auth`):
+ * both start with the app, through the real renderer runtime, middlewares and
+ * composables, and each middleware joins the request already in flight.
  *
  * @packageDocumentation
  * @vitest-environment jsdom

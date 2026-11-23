@@ -27,7 +27,7 @@ function builtInto(
   };
 }
 
-it("reads the stage from the built pages against the spec's pages, and a changed page outranks the count (fails on counting a changed page as progress, calling a build that skipped pages Built, or calling a spec with more built pages than pages partial)", () => {
+it("reads the stage from the built pages against the spec's pages, and a changed page outranks the count (fails on counting a changed page as progress, badging Built a build that skipped pages, or badging partial a spec with more built pages than pages)", () => {
   const unchanged = { changed: false };
 
   expect(stageOf({ ...builtInto(2, []), status: "draft" })).toEqual({

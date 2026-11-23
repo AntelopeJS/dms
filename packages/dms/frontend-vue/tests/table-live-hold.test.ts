@@ -1,9 +1,9 @@
 /**
  * A `liveHold` table on a paused live page, or with its rows on screen, keeps
- * its rows: its events are counted into a "N new · Show" banner, a source route is told when the rows
- * were frozen on every list it is asked for (the user's search, sort and
- * pagination included), and Show reads the rows once without leaving the
- * pause.
+ * its rows: its events are counted into a "N new · Show" banner, a source route
+ * is told when the rows were frozen on every list it is asked for (the user's
+ * search, sort and pagination included), and Show reads the rows once without
+ * leaving the pause.
  *
  * @packageDocumentation
  * @vitest-environment jsdom

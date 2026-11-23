@@ -1,8 +1,7 @@
 /**
  * Figures group their digits from four on in every locale ("1 234" beside
  * "12 345", where Spanish or Polish would leave "1234"), with the locale's own
- * separator: French's narrow no-break space is drawn wide enough by the
- * interface's font (see geist-narrow-space.test.ts).
+ * separator.
  *
  * @packageDocumentation
  */

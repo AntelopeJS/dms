@@ -195,7 +195,7 @@ it("reads the first page of each card's own mockup once it scrolls into view (fa
   ]);
 });
 
-it("badges a built mockup with a changed page Out of sync and updates that page's mockup from it (fails on a mockup kept Built after a page changed, an update offered for an unchanged page or a page no mockup page is linked to, a conversion into another mockup than the card's, or the stale mockup opened without converting the page again)", async () => {
+it("badges a built mockup with a changed page Out of sync and updates that page's mockup from it (fails on keeping it Built, offering to update an unchanged page or one no mockup page links to, converting into another mockup, or opening the stale mockup without converting the page again)", async () => {
   const drifted = {
     ...built,
     name: "drifted",

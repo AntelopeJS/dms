@@ -1,8 +1,8 @@
 /**
- * The profile's personal information through the runtime's real async data:
- * a server render reads the profile and the picture's URL and renders the
- * name, the address with its verification and the picture; the browser
- * hydrates with them without asking again, and the form edits a copy.
+ * The profile's personal information through the runtime's real async data: a
+ * server render reads the profile and the picture's URL and renders the name,
+ * the address with its verification and the picture; the browser hydrates with
+ * them without asking again.
  *
  * @packageDocumentation
  * @vitest-environment jsdom

@@ -1,9 +1,4 @@
 /**
- * A PeriodSelector keeps its period in the page URL: the period it starts
- * from (the URL, then the user's last choice, then its default), the server
- * render (no flash of the default), the in-place write on a change (no new
- * history entry), and the period following a route changed from outside.
- *
  * @packageDocumentation
  * @vitest-environment jsdom
  */
