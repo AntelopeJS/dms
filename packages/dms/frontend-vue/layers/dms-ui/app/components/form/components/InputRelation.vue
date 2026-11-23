@@ -6,7 +6,7 @@
 import { pageRequestUrl } from "../../../build/composables/page/pageUrlValues";
 import { useForwardPropsEmits } from "reka-ui";
 import { toDisplayString } from "vue";
-import { isRecord } from "#dms-core/app/build/utils/record";
+import { isRecord } from "#dms-core/app/entries/utils/record";
 import type {
   SelectMenuProps,
   SelectMenuEmits,

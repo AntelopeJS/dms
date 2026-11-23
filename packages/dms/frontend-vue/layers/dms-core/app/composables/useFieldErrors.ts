@@ -298,11 +298,11 @@ function fromText(text: string): ApiFieldError[] {
   const prefixed = FIELD_PREFIXED_MESSAGE.exec(text);
   if (prefixed) {
     const [, field = "", message = ""] = prefixed;
-    const segments = field.split(".");
-    const part = partPath(segments);
+    const path = field.split(".");
+    const part = partPath(path);
     return [
       {
-        field: segments[0] ?? field,
+        field: path[0] ?? field,
         message: isI18nKey(message) ? message : FIELD_ERROR_KEYS.invalid,
         ...(part && { path: part }),
       },
@@ -416,10 +416,11 @@ export function describeFieldErrors(
   const entries = fromCodedFields(body);
   if (!entries?.length) return undefined;
   return entries
-    .flatMap(({ field, message }) => {
-      const key = NAMED_FIELD_ERROR_KEYS[message];
-      return key ? [translate(key, { field: labelOf(field) ?? field })] : [];
-    })
+    .map(({ field, message }) =>
+      translate(NAMED_FIELD_ERROR_KEYS[message] ?? message, {
+        field: labelOf(field) ?? field,
+      }),
+    )
     .join(" ");
 }
 
@@ -559,8 +560,8 @@ export function useFieldErrors<F extends string>(
       fields: fieldIds,
       codes: options.codes,
     });
-    const [firstEntry] = fields;
-    if (!firstEntry) return false;
+    const [first] = fields;
+    if (!first) return false;
     clear();
     for (const entry of fields) {
       if (!isField(entry.field)) continue;
@@ -569,8 +570,7 @@ export function useFieldErrors<F extends string>(
         params: entry.params,
       })?.message;
     }
-    const first = firstEntry.field;
-    if (isField(first)) await focus(first);
+    if (isField(first.field)) await focus(first.field);
     return !hasUnmatched;
   }
 
