@@ -1,4 +1,7 @@
-/** @vitest-environment jsdom */
+/**
+ * @packageDocumentation
+ * @vitest-environment jsdom
+ */
 import { afterEach, beforeAll, describe, expect, it } from "vitest";
 import {
   type App,

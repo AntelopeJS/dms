@@ -1,4 +1,7 @@
-/** @vitest-environment jsdom */
+/**
+ * @packageDocumentation
+ * @vitest-environment jsdom
+ */
 import { ref } from "vue";
 import { describe, expect, it } from "vitest";
 import { SIDE_PANEL_COOKIE } from "../layers/dms-ui/app/entries/composables/layout/sidePanelState";

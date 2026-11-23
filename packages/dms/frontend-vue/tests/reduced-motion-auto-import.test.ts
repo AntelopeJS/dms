@@ -3,6 +3,8 @@
  * by calling `isReducedMotionActive()` without an import: the DMS's
  * `dms.frontend.build.ts` must publish it through the loader's auto-import
  * scan, which skips every `app/build/` folder.
+ *
+ * @packageDocumentation
  */
 import { resolve } from "node:path";
 import { autoImportDirectories } from "@antelopejs/dms-frontend/templates/vue/frontend-build-loader.ts";

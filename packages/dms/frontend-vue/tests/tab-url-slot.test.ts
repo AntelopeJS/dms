@@ -1,9 +1,11 @@
-/** @vitest-environment jsdom */
 /**
  * A tab set keeping its open tab in the URL writes the tab's slot
  * (`?tab=tester`), which stays right when tabs are added or reordered, and
  * still opens a tab named by its index (`?tab=2`). A tab's badge is a
  * BlockText: an i18n key is written in the reader's language.
+ *
+ * @packageDocumentation
+ * @vitest-environment jsdom
  */
 import * as vue from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";

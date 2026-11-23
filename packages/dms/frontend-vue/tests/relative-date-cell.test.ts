@@ -1,9 +1,11 @@
-/** @vitest-environment jsdom */
 /**
  * The `relative_date` cell (`RelativeDateDisplay`): a browser hydrating a
  * server render measures "3 min ago" from the instant the server rendered
  * at, so a date on a minute's edge hydrates as the server wrote it, and a
  * later render follows the clock.
+ *
+ * @packageDocumentation
+ * @vitest-environment jsdom
  */
 import { defineComponent, h } from "vue";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";

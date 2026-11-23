@@ -1,4 +1,3 @@
-/** @vitest-environment jsdom */
 /**
  * Replays of the formal-realtime-tabs counterexamples against the real
  * browser code: useUserRealtime over the shared connection, and the page
@@ -6,6 +5,9 @@
  * data engine. The backend is the realtimeServer fixture; a write bumps the
  * record and publishes its event to the sessions subscribed to the page, as
  * routes/realtime.ts does.
+ *
+ * @packageDocumentation
+ * @vitest-environment jsdom
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {

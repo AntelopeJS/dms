@@ -1,9 +1,11 @@
-/** @vitest-environment jsdom */
 /**
  * The reads of the settings pages through the runtime's real async data: a
  * server render reads what the page shows and hands it to the browser, which
  * hydrates without asking again; the blocks of a page showing one request
  * share it, and a change still reads it again.
+ *
+ * @packageDocumentation
+ * @vitest-environment jsdom
  */
 import {
   computed,

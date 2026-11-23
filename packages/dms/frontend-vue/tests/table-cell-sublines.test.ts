@@ -1,9 +1,11 @@
-/** @vitest-environment jsdom */
 /**
  * The secondary lines of the table cells — under a status pill, under an
  * identity's name, under a `two_line` primary — draw a composed text from the
  * row in the reader's language and in the tone the row gives it; an identity
  * without a value stands as its empty label and icon.
+ *
+ * @packageDocumentation
+ * @vitest-environment jsdom
  */
 import { createApp, defineComponent, h, ref, type App } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
