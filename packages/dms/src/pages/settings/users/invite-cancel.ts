@@ -1,3 +1,4 @@
+import { HTTPResult } from "@antelopejs/interface-api";
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import type { UserInvite } from "@antelopejs/interface-dms/db";
 import { InviteResolutionsModel } from "@antelopejs/interface-dms/db/internal/inviteResolutions.model";
@@ -7,6 +8,8 @@ import {
   decideInvite,
   loadInviteForAction,
 } from "@antelopejs/interface-dms/invite-resolution";
+
+const HTTP_CONFLICT = 409;
 
 /** Cancels an invitation, or resumes its cancellation, as Revoke does. */
 export async function cancelPendingInvite(
@@ -64,6 +67,18 @@ async function cancellationTarget(
 }
 
 /**
+ * The outcome after a conflict, when another decision was taken after the
+ * invitation was read, such as the invitee accepting it meanwhile.
+ */
+async function decidedOtherwise(
+  tenantId: string,
+  inviteId: string,
+): Promise<InviteCancellation | undefined> {
+  const { outcome } = await cancellationTarget(tenantId, inviteId);
+  return outcome.status === "already-resolved" ? outcome : undefined;
+}
+
+/**
  * Cancels an invitation unless another decision already ended it, which
  * answers `already-resolved` instead of failing. A cancellation already
  * decided is resumed.
@@ -73,7 +88,16 @@ export async function cancelInviteIfPending(
   inviteId: string,
 ): Promise<InviteCancellation> {
   const { invite, outcome } = await cancellationTarget(tenantId, inviteId);
-  if (invite) await cancelPendingInvite(tenantId, invite);
+  if (!invite) return outcome;
+  try {
+    await cancelPendingInvite(tenantId, invite);
+  } catch (error) {
+    if (error instanceof HTTPResult && error.getStatus() === HTTP_CONFLICT) {
+      const raced = await decidedOtherwise(tenantId, inviteId);
+      if (raced) return raced;
+    }
+    throw error;
+  }
   return outcome;
 }
 
