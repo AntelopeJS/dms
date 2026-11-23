@@ -5,6 +5,8 @@
  * contributors, streams their entries into a ZIP and hands the result to the
  * export engine -- so the module implements it and this file declares the
  * entry points a caller needs.
+ *
+ * @packageDocumentation
  */
 import type { RequestContext } from "@antelopejs/interface-api";
 import { InterfaceFunction } from "@antelopejs/interface-core";

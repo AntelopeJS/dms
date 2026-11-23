@@ -1,5 +1,8 @@
 import type { Component, ComponentInfoSerialized } from "../component";
 
+/** The whole window: a near full-screen modal, a drawer as wide as the window. */
+type FullModalSize = "full";
+
 export type ModalSize =
   | "sm"
   | "md"
@@ -9,8 +12,7 @@ export type ModalSize =
   | "3xl"
   | "4xl"
   | "5xl"
-  /** The whole window: a near full-screen modal, a drawer as wide as the window. */
-  | "full";
+  | FullModalSize;
 
 /** The edge of the window a `drawer` action target slides in from. */
 export type DrawerDirection = "top" | "right" | "bottom" | "left";

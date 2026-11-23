@@ -1,4 +1,3 @@
-/** @internal */
 import type { ControllerClass } from "@antelopejs/interface-api";
 import { Logging } from "@antelopejs/interface-core/logging";
 import type { ComponentBuilder } from "../../../component";

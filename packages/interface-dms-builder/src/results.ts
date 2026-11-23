@@ -24,49 +24,79 @@ export type TypecheckError = {
   message: string;
 };
 
+/** A query on the page was taken over by hand, so the draft left it alone. */
+type QueryOpaqueCode = "query_opaque";
+
+/** A query the draft dropped is still read by a block, so it was kept. */
+type QueryKeptCode = "query_kept";
+
+/** A page moved category, so its route changed and old links break. */
+type RouteChangedCode = "route_changed";
+
+/** A mapped resource was deleted; its rows belong to the external database and were kept. */
+type DataKeptCode = "data_kept";
+
+/** A mapped relation's tables were written, but its TableView page could not be. */
+type PageNotWrittenCode = "page_not_written";
+
+/** A relation the module maps is no longer in the database, or the role can no longer see it. */
+type RelationMissingCode = "relation_missing";
+
+/** An SVG logo had scripts, event handlers or external references removed. */
+type SvgSanitizedCode = "svg_sanitized";
+
+/**
+ * A relation was mapped without the `display` of its text columns, and neither a profile nor
+ * an analysis was there to propose a badge from, so those columns were written plain.
+ */
+type DisplayNotProposedCode = "display_not_proposed";
+
+/**
+ * The mapping was written, but the module it was written into did not load again afterwards:
+ * it was unloaded and did not start within the wait, or the runtime does not report it active.
+ * The message names the module; the backend log holds the error.
+ */
+type ModuleNotLoadedCode = "module_not_loaded";
+
+/** A setting the page held no longer holds, because another change removed what it needed. */
+type SettingDroppedCode = "setting_dropped";
+
+/** A relation of a batch was left out because one of its choices was refused; the others were written. */
+type RelationSkippedCode = "relation_skipped";
+
+/** A relation asked writable was mapped read-only, because the database account may not insert, update or delete its rows. */
+type RelationReadOnlyCode = "relation_read_only";
+
+/** A column display was not written because it does not suit the column; the column is written plain. */
+type DisplayDroppedCode = "display_dropped";
+
+/** A column was marked filterable or sortable because a view, footer figure, tab or grouping needs it. */
+type FieldFlagSetCode = "field_flag_set";
+
+/** A relation's label was changed to one the generated code can read, or dropped when no column offers it. */
+type LabelChangedCode = "label_changed";
+
 /** A non-fatal advisory attached to an otherwise successful operation. */
 export interface OpWarning {
   code:
-    /** A query on the page was taken over by hand, so the draft left it alone. */
-    | "query_opaque"
-    /** A query the draft dropped is still read by a block, so it was kept. */
-    | "query_kept"
+    | QueryOpaqueCode
+    | QueryKeptCode
     | "index_clamped"
     | "datatype_fallback"
     | "data_not_dropped"
-    /** A page moved category, so its route changed and old links break. */
-    | "route_changed"
-    /** A mapped resource was deleted; its rows belong to the external database and were kept. */
-    | "data_kept"
-    /** A mapped relation's tables were written, but its TableView page could not be. */
-    | "page_not_written"
-    /** A relation the module maps is no longer in the database, or the role can no longer see it. */
-    | "relation_missing"
-    /** An SVG logo had scripts, event handlers or external references removed. */
-    | "svg_sanitized"
-    /**
-     * A relation was mapped without the `display` of its text columns, and neither a profile nor
-     * an analysis was there to propose a badge from, so those columns were written plain.
-     */
-    | "display_not_proposed"
-    /**
-     * The mapping was written, but the module it was written into did not load again afterwards:
-     * it was unloaded and did not start within the wait, or the runtime does not report it active.
-     * The message names the module; the backend log holds the error.
-     */
-    | "module_not_loaded"
-    /** A setting the page held no longer holds, because another change removed what it needed. */
-    | "setting_dropped"
-    /** A relation of a batch was left out because one of its choices was refused; the others were written. */
-    | "relation_skipped"
-    /** A relation asked writable was mapped read-only, because the database account may not insert, update or delete its rows. */
-    | "relation_read_only"
-    /** A column display was not written because it does not suit the column; the column is written plain. */
-    | "display_dropped"
-    /** A column was marked filterable or sortable because a view, footer figure, tab or grouping needs it. */
-    | "field_flag_set"
-    /** A relation's label was changed to one the generated code can read, or dropped when no column offers it. */
-    | "label_changed";
+    | RouteChangedCode
+    | DataKeptCode
+    | PageNotWrittenCode
+    | RelationMissingCode
+    | SvgSanitizedCode
+    | DisplayNotProposedCode
+    | ModuleNotLoadedCode
+    | SettingDroppedCode
+    | RelationSkippedCode
+    | RelationReadOnlyCode
+    | DisplayDroppedCode
+    | FieldFlagSetCode
+    | LabelChangedCode;
   message: string;
 }
 

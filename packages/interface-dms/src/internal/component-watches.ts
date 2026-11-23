@@ -1,4 +1,3 @@
-/** @internal */
 import type { WatchAction } from "../watch-actions";
 import { ComponentId } from "../watch-actions";
 import type {

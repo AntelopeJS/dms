@@ -1,4 +1,3 @@
-/** @internal */
 import type { UploadConstraints } from "@antelopejs/interface-file-storage";
 import type { Component } from "../../component";
 import type { UploadFieldOptions } from "../../internal/uploads";

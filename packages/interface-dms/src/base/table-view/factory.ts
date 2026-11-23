@@ -177,10 +177,6 @@ export function TableView<T extends ControllerClass>(
   return builder;
 }
 
-/**
- * A read-only table view over a module's own route, without a data
- * controller: see {@link tableViewFromSource}.
- */
 TableView.fromSource = tableViewFromSource;
 
 /**

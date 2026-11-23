@@ -6,6 +6,8 @@
  * and this file only declares what a caller needs: the vocabulary, the
  * defaults, and the entry points. Everything the engine uses on the way
  * (storage upload, stale sweeps, filename building) stays inside the module.
+ *
+ * @packageDocumentation
  */
 import type { RequestContext } from "@antelopejs/interface-api";
 import { InterfaceFunction } from "@antelopejs/interface-core";

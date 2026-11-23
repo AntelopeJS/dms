@@ -9,6 +9,8 @@
  * module registering its own block reaches `RegisterBlockType` through here, so
  * the helpers its schema needs — `ui`, `narrowString`, `opaqueOption` — have to
  * be reachable from the same place.
+ *
+ * @packageDocumentation
  */
 import "./activity-feed";
 import "./banner";

@@ -1,4 +1,3 @@
-/** @internal */
 import { ControllerMeta } from "@antelopejs/interface-api";
 import { GetMetadata } from "@antelopejs/interface-core";
 import { AuthOwnerOnly, AuthUser } from "../../auth";

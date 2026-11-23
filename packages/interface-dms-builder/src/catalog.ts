@@ -112,6 +112,9 @@ export interface OptionUi {
   initial?: unknown;
 }
 
+/** Branches of differing kinds; read `oneOf` rather than `type`. */
+type UnionOptionType = "union";
+
 /** The primitive kinds a described option reduces to. */
 export type OptionType =
   | "string"
@@ -120,8 +123,7 @@ export type OptionType =
   | "object"
   | "array"
   | "record"
-  /** Branches of differing kinds; read `oneOf` rather than `type`. */
-  | "union"
+  | UnionOptionType
   | "unknown";
 
 /**

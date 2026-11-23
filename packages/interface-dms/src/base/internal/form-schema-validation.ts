@@ -1,4 +1,3 @@
-/** @internal */
 import { z } from "zod";
 import { isNull, isObject, isString } from "../../utils/internal/type-check";
 import { ComponentBuilder } from "../../component";

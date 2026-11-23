@@ -1,4 +1,3 @@
-/** @internal */
 import assert from "node:assert";
 import { ControllerMeta } from "@antelopejs/interface-api";
 import { GetMetadata } from "@antelopejs/interface-core";

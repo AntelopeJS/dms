@@ -1,4 +1,3 @@
-/** @internal */
 import type { ComponentInfoSerialized } from "../../component";
 import type { PageExtensionComponent, PageExtensionInfo } from "../types";
 import type { PageExtensionEntry } from "./extension-assembly";

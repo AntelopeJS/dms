@@ -1,4 +1,3 @@
-/** @internal */
 import { Logging } from "@antelopejs/interface-core/logging";
 import { ownEntry } from "./own-entry";
 import type {

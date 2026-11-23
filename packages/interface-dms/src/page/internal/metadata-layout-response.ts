@@ -1,4 +1,3 @@
-/** @internal */
 import { GetEffectiveUserPermissions } from "../../permissions";
 import type { ComponentFilterContext } from "../../component";
 import { gateAllowsSurface } from "../../internal/tenant-access";

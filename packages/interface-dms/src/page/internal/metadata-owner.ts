@@ -1,4 +1,3 @@
-/** @internal */
 import type { Component, ComponentInfoSerialized } from "../../component";
 import type { NativeUploadFieldRegistration } from "../../internal/uploads";
 import type { ComponentTreeNode } from "../component-tree";

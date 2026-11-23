@@ -1,4 +1,3 @@
-/** @internal */
 import type {
   Action,
   ButtonPermission,

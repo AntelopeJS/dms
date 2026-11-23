@@ -1,4 +1,3 @@
-/** @internal */
 import type { ComponentInfoSerialized } from "../../component";
 import {
   type NativeUploadFieldRegistration,

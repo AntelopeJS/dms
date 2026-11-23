@@ -1,4 +1,3 @@
-/** @internal */
 import type { MenuOptions, PageLiveOptions } from "../types";
 import { isNumber } from "../../utils/internal/type-check";
 
