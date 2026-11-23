@@ -2,6 +2,8 @@
  * The Mockups page is development only: a production build of the DMS
  * frontend module reaches none of it, neither its header icon nor its card
  * display, while a development build does.
+ *
+ * @packageDocumentation
  */
 import { resolve } from "node:path";
 import { build, type Rollup } from "vite";
@@ -52,13 +54,8 @@ async function entryCode(nodeEnv: "production" | "development") {
 
 afterEach(() => vi.unstubAllEnvs());
 
-/**
- * Fails an implementation that registers the Mockups icon or its card
- * component outside the `import.meta.env.DEV` branch of `registerPlugins`, so a
- * production dashboard would ship them.
- */
 it(
-  "leaves the mockups page out of a production build",
+  "leaves the mockups page out of a production build (fails on registering the Mockups icon or its card component outside the `import.meta.env.DEV` branch of `registerPlugins`)",
   async () => {
     const production = await entryCode("production");
     expect(production.code).toContain("componentPrefix");

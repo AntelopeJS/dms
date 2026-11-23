@@ -1,8 +1,10 @@
-/** @vitest-environment jsdom */
 /**
  * A relation cell whose joined row has no label shows the row's key, never
  * the row itself stringified (`[object Object]`), and a multiple relation
  * keeps a badge for it.
+ *
+ * @packageDocumentation
+ * @vitest-environment jsdom
  */
 import { h, isVNode } from "vue";
 import { beforeAll, describe, expect, it, vi } from "vitest";

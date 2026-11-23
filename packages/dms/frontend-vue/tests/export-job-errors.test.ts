@@ -1,4 +1,7 @@
-/** @vitest-environment jsdom */
+/**
+ * @vitest-environment jsdom
+ * @packageDocumentation
+ */
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { useExportJob } from "../layers/dms-ui/app/composables/useExportJob";
 import { requestRefusal } from "./helpers/api-error-runtime";

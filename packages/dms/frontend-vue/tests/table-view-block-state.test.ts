@@ -1,7 +1,9 @@
-/** @vitest-environment jsdom */
 /**
  * A table view states what its reader sees on its root element: `ok` with
  * rows, `empty` with none, `error` when the list could not be read.
+ *
+ * @packageDocumentation
+ * @vitest-environment jsdom
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { TableViewConfig } from "../layers/dms-ui/app/composables/table-view/types";

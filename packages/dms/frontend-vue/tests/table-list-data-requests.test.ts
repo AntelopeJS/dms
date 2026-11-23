@@ -1,9 +1,11 @@
-/** @vitest-environment jsdom */
 /**
  * The requests behind a table view's list and counters, through the
  * runtime's real async data: a query rebuilt equal by value reads nothing
  * again, one that changes reads again, and each request carries the run's
  * abort signal, so a run replaced or dropped cancels its request.
+ *
+ * @packageDocumentation
+ * @vitest-environment jsdom
  */
 import { surfaceRejection } from "./surface-rejection";
 import { computed, createApp, defineComponent, h, nextTick, ref } from "vue";
@@ -44,6 +46,20 @@ const api = fetchClient(
 );
 
 const unmounts: Array<() => void> = [];
+
+/** A route answering only when `answer` is called. */
+function pendingApi() {
+  let answer: () => void = () => undefined;
+  const answered = new Promise<void>((resolve) => (answer = resolve));
+  const held = fetchClient(
+    async (url: string, options: Omit<Call, "url"> = {}) => {
+      calls.push({ url, ...options });
+      await answered;
+      return { results: [{ total: 1 }], total: 1 };
+    },
+  );
+  return { held, answer };
+}
 
 beforeEach(() => {
   calls.length = 0;
@@ -200,20 +216,6 @@ describe("a source table's requests", () => {
       ["/api/report", "is:open"],
     ]);
   });
-
-  /** A route answering only when `answer` is called. */
-  function pendingApi() {
-    let answer: () => void = () => undefined;
-    const answered = new Promise<void>((resolve) => (answer = resolve));
-    const held = fetchClient(
-      async (url: string, options: Omit<Call, "url"> = {}) => {
-        calls.push({ url, ...options });
-        await answered;
-        return { results: [{ total: 1 }], total: 1 };
-      },
-    );
-    return { held, answer };
-  }
 
   it("keep a shared request while a caller still waits on it", async () => {
     const { held, answer } = pendingApi();

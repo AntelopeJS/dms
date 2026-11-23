@@ -1,4 +1,7 @@
-/** @vitest-environment jsdom */
+/**
+ * @vitest-environment jsdom
+ * @packageDocumentation
+ */
 import { createApp, defineComponent, h, nextTick, ref, type App } from "vue";
 import { afterEach, describe, expect, it } from "vitest";
 import EmptyState from "../layers/dms-ui/app/components/empty-state/EmptyState.vue";

@@ -1,9 +1,11 @@
-/** @vitest-environment jsdom */
 /**
  * The site layout of a page that brings none with its props (a custom page)
  * as the sidebar reads it, through the runtime's real async data: the server
  * waits for it and renders the menu, and the browser takes it over without
  * asking again. A page that brought it reads nothing.
+ *
+ * @packageDocumentation
+ * @vitest-environment jsdom
  */
 import {
   defineComponent,

@@ -1,8 +1,10 @@
-/** @vitest-environment jsdom */
 /**
  * The renderer's error handler only keeps an error for the error page: in
  * development, the original error is logged first, with its stack, and the
  * renderer's handler still runs.
+ *
+ * @vitest-environment jsdom
+ * @packageDocumentation
  */
 import { createApp, defineComponent, type App } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";

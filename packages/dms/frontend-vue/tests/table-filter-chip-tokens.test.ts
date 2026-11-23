@@ -2,6 +2,8 @@
  * A filter chip shows the date a relative token stands for (`{{now-30d}}`),
  * not "Unknown": the token is resolved the way the server resolves it before
  * the column's formatter writes it.
+ *
+ * @packageDocumentation
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {

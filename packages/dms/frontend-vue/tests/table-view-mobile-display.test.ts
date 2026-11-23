@@ -1,9 +1,11 @@
-/** @vitest-environment jsdom */
 /**
  * A table view declaring `mobileDisplay` opens a phone on it once mounted —
  * cards rather than a grid cut after its first columns — unless a display was
  * chosen. The phone's display becomes the default the preference compares
  * with, so it is never saved as the user's choice.
+ *
+ * @packageDocumentation
+ * @vitest-environment jsdom
  */
 import { createApp, defineComponent, h, ref } from "vue";
 import { afterEach, describe, expect, it, vi } from "vitest";

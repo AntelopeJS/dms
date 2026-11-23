@@ -1,4 +1,7 @@
-/** @vitest-environment jsdom */
+/**
+ * @packageDocumentation
+ * @vitest-environment jsdom
+ */
 import { afterEach, expect, it, vi } from "vitest";
 import { createApp, ref, type App } from "vue";
 import UIcon from "@nuxt/ui/runtime/vue/components/Icon.vue";

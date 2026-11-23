@@ -1,4 +1,3 @@
-/** @vitest-environment jsdom */
 /**
  * A drawer or a modal gives the page its clicks back as soon as it starts
  * closing, not once its panel has finished animating out. Reka sets
@@ -11,6 +10,9 @@
  * scroll lock does from 2.11 on. The page is given back by the observer the
  * DMS installs on every page, whoever renders the dialog: a plain reka dialog
  * stands for UModal, USlideover and the confirm dialogs.
+ *
+ * @vitest-environment jsdom
+ * @packageDocumentation
  */
 import { realpathSync } from "node:fs";
 import { createRequire } from "node:module";

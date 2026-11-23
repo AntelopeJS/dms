@@ -2,6 +2,8 @@
  * `useApiData` on the runtime's real async data, over a fake `$authFetch`:
  * what a layer component reads, a server render of it, and the browser
  * hydrating its HTML.
+ *
+ * @packageDocumentation
  */
 import { createApp, createSSRApp, type App, type Component } from "vue";
 import { renderToString } from "vue/server-renderer";

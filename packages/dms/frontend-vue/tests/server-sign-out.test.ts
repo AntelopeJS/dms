@@ -33,8 +33,7 @@ describe("signing out of the DMS", () => {
     vi.useRealTimers();
   });
 
-  /** Serves the DMS's routes the way the frontend server does: it reconfirms the session before a route answers. */
-  async function serveReconfirming(): Promise<{
+  async function serveReconfirmingSessionBeforeRoutes(): Promise<{
     base: string;
     stop: () => Promise<void>;
   }> {
@@ -56,7 +55,7 @@ describe("signing out of the DMS", () => {
   }
 
   it("revokes the session on the backend when its renewal cannot reach the backend", async () => {
-    const { base, stop } = await serveReconfirming();
+    const { base, stop } = await serveReconfirmingSessionBeforeRoutes();
     try {
       const cookie = await cookiesOf(base, "/auth/login", {
         body: { email: "ada@example.test", password: "secret" },

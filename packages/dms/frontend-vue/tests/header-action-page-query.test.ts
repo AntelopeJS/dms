@@ -1,10 +1,12 @@
-/** @vitest-environment jsdom */
 /**
  * A page header's buttons follow the page URL: a target URL takes the
  * `{{params.X}}` / `{{query.X}}` tokens of a block's `fetchUrl`, and a
  * button whose availability reads the query is asked for again when the
  * query changes. The served buttons and a page's own actions
  * (`usePageHeaderActions`) share one order.
+ *
+ * @vitest-environment jsdom
+ * @packageDocumentation
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {

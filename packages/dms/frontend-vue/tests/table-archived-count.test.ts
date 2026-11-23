@@ -1,6 +1,8 @@
 /**
  * The caption count of the archive: a default agreeing with no noun, in
  * every locale, and a table view's own label naming its rows.
+ *
+ * @packageDocumentation
  */
 import { createI18n } from "vue-i18n";
 import { describe, expect, it } from "vitest";

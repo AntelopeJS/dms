@@ -1,4 +1,7 @@
-/** @vitest-environment jsdom */
+/**
+ * @packageDocumentation
+ * @vitest-environment jsdom
+ */
 import { ref } from "vue";
 import { fetchClient } from "./fixtures/fetchClient";
 import { describe, expect, it, vi } from "vitest";

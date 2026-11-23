@@ -1,7 +1,9 @@
-/** @vitest-environment jsdom */
 /**
  * The strip of a held table: "N new · Show", Show reading the rows again,
  * led by why the table holds by itself ("Table on hold · search active").
+ *
+ * @vitest-environment jsdom
+ * @packageDocumentation
  */
 import { createApp, h, type App } from "vue";
 import { afterEach, expect, it, vi } from "vitest";

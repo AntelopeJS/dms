@@ -2,6 +2,8 @@
  * The color-mode plugin as the server runs it: the `<html>` tag of the rendered
  * document already carries an explicit preference, so the first paint is right
  * without waiting for JavaScript, and `system` is left to the pre-paint script.
+ *
+ * @packageDocumentation
  */
 import { useHead } from "@unhead/vue";
 import { createHead, renderSSRHead } from "@unhead/vue/server";

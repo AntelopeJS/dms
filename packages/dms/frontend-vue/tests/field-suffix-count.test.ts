@@ -1,9 +1,11 @@
-/** @vitest-environment jsdom */
 /**
  * A number field writes its unit inside the box, before the stepper ("30
- * days"), so it is as wide as the fields around it; a text field
- * or a text area asked for it counts the characters typed, out of its
- * `maxLength` ("4 / 60"). Without either option, the control is unchanged.
+ * days"), so it is as wide as the fields around it; a text field or a text
+ * area asked for it counts the characters typed, out of its `maxLength`
+ * ("4 / 60"). Without either option, the control is unchanged.
+ *
+ * @vitest-environment jsdom
+ * @packageDocumentation
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {

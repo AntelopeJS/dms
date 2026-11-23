@@ -2,6 +2,8 @@
  * `pinnedRows`: the rows a rule accepts lead the list whatever the sort — the
  * base language of a languages table stays on top whichever column the user
  * sorts on, and on the first page.
+ *
+ * @packageDocumentation
  */
 import type { TableViewDisplayContext } from "../layers/dms-ui/app/composables/table-view/types/display";
 import { describe, expect, it } from "vitest";

@@ -27,12 +27,7 @@ function builtInto(
   };
 }
 
-/**
- * Fails an implementation that counts a changed page as progress, calls a
- * build that skipped pages Built, or calls a spec with more built pages than
- * pages partial.
- */
-it("reads the stage from the built pages against the spec's pages, and a changed page outranks the count", () => {
+it("reads the stage from the built pages against the spec's pages, and a changed page outranks the count (fails on counting a changed page as progress, badging Built a build that skipped pages, or badging partial a spec with more built pages than pages)", () => {
   const unchanged = { changed: false };
 
   expect(stageOf({ ...builtInto(2, []), status: "draft" })).toEqual({
@@ -54,11 +49,7 @@ it("reads the stage from the built pages against the spec's pages, and a changed
   });
 });
 
-/**
- * Fails an implementation that gives the progress badge no counts for its
- * text, or colours two stages alike.
- */
-it("gives each stage its own colour and the progress its counts", () => {
+it("gives each stage its own colour and the progress its counts (fails on a progress badge with no counts for its text, or two stages coloured alike)", () => {
   const badges = [
     badgeOf({ kind: "draft" }),
     badgeOf({ kind: "partial", built: 2, total: 5 }),
@@ -70,15 +61,18 @@ it("gives each stage its own colour and the progress its counts", () => {
   expect(badges[1]?.params).toEqual({ built: 2, total: 5 });
 });
 
-/**
- * Fails an implementation that lets a rename reach a path, an uppercase
- * name, or one of the names the mockup API answers on its own routes.
- */
-it("accepts the names the API accepts and refuses the rest", () => {
+it("accepts the names the API accepts and refuses the rest (fails on a rename reaching a path, an uppercase name, or a name the mockup API answers on its own routes)", () => {
   expect(["desk", "bike-rental-2", "0-start"].every(isMockupName)).toBe(true);
   expect(
-    ["", "Desk", "a b", "../x", "-dash", "schema", "example", "a".repeat(65)].some(
-      isMockupName,
-    ),
+    [
+      "",
+      "Desk",
+      "a b",
+      "../x",
+      "-dash",
+      "schema",
+      "example",
+      "a".repeat(65),
+    ].some(isMockupName),
   ).toBe(false);
 });

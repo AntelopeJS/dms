@@ -1,10 +1,12 @@
-/** @vitest-environment jsdom */
 /**
  * The onboarding status the global middleware reads while a server renders a
  * page reaches the browser with the page, through the runtime's real async
  * data: the server reads it inside an async data handler (no
  * untransferred-read warning), and the browser's run of the middleware asks
  * nothing.
+ *
+ * @packageDocumentation
+ * @vitest-environment jsdom
  */
 import { createApp, createSSRApp, defineComponent, h, nextTick } from "vue";
 import { renderToString } from "vue/server-renderer";

@@ -1,4 +1,7 @@
-/** @vitest-environment jsdom */
+/**
+ * @packageDocumentation
+ * @vitest-environment jsdom
+ */
 import { describe, expect, it } from "vitest";
 import { isRowClickTrigger } from "../layers/dms-ui/app/entries/utils/rowClickTrigger";
 import "./row-side-panel-runtime";

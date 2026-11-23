@@ -1,4 +1,7 @@
-/** @vitest-environment jsdom */
+/**
+ * @vitest-environment jsdom
+ * @packageDocumentation
+ */
 import { expect, it, vi } from "vitest";
 import { defineComponent, h, type App } from "vue";
 import type { FormFieldOrGroup } from "../layers/dms-ui/app/composables/form/types/field";

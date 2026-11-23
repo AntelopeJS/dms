@@ -1,8 +1,10 @@
-/** @vitest-environment jsdom */
 /**
  * `useConfirmFrom().confirmFrom(url)` opens the dialog a route words, as a
  * declarative action's `confirm: { from }` does, for code of a module's own
  * (a custom page, a block's button).
+ *
+ * @vitest-environment jsdom
+ * @packageDocumentation
  */
 import { createApp, defineComponent, h, type App } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";

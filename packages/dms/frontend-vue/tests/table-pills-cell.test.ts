@@ -1,8 +1,10 @@
-/** @vitest-environment jsdom */
 /**
  * The `pills` cell draws a list of strings and related rows as outline role
  * pills, and the pill items a server styles per row in their own tone and
  * variant.
+ *
+ * @packageDocumentation
+ * @vitest-environment jsdom
  */
 import { createApp, defineComponent, h, type App } from "vue";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";

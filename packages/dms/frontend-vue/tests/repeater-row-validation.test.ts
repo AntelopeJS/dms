@@ -1,9 +1,11 @@
-/** @vitest-environment jsdom */
 /**
  * Editing a cell of a repeater checks the row it belongs to, not the rows
  * nobody touched: a form opening with three empty-description rows flags
  * row 2 once its unit changes, and row 3 once its own does, never row 1.
  * A submit still checks every row.
+ *
+ * @packageDocumentation
+ * @vitest-environment jsdom
  */
 import type { z } from "zod";
 import { beforeEach, describe, expect, it, vi } from "vitest";

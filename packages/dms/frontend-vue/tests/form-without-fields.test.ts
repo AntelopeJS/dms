@@ -1,4 +1,7 @@
-/** @vitest-environment jsdom */
+/**
+ * @vitest-environment jsdom
+ * @packageDocumentation
+ */
 import { afterEach, expect, it } from "vitest";
 import { host, mountForm, unmountForm } from "./helpers/form-runtime";
 

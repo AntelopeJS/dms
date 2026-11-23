@@ -1,8 +1,10 @@
-/** @vitest-environment jsdom */
 /**
  * `$authFetch` is typed and documented as a `$fetch.create` instance: besides
  * its call and `raw`, its `create` and `native` members are callable, through
  * the renderer's real `$fetch` and ofetch over the platform `fetch`.
+ *
+ * @vitest-environment jsdom
+ * @packageDocumentation
  */
 import { createApp, ref } from "vue";
 import { beforeEach, expect, it, vi } from "vitest";

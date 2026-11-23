@@ -1,10 +1,13 @@
-/** @vitest-environment jsdom */
 /**
  * A number field keeps a typed value within its bounds when it is left or on
  * Enter, and on its steps only when asked to (`stepSnapping`): by default the
- * step drives the steppers and never rewrites a value. It says so with `adjust` — 1020 typed in a field of
- * steps of 50 kept as 1,000 — and draws the kept value again, so a module
- * shows "1020 → 1,000" without remounting the field.
+ * step drives the steppers and never rewrites a value. It says so with
+ * `adjust` — 1020 typed in a field of steps of 50 kept as 1,000 — and draws
+ * the kept value again, so a module shows "1020 → 1,000" without remounting
+ * the field.
+ *
+ * @vitest-environment jsdom
+ * @packageDocumentation
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { type App, createApp, defineComponent, h, nextTick, ref } from "vue";

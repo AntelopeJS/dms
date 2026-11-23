@@ -1,9 +1,11 @@
-/** @vitest-environment jsdom */
 /**
  * A form field hands its component the context props (initial value,
  * loading, component, page and route ids) that component declares, and no
  * other, so they never land on its root element as HTML attributes. A
  * localized field does the same for each locale's control.
+ *
+ * @vitest-environment jsdom
+ * @packageDocumentation
  */
 import {
   type App,

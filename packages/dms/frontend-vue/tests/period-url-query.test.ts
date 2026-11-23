@@ -1,10 +1,3 @@
-/**
- * A PeriodSelector keeps its period in the page URL under keys prefixed with
- * its id. These cover what the URL holds: how a selection is written and read
- * back, which source wins (the URL, then the user's last choice, then the
- * default), that two selectors never read each other's keys, and that a value
- * the selector cannot honour falls back silently.
- */
 import { describe, expect, it } from "vitest";
 import {
   formatPeriodDate,

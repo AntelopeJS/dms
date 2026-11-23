@@ -1,4 +1,7 @@
-/** @vitest-environment jsdom */
+/**
+ * @vitest-environment jsdom
+ * @packageDocumentation
+ */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   parsePreviewMessage,
@@ -9,10 +12,7 @@ import {
   mockupState,
   type MountedViewer,
 } from "./helpers/mockup-runtime";
-import {
-  mountOverviewViewer,
-  overviewDriver,
-} from "./helpers/mockup-overview";
+import { mountOverviewViewer, overviewDriver } from "./helpers/mockup-overview";
 
 let viewer: MountedViewer;
 const { findAll, measure, bootLive } = overviewDriver(() => viewer);

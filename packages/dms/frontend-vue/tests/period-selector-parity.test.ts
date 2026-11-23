@@ -2,6 +2,8 @@
  * What a PeriodSelector offers besides its presets: every period (`all`, no
  * bounds sent), a window labelled relative to now ("since yesterday 11:52"),
  * and a comparison drawn as a menu, a toggle or nothing.
+ *
+ * @packageDocumentation
  */
 import { effectScope } from "vue";
 import { describe, expect, it } from "vitest";

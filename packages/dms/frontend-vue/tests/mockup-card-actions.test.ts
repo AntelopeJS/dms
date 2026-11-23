@@ -1,4 +1,7 @@
-/** @vitest-environment jsdom */
+/**
+ * @vitest-environment jsdom
+ * @packageDocumentation
+ */
 import { nextTick } from "vue";
 import { expect, it, vi } from "vitest";
 import {
@@ -18,11 +21,7 @@ import {
   text,
 } from "./helpers/mockup-cards-runtime";
 
-/**
- * Fails an implementation whose menu lacks an action, labels the menu button
- * with something other than its card, or opens another mockup's viewer.
- */
-it("gives each card a labelled menu that opens its viewer, renames, copies and deletes it", async () => {
+it("gives each card a labelled menu that opens its viewer, renames, copies and deletes it (fails on a menu lacking an action, a button not labelled with its card, or another mockup's viewer opening)", async () => {
   const root = await mountCards([built, draft]);
   const own = card(root, "bike-rental");
 
@@ -39,12 +38,7 @@ it("gives each card a labelled menu that opens its viewer, renames, copies and d
   expect(navigateTo).toHaveBeenCalledWith("/mockup?name=bike-rental");
 });
 
-/**
- * Fails an implementation that deletes without asking, deletes after a
- * refusal, deletes another mockup than the card's, or leaves the card on
- * screen after the delete.
- */
-it("deletes a mockup only once the user confirmed, then reads the list again", async () => {
+it("deletes a mockup only once the user confirmed, then reads the list again (fails on deleting without asking or after a refusal, deleting another mockup than the card's, or leaving the card on screen)", async () => {
   const root = await mountCards([built, draft]);
   confirm.mockResolvedValueOnce(false);
 
@@ -68,11 +62,7 @@ it("deletes a mockup only once the user confirmed, then reads the list again", a
   });
 });
 
-/**
- * Fails an implementation that copies another mockup, names the copy itself
- * (the server picks a free name), or neither tells the user nor refreshes.
- */
-it("duplicates a mockup and says which name the copy got", async () => {
+it("duplicates a mockup and says which name the copy got (fails on copying another mockup, naming the copy itself instead of the server picking a free name, or neither telling the user nor refreshing)", async () => {
   const root = await mountCards([built, draft]);
   authFetch.mockResolvedValue({ name: "bike-rental-copy" });
 
@@ -88,12 +78,7 @@ it("duplicates a mockup and says which name the copy got", async () => {
   );
 });
 
-/**
- * Fails an implementation that renames over the wrong mockup, sends a name
- * the API refuses, sends fields the user did not change, or lets an
- * unchanged form submit.
- */
-it("renames through a form that sends only what changed and refuses a name the API would", async () => {
+it("renames through a form that sends only what changed and refuses a name the API would (fails on renaming the wrong mockup, sending a refused name or an unchanged field, or submitting an unchanged form)", async () => {
   const root = await mountCards([built, draft]);
   await click(menuItem(card(root, "bike-rental"), "Rename"));
   const save = () => root.querySelector("[data-dms-mockup-rename-save]");
@@ -109,9 +94,7 @@ it("renames through a form that sends only what changed and refuses a name the A
 
   await type("[data-dms-mockup-rename-name]", "Not A Slug");
   expect(save()?.hasAttribute("disabled")).toBe(true);
-  expect(root.querySelector("[data-modal]")?.textContent).toContain(
-    "reserved",
-  );
+  expect(root.querySelector("[data-modal]")?.textContent).toContain("reserved");
   await type("[data-dms-mockup-rename-name]", "example");
   expect(save()?.hasAttribute("disabled")).toBe(true);
 
@@ -131,11 +114,7 @@ it("renames through a form that sends only what changed and refuses a name the A
   expect(root.querySelector("[data-modal]")).toBeNull();
 });
 
-/**
- * Fails an implementation that closes the form, or reads the list again, when
- * the API refused the rename.
- */
-it("keeps the rename form open and reports the failure when the API refuses", async () => {
+it("keeps the rename form open and reports the failure when the API refuses (fails on closing the form or reading the list again after a refused rename)", async () => {
   const root = await mountCards([built]);
   await click(menuItem(card(root, "bike-rental"), "Rename"));
   const title = root.querySelector("[data-dms-mockup-rename-title]");
@@ -154,12 +133,7 @@ it("keeps the rename form open and reports the failure when the API refuses", as
   expect(root.querySelector("[data-modal]")).not.toBeNull();
 });
 
-/**
- * Fails an implementation whose first card is not the new mockup one, that
- * dispatches nothing or another source, or that shows the copy modal even
- * though an assistant claimed the request.
- */
-it("hands the assistant a starter request from the New mockup card, and shows nothing when it claims it", async () => {
+it("hands the assistant a starter request from the New mockup card, and shows nothing when it claims it (fails on a first card that is not the New mockup one, no dispatch or one from another source, or the copy modal despite a claim)", async () => {
   const root = await mountCards([built]);
   const details: unknown[] = [];
   const claim = (event: Event) => {
@@ -179,11 +153,7 @@ it("hands the assistant a starter request from the New mockup card, and shows no
   expect(root.querySelector("[data-modal]")).toBeNull();
 });
 
-/**
- * Fails an implementation that drops the request when no assistant listens,
- * instead of showing it to copy in the AI tool the developer uses.
- */
-it("shows the starter to copy when no assistant claims the New mockup request", async () => {
+it("shows the starter to copy when no assistant claims the New mockup request (fails on dropping the request instead of showing it to copy in the AI tool the developer uses)", async () => {
   const root = await mountCards([built]);
 
   await click(root.querySelector("[data-dms-mockup-new]") ?? root);
@@ -191,11 +161,7 @@ it("shows the starter to copy when no assistant claims the New mockup request", 
   expect(text(root, "[data-dms-mockup-prompt]")).toBe("Draft a mockup of …");
 });
 
-/**
- * Fails an implementation that leaves an empty project with the explanation
- * alone, so the one thing to do next is not on screen.
- */
-it("offers New mockup under the empty state too", async () => {
+it("offers New mockup under the empty state too (fails on an empty project left with the explanation alone, so the one next step is not on screen)", async () => {
   const root = await mountCards([]);
 
   expect(root.textContent).toContain(en.dms.table.empty_title);

@@ -1,9 +1,11 @@
-/** @vitest-environment jsdom */
 /**
  * Updating what `useApiData` read, through the runtime's real async data:
  * `useDmsData(key)` puts a write's answer in place (and back when the write
  * fails) or applies a realtime change, in every component showing the read,
  * without reading it again. The URL form names its key with `key`.
+ *
+ * @packageDocumentation
+ * @vitest-environment jsdom
  */
 import { createApp, defineComponent, h, nextTick, type App } from "vue";
 import {

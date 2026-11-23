@@ -1,6 +1,8 @@
 /**
  * Choice cards sit two per row once the field is wide enough; `columns` sets
  * how many, so three options fit one row instead of wrapping 2 + 1.
+ *
+ * @packageDocumentation
  */
 import { computed, createSSRApp, defineComponent, h } from "vue";
 import { renderToString } from "vue/server-renderer";

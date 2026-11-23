@@ -1,4 +1,7 @@
-/** @vitest-environment jsdom */
+/**
+ * @vitest-environment jsdom
+ * @packageDocumentation
+ */
 import { afterEach, expect, it, vi } from "vitest";
 import * as Vue from "vue";
 import { useFormField } from "@nuxt/ui/composables/useFormField";

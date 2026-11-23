@@ -1,8 +1,6 @@
-/** @vitest-environment jsdom */
 /**
- * Accessibility preferences (Settings › Appearance): how the cookie is read,
- * how `auto` motion resolves against the system, which classes land on
- * `<html>`, and that the server renders them next to the color-mode class.
+ * @vitest-environment jsdom
+ * @packageDocumentation
  */
 import { useHead } from "@unhead/vue";
 import {

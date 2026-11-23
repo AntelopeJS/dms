@@ -1,4 +1,7 @@
-/** @vitest-environment jsdom */
+/**
+ * @vitest-environment jsdom
+ * @packageDocumentation
+ */
 import {
   computed,
   createApp,
@@ -158,7 +161,8 @@ async function mountSidebar(props: {
       props: { persistent: { type: Boolean, default: true } },
       setup: (groupProps, { slots, attrs }) => {
         groupPersists = groupProps.persistent;
-        return () => h("div", { ...attrs, "data-group": "" }, slots.default?.());
+        return () =>
+          h("div", { ...attrs, "data-group": "" }, slots.default?.());
       },
     }),
   );

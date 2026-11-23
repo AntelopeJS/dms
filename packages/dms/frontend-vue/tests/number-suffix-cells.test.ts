@@ -5,6 +5,8 @@
  * numeric type is drawn writes it, after the value formatted for the locale.
  * A formatter runs outside any component setup too (a footer sum, a group
  * header): the unit is translated without calling a composable.
+ *
+ * @packageDocumentation
  */
 import { h } from "vue";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";

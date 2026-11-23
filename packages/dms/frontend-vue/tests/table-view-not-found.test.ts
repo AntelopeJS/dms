@@ -3,6 +3,8 @@
  * (the workspace its rows belong to was deleted): it shows the not-found
  * state blocks show, with what the 404 said, never its error panel and its
  * retry, nor an empty table.
+ *
+ * @packageDocumentation
  */
 import { describe, expect, it } from "vitest";
 import { readFetchNotFound } from "../layers/dms-ui/app/entries/utils/fetchNotFound";

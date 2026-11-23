@@ -1,4 +1,7 @@
-/** @vitest-environment jsdom */
+/**
+ * @vitest-environment jsdom
+ * @packageDocumentation
+ */
 import { createSSRApp, h, ref } from "vue";
 import { renderToString } from "vue/server-renderer";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -40,12 +43,7 @@ beforeEach(async () => {
   vi.stubGlobal("useI18n", () => ({ locale: ref("en-GB"), t: String }));
 });
 
-/**
- * What a `ratio` query answers is in percent units, 25 for 1 of 4: a card that
- * formats it with `valueFormat: "percent"` reads it as 25%, where the fraction
- * 0.25 would show as 0.3%.
- */
-describe("a KPI card with valueFormat percent over a ratio query's answer", () => {
+describe("a KPI card with valueFormat percent over a ratio query's answer in percent units (25 for 1 of 4, where the fraction 0.25 would show as 0.3%)", () => {
   it("reads a quarter answered as 25 as 25%", async () => {
     response.value = { value: 25, previousValue: 50, delta: -50 };
 

@@ -1,4 +1,7 @@
-/** @vitest-environment jsdom */
+/**
+ * @vitest-environment jsdom
+ * @packageDocumentation
+ */
 import { ref } from "vue";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import MeterBlock from "../layers/dms-ui/app/components/meter/MeterBlock.vue";

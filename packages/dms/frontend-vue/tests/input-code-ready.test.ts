@@ -1,4 +1,7 @@
-/** @vitest-environment jsdom */
+/**
+ * @vitest-environment jsdom
+ * @packageDocumentation
+ */
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import * as Vue from "vue";
 import InputCode from "../layers/dms-ui/app/components/form/components/InputCode.vue";

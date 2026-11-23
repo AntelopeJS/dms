@@ -1,9 +1,11 @@
-/** @vitest-environment jsdom */
 /**
  * A list block reading its items from a route follows a PeriodSelector like
  * a KPI card (the period goes with every request, and a new period reads the
  * route again) and reads the route again on each event of its realtime
  * topics, keeping its items on screen until the answer lands.
+ *
+ * @vitest-environment jsdom
+ * @packageDocumentation
  */
 import { createApp, defineComponent, h, nextTick } from "vue";
 import { afterAll, afterEach, beforeEach, expect, it } from "vitest";

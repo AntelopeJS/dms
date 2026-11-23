@@ -1,9 +1,11 @@
-/** @vitest-environment jsdom */
 /**
  * A table with a `deepLink` action opens the row `?record=` names on arrival
  * and on each visit that keeps the page mounted, including a link to a row
  * closed meanwhile: the table removes the key in place, so the route still
  * holds the same value and only the visit tells the link was followed again.
+ *
+ * @packageDocumentation
+ * @vitest-environment jsdom
  */
 import { createApp, defineComponent, h, nextTick, reactive } from "vue";
 import { afterEach, describe, expect, it, vi } from "vitest";

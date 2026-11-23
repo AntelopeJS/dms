@@ -1,4 +1,7 @@
-/** @vitest-environment jsdom */
+/**
+ * @packageDocumentation
+ * @vitest-environment jsdom
+ */
 import { h, nextTick, type Component } from "vue";
 import { describe, expect, it, vi } from "vitest";
 import type { RowNavigation } from "../layers/dms-ui/app/types/row-navigation";

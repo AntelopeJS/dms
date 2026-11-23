@@ -1,9 +1,11 @@
-/** @vitest-environment jsdom */
 /**
  * The modules catalog through the runtime's real async data: a server render
  * reads it for a platform owner and hands it to the browser, which does not
  * ask again (its live readouts would no longer match the markup); a member
  * reads nothing; two renders in flight at once each render their own.
+ *
+ * @packageDocumentation
+ * @vitest-environment jsdom
  */
 import { computed, defineComponent, h, nextTick, ref, type App } from "vue";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";

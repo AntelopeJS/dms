@@ -1,4 +1,3 @@
-/** @vitest-environment jsdom */
 /**
  * Nuxt UI's key hints (`<UKbd value="meta">`) through a server render and its
  * hydration, on the renderer's own runtime: the renderer prints them through
@@ -7,6 +6,9 @@
  * the platform of the dashboard's own hints. The page is laid out as a
  * dashboard page is: a hint in the layout, which mounts at once, and one in
  * the page, an async component hydrated once its chunk has loaded.
+ *
+ * @packageDocumentation
+ * @vitest-environment jsdom
  */
 import {
   computed,

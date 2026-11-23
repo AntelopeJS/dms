@@ -1,10 +1,6 @@
-/** @vitest-environment jsdom */
 /**
- * The live mode beyond Live / Pause: what a pause counts (published rows, not
- * messages), the holds a component takes with a reason, the hidden tab, the
- * `?live=0` URL, the shared `rememberKey`, the polling while the stream is down and
- * its slower cadence over a long period, and the remembered pause applied only
- * once the page is mounted.
+ * @packageDocumentation
+ * @vitest-environment jsdom
  */
 import { createApp, defineComponent, h, nextTick, ref } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";

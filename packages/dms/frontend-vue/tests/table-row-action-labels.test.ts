@@ -1,4 +1,3 @@
-/** @vitest-environment jsdom */
 /**
  * A row's actions are named after the row: a custom action's label fills its
  * `{field}` braces from the row ("Translate {name}"), and the ⋯ button opening
@@ -6,6 +5,9 @@
  * or the table's own `rowActions.menuLabel`. An action whose rule keeps it off
  * the row says why when it declares a `disabledReason`, and is hidden
  * otherwise.
+ *
+ * @packageDocumentation
+ * @vitest-environment jsdom
  */
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import {

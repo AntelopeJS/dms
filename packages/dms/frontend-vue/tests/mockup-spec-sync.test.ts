@@ -1,4 +1,7 @@
-/** @vitest-environment jsdom */
+/**
+ * @vitest-environment jsdom
+ * @packageDocumentation
+ */
 import { describe, expect, it } from "vitest";
 import {
   MOCKUP_RETRY_DELAY_MS,

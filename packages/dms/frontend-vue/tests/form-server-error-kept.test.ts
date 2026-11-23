@@ -4,6 +4,8 @@
  * schema in between (a number input committing its value on blur, its input
  * event landing 300 ms later, after the refusal) replaced the error with
  * none: a second submit of the same refused value showed nothing at all.
+ *
+ * @packageDocumentation
  */
 import { describe, expect, it } from "vitest";
 import {

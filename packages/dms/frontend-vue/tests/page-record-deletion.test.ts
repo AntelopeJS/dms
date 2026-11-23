@@ -1,8 +1,10 @@
-/** @vitest-environment jsdom */
 /**
  * A detail page whose record is deleted leaves for its list, in every tab:
  * on an event of one of its topics it asks its layout again, and a record the
  * server had found that it now finds missing was deleted. A toast says so.
+ *
+ * @packageDocumentation
+ * @vitest-environment jsdom
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { effectScope, nextTick, reactive, ref, type EffectScope } from "vue";

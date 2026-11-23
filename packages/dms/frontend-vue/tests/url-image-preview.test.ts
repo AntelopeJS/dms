@@ -1,8 +1,10 @@
-/** @vitest-environment jsdom */
 /**
  * A URL shown read-only (a cell, a record's details) is a link, or, when its
  * `UrlType` asks for a `preview`, the image it points to: a remote photo
  * reads as a picture, not as its address.
+ *
+ * @packageDocumentation
+ * @vitest-environment jsdom
  */
 import { createApp, defineComponent, h, type App } from "vue";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";

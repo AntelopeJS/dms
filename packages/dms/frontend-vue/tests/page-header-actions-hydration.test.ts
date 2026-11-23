@@ -1,8 +1,10 @@
-/** @vitest-environment jsdom */
 /**
  * The page header's buttons while the browser hydrates the server's page:
  * the browser keeps the server's buttons untouched until the page in the
  * slot has set its actions, then shows its own buttons, attributes included.
+ *
+ * @packageDocumentation
+ * @vitest-environment jsdom
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {

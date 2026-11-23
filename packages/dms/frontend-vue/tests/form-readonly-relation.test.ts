@@ -1,8 +1,10 @@
-/** @vitest-environment jsdom */
 /**
  * A read-only relation (a ResourceForm in view mode, a disabled field) shows
  * the related row's label and avatar, as the edit form's picker and the table
  * cell do, rather than the id the form state holds.
+ *
+ * @vitest-environment jsdom
+ * @packageDocumentation
  */
 import {
   computed,

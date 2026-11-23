@@ -1,4 +1,3 @@
-/** @vitest-environment jsdom */
 /**
  * The bell's counts after a change of the feed: a write (mark read or
  * unread, delete) answers them and its realtime event carries them, so the
@@ -6,6 +5,9 @@
  * write's own event, which comes before or after its answer, changes
  * nothing and reads nothing. Through the real composable, its stream plugin
  * and the runtime's state, over a fake feed.
+ *
+ * @packageDocumentation
+ * @vitest-environment jsdom
  */
 import { defineComponent, h, nextTick, ref, type App } from "vue";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";

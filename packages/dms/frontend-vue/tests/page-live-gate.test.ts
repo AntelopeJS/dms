@@ -1,10 +1,12 @@
-/** @vitest-environment jsdom */
 /**
  * The Direct / Pause valve of a page declared with `live`: in Direct a block
  * refetches on its events at most once per `maxRate` (the last event of a
  * burst included), paused it requests nothing and counts what it missed, and
  * resuming refetches once each block that missed something. The choice is
  * kept per page in the browser, and a page without `live` is untouched.
+ *
+ * @packageDocumentation
+ * @vitest-environment jsdom
  */
 import { createApp, defineComponent, h } from "vue";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";

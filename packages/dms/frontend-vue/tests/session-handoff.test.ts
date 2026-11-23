@@ -1,4 +1,7 @@
-/** @vitest-environment jsdom */
+/**
+ * @packageDocumentation
+ * @vitest-environment jsdom
+ */
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { nextTick, ref } from "vue";
 import { useSessionHandoff } from "../layers/dms-layout/app/entries/composables/security/useSessionHandoff";

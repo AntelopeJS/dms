@@ -14,13 +14,7 @@ function builtSummary(path: string) {
   };
 }
 
-/**
- * Reads the table the backend's `RELATIVE_ROUTE_PATTERN` tests read. Fails an
- * implementation that keeps the old `\S*` rule, which accepts a control
- * character such as `\u0000` or `\u007f`, or that refuses a path the backend
- * writes.
- */
-describe("a built page's path", () => {
+describe("a built page's path, read from the table the backend's RELATIVE_ROUTE_PATTERN tests read (fails on the old \\S* rule, which accepts a control character such as \\u0000 or \\u007f, or on refusing a path the backend writes)", () => {
   it.each(routes.accepted)("accepts %j", (path) => {
     expect(parseMockupSummary(builtSummary(path))).toBeDefined();
   });

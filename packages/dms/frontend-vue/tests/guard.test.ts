@@ -3,6 +3,8 @@
  * empty, or the route answers 404), draws one EmptyState instead of its
  * children; it keeps them while the route loads, after any other failure,
  * and once the value is set.
+ *
+ * @packageDocumentation
  */
 import {
   computed,

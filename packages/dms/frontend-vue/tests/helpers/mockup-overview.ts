@@ -194,7 +194,6 @@ function canvasGeometry(find: Find) {
     };
   }
 
-  /** The point of the screen over `point` of the frame of `id`. */
   function onScreen(id: string, point: { x: number; y: number }) {
     const { x, y, zoom } = camera();
     const rect = frameRect(id);
@@ -222,6 +221,22 @@ function canvasGeometry(find: Find) {
   };
 }
 
+/** Presses a key where the focus is, Space on the window; true when the viewer held back the browser's own action. */
+async function press(key: string, init: KeyboardEventInit = {}) {
+  const event = new KeyboardEvent("keydown", {
+    key,
+    bubbles: true,
+    cancelable: true,
+    ...init,
+  });
+  (init.code === "Space"
+    ? window
+    : (document.activeElement ?? window)
+  ).dispatchEvent(event);
+  await flush();
+  return event.defaultPrevented;
+}
+
 /** Drives the overview of the viewer `current` returns, and reads it back. */
 export function overviewDriver(current: () => MountedViewer) {
   const find: Find = (selector) =>
@@ -237,22 +252,6 @@ export function overviewDriver(current: () => MountedViewer) {
       callback([{ contentRect: VIEWPORT }]);
     }
     await flush();
-  }
-
-  /** Presses a key where the focus is, Space on the window; true when the viewer held back the browser's own action. */
-  async function press(key: string, init: KeyboardEventInit = {}) {
-    const event = new KeyboardEvent("keydown", {
-      key,
-      bubbles: true,
-      cancelable: true,
-      ...init,
-    });
-    (init.code === "Space"
-      ? window
-      : (document.activeElement ?? window)
-    ).dispatchEvent(event);
-    await flush();
-    return event.defaultPrevented;
   }
 
   return {

@@ -1,8 +1,10 @@
-/** @vitest-environment jsdom */
 /**
  * A KeyValueList row with `copy` draws a copy button next to its value, from
  * static items as from the items a `fetchUrl` answers; `copyValue` copies
  * another text than the one shown.
+ *
+ * @vitest-environment jsdom
+ * @packageDocumentation
  */
 import { createApp, defineComponent, h } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";

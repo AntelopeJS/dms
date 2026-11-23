@@ -2,6 +2,8 @@
  * An avatar without a picture draws two characters for its name: the first of
  * its first two words, or the first two letters of a one-word name, so the
  * avatars of a list are even. Characters are whole graphemes.
+ *
+ * @packageDocumentation
  */
 import { describe, expect, it } from "vitest";
 import { labelInitials } from "../layers/dms-ui/app/entries/utils/initials";
