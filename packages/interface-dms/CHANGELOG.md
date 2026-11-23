@@ -1,5 +1,27 @@
 # Changelog
 
+## v0.16.0
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/interface-v0.15.0...interface-v0.16.0)
+
+### 🚀 Enhancements
+
+- **interface-dms:** Run the DataType contract and dms on zod 4 ([#1236](https://github.com/AntelopeJS/dms/pull/1236))
+
+### 🤖 CI
+
+- Re-sync the AntelopeJS pack for the release app ([#1232](https://github.com/AntelopeJS/dms/pull/1232))
+- Adopt the shared module lock refresh and checks ([#1234](https://github.com/AntelopeJS/dms/pull/1234))
+- Stop forwarding the retired RELEASE_GITHUB_TOKEN ([#1235](https://github.com/AntelopeJS/dms/pull/1235))
+
+#### ⚠️ Breaking Changes
+
+- **interface-dms:** Run the DataType contract and dms on zod 4 ([#1236](https://github.com/AntelopeJS/dms/pull/1236))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli
+
 ## v0.15.0
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/interface-v0.14.6...interface-v0.15.0)
