@@ -65,6 +65,13 @@ export function useTableViewCountsQuery<T extends Data>(
   return { tabCountsQuery, isCountStateNarrowed };
 }
 
+/**
+ * The counts of a table view's tabs, read in the browser.
+ *
+ * The counters are still on their way while there is no answer yet and no
+ * failure: a request that failed leaves `data` null as a pending one does, so
+ * it would draw the counters' skeleton for good.
+ */
 export function useTableViewCountsData<T extends Data>(
   scope: Pick<
     TableViewScope<T>,

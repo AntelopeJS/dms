@@ -176,7 +176,9 @@ const addContainerId = `relation-add-${useId()}`;
 const locallyAddedItems: Ref<SelectMenuItem[]> = shallowRef([]);
 /**
  * The rows of the ids the value holds, read from the `select` route when the
- * form's data answers the ids rather than the joined rows.
+ * form's data answers the ids rather than the joined rows. The picker shows a
+ * value through its item: an id no item carries yet is labelled (and given its
+ * avatar) from its row before the picker is opened.
  */
 const valueItems: Ref<SelectMenuItem[]> = shallowRef([]);
 
@@ -453,7 +455,8 @@ const requestedIds = new Set<string>();
 
 /**
  * The ids the route did not answer (deleted, out of reach), shown as "Not
- * found" with the id on hover.
+ * found" with the id on hover. Each stays a pickable item, so the value can
+ * still be deselected.
  */
 const notFoundIds: Ref<ReadonlySet<string>> = shallowRef(new Set());
 

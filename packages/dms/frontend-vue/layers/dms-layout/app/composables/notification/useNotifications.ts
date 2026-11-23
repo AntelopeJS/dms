@@ -217,6 +217,13 @@ function createRemoteFeedHandlers(
  * The bell and the Notifications entry show the same badge: `unreadCount`,
  * the whole feed's unread total, in `unreadTone`. Opening the bell changes
  * neither; a notification leaves the count once opened or marked read.
+ *
+ * A write takes the counts it answers or its event carries, twice changing
+ * nothing; from a server that sends none, they are read.
+ *
+ * A notification pushed in real time is counted and its tone weighed into the
+ * badge here, without asking the server: a broadcast would otherwise have every
+ * open tab fetch the counts at once.
  */
 export const useNotifications = () => {
   const feed = useNotificationFeed();

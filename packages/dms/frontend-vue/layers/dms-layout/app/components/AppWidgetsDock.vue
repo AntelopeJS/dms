@@ -3,6 +3,13 @@ import { isNumber } from "#dms-core/app/utils/type-check";
 
 const LAUNCHER_ICON = "i-ph-squares-four-light";
 
+/**
+ * Drawn in the `#footer` slot of the dashboard panel, whose root is `relative`,
+ * so the dock anchors to the content panel and does not scroll with the body.
+ * Hidden below `sm`: there the chips sat over what a page pins to its bottom
+ * edge (a table's item count, a form's save bar), and hover-to-unfold has no
+ * touch equivalent.
+ */
 const { widgets } = useAppWidgets();
 
 const { t } = useI18n();

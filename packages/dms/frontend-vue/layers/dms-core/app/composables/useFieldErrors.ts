@@ -492,6 +492,10 @@ export interface HandleApiErrorOptions {
  *
  * Bind `errors[field]` to the message element (id `errorId(field)`) and
  * `aria(field)` onto the control; call `clear(field)` when its value changes.
+ *
+ * `applyApiError` resolves `true` only when the whole error went under
+ * fields; on `false` the rest is the caller's to show, even when part of it
+ * went under a field. `handleApiError` adds that toast and resolves the same.
  */
 export function useFieldErrors<F extends string>(
   options: UseFieldErrorsOptions<F>,
@@ -535,8 +539,8 @@ export function useFieldErrors<F extends string>(
     element?.focus();
   }
 
-  async function setError(field: F, message: string): Promise<void> {
-    errors[field] = message;
+  async function setError(field: F, translatedMessage: string): Promise<void> {
+    errors[field] = translatedMessage;
     await focus(field);
   }
 

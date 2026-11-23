@@ -405,6 +405,20 @@ export function servedQuickActions(): QuickActionsPayload | undefined {
   return useSiteLayoutState().quickActions.value;
 }
 
+/**
+ * The site layout and its page layouts, with the requests that refresh them.
+ *
+ * `resync` re-reads the menu and the page on screen, for a realtime menu
+ * invalidation or a session switch. It first drops the pages prefetched on
+ * hover, which carry the old layout and access; a navigation that starts
+ * meanwhile drops the reload's answer, so the page it opened is reloaded in
+ * turn.
+ *
+ * `loadPageLayout(slug, query, url)` caches the layout under `slug`. It asks
+ * `url`, the layout route with the page's `:id` filled in, and sends `query`,
+ * the page URL's, with the first request only, for the header buttons whose
+ * availability reads it; the header asks again for another query.
+ */
 export const useSiteLayout = () => {
   const {
     state,

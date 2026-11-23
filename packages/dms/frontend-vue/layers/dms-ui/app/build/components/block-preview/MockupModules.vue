@@ -2,7 +2,11 @@
 import type { MockupModule } from "../../utils/mockup";
 
 defineProps<{
-  /** What the mockup's app needs: nothing is drawn while the spec lists none. */
+  /**
+   * What the mockup's app needs: nothing is drawn while the spec lists none.
+   * Drawn as a strip under the top bar in every view, the Overview included,
+   * so a reviewer sees them before any page.
+   */
   modules: readonly MockupModule[];
 }>();
 

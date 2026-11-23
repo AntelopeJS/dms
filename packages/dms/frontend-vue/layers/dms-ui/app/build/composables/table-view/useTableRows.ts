@@ -333,6 +333,11 @@ function createTableSource<T extends Record<string, unknown>>(
  * answers `null`, which the table draws as its skeleton. `sourceUrl` is the
  * URL requested, for the caller to list again when it changes. The rows
  * `pinnedRows` accepts lead each list answered.
+ *
+ * `listAsShown(query, span)` answers the rows `offset` and `limit` name as a
+ * table reading `span` rows at a time shows them: the pinned rows lead each
+ * such page, so the pages the query falls in are read whole and pinned one by
+ * one. A source answering every row pins them all first, as `list` does.
  */
 export function useTableRows<T extends Record<string, unknown>>(
   options: TableRowsOptions,

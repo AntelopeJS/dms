@@ -34,11 +34,29 @@ export interface AuthFieldErrorTarget {
 }
 
 /**
+ * Focuses the first field in error. A page disables its fields while the
+ * request runs: the focus waits for its `finally` to enable them again.
+ */
+function focusFirstFormError(form: AuthFormHandle): void {
+  setTimeout(() => {
+    const [first] = form.getErrors();
+    if (first?.id) document.getElementById(first.id)?.focus();
+  });
+}
+
+/**
  * The errors of an auth form, following the dashboard's error rule: one that
  * belongs to a field shows under that field (marked invalid, focused), any
  * other shows inline above the fields (`AuthFormAlert`) instead of a toast
  * that disappears before it is read. Translated when set, so it can be set
  * after an `await` without the i18n context.
+ *
+ * A page served to a visitor carries only the messages its render read, and
+ * the presenter's lookups do not load the rest, so the error messages are
+ * loaded before any is resolved.
+ *
+ * `showError` resolves whether the error went under a field; `false` means it
+ * went above the form.
  */
 export function useAuthFormError() {
   const errorPresenter = useApiErrorPresenter();
@@ -64,13 +82,6 @@ export function useAuthFormError() {
 
   function clearFormError(): void {
     formError.value = null;
-  }
-
-  function focusFirstFormError(form: AuthFormHandle): void {
-    setTimeout(() => {
-      const [first] = form.getErrors();
-      if (first?.id) document.getElementById(first.id)?.focus();
-    });
   }
 
   async function showError(

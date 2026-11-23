@@ -49,6 +49,10 @@ function always(act: () => void): () => boolean {
  * Escape a field of the inspector left, and by an Escape the preview frame
  * reports. Escape steps back from the innermost
  * thing going on: an armed block, the comment tool, a pin, the selection.
+ *
+ * A key pressed outside a field is read in the capture phase, before the
+ * page's other listeners, and none of them sees one a shortcut acted on; a
+ * field's Escape is read in the bubble phase, once the field had its turn.
  */
 export function useMockupViewerShortcuts(
   options: ViewerShortcutsOptions,

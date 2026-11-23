@@ -24,6 +24,9 @@ const PREFERENCES_URL = pageRoutePath(
  * the shared instant save (a PATCH of the keys it changes); a failed save
  * puts the switches back and keeps the change for a retry.
  *
+ * `isEmailEnabled` answers as the server sends: a locked subject is mailed
+ * whatever is stored, and a subject off in the app is not mailed at all.
+ *
  * @param enabled Whether the page shows them: nothing is read otherwise
  */
 export const useNotificationPreferences = (

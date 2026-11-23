@@ -188,6 +188,10 @@ function activatePreviewTab(
  * The session's permissions never change: the tab keeps the viewer's own
  * access, and the preview only ever annotates what the viewer is served. An
  * action taken in the tab runs with those real rights, as anywhere else.
+ *
+ * `purge`, called on sign-out, forgets every preview this browser holds: the
+ * next account to sign in here must not find the previous one's role and
+ * drafts.
  */
 export function usePermissionPreview() {
   const state = usePreviewState();

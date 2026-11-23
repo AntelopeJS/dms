@@ -36,6 +36,9 @@ type DateInput = string | Date;
 /**
  * Locale-aware dates for the Security and Profile settings, plus the
  * translation of API error codes into sentences.
+ *
+ * `formatRelative` takes `now` so a list formats against its read time, which
+ * the server and the hydrating browser share.
  */
 export function useSecurityFormat() {
   const { locale } = useI18n();

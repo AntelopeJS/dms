@@ -465,6 +465,18 @@ function createFormActions(context: ReturnType<typeof createFormSubmission>) {
   return { ...context, onSubmit, submitChanges, reset };
 }
 
+/**
+ * The state and the actions of a form block.
+ *
+ * An accepted submit marks the values clean before its success event goes out.
+ *
+ * After a save the form shows the record the response answers, else the one
+ * `fetchUrl` reads again; an edit made meanwhile, or a failed read, keeps the
+ * values on screen.
+ *
+ * `submitChanges` saves only changed fields without success toasts, and
+ * rejects a refused save.
+ */
 export const useForm = (props: FormProps, options: UseFormOptions = {}) => {
   const context = createFormActions(
     createFormSubmission(

@@ -42,6 +42,10 @@ const isExpired = (metadata: FileMetadata): boolean =>
  * (network, 5xx, rate limiting) is retried with a growing delay; a refused or
  * missing file (another 4xx) is not.
  *
+ * `lastRead` answers the last metadata read, its URL possibly expired;
+ * `metadata` answers only one still usable. `resolve(key, true)` reads it
+ * again, to open a file with a fresh URL.
+ *
  * @param storage The storage the keys live in (the field's `storage`)
  */
 export function useFileMetadata(storage?: string) {

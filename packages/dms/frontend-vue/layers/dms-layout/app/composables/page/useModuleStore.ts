@@ -20,6 +20,9 @@ const FOLLOW_INTERVAL_MS = 1000;
  * The first read comes with the page (`useApiData`): a server render waits
  * for it and hands it over, so the tiles render with their store details and
  * never move once mounted.
+ *
+ * A frontend that never reports keeps the page as is: the page says what to
+ * run instead.
  */
 export const useModuleStore = () => {
   const { $authFetch } = useAuthFetch();

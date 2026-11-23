@@ -271,6 +271,13 @@ function arriveTableViews(context: ReturnType<typeof createTableViewState>) {
  * how the table stands to it, and the ways back (Reset) or forward
  * (Save, Save as new view). Opening a view always applies its whole state:
  * a change made to a view is not kept when another is opened.
+ *
+ * Back on the table, the view kept from the last visit returns with the
+ * table's state as it was left, modified or not, but with the view's own
+ * search, since the search is not kept.
+ *
+ * Selecting the open view closes it, unless the table diverged from it: no
+ * view is drawn open then, so it opens again.
  */
 export function useTableViews(options: TableViewsOptions) {
   const {

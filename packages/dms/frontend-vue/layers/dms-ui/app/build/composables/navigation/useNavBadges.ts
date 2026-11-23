@@ -31,6 +31,9 @@ export interface CountedNavBadge {
  * own counter once shown; navigation surfaces draw them over a static badge.
  *
  * Shared state, so a count published on one page stays shown on the others.
+ *
+ * An entry the previous visit counted that this one does not (its count fell
+ * to zero) loses its badge.
  */
 export const useNavBadges = () => {
   const badges = useDmsState<Record<string, NavBadge>>(

@@ -37,6 +37,11 @@ const declaredBulkConfirm = (
     ),
   };
 };
+/**
+ * What a fixed dialog words: the rows' count, and for one row its own fields
+ * too (`{name}`). `count` wins a clash with a row field, as every bulk dialog
+ * may name it.
+ */
 const createConfirmRowFields = (config: TableRowActionsConfig) => {
   const rowIdOf = (row: Data): string =>
     String(getItemId(row, config.rowIdKey ?? DEFAULT_ROW_ID_KEY));
@@ -120,6 +125,14 @@ const createBulkConfirmations = (
 
   return { askDeclaredBulkConfirm, confirmBulkAction };
 };
+/**
+ * The bulk actions of a table's rows, each asking its confirmation before it
+ * runs.
+ *
+ * `deleteRows`, `archiveRows` and `restoreRows` resolve whether the rows went:
+ * `false` when the user cancelled, gave up after a failure, or the request
+ * failed, so the caller keeps its selection.
+ */
 export const createTableRowBulkActions = (
   config: TableRowActionsConfig,
   services: TableRowActionServices,
