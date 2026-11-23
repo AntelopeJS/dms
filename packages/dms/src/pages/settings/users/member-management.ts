@@ -28,6 +28,7 @@ import {
 } from "../../../automation/member-events";
 import { notifyMenuAccessChanged } from "../../../implementations/dms/page";
 
+const HTTP_BAD_REQUEST = 400;
 const HTTP_NOT_FOUND = 404;
 const HTTP_CONFLICT = 409;
 const MEMBER_NOT_FOUND = "$page.settings.members.error.user_not_found";
@@ -337,11 +338,11 @@ async function assertKnownRoles(
   const roles = await GetModel(RoleModel, tenantId).getBy("_id", ...unique);
   const known = new Set(roles.map((role) => role._id));
   const unknown = unique.filter((id) => !known.has(id));
-  if (unknown.length > 0) {
-    throw new Error(
-      `unknown role ${unknown.map((id) => `"${id}"`).join(", ")} in workspace "${tenantId}"`,
-    );
-  }
+  assert(
+    unknown.length === 0,
+    HTTP_BAD_REQUEST,
+    `unknown role ${unknown.map((id) => `"${id}"`).join(", ")} in workspace "${tenantId}"`,
+  );
 }
 
 async function requireMemberByUser(
@@ -349,11 +350,11 @@ async function requireMemberByUser(
   userId: string,
 ): Promise<TenantMember> {
   const member = await GetModel(TenantMemberModel, tenantId).getByUser(userId);
-  if (!member) {
-    throw new Error(
-      `user "${userId}" is not a member of workspace "${tenantId}"`,
-    );
-  }
+  assert(
+    member,
+    HTTP_NOT_FOUND,
+    `user "${userId}" is not a member of workspace "${tenantId}"`,
+  );
   return member;
 }
 
