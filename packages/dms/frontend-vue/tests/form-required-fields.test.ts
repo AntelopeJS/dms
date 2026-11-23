@@ -1,33 +1,16 @@
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
 import { formJsonSchema } from "@antelopejs/interface-dms/base/internal/form-schema-components";
-import { jsonSchemaToZod } from "json-schema-to-zod";
-import { isBoolean, isObject } from "../layers/dms-core/app/utils/type-check";
-import { evaluateZodObject } from "./helpers/zod-source";
+import { createBaseValidationSchema } from "../layers/dms-ui/app/entries/composables/form/useFormModel";
 import {
   buildValidationSchema,
   isFieldMarkedRequired,
   makeFieldSchemaRequired,
 } from "../layers/dms-ui/app/composables/form/useForm";
 
-function serializedJsonSchema(
-  schema: z.ZodTypeAny,
-): Parameters<typeof jsonSchemaToZod>[0] {
-  const json: unknown = JSON.parse(JSON.stringify(formJsonSchema(schema)));
-  if (isBoolean(json) || isObject(json)) return json;
-  throw new TypeError(
-    "formJsonSchema returned neither an object nor a boolean",
-  );
-}
-
 function roundTrippedOptionalString(): z.ZodTypeAny {
   const source = z.object({ value: z.string().nullable().optional() });
-  const json = serializedJsonSchema(source);
-  const code = jsonSchemaToZod(json, { module: "none" }).replace(
-    /\.strict\(\)$/,
-    ".passthrough()",
-  );
-  return evaluateZodObject(code).shape.value;
+  return createBaseValidationSchema(formJsonSchema(source)).shape.value;
 }
 
 describe("makeFieldSchemaRequired", () => {

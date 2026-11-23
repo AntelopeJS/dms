@@ -173,24 +173,27 @@ export function resolveSubmitTarget(
   return url === undefined ? { missing: "token" } : { url };
 }
 
+/** The values a form's state holds per field, as its inputs read them. */
+export type FormStateValues = { [key: string]: StateValue };
+
+/** `data` with each field's value reshaped by its data type's `beforeStateMapper`. */
 export function processBeforeStateMappers(
   data: FormData,
   fields: FormFieldOrGroup[],
   getDataType: (type: string) => DataType | undefined,
-): FormData {
-  const result = { ...data };
-  const flatFields = flattenFields(fields);
-  for (const field of flatFields) {
-    if (!field.type || result[field.id] === undefined) continue;
+): FormStateValues {
+  const values = new Map<string, StateValue>(Object.entries({ ...data }));
+  for (const field of flattenFields(fields)) {
+    const value = values.get(field.id);
+    if (!field.type || value === undefined) continue;
     const dataType = getDataType(field.type);
     if (!dataType?.beforeStateMapper) continue;
-    const mapped = dataType.beforeStateMapper(
-      result[field.id],
-      field.component.options,
+    values.set(
+      field.id,
+      dataType.beforeStateMapper(value, field.component.options),
     );
-    if (isFormFieldValue(mapped)) result[field.id] = mapped;
   }
-  return result;
+  return Object.fromEntries(values);
 }
 
 /** A cleared list submits an empty list; other cleared fields submit null. */
@@ -302,7 +305,10 @@ export function collectSubmitData(
     if (context.onlyChanged && isSameValue(field, value, initial)) continue;
     if (!isClearedField(field, value)) {
       const submitted = submittedFieldValue(field, value);
-      if (isFormFieldValue(submitted)) fieldData[field.id] = submitted;
+      const sent = isFormFieldValue(submitted)
+        ? submitted
+        : cloneFormValue(submitted);
+      if (sent !== undefined) fieldData[field.id] = sent;
       continue;
     }
     if (field.disabled || context.disabled?.has(field.id)) continue;

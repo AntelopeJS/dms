@@ -52,7 +52,7 @@ function serializeFormSections(
 
 /**
  * The zod string formats the browser checks by their JSON Schema `format`
- * alone, since `json-schema-to-zod` rebuilds each as zod's own check.
+ * alone, since the form rebuilds each as zod's own check.
  */
 const BROWSER_CHECKED_FORMATS: ReadonlySet<string> = new Set([
   "email",
