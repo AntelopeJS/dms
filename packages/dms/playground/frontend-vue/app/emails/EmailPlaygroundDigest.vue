@@ -5,6 +5,8 @@
  * `GenerateHtml`. It reuses the DMS's `EmailLayout` without its heading
  * divider and with a logo only when a mail client can load it. The language
  * arrives as a prop: the template picks its texts and the document `lang`.
+ *
+ * @packageDocumentation
  */
 import { computed } from "vue";
 import EmailLayout from "#dms-layout/app/emails/components/EmailLayout.vue";

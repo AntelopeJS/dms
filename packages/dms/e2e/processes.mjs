@@ -187,7 +187,6 @@ export class ExitError extends Error {
    */
   constructor(message, exitCode) {
     super(message);
-    /** Its exit code, or null when a signal ended it. */
     this.exitCode = exitCode;
   }
 }

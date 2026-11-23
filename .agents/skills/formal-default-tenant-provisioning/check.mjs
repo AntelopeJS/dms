@@ -11,6 +11,8 @@
  * the record in SKILL.md, 1 when a rule changed, and 2 when TLC could not run.
  * The runner exits on the first configuration that changed, so a change in
  * the healthy run skips the faults run. The pre-fix rules run in history.mjs.
+ *
+ * @packageDocumentation
  */
 import path from "node:path";
 import { fileURLToPath } from "node:url";

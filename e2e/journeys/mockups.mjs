@@ -251,8 +251,11 @@ export const journeys = [
       const compiled = await compiledTree(ctx, 5);
       const admin = await ctx.tab("admin");
       await admin.signIn("admin");
-      /** Every request the server answered, by method and path: one the frame's policy refused never leaves the browser. */
-      /** @type {{ entry: string, inPreview: boolean }[]} */
+      /**
+       * Every request the server answered, by method and path: one the frame's policy refused never leaves the browser.
+       *
+       * @type {{ entry: string, inPreview: boolean }[]}
+       */
       const requests = [];
       const viewer = await admin.page.context().newPage();
       /** @type {string[]} */

@@ -8,6 +8,8 @@
  * `--seed <n>` starts elsewhere and `--verbose` prints a recorded finding's
  * counterexample too. Exits 0 when every rule matches the record in SKILL.md,
  * 1 when a rule changed, and 2 when the check could not run.
+ *
+ * @packageDocumentation
  */
 import { spawnSync } from "node:child_process";
 import path from "node:path";

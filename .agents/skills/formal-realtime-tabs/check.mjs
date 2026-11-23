@@ -11,6 +11,8 @@
  * TLC could not run or the arguments were wrong. The runner exits on the
  * first configuration that changed, so a change in the page view skips the
  * table view.
+ *
+ * @packageDocumentation
  */
 import path from "node:path";
 import { fileURLToPath } from "node:url";

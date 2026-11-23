@@ -9,6 +9,8 @@
  * also asserts that each recorded finding still reproduces. Prints nothing when
  * the file passes. Exits 0 when it passes, 1 when a property or a finding
  * changed, and 2 when the build or the runner could not run.
+ *
+ * @packageDocumentation
  */
 import { spawnSync } from "node:child_process";
 import path from "node:path";

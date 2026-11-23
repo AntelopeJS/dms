@@ -12,6 +12,8 @@
  * the record in SKILL.md, 1 when a rule changed, and 2 when TLC could not run.
  * The runner exits on the first configuration that changed. The rules before
  * #974 run in history.mjs.
+ *
+ * @packageDocumentation
  */
 import path from "node:path";
 import { fileURLToPath } from "node:url";

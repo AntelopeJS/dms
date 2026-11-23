@@ -3,6 +3,8 @@
  * Shows each message published on a topic the backend bound to this page
  * with `RegisterPageTopic`, as `useRealtimeTopic` hands it over: the raw
  * `topic`, `type`, `payload`, `actorId` and `ts` of the message.
+ *
+ * @packageDocumentation
  */
 import { ref } from "vue";
 import { useRealtimeTopic } from "#dms-core/app/composables/realtime/useRealtimeTopic";

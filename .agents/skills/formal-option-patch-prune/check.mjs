@@ -13,6 +13,8 @@
  * this script builds when `dist` is missing. Exits 0 when every rule matches
  * the record in SKILL.md, 1 when a rule changed, and 2 when the check could not
  * run.
+ *
+ * @packageDocumentation
  */
 import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";

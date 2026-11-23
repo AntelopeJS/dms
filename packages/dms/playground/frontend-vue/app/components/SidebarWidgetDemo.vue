@@ -5,6 +5,8 @@
  * `ABOVE_SEARCH_BAR` position — and only outside modules, since it has no
  * `module` scope. It also receives the sidebar's `collapsed` state, which this
  * card uses to shrink to an icon-only chip in the narrow rail.
+ *
+ * @packageDocumentation
  */
 defineProps<{
   collapsed?: boolean;

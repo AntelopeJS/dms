@@ -3,6 +3,8 @@
  * Demo body for a framed app widget (see `useAppWidgets`). The DMS dock owns the
  * chip, opacity, positioning and animated frame — this component only fills the
  * unfolded card. A plain, non-interactive status card.
+ *
+ * @packageDocumentation
  */
 </script>
 
