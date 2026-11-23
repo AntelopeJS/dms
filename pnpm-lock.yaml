@@ -170,7 +170,7 @@ importers:
         version: 0.4.3
       '@antelopejs/rethinkdb':
         specifier: ~1.10.6
-        version: 1.10.6
+        version: 1.10.7
       '@antelopejs/tooling-configs':
         specifier: '>=0.9.4 <0.10.0'
         version: 0.9.4(knip@6.34.0)(mongodb-memory-server@11.3.0(socks@2.8.7))(oxfmt@0.66.0)(oxlint@1.81.0(oxlint-tsgolint@7.0.2001))(pixelmatch@8.0.0)(playwright-core@1.65.1)(sharp@0.35.5(@types/node@26.6.5))
@@ -739,10 +739,10 @@ packages:
     peerDependencies:
       '@antelopejs/interface-core': '>=0.5.1 <0.6.0'
 
-  '@antelopejs/interface-rethinkdb@0.1.1':
-    resolution: {integrity: sha512-CpjagfTaldFE4wNQy/rRzR9eEx52HzGw90Eo/s918ZYOCqi1Lu+y9zXn3lEtjsDjlGTjuLroST+OLthjLbuXQA==}
+  '@antelopejs/interface-rethinkdb@0.1.2':
+    resolution: {integrity: sha512-zRfrsGLL2zOexmbCZ5+ciMo3yMjWAgobKukkDMoPsVdBE/zIBMQ5CZTCCFGHa9rdNOYfZAvjagkTABxDaF/aqg==}
     peerDependencies:
-      '@antelopejs/interface-core': '>=0.2.4 <1.0.0'
+      '@antelopejs/interface-core': '>=0.5.1 <0.6.0'
 
   '@antelopejs/mongodb@1.8.13':
     resolution: {integrity: sha512-z4qjnoRPQJf6dY1pTttDZ/+6c0/tKTiPxVIxoZACVopUW61mEeD5wqWnyAna7N7Bnj5/xYNfH4j4gPGbVYAlSw==}
@@ -755,8 +755,8 @@ packages:
     resolution: {integrity: sha512-nRMEXySfMPNPuoQmWn+qdXWFPanzZOVKxhvhy0xyCmcGFmwpAZmgDLY3woHFzK20SlTJyZsOm59S7Q07Wc64yQ==}
     engines: {node: '>=22'}
 
-  '@antelopejs/rethinkdb@1.10.6':
-    resolution: {integrity: sha512-DabBDYhXCv1wlTSJJvJ48wp7sbhDVztSAulKmd09xhgpDJOrD8AkyqDmhkoCDJcqUibhuV76HLcy4QyZTDgAjw==}
+  '@antelopejs/rethinkdb@1.10.7':
+    resolution: {integrity: sha512-FhjIxeGQptbTX5lDjA6CoWJZkHNv/Mja9ZydTI6FvopGHbxdAKXhTGfliaLSSHLDY0Yy5JQokhDaDkZHScHc3A==}
 
   '@antelopejs/tooling-configs@0.9.4':
     resolution: {integrity: sha512-cP2xhjJkxdwhaCRm3kDnZ4AS4GJ4LY7oDvd2MidYl2snFsW1UbUbCzhHcnrYQWifPZV8LCvO0xZMTvLM2OWDKQ==}
@@ -3797,8 +3797,8 @@ packages:
     resolution: {integrity: sha512-RITGBfijLkBddZvnn8jdqoTypxvqbOLYQkGGxXzeFjVHvudaPw0HNFD9x928/eUwYWd2dPCugVqspGALTZZQKw==}
     engines: {node: '>=4'}
 
-  chai@6.2.2:
-    resolution: {integrity: sha512-NUPRluOfOiTKBKvWPtSD4PhFvWCqOi0BGStNWs57X9js7XGTprSmFoz5F0tWhR4WPjNeR9jXqdC7/UpSJTnlRg==}
+  chai@6.3.0:
+    resolution: {integrity: sha512-XWAtwJ6OHO+tj0EKCs0Y2UamnyOxseZWltU4x2U2wh8g4AigdjwvtUjvLP2tqkA/avxHEtzxNaqGq/YGNwckKg==}
     engines: {node: '>=18'}
 
   chalk@4.1.2:
@@ -7365,7 +7365,7 @@ snapshots:
       - supports-color
     optional: true
 
-  '@antelopejs/interface-rethinkdb@0.1.1(@antelopejs/interface-core@0.5.2)':
+  '@antelopejs/interface-rethinkdb@0.1.2(@antelopejs/interface-core@0.5.2)':
     dependencies:
       '@antelopejs/interface-core': 0.5.2
       rethinkdb-ts: 2.7.0
@@ -7412,7 +7412,7 @@ snapshots:
     transitivePeerDependencies:
       - pg-native
 
-  '@antelopejs/rethinkdb@1.10.6':
+  '@antelopejs/rethinkdb@1.10.7':
     dependencies:
       '@antelopejs/interface-core': 0.5.2
       '@antelopejs/interface-database': 0.4.3(@antelopejs/interface-core@0.5.2)
@@ -7421,7 +7421,7 @@ snapshots:
       reflect-metadata: 0.2.2
       rethinkdb-ts: 2.7.0
     optionalDependencies:
-      '@antelopejs/interface-rethinkdb': 0.1.1(@antelopejs/interface-core@0.5.2)
+      '@antelopejs/interface-rethinkdb': 0.1.2(@antelopejs/interface-core@0.5.2)
 
   '@antelopejs/tooling-configs@0.9.4(knip@6.34.0)(mongodb-memory-server@11.3.0(socks@2.8.7))(oxfmt@0.66.0)(oxlint@1.81.0(oxlint-tsgolint@7.0.2001))(pixelmatch@8.0.0)(playwright-core@1.65.1)(sharp@0.35.5(@types/node@26.6.5))':
     dependencies:
@@ -9774,7 +9774,7 @@ snapshots:
       '@types/chai': 5.2.3
       '@vitest/spy': 4.1.8
       '@vitest/utils': 4.1.8
-      chai: 6.2.2
+      chai: 6.3.0
       tinyrainbow: 3.1.0
 
   '@vitest/mocker@4.1.8(vite@7.2.4(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(sass@1.71.1)(terser@5.44.0)(tsx@4.20.6)(yaml@2.9.1))':
@@ -10345,7 +10345,7 @@ snapshots:
       pathval: 1.1.1
       type-detect: 4.1.0
 
-  chai@6.2.2: {}
+  chai@6.3.0: {}
 
   chalk@4.1.2:
     dependencies:
