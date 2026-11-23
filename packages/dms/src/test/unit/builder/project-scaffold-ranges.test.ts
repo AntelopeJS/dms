@@ -19,6 +19,7 @@ const OTHER_STEPS = [
   "suppressions",
   "sync:check",
   "lockfile:singletons",
+  "dependency:one-range",
   "git:identity",
   "readme:version",
   "published:types",
