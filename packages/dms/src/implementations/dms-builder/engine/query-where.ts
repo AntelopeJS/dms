@@ -1,8 +1,3 @@
-/**
- * The `where` clause: what every template accepts to narrow its rows, how it is
- * validated, and how it describes itself to a caller.
- */
-
 import type {
   ConfigValue,
   OptionSchema,

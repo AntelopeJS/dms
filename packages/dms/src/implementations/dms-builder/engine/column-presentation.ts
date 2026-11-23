@@ -1,5 +1,3 @@
-/** How a resource field's `@Column` presents it in the TableView: its display, group, width and help. */
-
 import type {
   CellDisplay,
   ColumnPresentation,

@@ -5,6 +5,8 @@
  * transaction, then the project is typechecked once and written, or nothing is.
  * Staging never throws away a refusal: the remaining blocks are still checked,
  * so one answer lists every block that needs fixing.
+ *
+ * @packageDocumentation
  */
 
 import type {

@@ -64,6 +64,11 @@ const ROUTE_MEMBERS: Record<ResourceRoute, [key: string, member: string][]> = {
   export: [],
 };
 
+/**
+ * The resource route each key of a route map serves. `exportStart`, `exportStatus` and
+ * `exportDownload` are written as the `ExportRoutes` spread, but a map that names them one by
+ * one serves the same export.
+ */
 const KEY_TO_ROUTE = new Map<string, ResourceRoute>([
   ["list", "list"],
   ["count", "list"],
@@ -76,7 +81,6 @@ const KEY_TO_ROUTE = new Map<string, ResourceRoute>([
   ["select", "select"],
   ["archive", "archive"],
   ["restore", "archive"],
-  /** Written as the `ExportRoutes` spread, but a map that names them one by one serves the same export. */
   ["exportStart", "export"],
   ["exportStatus", "export"],
   ["exportDownload", "export"],
@@ -277,7 +281,6 @@ const DB_TYPE_MAP = new Map<string, { field: string; ts: string }>([
   ["date", { field: "date", ts: "Date" }],
   ["boolean", { field: "boolean", ts: "boolean" }],
   ["status", { field: "boolean", ts: "boolean" }],
-  /** A relation holds the id of the row it points at. */
   ["relation", { field: "string", ts: "string" }],
   ["cascader_relation", { field: "string", ts: "string" }],
   ["tree", { field: "string", ts: "string" }],

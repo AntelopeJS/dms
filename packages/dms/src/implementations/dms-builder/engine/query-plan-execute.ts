@@ -6,6 +6,8 @@
  * before anything reaches disk. It mirrors the emitter branch for branch on
  * purpose: the two are checked against each other by transcribing this one back
  * into the text the other produces.
+ *
+ * @packageDocumentation
  */
 
 import { percentOf } from "@antelopejs/interface-dms/base/query-response";

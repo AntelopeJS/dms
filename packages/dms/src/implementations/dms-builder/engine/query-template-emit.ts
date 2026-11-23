@@ -4,6 +4,8 @@
  *
  * The text of the chain is rendered by query-plan.ts: a template describes a
  * plan, it does not write code.
+ *
+ * @packageDocumentation
  */
 
 import { stringLiteralValue } from "./literals";

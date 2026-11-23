@@ -2,6 +2,8 @@
  * Sidebar sections: the categories the sidebar draws as a header over their
  * pages, written with `RootCategory` beside the built-in Pages, and the
  * switch between such a section and a category folded under Pages.
+ *
+ * @packageDocumentation
  */
 
 import type {

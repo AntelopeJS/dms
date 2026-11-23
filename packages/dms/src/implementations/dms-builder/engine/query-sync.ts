@@ -4,6 +4,8 @@
  * A block and the data it reads are one edit, so they are one write: the draft
  * carries both, and this brings the file's queries in line with it without
  * committing anything of its own. What the caller commits, it commits whole.
+ *
+ * @packageDocumentation
  */
 
 import type {

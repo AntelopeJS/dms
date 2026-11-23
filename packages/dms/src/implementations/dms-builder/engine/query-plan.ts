@@ -6,6 +6,8 @@
  * description three consumers share: the emitter below, the reader that
  * recognizes an emitted chain, and the executor that runs a draft's calculation
  * for a preview without writing a file.
+ *
+ * @packageDocumentation
  */
 
 import type {

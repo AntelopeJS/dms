@@ -1,5 +1,3 @@
-/** Deleting a resource, and cleaning up the directories it leaves empty. */
-
 import { mappedConnectionOfFile } from "./mapped-modules";
 import { writeRoutesRefusal } from "./connection-access";
 import fs from "node:fs";

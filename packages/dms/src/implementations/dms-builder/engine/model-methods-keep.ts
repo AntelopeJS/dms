@@ -5,6 +5,8 @@
  * database's description. The query methods the builder added to the model since
  * belong to pages, not to the description, so they are carried over: dropping
  * them would leave every page route that calls one pointing at nothing.
+ *
+ * @packageDocumentation
  */
 
 import type { SourceFile } from "ts-morph";

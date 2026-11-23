@@ -1,8 +1,3 @@
-/**
- * Emission of a query method into the model, and the public operations that
- * call it.
- */
-
 import type {
   AddQueryInput,
   MutationOpts,

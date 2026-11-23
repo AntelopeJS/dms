@@ -1,5 +1,3 @@
-/** The mapping from DMS data types to column types, and the resource code that follows from it. */
-
 import type {
   CreateResourceInput,
   DataTypeValue,

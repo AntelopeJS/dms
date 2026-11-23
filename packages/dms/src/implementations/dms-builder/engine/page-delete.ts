@@ -1,6 +1,8 @@
 /**
  * Deleting a page: its class, whatever only the class used, and its file once
  * nothing else is left in it.
+ *
+ * @packageDocumentation
  */
 
 import type { MutationOpts, OpResult } from "@antelopejs/interface-dms-builder";
