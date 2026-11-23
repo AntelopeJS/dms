@@ -2,6 +2,8 @@
  * A composed text is written in the reader's language from the raw values the
  * server sends: amounts in minor units, dates, counts that pick the plural
  * form. The same JSON reads in English or in French, and follows a switch.
+ *
+ * @packageDocumentation
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createI18n } from "vue-i18n";

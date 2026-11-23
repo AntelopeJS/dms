@@ -2,6 +2,8 @@
  * An ActivityFeed's head carries a count beside its title (the option, or the
  * `count` its route answers) and a soft badge before its actions; each entry
  * may add a third, dimmed mono line under its details.
+ *
+ * @packageDocumentation
  */
 import { createSSRApp, defineComponent, h, ref, shallowRef } from "vue";
 import { renderToString } from "vue/server-renderer";

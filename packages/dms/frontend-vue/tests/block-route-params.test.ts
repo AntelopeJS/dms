@@ -1,9 +1,11 @@
-/** @vitest-environment jsdom */
 /**
  * A data block on a detail page reads the record of that page: the
  * `{{params.X}}` / `{{query.X}}` tokens of its `fetchUrl` are filled from the
  * page URL, again when it changes, and a URL with a token left unresolved is
  * never requested.
+ *
+ * @vitest-environment jsdom
+ * @packageDocumentation
  */
 import {
   type Component,

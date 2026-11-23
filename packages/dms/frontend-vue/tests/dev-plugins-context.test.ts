@@ -1,4 +1,7 @@
-/** @vitest-environment jsdom */
+/**
+ * @vitest-environment jsdom
+ * @packageDocumentation
+ */
 import * as vue from "vue";
 import { computed, createApp } from "vue";
 import { createI18n } from "vue-i18n";

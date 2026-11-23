@@ -1,8 +1,10 @@
-/** @vitest-environment jsdom */
 /**
  * The date picker closes once the day is picked, as a select closes on its
  * pick; a range closes on its end, a multiple picker stays open for more.
  * Its calendar is named in the user's language.
+ *
+ * @vitest-environment jsdom
+ * @packageDocumentation
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {

@@ -1,4 +1,7 @@
-/** @vitest-environment jsdom */
+/**
+ * @vitest-environment jsdom
+ * @packageDocumentation
+ */
 import {
   computed,
   createApp,
@@ -92,7 +95,10 @@ const layouts = () =>
     .map(([message]) => message)
     .filter((message) => message.type === "layout");
 
-const lastPaths = () => layouts().at(-1)?.blocks?.map((block) => block.path);
+const lastPaths = () =>
+  layouts()
+    .at(-1)
+    ?.blocks?.map((block) => block.path);
 
 async function mountInspected(): Promise<void> {
   const { default: BlockPreview } = await import(
@@ -134,9 +140,7 @@ beforeEach(() => {
   vi.stubGlobal("ResizeObserver", FakeResizeObserver);
   vi.spyOn(Element.prototype, "getBoundingClientRect").mockImplementation(
     function boxOf(this: Element) {
-      const { width, height } = this.matches(".early, .late")
-        ? SIZE
-        : NO_SIZE;
+      const { width, height } = this.matches(".early, .late") ? SIZE : NO_SIZE;
       return new DOMRect(0, 0, width, height);
     },
   );

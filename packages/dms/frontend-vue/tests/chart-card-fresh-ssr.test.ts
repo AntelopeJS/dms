@@ -1,10 +1,12 @@
-/** @vitest-environment jsdom */
 /**
  * The first server render of a request, with nothing read before: a
  * ChartCard waits for its data and hands the series and the format it read
  * to the Chart nested in it, which draws them rather than its loading state.
  * The browser hydrating that HTML with its payload draws the same chart.
  * `chart-value-propagation.test.ts` covers the formats on a warm runtime.
+ *
+ * @vitest-environment jsdom
+ * @packageDocumentation
  */
 import { defineComponent, h, nextTick, ref, type App } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";

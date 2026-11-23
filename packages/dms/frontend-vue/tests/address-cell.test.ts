@@ -1,6 +1,8 @@
 /**
  * An address cell writes the postal code and the city as one part, the way
  * an address is written on an envelope ("75001 Paris").
+ *
+ * @packageDocumentation
  */
 import { h } from "vue";
 import { beforeAll, expect, it, vi } from "vitest";

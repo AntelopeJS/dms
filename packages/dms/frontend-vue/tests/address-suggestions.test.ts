@@ -3,6 +3,8 @@
  * address's country (its own, or its `defaultCountry`) first: "Place
  * Saint-Lambert" typed for a Belgian address lists Liège, once, before the
  * places of the same name elsewhere.
+ *
+ * @packageDocumentation
  */
 import { describe, expect, it } from "vitest";
 import {

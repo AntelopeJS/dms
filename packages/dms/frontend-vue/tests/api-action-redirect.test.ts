@@ -1,9 +1,11 @@
-/** @vitest-environment jsdom */
 /**
  * An `api` action target's `redirect` opens a page of the dashboard once its
  * request succeeded, filled with the response's `{{response.<field>}}`, the
  * page's and the row's tokens, and never opens a URL a field it names is
  * missing from.
+ *
+ * @vitest-environment jsdom
+ * @packageDocumentation
  */
 import { createApp, defineComponent, h, reactive, type App } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";

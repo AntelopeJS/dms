@@ -5,6 +5,8 @@
  * (the page would move as it hydrates). Holds for the blocks a client
  * navigation shows in skeleton first: list blocks, KPI cards and a fetched
  * Banner.
+ *
+ * @packageDocumentation
  */
 import { createSSRApp, h, type Component } from "vue";
 import { renderToString } from "vue/server-renderer";

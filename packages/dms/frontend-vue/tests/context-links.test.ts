@@ -1,9 +1,11 @@
-/** @vitest-environment jsdom */
 /**
  * A link followed from a page keeps its context: a TopList row's `to` and a
  * link row action fill the page URL's `{{params.X}}` / `{{query.X}}` tokens,
  * a dotted period key included, and `withPeriodQuery` carries a selector's
  * period onto a link a module builds itself.
+ *
+ * @vitest-environment jsdom
+ * @packageDocumentation
  */
 import {
   createApp,

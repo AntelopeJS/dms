@@ -1,4 +1,7 @@
-/** @vitest-environment jsdom */
+/**
+ * @vitest-environment jsdom
+ * @packageDocumentation
+ */
 import type { CommandPaletteGroup } from "@nuxt/ui";
 import type { NamedValue } from "vue-i18n";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";

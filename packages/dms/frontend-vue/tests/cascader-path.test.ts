@@ -1,9 +1,11 @@
-/** @vitest-environment jsdom */
 /**
  * A cascader cell names its value by its path ("Electronics / Audio"), read
  * by `?ids=` for the picked rows the list did not join and the ancestors,
- * whatever the size of the tree; a picked row the route does not answer reads "Not found", its id
- * on hover.
+ * whatever the size of the tree; a picked row the route does not answer reads
+ * "Not found", its id on hover.
+ *
+ * @vitest-environment jsdom
+ * @packageDocumentation
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import * as vue from "vue";

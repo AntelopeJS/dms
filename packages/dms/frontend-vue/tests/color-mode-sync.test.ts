@@ -1,10 +1,12 @@
-/** @vitest-environment jsdom */
 /**
  * The color-mode plugin in the browser, in boot order: the server-rendered
  * pre-paint script runs while `<head>` parses, Nuxt UI's `useDark()` runs when
  * the app installs Nuxt UI, then the DMS plugins run. The `dms-color-mode`
  * cookie is the source of truth, and vueuse's store, which Nuxt UI's
  * components share, mirrors it both ways.
+ *
+ * @vitest-environment jsdom
+ * @packageDocumentation
  */
 import { runInThisContext } from "node:vm";
 import { useHead } from "@unhead/vue";

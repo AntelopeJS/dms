@@ -1,10 +1,12 @@
-/** @vitest-environment jsdom */
 /**
  * A data block refreshed (a page refresh, a realtime event, a period change,
  * live resuming) keeps what it shows until the new answer lands: it draws its
  * skeleton only before its first answer. Each block is rendered with a read
  * in flight, once with an answer already on screen (no skeleton) and once
  * without one (its skeleton).
+ *
+ * @vitest-environment jsdom
+ * @packageDocumentation
  */
 import { createApp, defineComponent, h, nextTick, type Component } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";

@@ -1,10 +1,11 @@
-/** @vitest-environment jsdom */
 /**
  * A banner link navigates the way `navigateDms` does: a link that changes
  * only the query of the page on screen, written as a path or as a bare
- * query, stays in the browser, a link to
- * another page loads it, and a modified click (new tab, new window) is left
- * to the browser.
+ * query, stays in the browser, a link to another page loads it, and a
+ * modified click (new tab, new window) is left to the browser.
+ *
+ * @vitest-environment jsdom
+ * @packageDocumentation
  */
 import { createApp, h, nextTick } from "vue";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
