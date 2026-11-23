@@ -101,12 +101,7 @@ function formFields(mode: "new" | "edit" | "view"): Map<string, FormField> {
   return new Map(fields.map((field) => [field.id, field]));
 }
 
-/**
- * A generated form honours a column's access in the mode it is for: the
- * per-action override of `@Access` the data API applies to the value it
- * writes, and the `readonlyBehavior` of a field read-only in that mode.
- */
-describe("[unit] interfaces/dms-base/form-field-access — per-mode access in generated forms", () => {
+describe("[unit] interfaces/dms-base/form-field-access — per-mode access in generated forms, honouring the per-action override of `@Access` the data API applies to the value it writes and the `readonlyBehavior` of a field read-only in that mode", () => {
   it("disables a field read-only in that mode only", () => {
     expect(formFields("new").get("reference")?.disabled).to.equal(false);
     expect(formFields("edit").get("reference")?.disabled).to.equal(true);

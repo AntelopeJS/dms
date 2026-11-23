@@ -139,13 +139,7 @@ function replacesTheShorthand(rename: () => Promise<void>): void {
   });
 }
 
-/**
- * A page option written as a shorthand (`{ displayName, }`) is replaced by the
- * patch, not kept beside it: two `displayName` members fail the typecheck every
- * save runs. The app compiles with `noUnusedLocals`, so a binding the patch
- * leaves unused fails that typecheck too.
- */
-describe("a page option written as a shorthand", () => {
+describe("a page option written as a shorthand (`{ displayName, }`) is replaced by the patch, not kept beside it, as two `displayName` members fail the typecheck every save runs, and a binding the patch leaves unused fails it under `noUnusedLocals`", () => {
   before(async function () {
     this.timeout(120_000);
     app = createFixture({ compilerOptions: { noUnusedLocals: true } });

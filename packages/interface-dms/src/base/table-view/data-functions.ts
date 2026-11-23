@@ -89,14 +89,14 @@ export interface BulkRowSource {
  * filter or a locked field reading another property of the controller
  * throws, naming it, and is resolved from a route of the controller instead.
  */
-export const resolveBulkRowIds = InterfaceFunction<
-  (
-    /** `this` of a data controller, or a `BulkRowSource`. */
-    table: DataControllerInstance | BulkRowSource,
-    ctx: RequestContext,
-    user: User,
-  ) => Promise<string[]>
->();
+export const resolveBulkRowIds =
+  InterfaceFunction<
+    (
+      table: DataControllerInstance | BulkRowSource,
+      ctx: RequestContext,
+      user: User,
+    ) => Promise<string[]>
+  >();
 
 /** The most rows "Select all N matching" hands a bulk action at once. */
 export const MAX_BULK_MATCHING_ROWS = 10_000;

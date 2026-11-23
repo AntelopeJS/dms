@@ -95,11 +95,7 @@ async function echoArchiveWithNullIcon() {
   );
 }
 
-/**
- * The page's own options written as constants: the builder reads the values
- * they hold, and writes back only an option whose value the editor changed.
- */
-describe("page options written as constants", () => {
+describe("page options written as constants: the builder reads the values they hold, and writes back only an option whose value the editor changed", () => {
   before(function () {
     this.timeout(120_000);
     app = createFixture();

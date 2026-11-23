@@ -235,12 +235,7 @@ function readsAWrittenQueryBack(): void {
   });
 }
 
-/**
- * What the engine guarantees today about the queries it writes, pinned before the
- * calculation model is refactored: emission and read-back are inverse, and a
- * query a human can still recognize in the file is one the builder can still edit.
- */
-describe("the query engine", () => {
+describe("the query engine: emission and read-back are inverse, and a query a human can still recognize in the file is one the builder can still edit", () => {
   before(async function () {
     this.timeout(120_000);
     app = createFixture();

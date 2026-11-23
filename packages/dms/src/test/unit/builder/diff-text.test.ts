@@ -7,8 +7,7 @@ function lines(...parts: string[][]): string {
   return `${parts.flat().join("\n")}\n`;
 }
 
-/** The diff the integrator reads before confirming: only what changed, with a little around it. */
-describe("the diff of a written file", () => {
+describe("the diff of a written file, which the integrator reads before confirming: only what changed, with a little around it", () => {
   it("is empty when nothing changed", () => {
     expect(diffText("a\nb\n", "a\nb\n")).to.equal("");
   });

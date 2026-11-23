@@ -1,6 +1,8 @@
 /**
  * The `ratio` template: one scalar calculation over another, answered as a
  * percentage. What a KpiCard with `valueFormat: "percent"` reads: 25 shows 25 %.
+ *
+ * @packageDocumentation
  */
 
 import type {

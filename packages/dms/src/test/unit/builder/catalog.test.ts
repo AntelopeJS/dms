@@ -16,12 +16,7 @@ function blockNamed(type: string): BlockTypeDescriptor {
   return found;
 }
 
-/**
- * The catalog is the contract a builder UI reads to draw a config panel: which
- * blocks exist, which control each option wants, and where a block may be
- * dropped. Pinned because the data-source editor is about to be driven from it.
- */
-describe("the block catalog", () => {
+describe("the block catalog, the contract a builder UI reads to draw a config panel: which blocks exist, which control each option wants, and where a block may be dropped", () => {
   before(async function () {
     this.timeout(60_000);
     createFixture();

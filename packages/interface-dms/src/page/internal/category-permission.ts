@@ -1,4 +1,3 @@
-/** @internal */
 import { Action } from "../../component";
 import type { CategoryInfo } from "../types";
 

@@ -3,13 +3,7 @@ import { expect } from "chai";
 
 const CONSTANT_NAME = /^[A-Z][A-Z0-9_]*$/;
 
-/**
- * The interface exports one function per operation. A caller that picks an
- * operation by name reads `Operations`, so an operation missing from it is an
- * operation that caller can never reach. A constant, written in capitals such as
- * `DATABASE_ENGINE_SCHEMES`, is not an operation.
- */
-describe("operation map", () => {
+describe("operation map: the interface exports one function per operation and `Operations` lists each, so a caller picking an operation by name reaches it, and a constant written in capitals such as `DATABASE_ENGINE_SCHEMES` is not an operation", () => {
   it("holds every operation the interface exports, by the name it is exported under", () => {
     const exported = new Map(
       Object.entries(Builder).filter(

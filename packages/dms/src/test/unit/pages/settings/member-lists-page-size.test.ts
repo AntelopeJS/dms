@@ -15,11 +15,7 @@ function serializedOptions(
   return options;
 }
 
-/**
- * The members and invitations lists open on 10 rows, in the compact layout
- * whose footer offers the page size picker.
- */
-describe("[unit] pages/settings/members — rows per page", () => {
+describe("[unit] pages/settings/members — rows per page: the members and invitations lists open on 10 rows, in the compact layout whose footer offers the page size picker", () => {
   it("opens the members list on 10 rows", () => {
     const options = serializedOptions(membersTable);
     expect(options.layout).to.equal("compact");

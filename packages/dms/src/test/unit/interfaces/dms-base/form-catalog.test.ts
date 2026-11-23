@@ -3,11 +3,7 @@ import { ListBlockTypes } from "@antelopejs/interface-dms/base/block-types";
 import { DefaultDataTypes } from "@antelopejs/interface-dms/base/data-types/default-types";
 import { Form } from "@antelopejs/interface-dms/base/form";
 
-/**
- * A form's entries are a field or a group of fields, and both are objects: a
- * builder offering the two by their kind alone shows two tabs with one name.
- */
-describe("[unit] interfaces/dms-base/form — its catalog entry", () => {
+describe("[unit] interfaces/dms-base/form — its catalog entry: a form's entries are a field or a group of fields, both objects, so a builder offering the two by their kind alone would show two tabs with one name", () => {
   function entryBranches() {
     const declared = ListBlockTypes().find((block) => block.type === "Form");
     return declared?.config.fields?.items?.oneOf ?? [];

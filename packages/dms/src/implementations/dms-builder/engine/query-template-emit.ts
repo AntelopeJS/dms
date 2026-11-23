@@ -1,9 +1,8 @@
 /**
- * The templates the engine provides: what each accepts as parameters, what it
- * computes, and how it is read back from emitted code.
- *
- * The text of the chain is rendered by query-plan.ts: a template describes a
+ * The text of a chain is rendered by query-plan.ts: a template describes a
  * plan, it does not write code.
+ *
+ * @packageDocumentation
  */
 
 import { stringLiteralValue } from "./literals";

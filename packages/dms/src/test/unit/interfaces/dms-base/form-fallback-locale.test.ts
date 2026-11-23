@@ -85,12 +85,7 @@ function formFields(): Map<string, FormField> {
   return new Map(fields.map((field) => [field.id, field]));
 }
 
-/**
- * A localized column's fallback language is required in its generated form
- * as soon as any language is filled: the form learns it from `@Localized`,
- * and the server refuses a value missing it.
- */
-describe("[unit] interfaces/dms-base/form-fallback-locale — the fallback language of a localized field", () => {
+describe("[unit] interfaces/dms-base/form-fallback-locale — the fallback language of a localized field, required in its generated form as soon as any language is filled, as the form learns it from `@Localized` and the server refuses a value missing it", () => {
   it("gives a localized field the fallback locale its column declares", () => {
     expect(formFields().get("name")?.fallbackLocale).to.equal("en");
     expect(formFields().get("note")?.fallbackLocale).to.equal(undefined);

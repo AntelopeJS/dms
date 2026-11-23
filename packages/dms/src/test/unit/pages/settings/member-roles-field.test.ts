@@ -22,11 +22,7 @@ function groupOf(item: FormFieldOrGroupSerialized | undefined) {
   return item;
 }
 
-/**
- * The members data controller declares a plain roles relation; the members
- * page draws it with its role picker through the edit form's slot.
- */
-describe("[unit] pages/settings/members — the roles field", () => {
+describe("[unit] pages/settings/members — the roles field: the data controller declares a plain roles relation, which the members page draws with its role picker through the edit form's slot", () => {
   it("keeps the interface's roles column a plain relation", () => {
     const meta = GetMetadata(memberSettingDataAPI, TableViewMeta);
     const roles = meta

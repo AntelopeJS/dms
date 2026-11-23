@@ -64,12 +64,7 @@ function withPage(options: FixtureOptions): void {
   after(() => destroyFixture());
 }
 
-/**
- * The prune follows symbols, not spellings: a binding only the replaced title
- * read goes whatever declares it, and the app compiling with `noUnusedLocals`
- * accepts the save.
- */
-describe("the binding forms a patched option read", () => {
+describe("the binding forms a patched option read: the prune follows symbols, not spellings, so a binding only the replaced title read goes whatever declares it and the app compiles with `noUnusedLocals`", () => {
   withPage({ compilerOptions: { noUnusedLocals: true } });
 
   const cases: Array<[string, string, string, string]> = [
@@ -152,12 +147,7 @@ describe("the binding forms a patched option read", () => {
   });
 });
 
-/**
- * A name the replaced title only spelled, as a parameter, a method or the
- * right side of a qualified type name, is not a read: an author's unused local
- * of that spelling is theirs, and stays.
- */
-describe("an unused local the patched option only spelled", () => {
+describe("an unused local the patched option only spelled, as a parameter, a method or the right side of a qualified type name, is not a read: it is the author's and stays", () => {
   withPage({});
 
   const draft = 'const board = "draft";';

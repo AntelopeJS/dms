@@ -1,6 +1,8 @@
 /**
  * The `series` template: one measure per group, which is what a chart, a top N
  * and any other multi-point block reads.
+ *
+ * @packageDocumentation
  */
 
 import type {

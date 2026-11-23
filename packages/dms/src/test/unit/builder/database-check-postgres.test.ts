@@ -104,8 +104,7 @@ function rolePrivilegeCases() {
     expect(answer).to.not.have.property("reason");
   });
 
-  /** Fails on an engine table that lists a scheme the probe cannot connect with. */
-  it("connects the same way through a postgresql:// URL", async () => {
+  it("connects the same way through a postgresql:// URL (fails on an engine table that lists a scheme the probe cannot connect with)", async () => {
     const answer = await checkDatabase(
       "postgres",
       urlOf("reader").replace(/^postgres:/, "postgresql:"),
@@ -237,12 +236,7 @@ function connectionCloseCases() {
     }
   });
 
-  /**
-   * A client library says goodbye and waits for the server to close, so a server that ignores it
-   * keeps the socket open for good. A check that closes through the library alone fails this: its
-   * answer is replaced by the deadline's, and its socket stays open.
-   */
-  it("answers what the database said, and shuts its socket, when the server ignores the goodbye", async () => {
+  it("answers what the database said, and shuts its socket, when the server ignores the goodbye (fails on a check that closes through the client library alone, which says goodbye and waits for the server to close, so its answer is replaced by the deadline's and its socket stays open)", async () => {
     const proxy = await relayIgnoringGoodbye(server?.port ?? 0, saysGoodbye);
     const sockets = watchClientSockets(proxy.port);
     try {

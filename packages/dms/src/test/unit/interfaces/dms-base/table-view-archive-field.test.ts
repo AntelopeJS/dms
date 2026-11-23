@@ -76,7 +76,6 @@ describe("[unit] interfaces/dms-base/table-view — the archive field", () => {
   });
 
   describe("its filter", () => {
-    /** The query stages the archive filter builds for one value and mode. */
     function stagesOf(value: string | boolean, mode: string): string {
       const result = filterArchiveField(
         untouchedRequestContext(),

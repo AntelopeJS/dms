@@ -243,12 +243,7 @@ describe("the model method of a ratio", () => {
   });
 });
 
-/**
- * A method is read as the one template that parses it, and as no query when two
- * would: a ratio body that a count, an aggregate or a series also accepted would
- * be read as nothing, and the page that serves it as opaque.
- */
-describe("which template reads a model method", () => {
+describe("which template reads a model method: the one template that parses it, and no query when two would, so a ratio body that a count, an aggregate or a series also accepted is read as nothing and the page that serves it as opaque", () => {
   before(() => registerBuiltinQueryTemplates());
 
   for (const { id, params } of TEMPLATE_CASES) {

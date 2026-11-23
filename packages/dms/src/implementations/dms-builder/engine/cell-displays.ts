@@ -1,5 +1,3 @@
-/** The cell displays of the TableView the builder writes, and the options each takes. */
-
 import type { CellDisplay } from "@antelopejs/interface-dms-builder";
 import {
   type CellTone,

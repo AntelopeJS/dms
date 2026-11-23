@@ -3,6 +3,8 @@
  * Adds a button to the page header from the browser, next to the ones the
  * layout serves. Its `order` (20) puts it between the served Download (10)
  * and Publish (30) buttons.
+ *
+ * @packageDocumentation
  */
 import { h, resolveComponent } from "vue";
 import { usePageHeaderActions } from "#dms-layout/app/composables/layout/usePageHeaderActions";

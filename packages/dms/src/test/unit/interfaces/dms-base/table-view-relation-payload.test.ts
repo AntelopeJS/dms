@@ -240,14 +240,7 @@ function formField(
   return entry;
 }
 
-/**
- * A relation column ships what its picker reads (the select route, the key
- * mapping), and the related table's "new" form only where a user can add a
- * row through it: an editable form field. A table column, its filter and a
- * read-only field fetch their rows through the select route and carry no
- * form.
- */
-describe("[unit] interfaces/dms-base/table-view-relation-payload — relation columns", () => {
+describe('[unit] interfaces/dms-base/table-view-relation-payload — a relation column ships its picker\'s select route and key mapping, and the related "new" form only in an editable form field', () => {
   it("leaves the related add form out of the column types", () => {
     const options = tableOptions();
     const customer = options.columns.find((column) => column.id === "customer");

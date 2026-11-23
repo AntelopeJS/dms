@@ -1,8 +1,3 @@
-/**
- * Deleting and reconfiguring blocks, then the page lifecycle: creation and
- * configuration. Deletion is in page-delete.ts.
- */
-
 import fs from "node:fs";
 import path from "node:path";
 import type {

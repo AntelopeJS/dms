@@ -1,4 +1,3 @@
-/** @internal */
 import { Context } from "@antelopejs/interface-api";
 import { UnregisterPermission } from "../../permissions";
 import { internal, isOwnerOnly } from "../categories";

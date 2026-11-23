@@ -28,6 +28,7 @@ import { parseBody } from "../helpers/parse-body";
 const OP_TIMEOUT = 120_000;
 const HELD = /^builder_delete_page was not run: no one has confirmed it yet\./;
 const APP_MODULE = "builder-journeys-app";
+/** The order resource's own schema, registered once the app is loaded, since the DMS registers its core schema once, at its start. */
 const ORDER_SCHEMA = "builder-journeys";
 const HTTP_OK = 200;
 
@@ -70,18 +71,11 @@ async function registeredPaths(bridge: BridgeProcess): Promise<string[]> {
   );
 }
 
-/**
- * - `builder-lists-and-reads-pages` fails when builder_list_pages loses a page or a page's ref,
- *   id or file, or when builder_page_structure answers no version.
- * - `builder-delete-waits-for-a-repeat` fails when builder_delete_page deletes on the first call.
- * - `builder-refuses-an-unknown-page` fails when builder_page_structure answers a missing page
- *   with anything but the `not_found` failure an agent reads.
- */
 describe("[integration] builder journeys: pages through the bridge", function () {
   this.timeout(OP_TIMEOUT);
   const session = useBuilderSession();
 
-  it("builder-lists-and-reads-pages", async () => {
+  it("builder-lists-and-reads-pages (fails when builder_list_pages loses a page or a page's ref, id or file, or when builder_page_structure answers no version)", async () => {
     const { shop, bridge } = session();
     expect(await listedRefs(bridge)).to.deep.equal([
       shop.PAGE,
@@ -95,7 +89,7 @@ describe("[integration] builder journeys: pages through the bridge", function ()
     StructureSchema.parse(JSON.parse(structure.text));
   });
 
-  it("builder-delete-waits-for-a-repeat", async () => {
+  it("builder-delete-waits-for-a-repeat (fails when builder_delete_page deletes on the first call)", async () => {
     const { shop, bridge } = session();
     const refused = await callTool(bridge, "builder_delete_page", {
       pageRef: shop.DRIFT_PAGE,
@@ -107,7 +101,7 @@ describe("[integration] builder journeys: pages through the bridge", function ()
     expect(shop.readShop(shop.DRIFT_FILE)).to.not.equal("");
   });
 
-  it("builder-refuses-an-unknown-page", async () => {
+  it("builder-refuses-an-unknown-page (fails when builder_page_structure answers a missing page with anything but the `not_found` failure an agent reads)", async () => {
     const { bridge } = session();
     const answer = await callTool(bridge, "builder_page_structure", {
       pageRef: "/shop/no-such-page",
@@ -148,34 +142,12 @@ function useServedApp(root: () => string): () => Promise<void> {
   };
 }
 
-/**
- * The playground compiles the app the builder wrote and restarts its backend on it, or reloads
- * the module a write changed under `ajs project dev -w`. The harness compiles the app and loads
- * it as a module of its own, then reloads that module after each write.
- *
- * - `builder-period-bound-series-and-comparison-card-answer-over-http` fails when the app does
- *   not compile, or when its routes answer other orders than those of the period the query
- *   string bounds and, for the card, of the period before it. The order resource names a schema
- *   of its own, which the test registers once the app is loaded, since the DMS registers its
- *   core schema once, at its start. The page's declaration of its bounds is
- *   `unit/builder/query-response.test.ts`'s to check.
- * - `builder-ratio-kpi-answers-percent-with-its-delta-and-no-value-over-http` fails when a
- *   ratio route answers the fraction 0.25 for 1 bike rented of 4 instead of 25, carries no
- *   delta over the period before, answers more than the bare percentage when the request
- *   carries no comparison bounds, answers a value of 0 or null for a denominator of 0 where a
- *   KpiCard reads an absent one as nothing to show, or when builder_configure_query leaves the
- *   route on its old sides. The fleet resource names a schema of its own for the same reason
- *   as the order one.
- * - `builder-survives-the-reload-its-write-triggers` fails when a reload of the app leaves the
- *   builder interface without its provider, which happens when the DMS does not declare it in
- *   `antelopeJs.implements`, or when the reload does not register the page the write added.
- */
-describe("[integration] builder journeys: the app the builder writes, served", function () {
+describe("[integration] builder journeys: the app the builder writes, compiled and served as a module of its own, then reloaded after each write", function () {
   this.timeout(OP_TIMEOUT);
   const session = useBuilderSession();
   const runApp = useServedApp(() => session().shop.shopRoot());
 
-  it("builder-period-bound-series-and-comparison-card-answer-over-http", async () => {
+  it("builder-period-bound-series-and-comparison-card-answer-over-http (fails when the app does not compile, or when its routes answer other orders than those of the period the query string bounds and, for the card, of the period before it; the page's declared bounds are query-response.test.ts's)", async () => {
     const { shop, bridge } = session();
     const created = await callTool(bridge, "builder_create_resource", {
       name: "order",
@@ -243,7 +215,7 @@ describe("[integration] builder journeys: the app the builder writes, served", f
     expect(card.delta).to.be.closeTo(((705 - 530) / 530) * 100, 0.001);
   });
 
-  it("builder-ratio-kpi-answers-percent-with-its-delta-and-no-value-over-http", async () => {
+  it("builder-ratio-kpi-answers-percent-with-its-delta-and-no-value-over-http (fails when a ratio route answers a fraction for a percentage, as 0.25 for 1 bike rented of 4, carries no delta, answers more than the percentage without comparison bounds, answers 0 or null for a zero denominator, where a KpiCard shows nothing for an absent value, or when builder_configure_query leaves the route on its old sides)", async () => {
     const answered = await servesARatioKpi(session(), runApp);
 
     expect(
@@ -271,7 +243,7 @@ describe("[integration] builder journeys: the app the builder writes, served", f
     ).to.deep.equal({ value: 60 });
   });
 
-  it("builder-survives-the-reload-its-write-triggers", async () => {
+  it("builder-survives-the-reload-its-write-triggers (fails when the reloaded app's builder interface has no provider, as when the DMS leaves it out of `antelopeJs.implements`, or the reload misses the page the write added)", async () => {
     const { bridge } = session();
     await runApp();
     const created = await callTool(bridge, "builder_create_page", {

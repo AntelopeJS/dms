@@ -1,11 +1,11 @@
 /**
- * Running a plan instead of writing it.
- *
  * The second backend over `QueryPlan`: the same calculation built as real calls
  * on a table handle rather than as source text, so a draft's data can be shown
  * before anything reaches disk. It mirrors the emitter branch for branch on
  * purpose: the two are checked against each other by transcribing this one back
  * into the text the other produces.
+ *
+ * @packageDocumentation
  */
 
 import { percentOf } from "@antelopejs/interface-dms/base/query-response";

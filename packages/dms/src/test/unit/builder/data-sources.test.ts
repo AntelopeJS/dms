@@ -2,15 +2,7 @@ import { expect } from "chai";
 import { ListDataSources } from "../../../implementations/dms-builder";
 import { createFixture, destroyFixture } from "./harness";
 
-/**
- * Sources a developer declared beside their own routes, offered next to the
- * calculations the builder generates.
- *
- * The installed DMS decides what there is to list; what matters here is that the
- * builder asks for them and survives a DMS that has never heard of them — the
- * version it is running against is not the one this repository builds.
- */
-describe("declared data sources", () => {
+describe("declared data sources, which a developer wrote beside their own routes and the builder offers next to the calculations it generates: it asks for them and survives a DMS that has never heard of them", () => {
   before(() => createFixture());
   after(() => destroyFixture());
 

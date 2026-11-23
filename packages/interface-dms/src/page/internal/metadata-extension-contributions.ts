@@ -1,4 +1,3 @@
-/** @internal */
 import { Logging } from "@antelopejs/interface-core/logging";
 import { PageDeclarationConflictError } from "../declaration-conflict";
 import type { PageMetadata } from "../metadata";

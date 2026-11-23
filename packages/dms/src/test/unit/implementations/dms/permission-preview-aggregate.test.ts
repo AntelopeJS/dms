@@ -156,8 +156,7 @@ describe("[unit] implementations/dms/permission-preview — loss cache", () => {
     );
   });
 
-  /** Catches a key that joins ids with "\n" and scope fields with NUL before hashing. */
-  it("keeps keys apart when ids or fields embed the old delimiters", () => {
+  it('keeps keys apart when ids or fields embed the old delimiters (catches a key that joins ids with "\\n" and scope fields with NUL before hashing)', () => {
     expect(previewCacheKey({ ...scope, real: ["a\nb"] })).to.not.equal(
       previewCacheKey({ ...scope, real: ["a", "b"] }),
     );

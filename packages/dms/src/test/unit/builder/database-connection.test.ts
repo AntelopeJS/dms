@@ -456,8 +456,7 @@ function removesTheConnection(): void {
   });
 }
 
-/** A connection whose details are edited, then taken out of the project with its tables module. */
-describe("a database connection after it was made", function () {
+describe("a database connection after it was made: its details edited, then taken out of the project with its tables module", function () {
   this.timeout(OP_TIMEOUT);
 
   before(() => {

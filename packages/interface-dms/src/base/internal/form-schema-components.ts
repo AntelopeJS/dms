@@ -1,4 +1,3 @@
-/** @internal */
 import { ComponentBuilder } from "../../component";
 import { StampUploadFieldTokens } from "../../uploads";
 import { z } from "zod";

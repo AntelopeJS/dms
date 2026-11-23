@@ -5,6 +5,8 @@
  * inside the demo module (`/modules/demo/**`) and hides it everywhere else —
  * including inside other modules like `plain`. Its `BELOW_SEARCH_BAR` position
  * lands it under the module title card, independently of that scoping.
+ *
+ * @packageDocumentation
  */
 defineProps<{
   collapsed?: boolean;

@@ -512,12 +512,7 @@ function keepsTheNamesTheAuthorWrote(): void {
   });
 }
 
-/**
- * How a page's block tree is written, previewed and rewritten. The draft is what
- * the data-source work extends — queries join it — so what it guarantees today is
- * pinned here: a preview writes nothing, and a whole-tree write is conditional.
- */
-describe("the page draft", () => {
+describe("the page draft, how a page's block tree is written, previewed and rewritten: a preview writes nothing, and a whole-tree write is conditional", () => {
   before(async function () {
     this.timeout(120_000);
     app = createFixture();

@@ -1,5 +1,3 @@
-/** The checks a resource operation runs before it writes: a stale version, a mapped module's table. */
-
 import type { MutationOpts, OpResult } from "@antelopejs/interface-dms-builder";
 import type { SourceFile } from "ts-morph";
 import { mappedConnectionOfFile } from "./mapped-modules";

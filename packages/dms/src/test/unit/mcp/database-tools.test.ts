@@ -29,11 +29,7 @@ function declare(declared: InterfaceConnection[]): void {
   internal.interfaceConnections[OWN_MODULE][CATALOG_INTERFACE] = declared;
 }
 
-/**
- * A project declares several catalog connections; the DMS's own import selects one of them. The
- * `database_*` tools read each by its id, so the second database is as visible as the first.
- */
-describe("the database MCP tools", () => {
+describe("the database MCP tools read each catalog connection by its id, so when a project declares several and the DMS's own import selects one, the second database is as visible as the first", () => {
   beforeEach(() => {
     kept = internal.interfaceConnections[OWN_MODULE]?.[CATALOG_INTERFACE];
     declare([

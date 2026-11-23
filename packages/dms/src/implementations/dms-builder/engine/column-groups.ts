@@ -1,5 +1,3 @@
-/** The `@ColumnGroup` decorators of a resource's DataAPI controller: how its form fields group. */
-
 import type { ColumnGroupSpec } from "@antelopejs/interface-dms-builder";
 import type { ClassDeclaration, Decorator, Node } from "ts-morph";
 import { z } from "zod";

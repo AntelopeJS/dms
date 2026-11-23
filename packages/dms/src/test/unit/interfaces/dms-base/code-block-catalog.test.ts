@@ -12,12 +12,7 @@ function declared(type: string) {
   return defined(block);
 }
 
-/**
- * A code block is placed from the page builder like the display blocks: in
- * the catalog with its options described, read-only code with a copy button
- * by default, its code written in place or read from a route.
- */
-describe("[unit] interfaces/dms-base/code block — in the catalog", () => {
+describe("[unit] interfaces/dms-base/code block — in the catalog like the display blocks, with its options described, read-only code with a copy button by default, and its code written in place or read from a route", () => {
   it("declares the block with its component and its defaults", () => {
     const block = declared("CodeBlock");
 

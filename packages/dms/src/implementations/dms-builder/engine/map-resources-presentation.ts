@@ -1,5 +1,3 @@
-/** How a mapped column is presented: the cell display and `@Column` options a field sends or keeps. */
-
 import type {
   CellDisplay,
   ColumnDisplay,

@@ -104,8 +104,7 @@ function pause(ms: number): Promise<void> {
 
 describe("a database check runs its driver's probe in a process of its own", function () {
   this.timeout(PROCESS_TIMEOUT_MS);
-  /** Fails on a check that runs the probe in this process, where an uncaught throw on a socket event ends it. */
-  it("answers a probe that throws on a socket event as unreachable, and this process keeps running", async () => {
+  it("answers a probe that throws on a socket event as unreachable, and this process keeps running (fails on a check that runs the probe in this process, where an uncaught throw on a socket event ends it)", async () => {
     const answer = await withStandIn(
       `exports.probe = () => new Promise(() => {
   setTimeout(() => { throw new RangeError("The value of offset is out of range."); }, 10);
@@ -124,8 +123,7 @@ describe("a database check runs its driver's probe in a process of its own", fun
     );
   });
 
-  /** Fails on a check that waits for a probe that never answers, or leaves its connection open. */
-  it("ends a probe that never answers at the deadline, and leaves no socket of it open", async () => {
+  it("ends a probe that never answers at the deadline, and leaves no socket of it open (fails on a check that waits for a probe that never answers, or leaves its connection open)", async () => {
     const server = await socketCounter();
     try {
       const started = performance.now();
@@ -158,8 +156,7 @@ exports.probe = ({ url }) => {
 
 describe("what a database check's probe process survives and gets", function () {
   this.timeout(PROCESS_TIMEOUT_MS);
-  /** Fails on a check that a MySQL server can end by writing its sign-in OK and a 1-byte error packet in one write. */
-  it("answers a MySQL server that coalesces its OK and a short error packet, and this process keeps running", async () => {
+  it("answers a MySQL server that coalesces its OK and a short error packet, and this process keeps running (fails on a check that a MySQL server can end by writing its sign-in OK and a 1-byte error packet in one write)", async () => {
     const frame = (sequence: number, hex: string) => {
       const payload = Buffer.from(hex, "hex");
       const head = Buffer.alloc(4);
@@ -212,8 +209,7 @@ describe("what a database check's probe process survives and gets", function () 
 
 describe("what a database check reads of its probe's output", function () {
   this.timeout(PROCESS_TIMEOUT_MS);
-  /** Fails on a check that settles on the child's exit before its last stdout chunk, or splits a character across chunks. */
-  it("answers what the driver decided after it printed megabytes of lines, and keeps its text whole", async () => {
+  it("answers what the driver decided after it printed megabytes of lines, and keeps its text whole (fails on a check that settles on the child's exit before its last stdout chunk, or splits a character across chunks)", async () => {
     const user = "é".repeat(100_000);
     const answers = await withStandIn(
       `exports.probe = async () => {
@@ -239,8 +235,7 @@ describe("what a database check reads of its probe's output", function () {
     }
   }).timeout(30_000);
 
-  /** Fails on a check that re-reads everything a driver printed on every chunk, which holds this process's event loop. */
-  it("keeps this process responsive while a driver floods its stdout", async () => {
+  it("keeps this process responsive while a driver floods its stdout (fails on a check that re-reads everything a driver printed on every chunk, which holds this process's event loop)", async () => {
     let longest = 0;
     let last = performance.now();
     const ticker = setInterval(() => {
@@ -272,8 +267,7 @@ describe("what a database check reads of its probe's output", function () {
 
 describe("when a database check takes its probe's answer", function () {
   this.timeout(PROCESS_TIMEOUT_MS);
-  /** Fails on a check that waits for its probe's pipes to close, which a process the probe started can hold open. */
-  it("answers a probe that ends while a process it started holds its output, without waiting for that process", async () => {
+  it("answers a probe that ends while a process it started holds its output, without waiting for that process (fails on a check that waits for its probe's pipes to close, which a process the probe started can hold open)", async () => {
     const started = performance.now();
     const answer = await withStandIn(
       `const { spawn } = require("node:child_process");
@@ -297,8 +291,7 @@ exports.probe = () => {
     expect(performance.now() - started).to.be.lessThan(TIMEOUT_MS * 5);
   });
 
-  /** Fails on a check that misses the answer of a driver that printed text with no end of line before it. */
-  it("answers what the driver decided after it printed text with no end of line", async () => {
+  it("answers what the driver decided after it printed text with no end of line (fails on a check that misses the answer of a driver that printed text with no end of line before it)", async () => {
     const answer = await withStandIn(
       `exports.probe = async () => {
   process.stdout.write("progress...");
@@ -318,8 +311,7 @@ exports.probe = () => {
 
 describe("what a database check's probe process gets", function () {
   this.timeout(PROCESS_TIMEOUT_MS);
-  /** Fails on a check that hands the probe this process's environment. */
-  it("runs the probe with no variable of this process, but the system ones libuv adds on Windows", async () => {
+  it("runs the probe with no variable of this process, but the system ones libuv adds on Windows (fails on a check that hands the probe this process's environment)", async () => {
     process.env.DMS_ISOLATION_SECRET = "isolation-secret-6d1f";
     try {
       const answer = await withStandIn(

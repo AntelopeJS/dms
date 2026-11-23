@@ -445,11 +445,7 @@ function recordsTheRelationsDecidedAgainst(): void {
   });
 }
 
-/**
- * A mapping changed after it was written: a relation mapped again from new choices, its page
- * following, and the relations decided against recorded in the module.
- */
-describe("mapping again a database already mapped", function () {
+describe("mapping again a database already mapped: a relation mapped again from new choices, its page following, and the relations decided against recorded in the module", function () {
   this.timeout(OP_TIMEOUT);
 
   before(async () => {

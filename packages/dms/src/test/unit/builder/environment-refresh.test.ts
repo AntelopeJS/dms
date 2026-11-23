@@ -102,13 +102,7 @@ function failedFiles(result: Awaited<ReturnType<typeof addBanner>>): string[] {
     : [];
 }
 
-/**
- * The builder holds two parses of the app for the life of the process. A dependency upgrade and a
- * `tsconfig.json` edit change how TypeScript resolves the app's imports, which a refresh of the
- * parsed files cannot see. The next operation must typecheck with the new resolution, and an
- * operation after which nothing of the kind changed must keep both parses.
- */
-describe("[unit] the install state or the tsconfig changed between two builder operations", () => {
+describe("[unit] the install state or the tsconfig changed between two builder operations: the next operation typechecks with the new resolution, and one after which nothing of the kind changed keeps both parses of the app", () => {
   before(async function () {
     this.timeout(120_000);
     app = createFixture();

@@ -12,6 +12,8 @@
  * healthy database skips the faults run. Before TLC runs, it exits 1 with
  * `BROKEN ReleaseAttempts` when the model's `ReleaseAttempts` is not the
  * `RELEASE_ATTEMPTS` of tenant-lifecycle.ts.
+ *
+ * @packageDocumentation
  */
 import { readFileSync } from "node:fs";
 import path from "node:path";

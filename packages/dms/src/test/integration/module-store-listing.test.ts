@@ -8,21 +8,17 @@ import { parseBody } from "../helpers/parse-body";
 const LISTING = "/dms/store/listing";
 const HTTP_OK = 200;
 const HTTP_FORBIDDEN = 403;
+/** The first listing waits for `npm view` of each catalog module, which gives up after 30 s. */
 const FIRST_LISTING_TIMEOUT_MS = 45_000;
 
 const ListingBody = z.object({
   modules: z.array(z.object({ id: z.string() })),
 });
 
-/**
- * `store-listing-owners-only` fails when the listing refuses the platform owner too, answers
- * them an empty catalog, or serves a visitor. The first listing waits for `npm view` of each
- * catalog module, which gives up after 30 s.
- */
 describe("[integration] module store listing", () => {
   beforeEach(resetDatabase);
 
-  it("store-listing-owners-only", async function () {
+  it("store-listing-owners-only (fails when the listing refuses the platform owner, answers them an empty catalog, or serves a visitor)", async function () {
     this.timeout(FIRST_LISTING_TIMEOUT_MS);
     const owner = authorizedClient(
       (await registerUser({ owner: true })).accessToken,

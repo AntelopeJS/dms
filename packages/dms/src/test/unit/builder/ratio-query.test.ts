@@ -332,12 +332,7 @@ function refusesWhatTheInstalledInterfaceCannotServe(): void {
   });
 }
 
-/**
- * A card with `valueFormat: "percent"` reads a percentage: the template that makes
- * one is written, read back and reconfigured like every other, and a count that
- * compares answers what a card reads.
- */
-describe("a ratio query written through the builder", () => {
+describe('a ratio query written through the builder: the template behind a card with `valueFormat: "percent"` is written, read back and reconfigured like every other, and a count that compares answers what a card reads', () => {
   before(async function () {
     this.timeout(120_000);
     app = createFixture({ compilerOptions: { noUnusedLocals: true } });

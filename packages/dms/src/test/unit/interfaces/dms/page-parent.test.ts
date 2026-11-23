@@ -6,11 +6,7 @@ import {
   pagesCategory,
 } from "@antelopejs/interface-dms/page";
 
-/**
- * A hidden detail page names the list it belongs to (`parent`): the page
- * carries the list's full slug, which the breadcrumb shows before it.
- */
-describe("[unit] interfaces/dms/page — a detail page names its parent page", () => {
+describe("[unit] interfaces/dms/page — a detail page names its parent page: a hidden detail page names the list it belongs to (`parent`) and carries the list's full slug, which the breadcrumb shows before it", () => {
   it("resolves the parent controller to its full slug", () => {
     const list = PageController("pp-projects", {
       displayName: "Projects",

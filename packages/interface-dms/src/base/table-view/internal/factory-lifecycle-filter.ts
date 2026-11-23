@@ -1,4 +1,3 @@
-/** @internal */
 import type { ComponentBuilder } from "../../../component";
 import type { TableViewMeta } from "../meta";
 import type { TableViewOptions, TableViewOptionsSerialized } from "../options";

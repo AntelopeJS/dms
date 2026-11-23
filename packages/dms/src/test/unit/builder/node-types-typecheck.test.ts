@@ -33,12 +33,7 @@ for (const input of [child.stdout, child.stderr]) {
 
 let app: Fixture;
 
-/**
- * The builder typechecks every save. A project on the current TypeScript and
- * `@types/node` must save as its own `tsc` would accept it, with the DMS
- * template's compiler options.
- */
-describe("a project on @types/node 26", () => {
+describe("a project on @types/node 26 saves as its own `tsc` would accept it, with the DMS template's compiler options, since the builder typechecks every save", () => {
   before(() => {
     app = createFixture();
     fs.writeFileSync(

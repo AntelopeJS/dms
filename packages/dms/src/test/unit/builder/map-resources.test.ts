@@ -239,12 +239,7 @@ function refusesToChangeTheMappedDatabase(): void {
   });
 }
 
-/**
- * A client's tables mapped into a module bound to their database: the schema mirrors the catalog
- * verbatim, `_id` exists only where a key does, nothing would create or alter a table, and the
- * pages are generated over what has a key.
- */
-describe("mapping a database the project does not own", function () {
+describe("mapping a database the project does not own into a module bound to its database: the schema mirrors the catalog verbatim, `_id` exists only where a key does, nothing would create or alter a table, and the pages are generated over what has a key", function () {
   this.timeout(OP_TIMEOUT);
 
   before(async () => {

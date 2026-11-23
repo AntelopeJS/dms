@@ -46,12 +46,7 @@ function readConfig(): string {
   return projectFile(app.root, "antelope.config.ts");
 }
 
-/**
- * The connect flow writes `config.externalConnections.<id>.access` of dms-database. A map the
- * builder cannot read key by key holds connections it cannot see, so writing the map again would
- * lose them.
- */
-describe("writing an object where the configuration holds a value the builder cannot merge", function () {
+describe("writing an object where the configuration holds a value the builder cannot merge, such as the `config.externalConnections.<id>.access` map of dms-database, whose connections it cannot see and would lose by writing the map again", function () {
   this.timeout(OP_TIMEOUT);
 
   beforeEach(() => {

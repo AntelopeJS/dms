@@ -24,12 +24,7 @@ function relationTo(resource: string): DataTypeValue {
   };
 }
 
-/**
- * A relation column holds the id of a row in another table. The DMS joins and
- * filters on it, so it is indexed unless asked otherwise, and the table it
- * points at cannot be deleted from under it.
- */
-describe("resources related to one another", () => {
+describe("resources related to one another: a relation column holds the id of a row in another table, so it is indexed unless asked otherwise, as the DMS joins and filters on it, and the table it points at cannot be deleted from under it", () => {
   before(async function () {
     this.timeout(120_000);
     app = createFixture();

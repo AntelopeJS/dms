@@ -101,11 +101,7 @@ async function createShop(): Promise<void> {
   }
 }
 
-/**
- * One built mockup of two pages, each linked to the live page it was built
- * into, and one hand-drawn built mockup linked to none.
- */
-describe("[unit] mockup out of sync against the builder", () => {
+describe("[unit] mockup out of sync against the builder, over one built mockup of two pages each linked to the live page it was built into, and one hand-drawn built mockup linked to none", () => {
   before(async function () {
     this.timeout(120_000);
     await createShop();

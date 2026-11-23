@@ -17,13 +17,7 @@ const pinned: Same<
   PublishedSelectValidation
 > = true;
 
-/**
- * A select whose items are read from a column accepts any text, and one listing its items only
- * those. An implementation that widens or narrows the published return type of `getValidation()`
- * fails to compile here; one that validates a referenced select against its empty `items` fails
- * the run.
- */
-describe("[unit] a select's validation", () => {
+describe("[unit] a select's validation accepts any text when a column holds its items, and only its items otherwise (fails to compile when the published `getValidation()` type widens or narrows)", () => {
   it("accepts any text when its items are read from a column, and only its items otherwise", () => {
     expect(pinned).to.equal(true);
     const referenced = new DefaultDataTypes.SelectType({

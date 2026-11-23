@@ -24,11 +24,7 @@ async function displayNameOf(ref: string): Promise<string | undefined> {
   return categories.find((summary) => summary.ref === ref)?.displayName;
 }
 
-/**
- * A module's `title` and `defaultCategory.displayName` written as constants:
- * `ListCategories` reports the values they hold, not the ids.
- */
-describe("module category names written as constants", () => {
+describe("module category names written as constants: a module's `title` and `defaultCategory.displayName`, where `ListCategories` reports the values they hold, not the ids", () => {
   before(function () {
     this.timeout(120_000);
     const app = createFixture();

@@ -186,12 +186,7 @@ function writesRelationTables(): void {
   });
 }
 
-/**
- * A block over a table is built from the table's DataAPI class, which only the
- * running app holds. The preview reads it off what the app already loaded, and
- * only for a block whose factory leaves that class as it found it.
- */
-describe("previewing a block over a table", () => {
+describe("previewing a block over a table, built from the table's DataAPI class that only the running app holds: the preview reads it off what the app already loaded, and only for a block whose factory leaves that class as it found it", () => {
   before(async function () {
     this.timeout(120_000);
     app = createFixture();

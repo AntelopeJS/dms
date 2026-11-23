@@ -60,8 +60,7 @@ async function settled(): Promise<void> {
   await new Promise((resolve) => setTimeout(resolve, SETTLE_MS));
 }
 
-/** Fails on a check that runs outside development, or on an input it did not parse. */
-describe("checking a database connection", () => {
+describe("checking a database connection (fails on a check that runs outside development, or on an input it did not parse)", () => {
   it("refuses outside development and opens no connection", async () => {
     const server = await listen();
     try {
@@ -155,8 +154,7 @@ describe("checking a database connection", () => {
   });
 });
 
-/** Fails on a check that sends an input to another engine's probe, or answers a missing driver with its require error. */
-describe("checking a database whose driver is not installed", () => {
+describe("checking a database whose driver is not installed (fails on a check that sends an input to another engine's probe, or answers a missing driver with its require error)", () => {
   it("answers, for every scheme of every engine, the sentence that installs that engine's driver", async () => {
     setProbeLoaderForTests(() => undefined);
     const sentences: Record<DatabaseEngine, string> = {
@@ -195,8 +193,7 @@ describe("checking a database whose driver is not installed", () => {
   });
 });
 
-/** Fails on a listing that one failing provider empties. */
-describe("the builder's catalog connections", () => {
+describe("the builder's catalog connections (fails on a listing that one failing provider empties)", () => {
   const info = {
     engine: "postgresql",
     version: "17.5",
@@ -229,8 +226,7 @@ describe("the builder's catalog connections", () => {
   });
 });
 
-/** Fails on a ConfigureProject that drops its variables, or writes `.env` on a dry run. */
-describe("connecting a database to the project", function () {
+describe("connecting a database to the project (fails on a ConfigureProject that drops its variables, or writes `.env` on a dry run)", function () {
   this.timeout(OP_TIMEOUT);
 
   let app: Fixture;

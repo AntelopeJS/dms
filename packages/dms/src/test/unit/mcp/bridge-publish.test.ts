@@ -50,8 +50,7 @@ describe("[unit] mcp bridge publication", function () {
     await publishMcpBridge(target);
   }
 
-  /** The warnings the bridge publication logs, which all name the MCP server; `Logging.Warn` is module-wide, so a stray timer's warning must not count. */
-  function bridgeWarnings(): string[] {
+  function warningsNamingTheMcpServer(): string[] {
     return warn.mock.calls
       .map((call) => String(call.arguments[0]))
       .filter((text) => text.includes("MCP"));
@@ -73,14 +72,14 @@ describe("[unit] mcp bridge publication", function () {
     );
   });
 
-  it("writes the backendUrl into the bridge config, whatever apiBaseUrl is", async () => {
+  it("writes the backendUrl into the bridge config, whatever apiBaseUrl is, and logs no MCP warning among the module-wide ones a stray timer may add", async () => {
     await publish(PUBLIC_API, "http://127.0.0.1:5123/");
     expect(readBridgeConfig(projectPath)).to.deep.equal({
       url: "http://127.0.0.1:5123/dms/mcp",
       token: TOKEN,
     });
     const all = warn.mock.calls.map((call) => String(call.arguments[0]));
-    expect(bridgeWarnings(), all.join("\n")).to.deep.equal([]);
+    expect(warningsNamingTheMcpServer(), all.join("\n")).to.deep.equal([]);
   });
 
   it("falls back to a loopback apiBaseUrl when no backendUrl is set", async () => {

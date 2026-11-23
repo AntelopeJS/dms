@@ -4,6 +4,8 @@
  * on the right of every page and shrinks the page to make room; the panel
  * follows navigations, across layouts too, without remounting, which the draft
  * and the mount time below make visible.
+ *
+ * @packageDocumentation
  */
 import { useSidePanelDemo } from "../composables/useSidePanelDemo";
 

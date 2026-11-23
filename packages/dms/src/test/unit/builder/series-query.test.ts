@@ -251,12 +251,7 @@ function refusesUncomputableSeries(): void {
   });
 }
 
-/**
- * The reference journey's calculation, written into a real project: a chart's
- * worth of data — a measure per month, filtered — generated from parameters
- * rather than from a route someone had to write.
- */
-describe("a series query", () => {
+describe("a series query, the reference journey's calculation written into a real project: a measure per month, filtered, generated from parameters rather than from a route someone had to write", () => {
   before(async function () {
     this.timeout(120_000);
     app = createFixture();

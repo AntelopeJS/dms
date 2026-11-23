@@ -32,16 +32,24 @@ const VENDOR_PREFIX = /^-(?:webkit|moz|ms|o)-/;
 /** How many brackets and functions CSS may nest. */
 const MAX_DEPTH = 64;
 
+/** Loads a URL from its first argument, which must be a quoted local string. */
+type UrlLoadingFunction = "url";
+
+/** Loads the strings it holds as images. */
+type ImageLoadingFunction = "image";
+
+/** Holds strings as text, never as a URL. */
+type TextHoldingFunction = "text";
+
+/** Holds values, and no string at all. */
+type ValueHoldingFunction = "value";
+
 /** What a function does with what it holds. */
 type FunctionKind =
-  /** Loads a URL from its first argument, which must be a quoted local string. */
-  | "url"
-  /** Loads the strings it holds as images. */
-  | "image"
-  /** Holds strings as text, never as a URL. */
-  | "text"
-  /** Holds values, and no string at all. */
-  | "value";
+  | UrlLoadingFunction
+  | ImageLoadingFunction
+  | TextHoldingFunction
+  | ValueHoldingFunction;
 
 /** Every function a sketch's CSS may call, by name once unescaped, lower-cased and stripped of a vendor prefix. */
 const FUNCTIONS: ReadonlyMap<string, FunctionKind> = new Map([

@@ -24,12 +24,7 @@ async function added(field: FieldSpec): Promise<string[]> {
   return result.ok ? (result.warnings ?? []).map((entry) => entry.code) : [];
 }
 
-/**
- * A field's column follows from its DataType. One the builder cannot map is
- * stored as a string and says so; every built-in one is mapped, so the warning
- * is kept for a DataType a project registered itself — where it is true.
- */
-describe("the column a DataType is stored in", () => {
+describe("the column a DataType is stored in: a DataType the builder cannot map is stored as a string and says so, while every built-in one is mapped, so the warning is kept for a DataType a project registered itself", () => {
   before(async function () {
     this.timeout(120_000);
     app = createFixture();

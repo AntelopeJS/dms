@@ -37,12 +37,7 @@ function writePage(from: string, to: string, binding: string): void {
   app.write(PAGE_FILE, written);
 }
 
-/**
- * A patch drops the bindings only its replaced values read, and keeps every
- * other one: those the rest of the same operation reads, and those the author
- * left unused.
- */
-describe("the bindings a patched option read", () => {
+describe("the bindings a patched option read: a patch drops the bindings only its replaced values read, and keeps those the rest of the same operation reads and those the author left unused", () => {
   before(async function () {
     this.timeout(120_000);
     app = createFixture();

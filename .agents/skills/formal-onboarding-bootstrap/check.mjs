@@ -10,6 +10,8 @@
  * 0 when both match the record in SKILL.md, 1 when a rule changed, and 2 when
  * TLC could not run. The runner exits on the first spec that changed, so a
  * change in the invite-only spec skips the OAuth one.
+ *
+ * @packageDocumentation
  */
 import path from "node:path";
 import { fileURLToPath } from "node:url";

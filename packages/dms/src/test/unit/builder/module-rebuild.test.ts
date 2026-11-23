@@ -53,12 +53,7 @@ function build(): void {
   expect(run.status, `${script}: ${run.output}`).to.equal(0);
 }
 
-/**
- * A module the builder scaffolds into a project built the way the template is: incremental builds
- * with their state kept in `dist`. Every restart of the project builds each local module again,
- * so the module must leave its `dist` behind however many times that runs.
- */
-describe("a module the builder scaffolds, restarted with its project", function () {
+describe("a module the builder scaffolds, restarted with its project, which builds each local module again incrementally with its state kept in `dist`, so the module leaves its `dist` behind however many times that runs", function () {
   this.timeout(OP_TIMEOUT);
 
   before(async () => {

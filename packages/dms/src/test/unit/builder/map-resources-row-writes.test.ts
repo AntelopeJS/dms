@@ -58,11 +58,7 @@ function dataApi(relation: string): string {
   );
 }
 
-/**
- * Fails on a mapping that trusts the connection's `"read-write"` access alone: the account's
- * catalog says it may not write the rows of `sales.accounts`, so its TableView must serve no write.
- */
-describe("mapping a relation the database account may not write", function () {
+describe("mapping a relation the database account may not write (fails on a mapping that trusts the connection's `\"read-write\"` access alone: the account's catalog says it may not write the rows of `sales.accounts`, so its TableView must serve no write)", function () {
   this.timeout(OP_TIMEOUT);
 
   before(async () => {

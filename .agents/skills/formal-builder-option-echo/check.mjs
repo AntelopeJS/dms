@@ -2,13 +2,13 @@
 /**
  * Runs the round-trip check of the builder options: builds `packages/dms`, then
  * runs `builder-option-echo.formal.test.ts` through the module test runner. The
- * file generates a page, a block and a category whose options are written in
- * every form the builder reads, reads them, sends the values read back through
- * `ConfigurePage`, `SetPageBlocks` and `ConfigureCategory`, and asserts that no
- * file changed and that each readable option reads as the value it holds. It
- * also asserts that each recorded finding still reproduces. Prints nothing when
- * the file passes. Exits 0 when it passes, 1 when a property or a finding
- * changed, and 2 when the build or the runner could not run.
+ * file asserts that reading options and sending the values back changes no
+ * file, and that each recorded finding still reproduces. Prints nothing when
+ * the file passes. Exits 0 when it passes, 1 and `BROKEN BuilderOptionEchoIsNoop`
+ * when a property or a finding changed, and 2 when the build or the runner could
+ * not run.
+ *
+ * @packageDocumentation
  */
 import { spawnSync } from "node:child_process";
 import path from "node:path";

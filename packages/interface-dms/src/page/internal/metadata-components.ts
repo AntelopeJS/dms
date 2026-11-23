@@ -1,4 +1,3 @@
-/** @internal */
 import { Logging } from "@antelopejs/interface-core/logging";
 import type { Component, ComponentInfoSerialized } from "../../component";
 import type { NativeUploadFieldRegistration } from "../../internal/uploads";

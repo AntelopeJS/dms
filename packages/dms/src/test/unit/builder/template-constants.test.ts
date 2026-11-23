@@ -107,12 +107,7 @@ async function createBoard(this: Mocha.Context): Promise<void> {
   app.write(PAGE_FILE, page);
 }
 
-/**
- * A route or topic an author builds from named strings, `${API}/stats`, is as
- * fixed as a literal: the builder reads the string it builds and keeps the
- * template while that string is unchanged.
- */
-describe("a block option built as a template of constants", () => {
+describe("a block option built as a template of constants, `${API}/stats` for a route or topic, is as fixed as a literal: the builder reads the string it builds and keeps the template while that string is unchanged", () => {
   before(createBoard);
   after(() => destroyFixture());
 

@@ -196,13 +196,7 @@ function columnSearchUrl(
     ?.inputComponent.options?.searchUrl;
 }
 
-/**
- * A relation whose related table leads back to it, directly or through
- * another table, still builds: the picker searches the related controller's
- * select route, and the add form nests once, then leaves out the add form of
- * the relation that would build it again.
- */
-describe("[unit] interfaces/dms-base/table-view-relation-cycles — cyclic relations", () => {
+describe("[unit] interfaces/dms-base/table-view-relation-cycles — a relation whose table leads back to it, directly or through another, still builds", () => {
   describe("a self-relation", () => {
     it("builds the picker on the controller's own select route", () => {
       const options = tableOptions(EmployeeAPI);

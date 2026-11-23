@@ -94,12 +94,7 @@ const URLS: [DatabaseEngine, (port: number) => string, Buffer | undefined][] = [
 describe("the account a database check signs in as", function () {
   this.timeout(PROCESS_TIMEOUT_MS);
 
-  /**
-   * Fails on a driver that signs in as the account this computer runs as when the URL names no
-   * user, or names one without a password. On Windows, libuv passes `USERNAME` to the probe's
-   * process whatever environment it is given, and `pg` falls back to it.
-   */
-  it("sends no account name of this computer, whether the URL names no user or a user with no password", async function () {
+  it("sends no account name of this computer, whether the URL names no user or a user with no password (fails on a driver that signs in as the account this computer runs as, which libuv passes to the probe's process as `USERNAME` on Windows and `pg` falls back to)", async function () {
     if (ACCOUNT.length < 4 || ACCOUNT === "app") {
       this.skip();
     }

@@ -20,16 +20,11 @@ const CatalogIndexSchema = z.object({
   reservedFieldNames: z.array(z.string()),
 });
 
-/**
- * `bridge-calls-a-read-tool`: builder_catalog called through the stdio bridge, on an app the
- * builder engine serves. Fails when the bridge does not relay a tool's answer, or when the catalog
- * index loses its block types, its DataTypes or the field names a resource may not use.
- */
 describe("[integration] mcp server journeys: a read tool through the bridge", function () {
   this.timeout(OP_TIMEOUT);
   const session = useBuilderSession();
 
-  it("bridge-calls-a-read-tool", async () => {
+  it("bridge-calls-a-read-tool (fails when the stdio bridge does not relay builder_catalog's answer on an app the builder engine serves, or the catalog index loses its block types, DataTypes or reserved field names)", async () => {
     const answer = await callTool(session().bridge, "builder_catalog");
 
     expect(answer.isError, answer.text).to.equal(false);
@@ -40,14 +35,8 @@ describe("[integration] mcp server journeys: a read tool through the bridge", fu
   });
 });
 
-/**
- * `bridge-files-published`: the credential the harness's own start wrote for the bridge. Fails
- * when the start writes it readable beyond its owner, or names another route than the MCP one.
- * The harness starts with `mcpJson: false`, so the `.mcp.json` entry is
- * `unit/mcp/project-files.test.ts`'s to check.
- */
-describe("[integration] mcp server journeys: the bridge files the start publishes", () => {
-  it("bridge-files-published", () => {
+describe("[integration] mcp server journeys: the bridge files the harness's start with `mcpJson: false` publishes (`.mcp.json` is unit/mcp/project-files.test.ts's)", () => {
+  it("bridge-files-published (fails when the start writes the credential readable beyond its owner, or for another route than the MCP one)", () => {
     const { url, token } = readBridgeConfig();
 
     expect(new URL(url).pathname).to.equal("/dms/mcp");

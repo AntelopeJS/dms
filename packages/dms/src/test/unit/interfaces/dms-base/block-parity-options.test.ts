@@ -15,12 +15,7 @@ function declared(type: string) {
 const valid = (type: string, options: Record<string, JsonValue | undefined>) =>
   ValidateBlockOptions(type, options).valid;
 
-/**
- * The options that let a module draw with stock blocks what it drew with its
- * own: a feed head's count and badge, an entry's third line, a top list's
- * unit.
- */
-describe("[unit] interfaces/dms-base — ActivityFeed head and entry detail", () => {
+describe("[unit] interfaces/dms-base — ActivityFeed head and entry detail, the options that let a module draw with stock blocks what it drew with its own: a feed head's count and badge, an entry's third line, a top list's unit", () => {
   it("takes a count and a badge in its head, both optional", () => {
     const { config } = declared("ActivityFeed");
     expect(config.count?.optional).to.equal(true);

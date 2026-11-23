@@ -79,7 +79,6 @@ describe("[unit] mockup_apply_to_page writes no block that sends requests outsid
   });
   afterEach(() => rm(dir, { recursive: true, force: true }));
 
-  /** Rewrites the options of the spec's node `id` with `edit`. */
   async function editOptions(
     id: string,
     edit: (options: NodeOptions) => NodeOptions,

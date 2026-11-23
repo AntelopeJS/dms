@@ -3,6 +3,8 @@
  * Icon of the side panel demo's header action, drawn in place of its `icon`
  * (see `HeaderAction.iconComponent`). It follows the panel's open state, which
  * the header's plain icon string cannot.
+ *
+ * @packageDocumentation
  */
 import { useSidePanelDemo } from "../composables/useSidePanelDemo";
 

@@ -358,15 +358,7 @@ function substitutesValuesSuppliedPerRequest(): void {
   }
 }
 
-/**
- * Running a plan and writing it are the same calculation twice, and a preview
- * that disagreed with the code it previews would be worse than no preview. Each
- * case asserts the two renderings agree, compared on the calculation rather than
- * on the layout: where the emitter breaks its chain across lines is its own
- * business, and pinning it would make every formatting change look like a
- * divergence between the two backends.
- */
-describe("running a plan", () => {
+describe("running a plan computes what writing it does, compared on the calculation, not the layout the emitter chooses, so a preview never disagrees with the code it previews", () => {
   rendersTheSameCalculationBothWays();
 
   describe("values supplied per request", () => {

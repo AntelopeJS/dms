@@ -57,8 +57,7 @@ function refusal(write: () => void): string {
   throw new Error("the write was expected to be refused");
 }
 
-/** A URL the builder writes for a connection whose variable the starting environment already sets. */
-describe("a connection variable the starting environment sets", function () {
+describe("the URL the builder writes for a connection variable the starting environment already sets", function () {
   this.timeout(OP_TIMEOUT);
 
   before(() => {

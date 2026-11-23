@@ -35,11 +35,7 @@ export class BoardPage extends PageController(
 
 let app: Fixture;
 
-/**
- * A category's and a page's `urlSlug` written as constants: the page lists
- * under the slugs the constants hold, not under the ids.
- */
-describe("urlSlug written as a constant", () => {
+describe("urlSlug written as a constant, a category's and a page's: the page lists under the slugs the constants hold, not under the ids", () => {
   before(function () {
     this.timeout(120_000);
     app = createFixture();

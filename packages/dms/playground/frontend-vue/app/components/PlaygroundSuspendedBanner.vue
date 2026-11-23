@@ -3,6 +3,8 @@
  * Content of the playground's component layout banner. The DMS draws the
  * banner around it (color, icon, ARIA role); this component only renders the
  * message and the link its `props` name.
+ *
+ * @packageDocumentation
  */
 defineProps<{
   to: string;

@@ -16,11 +16,7 @@ const DATA_API_FILE = "ledger/data-api.ts";
 
 let app: Fixture;
 
-/**
- * The app compiles with `noUnusedLocals`, so a save that leaves a decorator
- * import nothing reads fails on `typecheck_failed`.
- */
-describe("the imports a field operation leaves behind", () => {
+describe("the imports a field operation leaves behind: the app compiles with `noUnusedLocals`, so a save that leaves a decorator import nothing reads fails on `typecheck_failed`", () => {
   beforeEach(async function () {
     this.timeout(120_000);
     app = createFixture({ compilerOptions: { noUnusedLocals: true } });

@@ -213,11 +213,7 @@ function readsTablesByEveryName(): void {
   });
 }
 
-/**
- * What a table reaches, said before it is changed: the pages reading it, by a
- * block bound to it or a block pointing at its API.
- */
-describe("the pages reading a table", () => {
+describe("the pages reading a table, said before it is changed: by a block bound to it or a block pointing at its API", () => {
   before(async function () {
     this.timeout(120_000);
     createFixture();

@@ -66,12 +66,7 @@ const CONNECT = [
 let root: string;
 let ceiling: string | undefined;
 
-/**
- * A project can be its configuration alone: no `tsconfig.json`, no sources of its own, no git
- * repository. The builder still wires a database into it, scaffolds a module that builds, and
- * writes the URL into `.env`.
- */
-describe("a project that is its configuration alone", function () {
+describe("a project that is its configuration alone, with no `tsconfig.json`, no sources of its own and no git repository: the builder still wires a database into it, scaffolds a module that builds, and writes the URL into `.env`", function () {
   this.timeout(OP_TIMEOUT);
 
   before(() => {

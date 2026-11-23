@@ -7,6 +7,8 @@
  * stays able to catch it. Exits 0 when the configuration matches its record,
  * 1 when it changed, and 2 when TLC could not run. Its findings describe old
  * code, not the code at HEAD.
+ *
+ * @packageDocumentation
  */
 import path from "node:path";
 import { fileURLToPath } from "node:url";

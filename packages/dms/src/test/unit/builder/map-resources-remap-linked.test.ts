@@ -9,12 +9,7 @@ import { createFixture, destroyFixture, expectOk } from "./harness";
 import { ERP_WRITES, FAKE_CATALOG, INPUT, OP_TIMEOUT } from "./mapped-database";
 import { reloadedAtOnce } from "./reload-stub";
 
-/**
- * An app that resolves the DMS interface through its real path, as a workspace link does without
- * `preserveSymlinks`: the root category a mapped connection's category sits in is then a
- * declaration outside `node_modules`.
- */
-describe("mapping again a database in an app that follows the interface's symlink", function () {
+describe("mapping again a database in an app that follows the interface's symlink, as a workspace link does without `preserveSymlinks`, so the root category a mapped connection's category sits in is a declaration outside `node_modules`", function () {
   this.timeout(OP_TIMEOUT);
 
   before(() => {

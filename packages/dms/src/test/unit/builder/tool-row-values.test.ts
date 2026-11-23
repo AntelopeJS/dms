@@ -20,14 +20,7 @@ import {
   fixture,
 } from "./helpers/mapped-orders";
 
-/**
- * The AI gets the shape of a connected database, never its values. Each tool that reads the
- * database answers with every value above left out, and the module it maps holds none in any of
- * its files; an implementation that passes a profile's range, category values or months through,
- * or a proposal's badge items or currency, or a written file's diff, or that writes a badge's
- * items, a currency or tabs read from rows into the code, fails here.
- */
-describe("[unit] the tools that read a connected database answer no value of a row", function () {
+describe("[unit] the tools that read a connected database answer its shape, never a value of a row, such as a profile's range, category values or months, a proposal's badge items or currency, or a written file's diff, and write none into the module they map", function () {
   this.timeout(OP_TIMEOUT);
 
   connectDatabase();
@@ -100,13 +93,7 @@ describe("[unit] the tools that read a connected database answer no value of a r
   });
 });
 
-/**
- * A module mapped before references holds badge items, tabs and a currency read from rows. Each
- * builder tool that reads or edits that code answers with every value above left out; an
- * implementation that shows a structure or a diff of the mapped code, or of a mapped page moved
- * out of its module, fails here, and so does one that lets an edit drop what it hides.
- */
-describe("[unit] the builder tools over a module mapped before references answer no value of a row", function () {
+describe("[unit] the builder tools over a module mapped before references hide the row values its code holds (badge items, tabs and a currency), in a structure, a diff or a moved page, and keep them on an edit", function () {
   this.timeout(OP_TIMEOUT);
 
   connectDatabase();

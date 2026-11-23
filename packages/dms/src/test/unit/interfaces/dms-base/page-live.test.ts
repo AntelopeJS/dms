@@ -13,12 +13,7 @@ import { defined } from "../../../helpers/defined";
 
 const STRING = new DefaultDataTypes.StringType();
 
-/**
- * A page declared with `live` hands its Direct / Pause valve to the browser,
- * the `LiveToggle()` block switches it, and a table's `liveHold` reaches its
- * renderer.
- */
-describe("[unit] interfaces/dms-base — page live mode", () => {
+describe("[unit] interfaces/dms-base — page live mode: a page declared with `live` hands its Direct / Pause valve to the browser, the `LiveToggle()` block switches it, and a table's `liveHold` reaches its renderer", () => {
   it("carries the page's live option to the browser", () => {
     const page = PageController("live-page", {
       displayName: "Live page",

@@ -197,8 +197,7 @@ describe("[unit] builder_configure_project reads the access as antelope.config.t
     delete process.env.ERP_ACCESS;
   });
 
-  /** What restating `erp` as `read-write` answers: the refusal, or "accepted". */
-  async function restatement(): Promise<string> {
+  async function answerToRestatingErpAsReadWrite(): Promise<string> {
     const answer = await confirmedCall(accessSteps({ erp: "read-write" }));
     return answer.isError === true
       ? (answer.content[0]?.text ?? "")
@@ -208,7 +207,7 @@ describe("[unit] builder_configure_project reads the access as antelope.config.t
   it("refuses replacing an access read from a variable", async () => {
     process.env.ERP_ACCESS = "read-write";
     erp.writeModules([dmsDatabaseWith('process.env.ERP_ACCESS ?? "read"')]);
-    expect(await restatement()).to.include(RAISE_REFUSED);
+    expect(await answerToRestatingErpAsReadWrite()).to.include(RAISE_REFUSED);
   });
 
   it("refuses replacing an access that branches on the launch environment", async () => {
@@ -217,7 +216,7 @@ describe("[unit] builder_configure_project reads the access as antelope.config.t
         'process.env.ANTELOPEJS_LAUNCH_ENV === "production" ? "read" : "read-write"',
       ),
     ]);
-    expect(await restatement()).to.include(RAISE_REFUSED);
+    expect(await answerToRestatingErpAsReadWrite()).to.include(RAISE_REFUSED);
   });
 
   it("refuses replacing a template an environment lowers", async () => {
@@ -229,7 +228,7 @@ describe("[unit] builder_configure_project reads the access as antelope.config.t
         'environments: { production: { modules: { "dms-database": { config: { erpAccess: "read" } } } } },',
       ],
     );
-    expect(await restatement()).to.include(RAISE_REFUSED);
+    expect(await answerToRestatingErpAsReadWrite()).to.include(RAISE_REFUSED);
   });
 
   it("refuses rebinding a variable envOverrides maps to an access, in array form", async () => {

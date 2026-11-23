@@ -1,4 +1,3 @@
-/** @internal */
 import type {
   ChildSerialized,
   ComponentAnchor,

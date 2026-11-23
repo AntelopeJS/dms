@@ -99,12 +99,7 @@ function removeWritten(): void {
   written = [];
 }
 
-/**
- * Once a typecheck of the app found no error, a save checks only what it could
- * have broken. Each case starts from a clean save, so the save under test goes
- * through that narrower check, and fails on a file a full check fails on.
- */
-describe("[unit] a save that breaks a file the save did not write", () => {
+describe("[unit] a save after a clean typecheck checks only what it could have broken, and still fails on a file it did not write that a full check fails on", () => {
   before(async function () {
     this.timeout(120_000);
     await createBoard();
@@ -133,11 +128,7 @@ describe("[unit] a save that breaks a file the save did not write", () => {
     expect(app.read(PAGE_FILE)).to.equal(before);
   });
 
-  /**
-   * The page changes, and a module importing it declares a global from its
-   * type: the readers of that global import neither.
-   */
-  it("fails on a reader of a global declared from the page's type", async function () {
+  it("fails on a reader of a global declared from the page's type (the page changes, and a module importing it declares a global from its type, whose readers import neither)", async function () {
     this.timeout(OP_TIMEOUT);
     write(
       "board-global.ts",
@@ -151,11 +142,7 @@ describe("[unit] a save that breaks a file the save did not write", () => {
     expect(failedFiles(result)).to.deep.equal([source("board-use.ts")]);
   });
 
-  /**
-   * The importer did not change and no longer resolves the file, so only the
-   * imports the clean check read lead to it.
-   */
-  it("fails on the importer of a file deleted outside the builder", async function () {
+  it("fails on the importer of a file deleted outside the builder (the importer did not change and no longer resolves the file, so only the imports the clean check read lead to it)", async function () {
     this.timeout(OP_TIMEOUT);
     write("labels.ts", `export const label = "draft";\n`);
     write(
@@ -185,11 +172,7 @@ describe("[unit] a save that breaks a file the save did not write", () => {
     expect(failedFiles(result)).to.deep.equal([source("referrer.ts")]);
   });
 
-  /**
-   * A dependency rebuilt under a running builder changes a declaration file the
-   * app reaches through another file of the dependency.
-   */
-  it("fails on the app's importer of a dependency whose inner file changed", async function () {
+  it("fails on the app's importer of a dependency whose inner file changed (a dependency rebuilt under a running builder changes a declaration file the app reaches through another file of the dependency)", async function () {
     this.timeout(OP_TIMEOUT);
     installTone("draft");
     write(
@@ -204,8 +187,7 @@ describe("[unit] a save that breaks a file the save did not write", () => {
     expect(failedFiles(result)).to.deep.equal([source("tone-reader.ts")]);
   });
 
-  /** A global reaches every file without an import, so its change checks them all. */
-  it("fails on a reader of a global edited outside the builder", async function () {
+  it("fails on a reader of a global edited outside the builder (a global reaches every file without an import, so its change checks them all)", async function () {
     this.timeout(OP_TIMEOUT);
     const declareTone = (tone: string) =>
       `declare global {\n  const TONE: "${tone}";\n}\n\nexport {};\n`;
@@ -219,8 +201,7 @@ describe("[unit] a save that breaks a file the save did not write", () => {
     expect(failedFiles(result)).to.deep.equal([source("tone-user.ts")]);
   });
 
-  /** An `export as namespace` declares a global as well, read here by a script. */
-  it("fails on a reader of a namespace a module exports as a global", async function () {
+  it("fails on a reader of a namespace a module exports as a global (an `export as namespace` declares a global as well, read here by a script)", async function () {
     this.timeout(OP_TIMEOUT);
     const declareLib = (tone: string) =>
       `export declare const tone: "${tone}";\nexport as namespace Lib;\n`;
@@ -297,11 +278,7 @@ function installShade(added?: string): void {
   }
 }
 
-/**
- * A linked package's files are read where the link points, outside
- * `node_modules`, and the app may reach them only through a dependency.
- */
-describe("[unit] a save after a file outside the app changed how the app resolves", () => {
+describe("[unit] a save after a file outside the app changed how the app resolves: a linked package's files are read where the link points, outside `node_modules`, and the app may reach them only through a dependency", () => {
   before(async function () {
     this.timeout(120_000);
     await createBoard();
@@ -327,11 +304,7 @@ describe("[unit] a save after a file outside the app changed how the app resolve
     expect(failedFiles(result)).to.deep.equal([source("tone-reader.ts")]);
   });
 
-  /**
-   * A file added to a dependency changes what an unchanged file of it imports,
-   * once a new file of the app makes the program resolve its imports again.
-   */
-  it("fails on the app's importer of a dependency whose import a new file now resolves", async function () {
+  it("fails on the app's importer of a dependency whose import a new file now resolves (a file added to a dependency changes what an unchanged file of it imports, once a new file of the app makes the program resolve its imports again)", async function () {
     this.timeout(OP_TIMEOUT);
     installShade();
     write(
@@ -349,11 +322,7 @@ describe("[unit] a save after a file outside the app changed how the app resolve
     ]);
   });
 
-  /**
-   * The dependency did not change, and the linked package it imports from is
-   * built once the app holds a new file, so the program resolves it again.
-   */
-  it("fails on the app's importer of a dependency re-exporting a linked package built since", async function () {
+  it("fails on the app's importer of a dependency re-exporting a linked package built since (the dependency did not change, and the linked package it imports from is built once the app holds a new file, so the program resolves it again)", async function () {
     this.timeout(OP_TIMEOUT);
     linkWorkspace("fixture-late");
     installWrapper("fixture-late");
@@ -370,8 +339,7 @@ describe("[unit] a save after a file outside the app changed how the app resolve
     expect(failedFiles(result)).to.deep.equal([source("late-reader.ts")]);
   });
 
-  /** The importer did not change, and the file it resolves to now is new. */
-  it("fails on an importer whose import a new file now resolves", async function () {
+  it("fails on an importer whose import a new file now resolves (the importer did not change, and the file it resolves to now is new)", async function () {
     this.timeout(OP_TIMEOUT);
     write("shade/index.ts", `export const shade = "draft";\n`);
     write(
@@ -389,11 +357,7 @@ describe("[unit] a save after a file outside the app changed how the app resolve
 
 const augmentation = `export {};\n\ndeclare module "./augmented" {\n  interface Target {\n    b: number;\n  }\n}\n`;
 
-/**
- * A file that augments a module or declares a global is read by files that do
- * not import it, so a change on one side checks the other.
- */
-describe("[unit] a save after a file another reads without importing it changed", () => {
+describe("[unit] a save after a file another reads without importing it changed: a file that augments a module or declares a global is read by files that do not import it, so a change on one side checks the other", () => {
   before(async function () {
     this.timeout(120_000);
     await createBoard();

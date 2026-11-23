@@ -5,6 +5,8 @@
  * chain that does not decompose exactly into the hops the emitter writes reads as
  * nothing at all, which is what keeps the builder from rewriting a chain a human
  * has taken over.
+ *
+ * @packageDocumentation
  */
 
 import { type CallExpression, type MethodDeclaration, Node } from "ts-morph";

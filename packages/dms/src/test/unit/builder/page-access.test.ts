@@ -69,11 +69,7 @@ const SUPPORT: RoleAccess = {
   permissions: ["pages.shop.board"],
 };
 
-/**
- * Who reaches a page and its blocks, read the way the DMS decides it: a block's
- * permission is named after where it sits under the page's.
- */
-describe("who reaches a page", () => {
+describe("who reaches a page, read the way the DMS decides it: a block's permission is named after where it sits under the page's", () => {
   before(async function () {
     this.timeout(120_000);
     createFixture();

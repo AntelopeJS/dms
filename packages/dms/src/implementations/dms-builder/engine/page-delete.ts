@@ -1,8 +1,3 @@
-/**
- * Deleting a page: its class, whatever only the class used, and its file once
- * nothing else is left in it.
- */
-
 import type { MutationOpts, OpResult } from "@antelopejs/interface-dms-builder";
 import type { ClassDeclaration } from "ts-morph";
 import { checkVersion, commit, isError, notFound, openPage } from "./ops";

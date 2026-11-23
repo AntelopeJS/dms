@@ -13,6 +13,8 @@
  * Nothing here invents a figure it was not given: an absent measure stays absent
  * all the way to the block, because a fabricated zero reads exactly like a
  * measured one.
+ *
+ * @packageDocumentation
  */
 import type { ChartSeries } from "./chart";
 import { headline, measuredValues } from "./internal/query-response";

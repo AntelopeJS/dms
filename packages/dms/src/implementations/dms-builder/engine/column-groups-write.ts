@@ -1,5 +1,3 @@
-/** Writing the `@ColumnGroup` decorators of a resource's DataAPI controller. */
-
 import type {
   ColumnGroupSpec,
   ColumnGroupsPatch,

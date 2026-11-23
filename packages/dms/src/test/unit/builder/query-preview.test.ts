@@ -342,12 +342,7 @@ function refusesWhatItCannotRun(): void {
   });
 }
 
-/**
- * What a block is shown for a source that has not been written. The calculation
- * itself is covered elsewhere; this is about what the preview says back — its
- * shape, where it stops, and how it refuses.
- */
-describe("previewing a query", () => {
+describe("previewing a query: what a block is shown for a source that has not been written, its shape, where it stops and how it refuses, the calculation itself being covered elsewhere", () => {
   before(() => registerBuiltinQueryTemplates());
 
   answersAsTheRouteWould();
@@ -362,11 +357,7 @@ describe("previewing a query", () => {
   });
 });
 
-/**
- * A card on the builder's canvas reads its unsaved source by address: the query
- * rides in one parameter, and the period it appends rides beside it.
- */
-describe("a preview asked for by address", () => {
+describe("a preview asked for by address: a card on the builder's canvas reads its unsaved source by address, the query riding in one parameter and the period it appends beside it", () => {
   const query = {
     name: "orders",
     resource: "order",

@@ -5,8 +5,7 @@ import {
   withoutEnvLine,
 } from "../../../implementations/dms-builder/engine";
 
-/** `.env` lines read as Node and dotenv read them, so Edit and Remove see the value the project gets. */
-describe("lines of a .env", () => {
+describe("lines of a .env, read as Node and dotenv read them, so Edit and Remove see the value the project gets", () => {
   it("read export, spaces around =, either quote and a trailing comment", () => {
     const text = [
       "export A=1",

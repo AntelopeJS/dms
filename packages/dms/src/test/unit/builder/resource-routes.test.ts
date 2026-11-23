@@ -38,13 +38,7 @@ function namedMembers(expr: string): Map<string, string> {
   );
 }
 
-/**
- * The route map is rewritten whenever a route is switched on or off, so every
- * key the DMS serves has to survive the trip: one the builder cannot name is
- * dropped from the resource for good, and nothing says so until the page that
- * read it breaks.
- */
-describe("resource route maps", () => {
+describe("resource route maps: the map is rewritten whenever a route is switched on or off, so every key the DMS serves survives the trip, since one the builder cannot name would be dropped from the resource for good", () => {
   it("names a route for every key TableViewRoutes.All serves", () => {
     for (const key of allKeys) {
       expect(routesFromRouteMap([key], false), key).to.have.length(1);

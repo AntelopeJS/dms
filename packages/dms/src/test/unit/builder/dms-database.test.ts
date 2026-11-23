@@ -37,12 +37,7 @@ function writeManifest(folder: string, name: string): void {
   );
 }
 
-/**
- * dms-database lists the connections registered on its own entry, so the builder has to find that
- * entry however the project keyed it: by the module's id, by the package it installs, or by the
- * name of a local checkout.
- */
-describe("the entry that is dms-database", () => {
+describe("the entry that is dms-database, which lists the connections registered on it: the builder finds it however the project keyed it, by the module's id, by the package it installs, or by the name of a local checkout", () => {
   before(() => {
     root = fs.mkdtempSync(path.join(os.tmpdir(), "dms-builder-dms-database-"));
     setBuilderConfig({ projectRoot: root });

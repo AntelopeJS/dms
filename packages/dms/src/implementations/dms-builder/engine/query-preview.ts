@@ -5,6 +5,8 @@
  * The calculation is the plan the template describes, the same one the emitter
  * would have written into a model method, so what a preview shows is what the
  * saved page will answer.
+ *
+ * @packageDocumentation
  */
 
 import {

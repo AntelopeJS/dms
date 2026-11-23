@@ -199,12 +199,7 @@ function createsChangesAndRemovesFields(): void {
   });
 }
 
-/**
- * A resource is what a data source reads from, and its fields are what the
- * source editor offers as measures, groupings and filters — including the
- * aspects that decide whether a field may be sorted or filtered on at all.
- */
-describe("resources and their fields", () => {
+describe("resources and their fields, what a data source reads from and the source editor offers as measures, groupings and filters, including the aspects that decide whether a field may be sorted or filtered on at all", () => {
   before(async function () {
     this.timeout(120_000);
     app = createFixture();

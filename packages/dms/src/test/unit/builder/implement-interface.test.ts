@@ -3,13 +3,7 @@ import * as Builder from "@antelopejs/interface-dms-builder";
 import { expect } from "chai";
 import * as implementation from "../../../implementations/dms-builder";
 
-/**
- * The module attaches its implementation to the interface when it constructs.
- * The core walks the interface declaration, including the `Operations` map, and
- * requires a function at every path, so the implementation has to answer under
- * `Operations` too.
- */
-describe("implementing the builder interface", () => {
+describe("implementing the builder interface, which the core walks including the `Operations` map and requires a function at every path, so the implementation answers under `Operations` too", () => {
   it("attaches the implementation to every operation the interface declares", () => {
     expect(() => ImplementInterface(Builder, implementation)).not.to.throw();
   });
