@@ -406,9 +406,6 @@ importers:
       isomorphic-dompurify:
         specifier: ^3.11.0
         version: 3.11.0
-      json-schema-to-zod:
-        specifier: ^2.6.0
-        version: 2.6.1
       jsonwebtoken:
         specifier: ^9.0.3
         version: 9.0.3
@@ -494,6 +491,9 @@ importers:
       jsdom:
         specifier: ^29.1.1
         version: 29.1.1
+      json-schema-to-zod:
+        specifier: ^2.6.0
+        version: 2.6.1
       prettier:
         specifier: ^3.5.3
         version: 3.6.2

@@ -10,11 +10,19 @@ export type RecordWithDefault<T> = Record<string, T> & { default: T };
  * Keys of a data type's `formatter` record: `default` (required), `cell` (a
  * shorter grid rendering), `empty` (drawn instead of the fallback for a
  * null/undefined value), and one per compare mode for filter chips.
+ *
+ * @typeParam Value - What a field of the row holds, the formatted one included.
+ * @typeParam Options - The options of the field's control.
+ * @typeParam Display - What the formatter draws.
  */
-export type DataTypeFormatter<Value = unknown, Display = unknown> = (
+export type DataTypeFormatter<
+  Value = unknown,
+  Options = unknown,
+  Display = unknown,
+> = (
   value: Value,
   locale: string,
-  options?: Value,
+  options?: Options,
   row?: Record<string, Value>,
 ) => Display;
 
@@ -22,21 +30,27 @@ export type DataTypeFormatter<Value = unknown, Display = unknown> = (
  * Reshapes a server value into its form-state representation.
  * Must be idempotent: form reset re-applies the mapper to values that
  * may already be mapped (e.g. restored from a submit-success snapshot).
+ *
+ * @typeParam Value - The field's value, as served and as held.
+ * @typeParam Options - The options of the field's control.
  */
-export type BeforeStateMapper<Value = unknown> = (
+export type BeforeStateMapper<Value = unknown, Options = unknown> = (
   value: Value,
-  options?: Value,
+  options?: Options,
 ) => Value;
 
 /**
  * Whether two values of a data type are the same value, whatever shape each
  * comes in: a form compares the value it loaded from the server with the one
  * its control holds through it, to tell an edited field from an untouched one.
+ *
+ * @typeParam Value - The field's value, as served and as held.
+ * @typeParam Options - The options of the field's control.
  */
-export type DataTypeValueComparer<Value = unknown> = (
+export type DataTypeValueComparer<Value = unknown, Options = unknown> = (
   left: Value,
   right: Value,
-  options?: Value,
+  options?: Options,
 ) => boolean;
 
 /**
