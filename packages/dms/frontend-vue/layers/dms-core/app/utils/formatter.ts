@@ -128,13 +128,19 @@ interface RelativeUnit {
 const MONTH_MS = 30 * TIME_UNITS.d;
 const YEAR_MS = 365 * TIME_UNITS.d;
 
+const YEAR_UNIT: RelativeUnit = {
+  unit: "year",
+  ms: YEAR_MS,
+  below: Number.POSITIVE_INFINITY,
+};
+
 const RELATIVE_UNITS: RelativeUnit[] = [
   { unit: "minute", ms: TIME_UNITS.m, below: TIME_UNITS.h },
   { unit: "hour", ms: TIME_UNITS.h, below: TIME_UNITS.d },
   { unit: "day", ms: TIME_UNITS.d, below: TIME_UNITS.w },
   { unit: "week", ms: TIME_UNITS.w, below: MONTH_MS },
   { unit: "month", ms: MONTH_MS, below: YEAR_MS },
-  { unit: "year", ms: YEAR_MS, below: Number.POSITIVE_INFINITY },
+  YEAR_UNIT,
 ];
 
 export interface RelativeDistanceOptions {
@@ -157,8 +163,7 @@ export function formatRelativeDistance(
   const deltaMs = new Date(date).getTime() - now;
   const distance = Math.abs(deltaMs);
   const unit =
-    RELATIVE_UNITS.find((candidate) => distance < candidate.below) ??
-    RELATIVE_UNITS[RELATIVE_UNITS.length - 1]!;
+    RELATIVE_UNITS.find((candidate) => distance < candidate.below) ?? YEAR_UNIT;
   const value = Math.round(deltaMs / unit.ms);
   return new Intl.RelativeTimeFormat(locale, { numeric: "auto", style }).format(
     value,
@@ -378,8 +383,10 @@ function readUnitSpan(text: string): number | undefined {
   if (!UNIT_SPAN.test(text)) return undefined;
   let total = 0;
   for (const [, amount, unit] of text.matchAll(UNIT_SPAN_PART)) {
-    const value = Number.parseFloat(amount!.replace(",", "."));
-    total += value * TIME_UNITS[TIME_SPAN_UNITS[unit!]!];
+    const timeUnit = unit && TIME_SPAN_UNITS[unit];
+    if (amount === undefined || !timeUnit) return undefined;
+    const value = Number.parseFloat(amount.replace(",", "."));
+    total += value * TIME_UNITS[timeUnit];
   }
   return total;
 }

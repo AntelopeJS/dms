@@ -86,7 +86,8 @@ export const usePreferences = () => {
 
   const removePreference = (keyPath: string): void => {
     const keys = keyPath.split(".");
-    const lastKey = keys.pop()!;
+    const lastKey = keys.pop();
+    if (lastKey === undefined) return;
     const next = toPlainTree(tree.value);
     const parent = keys.length === 0 ? next : readAt(next, keys);
     if (!isBranch(parent) || !(lastKey in parent)) return;

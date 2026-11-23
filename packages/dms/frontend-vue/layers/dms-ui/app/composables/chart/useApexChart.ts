@@ -106,9 +106,9 @@ function resolveSeriesColors(
   fallback: string[],
 ): string[] {
   if (series.length === 0) return fallback;
-  return series.map((entry, index) => {
-    if (entry.color) return entry.color;
-    return fallback[index % fallback.length] ?? fallback[0]!;
+  return series.flatMap((entry, index) => {
+    const color = entry.color || fallback[index % fallback.length];
+    return color === undefined ? [] : [color];
   });
 }
 

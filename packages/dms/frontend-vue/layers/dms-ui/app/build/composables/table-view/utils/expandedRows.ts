@@ -13,8 +13,9 @@ export function defaultExpandedRows(
   mode: ExpandedDefault = "none",
   single = false,
 ) {
-  if (mode === "none" || rowIds.length === 0) return {};
-  if (mode === "first" || single) return { [rowIds[0]!]: true };
+  const [first] = rowIds;
+  if (mode === "none" || first === undefined) return {};
+  if (mode === "first" || single) return { [first]: true };
   return Object.fromEntries(rowIds.map((id) => [id, true]));
 }
 

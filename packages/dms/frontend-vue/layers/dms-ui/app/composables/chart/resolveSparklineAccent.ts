@@ -13,9 +13,11 @@ function trendFromDelta(delta: number): SparklineTrend {
 }
 
 function trendFromSparkline(values: number[]): SparklineTrend {
-  if (values.length < 2) return "neutral";
-  const first = values[0]!;
-  const last = values[values.length - 1]!;
+  const first = values[0];
+  const last = values.at(-1);
+  if (values.length < 2 || first === undefined || last === undefined) {
+    return "neutral";
+  }
   if (last > first) return "positive";
   if (last < first) return "negative";
   return "neutral";

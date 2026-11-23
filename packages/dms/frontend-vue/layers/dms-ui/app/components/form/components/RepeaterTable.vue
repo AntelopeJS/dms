@@ -117,14 +117,11 @@ interface CellProps {
   rowIndex: number;
 }
 const Cell = ({ index, rowIndex }: CellProps): VNodeChild => {
-  const column = props.columns[index]!;
-  const row = props.rows[rowIndex]!;
-  return renderValue(
-    renderables.value[index]!,
-    cellValue(column, row),
-    row,
-    "detail",
-  );
+  const column = props.columns[index];
+  const row = props.rows[rowIndex];
+  const renderable = renderables.value[index];
+  if (!column || !row || !renderable) return null;
+  return renderValue(renderable, cellValue(column, row), row, "detail");
 };
 
 Cell.props = ["index", "rowIndex"];

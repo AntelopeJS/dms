@@ -142,7 +142,7 @@ export function trackRowNavigation(
   const landOn = (target: Data) => {
     if (isStopped) return;
     const local = loadedIndexOf(source, rowIdOf(target, source.rowIdKey));
-    go(local < 0 ? target : source.rows()[local]!);
+    go((local < 0 ? undefined : source.rows()[local]) ?? target);
   };
 
   const neighbourOf = (direction: RowStep, location?: RowLocation) =>

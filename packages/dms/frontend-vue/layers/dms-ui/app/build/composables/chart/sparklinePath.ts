@@ -35,35 +35,31 @@ function format(point: SparkPoint): string {
   return `${point.x.toFixed(COORDINATE_PRECISION)},${point.y.toFixed(COORDINATE_PRECISION)}`;
 }
 
-function controlPoints(
-  points: SparkPoint[],
-  index: number,
-): [SparkPoint, SparkPoint] {
-  const current = points[index]!;
-  const next = points[index + 1]!;
+function curveSegment(points: SparkPoint[], index: number): string | undefined {
+  const current = points[index];
+  const next = points[index + 1];
+  if (!current || !next) return undefined;
   const previous = points[index - 1] ?? current;
   const afterNext = points[index + 2] ?? next;
-  return [
-    {
-      x: current.x + (next.x - previous.x) / CATMULL_ROM_DIVISOR,
-      y: current.y + (next.y - previous.y) / CATMULL_ROM_DIVISOR,
-    },
-    {
-      x: next.x - (afterNext.x - current.x) / CATMULL_ROM_DIVISOR,
-      y: next.y - (afterNext.y - current.y) / CATMULL_ROM_DIVISOR,
-    },
-  ];
+  const first = {
+    x: current.x + (next.x - previous.x) / CATMULL_ROM_DIVISOR,
+    y: current.y + (next.y - previous.y) / CATMULL_ROM_DIVISOR,
+  };
+  const second = {
+    x: next.x - (afterNext.x - current.x) / CATMULL_ROM_DIVISOR,
+    y: next.y - (afterNext.y - current.y) / CATMULL_ROM_DIVISOR,
+  };
+  return `C${format(first)} ${format(second)} ${format(next)}`;
 }
 
 /** Smooth line through every point (v2 sparkline curve). */
 export function smoothSparkPath(points: SparkPoint[]): string {
-  if (points.length === 0) return "";
-  const segments = [`M${format(points[0]!)}`];
+  const [start] = points;
+  if (!start) return "";
+  const segments = [`M${format(start)}`];
   for (let index = 0; index < points.length - 1; index++) {
-    const [first, second] = controlPoints(points, index);
-    segments.push(
-      `C${format(first)} ${format(second)} ${format(points[index + 1]!)}`,
-    );
+    const segment = curveSegment(points, index);
+    if (segment) segments.push(segment);
   }
   return segments.join(" ");
 }
@@ -74,8 +70,8 @@ export function closeSparkArea(
   points: SparkPoint[],
   height: number,
 ): string {
-  if (!line) return "";
-  const first = points[0]!;
-  const last = points[points.length - 1]!;
+  const first = points[0];
+  const last = points.at(-1);
+  if (!line || !first || !last) return "";
   return `${line} L${last.x.toFixed(COORDINATE_PRECISION)},${height} L${first.x.toFixed(COORDINATE_PRECISION)},${height} Z`;
 }

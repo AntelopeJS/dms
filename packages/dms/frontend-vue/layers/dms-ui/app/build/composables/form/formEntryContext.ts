@@ -1,4 +1,4 @@
-import type { InjectionKey, Ref } from "vue";
+import { inject, type InjectionKey, type Ref } from "vue";
 import type { useWatch } from "#dms-core/app/composables/watch/useWatch";
 import type { SaveStatusState } from "../../../components/save-bar/SaveStatus.vue";
 import type { FormField } from "../../../composables/form/types/field";
@@ -46,6 +46,13 @@ export interface FormEntryContext {
 export const FORM_ENTRY_CONTEXT_KEY: InjectionKey<FormEntryContext> = Symbol(
   "dms-form-entry-context",
 );
+
+/** The context of the form rendering the caller; throws outside a form. */
+export function injectFormEntryContext(): FormEntryContext {
+  const context = inject(FORM_ENTRY_CONTEXT_KEY);
+  if (!context) throw new Error("A form entry must render inside a form");
+  return context;
+}
 
 const REGEXP_SPECIALS = /[.*+?^${}()|[\]\\]/g;
 

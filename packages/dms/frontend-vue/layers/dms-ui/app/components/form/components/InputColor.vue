@@ -21,13 +21,13 @@ const modelValue = defineModel<string | null | undefined>();
 const HEX_PATTERN = /^#[0-9a-fA-F]{6}$/;
 const FALLBACK_COLOR = "#000000";
 
-const hasColor = computed(
-  () => !!modelValue.value && HEX_PATTERN.test(modelValue.value),
-);
+const validColor = computed(() => {
+  const value = modelValue.value;
+  return value && HEX_PATTERN.test(value) ? value : undefined;
+});
+const hasColor = computed(() => validColor.value !== undefined);
 
-const swatchValue = computed(() =>
-  hasColor.value ? modelValue.value! : FALLBACK_COLOR,
-);
+const swatchValue = computed(() => validColor.value ?? FALLBACK_COLOR);
 
 const handlePickerInput = (event: Event) => {
   const target = event.target;

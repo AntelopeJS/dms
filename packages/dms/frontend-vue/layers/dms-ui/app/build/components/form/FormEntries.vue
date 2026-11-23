@@ -4,7 +4,7 @@ import type {
   FormFieldOrGroup,
 } from "../../../composables/form/types/field";
 import { isFieldGroup } from "../../../composables/form/types/field";
-import { FORM_ENTRY_CONTEXT_KEY } from "../../composables/form/formEntryContext";
+import { injectFormEntryContext } from "../../composables/form/formEntryContext";
 import {
   GROUP_FIELDS_CLASSES,
   entryFields,
@@ -23,7 +23,7 @@ interface FormEntriesProps {
 }
 
 const props = defineProps<FormEntriesProps>();
-const context = inject(FORM_ENTRY_CONTEXT_KEY)!;
+const context = injectFormEntryContext();
 const { processI18n } = useTranslation();
 
 const classes = computed(() => context.layoutClasses(props.inSection));

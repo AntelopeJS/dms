@@ -55,7 +55,11 @@ export function usePermissions() {
 
   async function refreshLoadedSet(): Promise<void> {
     const scope = effectScope(true);
-    const data = scope.run(() => permissionsData(false))!;
+    const data = scope.run(() => permissionsData(false));
+    if (!data) {
+      scope.stop();
+      throw new Error("The permissions scope stopped before it ran");
+    }
     try {
       await data.refresh();
     } finally {

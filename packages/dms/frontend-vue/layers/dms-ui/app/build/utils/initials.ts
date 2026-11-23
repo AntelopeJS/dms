@@ -26,9 +26,10 @@ function wordInitials(word: string, count: number): string[] {
  */
 export function labelInitials(label: string): string {
   const words = label.split(WORD_SPLIT).filter(Boolean);
+  const [only] = words;
   const characters =
-    words.length === 1
-      ? wordInitials(words[0]!, INITIALS_LENGTH)
+    words.length === 1 && only !== undefined
+      ? wordInitials(only, INITIALS_LENGTH)
       : words
           .slice(0, INITIALS_LENGTH)
           .flatMap((word) => wordInitials(word, 1));

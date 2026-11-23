@@ -167,11 +167,14 @@ function removeRow(index: number): void {
 
 function moveRow(from: number, to: number): void {
   if (to < 0 || to >= rows.value.length || from === to) return;
+  const row = rows.value[from];
+  const key = rowKeys.value[from];
+  if (row === undefined || key === undefined) return;
   const next = [...rows.value];
-  const [row] = next.splice(from, 1);
-  next.splice(to, 0, row!);
-  const [key] = rowKeys.value.splice(from, 1);
-  rowKeys.value.splice(to, 0, key!);
+  next.splice(from, 1);
+  next.splice(to, 0, row);
+  rowKeys.value.splice(from, 1);
+  rowKeys.value.splice(to, 0, key);
   emitRows(next);
 }
 
@@ -226,7 +229,8 @@ watch(
     unregisterInputs(registered);
     const inputs = name && formInputs ? rowInputs(length) : [];
     registered = inputs.map((input) => input.id);
-    for (const input of inputs) formInputs!.value[input.id] = input;
+    if (!formInputs) return;
+    for (const input of inputs) formInputs.value[input.id] = input;
   },
   { immediate: true },
 );

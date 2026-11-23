@@ -25,10 +25,9 @@ export interface AvatarFieldOptions {
 export type AvatarRejection = "mimetype" | "size";
 
 /** Outcome of an avatar upload: a staged key, or why it was refused. */
-export interface AvatarUploadResult {
-  key?: string;
-  rejection?: AvatarRejection;
-}
+export type AvatarUploadResult =
+  | { key: string; rejection?: undefined }
+  | { key?: undefined; rejection: AvatarRejection };
 
 /**
  * The profile avatar's upload flow, the same one the image form field uses:

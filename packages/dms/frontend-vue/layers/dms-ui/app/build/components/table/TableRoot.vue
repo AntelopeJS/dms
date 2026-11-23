@@ -128,9 +128,16 @@ const isShowingArchived = computed(
 
 const SKELETON_MAX_ROW_COUNT = MAX_PAGE_SIZE;
 const SKELETON_TOTAL_FADE = 0.7;
-const SKELETON_WIDTHS = ["62%", "48%", "70%", "54%", "40%"];
+const SKELETON_WIDTHS: readonly [string, ...string[]] = [
+  "62%",
+  "48%",
+  "70%",
+  "54%",
+  "40%",
+];
 const skeletonWidth = (rowIndex: number, columnIndex: number): string =>
-  SKELETON_WIDTHS[(rowIndex + columnIndex) % SKELETON_WIDTHS.length]!;
+  SKELETON_WIDTHS[(rowIndex + columnIndex) % SKELETON_WIDTHS.length] ??
+  SKELETON_WIDTHS[0];
 
 const {
   hasScrollArea,
@@ -308,7 +315,7 @@ const { hasCustomSort, resetSorting, hasCustomColumns } =
     declaredColumnOrder,
   );
 
-const tableSharedData = shallowRef<TableSharedData<T>>(null!);
+const tableSharedData = shallowRef<TableSharedData<T>>();
 
 watchEffect(() => {
   tableSharedData.value = {

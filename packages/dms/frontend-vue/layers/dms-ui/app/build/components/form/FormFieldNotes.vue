@@ -7,14 +7,14 @@ import {
   isEmptyFormValue,
   sameFormValue,
 } from "../../composables/unsaved-changes/formValue";
-import { FORM_ENTRY_CONTEXT_KEY } from "../../composables/form/formEntryContext";
+import { injectFormEntryContext } from "../../composables/form/formEntryContext";
 
 interface FormFieldNotesProps {
   field: FormField;
 }
 
 const props = defineProps<FormFieldNotesProps>();
-const context = inject(FORM_ENTRY_CONTEXT_KEY)!;
+const context = injectFormEntryContext();
 const { t, locale } = useI18n();
 const { getDataType } = useDataTypes();
 

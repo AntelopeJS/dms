@@ -163,7 +163,8 @@ const triggerLabel = computed(() => {
       count: selectedValues.value.length,
     });
   }
-  const value = selectedValues.value[0]!;
+  const value = selectedValues.value[0];
+  if (value === undefined) return "";
   if (notFoundValue.value) return t("dms.form.relation.not_found");
   const node = findCascaderNode(roots.value, value);
   if (node) return formatCascaderPath(node);

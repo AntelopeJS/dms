@@ -25,8 +25,8 @@ type InstantSaveKey<V> = Extract<keyof V, string>;
 export interface InstantSaveSource<V extends object> {
   /** The value a key shows now. */
   read: <K extends InstantSaveKey<V>>(key: K) => V[K];
-  /** Shows a value: the one picked, or the one a failed save puts back. */
-  write: <K extends InstantSaveKey<V>>(key: K, value: V[K]) => void;
+  /** Shows a value: the one picked, or the one a failed save puts back; `undefined` when it holds none. */
+  write: <K extends InstantSaveKey<V>>(key: K, value: V[K] | undefined) => void;
   /** Keeps the changed keys; rejects when they are refused. */
   save: (changes: Partial<V>) => Promise<void>;
   /** Called after a refused save is put back (field errors, a toast). */
@@ -196,7 +196,7 @@ class InstantSaveQueue<V extends object> {
         !this.pending.has(key) &&
         sameFormValue(this.source.read(key), changes[key]);
       if (isShown) {
-        this.source.write(key, this.confirmed.get(key)!);
+        this.source.write(key, this.confirmed.get(key));
       }
       this.setState(key, "error");
     }
@@ -247,7 +247,7 @@ export function useInstantSave<V extends object>(
     const keys = saveKeys(changes);
     for (const key of keys) {
       saves.remember(key);
-      source.write(key, changes[key]!);
+      source.write(key, changes[key]);
       saves.put(key, changes[key]);
     }
     saves.send(keys).catch(() => undefined);

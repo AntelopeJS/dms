@@ -70,7 +70,8 @@ export function useReorderHandles(options: ReorderHandlesOptions) {
     event?.preventDefault();
     const from = draggedIndex.value;
     endDrag();
-    if (from !== undefined && isEnabled()) options.reorder()!.move(from, index);
+    const reorder = options.reorder();
+    if (from !== undefined && reorder?.enabled) reorder.move(from, index);
   };
 
   const dragOver = (index: number, event: DragEvent) => {
@@ -88,8 +89,11 @@ export function useReorderHandles(options: ReorderHandlesOptions) {
 
   const step = (index: number, delta: number) => {
     const target = index + delta;
-    if (!isEnabled() || target < 0 || target >= options.count()) return false;
-    options.reorder()!.move(index, target);
+    const reorder = options.reorder();
+    if (!reorder?.enabled || target < 0 || target >= options.count()) {
+      return false;
+    }
+    reorder.move(index, target);
     return true;
   };
 

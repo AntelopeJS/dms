@@ -34,7 +34,9 @@ export async function ensureApexLocale(locale: string): Promise<void> {
 
   if (!loadedLocales.has(key)) {
     try {
-      const mod = await APEX_LOCALE_LOADERS[key]!();
+      const load = APEX_LOCALE_LOADERS[key];
+      if (!load) throw new Error(`No ApexCharts locale loader for "${key}"`);
+      const mod = await load();
       const locales = apexGlobal.Apex.chart.locales || [];
       const localeData = mod.default ?? mod;
       apexGlobal.Apex.chart.locales = [...locales, localeData];

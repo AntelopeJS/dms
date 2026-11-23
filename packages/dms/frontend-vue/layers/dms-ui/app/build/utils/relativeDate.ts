@@ -3,7 +3,7 @@ import { formatRelativeDistance } from "#dms-core/app/utils/formatter";
 import { regionalDateTimeFormat } from "#dms-core/app/utils/regional";
 
 function capitalize(text: string): string {
-  return text ? `${text[0]!.toLocaleUpperCase()}${text.slice(1)}` : text;
+  return text ? `${text.charAt(0).toLocaleUpperCase()}${text.slice(1)}` : text;
 }
 
 /**

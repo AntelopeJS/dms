@@ -115,8 +115,9 @@ export function useAuthFormError() {
       for (const { name, message } of messages) target.show(name, message);
       return true;
     }
-    form!.setErrors(messages);
-    focusFirstFormError(form!);
+    if (!form) return false;
+    form.setErrors(messages);
+    focusFirstFormError(form);
     return true;
   }
 

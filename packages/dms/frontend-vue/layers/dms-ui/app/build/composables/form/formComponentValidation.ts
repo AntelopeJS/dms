@@ -107,9 +107,10 @@ export function watchFormComponentFieldFlags(
   target: () => { clear: (name: string) => void } | null | undefined,
 ): void {
   watch(fields, (next, previous) => {
-    if (!next || !target()) return;
+    const current = target();
+    if (!next || !current) return;
     for (const fieldId of next) {
-      if (!previous?.has(fieldId)) target()!.clear(fieldId);
+      if (!previous?.has(fieldId)) current.clear(fieldId);
     }
   });
 }

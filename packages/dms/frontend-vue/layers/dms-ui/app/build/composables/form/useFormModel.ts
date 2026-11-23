@@ -374,8 +374,8 @@ export function makeFieldSchemaRequired(schema: z.ZodTypeAny): z.ZodTypeAny {
     const nonNullOptions = parseZodTypes(schema.options).filter(
       (option) => !(option instanceof z.ZodNull),
     );
-    if (nonNullOptions.length === 1)
-      return makeFieldSchemaRequired(nonNullOptions[0]!);
+    const [only, ...others] = nonNullOptions;
+    if (only && others.length === 0) return makeFieldSchemaRequired(only);
     return schema;
   }
   if (schema instanceof z.ZodString || schema instanceof z.ZodArray)

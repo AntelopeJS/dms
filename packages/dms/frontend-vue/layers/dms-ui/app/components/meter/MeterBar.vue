@@ -121,11 +121,13 @@ const theme = tv({
   },
 });
 
-const isSegmented = computed(() => !!props.segments?.length);
+const filledSegments = computed(() =>
+  props.segments?.length ? props.segments : undefined,
+);
 const safeMax = computed(() => (props.max > 0 ? props.max : 0));
 const total = computed(() =>
-  isSegmented.value
-    ? props.segments!.reduce((sum, segment) => sum + segment.value, 0)
+  filledSegments.value
+    ? filledSegments.value.reduce((sum, segment) => sum + segment.value, 0)
     : props.value,
 );
 const percentOf = (amount: number): number =>
@@ -155,7 +157,8 @@ interface DrawnSegment {
 }
 
 const drawn = computed<DrawnSegment[]>(() => {
-  if (!isSegmented.value) {
+  const segments = filledSegments.value;
+  if (!segments) {
     return [
       {
         width: totalPercent.value,
@@ -164,7 +167,7 @@ const drawn = computed<DrawnSegment[]>(() => {
       },
     ];
   }
-  return props.segments!.map((segment) => ({
+  return segments.map((segment) => ({
     width: percentOf(segment.value),
     className: FILL_CLASSES[segment.tone ?? "primary"],
     label: segment.label,

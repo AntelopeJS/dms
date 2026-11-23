@@ -65,8 +65,8 @@ export const LOCAL_TABLE_KEY_PREFIX = "dms-table-preferences:v1:";
 
 const TABLE_ID_LENGTH = 8;
 const HASH_SEEDS: [number, number] = [0xdeadbeef, 0x41c6ce57];
-const HASH_MULTIPLIERS = [2654435761, 1597334677];
-const HASH_MIX = [2246822507, 3266489909];
+const HASH_MULTIPLIERS: readonly [number, number] = [2654435761, 1597334677];
+const HASH_MIX: readonly [number, number] = [2246822507, 3266489909];
 const HASH_RADIX = 36;
 const HIGH_BITS = 2097151;
 const HIGH_BITS_SHIFT = 4294967296;
@@ -85,13 +85,13 @@ export const hashText = (text: string): string => {
   let [first, second] = HASH_SEEDS;
   for (let index = 0; index < text.length; index += 1) {
     const code = text.charCodeAt(index);
-    first = Math.imul(first ^ code, HASH_MULTIPLIERS[0]!);
-    second = Math.imul(second ^ code, HASH_MULTIPLIERS[1]!);
+    first = Math.imul(first ^ code, HASH_MULTIPLIERS[0]);
+    second = Math.imul(second ^ code, HASH_MULTIPLIERS[1]);
   }
-  first = Math.imul(first ^ (first >>> 16), HASH_MIX[0]!);
-  first ^= Math.imul(second ^ (second >>> 13), HASH_MIX[1]!);
-  second = Math.imul(second ^ (second >>> 16), HASH_MIX[0]!);
-  second ^= Math.imul(first ^ (first >>> 13), HASH_MIX[1]!);
+  first = Math.imul(first ^ (first >>> 16), HASH_MIX[0]);
+  first ^= Math.imul(second ^ (second >>> 13), HASH_MIX[1]);
+  second = Math.imul(second ^ (second >>> 16), HASH_MIX[0]);
+  second ^= Math.imul(first ^ (first >>> 13), HASH_MIX[1]);
   return (HIGH_BITS_SHIFT * (HIGH_BITS & second) + (first >>> 0)).toString(
     HASH_RADIX,
   );

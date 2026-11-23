@@ -33,7 +33,7 @@ const METER_BAR_COUNT = 4;
 const METER_BARS = Array.from({ length: METER_BAR_COUNT }, (_, i) => i);
 
 /** Verdict per number of rules met, index = score. */
-const VERDICT_KEYS = [
+const VERDICT_KEYS: readonly [string, ...string[]] = [
   "dms.password_rules.verdict.weak",
   "dms.password_rules.verdict.weak",
   "dms.password_rules.verdict.fair",
@@ -76,9 +76,7 @@ const litMeterBars = computed(() =>
   total.value ? Math.round((score.value * METER_BAR_COUNT) / total.value) : 0,
 );
 
-const verdictKey = computed(
-  () => VERDICT_KEYS[score.value] ?? VERDICT_KEYS[0]!,
-);
+const verdictKey = computed(() => VERDICT_KEYS[score.value] ?? VERDICT_KEYS[0]);
 </script>
 
 <template>

@@ -46,7 +46,7 @@ function setup(save: (changes: Partial<Settings>) => Promise<void>) {
     useInstantSave<Settings>({
       read: (key) => values[key],
       write: (key, value) => {
-        values[key] = value;
+        if (value !== undefined) values[key] = value;
       },
       save,
       onError,
@@ -224,3 +224,42 @@ function registerPendingSaveTests() {
     expect(combineSaveStates([])).toBe("idle");
   });
 }
+
+describe("an instantly saved value that can hold nothing", () => {
+  function draftOf(note?: string) {
+    const values = reactive<{ note?: string }>({ note });
+    const calls: Array<() => void> = [];
+    const instant = effectScope().run(() =>
+      useInstantSave<{ note?: string }>({
+        read: (key) => values[key],
+        write: (key, value) => {
+          values[key] = value;
+        },
+        save: () =>
+          new Promise<void>((_resolve, reject) => {
+            calls.push(() => reject(new Error("refused")));
+          }),
+      }),
+    );
+    if (!instant) throw new Error("The effect scope ran nothing");
+    return { values, instant, refuse: () => calls.shift()?.() };
+  }
+
+  it("is emptied again when the save of what was typed into it is refused (fails when an empty confirmed value is not put back)", async () => {
+    const { values, instant, refuse } = draftOf();
+    instant.change("note", "draft");
+    refuse();
+    await settle();
+    expect(values.note).toBeUndefined();
+  });
+
+  it("is shown cleared again when the refused clearing is retried (fails when a retry does not write a cleared value)", async () => {
+    const { values, instant, refuse } = draftOf("kept");
+    instant.change("note", undefined);
+    refuse();
+    await settle();
+    expect(values.note).toBe("kept");
+    instant.retry();
+    expect(values.note).toBeUndefined();
+  });
+});

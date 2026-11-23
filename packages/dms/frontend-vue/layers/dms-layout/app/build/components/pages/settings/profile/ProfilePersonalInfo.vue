@@ -129,7 +129,7 @@ async function onFileChange(event: Event): Promise<void> {
       );
       return;
     }
-    avatar.value = { key: result.key! };
+    avatar.value = { key: result.key };
     pickedAvatarUrl.value = URL.createObjectURL(file);
   } catch (error) {
     presentError(error, {

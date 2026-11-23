@@ -313,14 +313,14 @@ const connectTab = (
       return;
     }
 
-    if (!isString(sessionId)) {
+    if (!greeting || !isString(sessionId)) {
       buffered = undefined;
       retries.schedule(() => {
         if (isCurrent()) connection.reopen(forConnection);
       });
       return;
     }
-    handleHello(state, sessionId, greeting!);
+    handleHello(state, sessionId, greeting);
     const pending = buffered ?? [];
     buffered = undefined;
     for (const frame of pending) {

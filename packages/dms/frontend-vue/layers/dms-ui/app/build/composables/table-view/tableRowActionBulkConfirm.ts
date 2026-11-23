@@ -74,9 +74,10 @@ const createConfirmRowFields = (config: TableRowActionsConfig) => {
     rows?: Data[],
   ): Promise<Data> => {
     const count = { count: ids.length };
+    const [id, ...others] = ids;
     const row =
-      ids.length === 1
-        ? await findConfirmRow(ids[0]!, declared, rows)
+      id !== undefined && others.length === 0
+        ? await findConfirmRow(id, declared, rows)
         : undefined;
     return row ? { ...row, ...count } : count;
   };
