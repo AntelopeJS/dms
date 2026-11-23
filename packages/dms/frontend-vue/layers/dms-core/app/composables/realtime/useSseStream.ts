@@ -9,7 +9,7 @@ import type { JsonValue } from "../../types/json";
  */
 export type SseEventHandler = (
   eventName: string,
-  data: unknown,
+  data: JsonValue,
   id: string | null,
 ) => void;
 

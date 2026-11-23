@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { ComponentInfo } from "#dms-core/app/types/page";
+import type { ComponentOptionsData } from "#dms-core/app/types/component";
 import { EYEBROW_CLASS } from "../../../build/utils/eyebrow";
 import {
   formBusInjectionKey,
@@ -20,7 +21,7 @@ interface RepeaterColumn {
   id: string;
   label?: string;
   type?: string;
-  component: ComponentInfo;
+  component: ComponentInfo<ComponentOptionsData>;
   required?: boolean;
   /** The cell's value in a row added or created to reach `min`. */
   defaultValue?: FormFieldValue;

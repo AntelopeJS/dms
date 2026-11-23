@@ -283,6 +283,7 @@ export const decodeServerField = <T>(
   const stored = entry?.[codec.key];
   if (stored === undefined) return defaultValue;
   try {
+    // SAFETY: Holds while each caller passes the default of the field it names: a codec decodes into the type of its field's default, which is the type its caller names T, and a stored value of another type makes decode throw into the catch below.
     return codec.decode(stored, defaultValue) as T;
   } catch {
     return defaultValue;

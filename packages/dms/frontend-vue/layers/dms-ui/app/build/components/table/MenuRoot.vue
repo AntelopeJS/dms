@@ -34,7 +34,7 @@ const appConfig = useDmsAppConfig();
 const tableSharedData =
   injectLocal<ShallowRef<TableSharedData<T>>>("tableSharedData");
 
-const { exportConfig } = useTableConfigClipboard<T>();
+const { exportConfig } = useTableConfigClipboard();
 
 const navItems = computed((): NavItem[] => {
   const capabilities = tableSharedData?.value?.activeCapabilities.value;

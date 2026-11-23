@@ -119,4 +119,26 @@ describe("the validation schema of a form", () => {
     });
     expect(Object.keys(form.validationSchema.value.shape)).toEqual(["title"]);
   });
+
+  it("strips a key an open object schema does not name", () => {
+    const form = formOf({
+      schema: { type: "object", properties: { title: { type: "string" } } },
+    });
+    expect(form.validationSchema.value.parse({ title: "a", extra: 1 })).toEqual(
+      { title: "a" },
+    );
+  });
+
+  it("lets a key through when the object schema forbids extra keys", () => {
+    const form = formOf({
+      schema: {
+        type: "object",
+        properties: { title: { type: "string" } },
+        additionalProperties: false,
+      },
+    });
+    expect(form.validationSchema.value.parse({ title: "a", extra: 1 })).toEqual(
+      { title: "a", extra: 1 },
+    );
+  });
 });

@@ -11,29 +11,32 @@ export type RecordWithDefault<T> = Record<string, T> & { default: T };
  * shorter grid rendering), `empty` (drawn instead of the fallback for a
  * null/undefined value), and one per compare mode for filter chips.
  */
-export type DataTypeFormatter = (
-  value: unknown,
+export type DataTypeFormatter<Value = unknown, Display = unknown> = (
+  value: Value,
   locale: string,
-  options?: unknown,
-  row?: Record<string, unknown>,
-) => unknown;
+  options?: Value,
+  row?: Record<string, Value>,
+) => Display;
 
 /**
  * Reshapes a server value into its form-state representation.
  * Must be idempotent: form reset re-applies the mapper to values that
  * may already be mapped (e.g. restored from a submit-success snapshot).
  */
-export type BeforeStateMapper = (value: unknown, options?: unknown) => unknown;
+export type BeforeStateMapper<Value = unknown> = (
+  value: Value,
+  options?: Value,
+) => Value;
 
 /**
  * Whether two values of a data type are the same value, whatever shape each
  * comes in: a form compares the value it loaded from the server with the one
  * its control holds through it, to tell an edited field from an untouched one.
  */
-export type DataTypeValueComparer = (
-  left: unknown,
-  right: unknown,
-  options?: unknown,
+export type DataTypeValueComparer<Value = unknown> = (
+  left: Value,
+  right: Value,
+  options?: Value,
 ) => boolean;
 
 /**
@@ -42,7 +45,10 @@ export type DataTypeValueComparer = (
  * input refuses `"0"`, a date range wants its two days. The filter itself
  * keeps its text, so the query is unchanged.
  */
-export type DataTypeFilterEditorValue = (text: string, mode: string) => unknown;
+export type DataTypeFilterEditorValue<Value = unknown> = (
+  text: string,
+  mode: string,
+) => Value;
 
 /**
  * Where the rows a value names are read: the `select` route of the table a

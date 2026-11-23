@@ -5,10 +5,11 @@ export const ComponentId = {
   SELF: "$component:self",
 } as const;
 
-export type WatchActionFunction = (
+/** A watch action, run against the state of the component that watches: `Value` is what that state holds per key. */
+export type WatchActionFunction<Value = unknown> = (
   action: WatchAction,
   eventData: ComponentEventData,
-  componentState: Ref<Record<string, unknown>>,
+  componentState: Ref<Record<string, Value>>,
 ) => void;
 
 export interface WatchActionCondition {
