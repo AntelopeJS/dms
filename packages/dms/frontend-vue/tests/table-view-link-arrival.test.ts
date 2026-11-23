@@ -1,6 +1,10 @@
 /** @vitest-environment jsdom */
 import { describe, expect, it } from "vitest";
-import type { TablePreferences } from "../layers/dms-ui/app/entries/composables/table-view/useTablePreferences";
+import type {
+  TablePreferences,
+  TablePreferenceValues,
+} from "../layers/dms-ui/app/entries/composables/table-view/useTablePreferences";
+import { readFrom, writeInto } from "./helpers/table-preferences-values";
 import {
   isLinkedArrival,
   isLinkedVisit,
@@ -131,7 +135,7 @@ describe("urlFilterScope", () => {
 });
 
 describe("linkedArrivalPreferences", () => {
-  const kept = {
+  const kept: Partial<TablePreferenceValues> = {
     activeView: "unassigned",
     activeTab: "closed",
     columnFilters: [{ accessorKey: "status", mode: "is", value: "x" }],
@@ -142,11 +146,7 @@ describe("linkedArrivalPreferences", () => {
   };
   const written: Array<[string, unknown]> = [];
   const preferences: TablePreferences = {
-    // SAFETY: holds when the V a caller requests for a field is the type of the value `kept` seeds under it; a field absent from `kept` returns the caller's fallback, which is a V.
-    get: <V>(field: string, fallback: V) =>
-      (Object.hasOwn(kept, field)
-        ? new Map(Object.entries(kept)).get(field)
-        : fallback) as V,
+    get: readFrom(kept),
     set: (field, value) => {
       written.push([field, value]);
     },
@@ -377,18 +377,13 @@ describe("linkFollowingPreferences", () => {
 
 describe("a link to the kept tab, reloads and the user's pick", () => {
   const keptStore = (): TablePreferences & {
-    kept: Record<string, Parameters<TablePreferences["set"]>[1]>;
+    kept: Partial<TablePreferenceValues>;
   } => {
-    const kept: Record<string, Parameters<TablePreferences["set"]>[1]> = {};
+    const kept: Partial<TablePreferenceValues> = {};
     return {
       kept,
-      // SAFETY: holds when the V a caller requests for a field is the type of the value last stored under it with set; a field never stored returns the caller's fallback, which is a V.
-      get: <V>(field: string, fallback: V) =>
-        (Object.hasOwn(kept, field) ? kept[field] : fallback) as V,
-      set: (field, value) => {
-        if (value === undefined) Reflect.deleteProperty(kept, field);
-        else kept[field] = value;
-      },
+      get: readFrom(kept),
+      set: writeInto(kept),
       restore: () => undefined,
     };
   };
@@ -407,8 +402,8 @@ describe("a link to the kept tab, reloads and the user's pick", () => {
       queryParamFilters: QUERY_PARAM_FILTERS,
       isVisit,
       rememberedTab: store.get("activeTab", "all"),
-      keptLinkScope: store.get<string | undefined>("linkScope", undefined),
-      shownLink: store.get<string | undefined>("shownLink", undefined),
+      keptLinkScope: store.get("linkScope", undefined),
+      shownLink: store.get("shownLink", undefined),
     });
     const read = isLinked ? linkedArrivalPreferences(store) : store;
     const preferences = linkFollowingPreferences(read, {
@@ -423,7 +418,7 @@ describe("a link to the kept tab, reloads and the user's pick", () => {
     });
     return {
       isLinked,
-      view: read.get<string | undefined>("activeView", undefined),
+      view: read.get("activeView", undefined),
       preferences,
     };
   };

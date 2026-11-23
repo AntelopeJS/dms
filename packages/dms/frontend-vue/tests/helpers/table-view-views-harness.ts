@@ -14,7 +14,11 @@ import { afterEach, beforeEach, vi } from "vitest";
 import type { ToastProps } from "@nuxt/ui";
 import { useMobileDisplay } from "../../layers/dms-ui/app/entries/composables/table-view/useMobileDisplay";
 import { useTableViews } from "../../layers/dms-ui/app/entries/composables/table-view/useTableViews";
-import type { TablePreferences } from "../../layers/dms-ui/app/entries/composables/table-view/useTablePreferences";
+import type {
+  TablePreferences,
+  TablePreferenceValues,
+} from "../../layers/dms-ui/app/entries/composables/table-view/useTablePreferences";
+import { readFrom, writeInto } from "./table-preferences-values";
 import {
   linkedArrivalPreferences,
   linkFollowingPreferences,
@@ -31,7 +35,7 @@ import { DEFAULTS } from "./table-view-views-fixtures";
 interface HarnessOptions {
   views: TableViewViewsConfig;
   query?: Record<string, string>;
-  preferences?: Record<string, Parameters<TablePreferences["set"]>[1]>;
+  preferences?: Partial<TablePreferenceValues>;
   userId?: string;
   viewName?: string;
   /** Arrived through a link naming what the table lists. */
@@ -50,9 +54,9 @@ export function createTableViewViewsFixture() {
   let dialogs: ConfirmOptions[];
 
   const mountViews = async (options: HarnessOptions) => {
-    const preferences = new Map<string, unknown>(
-      Object.entries(options.preferences ?? {}),
-    );
+    const preferences: Partial<TablePreferenceValues> = {
+      ...options.preferences,
+    };
 
     const restores: Array<() => void> = [];
     const tablePreferences = createRestorablePreferences(preferences, restores);
@@ -186,22 +190,16 @@ function linkedPreferences(preferences: TablePreferences, isLinked?: boolean) {
 }
 
 function createRestorablePreferences(
-  preferences: Map<string, unknown>,
+  preferences: Partial<TablePreferenceValues>,
   restores: Array<() => void>,
 ): TablePreferences {
   return {
-    // SAFETY: holds when the V a caller requests for a field is the type of the value `preferences` stores under it; a field absent from the map returns the caller's fallback, which is a V.
-    get: <V>(field: string, fallback: V) =>
-      (preferences.has(field) ? preferences.get(field) : fallback) as V,
-    set: (field, value) => {
-      preferences.set(field, value);
-    },
+    get: readFrom(preferences),
+    set: writeInto(preferences),
     restore: (field, state) => {
       restores.push(() => {
-        if (preferences.has(field)) {
-          // SAFETY: holds when the state ref passed to restore holds the type of the value `preferences` stores under that same field.
-          state.value = preferences.get(field) as typeof state.value;
-        }
+        const stored = preferences[field];
+        if (stored !== undefined) state.value = stored;
       });
     },
   };

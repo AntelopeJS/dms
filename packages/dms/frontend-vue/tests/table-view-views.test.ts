@@ -130,7 +130,7 @@ function registerViewDefaultsAndSavingTests(
     });
     expect(api.activeViewId.value).toBe("all");
 
-    expect(preferences.get("activeView")).toBe("mine");
+    expect(preferences.activeView).toBe("mine");
   });
 
   it("opens the default view on a first visit only", async () => {
@@ -152,7 +152,7 @@ function registerViewDefaultsAndSavingTests(
 
     const later = await fixture.mountViews({
       views: fixture.VIEWS,
-      preferences: Object.fromEntries(first.preferences),
+      preferences: first.preferences,
       columnVisibility: shown,
     });
     expect(later.api.activeViewId.value).toBe("all");
@@ -199,7 +199,7 @@ function registerViewDefaultsAndSavingTests(
       "i18n:tickets.mine",
       "Printers",
     ]);
-    expect(preferences.get("userViews")).toHaveLength(2);
+    expect(preferences.userViews).toHaveLength(2);
 
     state.density.value = "compact";
     await nextTick();
