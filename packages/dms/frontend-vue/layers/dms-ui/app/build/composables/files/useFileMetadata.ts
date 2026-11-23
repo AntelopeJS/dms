@@ -64,7 +64,6 @@ export function useFileMetadata(storage?: string) {
     );
   }
 
-  /** The next read of `key` its last answer calls for, in the browser. */
   function follow(key: string, result: ApiDataResult<FileMetadata>): void {
     const refresh = () => result.refresh({ dedupe: "defer" });
     watch(
@@ -115,24 +114,15 @@ export function useFileMetadata(storage?: string) {
     return result;
   }
 
-  /**
-   * Reads `key`'s metadata unless it is known; `force` reads it again (to
-   * open a file with a fresh URL).
-   */
   async function resolve(key: string, force = false): Promise<void> {
     const result = readOf(key);
     if (force) await result.refresh({ dedupe: "defer" });
     else await result;
   }
 
-  /** The last metadata read for `key`, its URL possibly expired. */
   const lastRead = (key: string): FileMetadata | undefined =>
     reads.get(key)?.data.value ?? undefined;
 
-  /**
-   * Whether `key` cannot be shown: its last read failed and the server
-   * refused it for good, or nothing usable is left (never read, or expired).
-   */
   function isUnavailable(key: string): boolean {
     const result = reads.get(key);
 
@@ -145,7 +135,6 @@ export function useFileMetadata(storage?: string) {
     );
   }
 
-  /** The metadata to show for `key`: read, not expired, still available. */
   function metadata(key: string): FileMetadata | undefined {
     const known = lastRead(key);
     return known && !isExpired(known) && !isUnavailable(key)

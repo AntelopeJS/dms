@@ -402,12 +402,10 @@ export function useMockupPins(options: PinsOptions): MockupPins {
       : { page: at.page, kind: "page" };
   });
 
-  /** The ids of the pages on screen, as one key that changes only when they do. */
-  const shownPages = computed(() =>
+  const shownPagesKey = computed(() =>
     options.canvases.value.map((canvas) => canvas.page.id).join("\n"),
   );
 
-  /** Lets go of the pin being written and the open card once their page leaves the screen. */
   function dropWhatLeft(): void {
     if (!core.canvasOf(placing.draft.value?.page)) {
       placing.draft.value = undefined;
@@ -418,7 +416,7 @@ export function useMockupPins(options: PinsOptions): MockupPins {
     }
   }
 
-  watch(shownPages, dropWhatLeft);
+  watch(shownPagesKey, dropWhatLeft);
   watch(isReadOnly, () => {
     placing.draft.value = undefined;
     openId.value = undefined;

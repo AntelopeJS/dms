@@ -2,7 +2,6 @@
 import type { MockupVersions } from "../../composables/block-preview/useMockupVersions";
 import MockupVersionBanner from "./MockupVersionBanner.vue";
 
-/** The bars over the canvas: a write being retried, a request that failed, and the version previewed. */
 defineProps<{
   hasSaveFailed: boolean;
   hasRequestFailed: boolean;

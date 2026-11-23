@@ -152,11 +152,6 @@ export function useBlockPreviewEmbed(options: EmbedOptions): BlockPreviewEmbed {
   let lastLayout: string | undefined;
   let isForced = false;
 
-  /**
-   * Posts where the blocks sit at the next frame. An observed change posts
-   * only a layout that differs from the last; `force` posts it anyway, for a
-   * render the parent waits to see drawn.
-   */
   function reportLayout(force = false): void {
     if (!inspecting.value) return;
     isForced ||= force;

@@ -153,15 +153,14 @@ export function useMockupLocks(options: MockupLocksOptions): MockupLocks {
   );
   const holders = computed(() => holdersOf(options.presence.value));
   let lastTaken = 0;
-  /** The pointer the selection had when the held block was last known to be it. */
-  let takenAt: string | undefined;
+  let heldBlockPointer: string | undefined;
   let isRunning = false;
   let isDue = false;
   let isRenewDue = false;
 
   function lose(): void {
     options.held.value = undefined;
-    takenAt = undefined;
+    heldBlockPointer = undefined;
   }
 
   async function take(pointer: string): Promise<void> {
@@ -169,7 +168,7 @@ export function useMockupLocks(options: MockupLocksOptions): MockupLocks {
     const id = await requestLock(options, endpoint, pointer);
     if (id === undefined) return;
     options.held.value = id;
-    takenAt = pointer;
+    heldBlockPointer = pointer;
     lastTaken = Date.now();
   }
 
@@ -209,9 +208,9 @@ export function useMockupLocks(options: MockupLocksOptions): MockupLocks {
     if (isRenewDue) await renew();
     if (options.isPending.value) return;
     const wanted = blocker.value ? undefined : options.selection.value;
-    if (wanted === takenAt) return;
+    if (wanted === heldBlockPointer) return;
     if (isAt(options.spec.value, options.held.value, wanted)) {
-      takenAt = wanted;
+      heldBlockPointer = wanted;
       return;
     }
     if (wanted === undefined) await free();

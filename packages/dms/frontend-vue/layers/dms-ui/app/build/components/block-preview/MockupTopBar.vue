@@ -14,17 +14,6 @@ const WIDTH_ICONS: Record<MockupWidth, string> = {
 
 const MOCKUPS_PATH = "/mockups";
 
-/**
- * The `/mockup` toolbar: back to the mockups, the mockup's title (renamed in
- * place by a click), the left panel, undo and redo, the Comment tool, the
- * version history, Real data when the page names live routes, the frame
- * width, the shortcuts sheet, "Build it", which reads "Building… ↗" while the
- * assistant builds the mockup, and the right panel. In the Overview, the
- * mockup's home, which edits nothing and draws every page at the desktop
- * width, the panels and Preview are off and Real data and the width are
- * gone. ▶ Preview hands every click to the page, as the dashboard runs it:
- * the panels, the Comment tool, undo and redo are off meanwhile.
- */
 defineProps<{
   title: string;
   canUndo: boolean;

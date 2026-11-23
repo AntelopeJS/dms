@@ -39,7 +39,6 @@ export const useNavBadges = () => {
   );
   const servedIds = useDmsState<string[]>("dms-served-nav-badges", () => []);
 
-  /** Sets, or with `undefined` clears, the badge of a page. */
   function setNavBadge(
     fullId: string,
     label: string | undefined,
@@ -55,10 +54,6 @@ export const useNavBadges = () => {
     badges.value = { ...rest, [fullId]: tone ? { label, tone } : { label } };
   }
 
-  /**
-   * The badge `entry` shows: the one its page published, fresher, or the
-   * one the server served; undefined when it has none.
-   */
   function navBadgeOf(entry: ServedNavBadge): NavBadge | undefined {
     const live =
       entry.fullId === undefined ? undefined : badges.value[entry.fullId];
@@ -70,11 +65,6 @@ export const useNavBadges = () => {
     return badge?.label ? badge : undefined;
   }
 
-  /**
-   * Takes the counts a page visit carries: each one replaces the entry's
-   * badge, and an entry the previous visit counted that this one does not
-   * (its count fell to zero) loses its badge.
-   */
   function applyCountedNavBadges(
     counted: Record<string, CountedNavBadge> | undefined,
   ): void {

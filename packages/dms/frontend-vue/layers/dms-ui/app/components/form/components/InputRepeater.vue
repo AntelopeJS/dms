@@ -144,10 +144,6 @@ function addRow(): void {
   emitRows([...rows.value, newRow()], false);
 }
 
-/**
- * Below `min`, the field gets the missing rows as the value it opens with:
- * the form does not read them as a change to save.
- */
 watch(
   () => rows.value.length,
   (length) => {

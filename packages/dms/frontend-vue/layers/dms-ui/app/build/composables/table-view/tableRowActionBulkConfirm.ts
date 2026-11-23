@@ -53,7 +53,6 @@ const createConfirmRowFields = (config: TableRowActionsConfig) => {
     return getRow(id).catch(() => undefined);
   };
 
-  /** The one row a dialog words: the caller's, the table's, else read. */
   const findConfirmRow = async (
     id: string,
     declared: ActionConfirm,
@@ -63,11 +62,6 @@ const createConfirmRowFields = (config: TableRowActionsConfig) => {
     findRowIn(config.rowNavigation?.rows(), id) ??
     (await readRow(id, declared));
 
-  /**
-   * What a fixed dialog words: the rows' count, and for one row its own
-   * fields too (`{name}`). The count wins a clash, it is what every bulk
-   * dialog may name.
-   */
   const confirmRowFields = async (
     ids: string[],
     declared: ActionConfirm,
@@ -91,7 +85,6 @@ const createBulkConfirmations = (
 ) => {
   const { confirmAction, confirm, t } = services;
   const confirmRowFields = createConfirmRowFields(config);
-  /** Asks the declared confirmation of a bulk action, running it inside. */
   const askDeclaredBulkConfirm = async (
     declared: ActionConfirm,
     ids: string[],
@@ -109,14 +102,6 @@ const createBulkConfirmations = (
       run,
     });
 
-  /**
-   * Asks before a bulk action, then runs it from inside the dialog: the
-   * action's declared `confirm` (the server's own wording for a single row
-   * with `{ from }`), else the generic confirmation, toned for the action
-   * and counting the rows it reaches. Resolves whether rows went (false when
-   * the user cancelled, or gave up after a failure), so a caller keeps its
-   * selection otherwise.
-   */
   const confirmBulkAction = async (
     ids: string[],
     actionConfig: boolean | RowActionConfig | undefined,
@@ -175,10 +160,6 @@ export const createTableRowBulkActions = (
     errorKey: "dms.table.restore_error",
   };
 
-  /**
-   * Deletes rows once confirmed; resolves whether they went (false when the
-   * user cancelled or the request failed), so a caller keeps its selection.
-   */
   const deleteRows = async (
     ids: string[],
     deleteConfig: boolean | RowActionConfig | undefined,

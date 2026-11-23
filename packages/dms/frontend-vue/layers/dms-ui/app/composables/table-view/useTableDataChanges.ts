@@ -18,7 +18,6 @@ export const useTableDataChanges = () => {
     () => ({}),
   );
 
-  /** Says the rows behind a data API location changed. */
   function notifyTableDataChanged(location: string | undefined): void {
     if (!location) return;
     versions.value = {
@@ -27,10 +26,6 @@ export const useTableDataChanges = () => {
     };
   }
 
-  /**
-   * The combined version of some locations: changes whenever the rows behind
-   * any of them do.
-   */
   function tableDataVersion(locations: readonly string[]): ComputedRef<string> {
     return computed(() =>
       locations.map((location) => versions.value[location] ?? 0).join(":"),

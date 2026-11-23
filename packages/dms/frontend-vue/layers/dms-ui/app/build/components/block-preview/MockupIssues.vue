@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import type { MockupIssue } from "../../utils/mockup";
 
-/** The problems in a spec: where in the file, and what is wrong there. */
 defineProps<{ issues: readonly MockupIssue[] }>();
 
 const { t } = useI18n();

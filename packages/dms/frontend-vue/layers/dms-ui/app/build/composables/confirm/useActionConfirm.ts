@@ -75,10 +75,6 @@ export function useActionConfirm() {
     }
   };
 
-  /**
-   * Asks the confirmation, running `request.run` inside it; resolves whether
-   * the user confirmed (never for a `blocked` dialog, which only explains).
-   */
   const confirmAction = async (
     declared: ActionConfirm,
     request: ActionConfirmRequest = {},

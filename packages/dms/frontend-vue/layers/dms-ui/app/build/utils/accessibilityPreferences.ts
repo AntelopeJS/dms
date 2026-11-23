@@ -1,8 +1,9 @@
+import { isObject, isString } from "../../../../dms-core/app/utils/type-check";
+
 /**
  * `auto` follows the operating system's `prefers-reduced-motion`; `on` and
  * `off` pin the choice whatever the system says.
  */
-import { isObject, isString } from "../../../../dms-core/app/utils/type-check";
 export type ReduceMotionPreference = "auto" | "on" | "off";
 
 export interface AccessibilityPreferences {

@@ -2,12 +2,10 @@
 import type { MockupPins } from "../../composables/block-preview/useMockupPins";
 import MockupPinCard from "./MockupPinCard.vue";
 
-/**
- * The corner tray of the notes whose block or page was removed. Each one is
- * dragged onto the page to pin it there again, or opened to be edited,
- * resolved or deleted.
- */
-defineProps<{ pins: MockupPins }>();
+defineProps<{
+  /** The tray holds the notes whose block or page was removed: each is dragged onto the page to pin it there again, or opened to be edited, resolved or deleted. */
+  pins: MockupPins;
+}>();
 
 const { t } = useI18n();
 </script>

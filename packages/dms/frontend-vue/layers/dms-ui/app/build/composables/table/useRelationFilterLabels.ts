@@ -81,10 +81,6 @@ export function useRelationFilterLabels(sources: () => RelationFilterSource[]) {
     );
   });
 
-  /**
-   * The labels of a relation filter's ids, in order: an id not read yet as
-   * is, one the route did not answer as "Not found".
-   */
   const labelsOf = (source: RelationFilterSource): RelationFilterLabel[] =>
     idsOf(source.value).map((id) => {
       const key = labelKey(source.searchUrl, id);

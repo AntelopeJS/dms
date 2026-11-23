@@ -202,11 +202,6 @@ function resetZoom() {
   flow.zoomTo(ZOOM_RESET_LEVEL, { duration: ZOOM_TRANSITION_MS });
 }
 
-/**
- * Exposes the VueFlow controller through the component ref.
- * Node, edge, and other named VueFlow slots forward unchanged. Panel-position
- * slots render inside positioned panels; the default slot adds flow children.
- */
 defineExpose(flow);
 </script>
 

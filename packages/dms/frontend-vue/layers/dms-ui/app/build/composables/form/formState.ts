@@ -179,7 +179,6 @@ export function createFormFields(props: FormProps) {
   );
   const createsRecord = props.kind === "create";
 
-  /** Reads the record at fetchUrl and maps its values for the fields. */
   const loadRecord = async () => {
     if (!props.fetchUrl) return undefined;
     const processedUrl = resolveUrlVariables(props.fetchUrl, buildUrlContext());

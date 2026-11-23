@@ -2,12 +2,10 @@
 import { onBeforeUnmount, onMounted, ref } from "vue";
 import type { ClientPoint } from "../../composables/block-preview/useMockupPins";
 
-/**
- * The name of the block armed from the catalog, a small chip that follows the
- * pointer. It is drawn at the screen's coordinates, outside the shrunk frame,
- * and shows once the pointer has moved.
- */
-defineProps<{ name: string }>();
+defineProps<{
+  /** The block armed from the catalog: the chip follows the pointer, drawn at the screen's coordinates outside the shrunk frame, and shows once the pointer has moved. */
+  name: string;
+}>();
 
 const OFFSET_PX = 14;
 

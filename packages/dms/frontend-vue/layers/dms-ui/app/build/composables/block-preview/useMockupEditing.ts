@@ -410,7 +410,6 @@ export function useMockupEditing(options: EditingOptions): MockupEditing {
   const { editor, catalog } = options;
   const selection = options.selection ?? ref<string>();
   const rects = shallowRef<PreviewBlockRect[]>([]);
-  /** The revision drawn when nodes last moved, until a newer one is laid out. */
   const movedAt = ref<number>();
 
   const spec = editor.spec;

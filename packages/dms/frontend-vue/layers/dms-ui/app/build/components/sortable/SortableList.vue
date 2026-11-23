@@ -1,14 +1,4 @@
 <script setup lang="ts" generic="Item">
-/**
- * A list whose items the user reorders by dragging, or moves to another list
- * of the same `group`: SortableJS, through VueUse's `useSortable`.
- *
- * SortableJS moves the dragged element in the DOM itself. Vue owns these
- * elements, so each drop puts the element back where it was and updates the
- * `list` model with a new array instead, from which Vue renders the new
- * order. `change` then says what happened to this list: `moved` within it,
- * `added` from another one, `removed` to another one.
- */
 import { useSortable } from "@vueuse/integrations/useSortable";
 import { type VNode, ref, watch } from "vue";
 
@@ -18,7 +8,12 @@ export interface SortableListChange<Item> {
   moved?: { element: Item; oldIndex: number; newIndex: number };
 }
 
-/** The items, in order: a new array after each drop. */
+/**
+ * The items, in order: a new array after each drop. SortableJS moves the dragged
+ * element in the DOM itself, but Vue owns these elements: each drop puts the
+ * element back where it was and replaces the list, from which Vue renders the
+ * new order.
+ */
 const list = defineModel<Item[]>("list", { required: true });
 
 const props = defineProps<{
@@ -41,7 +36,10 @@ const props = defineProps<{
   dragClass?: string;
 }>();
 
-const emit = defineEmits<{ change: [change: SortableListChange<Item>] }>();
+const emit = defineEmits<{
+  /** What happened to this list: `moved` within it, `added` from another one, `removed` to another one. */
+  change: [change: SortableListChange<Item>];
+}>();
 
 defineSlots<{
   item(props: { element: Item; index: number }): VNode | VNode[];

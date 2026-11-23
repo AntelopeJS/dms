@@ -57,6 +57,9 @@ export interface DownloadActionTarget {
   filename?: string;
 }
 
+/** Runs a quick action, by its `category:id` key or bare id. */
+type QuickActionTarget = { type: "quickAction"; id: string };
+
 export type ActionTarget =
   | ({
       type: "drawer";
@@ -73,13 +76,11 @@ export type ActionTarget =
       title?: string;
       description?: string;
     }
-  /** A non-modal panel docked on the right of the page, on a row. */
   | ({ type: "sidePanel"; component: ComponentInfo } & SidePanelTargetOptions)
   | { type: "page"; url: string }
   | { type: "external"; url: string; newTab?: boolean }
   | DownloadActionTarget
-  /** Runs a quick action, by its `category:id` key or bare id. */
-  | { type: "quickAction"; id: string }
+  | QuickActionTarget
   | {
       type: "api";
       url: string;

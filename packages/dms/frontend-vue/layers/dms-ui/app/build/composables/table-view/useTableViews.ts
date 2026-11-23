@@ -123,29 +123,18 @@ function createTableViewState(options: TableViewsOptions) {
   const activeViewId = ref<string | undefined>();
   const activeView = computed(() => findView(activeViewId.value));
 
-  /** Opens a view, or the table's own default state without one. */
   const openView = (id: string | undefined) => {
     const view = findView(id);
     activeViewId.value = view?.id;
     applySnapshot(viewSnapshot(view, defaults));
   };
 
-  /**
-   * Back on the view kept from the last visit. The table's state is kept
-   * apart and restored as it was left, modified or not, but the search is
-   * not kept: the view's own comes back with it.
-   */
   const restoreKeptView = (id: string) => {
     const view = findView(id);
     activeViewId.value = view?.id;
     if (view) state.globalFilter.value = view.search || undefined;
   };
 
-  /**
-   * Opens a link followed on the table already shown as a linked arrival
-   * reads it: the view it names, else the default view, else the table's
-   * default listing state under the reader's own presentation.
-   */
   const openLinkedView = (query: LocationQuery) => {
     const named = readTableUrlKey(query, urlScope, VIEW_URL_KEY);
     const view = named.isCleared
@@ -155,10 +144,6 @@ function createTableViewState(options: TableViewsOptions) {
     openDefaultListing();
   };
 
-  /**
-   * No view open, the table's default listing state (filters, search, sort)
-   * under the reader's own presentation: what a link to no view opens.
-   */
   const openDefaultListing = () => {
     const snapshot = viewSnapshot(undefined, defaults);
     activeViewId.value = undefined;
@@ -310,20 +295,13 @@ export function useTableViews(options: TableViewsOptions) {
     preferences.set("userViews", next, []);
   };
 
-  /**
-   * Opens a view, or, for the one already open, closes it: back to the
-   * table's own default state without a view. A view the table diverged
-   * from is opened again, as no view is drawn open.
-   */
   const selectView = (id: string) =>
     openView(
       id === activeViewId.value && change.value !== "diverged" ? undefined : id,
     );
 
-  /** Back to the open view's own state. */
   const resetView = () => openView(activeViewId.value);
 
-  /** Keeps the current state in the open view, one of the user's own. */
   const saveView = () => {
     const view = activeView.value;
     if (!view?.isUserView) return;
@@ -362,7 +340,6 @@ export function useTableViews(options: TableViewsOptions) {
     return isConfirmed ? name : undefined;
   };
 
-  /** Saves the current state as a new view of the user's, then opens it. */
   const saveAsNewView = async () => {
     const owner = userId.value;
     if (!views?.userViews || !owner) return;
@@ -378,11 +355,6 @@ export function useTableViews(options: TableViewsOptions) {
     activeViewId.value = view.id;
   };
 
-  /**
-   * Deletes one of the user's views, once confirmed. Deleting the open one
-   * goes back to the table's own default state: what it set (its search
-   * above all) would otherwise stay applied with no view to show it.
-   */
   const deleteView = async (id: string) => {
     const view = findView(id);
     if (!view?.isUserView) return;

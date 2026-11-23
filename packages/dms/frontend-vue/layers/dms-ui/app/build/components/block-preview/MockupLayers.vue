@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import type { MockupOutlineRow } from "../../utils/mockupOutline";
 
-/** The page's nodes as a tree; picking a row selects its block. A row names the viewer holding its block when another does. */
 defineProps<{
   rows: readonly MockupOutlineRow[];
   selection: string | undefined;

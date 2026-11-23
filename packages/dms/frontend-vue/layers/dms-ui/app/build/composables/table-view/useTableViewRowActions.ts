@@ -35,11 +35,6 @@ export const useTableRowActions = <T extends Data>(
     openDrawer,
     route,
   };
-  /**
-   * Toasts a failed action that has no dialog to show it in: `title` names
-   * what failed, the description is the server's message when it is meant
-   * for users, else a translated fallback (never a raw error line).
-   */
   const handleApiError: TableRowActionErrorHandler = (error, title) => {
     errorPresenter.presentError(
       error,
@@ -60,10 +55,6 @@ export const useTableRowActions = <T extends Data>(
     services,
     handleApiError,
   );
-  /**
-   * Runs a built-in action (edit, details, duplicate, add…) after the
-   * confirmation it declares, if any.
-   */
   const runConfirmedBuiltIn = async (
     actionConfig: boolean | RowActionConfig | undefined,
     rowData: Data | undefined,

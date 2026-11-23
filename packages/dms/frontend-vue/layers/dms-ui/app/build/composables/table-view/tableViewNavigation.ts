@@ -31,10 +31,6 @@ export function useTableViewRowNavigation<T extends Data>(
   watch(activeDisplayId, () => {
     selfManagedRows.value = undefined;
   });
-  /**
-   * The rows the active display shows: the list's page, or the rows a
-   * self-managed display (the board) reported, undefined until it reports.
-   */
   const displayedRows = computed((): Data[] | undefined =>
     listsServerPages.value ? (shownResults.value ?? []) : selfManagedRows.value,
   );
