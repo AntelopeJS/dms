@@ -35,10 +35,17 @@ type ColoredSelectItem = Extract<SelectItem, object> & {
   textColor?: string;
 };
 
+type SelectModelValue = SelectEmits<T, VK, M>["update:modelValue"][0];
+
 const props = withDefaults(defineProps<ExtendedSelectProps<T, VK, M>>(), {
   deselectable: true,
 });
-const emits = defineEmits<SelectEmits<T, VK, M>>();
+const emits = defineEmits<
+  Omit<SelectEmits<T, VK, M>, "update:modelValue"> & {
+    /** The pick, or `undefined` when the pick is picked again and undone. */
+    "update:modelValue": [value: SelectModelValue | undefined];
+  }
+>();
 defineSlots<SelectSlots<T, VK, M>>();
 
 const forwardedProps = computed(() => {
@@ -49,10 +56,10 @@ const forwardedProps = computed(() => {
 const forwarded = useForwardPropsEmits(forwardedProps, emits);
 
 const flattenedItems = computed<ColoredSelectItem[]>(() => {
-  const items = (props.items ?? []) as unknown as
-    | ColoredSelectItem[]
-    | ColoredSelectItem[][];
-  return Array.isArray(items[0]) ? items.flat() : items;
+  const items: ArrayOrNested<SelectItem> = props.items ?? [];
+  return items
+    .flat()
+    .filter((item) => typeof item === "object" && item !== null);
 });
 
 const selectedItem = computed<ColoredSelectItem | undefined>(() => {
@@ -65,13 +72,10 @@ const selectedItem = computed<ColoredSelectItem | undefined>(() => {
 const colorVar = (color?: string) =>
   color ? { color: `var(--ui-${color})` } : undefined;
 
-function handleUpdateModelValue(value: unknown) {
+function handleUpdateModelValue(value: SelectModelValue) {
   const shouldDeselect =
     props.deselectable && !props.multiple && value === props.modelValue;
-  (emits as (evt: "update:modelValue", value: unknown) => void)(
-    "update:modelValue",
-    shouldDeselect ? undefined : value,
-  );
+  emits("update:modelValue", shouldDeselect ? undefined : value);
 }
 </script>
 

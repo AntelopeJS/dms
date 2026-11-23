@@ -5,6 +5,8 @@
 >
 import { pageRequestUrl } from "../../../build/composables/page/pageUrlValues";
 import { useForwardPropsEmits } from "reka-ui";
+import { toDisplayString } from "vue";
+import { isRecord } from "#dms-core/app/build/utils/record";
 import type {
   SelectMenuProps,
   SelectMenuEmits,
@@ -77,10 +79,21 @@ const SEARCH_DEBOUNCE_MS = 200;
 const MENU_CLOSE_MAX_MS = 1000;
 const MENU_FOCUS_SETTLE_MS = 60;
 
+type ModelValue = SelectMenuEmits<T, "value", M>["update:modelValue"][0];
+
 const props = withDefaults(defineProps<RelationProps<T, M>>(), {
   deselectable: true,
 });
-const emits = defineEmits<SelectMenuEmits<T, "value", M>>();
+const emits = defineEmits<
+  Omit<SelectMenuEmits<T, "value", M>, "update:modelValue"> & {
+    /**
+     * The pick; `undefined` when the pick is picked again and undone or voided
+     * by its `filterBy` source, `[]` when the picks are voided, and the id of a
+     * row the "add" entry created, alone or appended to the picks.
+     */
+    "update:modelValue": [value: ModelValue | string | unknown[] | undefined];
+  }
+>();
 defineSlots<SelectMenuSlots<T, "value", M>>();
 
 const forwardedProps = computed(() => {
@@ -100,22 +113,21 @@ const forwardedProps = computed(() => {
   return rest;
 });
 const forwardedPropsEmits = useForwardPropsEmits(forwardedProps, emits);
-// The picks go through `handleUpdateModelValue` alone, which deselects a value
-// picked again: forwarded as well, the form got the pick it had undone.
+/**
+ * The props and listeners forwarded to the menu, without its pick listener:
+ * the picks go through {@link handleUpdateModelValue} alone, which deselects a
+ * value picked again, and a forwarded pick would hand the form back the pick
+ * it had undone.
+ */
 const forwarded = computed(() => {
   const { "onUpdate:modelValue": _, ...rest } = forwardedPropsEmits.value;
-  return rest as typeof forwardedPropsEmits.value;
+  return rest;
 });
-
-type ModelValue = SelectMenuEmits<T, "value", M>["update:modelValue"][0];
 
 function handleUpdateModelValue(value: ModelValue) {
   const shouldDeselect =
     props.deselectable && !props.multiple && value === props.modelValue;
-  emits(
-    "update:modelValue",
-    shouldDeselect ? (undefined as ModelValue) : value,
-  );
+  emits("update:modelValue", shouldDeselect ? undefined : value);
 }
 
 const instanceId = useId();
@@ -174,21 +186,23 @@ const canAdd = computed(
 );
 
 interface RelationResponse {
-  results: Record<string, string>[];
+  results: Record<string, unknown>[];
   total: number;
 }
 
 interface ImageRefValue {
   key: string;
-  alt?: string;
+  alt?: string | null;
 }
 
 function isImageRefValue(value: unknown): value is ImageRefValue {
   return (
-    !!value &&
-    typeof value === "object" &&
+    isRecord(value) &&
     !Array.isArray(value) &&
-    typeof (value as ImageRefValue).key === "string"
+    typeof value.key === "string" &&
+    (value.alt === undefined ||
+      value.alt === null ||
+      typeof value.alt === "string")
   );
 }
 
@@ -209,7 +223,14 @@ function buildAvatarProps(
   return undefined;
 }
 
-function mapData(item: Record<string, string>) {
+/** A row's label as the menu renders it; a row without one keeps none. */
+function rowLabel(value: unknown): string | undefined {
+  return value === undefined || value === null
+    ? undefined
+    : toDisplayString(value);
+}
+
+function mapData(item: Record<string, unknown>) {
   if (!item || typeof item !== "object" || Array.isArray(item)) {
     return {
       label: "",
@@ -224,7 +245,7 @@ function mapData(item: Record<string, string>) {
 
   return {
     ...item,
-    label: item[labelValue],
+    label: rowLabel(item[labelValue]),
     value: item[valueValue],
     avatar: undefined,
     avatarSource: avatarValue ? item[avatarValue] : undefined,
@@ -283,8 +304,8 @@ const { data, status, execute } = await useDmsAsyncData(
   },
 );
 
-function isMappableObject(value: unknown): value is Record<string, string> {
-  return !!value && typeof value === "object" && !Array.isArray(value);
+function isMappableObject(value: unknown): value is Record<string, unknown> {
+  return isRecord(value) && !Array.isArray(value);
 }
 
 const initialItems = computed(() => {
@@ -382,16 +403,39 @@ watch(
     });
     pickSource = outcome.pickSource;
     if (!outcome.shouldClear) return;
-    emits("update:modelValue", (props.multiple ? [] : undefined) as ModelValue);
+    emits("update:modelValue", props.multiple ? [] : undefined);
   },
 );
 
 const isMenuOpen = ref(false);
 
+/**
+ * The menu's slots forwarded as given: all but `content-bottom`, filled below
+ * after the add entry.
+ */
+const FORWARDED_SLOTS = {
+  leading: true,
+  default: true,
+  trailing: true,
+  empty: true,
+  item: true,
+  "item-leading": true,
+  "item-label": true,
+  "item-description": true,
+  "item-trailing": true,
+  "content-top": true,
+  "create-item-label": true,
+} satisfies Record<Exclude<keyof SelectMenuSlots, "content-bottom">, true>;
+
+function isForwardedSlotName(
+  name: string,
+): name is keyof typeof FORWARDED_SLOTS {
+  return Object.hasOwn(FORWARDED_SLOTS, name);
+}
+
 const slots = useSlots();
-// `content-bottom` is filled below, after the add entry.
 const forwardedSlotNames = computed(() =>
-  Object.keys(slots).filter((name) => name !== "content-bottom"),
+  Object.keys(slots).filter(isForwardedSlotName),
 );
 
 const labeledIds = computed(
@@ -414,7 +458,7 @@ async function loadValueItems(ids: string[]) {
   notFoundIds.value = new Set([...notFoundIds.value, ...missing]);
   valueItems.value = [
     ...valueItems.value,
-    ...rows.map((item) => mapData(item as Record<string, string>)),
+    ...rows.map(mapData),
     // Kept pickable, so the value can still be deselected.
     ...missing.map((id) => ({
       label: t("dms.form.relation.not_found"),
@@ -518,20 +562,22 @@ function extractInsertedId(response: unknown): string | undefined {
     const first = response[0];
     return typeof first === "string" ? first : undefined;
   }
-  if (typeof response === "object") {
-    const r = response as Record<string, unknown>;
-    if (typeof r.insertedId === "string") return r.insertedId;
-    if (Array.isArray(r.insertedIds) && typeof r.insertedIds[0] === "string") {
-      return r.insertedIds[0];
+  if (isRecord(response)) {
+    if (typeof response.insertedId === "string") return response.insertedId;
+    if (
+      Array.isArray(response.insertedIds) &&
+      typeof response.insertedIds[0] === "string"
+    ) {
+      return response.insertedIds[0];
     }
     if (
-      Array.isArray(r.generated_keys) &&
-      typeof r.generated_keys[0] === "string"
+      Array.isArray(response.generated_keys) &&
+      typeof response.generated_keys[0] === "string"
     ) {
-      return r.generated_keys[0];
+      return response.generated_keys[0];
     }
-    if (typeof r.id === "string") return r.id;
-    if (typeof r._id === "string") return r._id;
+    if (typeof response.id === "string") return response.id;
+    if (typeof response._id === "string") return response._id;
   }
   return undefined;
 }
@@ -560,10 +606,10 @@ async function handleAddSuccess(response: unknown, formData: unknown) {
       ? props.modelValue
       : [];
     if (!current.includes(newId)) {
-      emits("update:modelValue", [...current, newId] as ModelValue);
+      emits("update:modelValue", [...current, newId]);
     }
   } else {
-    emits("update:modelValue", newId as ModelValue);
+    emits("update:modelValue", newId);
   }
 }
 
@@ -596,10 +642,7 @@ const addFormOptions = computed(() => {
     @update:model-value="handleUpdateModelValue"
   >
     <template v-for="name in forwardedSlotNames" :key="name" #[name]="slotData">
-      <slot
-        :name="name as keyof SelectMenuSlots<T, 'value', M>"
-        v-bind="slotData ?? {}"
-      />
+      <slot :name="name" v-bind="slotData ?? {}" />
     </template>
     <!-- The add entry is no item: picked, it became the field's value. -->
     <template v-if="canAdd || $slots['content-bottom']" #content-bottom>
