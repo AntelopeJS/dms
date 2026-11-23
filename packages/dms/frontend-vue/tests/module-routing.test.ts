@@ -7,6 +7,8 @@
  * in a server render, becomes the response's redirect. A page the browser
  * already draws at the module's address (a link that skipped the guard) loads
  * the landing page instead of navigating from its own setup.
+ *
+ * @packageDocumentation
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ref } from "vue";

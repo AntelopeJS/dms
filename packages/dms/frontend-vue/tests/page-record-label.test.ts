@@ -2,6 +2,8 @@
  * `usePageRecordLabel`, public: the label a record page's header ends its
  * breadcrumb with, held with its page's path so it never outlives the page,
  * and still reachable from its former `build/` path.
+ *
+ * @packageDocumentation
  */
 import { reactive, ref, type Ref } from "vue";
 import { beforeEach, expect, it, vi } from "vitest";

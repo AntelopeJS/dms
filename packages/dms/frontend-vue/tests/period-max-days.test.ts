@@ -1,8 +1,10 @@
-/** @vitest-environment jsdom */
 /**
  * `maxDays` caps the custom range a PeriodSelector lets the user pick: the
  * calendar disables the days past it once a start day is picked, and a range
  * from the date fields or a long preset is cut to it.
+ *
+ * @packageDocumentation
+ * @vitest-environment jsdom
  */
 import { CalendarDate } from "@internationalized/date";
 import { createApp, defineComponent, h, nextTick, type App } from "vue";

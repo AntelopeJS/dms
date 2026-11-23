@@ -1,10 +1,12 @@
-/** @vitest-environment jsdom */
 /**
  * `usePageLiveRefresh`, the public face of the Direct / Pause gate: a module's
  * own component refreshes on its topic at the page's `maxRate`, counts what
  * it missed while paused and reads once on resume, reads at once on a user's
  * refresh, and, with `idleRefresh`, reads again after a quiet period while
  * the page is live only.
+ *
+ * @packageDocumentation
+ * @vitest-environment jsdom
  */
 import { createApp, defineComponent, h } from "vue";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";

@@ -1,4 +1,7 @@
-/** @vitest-environment jsdom */
+/**
+ * @packageDocumentation
+ * @vitest-environment jsdom
+ */
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { computed, type Ref } from "vue";
 import { stubDmsState } from "./helpers/dms-state-stub";

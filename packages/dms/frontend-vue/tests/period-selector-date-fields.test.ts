@@ -1,10 +1,12 @@
-/** @vitest-environment jsdom */
 /**
  * The start and end fields of a PeriodSelector's popover. A date field
  * reports every complete date while the user types, so a day on its way to
  * the one the user means (`2` before `20`, year `202` before `2027`) must not
  * move the other bound: the field keeps it, and the range takes it once focus
  * leaves the field.
+ *
+ * @packageDocumentation
+ * @vitest-environment jsdom
  */
 import { CalendarDate } from "@internationalized/date";
 import {

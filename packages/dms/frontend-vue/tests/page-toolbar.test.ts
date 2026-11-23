@@ -1,10 +1,12 @@
-/** @vitest-environment jsdom */
 /**
  * The PageToolbar block: its LiveToggle on a live page, at the toolbar's
  * size; "updated N s ago" and a refresh button where there is no toggle to
  * show (a page without `live`), counted from the page's last read; and every
  * preset of a period selector with a short code, `all` included; and one
  * height per size for every control it holds, with or without live.
+ *
+ * @packageDocumentation
+ * @vitest-environment jsdom
  */
 import { createApp, h, nextTick, type App } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";

@@ -1,10 +1,12 @@
-/** @vitest-environment jsdom */
 /**
  * A relative preset (`last-24h`) in a server render and in the browser that
  * hydrates it, through the runtime's real async data: both resolve the period
  * from the instant the server rendered at, so the browser hydrates the same
  * bounds, key and card data without asking again, whatever time it is when
  * it hydrates. Anywhere else, the period follows the browser's clock.
+ *
+ * @packageDocumentation
+ * @vitest-environment jsdom
  */
 import {
   createApp,

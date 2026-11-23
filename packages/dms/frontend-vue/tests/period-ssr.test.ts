@@ -4,6 +4,8 @@
  * period as the browser will (in the browser's time zone, read in its cookie;
  * a selector set up before the card), and its placeholder
  * otherwise, requesting nothing. Each request has its scopes.
+ *
+ * @packageDocumentation
  */
 import { createSSRApp, defineComponent, h, ref, type Component } from "vue";
 import { renderToString } from "vue/server-renderer";

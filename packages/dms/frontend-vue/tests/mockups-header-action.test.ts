@@ -1,6 +1,8 @@
 /**
  * The Mockups icon is in the header for the platform owner alone, and opens
  * the Mockups page.
+ *
+ * @packageDocumentation
  */
 import { computed, ref, type Ref } from "vue";
 import { createI18n } from "vue-i18n";
@@ -50,11 +52,7 @@ beforeEach(async () => {
 const mockupsAction = () =>
   useHeaderActions().actions.value.find(({ id }) => id === "dms-mockups");
 
-/**
- * Fails an implementation that shows the icon to every signed-in user, or
- * that reads the owner once at registration instead of when the header draws.
- */
-it("shows the icon only while the viewer owns the platform", () => {
+it("shows the icon only while the viewer owns the platform, read when the header draws (fails on an icon for every signed-in user, or on the owner read once at registration)", () => {
   expect(mockupsAction()).toBeUndefined();
   isOwner.value = true;
   expect(mockupsAction()?.order).toBe(90);
@@ -62,11 +60,7 @@ it("shows the icon only while the viewer owns the platform", () => {
   expect(mockupsAction()).toBeUndefined();
 });
 
-/**
- * Fails an implementation that opens `/mockup` (the viewer of one mockup, which
- * needs a name) or that labels the icon in one language only.
- */
-it("opens the Mockups page, labelled in the viewer's language", () => {
+it("opens the Mockups page, labelled in the viewer's language (fails on opening `/mockup`, the viewer of one mockup, which needs a name, or on a label in one language only)", () => {
   isOwner.value = true;
   mockupsAction()?.onSelect?.();
   expect(push).toHaveBeenCalledWith("/mockups");

@@ -1,10 +1,12 @@
-/** @vitest-environment jsdom */
 /**
  * The module store listing through the runtime's real async data: read with
  * the page, so the Modules page and the store render their tiles with the
  * store's details on the server, and the browser neither reads it again on
  * hydration nor once mounted while nothing moves. A tile's skeleton is block
  * for block the size of the tile it stands for.
+ *
+ * @packageDocumentation
+ * @vitest-environment jsdom
  */
 import {
   computed,

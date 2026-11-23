@@ -3,6 +3,8 @@
  * browser it renders for (its `dms-time-zone` cookie), whatever the server's
  * own: the same bounds and the same text as the browser's, so hydration
  * matches. Without the cookie, or in the server's own zone, nothing changes.
+ *
+ * @packageDocumentation
  */
 import { afterEach, describe, expect, it } from "vitest";
 import {

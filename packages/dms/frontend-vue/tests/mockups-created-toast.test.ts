@@ -1,6 +1,8 @@
 /**
  * A mockup that gets created opens by itself from the Mockups page, and is
  * offered in a toast from anywhere else.
+ *
+ * @packageDocumentation
  */
 import { computed, nextTick, reactive, ref } from "vue";
 import { createI18n } from "vue-i18n";
@@ -114,11 +116,7 @@ afterEach(() => {
 const created = (name: string, title?: string) =>
   JSON.stringify(title === undefined ? { name } : { name, title });
 
-/**
- * Fails an implementation that toasts from the Mockups page, or that opens
- * the stream somewhere other than the created-mockups endpoint.
- */
-it("opens the viewer of a mockup created while the Mockups page is shown, with no toast", () => {
+it("opens the viewer of a mockup created while the Mockups page is shown, with no toast, from the created-mockups endpoint (fails on a toast there, or a stream opened at another endpoint)", () => {
   expect(latestSource().url).toBe(`${BASE}/api/mockup/events/created`);
 
   latestSource().send(created("orders", "Orders desk"));
@@ -127,11 +125,7 @@ it("opens the viewer of a mockup created while the Mockups page is shown, with n
   expect(toasts).toEqual([]);
 });
 
-/**
- * Fails an implementation that navigates from any page: it would pull the
- * user out of what they are doing.
- */
-it("offers a mockup created anywhere else in a toast with an Open action, and moves nowhere until it is used", () => {
+it("offers a mockup created anywhere else in a toast with an Open action, and moves nowhere until it is used (fails on a navigation from any page, which pulls the user out of what they are doing)", () => {
   route.path = "/orders";
 
   latestSource().send(created("orders", "Orders desk"));
@@ -146,11 +140,7 @@ it("offers a mockup created anywhere else in a toast with an Open action, and mo
   expect(push).toHaveBeenCalledExactlyOnceWith("/mockup?name=orders");
 });
 
-/**
- * Fails an implementation that reads the page once, when the plugin starts,
- * instead of when the mockup arrives: the user left the page in the meantime.
- */
-it("toasts instead of navigating when the user left the Mockups page before the mockup was created", () => {
+it("toasts instead of navigating when the user left the Mockups page before the mockup was created (fails on reading the page once, when the plugin starts, instead of when the mockup arrives)", () => {
   route.path = "/orders";
 
   latestSource().send(created("later"));
@@ -189,11 +179,7 @@ it("encodes the mockup's name in the viewer's path and ignores an event that nam
   expect(toasts).toEqual([]);
 });
 
-/**
- * Fails an implementation that streams for any user: only the platform owner
- * reaches the mockup API.
- */
-it("streams only while the viewer owns the platform", async () => {
+it("streams only while the viewer owns the platform, the only user who reaches the mockup API (fails on streaming for any user)", async () => {
   const first = latestSource();
 
   isOwner.value = false;

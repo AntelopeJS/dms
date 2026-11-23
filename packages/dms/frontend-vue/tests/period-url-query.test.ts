@@ -4,6 +4,8 @@
  * back, which source wins (the URL, then the user's last choice, then the
  * default), that two selectors never read each other's keys, and that a value
  * the selector cannot honour falls back silently.
+ *
+ * @packageDocumentation
  */
 import { describe, expect, it } from "vitest";
 import {
