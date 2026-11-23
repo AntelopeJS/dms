@@ -178,34 +178,20 @@ function pageBound(value: number | undefined, fallback: number, max: number) {
   return Math.min(Math.max(Math.trunc(value), 0), max);
 }
 
-async function matchingMembers(
-  tenantId: string,
-  input: ListMembersInput,
-): Promise<TenantMember[]> {
+function matchingMembers(tenantId: string, input: ListMembersInput) {
   const roleIds = [...new Set(input.roleIds ?? [])].slice(0, MAX_ROLE_FILTER);
   const ownersOnly = input.ownersOnly === true;
   const model = GetModel(TenantMemberModel, tenantId);
-  const query =
-    roleIds.length === 0 && !ownersOnly
-      ? model.table
-      : model.table.filter((row) => {
-          const isOwner = row.key("isTenantOwner").eq(true);
-          const [first, ...rest] = roleIds.map((roleId) =>
-            row.key("roleIds", []).includes(roleId),
-          );
-          if (!first) return isOwner;
-          const holdsRole = rest.reduce((left, right) => left.or(right), first);
-          return ownersOnly ? isOwner.and(holdsRole) : holdsRole;
-        });
-  const rows = await query.run();
-  return rows
-    .flatMap((row) => TenantMemberModel.fromDatabase(row) ?? [])
-    .sort(
-      (left, right) =>
-        new Date(left.joinedAt).getTime() -
-          new Date(right.joinedAt).getTime() ||
-        left._id.localeCompare(right._id),
+  if (roleIds.length === 0 && !ownersOnly) return model.table;
+  return model.table.filter((row) => {
+    const isOwner = row.key("isTenantOwner").eq(true);
+    const [first, ...rest] = roleIds.map((roleId) =>
+      row.key("roleIds", []).includes(roleId),
     );
+    if (!first) return isOwner;
+    const holdsRole = rest.reduce((left, right) => left.or(right), first);
+    return ownersOnly ? isOwner.and(holdsRole) : holdsRole;
+  });
 }
 
 async function listMembers(
@@ -218,8 +204,12 @@ async function listMembers(
     1,
   );
   const offset = pageBound(input.offset, 0, Number.MAX_SAFE_INTEGER);
-  const members = await matchingMembers(tenantId, input);
-  const page = members.slice(offset, offset + limit);
+  const total = await matchingMembers(tenantId, input).count().run();
+  const rows = await matchingMembers(tenantId, input)
+    .orderBy("joinedAt", "asc")
+    .slice(offset, offset + limit)
+    .run();
+  const page = rows.flatMap((row) => TenantMemberModel.fromDatabase(row) ?? []);
   const users = page.length
     ? await GetModel(UserModel).getBy(
         "_id",
@@ -240,8 +230,8 @@ async function listMembers(
         joinedAt: isoDate(member.joinedAt) ?? "",
       };
     }),
-    total: members.length,
-    hasMore: offset + page.length < members.length,
+    total,
+    hasMore: offset + page.length < total,
   };
 }
 
