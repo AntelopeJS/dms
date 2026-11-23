@@ -1,4 +1,7 @@
-/** @vitest-environment jsdom */
+/**
+ * @vitest-environment jsdom
+ * @packageDocumentation
+ */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { MOCKUP_WRITE_DELAY_MS } from "../layers/dms-ui/app/entries/composables/block-preview/useMockupSpec";
 import {
@@ -26,7 +29,9 @@ function spec(): MockupSpecDocument {
       {
         id: "orders",
         title: "Orders",
-        tree: [{ id: "revenue", type: "KpiCard", options: { title: "Revenue" } }],
+        tree: [
+          { id: "revenue", type: "KpiCard", options: { title: "Revenue" } },
+        ],
       },
     ],
   };
@@ -57,7 +62,9 @@ async function written(): Promise<MockupSpecDocument> {
 
 function type(selector: string, value: string): Promise<void> {
   const field = find(selector);
-  if (!(field instanceof HTMLInputElement || field instanceof HTMLTextAreaElement)) {
+  if (
+    !(field instanceof HTMLInputElement || field instanceof HTMLTextAreaElement)
+  ) {
     throw new Error(`no field ${selector}`);
   }
   field.value = value;
@@ -183,7 +190,9 @@ describe("the preview protocol", () => {
         tree: [],
         header: { title: "Orders", actions },
       });
-    expect(render([{ label: "New", color: "primary", variant: "soft" }])).toBeDefined();
+    expect(
+      render([{ label: "New", color: "primary", variant: "soft" }]),
+    ).toBeDefined();
     expect(render([{ label: "New", color: "purple" }])).toBeUndefined();
     expect(render([{ label: "New", variant: "bold" }])).toBeUndefined();
     expect(render([{ icon: "i-ph-plus" }])).toBeUndefined();
@@ -191,7 +200,10 @@ describe("the preview protocol", () => {
 
   it("reads the page selection the preview reports", () => {
     expect(
-      parsePreviewOutboundMessage({ channel: PREVIEW_CHANNEL, type: "select-page" }),
+      parsePreviewOutboundMessage({
+        channel: PREVIEW_CHANNEL,
+        type: "select-page",
+      }),
     ).toEqual({ channel: PREVIEW_CHANNEL, type: "select-page" });
   });
 });

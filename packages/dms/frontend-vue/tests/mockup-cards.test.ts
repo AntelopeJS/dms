@@ -1,4 +1,7 @@
-/** @vitest-environment jsdom */
+/**
+ * @vitest-environment jsdom
+ * @packageDocumentation
+ */
 import { nextTick } from "vue";
 import { expect, it, vi } from "vitest";
 import { scrollAllIntoView } from "./helpers/fake-observers";
@@ -17,17 +20,12 @@ import {
   unmountCards,
 } from "./helpers/mockup-cards-runtime";
 
-/**
- * Fails an implementation that derives the status from the source instead of
- * the row's `status`, counts the pages a build left out as built, or colours
- * Draft like Built.
- */
-it("badges a draft Draft, a mockup built into only some pages with its progress, and a fully built one Built", async () => {
+it("badges a draft Draft, a mockup built into only some pages with its progress, and a fully built one Built (fails on a status derived from the source instead of the row's `status`, pages a build left out counted as built, or Draft coloured like Built)", async () => {
   const root = await mountCards([built, draft, bare, partial]);
 
-  expect(
-    text(card(root, "bike-partial"), "[data-dms-mockup-status]"),
-  ).toBe("2 of 5 pages built");
+  expect(text(card(root, "bike-partial"), "[data-dms-mockup-status]")).toBe(
+    "2 of 5 pages built",
+  );
   expect(
     card(root, "bike-partial")
       .querySelector("[data-dms-mockup-status]")
@@ -60,11 +58,7 @@ it("badges a draft Draft, a mockup built into only some pages with its progress,
   ).toBe("neutral");
 });
 
-/**
- * Fails an implementation that prints every part even when absent ("from
- * undefined"), or forgets to pluralise "1 page".
- */
-it("writes the meta line from the parts a mockup has, pluralised", async () => {
+it('writes the meta line from the parts a mockup has, pluralised (fails on printing an absent part as "from undefined", or "1 page" left unpluralised)', async () => {
   const root = await mountCards([built, draft, bare]);
 
   expect(text(card(root, "bike-rental"), "[data-dms-mockup-meta]")).toBe(
@@ -78,11 +72,7 @@ it("writes the meta line from the parts a mockup has, pluralised", async () => {
   );
 });
 
-/**
- * Fails an implementation that badges a count of zero ("0 open comments"),
- * reads the count from the wrong field, or forgets to pluralise it.
- */
-it("badges the open comments of a mockup that has some, pluralised, and none for one that has none", async () => {
+it("badges the open comments of a mockup that has some, pluralised, and none for one that has none (fails on badging a count of zero, reading the count from the wrong field, or an unpluralised count)", async () => {
   const single = { ...draft, name: "one-note", openComments: 1 };
   const root = await mountCards([built, draft, single]);
 
@@ -97,11 +87,7 @@ it("badges the open comments of a mockup that has some, pluralised, and none for
   ).toBeNull();
 });
 
-/**
- * Fails an implementation that words the age from another field than the
- * spec's last change, or leaves the machine-readable time out.
- */
-it("says when a mockup last changed, relative to now, with its exact time", async () => {
+it("says when a mockup last changed, relative to now, with its exact time (fails on an age worded from another field than the spec's last change, or a missing machine-readable time)", async () => {
   const root = await mountCards([built]);
 
   const updated = card(root, "bike-rental").querySelector(
@@ -111,11 +97,7 @@ it("says when a mockup last changed, relative to now, with its exact time", asyn
   expect(updated?.getAttribute("datetime")).toBe(UPDATED);
 });
 
-/**
- * Fails an implementation that titles a card with its name when it has a
- * title, or leaves an untitled card without any.
- */
-it("titles a card with its title, or its name when it has none", async () => {
+it("titles a card with its title, or its name when it has none (fails on a card titled with its name despite having a title, or an untitled card left without any)", async () => {
   const root = await mountCards([built, draft]);
 
   expect(text(card(root, "bike-rental"), "[data-dms-mockup-open]")).toBe(
@@ -126,11 +108,7 @@ it("titles a card with its title, or its name when it has none", async () => {
   );
 });
 
-/**
- * Fails an implementation that opens a mockup on one of its pages: a card
- * opens the viewer on the mockup's Overview, which a URL without `?page=` is.
- */
-it("opens the mockup on its Overview, its link naming no page", async () => {
+it("opens the mockup on its Overview, its link naming no page (fails on a card opening a mockup on one of its pages, since a URL without `?page=` is the Overview)", async () => {
   const root = await mountCards([built, draft]);
 
   expect(
@@ -140,12 +118,7 @@ it("opens the mockup on its Overview, its link naming no page", async () => {
   ).toBe("/mockup?name=bike-rental");
 });
 
-/**
- * Fails an implementation that links a built page by its title, lists pages
- * for a draft, or nests the page links inside the card's own link (an anchor
- * in an anchor, which the browser cannot make separately clickable).
- */
-it("links each built page by its stored path, the card to its viewer, and a draft to no page", async () => {
+it("links each built page by its stored path, the card to its viewer, and a draft to no page (fails on a built page linked by its title, pages listed for a draft, or page links nested in the card's own link, an anchor in an anchor the browser cannot make separately clickable)", async () => {
   const root = await mountCards([built, draft]);
 
   const pages = [
@@ -175,11 +148,7 @@ it("links each built page by its stored path, the card to its viewer, and a draf
   ).toHaveLength(0);
 });
 
-/**
- * Fails an implementation that draws a link from a built page whose path left
- * the dashboard, or that lets a malformed row throw instead of skipping it.
- */
-it("draws no card for a row that is not a summary, nor for a built page that leaves the dashboard", async () => {
+it("draws no card for a row that is not a summary, nor for a built page that leaves the dashboard (fails on a link drawn from a built page whose path left the dashboard, or a malformed row that throws instead of being skipped)", async () => {
   const leaving = {
     ...built,
     name: "leaving",
@@ -202,11 +171,7 @@ it("draws no card for a row that is not a summary, nor for a built page that lea
   expect(root.querySelector('a[href^="//"]')).toBeNull();
 });
 
-/**
- * Fails an implementation that shows the empty state while the first answer
- * is still on its way, or a skeleton once the list is known to be empty.
- */
-it("shows a skeleton while the first answer is on its way, and the empty state once it is empty", async () => {
+it("shows a skeleton while the first answer is on its way, and the empty state once it is empty (fails on the empty state shown while the first answer is still coming, or a skeleton once the list is known to be empty)", async () => {
   const loading = await mountCards([], { firstPageLoading: true });
   expect(loading.textContent).not.toContain(en.dms.table.empty_title);
   expect(loading.querySelectorAll("li").length).toBeGreaterThan(0);
@@ -217,11 +182,7 @@ it("shows a skeleton while the first answer is on its way, and the empty state o
   expect(empty.querySelector("[data-dms-mockup-card]")).toBeNull();
 });
 
-/**
- * Fails an implementation that hands every card the same thumbnail, or draws
- * a thumbnail by something other than the mockup's name.
- */
-it("reads the first page of each card's own mockup once it scrolls into view", async () => {
+it("reads the first page of each card's own mockup once it scrolls into view (fails on every card handed the same thumbnail, or a thumbnail drawn by something other than the mockup's name)", async () => {
   await mountCards([built, draft]);
   expect(authFetch).not.toHaveBeenCalled();
 
@@ -234,13 +195,7 @@ it("reads the first page of each card's own mockup once it scrolls into view", a
   ]);
 });
 
-/**
- * Fails an implementation that keeps a built mockup Built after one of its
- * pages changed, offers to update a page that did not change or that no mockup
- * page is linked to, converts into another mockup than the card's, or opens
- * the stale mockup without converting the page into it again.
- */
-it("badges a built mockup with a changed page Out of sync and updates that page's mockup from it", async () => {
+it("badges a built mockup with a changed page Out of sync and updates that page's mockup from it (fails on a mockup kept Built after a page changed, an update offered for an unchanged page or a page no mockup page is linked to, a conversion into another mockup than the card's, or the stale mockup opened without converting the page again)", async () => {
   const drifted = {
     ...built,
     name: "drifted",

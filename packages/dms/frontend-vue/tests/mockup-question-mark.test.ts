@@ -1,4 +1,7 @@
-/** @vitest-environment jsdom */
+/**
+ * @vitest-environment jsdom
+ * @packageDocumentation
+ */
 import { afterEach, expect, it, vi } from "vitest";
 import { createApp, h, ref, type FunctionalComponent } from "vue";
 import { defineShortcuts } from "@nuxt/ui/runtime/composables/defineShortcuts.js";

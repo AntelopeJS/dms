@@ -1,4 +1,7 @@
-/** @vitest-environment jsdom */
+/**
+ * @vitest-environment jsdom
+ * @packageDocumentation
+ */
 import { createApp, defineComponent, h, type App } from "vue";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import {
@@ -57,11 +60,7 @@ async function scrollIntoView(): Promise<void> {
   await flush();
 }
 
-/**
- * Fails an implementation that reads every mockup on mount, so a page of fifty
- * cards fetches and draws fifty previews before any is on screen.
- */
-it("reads nothing until the band scrolls into view", async () => {
+it("reads nothing until the band scrolls into view (fails on reading every mockup on mount, so a page of fifty cards fetches and draws fifty previews before any is on screen)", async () => {
   authFetch.mockResolvedValue(mockupState());
   const root = await mountThumbnail();
 
@@ -74,14 +73,7 @@ it("reads nothing until the band scrolls into view", async () => {
   expect(authFetch).toHaveBeenCalledWith("/api/mockup/demo-mockup");
 });
 
-/**
- * Fails an implementation that draws the frame at the band's width (so the
- * page lays out as on a phone), leaves it clickable or focusable, exposes it
- * to a screen reader, hands the preview something other than the first
- * page's tree, or posts a reactive proxy that a browser cannot clone into the
- * frame (a deep `ref` over the mockup state).
- */
-it("draws the first page in an inert /dms-preview frame on its fixtures alone, at desktop width scaled to the band", async () => {
+it("draws the first page in an inert /dms-preview frame on its fixtures alone, at desktop width scaled to the band (fails on a frame at the band's width, one that is clickable, focusable or announced, another page's tree, or a reactive proxy a browser cannot clone)", async () => {
   authFetch.mockResolvedValue(
     mockupState({
       pages: [
@@ -124,11 +116,7 @@ it("draws the first page in an inert /dms-preview frame on its fixtures alone, a
   });
 });
 
-/**
- * Fails an implementation that throws or leaves an empty frame when the
- * mockup cannot be read, or draws a frame for a spec that compiled no page.
- */
-it("leaves a placeholder and no frame when the mockup cannot be read or has no page", async () => {
+it("leaves a placeholder and no frame when the mockup cannot be read or has no page (fails on a throw or an empty frame for an unreadable mockup, or a frame for a spec that compiled no page)", async () => {
   authFetch.mockRejectedValue(new Error("offline"));
   const failed = await mountThumbnail();
   await scrollIntoView();
@@ -156,11 +144,7 @@ it("leaves a placeholder and no frame when the mockup cannot be read or has no p
   ).not.toBeNull();
 });
 
-/**
- * Fails an implementation that draws a converted page on its fixtures, where
- * every block that reads a live route shows "No data".
- */
-it("draws a page converted from a live page on its live tree in the frame that allows live routes", async () => {
+it('draws a page converted from a live page on its live tree in the frame that allows live routes (fails on drawing it on its fixtures, where every block that reads a live route shows "No data")', async () => {
   const realTree = [{ type: "KpiCard", options: { fetchUrl: "/api/kpi" } }];
   authFetch.mockResolvedValue(
     mockupState({

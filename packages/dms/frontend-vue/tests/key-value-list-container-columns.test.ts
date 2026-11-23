@@ -1,8 +1,10 @@
-/** @vitest-environment jsdom */
 /**
  * A KeyValueList's columns follow its own width, not the window's: in a
  * 600px drawer on a wide screen a two-column list stays one column until
  * each column keeps its label and room for a value.
+ *
+ * @vitest-environment jsdom
+ * @packageDocumentation
  */
 import { createApp, defineComponent, h, type App } from "vue";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";

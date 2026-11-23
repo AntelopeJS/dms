@@ -1,4 +1,7 @@
-/** @vitest-environment jsdom */
+/**
+ * @vitest-environment jsdom
+ * @packageDocumentation
+ */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { MockupAnnotation } from "../layers/dms-ui/app/entries/utils/mockup";
 import {
@@ -417,7 +420,6 @@ describe("pressing elsewhere while a card is open", () => {
       `[data-dms-mockup-pin-card="${id}"] textarea`,
     );
 
-  /** Presses and releases the pin `id` without moving: a click. */
   async function clickPin(id: string): Promise<void> {
     find(`[data-dms-mockup-pin="${id}"]`)?.dispatchEvent(
       pointer("pointerdown", 5, 5),

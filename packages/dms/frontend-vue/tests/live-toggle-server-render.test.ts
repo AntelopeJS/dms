@@ -3,6 +3,8 @@
  * declares `live`, live and without its "updated N s ago" text (the browser's
  * clock writes it once mounted), so the toggle holds its place before the
  * page hydrates; nothing on a page without `live`.
+ *
+ * @packageDocumentation
  */
 import { createSSRApp, defineComponent, h } from "vue";
 import { renderToString } from "vue/server-renderer";

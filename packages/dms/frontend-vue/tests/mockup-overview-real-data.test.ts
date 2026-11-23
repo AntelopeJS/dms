@@ -1,11 +1,15 @@
-/** @vitest-environment jsdom */
+/**
+ * @vitest-environment jsdom
+ * @packageDocumentation
+ */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { MockupPageState } from "../layers/dms-ui/app/entries/utils/mockup";
-import { flush, mockupPage, type MountedViewer } from "./helpers/mockup-runtime";
 import {
-  mountOverviewViewer,
-  overviewDriver,
-} from "./helpers/mockup-overview";
+  flush,
+  mockupPage,
+  type MountedViewer,
+} from "./helpers/mockup-runtime";
+import { mountOverviewViewer, overviewDriver } from "./helpers/mockup-overview";
 
 const SAMPLE_TREE = [{ type: "KpiCard", options: { title: "Sample" } }];
 const REAL_TREE = [{ type: "KpiCard", options: { fetchUrl: "/api/kpi" } }];
@@ -71,9 +75,9 @@ describe("the Overview board on real data", () => {
     await flush();
     await bootLive();
 
-    expect(find("[data-dms-mockup-real-data]")?.getAttribute("aria-checked")).toBe(
-      "false",
-    );
+    expect(
+      find("[data-dms-mockup-real-data]")?.getAttribute("aria-checked"),
+    ).toBe("false");
     expect(frameSrc("live")).toBe(SAMPLE_SRC);
     expect(await drawnTree("live")).toEqual(SAMPLE_TREE);
   });

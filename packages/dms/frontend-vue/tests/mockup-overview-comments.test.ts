@@ -1,4 +1,7 @@
-/** @vitest-environment jsdom */
+/**
+ * @vitest-environment jsdom
+ * @packageDocumentation
+ */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { MockupAnnotation } from "../layers/dms-ui/app/entries/utils/mockup";
 import { MOCKUP_ASSISTANT_PROMPT_EVENT } from "../layers/dms-ui/app/utils/mockupAssistant";
@@ -68,7 +71,10 @@ describe("the frames drawn live", () => {
   it("draws every page of a 12-page Overview once, the two past the cap as a snapshot of the blocks they reported (fails when those pages show only the page icon)", async () => {
     await mount(12);
     await openOverview();
-    const block = { path: "block-0", rect: { x: 0, y: 0, width: 400, height: 90 } };
+    const block = {
+      path: "block-0",
+      rect: { x: 0, y: 0, width: 400, height: 90 },
+    };
     for (let round = 0; round < 3; round += 1) {
       for (const frame of findAll("[data-dms-mockup-overview-slot]")) {
         const page = frame.getAttribute("data-dms-mockup-overview-slot");

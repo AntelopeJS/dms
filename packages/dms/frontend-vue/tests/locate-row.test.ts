@@ -2,6 +2,8 @@
  * A row past the rows a table loaded (a deep link, a row live rows pushed
  * out) is found in its whole result, a window at a time: its position and
  * its neighbours in the table's order.
+ *
+ * @packageDocumentation
  */
 import { describe, expect, it, vi } from "vitest";
 import {

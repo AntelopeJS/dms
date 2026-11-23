@@ -1,6 +1,4 @@
 /**
- * @vitest-environment jsdom
- *
  * Keyboard hints across a server render and its hydration, on the renderer's
  * own runtime (cookies, transferred state, `isDmsHydrating`, the page
  * `<Suspense>`), laid out as a dashboard page is: a hint in the layout, which
@@ -8,6 +6,9 @@
  * browser hydrates once its chunk has loaded. The layout's hint, once mounted,
  * corrects the platform cookie; the page's hint, hydrating after that, must
  * still draw what the server drew, then show the browser's platform.
+ *
+ * @vitest-environment jsdom
+ * @packageDocumentation
  */
 import {
   createSSRApp,
