@@ -25,7 +25,7 @@ import {
   announceMemberChanges,
   type MemberAccess,
   type MemberAccessChange,
-} from "../../../automation/member-events";
+} from "../../../automation";
 import { notifyMenuAccessChanged } from "../../../implementations/dms/page";
 
 const HTTP_BAD_REQUEST = 400;

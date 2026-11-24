@@ -24,7 +24,7 @@ import {
 } from "../../automation";
 import { runCleanupUserInvites } from "../../crons";
 import { deleteAccount } from "../../pages/account";
-import { prepareRoleDeletion } from "../../pages/settings/users/role-editor-store";
+import { prepareRoleDeletion } from "../../pages/permissions";
 import {
   authorizedClient,
   type RegisteredUser,

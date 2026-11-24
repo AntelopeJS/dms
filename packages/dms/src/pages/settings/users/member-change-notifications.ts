@@ -8,7 +8,7 @@ import {
 } from "@antelopejs/interface-dms/db";
 import { notifyMenuAccessChanged } from "../../../implementations/dms/page";
 import { haveSameMembers } from "../../../utils";
-import { announceMemberChanges } from "../../../automation/member-events";
+import { announceMemberChanges } from "../../../automation";
 import {
   type NotificationActor,
   notifyMemberRemoved,

@@ -3,7 +3,7 @@ import {
   AutomationLoopGuard,
   LOOP_GUARD_LIMIT,
   LOOP_GUARD_WINDOW_MS,
-} from "../../automation/loop-guard";
+} from "../../automation";
 
 describe("[unit] automation loop guard", () => {
   it("drops a subject's events past the limit within the window, and admits it again after", () => {

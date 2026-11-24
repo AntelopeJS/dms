@@ -2,8 +2,8 @@ import { HTTPResult } from "@antelopejs/interface-api";
 import { Hook } from "@antelopejs/interface-dms/hooks";
 import { closeTenantLifecycleAdmission } from "@antelopejs/interface-dms/tenant-lifecycle";
 import { expect } from "chai";
-import { SET_MEMBER_ROLES_ACTION_ID } from "../../automation";
-import { LOOP_GUARD_LIMIT } from "../../automation/loop-guard";
+import { SET_MEMBER_ROLES_ACTION_ID } from "../../pages/members";
+import { LOOP_GUARD_LIMIT } from "../../automation";
 import { armTrigger, runAction } from "../helpers/automation-nodes";
 import {
   HTTP_PAYMENT_REQUIRED,

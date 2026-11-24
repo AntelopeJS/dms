@@ -1,10 +1,8 @@
 import { Logging } from "@antelopejs/interface-core/logging";
 import { GetModel } from "@antelopejs/interface-database-decorators";
-import { UserModel } from "@antelopejs/interface-dms/auth/db";
 import {
   RoleModel,
   TenantMemberModel,
-  TenantModel,
   UserInviteModel,
 } from "@antelopejs/interface-dms/db";
 import {
@@ -13,11 +11,6 @@ import {
   type TenantDeletionContext,
 } from "@antelopejs/interface-dms/hooks";
 import { closeTenantLifecycleAdmission } from "@antelopejs/interface-dms/tenant-lifecycle";
-import {
-  emitAutomationEvent,
-  listenersFor,
-  type TenantDeletedEvent,
-} from "../automation/events";
 import { deleteAllExportsForTenant } from "../utils";
 
 async function deleteAllRowsForTenant(
@@ -36,58 +29,22 @@ async function cleanupTenantData(tenantId: string): Promise<void> {
   await deleteAllExportsForTenant(tenantId);
 }
 
-type TenantSnapshot = Pick<
-  TenantDeletedEvent,
-  "name" | "ownerUserId" | "ownerUserIds" | "ownerEmail"
->;
-
-async function snapshotTenant(tenantId: string): Promise<TenantSnapshot> {
-  const snapshot: TenantSnapshot = { ownerUserIds: [] };
-  try {
-    const tenant = await GetModel(TenantModel).get(tenantId);
-    if (tenant?.name) snapshot.name = tenant.name;
-    const owners = await GetModel(TenantMemberModel, tenantId).listOwners();
-    owners.sort(
-      (left, right) =>
-        new Date(left.joinedAt).getTime() - new Date(right.joinedAt).getTime(),
-    );
-    snapshot.ownerUserIds = owners.map((owner) => owner.userId);
-    const [ownerUserId] = snapshot.ownerUserIds;
-    if (ownerUserId) {
-      snapshot.ownerUserId = ownerUserId;
-      const owner = await GetModel(UserModel).get(ownerUserId);
-      if (owner?.email) snapshot.ownerEmail = owner.email;
-    }
-  } catch (error) {
-    Logging.Warn(
-      `[dms] tenant-deleted snapshot failed for tenant '${tenantId}':`,
-      error,
-    );
-  }
-  return snapshot;
-}
-
-function announceTenantDeleted(
+/**
+ * Called before a tenant's data is deleted; the callback it may resolve with
+ * runs once the deletion succeeded.
+ */
+export type TenantDeletionObserver = (
   tenantId: string,
-  snapshot: TenantSnapshot,
   context: TenantDeletionContext | undefined,
-): void {
-  const event: TenantDeletedEvent = {
-    tenantId,
-    ...snapshot,
-    deliveryId: context?.operationId ?? `tenant-deleted:${tenantId}`,
-    at: new Date().toISOString(),
-  };
-  if (context?.operationId) event.operationId = context.operationId;
-  emitAutomationEvent("dms.tenant-deleted", event);
-}
+) => Promise<(() => void) | undefined>;
 
-export function registerTenantDeletedCleanup(): void {
+export function registerTenantDeletedCleanup(
+  observe?: TenantDeletionObserver,
+): void {
   RegisterHook(
     Hook.TENANT_DELETED,
     async (tenantId: string, context?: TenantDeletionContext) => {
-      const announced = listenersFor("dms.tenant-deleted").size > 0;
-      const snapshot = announced ? await snapshotTenant(tenantId) : undefined;
+      const announce = observe ? await observe(tenantId, context) : undefined;
       try {
         await cleanupTenantData(tenantId);
       } catch (error) {
@@ -97,7 +54,7 @@ export function registerTenantDeletedCleanup(): void {
         );
         throw error;
       }
-      if (snapshot) announceTenantDeleted(tenantId, snapshot, context);
+      announce?.();
       return undefined;
     },
   );

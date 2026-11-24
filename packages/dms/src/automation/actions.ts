@@ -13,7 +13,6 @@ import {
 import { UserModel } from "@antelopejs/interface-dms/auth/db";
 import type { ActionType } from "@antelopejs/interface-dms-automation";
 import { fieldHint, nodeText, titledProperties } from "./i18n";
-import { MEMBER_ACTIONS } from "./member-actions";
 import { runAsAutomation } from "./origin";
 import { sendNotificationAction } from "./send-notification";
 import { TENANT_ACTIONS } from "./tenants";
@@ -287,5 +286,4 @@ export const ACTIONS: ActionType[] = [
   inviteUserAction,
   ...USER_ACTIONS,
   ...TENANT_ACTIONS,
-  ...MEMBER_ACTIONS,
 ];

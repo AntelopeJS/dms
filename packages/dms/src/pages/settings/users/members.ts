@@ -66,7 +66,7 @@ import {
   announceMemberRemovals,
 } from "./member-change-notifications";
 import { notifyOwnershipChanged } from "../../../hooks";
-import { announceMemberChanges } from "../../../automation/member-events";
+import { announceMemberChanges } from "../../../automation";
 import { notifyMenuAccessChanged } from "../../../implementations/dms/page";
 import { fireAndForget } from "@antelopejs/interface-dms/utils/fire-and-forget";
 

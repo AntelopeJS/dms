@@ -2,6 +2,7 @@ export * from "./settings/users/invite-extension-routes";
 export * from "./settings/users/invite-resend";
 export * from "./settings/users/invites";
 export * from "./settings/users/member-invite-batch";
+export * from "./settings/users/member-actions";
 export * from "./settings/users/member-invite-form";
 export * from "./settings/users/member-management";
 export * from "./settings/users/member-role-options";

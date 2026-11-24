@@ -10,6 +10,7 @@ import {
   isString,
 } from "@antelopejs/interface-dms/utils/internal/type-check";
 import { ACTIONS, TRIGGERS } from "../../automation";
+import { MEMBER_ACTIONS } from "../../pages/members";
 
 export interface ArmedTrigger {
   events: JsonObject[];
@@ -52,7 +53,9 @@ export async function armTrigger(
 }
 
 export function findAction(id: string): ActionType {
-  const action = ACTIONS.find((candidate) => candidate.id === id);
+  const action = [...ACTIONS, ...MEMBER_ACTIONS].find(
+    (candidate) => candidate.id === id,
+  );
   if (!action) throw new Error(`no action ${id}`);
   return action;
 }

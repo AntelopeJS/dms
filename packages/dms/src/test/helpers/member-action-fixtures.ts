@@ -17,7 +17,7 @@ import {
   pauseTenantLifecycleAdmission,
 } from "@antelopejs/interface-dms/tenant-lifecycle";
 import { expect } from "chai";
-import { automationLoopGuard } from "../../automation/loop-guard";
+import { automationLoopGuard } from "../../automation";
 import { resetDatabase } from "./db";
 
 export const TENANT = "automation-member-actions";

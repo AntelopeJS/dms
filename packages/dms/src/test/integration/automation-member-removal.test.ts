@@ -11,7 +11,7 @@ import { expect } from "chai";
 import {
   CANCEL_INVITE_ACTION_ID,
   REMOVE_MEMBER_ACTION_ID,
-} from "../../automation";
+} from "../../pages/members";
 import { armTrigger, runAction } from "../helpers/automation-nodes";
 import {
   addMember,

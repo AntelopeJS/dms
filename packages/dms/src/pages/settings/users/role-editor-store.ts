@@ -31,7 +31,7 @@ import {
   notifyMenuAccessChanged,
 } from "../../../implementations/dms/page";
 import { haveSameMembers, WILDCARD_PERMISSION } from "../../../utils";
-import { announceMemberChanges } from "../../../automation/member-events";
+import { announceMemberChanges } from "../../../automation";
 import { type RoleEditorInput, roleDeleteSchema } from "../../../validation";
 import {
   applyPermissionWarnings,

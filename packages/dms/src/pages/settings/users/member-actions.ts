@@ -10,15 +10,21 @@ import {
   previewMemberRoles,
   removeTenantMember,
   setMemberRoles,
-} from "../pages/settings/users/member-management";
+} from "./member-management";
 import {
   cancelInviteIfPending,
   type InviteCancellation,
   previewInviteCancellation,
-} from "../pages/settings/users/invite-cancel";
-import { actionTenantId, asStep, requireTenant } from "./action-support";
-import { fieldHint, nodeText, titledProperties } from "./i18n";
-import { runAsAutomation } from "./origin";
+} from "./invite-cancel";
+import {
+  actionTenantId,
+  asStep,
+  fieldHint,
+  nodeText,
+  requireTenant,
+  runAsAutomation,
+  titledProperties,
+} from "../../../automation";
 
 const STRINGS = { type: "array", items: { type: "string" } } as const;
 const TENANT_ID_INPUT = { type: "string", maxLength: 128 } as const;
