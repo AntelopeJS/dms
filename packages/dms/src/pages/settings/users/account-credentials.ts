@@ -11,9 +11,8 @@ import { securitySchema } from "../../../validation";
 import { assertCurrentPasswordIfSet } from "./current-password";
 import { findPendingEmail } from "./email-change";
 import {
-  extractSessionClaims,
-  extractSessionId,
   formatSession,
+  type SessionClaims,
   type SessionResponse,
 } from "./profile-helpers";
 import {
@@ -84,8 +83,8 @@ export interface SessionsRevokedResult {
 
 export interface SessionContext {
   sessionModel: SessionModel;
-  /** `Authorization` header: its token names the current session. */
-  authorization: string;
+  /** The caller's session, as its verified token names it. */
+  session: SessionClaims;
 }
 
 export interface PasswordChangeContext extends SessionContext {
@@ -94,14 +93,13 @@ export interface PasswordChangeContext extends SessionContext {
 
 /**
  * @param user The signed-in user
- * @param sessions Session model and the caller's authorization header
+ * @param sessions Session model and the caller's session
  * @returns Sessions, the current one first, then the most recently active
  */
 export async function listSessions(
   user: User,
-  { sessionModel, authorization }: SessionContext,
+  { sessionModel, session: { sessionId: currentSessionId } }: SessionContext,
 ): Promise<SessionResponse[]> {
-  const currentSessionId = extractSessionId(authorization);
   const sessions = await sessionModel.getByUserId(user._id);
   return sessions
     .map((session) => formatSession(session, currentSessionId))
@@ -163,9 +161,9 @@ async function deleteOtherSessions(
 
 async function handOffCurrentSession(
   user: User,
-  { sessionModel, authorization }: SessionContext,
+  { sessionModel, session }: SessionContext,
 ): Promise<SessionHandoff | undefined> {
-  const { sessionId, tenantId } = extractSessionClaims(authorization);
+  const { sessionId, tenantId } = session;
   if (!sessionId || !tenantId) return undefined;
   const token = generateSessionHandoffToken(user, tenantId, sessionId);
   await sessionModel.replaceRefreshToken(sessionId, token);
@@ -179,7 +177,7 @@ async function handOffCurrentSession(
  * caller changed on `user` is saved with the new key.
  *
  * @param user The signed-in user
- * @param context User model, session model and the caller's authorization header
+ * @param context User model, session model and the caller's session
  */
 export async function revokeOtherSessions(
   user: User,
@@ -190,7 +188,7 @@ export async function revokeOtherSessions(
   const count = await deleteOtherSessions(
     user,
     context.sessionModel,
-    extractSessionId(context.authorization),
+    context.session.sessionId,
   );
   const sessionHandoff = await handOffCurrentSession(user, context);
   return { success: true, count, sessionHandoff };

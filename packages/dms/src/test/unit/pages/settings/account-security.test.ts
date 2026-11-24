@@ -6,7 +6,6 @@ import {
   SessionModel,
   type User,
 } from "@antelopejs/interface-dms/auth/db";
-import { sign } from "jsonwebtoken";
 import type { z } from "zod";
 import {
   changePassword,
@@ -37,7 +36,6 @@ const FREE_EMAIL = "camille.laurent@acme.dev";
 const CURRENT_SESSION = "session-current";
 const TENANT_ID = "account-security-tenant";
 const ORIGINAL_AUTH_KEY = "original-auth-key";
-const TOKEN_SIGNING_KEY = "account-security-test";
 const BACKUP_CODE_TOTAL = 10;
 const INVALID_CURRENT_PASSWORD = "error.invalid_current_password";
 
@@ -137,7 +135,7 @@ function buildHarness(password: string | null = "hashed"): Harness {
   };
 }
 
-const authorization = `Bearer ${sign({ sessionId: CURRENT_SESSION, tenantId: TENANT_ID }, TOKEN_SIGNING_KEY)}`;
+const currentSession = { sessionId: CURRENT_SESSION, tenantId: TENANT_ID };
 
 async function refusal(action: Promise<unknown>): Promise<HTTPResult> {
   const outcome = await action.then(
@@ -155,7 +153,7 @@ function passwordChange(
   return changePassword(harness.user, body, {
     userModel: harness.userModel,
     sessionModel: harness.sessionModel,
-    authorization,
+    session: currentSession,
   });
 }
 
@@ -250,7 +248,7 @@ describe("[unit] settings/security — sessions and backup codes", () => {
     const harness = buildHarness();
     const sessions = await listSessions(harness.user, {
       sessionModel: harness.sessionModel,
-      authorization,
+      session: currentSession,
     });
     expect(sessions.map((entry) => entry._id)).to.deep.equal([
       CURRENT_SESSION,
@@ -265,7 +263,7 @@ describe("[unit] settings/security — sessions and backup codes", () => {
     const result = await revokeOtherSessions(harness.user, {
       userModel: harness.userModel,
       sessionModel: harness.sessionModel,
-      authorization,
+      session: currentSession,
     });
     expect(result.count).to.equal(2);
     expect(harness.sessionModel.sessions).to.have.length(1);

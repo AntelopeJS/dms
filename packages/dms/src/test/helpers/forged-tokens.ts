@@ -7,12 +7,12 @@ import {
   UserModel,
 } from "@antelopejs/interface-dms/auth/db";
 import { assert, expect } from "chai";
-import { decode, type JwtPayload, sign } from "jsonwebtoken";
+import { type JwtPayload, sign } from "jsonwebtoken";
 import {
   tokenSecret,
   userTokenMac,
+  verifyUserToken,
 } from "../../implementations/dms-auth/services";
-import { isJwtClaims } from "../../utils";
 
 const TENANT_ID = "forged-claims-tenant";
 
@@ -72,9 +72,9 @@ export function signFor(user: User, claims: JwtPayload): string {
  * `captured` over new `claims`, as someone who knows `jwtSecret` would.
  */
 export function reuseKeyOf(captured: string, claims: JwtPayload): string {
-  const decoded = decode(captured);
-  assert(isJwtClaims(decoded), "captured token carries claims");
-  const key: unknown = decoded.key;
+  const verified = verifyUserToken(captured);
+  assert(verified, "captured token carries claims");
+  const key: unknown = verified.key;
   return sign({ tenantId: TENANT_ID, ...claims, key }, tokenSecret(), {
     expiresIn: TOKEN_LIFETIME_SECONDS * 24,
   });
@@ -85,9 +85,9 @@ export function reuseKeyOf(captured: string, claims: JwtPayload): string {
  * `overrides` applied, as someone who knows `jwtSecret` would.
  */
 export function resign(token: string, overrides: JwtPayload = {}): string {
-  const decoded = decode(token);
-  assert(isJwtClaims(decoded), "token carries claims");
-  const reversed = Object.fromEntries(Object.entries(decoded).reverse());
+  const claims = verifyUserToken(token);
+  assert(claims, "token carries claims");
+  const reversed = Object.fromEntries(Object.entries(claims).reverse());
   return sign({ ...reversed, ...overrides }, tokenSecret());
 }
 

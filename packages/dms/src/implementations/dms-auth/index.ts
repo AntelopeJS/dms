@@ -12,13 +12,12 @@ import { getErrorMessage } from "@antelopejs/interface-dms/base/types";
 import { GenerateHtml } from "@antelopejs/interface-dms/html-render";
 export * from "./account-emails";
 import { AdminInviteTemplate } from "./email-templates";
-import type { decode, JwtPayload } from "jsonwebtoken";
+import type { JwtPayload } from "jsonwebtoken";
 import { getAuthConfig, getClientBaseUrl, getConfig } from "../../config";
 import {
   type AdminInviteEmailNames,
   buildAdminInviteSignupLink,
   buildAdminInviteSubject,
-  decodeUnverified,
   resolveAdminInviteLanguage,
   recordUserActivity,
 } from "../../utils";
@@ -26,7 +25,13 @@ import {
   isObject,
   isString,
 } from "@antelopejs/interface-dms/utils/internal/type-check";
-import { loadTokenUser, signUserToken, verifyUserToken } from "./token-secret";
+import {
+  loadTokenUser,
+  signUserToken,
+  type VerifiedSessionClaims,
+  verifiedSessionClaims,
+  verifyUserToken,
+} from "./token-secret";
 import { assertTokenSessionAlive, loadTokenSession } from "./token-session";
 import { DatabaseUnavailable, readBeforeDeadline } from "./database-deadline";
 import { INVITE_EXPIRY_DAYS } from "@antelopejs/interface-dms/invites";
@@ -98,16 +103,10 @@ async function validateUserToken(
   return user;
 }
 
-interface DecodedAuthPayload {
-  tenantId: string;
-  id: string;
-  sessionId: string;
-}
-
 function isSessionPayload(
   payload: string | JwtPayload,
   purpose: string,
-): payload is JwtPayload & DecodedAuthPayload {
+): payload is JwtPayload & VerifiedSessionClaims {
   return (
     !isString(payload) &&
     payload.purpose === purpose &&
@@ -118,28 +117,6 @@ function isSessionPayload(
     isString(payload.sessionId) &&
     !!payload.sessionId
   );
-}
-
-function isDecodedAuthPayload(
-  claims: ReturnType<typeof decode>,
-): claims is JwtPayload & DecodedAuthPayload {
-  return (
-    claims !== null &&
-    !isString(claims) &&
-    isString(claims.id) &&
-    isString(claims.tenantId) &&
-    isString(claims.sessionId)
-  );
-}
-
-/**
- * The claims of a bearer token, read without verifying its signature, or
- * `undefined` when they do not name a user and a tenant: the validator then
- * verifies the token they came with.
- */
-function decodedClaims(token: string): DecodedAuthPayload | undefined {
-  const claims = decodeUnverified(token);
-  return isDecodedAuthPayload(claims) ? claims : undefined;
 }
 
 /**
@@ -154,7 +131,7 @@ function decodedClaims(token: string): DecodedAuthPayload | undefined {
 async function verifiedSession(
   token: string,
   purpose: string,
-): Promise<{ claims: DecodedAuthPayload; user: User }> {
+): Promise<{ claims: VerifiedSessionClaims; user: User }> {
   const claims = verifyUserToken(token);
   if (!claims || !isSessionPayload(claims, purpose)) {
     throw new HTTPResult(HTTP_UNAUTHORIZED, INVALID_SESSION_TOKEN_ERROR);
@@ -171,7 +148,7 @@ export namespace internal {
     if (!data) {
       throw new HTTPResult(HTTP_UNAUTHORIZED, NO_JWT_TOKEN_ERROR);
     }
-    const result = decodedClaims(data);
+    const result = verifiedSessionClaims(data);
     if (!result) {
       throw new HTTPResult(HTTP_UNAUTHORIZED, INVALID_SESSION_TOKEN_ERROR);
     }
@@ -182,7 +159,7 @@ export namespace internal {
   };
 
   export const IfAuthUserAuthenticator = (data: string | undefined) => {
-    const result = data ? decodedClaims(data) : undefined;
+    const result = data ? verifiedSessionClaims(data) : undefined;
     return data && result ? { ...result, rawToken: data } : undefined;
   };
 
@@ -353,15 +330,10 @@ interface VerifiedPurposeToken {
 }
 
 function isPurposeClaims(
-  claims: ReturnType<typeof decode>,
+  claims: JwtPayload | null,
   purpose: string,
 ): claims is JwtPayload & PurposeTokenClaims {
-  return (
-    claims !== null &&
-    !isString(claims) &&
-    claims.purpose === purpose &&
-    isString(claims.id)
-  );
+  return claims !== null && claims.purpose === purpose && isString(claims.id);
 }
 
 async function verifyPurposeToken(
