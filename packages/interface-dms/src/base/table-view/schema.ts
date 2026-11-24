@@ -426,25 +426,22 @@ export const TableViewSchema = z.object({
   ),
   liveHold: ui(
     z
-      .union([
-        z.boolean(),
-        z.object({
-          whileOnScreen: z.boolean().optional(),
-          whileRowOpen: z.boolean().optional(),
-          whileScrolled: z.boolean().optional(),
-          whileSearching: z.boolean().optional(),
-          whileSorted: z.boolean().optional(),
-          missedLabel: z.string().optional(),
-        }),
-      ])
+      .object({
+        whileOnScreen: z.boolean(),
+        whileRowOpen: z.boolean().optional(),
+        whileScrolled: z.boolean().optional(),
+        whileSearching: z.boolean().optional(),
+        whileSorted: z.boolean().optional(),
+        missedLabel: z.string().optional(),
+      })
       .optional()
       .describe(
-        "On a live page, keeps the rows while paused or on screen and shows what is new over them; `whileOnScreen: false` lets them follow the feed while on screen, `{ whileRowOpen, whileScrolled, whileSearching, whileSorted }` also names why it holds in Direct, `missedLabel` words the new rows.",
+        "On a live page, keeps the rows while paused and shows what is new over them; `whileOnScreen` says whether it also holds them while on screen in Direct (`true`) or lets them follow the feed (`false`), `{ whileRowOpen, whileScrolled, whileSearching, whileSorted }` also names why it holds in Direct, `missedLabel` words the new rows.",
       ),
     {
-      label: "Hold rows while paused",
+      label: "Hold rows on a live page",
       group: "data",
-      widget: "switch",
+      widget: "json",
       advanced: true,
     },
   ),

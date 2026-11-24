@@ -49,8 +49,11 @@ export type PageLiveNoteInput = string | PageLiveNote;
  * holds its rows while its page is live.
  */
 export interface TableViewLiveHoldOptions {
-  /** While its rows are on screen or scrolled past. Defaults to true. */
-  whileOnScreen?: boolean;
+  /**
+   * Whether it holds its rows while they are on screen or scrolled past
+   * (`true`), or follows the feed there (`false`).
+   */
+  whileOnScreen: boolean;
   /** While one of its rows is open in a row action's side panel or drawer. */
   whileRowOpen?: boolean;
   /** While the user has scrolled its first row out of view. */

@@ -64,8 +64,8 @@ export interface TableNewRowsCounter {
 }
 
 export interface TableLiveHoldOptions {
-  /** The table's `liveHold`: `true` or an object enables it. */
-  liveHold: boolean | TableViewLiveHoldOptions | undefined;
+  /** The table's `liveHold`: its options enable it. */
+  liveHold: TableViewLiveHoldOptions | undefined;
   /** A `TableView.fromSource` table: its route receives the hold's bound. */
   isSource: boolean;
   /**
@@ -107,19 +107,12 @@ const NO_QUERY: Query = {};
 const NEVER = () => false;
 const NO_ELEMENT = () => null;
 
-function holdOptionsOf(
-  liveHold: TableLiveHoldOptions["liveHold"],
-): TableViewLiveHoldOptions | null {
-  if (!liveHold) return null;
-  return liveHold === true ? {} : liveHold;
-}
-
 function useLocalHold(
   holdOptions: TableViewLiveHoldOptions | null,
   signals: TableLiveHoldSignals,
 ): ComputedRef<LocalHoldReason | null> {
   const element = signals.tableElement ?? NO_ELEMENT;
-  const holdsOnScreen = !!holdOptions && holdOptions.whileOnScreen !== false;
+  const holdsOnScreen = holdOptions?.whileOnScreen === true;
   const isScrolled = useScrolledPastTop(element, !!holdOptions?.whileScrolled);
   const isReached = useTableReached(element, holdsOnScreen);
   const reasons: Array<[LocalHoldReason, boolean, () => boolean]> = [
@@ -139,7 +132,7 @@ function useLocalHold(
 /**
  * The `liveHold` of a table view: while its live page is paused, while its
  * rows are on screen or scrolled past (rows landing at the top would move
- * them; not with `whileOnScreen: false`) — or, with `whileRowOpen` / `whileSearching` / `whileSorted` /
+ * them; only with `whileOnScreen: true`) — or, with `whileRowOpen` / `whileSearching` / `whileSorted` /
  * `whileScrolled`, saying so, while the user reads a row, searches, sorts or
  * scrolled down — the table keeps its rows: the gate requests nothing on its events and counts them, and a
  * source route is told the moment they were frozen, so the user's own
@@ -151,7 +144,7 @@ function useLocalHold(
  */
 export function useTableLiveHold(options: TableLiveHoldOptions): TableLiveHold {
   const { isEnabled, isPaused, missedDetail } = usePageLive();
-  const holdOptions = holdOptionsOf(options.liveHold);
+  const holdOptions = options.liveHold ?? null;
   const localReason = useLocalHold(holdOptions, options.signals ?? {});
   const isLocallyHeld = computed(() => localReason.value !== null);
   const isHolding = computed(

@@ -328,7 +328,7 @@ export const EMPTY_STATES_AND_REALTIME: PlaygroundFeature[] = [
   ),
   feature(
     "Table held while a row is open, a search or a sort is on",
-    "liveHold: { whileRowOpen, whileSearching, whileSorted, missedLabel }",
+    "liveHold: { whileOnScreen, whileRowOpen, whileSearching, whileSorted, missedLabel }",
     PAGES.requestLog,
     REQUEST_LOG_GAPS,
   ),

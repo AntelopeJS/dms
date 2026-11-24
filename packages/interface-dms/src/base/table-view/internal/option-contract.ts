@@ -109,7 +109,7 @@ export interface TableViewOptionsSerialized extends Omit<
 }
 
 /**
- * When a `liveHold` table also holds its rows while its live page is in
+ * What makes a `liveHold` table hold its rows while its live page is in
  * Direct: the table alone keeps them and counts its events into the
  * "N new · Show" banner, the other blocks of the page staying live. The
  * banner says why the table holds ("Table on hold · search active"). It reads
@@ -117,13 +117,14 @@ export interface TableViewOptionsSerialized extends Omit<
  */
 export interface TableViewLiveHoldOptions {
   /**
-   * While its rows are on screen or scrolled past: a new row landing at the
-   * top would push down the rows the user reads, so the new ones wait behind
-   * the "N new · Show" pill. `false` lets the table follow its feed while its
-   * page is in Direct, holding only while paused or for a reason it names.
-   * Defaults to true.
+   * Whether the table holds its rows while they are on screen or scrolled
+   * past. `true`: a new row landing at the top would push down the rows the
+   * user reads, so the new ones wait behind the "N new · Show" pill. `false`:
+   * the table follows its feed while its page is in Direct, holding only while
+   * paused or for a reason it names. It has no default, so each table says
+   * which one it wants.
    */
-  whileOnScreen?: boolean;
+  whileOnScreen: boolean;
   /**
    * While one of its rows is open in a row action's side panel or drawer.
    * Defaults to false.
@@ -347,15 +348,17 @@ export interface TableViewOptions<
    * paused, so it can answer the rows as they stood then; a data controller's
    * rows are held against the realtime only. Ignored on a page without `live`.
    *
-   * An object also names why the table holds, the rest of the page staying
-   * live, in more cases (see {@link TableViewLiveHoldOptions}); `true` and
-   * `{}` hold it while the page is paused or its rows are on screen.
+   * It always holds while the page is paused. `whileOnScreen` is required and
+   * says whether the page in Direct holds the table too while its rows are on
+   * screen (`true`) or lets it follow the feed (`false`). The other options
+   * name more cases, the rest of the page staying live (see
+   * {@link TableViewLiveHoldOptions}).
    *
    * ```ts
-   * liveHold: { whileRowOpen: true, whileScrolled: true, whileSearching: true }
+   * liveHold: { whileOnScreen: true, whileRowOpen: true, whileScrolled: true }
    * ```
    */
-  liveHold?: boolean | TableViewLiveHoldOptions;
+  liveHold?: TableViewLiveHoldOptions;
   /**
    * Enable the kanban display mode for this collection. When set, users can
    * switch between the table and a kanban board from the toolbar.

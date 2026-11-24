@@ -14463,47 +14463,38 @@
           }
         },
         "liveHold": {
-          "type": "union",
-          "oneOf": [
-            {
+          "type": "object",
+          "properties": {
+            "whileOnScreen": {
               "type": "boolean"
             },
-            {
-              "type": "object",
-              "properties": {
-                "whileOnScreen": {
-                  "type": "boolean",
-                  "optional": true
-                },
-                "whileRowOpen": {
-                  "type": "boolean",
-                  "optional": true
-                },
-                "whileScrolled": {
-                  "type": "boolean",
-                  "optional": true
-                },
-                "whileSearching": {
-                  "type": "boolean",
-                  "optional": true
-                },
-                "whileSorted": {
-                  "type": "boolean",
-                  "optional": true
-                },
-                "missedLabel": {
-                  "type": "string",
-                  "optional": true
-                }
-              }
+            "whileRowOpen": {
+              "type": "boolean",
+              "optional": true
+            },
+            "whileScrolled": {
+              "type": "boolean",
+              "optional": true
+            },
+            "whileSearching": {
+              "type": "boolean",
+              "optional": true
+            },
+            "whileSorted": {
+              "type": "boolean",
+              "optional": true
+            },
+            "missedLabel": {
+              "type": "string",
+              "optional": true
             }
-          ],
+          },
           "optional": true,
-          "description": "On a live page, keeps the rows while paused or on screen and shows what is new over them; `whileOnScreen: false` lets them follow the feed while on screen, `{ whileRowOpen, whileScrolled, whileSearching, whileSorted }` also names why it holds in Direct, `missedLabel` words the new rows.",
+          "description": "On a live page, keeps the rows while paused and shows what is new over them; `whileOnScreen` says whether it also holds them while on screen in Direct (`true`) or lets them follow the feed (`false`), `{ whileRowOpen, whileScrolled, whileSearching, whileSorted }` also names why it holds in Direct, `missedLabel` words the new rows.",
           "ui": {
-            "label": "Hold rows while paused",
+            "label": "Hold rows on a live page",
             "group": "data",
-            "widget": "switch",
+            "widget": "json",
             "advanced": true
           }
         },

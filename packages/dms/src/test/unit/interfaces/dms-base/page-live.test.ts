@@ -72,10 +72,10 @@ describe("[unit] interfaces/dms-base — page live mode, table sources and caden
         fetchUrl: "/api/request-log",
         columns: { path: { name: "Path", type: STRING } },
         realtimeTopic: "api:requests",
-        liveHold: true,
+        liveHold: { whileOnScreen: false },
       }).serializeSync().options,
     );
-    expect(options.liveHold).to.equal(true);
+    expect(options.liveHold).to.deep.equal({ whileOnScreen: false });
     expect(options.realtimeTopic).to.equal("api:requests");
   });
   it("carries the slower cadence and the shared remember key to the browser", () => {
@@ -112,10 +112,15 @@ describe("[unit] interfaces/dms-base — page live mode, table sources and caden
         fetchUrl: "/api/request-log",
         columns: { path: { name: "Path", type: STRING } },
         realtimeTopic: "api:requests",
-        liveHold: { whileRowOpen: true, whileScrolled: true },
+        liveHold: {
+          whileOnScreen: true,
+          whileRowOpen: true,
+          whileScrolled: true,
+        },
       }).serializeSync().options,
     );
     expect(options.liveHold).to.deep.equal({
+      whileOnScreen: true,
       whileRowOpen: true,
       whileScrolled: true,
     });
