@@ -92,6 +92,37 @@ export function verifyUserToken(token: string): JwtPayload | null {
   }
 }
 
+/** The user, tenant and session an access or refresh token names. */
+export interface VerifiedSessionClaims {
+  id: string;
+  tenantId: string;
+  sessionId: string;
+}
+
+function isSessionClaims(
+  claims: JwtPayload,
+): claims is JwtPayload & VerifiedSessionClaims {
+  return (
+    isString(claims.id) &&
+    isString(claims.tenantId) &&
+    isString(claims.sessionId)
+  );
+}
+
+/**
+ * The claims of `token` once its signature checks out, when they name a user,
+ * a tenant and a session, or `undefined`. Reads no account: the session, the
+ * user and the `key` MAC are still to check.
+ *
+ * @param token The token as the client sent it
+ */
+export function verifiedSessionClaims(
+  token: string,
+): (JwtPayload & VerifiedSessionClaims) | undefined {
+  const claims = verifyUserToken(token);
+  return claims && isSessionClaims(claims) ? claims : undefined;
+}
+
 function sameMac(
   authKey: string,
   claims: JwtPayload,

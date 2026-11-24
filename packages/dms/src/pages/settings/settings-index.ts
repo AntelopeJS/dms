@@ -1,9 +1,4 @@
-import {
-  Context,
-  Get,
-  Parameter,
-  type RequestContext,
-} from "@antelopejs/interface-api";
+import { Context, Get, type RequestContext } from "@antelopejs/interface-api";
 import type { User } from "@antelopejs/interface-dms/auth/db";
 import { ActivityFeed } from "@antelopejs/interface-dms/base/activity-feed";
 import type { ActivityFeedItem } from "@antelopejs/interface-dms/base/activity-feed";
@@ -29,7 +24,7 @@ import {
 } from "./overview/account-summary";
 import { ACCOUNT_ACTIVITY_LIMIT } from "./users/account-activity";
 import { userCategory } from "./users/category";
-import { extractSessionId } from "./users/profile-helpers";
+import { extractSessionClaims } from "./users/profile-helpers";
 
 const TEXTS = "$page.settings.overview";
 const SETTINGS_PATH = "/settings";
@@ -112,12 +107,11 @@ export class SettingsIndexPage extends settingsCategory {
   @Get("activity")
   getActivity(
     @Context() context: RequestContext,
-    @Parameter("authorization", "header") authorization: string,
   ): Promise<BlockItems<ActivityFeedItem>> {
     return loadOverviewActivity(
       this.user,
       getRequestTenantId(context),
-      extractSessionId(authorization),
+      extractSessionClaims(context).sessionId,
     );
   }
 }

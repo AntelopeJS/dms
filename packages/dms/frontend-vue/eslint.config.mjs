@@ -17,5 +17,18 @@ export default antelopeNuxtConfig().append({
   rules: {
     "no-undef": "error",
     "vue/attributes-order": "error",
+    "no-restricted-imports": [
+      "error",
+      {
+        paths: [
+          {
+            name: "jsonwebtoken",
+            importNames: ["decode", "default"],
+            message:
+              "decode() reads a forged token. Take the claims from verifiedSessionClaims() or from the route guard request context.",
+          },
+        ],
+      },
+    ],
   },
 });

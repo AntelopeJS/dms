@@ -1,7 +1,7 @@
 import { assert, expect } from "chai";
-import { decode } from "jsonwebtoken";
-import type { JwtPayload } from "jsonwebtoken";
+import { type JwtPayload, verify } from "jsonwebtoken";
 import { applyConfig, getHtmlRenderConfig } from "../../../../config";
+import { isJwtClaims } from "../../../../utils";
 import { generateServiceToken } from "../../../../implementations/dms-html-render/services";
 
 const RENDER_TOKEN_LIFETIME_SECONDS = 5 * 60;
@@ -17,8 +17,11 @@ function decodeServiceToken(serviceTokenLifetime: number): ServiceTokenClaims {
   applyConfig({
     htmlRender: { ...getHtmlRenderConfig(), serviceTokenLifetime },
   });
-  const claims = decode(generateServiceToken(), { json: true });
-  assert.isNotNull(claims);
+  const claims = verify(
+    generateServiceToken(),
+    getHtmlRenderConfig().serviceSecret,
+  );
+  assert(isJwtClaims(claims), "the service token carries claims");
   assert.isDefined(claims.iat);
   assert.isDefined(claims.exp);
   return { ...claims, iat: claims.iat, exp: claims.exp };

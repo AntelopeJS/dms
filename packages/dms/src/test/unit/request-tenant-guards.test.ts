@@ -6,7 +6,8 @@ import {
 } from "@antelopejs/interface-api";
 import { GetMetadata } from "@antelopejs/interface-core";
 import { DEFAULT_TENANT_ID } from "@antelopejs/interface-dms/constants";
-import { decode, sign } from "jsonwebtoken";
+import { sign } from "jsonwebtoken";
+import { verifyUserToken } from "../../implementations/dms-auth/services";
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import { assert, expect } from "chai";
 import { TenantMemberModel } from "@antelopejs/interface-dms/db";
@@ -73,9 +74,9 @@ async function refusalOf<T>(
 
 /** A token claiming `tenantId`, signed with a key the DMS never issued. */
 function forgedToken(genuine: string, tenantId: string): string {
-  const decoded = decode(genuine, { json: true });
-  assert.isNotNull(decoded, "the genuine token decodes to claims");
-  const { iat: _iat, exp: _exp, ...claims } = decoded;
+  const verified = verifyUserToken(genuine);
+  assert.isNotNull(verified, "the genuine token verifies to claims");
+  const { iat: _iat, exp: _exp, ...claims } = verified;
   return sign({ ...claims, tenantId }, "not-the-user-secret");
 }
 

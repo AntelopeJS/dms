@@ -3,11 +3,8 @@ import { assert } from "@antelopejs/interface-api-util";
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import { fireAndForget } from "@antelopejs/interface-dms/utils/fire-and-forget";
 import { SignInAttemptsModel, type TwoFactorTries } from "../../db/models";
-import {
-  decodeUnverified,
-  isJwtClaims,
-  notifyTwoFactorLockout,
-} from "../../utils";
+import { notifyTwoFactorLockout } from "../../utils";
+import { verifyUserToken } from "../../implementations/dms-auth/services";
 import { isString } from "@antelopejs/interface-dms/utils/internal/type-check";
 import { ATTEMPT_RETENTION_MS } from "../../hooks";
 
@@ -39,12 +36,8 @@ export const TWO_FACTOR_WINDOW_MS = 60 * MS_PER_MINUTE;
  * token's `key` MAC binds, so a re-signed copy cannot open a new challenge.
  */
 function challengeKey(token: string): string {
-  const claims = decodeUnverified(token);
-  assert(
-    isJwtClaims(claims) && isString(claims.jti),
-    HTTP_UNAUTHORIZED,
-    INVALID_TWO_FACTOR_TOKEN,
-  );
+  const claims = verifyUserToken(token);
+  assert(isString(claims?.jti), HTTP_UNAUTHORIZED, INVALID_TWO_FACTOR_TOKEN);
   return createHash("sha256").update(claims.jti).digest("hex");
 }
 

@@ -8,6 +8,7 @@ import {
   validateTwoFactorToken,
 } from "../../implementations/dms-auth";
 import { validateSessionHandoffToken } from "../../implementations/dms-auth/services";
+import { extractSessionClaims } from "../../pages/account";
 import {
   EXPIRED,
   forge,
@@ -18,6 +19,7 @@ import {
   signFor,
   UNKNOWN_USER_ID,
 } from "../helpers/forged-tokens";
+import { requestContextFixture } from "../helpers/request-context";
 
 const SESSION_ID = "signed-session";
 
@@ -82,6 +84,35 @@ describe("[unit] auth forged claims", () => {
     expect(internal.IfAuthUserAuthenticator(MALFORMED_PAYLOAD_TOKEN)).to.equal(
       undefined,
     );
+  });
+
+  it("hands the auth guards no claims from a token signed with another key", async () => {
+    const forged = forge({
+      id: user._id,
+      sessionId: SESSION_ID,
+      purpose: "access",
+    });
+    expect(internal.IfAuthUserAuthenticator(forged)).to.equal(undefined);
+    expect(
+      await refusalOf(async () => internal.AuthUserAuthenticator(forged)),
+    ).to.deep.equal({
+      status: HTTP_UNAUTHORIZED,
+      body: "Invalid session token",
+    });
+  });
+
+  it("names no session for a request whose token is signed with another key", () => {
+    const forged = forge({ id: user._id, sessionId: SESSION_ID });
+    const signed = signFor(user, { sessionId: SESSION_ID, purpose: "access" });
+    expect(
+      extractSessionClaims(
+        requestContextFixture(undefined, `Bearer ${forged}`),
+      ),
+    ).to.deep.equal({ sessionId: undefined, tenantId: undefined });
+    expect(
+      extractSessionClaims(requestContextFixture(undefined, `Bearer ${signed}`))
+        .sessionId,
+    ).to.equal(SESSION_ID);
   });
 
   it("answers every refresh token it refuses before trusting its claims the same 401", async () => {

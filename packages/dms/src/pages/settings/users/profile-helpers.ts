@@ -1,4 +1,5 @@
 import crypto from "node:crypto";
+import type { RequestContext } from "@antelopejs/interface-api";
 import { assert } from "@antelopejs/interface-api-util";
 import type { AttachmentField } from "@antelopejs/interface-dms/attachments";
 import {
@@ -13,11 +14,9 @@ import {
   type UserModel,
 } from "@antelopejs/interface-dms/auth/db";
 import { DefaultDataTypes } from "@antelopejs/interface-dms/base/data-types/default-types";
-import { isString } from "@antelopejs/interface-dms/utils/internal/type-check";
 import { generateKey } from "2fa";
-import { decode } from "jsonwebtoken";
 import randomstring from "randomstring";
-import { isJwtClaims } from "../../../utils";
+import { verifiedSessionClaims } from "../../../implementations/dms-auth/services";
 
 export const BACKUP_CODE_COUNT = 10;
 const BACKUP_CODE_LENGTH = 8;
@@ -175,22 +174,15 @@ export interface SessionClaims {
 }
 
 /**
- * Reads the claims of the bearer token in an `Authorization` header. Not a
- * verification: the route guard has already checked the token.
+ * The session and tenant of the request's bearer token, read once its
+ * signature checks out: the token the route guard has verified in full.
+ *
+ * @param ctx The request the route guard authenticated
  */
-export function extractSessionClaims(authorization: string): SessionClaims {
-  const token = authorization?.split(" ")[1];
-  if (!token) return {};
-  const claims = decode(token);
-  if (!isJwtClaims(claims)) return {};
-  return {
-    sessionId: isString(claims.sessionId) ? claims.sessionId : undefined,
-    tenantId: isString(claims.tenantId) ? claims.tenantId : undefined,
-  };
-}
-
-export function extractSessionId(authorization: string): string | undefined {
-  return extractSessionClaims(authorization).sessionId;
+export function extractSessionClaims(ctx: RequestContext): SessionClaims {
+  const token = ctx.rawRequest.headers.authorization?.split(" ")[1];
+  const claims = token ? verifiedSessionClaims(token) : undefined;
+  return { sessionId: claims?.sessionId, tenantId: claims?.tenantId };
 }
 
 interface SessionRecord {

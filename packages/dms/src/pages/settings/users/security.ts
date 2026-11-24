@@ -1,9 +1,11 @@
 import {
+  Context,
   Delete,
   Get,
   JSONBody,
   Parameter,
   Post,
+  type RequestContext,
 } from "@antelopejs/interface-api";
 import { assertValidation } from "@antelopejs/interface-api-util";
 import { Model } from "@antelopejs/interface-database-decorators";
@@ -24,6 +26,7 @@ import {
   revokeSession,
 } from "./account-credentials";
 import { userCategory } from "./category";
+import { extractSessionClaims } from "./profile-helpers";
 import {
   cancelEmailChange,
   confirmEmailChange,
@@ -98,7 +101,7 @@ export class SecuritySettingsController extends PageController("security", {
     @JSONBody() body: unknown,
     @Model(UserModel) userModel: UserModel,
     @Model(SessionModel) sessionModel: SessionModel,
-    @Parameter("authorization", "header") authorization: string,
+    @Context() context: RequestContext,
   ) {
     return changePassword(
       this.user,
@@ -108,7 +111,7 @@ export class SecuritySettingsController extends PageController("security", {
       {
         userModel,
         sessionModel,
-        authorization,
+        session: extractSessionClaims(context),
       },
     );
   }
@@ -247,21 +250,24 @@ export class SecuritySettingsController extends PageController("security", {
   @Get("/sessions")
   getSessions(
     @Model(SessionModel) sessionModel: SessionModel,
-    @Parameter("authorization", "header") authorization: string,
+    @Context() context: RequestContext,
   ) {
-    return listSessions(this.user, { sessionModel, authorization });
+    return listSessions(this.user, {
+      sessionModel,
+      session: extractSessionClaims(context),
+    });
   }
 
   @Delete("/other-sessions")
   revokeOtherSessions(
     @Model(UserModel) userModel: UserModel,
     @Model(SessionModel) sessionModel: SessionModel,
-    @Parameter("authorization", "header") authorization: string,
+    @Context() context: RequestContext,
   ) {
     return revokeOtherSessions(this.user, {
       userModel,
       sessionModel,
-      authorization,
+      session: extractSessionClaims(context),
     });
   }
 

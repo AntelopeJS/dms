@@ -84,6 +84,17 @@ const INTERFACE_ROOT_PATTERNS = [
   },
 ];
 
+/**
+ * A token's claims are read only once its signature checks out. The default
+ * import is banned too: `jwt.decode()` reaches the same function.
+ */
+const JWT_DECODE = {
+  name: "jsonwebtoken",
+  importNames: ["decode", "default"],
+  message:
+    "decode() reads a forged token. Take the claims from verifiedSessionClaims() or from the route guard request context.",
+};
+
 /** A discarded promise must handle its own rejection before it reaches Node. */
 const FLOATING_PROMISES = ["error", { ignoreVoid: false }] as const;
 
@@ -118,6 +129,7 @@ export default defineConfig({
   },
   rules: {
     "typescript/no-floating-promises": FLOATING_PROMISES,
+    "eslint/no-restricted-imports": ["error", { paths: [JWT_DECODE] }],
   },
   overrides: [
     {
@@ -125,7 +137,10 @@ export default defineConfig({
       rules: {
         "eslint/no-restricted-imports": [
           "error",
-          { paths: DMS_ROOT_PATHS, patterns: DMS_ROOT_PATTERNS },
+          {
+            paths: [...DMS_ROOT_PATHS, JWT_DECODE],
+            patterns: DMS_ROOT_PATTERNS,
+          },
         ],
       },
     },
@@ -134,7 +149,10 @@ export default defineConfig({
       rules: {
         "eslint/no-restricted-imports": [
           "error",
-          { paths: INTERFACE_ROOT_PATHS, patterns: INTERFACE_ROOT_PATTERNS },
+          {
+            paths: [...INTERFACE_ROOT_PATHS, JWT_DECODE],
+            patterns: INTERFACE_ROOT_PATTERNS,
+          },
         ],
       },
     },
