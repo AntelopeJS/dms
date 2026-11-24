@@ -133,6 +133,10 @@ export interface TableViewExpandableField {
   key: string;
   /** Label shown instead of the column's name (`$`-prefixed: i18n key). */
   label?: string;
+  /** The value takes the whole width, wraps and is shown in full. */
+  fullWidth?: boolean;
+  /** Leaves the field out of a row with no value for it. */
+  hideEmpty?: boolean;
 }
 
 /**

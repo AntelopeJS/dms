@@ -12,6 +12,10 @@ export const CascaderPath = defineAsyncComponent(
   () => import("../../../components/table-view/CascaderPath.vue"),
 );
 
+export const RepeaterTable = defineAsyncComponent(
+  () => import("../../../components/form/components/RepeaterTable.vue"),
+);
+
 export const DisplayRichText = defineAsyncComponent(
   () => import("../../../components/form/components/DisplayRichText.vue"),
 );

@@ -1,3 +1,5 @@
+import type { RepeaterTableColumn } from "./repeaterTable";
+
 /** A pair as the key-value editor shows it: a row of the repeater. */
 export interface KeyValueRow {
   key?: string;
@@ -6,12 +8,22 @@ export interface KeyValueRow {
   enabled?: boolean;
 }
 
+/** The options of a key-value editor its columns come from. */
+export interface KeyValueColumnOptions {
+  value: Pick<RepeaterTableColumn, "type" | "component">;
+  toggleable?: boolean;
+  keyLabel?: string;
+  valueLabel?: string;
+}
+
 /** A pair's value in a `toggleable` editor. */
 interface ToggledValue {
   value: unknown;
   enabled: boolean;
 }
 
+const KEY_COMPONENT = { componentName: "dms-input-text" };
+const TOGGLE_COMPONENT = { componentName: "dms-input-checkbox" };
 const KEY_MISSING = "$dms.field_errors.key_missing";
 const KEY_DUPLICATE = "$dms.field_errors.key_duplicate";
 
@@ -20,6 +32,30 @@ const isBlank = (value: KeyValueRow["value"]): boolean =>
   value === undefined || value === null || value === "";
 const isUnfilled = (row: KeyValueRow): boolean =>
   !nameOf(row) && isBlank(row.value);
+
+/** The columns of a key-value list: the box of a `toggleable` one, the name, the value. */
+export function keyValueColumns(
+  options: KeyValueColumnOptions,
+  t: (key: string) => string,
+): RepeaterTableColumn[] {
+  return [
+    ...(options.toggleable
+      ? [{ id: "enabled", type: "boolean", component: TOGGLE_COMPONENT }]
+      : []),
+    {
+      id: "key",
+      label: options.keyLabel || t("dms.form.key_value.key"),
+      type: "string",
+      component: KEY_COMPONENT,
+    },
+    {
+      id: "value",
+      label: options.valueLabel || t("dms.form.key_value.value"),
+      type: options.value.type,
+      component: options.value.component,
+    },
+  ];
+}
 
 /** The rows of a key-value object, in its order. */
 export function keyValueRows(

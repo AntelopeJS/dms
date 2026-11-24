@@ -1,6 +1,9 @@
 import { h, type VNodeChild } from "vue";
 import { get } from "@nuxt/ui/runtime/utils/index.js";
-import type { DataTypeFormatter } from "#dms-core/app/composables/data-types/useDataType";
+import type {
+  DataType,
+  DataTypeFormatter,
+} from "#dms-core/app/composables/data-types/useDataType";
 import { isNumber, isString } from "#dms-core/app/utils/type-check";
 import { childOf } from "./cellHelpers";
 
@@ -37,8 +40,19 @@ const DATE_CELL_CLASS = "font-mono text-xs text-muted tabular-nums";
 const DEFAULT_FALLBACK = "-";
 const DETAIL_FALLBACK = "—";
 
-/** Where a value is drawn: a grid cell gets the `cell` formatter first. */
-export type ColumnValueSurface = "cell" | "detail";
+/**
+ * Where a value is drawn: a grid cell gets the `cell` formatter first, a place
+ * that shows the whole value gets the `full` one.
+ */
+export type ColumnValueSurface = "cell" | "detail" | "full";
+
+function formatterFor(
+  formatter: DataType["formatter"],
+  surface: ColumnValueSurface,
+): DataTypeFormatter | undefined {
+  const own = surface === "detail" ? undefined : formatter?.[surface];
+  return own ?? formatter?.default;
+}
 
 function renderEmptyFallback(
   options: ResolvedColumnRenderer["options"],
@@ -47,7 +61,7 @@ function renderEmptyFallback(
 ): VNodeChild {
   const fallback =
     childOf(options?.fallback) ??
-    (surface === "detail" ? DETAIL_FALLBACK : DEFAULT_FALLBACK);
+    (surface === "cell" ? DEFAULT_FALLBACK : DETAIL_FALLBACK);
   return isNumeric
     ? h("span", { class: NUMERIC_EMPTY_CELL_CLASS }, fallback)
     : fallback;
@@ -88,7 +102,7 @@ export function useColumnValueRenderer() {
     surface: ColumnValueSurface = "cell",
   ): VNodeChild => {
     const { typeId, options } = resolveRenderer(column);
-    const isNumeric = isNumericColumn(column);
+    const isNumeric = surface !== "full" && isNumericColumn(column);
     const formatter = typeId ? getDataType(typeId)?.formatter : undefined;
 
     if (value === null || value === undefined) {
@@ -98,8 +112,7 @@ export function useColumnValueRenderer() {
       return renderEmptyFallback(options, surface, isNumeric);
     }
 
-    const format =
-      (surface === "cell" ? formatter?.cell : undefined) ?? formatter?.default;
+    const format = formatterFor(formatter, surface);
     const formatted = format
       ? format(value, locale.value, options, row)
       : value;

@@ -207,6 +207,14 @@ const expandableFieldSchema = z.union([
   z.object({
     key: ui(z.string(), { widget: "field", fieldAspect: "listable" }),
     label: z.string().optional(),
+    fullWidth: ui(z.boolean().optional(), {
+      label: "Full width",
+      widget: "switch",
+    }),
+    hideEmpty: ui(z.boolean().optional(), {
+      label: "Hide when empty",
+      widget: "switch",
+    }),
   }),
 ]);
 

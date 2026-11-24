@@ -7,6 +7,18 @@ export interface TableViewExpandableField {
   key: string;
   /** Label shown instead of the column's name. `$`-prefixed: an i18n key. */
   label?: string;
+  /**
+   * The value takes the band's whole width under its label and is shown in
+   * full: it wraps instead of being cut, keeps its line breaks, and an
+   * `ArrayType` or `KeyValueType` lists its entries instead of their count.
+   */
+  fullWidth?: boolean;
+  /**
+   * Leaves the field out of a row with no value for it: absent, `null`, an
+   * empty text, an empty list or an object without keys. `0` and `false` are
+   * values.
+   */
+  hideEmpty?: boolean;
 }
 
 /** Which rows open on arrival and after the listed set changes. */

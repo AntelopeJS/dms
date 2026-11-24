@@ -13346,6 +13346,22 @@
                           "label": {
                             "type": "string",
                             "optional": true
+                          },
+                          "fullWidth": {
+                            "type": "boolean",
+                            "optional": true,
+                            "ui": {
+                              "label": "Full width",
+                              "widget": "switch"
+                            }
+                          },
+                          "hideEmpty": {
+                            "type": "boolean",
+                            "optional": true,
+                            "ui": {
+                              "label": "Hide when empty",
+                              "widget": "switch"
+                            }
                           }
                         }
                       }

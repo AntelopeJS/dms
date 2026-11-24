@@ -24,6 +24,7 @@ import {
   Order,
   type OrderEvent,
   type OrderLine,
+  type OrderParcel,
   OrderModel,
   type OrderStatus,
 } from "./database";
@@ -174,6 +175,51 @@ export class orderDataAPI extends DataController(
   @Optional()
   @Access(AccessMode.ReadWrite)
   declare payment: string;
+
+  @Listable()
+  @Column({
+    name: "Delivery instructions",
+    type: new DefaultDataTypes.StringType({ textarea: true }),
+    isVisible: false,
+  })
+  @Optional()
+  @Access(AccessMode.ReadWrite)
+  declare instructions: string;
+
+  @Listable()
+  @Column({
+    name: "Parcels",
+    type: new DefaultDataTypes.ArrayType({
+      of: {
+        label: {
+          type: new DefaultDataTypes.StringType(),
+          label: "Parcel",
+        },
+        content: {
+          type: new DefaultDataTypes.StringType(),
+          label: "Content",
+        },
+        weight: {
+          type: new DefaultDataTypes.NumberType({ min: 0, suffix: "kg" }),
+          label: "Weight",
+        },
+      },
+    }),
+    isVisible: false,
+  })
+  @Optional()
+  @Access(AccessMode.ReadWrite)
+  declare parcels: OrderParcel[];
+
+  @Listable()
+  @Column({
+    name: "References",
+    type: new DefaultDataTypes.KeyValueType(),
+    isVisible: false,
+  })
+  @Optional()
+  @Access(AccessMode.ReadWrite)
+  declare references: Record<string, string>;
 
   /** Order lines, read by the detail band's component. */
   @Access(AccessMode.ReadOnly)

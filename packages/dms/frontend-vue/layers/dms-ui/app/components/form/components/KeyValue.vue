@@ -4,6 +4,7 @@ import type { ComponentOptionsData } from "#dms-core/app/types/component";
 import { useControlError } from "../../../composables/form/useControlError";
 import {
   type KeyValueRow,
+  keyValueColumns,
   keyValueProblem,
   keyValueRows,
   keyValueObject,
@@ -32,26 +33,7 @@ const model = defineModel<
 const { t } = useI18n();
 const { report } = useControlError();
 
-const KEY_COMPONENT = { componentName: "dms-input-text" };
-const TOGGLE_COMPONENT = { componentName: "dms-input-checkbox" };
-
-const columns = computed(() => [
-  ...(props.toggleable
-    ? [{ id: "enabled", type: "boolean", component: TOGGLE_COMPONENT }]
-    : []),
-  {
-    id: "key",
-    label: props.keyLabel || t("dms.form.key_value.key"),
-    type: "string",
-    component: KEY_COMPONENT,
-  },
-  {
-    id: "value",
-    label: props.valueLabel || t("dms.form.key_value.value"),
-    type: props.value.type,
-    component: props.value.component,
-  },
-]);
+const columns = computed(() => keyValueColumns(props, t));
 
 const rows = ref<KeyValueRow[]>(keyValueRows(model.value, props.toggleable));
 let emitted = JSON.stringify(model.value ?? {});

@@ -160,6 +160,11 @@ export const LAYOUT_AND_PAGING: PlaygroundFeature[] = [
     V2_DESIGN,
   ),
   feature(
+    "Expandable row fields in full, hidden when empty",
+    "expandable: { fields: [{ key, fullWidth, hideEmpty }] }",
+    PAGES.expandable,
+  ),
+  feature(
     "Expandable rows drawn by a component, loaded on open",
     "expandable: { component, single, lazyLoad }",
     PAGES.expandable,

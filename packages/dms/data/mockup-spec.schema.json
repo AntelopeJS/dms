@@ -10372,6 +10372,12 @@
                                   },
                                   "label": {
                                     "type": "string"
+                                  },
+                                  "fullWidth": {
+                                    "type": "boolean"
+                                  },
+                                  "hideEmpty": {
+                                    "type": "boolean"
                                   }
                                 },
                                 "required": [

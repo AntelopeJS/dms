@@ -19,6 +19,13 @@ export interface OrderLine {
   unitPrice: number;
 }
 
+/** A parcel of an order, listed in the expanded row's band. */
+export interface OrderParcel {
+  label: string;
+  content: string;
+  weight: number;
+}
+
 export type OrderEventTone = "primary" | "success" | "warning" | "info";
 
 /** A step of an order's timeline, shown next to its lines. */
@@ -42,6 +49,9 @@ interface OrderSeed {
   carrier: string;
   address: DefaultDataTypes.Address;
   lines: OrderLine[];
+  instructions?: string;
+  parcels?: OrderParcel[];
+  references?: Record<string, string>;
 }
 
 const SEEDS: OrderSeed[] = [
@@ -57,6 +67,16 @@ const SEEDS: OrderSeed[] = [
       postalCode: "1000",
       city: "Brussels",
       countryCode: "BE",
+    },
+    instructions:
+      "Deliver to the loading dock at the back of the building, between 8:00 and 11:30.\nCall the reception on arrival: the gate stays closed and the driver needs a badge.\n\nTracking: https://tracking.example.com/shipments/0b7f1c52e94a4d6f8a3e5c7d9b1f2a4c6e8d0f1a3b5c7d9e",
+    parcels: [
+      { label: "Pallet 1", content: "Oak chairs, stacked by four", weight: 84 },
+      { label: "Pallet 2", content: "Oak tables, legs removed", weight: 126 },
+    ],
+    references: {
+      "Purchase order": "PO-2026-00418",
+      "Cost center": "Facilities · Brussels",
     },
     lines: [
       { sku: "CHR-OAK-02", name: "Oak chair", quantity: 12, unitPrice: 189 },
@@ -292,6 +312,9 @@ function seedOrders() {
       shippingAddress: seed.address,
       itemCount: seed.lines.reduce((sum, line) => sum + line.quantity, 0),
       total,
+      instructions: seed.instructions,
+      parcels: seed.parcels,
+      references: seed.references,
       lines: seed.lines,
       events: eventsOf(seed, number, placedAt),
       placedAt,
@@ -315,6 +338,9 @@ export class Order extends Table {
   @Field("any") declare shippingAddress?: DefaultDataTypes.Address;
   @Field("number") declare itemCount: number;
   @Field("number") declare total: number;
+  @Field("string") declare instructions?: string;
+  @Field(["any"]) declare parcels?: OrderParcel[];
+  @Field("any") declare references?: Record<string, string>;
   @Field(["any"]) declare lines?: OrderLine[];
   @Field(["any"]) declare events?: OrderEvent[];
 

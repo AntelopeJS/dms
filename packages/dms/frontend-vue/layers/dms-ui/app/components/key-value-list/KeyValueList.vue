@@ -44,6 +44,11 @@ export interface KeyValueItem {
   copy?: boolean;
   /** Text the copy button copies instead of the shown value; implies `copy`. */
   copyValue?: string;
+  /**
+   * The row spans every column, its value under its label: a long value wraps
+   * and keeps its line breaks.
+   */
+  fullWidth?: boolean;
 }
 
 interface KeyValueListProps {
@@ -84,9 +89,9 @@ const COLUMN_CLASSES: Record<
   NonNullable<KeyValueListProps["columns"]>,
   string
 > = {
-  1: "[&>div:first-child]:border-t-0",
-  2: "gap-x-8 @min-[560px]:grid-cols-2 [&>div:first-child]:border-t-0 @min-[560px]:[&>div:nth-child(2)]:border-t-0",
-  3: "gap-x-8 @min-[560px]:grid-cols-2 @min-[840px]:grid-cols-3 [&>div:first-child]:border-t-0 @min-[560px]:[&>div:nth-child(2)]:border-t-0 @min-[840px]:[&>div:nth-child(3)]:border-t-0",
+  1: "",
+  2: "gap-x-8 @min-[560px]:grid-cols-2",
+  3: "gap-x-8 @min-[560px]:grid-cols-2 @min-[840px]:grid-cols-3",
 };
 
 const { locale, t } = useI18n();
@@ -98,10 +103,39 @@ const columnClass = computed(
     ],
 );
 
-const rowClass = computed(() => [
-  "border-muted flex flex-wrap items-center gap-x-3 gap-y-0.5 border-t",
-  props.dense ? "min-h-8 py-1" : "min-h-[38px] py-1.5",
-]);
+/** Where the row at each position joins the first line, which has no rule above it. */
+const FIRST_LINE_CLASSES = [
+  "border-t-0",
+  "@min-[560px]:border-t-0",
+  "@min-[840px]:border-t-0",
+];
+
+const fullWidthIndex = computed(() => {
+  const index = props.items.findIndex((item) => item.fullWidth);
+  return index === -1 ? props.items.length : index;
+});
+
+function firstLineClass(index: number): string | undefined {
+  const isOnFirstLine =
+    index === 0 || (index < props.columns && index < fullWidthIndex.value);
+  return isOnFirstLine ? FIRST_LINE_CLASSES[index] : undefined;
+}
+
+const FULL_WIDTH_CLASS = "col-span-full flex-col items-stretch";
+const INLINE_CLASS = "flex-wrap items-center gap-x-3";
+const FULL_WIDTH_VALUE_CLASS = "wrap-anywhere whitespace-pre-line";
+const INLINE_VALUE_CLASS =
+  "ms-auto flex flex-wrap items-center justify-end gap-x-1.5 gap-y-0.5 text-end";
+
+function rowClass(index: number, isFullWidth = false): (string | undefined)[] {
+  return [
+    "border-muted flex gap-y-0.5",
+    isFullWidth ? FULL_WIDTH_CLASS : INLINE_CLASS,
+    props.dense ? "min-h-8 py-1" : "min-h-[38px] py-1.5",
+    "border-t",
+    firstLineClass(index),
+  ];
+}
 const showPlaceholders = computed(
   () => props.loading && props.items.length === 0,
 );
@@ -189,7 +223,7 @@ function keyOf(item: KeyValueItem, index: number): string {
         <div
           v-for="index in props.skeletonCount"
           :key="index"
-          :class="rowClass"
+          :class="rowClass(index - 1)"
         >
           <dt class="min-w-[120px] flex-none">
             <USkeleton :aria-label="t('dms.a11y.loading')" class="h-3 w-20" />
@@ -203,11 +237,14 @@ function keyOf(item: KeyValueItem, index: number): string {
         <div
           v-for="(item, index) in props.items"
           :key="keyOf(item, index)"
-          :class="rowClass"
+          :class="rowClass(index, item.fullWidth)"
         >
           <dt class="text-muted min-w-[120px] flex-none">{{ item.label }}</dt>
           <dd
-            class="ms-auto flex min-w-0 flex-wrap items-center justify-end gap-x-1.5 gap-y-0.5 text-end"
+            class="min-w-0"
+            :class="
+              item.fullWidth ? FULL_WIDTH_VALUE_CLASS : INLINE_VALUE_CLASS
+            "
           >
             <USkeleton
               v-if="props.loading || item.loading"
