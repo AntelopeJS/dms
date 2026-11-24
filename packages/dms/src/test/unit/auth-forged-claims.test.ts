@@ -8,7 +8,7 @@ import {
   validateTwoFactorToken,
 } from "../../implementations/dms-auth";
 import { validateSessionHandoffToken } from "../../implementations/dms-auth/services";
-import { extractSessionClaims } from "../../pages/settings/users/profile-helpers";
+import { extractSessionClaims } from "../../pages/account";
 import {
   EXPIRED,
   forge,
