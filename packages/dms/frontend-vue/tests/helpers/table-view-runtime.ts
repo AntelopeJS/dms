@@ -96,7 +96,7 @@ async function loadTableView() {
 
 export async function mountTableView(
   overrides: Partial<TableViewConfig<Data>> & {
-    liveHold?: boolean | TableViewLiveHoldOptions;
+    liveHold?: TableViewLiveHoldOptions;
   } = {},
   prepare?: () => void,
 ) {

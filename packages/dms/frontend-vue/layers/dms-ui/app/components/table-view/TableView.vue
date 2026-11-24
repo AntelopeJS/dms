@@ -58,7 +58,7 @@ export interface TableViewProps<T extends Data> extends TableViewConfig<T> {
   /** Topics whose events make the table read its rows again. */
   realtimeTopic?: string | string[];
   /** Keeps the rows while the live page is paused (backend `liveHold`). */
-  liveHold?: boolean | TableViewLiveHoldOptions;
+  liveHold?: TableViewLiveHoldOptions;
 }
 
 const props = defineProps<TableViewProps<T>>();

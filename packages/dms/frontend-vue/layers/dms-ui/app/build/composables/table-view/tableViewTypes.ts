@@ -10,5 +10,5 @@ export interface RealtimePresenceActor {
 export type RealtimePresenceMap = Record<string, RealtimePresenceActor[]>;
 export type TableViewSetupProps<T extends Data> = TableViewConfig<T> & {
   realtimeTopic?: string | string[];
-  liveHold?: boolean | TableViewLiveHoldOptions;
+  liveHold?: TableViewLiveHoldOptions;
 };

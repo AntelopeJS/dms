@@ -333,7 +333,7 @@ export interface MenuOptions {
    *   live: { maxRate: 5 },
    * }) {
    *   static liveToggle = LiveToggle();
-   *   static table = TableView.fromSource({ ..., realtimeTopic: "api:requests", liveHold: true });
+   *   static table = TableView.fromSource({ ..., realtimeTopic: "api:requests", liveHold: { whileOnScreen: true } });
    * }
    * ```
    */

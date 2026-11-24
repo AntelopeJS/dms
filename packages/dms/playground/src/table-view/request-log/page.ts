@@ -128,6 +128,7 @@ export class PageTableViewRequestLog extends PageController(
     ],
     realtimeTopic: REQUEST_LOG_TOPIC,
     liveHold: {
+      whileOnScreen: true,
       whileRowOpen: true,
       whileSearching: true,
       whileSorted: true,

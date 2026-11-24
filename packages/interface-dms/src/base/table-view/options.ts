@@ -133,6 +133,6 @@ export type { TableViewGroupBy } from "./internal/option-displays";
 
 export type { GroupedOptions } from "./internal/option-displays";
 
-export type { TableViewLiveHoldOptions } from "./internal/option-contract";
+export type { TableViewLiveHoldOptions } from "./internal/option-live-hold";
 
 export type { TableViewOptions } from "./internal/option-contract";

@@ -48,7 +48,7 @@ let live: PageLiveController;
 const publish = () => publishTableEvent(TOPIC);
 
 interface MountedTableOptions {
-  liveHold: boolean | TableViewLiveHoldOptions;
+  liveHold: TableViewLiveHoldOptions | undefined;
   isSource?: boolean;
   signals?: TableLiveHoldSignals;
   newRows?: TableNewRowsCounter;
@@ -97,7 +97,7 @@ afterEach(async () => {
 });
 
 it("holds the rows while paused and counts what came in", async () => {
-  const { refresh, hold } = mountTable({ liveHold: true });
+  const { refresh, hold } = mountTable({ liveHold: { whileOnScreen: true } });
   expect(hold.isHolding.value).toBe(false);
   expect(hold.heldQuery()).toEqual({});
 
@@ -113,7 +113,7 @@ it("holds the rows while paused and counts what came in", async () => {
 
 it("bounds a source table's lists at the moment it was frozen", async () => {
   vi.setSystemTime(new Date("2026-10-11T08:00:00.000Z"));
-  const { hold } = mountTable({ liveHold: true });
+  const { hold } = mountTable({ liveHold: { whileOnScreen: true } });
   live.pause();
   await nextTick();
 
@@ -129,7 +129,10 @@ it("bounds a source table's lists at the moment it was frozen", async () => {
 });
 
 it("sends no bound to a data controller's list", async () => {
-  const { hold } = mountTable({ liveHold: true, isSource: false });
+  const { hold } = mountTable({
+    liveHold: { whileOnScreen: true },
+    isSource: false,
+  });
   live.pause();
   await nextTick();
   expect(hold.heldQuery()).toEqual({});
@@ -137,7 +140,7 @@ it("sends no bound to a data controller's list", async () => {
 
 it("shows what is new once, staying paused, and holds from then", async () => {
   vi.setSystemTime(new Date("2026-10-11T08:00:00.000Z"));
-  const { refresh, hold } = mountTable({ liveHold: true });
+  const { refresh, hold } = mountTable({ liveHold: { whileOnScreen: true } });
   live.pause();
   await nextTick();
   await publish();
@@ -157,7 +160,7 @@ it("shows what is new once, staying paused, and holds from then", async () => {
 });
 
 it("shows no banner count without liveHold, though it still pauses", async () => {
-  const { refresh, hold } = mountTable({ liveHold: false });
+  const { refresh, hold } = mountTable({ liveHold: undefined });
   live.pause();
   await nextTick();
   await publish();
@@ -180,7 +183,7 @@ it("lets the bound through to a source route whatever its capabilities", () => {
 
 it("reads on a user's refresh while held, and holds from then", async () => {
   vi.setSystemTime(new Date("2026-10-11T08:00:00.000Z"));
-  const { refresh, hold } = mountTable({ liveHold: true });
+  const { refresh, hold } = mountTable({ liveHold: { whileOnScreen: true } });
   live.pause();
   await nextTick();
   await publish();
@@ -200,7 +203,7 @@ it("reads on a user's refresh while held, and holds from then", async () => {
 it("holds the table alone while a row is open, the page staying live", async () => {
   const isRowOpen = ref(false);
   const { refresh, hold } = mountTable({
-    liveHold: { whileRowOpen: true },
+    liveHold: { whileOnScreen: true, whileRowOpen: true },
     signals: { isRowOpen: () => isRowOpen.value },
   });
 
@@ -222,9 +225,9 @@ it("holds the table alone while a row is open, the page staying live", async () 
   expect(refresh).toHaveBeenCalledTimes(2);
 });
 
-it("keeps today's hold when liveHold is true: an open row changes nothing", async () => {
+it("holds nothing for an open row that whileRowOpen leaves off", async () => {
   const { refresh, hold } = mountTable({
-    liveHold: true,
+    liveHold: { whileOnScreen: true },
     signals: { isRowOpen: () => true },
   });
   await publish();
@@ -254,30 +257,27 @@ function placedTable(tableTop: number, rowBottom: number) {
   return { element, scroll };
 }
 
-it.each<boolean | TableViewLiveHoldOptions>([true, { whileOnScreen: true }])(
-  "holds the rows on screen still, the page staying live, without a reason (liveHold %o)",
-  async (liveHold) => {
-    const { element, scroll } = placedTable(80, 160);
-    const { refresh, hold } = mountTable({
-      liveHold,
-      signals: { tableElement: () => element },
-    });
-    await nextTick();
-    await publish();
-    await publish();
-    expect(live.isPaused.value).toBe(false);
-    expect(refresh).not.toHaveBeenCalled();
-    expect(hold.isHolding.value).toBe(true);
-    expect(hold.newCount.value).toBe(2);
-    expect(hold.reason.value).toBe(null);
+it("holds the rows on screen still with whileOnScreen true, the page staying live, without a reason", async () => {
+  const { element, scroll } = placedTable(80, 160);
+  const { refresh, hold } = mountTable({
+    liveHold: { whileOnScreen: true },
+    signals: { tableElement: () => element },
+  });
+  await nextTick();
+  await publish();
+  await publish();
+  expect(live.isPaused.value).toBe(false);
+  expect(refresh).not.toHaveBeenCalled();
+  expect(hold.isHolding.value).toBe(true);
+  expect(hold.newCount.value).toBe(2);
+  expect(hold.reason.value).toBe(null);
 
-    await scroll(1200, 1280);
-    expect(refresh).toHaveBeenCalledTimes(1);
-    await publish();
-    expect(refresh).toHaveBeenCalledTimes(2);
-    element.remove();
-  },
-);
+  await scroll(1200, 1280);
+  expect(refresh).toHaveBeenCalledTimes(1);
+  await publish();
+  expect(refresh).toHaveBeenCalledTimes(2);
+  element.remove();
+});
 
 it("follows the feed on screen with whileOnScreen false, still holding while paused or for a reason", async () => {
   const { element } = placedTable(80, 160);
@@ -313,7 +313,7 @@ it("follows the feed on screen with whileOnScreen false, still holding while pau
 it("names the scroll as its reason while its first row is out of view", async () => {
   const { element, scroll } = placedTable(80, 160);
   const { refresh, hold } = mountTable({
-    liveHold: { whileScrolled: true },
+    liveHold: { whileOnScreen: true, whileScrolled: true },
     signals: { tableElement: () => element },
   });
   await nextTick();
@@ -334,7 +334,12 @@ it("holds the table alone while searching or sorted, saying why", async () => {
   const isSorted = ref(false);
   const isRowOpen = ref(false);
   const { refresh, hold } = mountTable({
-    liveHold: { whileSearching: true, whileSorted: true, whileRowOpen: true },
+    liveHold: {
+      whileOnScreen: true,
+      whileSearching: true,
+      whileSorted: true,
+      whileRowOpen: true,
+    },
     signals: {
       isSearching: () => isSearching.value,
       isSorted: () => isSorted.value,
@@ -365,7 +370,7 @@ it("holds the table alone while searching or sorted, saying why", async () => {
 
 it("holds for no search nor sort the options leave off", async () => {
   const { refresh, hold } = mountTable({
-    liveHold: { whileRowOpen: true },
+    liveHold: { whileOnScreen: true, whileRowOpen: true },
     signals: { isSearching: () => true, isSorted: () => true },
   });
   await publish();
@@ -376,7 +381,11 @@ it("holds for no search nor sort the options leave off", async () => {
 it("hands the strip the paused page's breakdown and the table's missedLabel", async () => {
   const isRowOpen = ref(false);
   const { hold } = mountTable({
-    liveHold: { whileRowOpen: true, missedLabel: "$api.live.new_requests" },
+    liveHold: {
+      whileOnScreen: true,
+      whileRowOpen: true,
+      missedLabel: "$api.live.new_requests",
+    },
     signals: { isRowOpen: () => isRowOpen.value },
   });
   expect(hold.missedLabel).toBe("$api.live.new_requests");
@@ -407,7 +416,7 @@ function countedRows(held: number, now: () => number | Promise<number>) {
 
 it("counts the new rows the table would list, not every event", async () => {
   const { newRows } = countedRows(10, () => 11);
-  const { hold } = mountTable({ liveHold: true, newRows });
+  const { hold } = mountTable({ liveHold: { whileOnScreen: true }, newRows });
   live.pause();
   await nextTick();
   await publish();
@@ -423,7 +432,7 @@ it("counts the new rows the table would list, not every event", async () => {
 
 it("shows no pill when no new event matches the table's query", async () => {
   const { newRows } = countedRows(10, () => 10);
-  const { hold } = mountTable({ liveHold: true, newRows });
+  const { hold } = mountTable({ liveHold: { whileOnScreen: true }, newRows });
   live.pause();
   await nextTick();
   await publish();
@@ -434,7 +443,7 @@ it("shows no pill when no new event matches the table's query", async () => {
 it("counts again when the held list changes, and forgets on Show", async () => {
   let now = 12;
   const { heldList, newRows } = countedRows(10, () => now);
-  const { hold } = mountTable({ liveHold: true, newRows });
+  const { hold } = mountTable({ liveHold: { whileOnScreen: true }, newRows });
   live.pause();
   await nextTick();
   await publish();
@@ -454,7 +463,7 @@ it("counts again when the held list changes, and forgets on Show", async () => {
 
 it("falls back to the events when the count fails", async () => {
   const { newRows } = countedRows(10, () => Promise.reject(new Error("503")));
-  const { hold } = mountTable({ liveHold: true, newRows });
+  const { hold } = mountTable({ liveHold: { whileOnScreen: true }, newRows });
   live.pause();
   await nextTick();
   await publish();
