@@ -23,7 +23,7 @@ export default antelopeNuxtConfig().append({
         paths: [
           {
             name: "jsonwebtoken",
-            importNames: ["decode"],
+            importNames: ["decode", "default"],
             message:
               "decode() reads a forged token. Take the claims from verifiedSessionClaims() or from the route guard request context.",
           },

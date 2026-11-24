@@ -84,10 +84,13 @@ const INTERFACE_ROOT_PATTERNS = [
   },
 ];
 
-/** A token's claims are read only once its signature checks out. */
+/**
+ * A token's claims are read only once its signature checks out. The default
+ * import is banned too: `jwt.decode()` reaches the same function.
+ */
 const JWT_DECODE = {
   name: "jsonwebtoken",
-  importNames: ["decode"],
+  importNames: ["decode", "default"],
   message:
     "decode() reads a forged token. Take the claims from verifiedSessionClaims() or from the route guard request context.",
 };

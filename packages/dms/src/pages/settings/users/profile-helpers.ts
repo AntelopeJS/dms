@@ -181,7 +181,8 @@ export interface SessionClaims {
  */
 export function extractSessionClaims(ctx: RequestContext): SessionClaims {
   const token = ctx.rawRequest.headers.authorization?.split(" ")[1];
-  return (token && verifiedSessionClaims(token)) || {};
+  const claims = token ? verifiedSessionClaims(token) : undefined;
+  return { sessionId: claims?.sessionId, tenantId: claims?.tenantId };
 }
 
 interface SessionRecord {

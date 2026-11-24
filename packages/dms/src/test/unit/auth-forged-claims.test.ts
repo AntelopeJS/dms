@@ -108,7 +108,7 @@ describe("[unit] auth forged claims", () => {
       extractSessionClaims(
         requestContextFixture(undefined, `Bearer ${forged}`),
       ),
-    ).to.deep.equal({});
+    ).to.deep.equal({ sessionId: undefined, tenantId: undefined });
     expect(
       extractSessionClaims(requestContextFixture(undefined, `Bearer ${signed}`))
         .sessionId,
