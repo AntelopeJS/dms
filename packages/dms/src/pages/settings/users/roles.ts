@@ -157,8 +157,13 @@ rolesMeta.setControllerGuards({
       parsePermissionList(body.permissions),
       parsePermissionList(current.permissions),
     ),
-  delete: (ctx, { ids, values }) =>
-    prepareRoleDeletion(getRequestTenantId(ctx), ids, values),
+  delete: async (ctx, { ids, values }) =>
+    prepareRoleDeletion(
+      getRequestTenantId(ctx),
+      ids,
+      values,
+      values ? (await authenticateRequestPrincipal(ctx)).user._id : undefined,
+    ),
 });
 
 function requireEditorAction(id: string): Action {

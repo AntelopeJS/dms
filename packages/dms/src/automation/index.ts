@@ -1,3 +1,4 @@
+import type { ActionType } from "@antelopejs/interface-dms-automation";
 import { ACTIONS } from "./actions";
 import { AutomationRegistrationLifecycle } from "./registration-lifecycle";
 import {
@@ -17,6 +18,7 @@ interface ModuleLoadError extends Error {
   code?: string;
 }
 
+let registeredActions: ActionType[] = [];
 let automationInterfacePromise: Promise<AutomationInterface | undefined>;
 const automationLifecycle = new AutomationRegistrationLifecycle();
 
@@ -50,18 +52,21 @@ function getAutomationInterface(): Promise<AutomationInterface | undefined> {
 
 /**
  * Declares the DMS automation node types when the optional automation
- * interface package is installed.
+ * interface package is installed, with the actions higher tiers define.
  */
-export async function registerAutomationNodes(): Promise<void> {
+export async function registerAutomationNodes(
+  extraActions: readonly ActionType[] = [],
+): Promise<void> {
   const automationInterface = await getAutomationInterface();
   if (!automationInterface || !automationLifecycle.beginRegistration()) return;
 
+  registeredActions = [...ACTIONS, ...extraActions];
   try {
     connectAutomationEventSources();
     for (const trigger of TRIGGERS) {
       automationInterface.RegisterTriggerType(trigger);
     }
-    for (const action of ACTIONS) {
+    for (const action of registeredActions) {
       automationInterface.RegisterActionType(action);
     }
   } catch (error) {
@@ -98,7 +103,7 @@ function cleanupAutomationNodes(
       errors.push(error);
     }
   }
-  for (const action of ACTIONS) {
+  for (const action of registeredActions) {
     try {
       automationInterface.UnregisterActionType(action.id);
     } catch (error) {
@@ -112,7 +117,16 @@ function cleanupAutomationNodes(
   }
   return errors;
 }
+export * from "./action-support";
 export * from "./actions";
+export * from "./i18n";
+export * from "./loop-guard";
+export * from "./member-events";
+export * from "./origin";
 export * from "./registration-lifecycle";
 export * from "./send-notification";
+export * from "./sources";
+export * from "./tenant-deletion";
+export * from "./tenants";
 export * from "./triggers";
+export * from "./users";

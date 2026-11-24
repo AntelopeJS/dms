@@ -13,7 +13,10 @@ import {
 import { UserModel } from "@antelopejs/interface-dms/auth/db";
 import type { ActionType } from "@antelopejs/interface-dms-automation";
 import { fieldHint, nodeText, titledProperties } from "./i18n";
+import { runAsAutomation } from "./origin";
 import { sendNotificationAction } from "./send-notification";
+import { TENANT_ACTIONS } from "./tenants";
+import { USER_ACTIONS } from "./users";
 import { isString } from "@antelopejs/interface-dms/utils/internal/type-check";
 
 export const SEND_EMAIL_ACTION_ID = "dms.send-email";
@@ -250,14 +253,16 @@ const inviteUserAction: ActionType<InviteUserInput, InviteUserOutput> = {
       );
       return { kind: "already-member", userId: existing.userId };
     }
-    const result = await inviteUserToTenant({
-      tenantId,
-      email: input.email,
-      roleIds: input.roleIds ?? [],
-      asTenantOwner: input.asTenantOwner ?? false,
-      sendEmail: input.sendEmail ?? true,
-      ...invitationDetails(input),
-    });
+    const result = await runAsAutomation(ctx, () =>
+      inviteUserToTenant({
+        tenantId,
+        email: input.email,
+        roleIds: input.roleIds ?? [],
+        asTenantOwner: input.asTenantOwner ?? false,
+        sendEmail: input.sendEmail ?? true,
+        ...invitationDetails(input),
+      }),
+    );
     if (result.kind === "added") {
       ctx.log(
         "info",
@@ -279,4 +284,6 @@ export const ACTIONS: ActionType[] = [
   sendEmailAction,
   sendNotificationAction,
   inviteUserAction,
+  ...USER_ACTIONS,
+  ...TENANT_ACTIONS,
 ];

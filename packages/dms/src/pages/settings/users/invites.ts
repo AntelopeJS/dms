@@ -23,11 +23,7 @@ import {
 import { roleSettingDataAPI } from "@antelopejs/interface-dms/data-controllers/roles";
 import { UserInvite, UserInviteModel } from "@antelopejs/interface-dms/db";
 import { INVITE_EDIT_FORM_SLOT_ID } from "@antelopejs/interface-dms/invite-extensions/internal/form-slot";
-import {
-  completeInviteResolution,
-  decideInvite,
-  loadInviteForAction,
-} from "@antelopejs/interface-dms/invite-resolution";
+import { loadInviteForAction } from "@antelopejs/interface-dms/invite-resolution";
 import {
   PageController,
   pageRoutePath,
@@ -76,6 +72,7 @@ import {
   ROLE_QUICK_FILTER,
 } from "./members";
 import { editRolePicker } from "./member-roles-field";
+import { cancelPendingInvite } from "./invite-cancel";
 import { declarePermissionWarning } from "./permission-warnings";
 import { type InviteRoleOptions, loadRoleOptions } from "./member-role-options";
 
@@ -474,12 +471,7 @@ export class InvitesSettingsController extends PageController("invites", {
     const existingInvite = await loadInviteForAction(tenantId, id);
     assert(existingInvite, HTTP_NOT_FOUND, INVITE_NOT_FOUND);
 
-    const resolution = await decideInvite({
-      tenantId,
-      invite: existingInvite,
-      reason: "cancelled",
-    });
-    await completeInviteResolution(resolution);
+    await cancelPendingInvite(tenantId, existingInvite);
   }
 }
 

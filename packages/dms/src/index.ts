@@ -25,6 +25,9 @@ import {
 import { AddFrontendModule } from "@antelopejs/interface-dms/page";
 import type { ScheduledTask } from "node-cron";
 import {
+  connectTenantProvisioningSource,
+  disconnectTenantProvisioningSource,
+  observeTenantDeletion,
   registerAutomationNodes,
   unregisterAutomationNodes,
 } from "./automation";
@@ -67,6 +70,7 @@ import {
   startPendingExtensionReport,
   stopPendingExtensionReport,
 } from "./page-extensions";
+import { MEMBER_ACTIONS } from "./pages/members";
 import { registerDocsPreviewPage } from "./pages/public/preview";
 import {
   BUILDER_PAGES,
@@ -108,7 +112,7 @@ export async function construct(config: Config): Promise<void> {
 
   await setupFrontendBootstrap(dev);
 
-  registerTenantDeletedCleanup();
+  registerTenantDeletedCleanup(observeTenantDeletion);
   registerInviteExtensionCleanup();
   registerWorkspaceNotifications();
 
@@ -288,6 +292,7 @@ export function destroy(): void {
 }
 
 function onModulesStarted(): void {
+  connectTenantProvisioningSource();
   if (defaultTenantProvisioning) return;
   provisioningWait = new AbortController();
   defaultTenantProvisioning = provisionDefaultTenant(
@@ -315,7 +320,7 @@ export async function start(): Promise<void> {
   void runCleanupUserInvites().catch((error: unknown) => {
     Logging.Error(`Cron '${CLEANUP_USER_INVITES_CRON_NAME}' failed:`, error);
   });
-  await registerAutomationNodes();
+  await registerAutomationNodes(MEMBER_ACTIONS);
   await startModuleUpdateWatcher();
   startPendingExtensionReport();
   Events.ModulesStarted.register(onModulesStarted);
@@ -330,6 +335,7 @@ export async function stop(): Promise<void> {
   stopPendingExtensionReport();
   await stopModuleUpdateWatcher();
   await unregisterAutomationNodes();
+  disconnectTenantProvisioningSource();
   try {
     const teardowns = await Promise.allSettled(
       cronTasks.map(async (task) => task.destroy()),

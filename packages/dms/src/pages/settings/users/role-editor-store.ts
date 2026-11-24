@@ -31,6 +31,7 @@ import {
   notifyMenuAccessChanged,
 } from "../../../implementations/dms/page";
 import { haveSameMembers, WILDCARD_PERMISSION } from "../../../utils";
+import { announceMemberChanges } from "../../../automation";
 import { type RoleEditorInput, roleDeleteSchema } from "../../../validation";
 import {
   applyPermissionWarnings,
@@ -333,11 +334,12 @@ export async function listRoleHolderIds(
 async function moveRoleHolders(
   tenantId: string,
   roleId: string,
-  replacementId?: string,
+  replacementId: string | undefined,
+  actorId: string | undefined,
 ): Promise<string[]> {
   const memberModel = GetModel(TenantMemberModel, tenantId);
   const inviteModel = GetModel(UserInviteModel, tenantId);
-  return changeTenantMembers(tenantId, async () => {
+  const moved = await changeTenantMembers(tenantId, async () => {
     const [memberRows, inviteRows] = await Promise.all([
       membersHoldingRole(memberModel, roleId).run(),
       invitesGrantingRole(inviteModel, roleId).run(),
@@ -373,10 +375,19 @@ async function moveRoleHolders(
           if (rolesIds)
             await inviteModel.update(invite._id, { roles_ids: rolesIds });
         }
-        return memberMoves.map(({ member }) => member.userId);
+        return memberMoves.map(({ member, roleIds }) => ({
+          before: member,
+          after: {
+            userId: member.userId,
+            roleIds,
+            isTenantOwner: member.isTenantOwner,
+          },
+        }));
       },
     };
   });
+  announceMemberChanges(tenantId, moved, "role-deleted", actorId);
+  return moved.map(({ after }) => after.userId);
 }
 
 /**
@@ -440,6 +451,7 @@ export async function prepareRoleDeletion(
   tenantId: string,
   roleIds: string[],
   values: DeleteGuardArgs["values"],
+  actorId?: string,
 ): Promise<AfterWrite | undefined> {
   if (!values) {
     for (const roleId of roleIds) await assertRoleUnused(tenantId, roleId);
@@ -460,7 +472,12 @@ export async function prepareRoleDeletion(
   const holders: string[] = [];
   for (const roleId of roleIds) {
     holders.push(
-      ...(await moveRoleHolders(tenantId, roleId, reassignTo ?? undefined)),
+      ...(await moveRoleHolders(
+        tenantId,
+        roleId,
+        reassignTo ?? undefined,
+        actorId,
+      )),
     );
   }
 
