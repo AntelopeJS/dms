@@ -154,8 +154,8 @@ describe("[integration] automation trigger dms.tenant-deleted", () => {
         operationId: OPERATION,
       });
       expect(
-        await GetModel(TenantMemberModel, GONE_TENANT).listAll(),
-      ).to.deep.equal([]);
+        await GetModel(TenantMemberModel, GONE_TENANT).table.count().run(),
+      ).to.equal(0);
       await ExecuteHooks(Hook.TENANT_DELETED, GONE_TENANT, {
         operationId: OPERATION,
       });
