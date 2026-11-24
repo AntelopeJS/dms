@@ -22,7 +22,7 @@ Then `cd demo && docker compose up` starts AntelopeJS DMS and a sample coffee sh
 
 ## Mock it up, then build it
 
-<img src="./docs/media/mockup.gif" width="100%" data-illustration alt="The mockup fills up, a comment asks for a Repeat customers KPI, and Resolve with AI adds it.">
+<img src="./docs/media/mockup.gif" width="100%" data-illustration alt="The mockup fills up, a comment asks for Repeat customers and Customer lifetime value KPIs, and Resolve with AI adds them.">
 
 The assistant drafts the back office as a mockup first, drawn with the real blocks on the `/mockup` page:
 
@@ -32,7 +32,7 @@ The assistant drafts the back office as a mockup first, drawn with the real bloc
 
 ### One connection string, one agent run
 
-<img src="./docs/media/hero-mockup-run.gif" width="100%" data-illustration alt="A connection string is pasted, the AI drafts a mockup, then the built Overview and Orders pages show.">
+<img src="./docs/media/hero-mockup-run.gif" width="100%" data-illustration alt="A connection string is pasted, the AI drafts a mockup, then the built Overview page shows next to it.">
 
 We ran it on the connect demo, a sample coffee shop on PostgreSQL.
 
