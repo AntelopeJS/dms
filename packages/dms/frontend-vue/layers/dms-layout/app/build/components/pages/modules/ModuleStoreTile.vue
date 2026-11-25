@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import DmsCopyButton from "#dms-ui/app/components/copy/CopyButton.vue";
 import ModuleTile from "./ModuleTile.vue";
 import ModuleSourceLabel from "./ModuleSourceLabel.vue";
 import ModuleStoreOperation from "./ModuleStoreOperation.vue";
@@ -94,10 +95,11 @@ const versionLabel = computed(() => {
       <!-- The npm package the module comes from. -->
       <div
         v-else-if="!isInstalledHere"
-        class="text-dimmed flex h-[30px] min-w-0 items-center rounded-[8px] border border-(--ui-border) bg-(--dms-bg-muted) px-2.5 font-mono text-[11.5px]"
+        class="text-dimmed flex h-[30px] min-w-0 items-center gap-1 rounded-[8px] border border-(--ui-border) bg-(--dms-bg-muted) ps-2.5 font-mono text-[11.5px]"
         :title="props.entry.package"
       >
-        <span class="truncate">{{ props.entry.package }}</span>
+        <span class="min-w-0 flex-1 truncate">{{ props.entry.package }}</span>
+        <DmsCopyButton :value="props.entry.package" />
       </div>
 
       <ModuleStoreRequirements v-if="!isInstalledHere" :entry="props.entry" />
