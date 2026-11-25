@@ -1,5 +1,47 @@
 # Changelog
 
+## v0.24.0
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/v0.23.0...v0.24.0)
+
+### 🚀 Enhancements
+
+- **table-view:** Require liveHold.whileOnScreen and drop the boolean shorthand ([#1257](https://github.com/AntelopeJS/dms/pull/1257))
+- **interface-dms:** Read the * wildcard only through GrantsEveryPermission, and lint every other read ([#1261](https://github.com/AntelopeJS/dms/pull/1261))
+
+### 🩹 Fixes
+
+- **dms:** Read a token's claims only once its signature checks out ([#1258](https://github.com/AntelopeJS/dms/pull/1258))
+
+### 💅 Refactors
+
+- **dms:** Lint the last pending Vue layer files with the anti-slop preset ([#1242](https://github.com/AntelopeJS/dms/pull/1242))
+- **dms:** Narrow the non-null assertions of dms src and the playground ([#1243](https://github.com/AntelopeJS/dms/pull/1243))
+- **dms:** Narrow the non-null assertions of the Vue layer source ([#1244](https://github.com/AntelopeJS/dms/pull/1244))
+- **dms:** Read the Vue tests' expected values through defined() instead of non-null assertions ([#1245](https://github.com/AntelopeJS/dms/pull/1245))
+- **dms:** Fix the Vue layer findings of @nuxt/eslint's default rules ([#1249](https://github.com/AntelopeJS/dms/pull/1249))
+
+### 📖 Documentation
+
+- **dms:** Put the backend's and interfaces' TSDoc where tooling-configs 0.10 reads it ([#1246](https://github.com/AntelopeJS/dms/pull/1246))
+- **dms:** Put the Vue layer's TSDoc where tooling-configs 0.10 reads it ([#1247](https://github.com/AntelopeJS/dms/pull/1247))
+
+### 📦 Build
+
+- **dms:** Move to tooling-configs 0.10.1 and lint the Vue layer with antelopeNuxtConfig ([#1250](https://github.com/AntelopeJS/dms/pull/1250))
+
+### ✅ Tests
+
+- **dms:** Put the Vue tests' TSDoc where tooling-configs 0.10 reads it ([#1248](https://github.com/AntelopeJS/dms/pull/1248))
+
+#### ⚠️ Breaking Changes
+
+- **table-view:** Require liveHold.whileOnScreen and drop the boolean shorthand ([#1257](https://github.com/AntelopeJS/dms/pull/1257))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli
+
 ## v0.23.0
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/v0.22.1...v0.23.0)
