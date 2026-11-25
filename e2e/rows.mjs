@@ -8,7 +8,7 @@
  * @typedef {{ _id: string, name: string, email: string }} UserRow
  * @typedef {{ _id: string, inviteCount?: number, memberCount?: number }} RoleOverviewRow
  * @typedef {{ _id: string, isArchived?: boolean }} TaskRow
- * @typedef {{ id: string, state?: string }} StoreModule
+ * @typedef {{ id: string, state?: string, title?: string, latestVersion?: string, compatible?: boolean, frontendRequirement?: unknown }} StoreModule
  * @typedef {{ icon?: string, linkTo?: string, isRead?: boolean }} NotificationRow
  */
 
@@ -146,7 +146,32 @@ export function isRoleOverviewRow(value) {
  * @returns {value is StoreModule}
  */
 export function isStoreModule(value) {
-  return isRecord(value) && isString(own(value, "id")) && optionally(value, "state", isString);
+  return (
+    isRecord(value) &&
+    isString(own(value, "id")) &&
+    optionally(value, "state", isString) &&
+    optionally(value, "title", isString) &&
+    optionally(value, "latestVersion", isString) &&
+    optionally(value, "compatible", isBoolean)
+  );
+}
+
+/**
+ * Whether the store lets the owner install the module: its latest release
+ * exists, fits this runtime's interface and frontend, and the module is not
+ * installed yet. Whether a published release fits depends on the registry, so
+ * a journey asks the listing rather than assuming a module by name.
+ *
+ * @param {StoreModule} entry
+ * @returns {boolean}
+ */
+export function isInstallable(entry) {
+  return (
+    entry.state === "available" &&
+    entry.latestVersion !== undefined &&
+    entry.compatible === true &&
+    own(entry, "frontendRequirement") === undefined
+  );
 }
 
 /**
