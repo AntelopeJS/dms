@@ -22,7 +22,7 @@ runs:
     # caches. The version comes from the root `packageManager` field.
     - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86
 
-    - uses: actions/setup-node@v4
+    - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
       with:
         # .nvmrc is the version of record. oxlint needs at least 22.18 to
         # read a TypeScript config, which every value there clears.
