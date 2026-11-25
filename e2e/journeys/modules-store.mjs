@@ -1,8 +1,30 @@
-import { booleanIn, isStoreModule, listIn } from "../rows.mjs";
+import { readFileSync } from "node:fs";
+import { booleanIn, isInstallable, isRecord, isStoreModule, listIn, stringIn } from "../rows.mjs";
 
 /**
  * @typedef {import("@antelopejs/dms/e2e").Ctx} Ctx
  */
+
+const LOCALE = new URL("../../packages/dms/frontend-vue/layers/dms-layout/i18n/locales/layout-en-GB.json", import.meta.url);
+
+/**
+ * The English tile title of each catalog module, which names its article.
+ *
+ * @returns {Map<string, string>}
+ */
+function catalogTitles() {
+  /** @type {unknown} */
+  const locale = JSON.parse(readFileSync(LOCALE, "utf8"));
+  const store = isRecord(locale) && isRecord(locale.modules) ? locale.modules.store : undefined;
+  const catalog = isRecord(store) ? store.catalog : undefined;
+  /** @type {Map<string, string>} */
+  const titles = new Map();
+  for (const [id, entry] of Object.entries(isRecord(catalog) ? catalog : {})) {
+    const title = stringIn(entry, "title");
+    if (title !== undefined) titles.set(id, title);
+  }
+  return titles;
+}
 
 const MODULES = "/modules";
 const STORE = "/modules/store";
@@ -88,11 +110,23 @@ export const journeys = [
     backend: "dev",
     async run(/** @type {Ctx} */ ctx) {
       const tab = await signedIn(ctx);
+      const before = await ctx.api("read the store listing", { method: "GET", path: LISTING });
+      const entries = listIn(before.body, "modules", isStoreModule);
+      const titles = catalogTitles();
       await tab.goto(STORE);
-      await ctx.verify("the store is open and enables Install", [
-        tab.visible({ role: "article", name: "API" }),
+      await ctx.verify("the store is open and offers Install exactly on the modules it can install", [
         tab.shows(/The store is read-only here/, { not: true }),
-        tab.enabled({ role: "button", name: "Install", within: { role: "article", name: "API" } }),
+        ...entries.flatMap((entry) => {
+          const title = titles.get(entry.id);
+          return title === undefined || entry.state !== "available"
+            ? []
+            : [
+                tab.enabled(
+                  { role: "button", name: "Install", within: { role: "article", name: title } },
+                  { disabled: !isInstallable(entry) },
+                ),
+              ];
+        }),
       ]);
       const install = await ctx.api("install a module the catalog does not hold", {
         method: "POST",
