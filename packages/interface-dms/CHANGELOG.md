@@ -1,5 +1,34 @@
 # Changelog
 
+## v0.17.0
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/interface-v0.16.0...interface-v0.17.0)
+
+### 🚀 Enhancements
+
+- **table-view:** Require liveHold.whileOnScreen and drop the boolean shorthand ([#1257](https://github.com/AntelopeJS/dms/pull/1257))
+- **interface-dms:** Read the * wildcard only through GrantsEveryPermission, and lint every other read ([#1261](https://github.com/AntelopeJS/dms/pull/1261))
+
+### 💅 Refactors
+
+- **dms:** Lint the last pending Vue layer files with the anti-slop preset ([#1242](https://github.com/AntelopeJS/dms/pull/1242))
+
+### 📖 Documentation
+
+- **dms:** Put the backend's and interfaces' TSDoc where tooling-configs 0.10 reads it ([#1246](https://github.com/AntelopeJS/dms/pull/1246))
+
+### 📦 Build
+
+- **dms:** Move to tooling-configs 0.10.1 and lint the Vue layer with antelopeNuxtConfig ([#1250](https://github.com/AntelopeJS/dms/pull/1250))
+
+#### ⚠️ Breaking Changes
+
+- **table-view:** Require liveHold.whileOnScreen and drop the boolean shorthand ([#1257](https://github.com/AntelopeJS/dms/pull/1257))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli
+
 ## v0.16.0
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/interface-v0.15.0...interface-v0.16.0)
