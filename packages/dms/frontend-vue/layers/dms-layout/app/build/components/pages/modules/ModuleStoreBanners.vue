@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import DmsCopyButton from "#dms-ui/app/components/copy/CopyButton.vue";
 import { MONO_CHIP_CLASS } from "#dms-ui/app/entries/utils/monoChip";
 import { FRONTEND_BUILD_COMMAND } from "../../../utils/module-store-catalog";
 import type { StoreListing } from "#dms-core/app/types/module-store";
@@ -57,11 +58,14 @@ const { t } = useI18n();
         tag="span"
       >
         <template #command>
-          <code
-            :class="[MONO_CHIP_CLASS, 'bg-elevated text-highlighted text-xs']"
-          >
-            {{ FRONTEND_BUILD_COMMAND }}
-          </code>
+          <span class="inline-flex items-center gap-1">
+            <code
+              :class="[MONO_CHIP_CLASS, 'bg-elevated text-highlighted text-xs']"
+            >
+              {{ FRONTEND_BUILD_COMMAND }}
+            </code>
+            <DmsCopyButton :value="FRONTEND_BUILD_COMMAND" />
+          </span>
         </template>
       </i18n-t>
     </template>
