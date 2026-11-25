@@ -308,6 +308,7 @@ const setFieldLoading = inject(FORM_FIELD_LOADING_KEY, null);
             icon="i-lucide-x"
             variant="ghost"
             size="xs"
+            :aria-label="t('dms.form.file.remove', { name: item.file.name })"
             @click="removeUploadingFile(item.id)"
           />
         </div>
@@ -370,6 +371,11 @@ const setFieldLoading = inject(FORM_FIELD_LOADING_KEY, null);
           variant="ghost"
           size="xs"
           :disabled="disabled"
+          :aria-label="
+            t('dms.form.file.remove', {
+              name: getMetadata(key)?.filename ?? key,
+            })
+          "
           @click="removeUploadedFile(key)"
         />
       </div>

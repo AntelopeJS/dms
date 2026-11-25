@@ -355,6 +355,7 @@
         "rejected_title": "File not added",
         "rejected_size": "{name} exceeds the maximum size ({size})",
         "rejected_type": "{name} is not an allowed file type",
+        "remove": "Remove {name}",
         "file_unavailable": "File unavailable"
       },
       "image": {
