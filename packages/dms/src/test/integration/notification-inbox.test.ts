@@ -11,6 +11,9 @@ import { defined } from "../helpers/defined";
 const LOCATION = pageRoutePath("/settings/user/notifications");
 const HTTP_OK = 200;
 const SENT = 3;
+const WELCOME_WAIT_MS = 5 * 1000;
+const WELCOME_POLL_MS = 20;
+const WELCOME_TITLE = "$dms.notifications.messages.welcome.";
 
 const data: NotificationData = {
   icon: "i-ph-bell",
@@ -48,11 +51,24 @@ describe("[integration] notifications inbox table", () => {
     return response.data;
   };
 
+  const welcomeListed = async () => {
+    const deadline = Date.now() + WELCOME_WAIT_MS;
+    while (Date.now() < deadline) {
+      const { results } = await inbox({ limit: 50 });
+      if (results.some(({ title }) => title.startsWith(WELCOME_TITLE))) {
+        return;
+      }
+      await new Promise((resolve) => setTimeout(resolve, WELCOME_POLL_MS));
+    }
+    expect.fail(`no welcome notification within ${WELCOME_WAIT_MS} ms`);
+  };
+
   before(async () => {
     await resetDatabase();
     const owner = await registerUser({ owner: true });
     client = authorizedClient(owner.accessToken);
     userId = owner.userId;
+    await welcomeListed();
     baseline = {
       all: (await inbox({ limit: 1 })).total,
       unread: (await inbox({ limit: 1, filter_isRead: "is:false" })).total,
