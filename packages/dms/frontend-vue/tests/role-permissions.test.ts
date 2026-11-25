@@ -307,7 +307,7 @@ function registerPermissionRevokeTests(
       "examples",
       anyone,
     );
-    expect(granted.selection.has("*")).toBe(true);
+    expect(sorted(granted.selection)).toContain("*");
     const revoked = revokePermission(
       fixture.index,
       granted.selection,

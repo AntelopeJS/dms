@@ -10,6 +10,7 @@ import { GetModel } from "@antelopejs/interface-database-decorators";
 import { RoleModel, TenantMemberModel } from "../../../db";
 import {
   GetEffectiveUserPermissions,
+  GrantsEveryPermission,
   HasAnyPermission,
 } from "../../../permissions";
 import { getRequestTenantId } from "../../../request-tenant";
@@ -97,7 +98,7 @@ export async function authorizeAction(
   );
   if (permissionIds.length === 0) {
     throwHttpAssert(
-      permissions.has("*"),
+      GrantsEveryPermission(permissions),
       403,
       `Forbidden: action "${actionId}" declares no permission`,
     );

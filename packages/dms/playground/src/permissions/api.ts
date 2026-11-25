@@ -15,6 +15,7 @@ import { RoleModel, TenantMemberModel } from "@antelopejs/interface-dms/db";
 import { NotifyMenuChanged } from "@antelopejs/interface-dms/page";
 import {
   GetEffectiveUserPermissions,
+  GrantsEveryPermission,
   HasAnyPermission,
   HasPermission,
 } from "@antelopejs/interface-dms/permissions";
@@ -77,7 +78,9 @@ export class PermissionsDemoController extends Controller(
       items: [
         {
           label: "GetEffectiveUserPermissions",
-          value: permissions.has("*") ? "* (owner)" : `${permissions.size} ids`,
+          value: GrantsEveryPermission(permissions)
+            ? "* (owner)"
+            : `${permissions.size} ids`,
           type: "mono",
         },
         grantItem(

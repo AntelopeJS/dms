@@ -95,6 +95,26 @@ const JWT_DECODE = {
     "decode() reads a forged token. Take the claims from verifiedSessionClaims() or from the route guard request context.",
 };
 
+/**
+ * Only `user.owner`, or a permissions resolver, puts `*` in a permission set.
+ * `permissions.ts` alone reads it, through `GrantsEveryPermission`, which
+ * `HasPermission` calls first.
+ */
+const WILDCARD_GRANT_READ = {
+  selector:
+    'CallExpression[callee.property.name=/^(has|includes)$/]:matches([arguments.0.name=/^(WILDCARD_PERMISSION|ALL_PERMISSIONS)$/], [arguments.0.value="*"])',
+  message:
+    "A stored '*' grants nothing since #949. Call HasPermission(user, id), or read ownership from user.owner / isPlatformOwner.",
+};
+
+/**
+ * The one browser exception: `hasPermission` cannot import `permissions.ts`.
+ * `frontend-vue/tests/permissions-wildcard-parity.test.ts` holds it to
+ * `GrantsEveryPermission`.
+ */
+const BROWSER_WILDCARD_COPY =
+  "packages/dms/frontend-vue/layers/dms-core/app/composables/auth/usePermissions.ts";
+
 /** A discarded promise must handle its own rejection before it reaches Node. */
 const FLOATING_PROMISES = ["error", { ignoreVoid: false }] as const;
 
@@ -127,11 +147,20 @@ export default defineConfig({
   options: {
     typeAware: true,
   },
+  jsPlugins: ["./checks/oxlint-plugin.mjs"],
   rules: {
     "typescript/no-floating-promises": FLOATING_PROMISES,
     "eslint/no-restricted-imports": ["error", { paths: [JWT_DECODE] }],
   },
   overrides: [
+    {
+      files: ["packages/**/*.ts", "packages/**/*.vue"],
+      excludeFiles: [
+        "packages/interface-dms/src/permissions.ts",
+        BROWSER_WILDCARD_COPY,
+      ],
+      rules: { "dms/no-restricted-syntax": ["error", WILDCARD_GRANT_READ] },
+    },
     {
       files: ["packages/dms/**"],
       rules: {
