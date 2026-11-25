@@ -6,7 +6,11 @@ import { TableViewSchema } from "../dist/base/table-view/schema.js";
 
 const packageRoot = join(import.meta.dirname, "..");
 
-const FIXTURE_FILE = join(packageRoot, "tests", "live-hold-fixture.ts");
+const FIXTURE_FILE = join(
+  packageRoot,
+  "tests",
+  "live-hold-fixture.ts",
+).replaceAll("\\", "/");
 
 const OPTIONS = {
   target: ts.ScriptTarget.ES2022,
