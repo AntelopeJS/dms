@@ -15,6 +15,8 @@ import {
 } from "vue";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import File from "../layers/dms-ui/app/components/form/components/InputFile.vue";
+import en from "../layers/dms-ui/i18n/locales/ui-en-GB.json";
+import fr from "../layers/dms-ui/i18n/locales/ui-fr-FR.json";
 import { browserRuntime, stubApiData } from "./helpers/api-data-runtime";
 
 const STORED_KEY = "files/profile/avatar.pdf";
@@ -36,7 +38,16 @@ function mountFile() {
   browserRuntime(app);
   app.component("UFileUpload", passthrough);
   app.component("ULink", passthrough);
-  app.component("UButton", defineComponent({ setup: () => () => h("button") }));
+  app.component(
+    "UButton",
+    defineComponent({
+      inheritAttrs: false,
+      setup:
+        (_, { attrs }) =>
+        () =>
+          h("button", attrs),
+    }),
+  );
   app.component(
     "UIcon",
     defineComponent({
@@ -117,3 +128,36 @@ it("clears the unavailable state once a retry reads the file", async () => {
   ).not.toBeNull();
   app.unmount();
 });
+
+it.each([
+  { locale: en, prefix: "Remove", language: "English" },
+  { locale: fr, prefix: "Retirer", language: "French" },
+])(
+  "names the stored file's remove button in $language",
+  async ({ locale, prefix }) => {
+    vi.stubGlobal("useI18n", () => ({
+      t: (key: string, params?: { name: string }) =>
+        key === "dms.form.file.remove"
+          ? locale.dms.form.file.remove?.replace("{name}", params?.name ?? "")
+          : key,
+    }));
+    authFetch.mockResolvedValue({
+      resourceKey: STORED_KEY,
+      filename: "avatar.pdf",
+      size: 2048,
+      mimetype: "application/pdf",
+      url: "https://example.test/avatar.pdf",
+    });
+    const { app, container } = mountFile();
+    try {
+      const remove = container.querySelector('button[icon="i-lucide-x"]');
+      expect(remove?.getAttribute("aria-label")).toBe(
+        `${prefix} ${STORED_KEY}`,
+      );
+      await vi.advanceTimersByTimeAsync(0);
+      expect(remove?.getAttribute("aria-label")).toBe(`${prefix} avatar.pdf`);
+    } finally {
+      app.unmount();
+    }
+  },
+);
