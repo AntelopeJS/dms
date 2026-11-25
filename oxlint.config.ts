@@ -98,8 +98,7 @@ const JWT_DECODE = {
 /**
  * Only `user.owner`, or a permissions resolver, puts `*` in a permission set.
  * `permissions.ts` alone reads it, through `GrantsEveryPermission`, which
- * `HasPermission` calls first; `usePermissions` is its copy in the browser,
- * which cannot import it.
+ * `HasPermission` calls first.
  */
 const WILDCARD_GRANT_READ = {
   selector:
@@ -107,6 +106,14 @@ const WILDCARD_GRANT_READ = {
   message:
     "A stored '*' grants nothing since #949. Call HasPermission(user, id), or read ownership from user.owner / isPlatformOwner.",
 };
+
+/**
+ * The one browser exception: `hasPermission` cannot import `permissions.ts`.
+ * `frontend-vue/tests/permissions-wildcard-parity.test.ts` holds it to
+ * `GrantsEveryPermission`.
+ */
+const BROWSER_WILDCARD_COPY =
+  "packages/dms/frontend-vue/layers/dms-core/app/composables/auth/usePermissions.ts";
 
 /** A discarded promise must handle its own rejection before it reaches Node. */
 const FLOATING_PROMISES = ["error", { ignoreVoid: false }] as const;
@@ -150,7 +157,7 @@ export default defineConfig({
       files: ["packages/**/*.ts", "packages/**/*.vue"],
       excludeFiles: [
         "packages/interface-dms/src/permissions.ts",
-        "packages/dms/frontend-vue/layers/dms-core/app/composables/auth/usePermissions.ts",
+        BROWSER_WILDCARD_COPY,
       ],
       rules: { "dms/no-restricted-syntax": ["error", WILDCARD_GRANT_READ] },
     },
