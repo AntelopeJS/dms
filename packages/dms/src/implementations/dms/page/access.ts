@@ -13,6 +13,7 @@ import { TenantMemberModel, RoleModel } from "@antelopejs/interface-dms/db";
 import { getRequestTenantId } from "@antelopejs/interface-dms/request-tenant";
 import {
   GetEffectiveUserPermissions,
+  GrantsEveryPermission,
   HasPermission,
 } from "@antelopejs/interface-dms/permissions";
 import { CheckTenantAccess } from "@antelopejs/interface-dms/tenant-access";
@@ -108,7 +109,7 @@ export function filterPermissionsForBypassedSurfaces(
   if (!hasBypassedSurface) {
     return new Set();
   }
-  if (permissions.has(WILDCARD_PERMISSION)) {
+  if (GrantsEveryPermission(permissions)) {
     return new Set([WILDCARD_PERMISSION]);
   }
   return new Set(
@@ -236,7 +237,7 @@ export function buildDeniedAccessContext(
     ungated,
     client: {
       permissions: clientPermissions,
-      isOwner: ungated.isOwner && clientPermissions.has(WILDCARD_PERMISSION),
+      isOwner: ungated.isOwner && GrantsEveryPermission(clientPermissions),
       isAuthenticated,
     },
     gateDenied: true,

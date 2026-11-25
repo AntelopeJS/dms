@@ -64,7 +64,10 @@ function fakeResolvers(): PermissionsResolverInfo[] {
       order: 100,
       resolver: (userId, tenantId, current, context) => {
         if (tenantId !== PLAN_TENANT) return current;
-        if (!current.has("*") && isOwner(userId, context)) {
+        if (
+          !permissionsInterface.GrantsEveryPermission(current) &&
+          isOwner(userId, context)
+        ) {
           return new Set(planPermissions);
         }
         return new Set(
@@ -76,7 +79,12 @@ function fakeResolvers(): PermissionsResolverInfo[] {
       id: "prr.owner-only",
       order: 110,
       resolver: (userId, _tenantId, current, context) => {
-        if (current.has("*") || isOwner(userId, context)) return current;
+        if (
+          permissionsInterface.GrantsEveryPermission(current) ||
+          isOwner(userId, context)
+        ) {
+          return current;
+        }
         return new Set([...current].filter((id) => id !== BILLING));
       },
     },

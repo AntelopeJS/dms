@@ -127,6 +127,17 @@ export async function GetEffectiveUserPermissions(
 }
 
 /**
+ * Whether `permissions` grants every permission id: it holds the `*` that
+ * {@link GetUserPermissions} gives the platform owner, or that a permissions
+ * resolver added. A role that stores `*` grants nothing through it.
+ */
+export function GrantsEveryPermission(
+  permissions: ReadonlySet<string>,
+): boolean {
+  return permissions.has("*");
+}
+
+/**
  * Whether `permissions` grants `permissionId`: on the `*` wildcard, on a
  * `defaultGranted` permission, or on a direct grant whose ancestors (the ids
  * it sits under) and `dependencies` are held too — a table's delete action
@@ -145,7 +156,7 @@ async function grantsPermission(
   permissionId: string,
   checked: Set<string>,
 ): Promise<boolean> {
-  if (permissions.has("*")) return true;
+  if (GrantsEveryPermission(permissions)) return true;
   if (IsModuleScopedPermission(permissionId)) return false;
   const permission = await GetPermission(permissionId);
   if (permission?.defaultGranted) return true;

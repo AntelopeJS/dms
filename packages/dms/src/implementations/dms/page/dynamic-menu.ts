@@ -1,4 +1,5 @@
 import { pageMetadataByFullId } from "@antelopejs/interface-dms/page/internal/registry";
+import { GrantsEveryPermission } from "@antelopejs/interface-dms/permissions";
 import { warnOnceFor } from "../../../store/frontend";
 import type { User } from "@antelopejs/interface-dms/auth/db";
 import type {
@@ -7,7 +8,7 @@ import type {
   PageInfo,
 } from "@antelopejs/interface-dms/page";
 import { withResolverTimeout } from "../resolver-timeout";
-import { ownValue, pagesBySlug, WILDCARD_PERMISSION } from "../../../utils";
+import { ownValue, pagesBySlug } from "../../../utils";
 import { fillRouteParams } from "../route-params";
 import type {
   SiteLayoutTree,
@@ -330,7 +331,7 @@ export function clientHoldsPermission(
   permissionId: string,
 ): boolean {
   const { permissions } = context.client;
-  return permissions.has(WILDCARD_PERMISSION) || permissions.has(permissionId);
+  return GrantsEveryPermission(permissions) || permissions.has(permissionId);
 }
 
 export async function isTargetPageReachable(

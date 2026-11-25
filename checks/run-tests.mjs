@@ -67,7 +67,7 @@ const STEPS = [
   {
     when: () => true,
     command:
-      "node --test checks/unreleased-interfaces.test.mjs checks/affected-packages.test.mjs checks/run-tests.test.mjs",
+      "node --test checks/unreleased-interfaces.test.mjs checks/affected-packages.test.mjs checks/run-tests.test.mjs checks/oxlint-plugin.test.mjs",
   },
   {
     when: (selected) => selected.has("agents"),

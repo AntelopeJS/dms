@@ -15,6 +15,7 @@ import {
 import { withRequiredPermissions } from "@antelopejs/interface-dms/internal/permission-requirements";
 import {
   GetPermissions,
+  GrantsEveryPermission,
   HasPermission,
 } from "@antelopejs/interface-dms/permissions";
 import { changeTenantMembers } from "@antelopejs/interface-dms/tenant-members";
@@ -30,7 +31,7 @@ import {
   GetMenuOrder,
   notifyMenuAccessChanged,
 } from "../../../implementations/dms/page";
-import { haveSameMembers, WILDCARD_PERMISSION } from "../../../utils";
+import { haveSameMembers } from "../../../utils";
 import { type RoleEditorInput, roleDeleteSchema } from "../../../validation";
 import {
   applyPermissionWarnings,
@@ -92,7 +93,7 @@ export async function assertGrantable(
     added.map((id) => HasPermission(actor.permissions, id)),
   );
   assert(
-    !permissions.includes(WILDCARD_PERMISSION) && held.every(Boolean),
+    !GrantsEveryPermission(new Set(permissions)) && held.every(Boolean),
     HTTP_FORBIDDEN,
     UNGRANTABLE_MESSAGE,
   );
@@ -118,14 +119,14 @@ export async function loadRoleEditorTree(): Promise<
 
 /**
  * The ids of `permissionIds` that `actor` may grant, as `assertGrantable`
- * decides; `null` when its effective permissions hold `*`, as the platform
- * owner's do, since it may then grant every one.
+ * decides; `null` when its effective permissions grant every permission, as
+ * the platform owner's do, since it may then grant every one.
  */
 async function grantablePermissionIds(
   actor: RoleEditorActor,
   permissionIds: string[],
 ): Promise<string[] | null> {
-  if (actor.permissions.has(WILDCARD_PERMISSION)) return null;
+  if (GrantsEveryPermission(actor.permissions)) return null;
   const held = await Promise.all(
     permissionIds.map((id) => HasPermission(actor.permissions, id)),
   );
