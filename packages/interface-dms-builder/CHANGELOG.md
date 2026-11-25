@@ -1,5 +1,27 @@
 # Changelog
 
+## v0.6.3
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/interface-dms-builder-v0.6.2...interface-dms-builder-v0.6.3)
+
+### 📖 Documentation
+
+- **dms:** Put the backend's and interfaces' TSDoc where tooling-configs 0.10 reads it ([#1246](https://github.com/AntelopeJS/dms/pull/1246))
+
+### 📦 Build
+
+- **dms:** Move to tooling-configs 0.10.1 and lint the Vue layer with antelopeNuxtConfig ([#1250](https://github.com/AntelopeJS/dms/pull/1250))
+
+### 🤖 CI
+
+- Re-sync the AntelopeJS pack for the release app ([#1232](https://github.com/AntelopeJS/dms/pull/1232))
+- Adopt the shared module lock refresh and checks ([#1234](https://github.com/AntelopeJS/dms/pull/1234))
+- Stop forwarding the retired RELEASE_GITHUB_TOKEN ([#1235](https://github.com/AntelopeJS/dms/pull/1235))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli
+
 ## v0.6.2
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/interface-dms-builder-v0.6.1...interface-dms-builder-v0.6.2)
