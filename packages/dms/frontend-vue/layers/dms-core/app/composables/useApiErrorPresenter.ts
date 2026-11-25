@@ -40,11 +40,14 @@ type ApiFailure = Parameters<typeof decodeApiFailure>[0];
 
 /** Captured during setup and callable after awaits. */
 export interface ApiErrorPresenter {
-  resolveError(
+  readonly resolveError: (
     error: ApiFailure,
     options: ResolveApiErrorOptions,
-  ): ApiErrorNotice | null;
-  presentError(error: ApiFailure, options: PresentApiErrorOptions): void;
+  ) => ApiErrorNotice | null;
+  readonly presentError: (
+    error: ApiFailure,
+    options: PresentApiErrorOptions,
+  ) => void;
 }
 
 const GENERIC_KEY = "error.500.description";
