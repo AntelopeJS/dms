@@ -1,8 +1,6 @@
 name: Release
 
 on:
-  push:
-    branches: [main]
   pull_request:
     types: [labeled, synchronize, reopened]
   workflow_dispatch:
@@ -20,6 +18,11 @@ on:
         required: false
         default: "{}"
         type: string
+      preview:
+        description: Publish a preview under the npm dist-tag next from the default branch or a work/* branch
+        required: false
+        default: false
+        type: boolean
       package-directory:
         description: Directory of the package to release, set by the release train
         required: false
@@ -37,6 +40,7 @@ jobs:
       release-version: ${{ inputs.release-version }}
       release-commit: ${{ inputs.release-commit }}
       dependency-ranges: ${{ inputs.dependency-ranges }}
+      preview: ${{ inputs.preview == true }}
       package-directory: packages/dms
     secrets:
       RELEASE_APP_ID: ${{ secrets.RELEASE_APP_ID }}
@@ -49,6 +53,7 @@ jobs:
       release-version: ${{ inputs.release-version }}
       release-commit: ${{ inputs.release-commit }}
       dependency-ranges: ${{ inputs.dependency-ranges }}
+      preview: ${{ inputs.preview == true }}
       package-directory: packages/interface-dms
     secrets:
       RELEASE_APP_ID: ${{ secrets.RELEASE_APP_ID }}
@@ -61,6 +66,7 @@ jobs:
       release-version: ${{ inputs.release-version }}
       release-commit: ${{ inputs.release-commit }}
       dependency-ranges: ${{ inputs.dependency-ranges }}
+      preview: ${{ inputs.preview == true }}
       package-directory: packages/interface-dms-builder
     secrets:
       RELEASE_APP_ID: ${{ secrets.RELEASE_APP_ID }}
