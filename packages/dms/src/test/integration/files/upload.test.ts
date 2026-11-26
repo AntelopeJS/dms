@@ -17,6 +17,7 @@ const OVERSIZE_BYTES = DEFAULT_MAX_UPLOAD_SIZE + 1;
 const HTTP_OK = 200;
 const HTTP_UNAUTHORIZED = 401;
 const HTTP_FORBIDDEN = 403;
+const HTTP_NOT_FOUND = 404;
 const AUTH_REJECT_STATUSES = [HTTP_UNAUTHORIZED, HTTP_FORBIDDEN];
 
 describe("[integration] files/presign auth", () => {
@@ -78,6 +79,25 @@ describe("[integration] files/upload (authenticated tenant member)", () => {
       params: { resourceKey: presign.resourceKey },
     });
     expect(metadataResponse.status).to.equal(HTTP_OK);
+  });
+
+  it("answers 404 with the file.not_found key for a presigned file the storage never received", async () => {
+    const user = await registerUser({ owner: true });
+    const client = authorizedClient(user.accessToken);
+    const presignResponse = await client.post(PRESIGN_URL, {
+      filename: FILE_NAME,
+      size: FILE_SIZE,
+      mimetype: FILE_MIMETYPE,
+      uploadToken: await nativeUploadToken(client),
+    });
+    const presign = parsePresign(presignResponse);
+
+    const metadataResponse = await client.get(METADATA_URL, {
+      params: { resourceKey: presign.resourceKey },
+    });
+
+    expect(metadataResponse.status).to.equal(HTTP_NOT_FOUND);
+    expect(metadataResponse.data).to.equal("$dms.refusals.file.not_found");
   });
 
   it("rejects a presign with a missing or invalid upload token with 403", async () => {
