@@ -34,10 +34,10 @@ export function browserCrossTabEnvironment(): CrossTabEnvironment {
 }
 
 /**
- * Coordination between the tabs of one browser profile, for the long-lived
- * streams a dashboard keeps open.
+ * Whether the tabs can share: without both APIs each tab stays on its own.
  *
- * Over HTTP/1.1 a browser opens at most six connections per host, and a
+ * Tabs of one browser profile share the long-lived streams a dashboard keeps
+ * open. Over HTTP/1.1 a browser opens at most six connections per host, and a
  * streaming response holds one for as long as it lives: one stream per tab
  * starves every other request once a few tabs are open. One tab is elected
  * (a Web Lock, released by the browser when the tab goes, however it goes),
@@ -46,8 +46,6 @@ export function browserCrossTabEnvironment(): CrossTabEnvironment {
  * Web Locks need a secure context (HTTPS, or localhost). Where either API is
  * missing, every tab is its own leader on a bus of its own: the behaviour of a
  * stream per tab, unchanged.
- *
- * Whether the tabs can share: without both APIs each tab stays on its own.
  *
  * @internal
  */
