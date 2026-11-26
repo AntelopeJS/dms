@@ -1,6 +1,6 @@
 import {
   getRegisteredRouteHandlers,
-  HTTPResult,
+  IsHTTPResult,
   type RouteHandler,
 } from "@antelopejs/interface-api";
 import { GetModel } from "@antelopejs/interface-database-decorators";
@@ -66,7 +66,7 @@ async function refusalOf(
   try {
     await validateInviteToken({ token, email });
   } catch (error: unknown) {
-    if (!(error instanceof HTTPResult)) throw error;
+    if (!IsHTTPResult(error)) throw error;
     expect(error.getStatus()).to.equal(HTTP_BAD_REQUEST);
     return error.getBody();
   }

@@ -1,4 +1,4 @@
-import { HTTPResult } from "@antelopejs/interface-api";
+import { HTTPResult, IsHTTPResult } from "@antelopejs/interface-api";
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import { UserModel } from "@antelopejs/interface-dms/auth/db";
 import {
@@ -333,7 +333,7 @@ describe("[unit] pages/settings/users role holder reads match the in-memory answ
       (error: unknown) => error,
     );
     expect(refusal).to.be.instanceOf(HTTPResult);
-    expect(refusal instanceof HTTPResult && refusal.getStatus()).to.equal(409);
+    expect(IsHTTPResult(refusal) && refusal.getStatus()).to.equal(409);
     expect(
       await prepareRoleDeletion(TENANT, ["rhr-unheld"], undefined),
     ).to.equal(undefined);

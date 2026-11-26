@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { HTTPResult } from "@antelopejs/interface-api";
+import { IsHTTPResult } from "@antelopejs/interface-api";
 import {
   RegisterInviteExtension,
   internal,
@@ -57,7 +57,7 @@ function failureOf(run) {
 
 /** @param {unknown} failure */
 function assertBadRequest(failure) {
-  assert.ok(failure instanceof HTTPResult, `got ${String(failure)}`);
+  assert.ok(IsHTTPResult(failure), `got ${String(failure)}`);
   assert.equal(failure.status, 400);
   assert.match(
     String(failure.body),

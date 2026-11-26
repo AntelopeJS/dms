@@ -1,8 +1,9 @@
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import { assert, expect } from "chai";
 import {
+  IsUser,
   SessionModel,
-  User,
+  type User,
   type UserModel,
 } from "@antelopejs/interface-dms/auth/db";
 import { applyConfig, getAuthConfig } from "../../config";
@@ -64,7 +65,7 @@ class CapturingUserModel extends RecordingUserModel {
   override async insert(
     ...[row]: Parameters<UserModel["insert"]>
   ): Promise<string[]> {
-    if (!(row instanceof User)) {
+    if (!IsUser(row)) {
       throw new Error("signup inserted a row that is not a User");
     }
     row._id = this.newUserId;
@@ -76,7 +77,7 @@ class CapturingUserModel extends RecordingUserModel {
     ...args: Parameters<RecordingUserModel["update"]>
   ): Promise<number> {
     const [user] = args;
-    if (user instanceof User) this.account = user;
+    if (IsUser(user)) this.account = user;
     return super.update(...args);
   }
 }

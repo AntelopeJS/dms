@@ -4,7 +4,7 @@ import test from "node:test";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 import { z } from "zod";
-import { HTTPResult } from "@antelopejs/interface-api";
+import { IsHTTPResult } from "@antelopejs/interface-api";
 import { GetMetadata } from "@antelopejs/interface-core";
 import {
   createGuardedConfirmRoute,
@@ -48,7 +48,7 @@ const refusal = (run) => {
  * @param {string} label
  */
 const assertRefusedAs400 = (error, label) => {
-  assert.ok(error instanceof HTTPResult, `${label}: ${String(error)}`);
+  assert.ok(IsHTTPResult(error), `${label}: ${String(error)}`);
   assert.equal(error.getStatus(), 400, label);
   assert.match(String(error.getBody()), /64/, label);
 };
@@ -88,7 +88,7 @@ await test("a body that is already decoded, or absent, keeps its answers", () =>
  * @param {string} message
  */
 const badRequest = (message) => (/** @type {unknown} */ error) =>
-  error instanceof HTTPResult &&
+  IsHTTPResult(error) &&
   error.getStatus() === 400 &&
   error.getBody() === message;
 

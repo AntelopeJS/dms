@@ -30,6 +30,7 @@ export {
   type ColumnOptions,
   Exported,
   Select,
+  IsTableViewMeta,
   type TableViewAccess,
   TableViewMeta,
 } from "./table-view/meta";

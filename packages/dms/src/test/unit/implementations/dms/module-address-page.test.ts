@@ -1,4 +1,4 @@
-import { HTTPResult } from "@antelopejs/interface-api";
+import { IsHTTPResult } from "@antelopejs/interface-api";
 import { ImplementInterface } from "@antelopejs/interface-core";
 import { expect } from "chai";
 import {
@@ -48,7 +48,7 @@ async function failureStatus(path: string): Promise<number | undefined> {
   try {
     await servedSlug(path);
   } catch (error: unknown) {
-    return error instanceof HTTPResult ? error.getStatus() : undefined;
+    return IsHTTPResult(error) ? error.getStatus() : undefined;
   }
   return undefined;
 }

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { HTTPResult } from "@antelopejs/interface-api";
+import { IsHTTPResult } from "@antelopejs/interface-api";
 import { GetMetadata, ImplementInterface } from "@antelopejs/interface-core";
 import { DataAPIMeta } from "@antelopejs/interface-data-api/metadata";
 import { StringType } from "../dist/base/data-types/default/numbers.js";
@@ -34,7 +34,7 @@ const controllerWith = (conditions, mandatoryOnNew = []) => {
 
 /** @param {string[]} fields */
 const refusesFields = (fields) => (/** @type {unknown} */ error) =>
-  error instanceof HTTPResult &&
+  IsHTTPResult(error) &&
   error.getStatus() === HTTP_BAD_REQUEST &&
   JSON.parse(error.getBody()).fields.join() === fields.join();
 

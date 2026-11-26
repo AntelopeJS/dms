@@ -1,4 +1,8 @@
-import { HTTPResult, type RequestContext } from "@antelopejs/interface-api";
+import {
+  HTTPResult,
+  IsHTTPResult,
+  type RequestContext,
+} from "@antelopejs/interface-api";
 import { GetMetadata, ImplementInterface } from "@antelopejs/interface-core";
 import { expect } from "chai";
 import { applyArchiveFilter } from "../../../../implementations/dms-base/services";
@@ -33,7 +37,7 @@ async function rejectionOf(promise: Promise<unknown>): Promise<HTTPResult> {
   try {
     await promise;
   } catch (error: unknown) {
-    if (error instanceof HTTPResult) return error;
+    if (IsHTTPResult(error)) return error;
     expect.fail(`expected an HTTPResult refusal, got ${String(error)}`);
   }
   throw new Error("expected the archive filter to refuse");

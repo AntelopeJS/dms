@@ -1,5 +1,5 @@
 import { strict as assert } from "node:assert";
-import { HTTPResult } from "@antelopejs/interface-api";
+import { HTTPResult, IsHTTPResult } from "@antelopejs/interface-api";
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import { type UserInvite, UserInviteModel } from "@antelopejs/interface-dms/db";
 import {
@@ -49,7 +49,7 @@ async function refusal(creation: Promise<unknown>): Promise<HTTPResult> {
     () => null,
     (reason: unknown) => reason,
   );
-  assert.ok(error instanceof HTTPResult, String(error));
+  assert.ok(IsHTTPResult(error), String(error));
   assert.equal(error.getStatus(), HTTP_CONFLICT);
   return error;
 }

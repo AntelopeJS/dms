@@ -1,4 +1,4 @@
-import { HTTPResult } from "@antelopejs/interface-api";
+import { HTTPResult, IsHTTPResult } from "@antelopejs/interface-api";
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import { TenantMemberModel } from "@antelopejs/interface-dms/db";
 import type { InviteExtensionPayloads } from "@antelopejs/interface-dms/invite-extensions";
@@ -97,10 +97,9 @@ async function inviteOne(
     return {
       email,
       outcome: "failed",
-      message:
-        error instanceof HTTPResult
-          ? failureMessage(error)
-          : INVITE_FAILED_MESSAGE,
+      message: IsHTTPResult(error)
+        ? failureMessage(error)
+        : INVITE_FAILED_MESSAGE,
     };
   }
 }

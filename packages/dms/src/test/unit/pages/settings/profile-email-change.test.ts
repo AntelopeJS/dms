@@ -1,4 +1,4 @@
-import { HTTPResult } from "@antelopejs/interface-api";
+import { HTTPResult, IsHTTPResult } from "@antelopejs/interface-api";
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import { assert, expect } from "chai";
 import { type User, UserModel } from "@antelopejs/interface-dms/auth/db";
@@ -39,7 +39,7 @@ async function attempt(
   try {
     return await assertEmailAvailable(userModel, email, CURRENT_USER_ID);
   } catch (error) {
-    if (error instanceof HTTPResult) return error;
+    if (IsHTTPResult(error)) return error;
     throw error;
   }
 }

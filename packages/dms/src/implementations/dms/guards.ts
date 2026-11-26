@@ -1,8 +1,9 @@
 import { type ControllerClass, HTTPResult } from "@antelopejs/interface-api";
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import {
-  Action,
   type ComponentTargetInput,
+  type Action,
+  IsAction,
 } from "@antelopejs/interface-dms/component";
 import { RoleModel, TenantMemberModel } from "@antelopejs/interface-dms/db";
 import type { TenantGuardOptions } from "@antelopejs/interface-dms/guards";
@@ -39,8 +40,9 @@ export namespace internal {
       await AssertTenantAccess(user._id, data.tenantId);
     }
 
-    const permissionId =
-      target instanceof Action ? target.permissionId : GetPermissionId(target);
+    const permissionId = IsAction(target)
+      ? target.permissionId
+      : GetPermissionId(target);
     if (!permissionId) {
       return user;
     }

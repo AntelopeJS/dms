@@ -1,4 +1,4 @@
-import { Action } from "@antelopejs/interface-dms/component";
+import { IsAction } from "@antelopejs/interface-dms/component";
 import { RoleModel, TenantMemberModel } from "@antelopejs/interface-dms/db";
 import {
   isInsideModule,
@@ -19,7 +19,7 @@ export function resolvePagePermissionId(
   permission: PageInfo["permission"],
   fullId: string,
 ): string {
-  if (permission instanceof Action) {
+  if (IsAction(permission)) {
     return permission.permissionId ?? fullId;
   }
   return permission?.id || fullId;

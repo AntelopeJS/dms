@@ -1,4 +1,4 @@
-import { HTTPResult } from "@antelopejs/interface-api";
+import { IsHTTPResult } from "@antelopejs/interface-api";
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import { UserModel } from "@antelopejs/interface-dms/auth/db";
 import { expect } from "chai";
@@ -66,7 +66,7 @@ describe("[integration] OAuth sign-up before onboarding", () => {
     const registered = await client.post("/api/onboarding/register", admin);
     const informations = await client.get("/api/onboarding/informations");
 
-    if (!(refusal instanceof HTTPResult)) {
+    if (!IsHTTPResult(refusal)) {
       expect.fail("expected the OAuth sign-up to be refused");
     }
     expect(refusal.getStatus()).to.equal(HTTP_FORBIDDEN);

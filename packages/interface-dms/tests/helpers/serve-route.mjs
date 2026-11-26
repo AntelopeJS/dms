@@ -1,6 +1,6 @@
 import {
   getRegisteredRouteHandlers,
-  HTTPResult,
+  IsHTTPResult,
 } from "@antelopejs/interface-api";
 
 /**
@@ -59,7 +59,7 @@ export async function serveRoute(location, authorization) {
     const body = await handler.callback.apply(controller, parameters);
     return { status: 200, body };
   } catch (error) {
-    if (error instanceof HTTPResult) {
+    if (IsHTTPResult(error)) {
       return { status: error.getStatus(), body: error.getBody() };
     }
     throw error;

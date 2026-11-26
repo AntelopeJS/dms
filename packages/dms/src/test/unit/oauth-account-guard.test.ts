@@ -1,4 +1,4 @@
-import { HTTPResult } from "@antelopejs/interface-api";
+import { IsHTTPResult } from "@antelopejs/interface-api";
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import { expect } from "chai";
 import { TenantMemberModel } from "@antelopejs/interface-dms/db";
@@ -94,7 +94,7 @@ describe("[unit] auth/oauth — claiming an existing account", () => {
     const attempt = await attemptResolve(provisioned);
 
     const refusal = attempt.error;
-    if (!(refusal instanceof HTTPResult)) {
+    if (!IsHTTPResult(refusal)) {
       expect.fail("expected an HTTPResult refusal");
     }
     expect(refusal.getStatus()).to.equal(HTTP_FORBIDDEN);

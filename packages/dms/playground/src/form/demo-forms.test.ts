@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { getHeapStatistics } from "node:v8";
-import { HTTPResult } from "@antelopejs/interface-api";
+import { HTTPResult, IsHTTPResult } from "@antelopejs/interface-api";
 import {
   type DataType,
   getDataTypeId,
@@ -178,7 +178,7 @@ async function answerOf(body: DemoBody): Promise<Answer> {
   try {
     return { saved: await parseFormBody(PageFormSimple.form, body) };
   } catch (error) {
-    if (error instanceof HTTPResult) return { refusal: error };
+    if (IsHTTPResult(error)) return { refusal: error };
     throw error;
   }
 }
@@ -243,7 +243,7 @@ export const settled = Promise.all([
     await assert.rejects(
       parseFormBody(PageFormSimple.form, { calendarField: "yesterday" }),
       (error) =>
-        error instanceof HTTPResult &&
+        IsHTTPResult(error) &&
         error.getStatus() === 400 &&
         String(error.getBody()).includes("calendarField"),
     );

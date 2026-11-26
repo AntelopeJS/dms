@@ -1,4 +1,4 @@
-import { HTTPResult } from "@antelopejs/interface-api";
+import { IsHTTPResult } from "@antelopejs/interface-api";
 import type {
   AttachmentField,
   AttachmentSaveRequest,
@@ -88,7 +88,7 @@ async function timedSave(request: AttachmentSaveRequest) {
       ms: performance.now() - started,
     };
   } catch (error) {
-    if (error instanceof HTTPResult)
+    if (IsHTTPResult(error))
       return {
         saved: undefined,
         refusal: error,

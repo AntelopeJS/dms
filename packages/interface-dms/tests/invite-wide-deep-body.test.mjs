@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { setFlagsFromString } from "node:v8";
 import { runInNewContext } from "node:vm";
-import { HTTPResult } from "@antelopejs/interface-api";
+import { IsHTTPResult } from "@antelopejs/interface-api";
 import { z } from "zod";
 import {
   RegisterInviteExtension,
@@ -144,7 +144,7 @@ function timed(run) {
 
 /** @param {{ failure: unknown, ms: number }} outcome */
 function assertRefusedInTime({ failure, ms }) {
-  assert.ok(failure instanceof HTTPResult, `got ${String(failure)}`);
+  assert.ok(IsHTTPResult(failure), `got ${String(failure)}`);
   assert.equal(failure.status, 400);
   assert.match(
     String(failure.body),
