@@ -60,7 +60,7 @@ export class SalesPage extends PageController("sales", {
 
 | Package                                     | Supported        | Tested with |
 | ------------------------------------------- | ---------------- | ----------- |
-| `@antelopejs/interface-api`                 | `>=0.3.4 <0.4.0` | `0.3.4`     |
+| `@antelopejs/interface-api`                 | `>=0.3.5 <0.4.0` | `0.3.5`     |
 | `@antelopejs/interface-api-util`            | `>=0.3.3 <0.4.0` | `0.3.3`     |
 | `@antelopejs/interface-core`                | `>=0.5.2 <0.6.0` | `0.5.2`     |
 | `@antelopejs/interface-data-api`            | `>=0.8.2 <0.9.0` | `0.8.2`     |
