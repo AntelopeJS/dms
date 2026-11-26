@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { minVersion, satisfies } from "semver";
 import { z } from "zod";
 
-const store = join(
+const installedStore = join(
   import.meta.dirname,
   "..",
   "..",
@@ -22,8 +22,11 @@ const siblingManifest = z.object({
   peerDependencies: z.record(z.string(), z.string()).optional(),
 });
 
-/** Lists each installed @csstools sibling whose css-tokenizer peer range the lowest version dms allows misses. */
-export function unmetTokenizerPeers() {
+/**
+ * Lists each @csstools sibling of a pnpm store whose css-tokenizer peer range the lowest version dms allows misses.
+ * @param {string} [store] the `.pnpm` folder to read, the workspace's own by default
+ */
+export function unmetTokenizerPeers(store = installedStore) {
   const range = dmsManifest.parse(
     JSON.parse(readFileSync(manifestPath, "utf8")),
   ).dependencies[TOKENIZER];
@@ -36,9 +39,7 @@ export function unmetTokenizerPeers() {
   for (const dir of readdirSync(store).filter((d) =>
     d.startsWith("@csstools+css-"),
   )) {
-    const name = dir
-      .replace(/^@csstools\+/, "@csstools/")
-      .replace(/@\d.*$/, "");
+    const name = dir.replace(/^@csstools\+([^@]+)@.*$/, "@csstools/$1");
     const file = join(store, dir, "node_modules", name, "package.json");
     const peer = siblingManifest.parse(JSON.parse(readFileSync(file, "utf8")))
       .peerDependencies?.[TOKENIZER];

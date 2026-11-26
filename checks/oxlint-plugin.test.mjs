@@ -35,11 +35,19 @@ function reports(files) {
     }),
   );
   const run = spawnSync(
-    join(repo, "node_modules/.bin/oxlint"),
-    ["-c", ".oxlintrc.json", "-f", "unix", "."],
+    process.execPath,
+    [
+      join(repo, "node_modules/oxlint/bin/oxlint"),
+      "-c",
+      ".oxlintrc.json",
+      "-f",
+      "unix",
+      ".",
+    ],
     { cwd: root, encoding: "utf8" },
   );
   rmSync(root, { recursive: true, force: true });
+  assert.ifError(run.error);
   return run.stdout
     .split("\n")
     .filter((line) => line.endsWith("[Error/dms(no-restricted-syntax)]"))

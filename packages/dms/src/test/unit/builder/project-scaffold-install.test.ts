@@ -14,6 +14,8 @@ const INTERFACES = Object.keys(builderCodeInterfaces());
 const TOOLING = ["rimraf", "@types/node"];
 const NAMES = [...INTERFACES, ...TOOLING];
 const PREFIXES = ["file:", "link:", "./"];
+/** A `pnpm install` spawned through a shell, which a Windows runner starts in seconds, not milliseconds. */
+const INSTALL_TIMEOUT = 60_000;
 
 let root: string;
 
@@ -90,7 +92,8 @@ describe("scaffolding a module from a project with relative path dependencies", 
     setBuilderConfig({});
   });
 
-  it("installs the module with each dependency resolved from the project's folder", () => {
+  it("installs the module with each dependency resolved from the project's folder", function () {
+    this.timeout(INSTALL_TIMEOUT);
     const scaffold = writeScaffold();
     const moduleRoot = scaffold.root;
     const installed = install(scaffold, path.join(root, "store"));
@@ -112,7 +115,8 @@ describe("scaffolding a module from a project inside a pnpm workspace", () => {
   const DMS_INTERFACE = "@antelopejs/interface-dms";
   let workspace: string;
 
-  before(() => {
+  before(function () {
+    this.timeout(INSTALL_TIMEOUT);
     workspace = fs.mkdtempSync(
       path.join(os.tmpdir(), "dms-builder-workspace-"),
     );
@@ -162,7 +166,8 @@ describe("scaffolding a module from a project inside a pnpm workspace", () => {
     setBuilderConfig({});
   });
 
-  it("installs the module in its own folder, linked to the workspace's copy of a workspace: dependency", () => {
+  it("installs the module in its own folder, linked to the workspace's copy of a workspace: dependency", function () {
+    this.timeout(INSTALL_TIMEOUT);
     const scaffold = writeScaffold();
     const installed = install(scaffold, path.join(workspace, "store"));
     expect(installed.status, installed.output).to.equal(0);
