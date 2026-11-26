@@ -32,14 +32,14 @@ function isWholeDayRange(range: PeriodRange): boolean {
 const MONTHS_PER_YEAR = 12;
 const MONTHS_PER_QUARTER = 3;
 
-const PRESET_MONTH_SPANS: Partial<Record<PeriodPreset, number>> = {
-  "this-month": 1,
-  "last-month": 1,
-  "this-quarter": MONTHS_PER_QUARTER,
-  "last-quarter": MONTHS_PER_QUARTER,
-  ytd: MONTHS_PER_YEAR,
-  "last-year": MONTHS_PER_YEAR,
-};
+const PRESET_MONTH_SPANS: ReadonlyMap<PeriodPreset, number> = new Map([
+  ["this-month", 1],
+  ["last-month", 1],
+  ["this-quarter", MONTHS_PER_QUARTER],
+  ["last-quarter", MONTHS_PER_QUARTER],
+  ["ytd", MONTHS_PER_YEAR],
+  ["last-year", MONTHS_PER_YEAR],
+]);
 
 /** What a comparison is resolved against beyond the range itself. */
 export interface ComparisonContext {
@@ -91,7 +91,7 @@ function calendarMonthSpan(
   preset: PeriodPreset | undefined,
 ): number | undefined {
   if (!isMonthStart(range.from)) return undefined;
-  const presetSpan = preset ? PRESET_MONTH_SPANS[preset] : undefined;
+  const presetSpan = preset ? PRESET_MONTH_SPANS.get(preset) : undefined;
   if (presetSpan) return presetSpan;
   const end = afterRange(range);
   return isMonthStart(end) ? monthsBetween(range.from, end) : undefined;
@@ -183,13 +183,13 @@ function shiftPreviousYear(
   };
 }
 
-const COMPARISON_RESOLVERS: Record<
-  Exclude<PeriodComparison, "none" | "custom">,
+const COMPARISON_RESOLVERS: ReadonlyMap<
+  PeriodComparison,
   (range: PeriodRange, context: ComparisonContext) => PeriodRange
-> = {
-  "previous-period": shiftPreviousPeriod,
-  "previous-year": shiftPreviousYear,
-};
+> = new Map([
+  ["previous-period", shiftPreviousPeriod],
+  ["previous-year", shiftPreviousYear],
+]);
 
 /**
  * Resolves the range a period is compared against.
@@ -216,5 +216,5 @@ export function resolveComparisonRange(
 ): PeriodRange | null {
   if (comparison === "none" || !range) return null;
   if (comparison === "custom") return customRange;
-  return COMPARISON_RESOLVERS[comparison](range, context);
+  return COMPARISON_RESOLVERS.get(comparison)?.(range, context) ?? null;
 }

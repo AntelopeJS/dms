@@ -61,10 +61,13 @@ const Late = defineComponent({
     isLateDrawn.value ? h("div", { class: "late" }, "Late") : null,
 });
 
-const BLOCKS = { "dms-early": Early, "dms-late": Late };
+const BLOCKS = new Map([
+  ["dms-early", Early],
+  ["dms-late", Late],
+]);
 
 function resolveBlock(name: string) {
-  return name === "dms-early" || name === "dms-late" ? BLOCKS[name] : undefined;
+  return BLOCKS.get(name);
 }
 
 function postFromParent(data: JsonValue): void {

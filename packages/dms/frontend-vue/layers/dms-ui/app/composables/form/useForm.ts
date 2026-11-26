@@ -441,8 +441,8 @@ function createFormActions(context: ReturnType<typeof createFormSubmission>) {
       showUnresolvedTargetToast();
       throw new Error(`Form submit target: missing ${target.missing}`);
     }
-    const changedFields = allFields.value.filter(
-      (field) => field.id in changes,
+    const changedFields = allFields.value.filter((field) =>
+      Object.hasOwn(changes, field.id),
     );
     const body = collectSubmitData(changes, changedFields, {
       initialValues: initialValues.value,

@@ -88,6 +88,7 @@ export function rowGroupKey(
   by: TableViewGroupBy,
   locale: string,
 ): string {
+  if (!Object.hasOwn(GROUP_KEY_READERS, by)) return NO_GROUP_KEY;
   return GROUP_KEY_READERS[by](value, locale);
 }
 

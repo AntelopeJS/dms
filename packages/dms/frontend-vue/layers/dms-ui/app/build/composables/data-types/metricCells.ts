@@ -59,7 +59,9 @@ function statusPillTone(
 ) {
   return (
     readRowTone(row, opts.toneField) ??
-    opts.tones?.[key] ??
+    (opts.tones && Object.hasOwn(opts.tones, key)
+      ? opts.tones[key]
+      : undefined) ??
     item?.textColor ??
     item?.iconColor ??
     "neutral"

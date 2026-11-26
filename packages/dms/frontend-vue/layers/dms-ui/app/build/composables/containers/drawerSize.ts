@@ -195,7 +195,10 @@ function sideDrawerWidthBounds(
     ),
   );
   const minSize = Math.min(MIN_SIDE_DRAWER_WIDTH, maxSize);
-  const preferred = size ? DRAWER_SIZE_WIDTHS[size] : DEFAULT_SIDE_DRAWER_WIDTH;
+  const preferred =
+    size && Object.hasOwn(DRAWER_SIZE_WIDTHS, size)
+      ? DRAWER_SIZE_WIDTHS[size]
+      : DEFAULT_SIDE_DRAWER_WIDTH;
   return {
     defaultSize: Math.min(maxSize, Math.max(minSize, preferred)),
     minSize,

@@ -51,7 +51,11 @@ export function resolveSketchLinks(
 ): string {
   return html.replace(EVERY_PAGE_LINK, (_link, path: string) => {
     const filled = path.replace(ROUTE_TOKEN, (_token, name: string) =>
-      encodeURIComponent(links.params?.[name] ?? ""),
+      encodeURIComponent(
+        (links.params && Object.hasOwn(links.params, name)
+          ? links.params[name]
+          : undefined) ?? "",
+      ),
     );
     return `<a href="${links.origin}${filled}" target="_top"`;
   });

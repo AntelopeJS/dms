@@ -184,5 +184,6 @@ export function resolvePresetRange(
   fallbackRange: PeriodRange,
 ): PeriodRange | null {
   if (preset === "custom") return fallbackRange;
+  if (!Object.hasOwn(PRESET_RANGE_RESOLVERS, preset)) return fallbackRange;
   return PRESET_RANGE_RESOLVERS[preset](now);
 }

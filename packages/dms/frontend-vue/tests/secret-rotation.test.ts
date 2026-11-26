@@ -39,7 +39,7 @@ describe("a field the server saved on its own", () => {
     }));
     const instantSave = { confirmField: vi.fn() };
     const markFieldSaved = fieldSavedMarker({
-      hasField: (id) => id in initialValues.value,
+      hasField: (id) => Object.hasOwn(initialValues.value, id),
       initialValues,
       dirty,
       instantSave,

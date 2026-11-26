@@ -147,7 +147,7 @@ const pillVariantOf = (variant: PillItem["variant"]): StatusPillVariant =>
 const DEFAULT_PILL_TONE = "neutral";
 
 const isPillItem = (item: unknown, labelKey: string): item is PillItem =>
-  isObject(item) && isString(item.label) && !(labelKey in item);
+  isObject(item) && isString(item.label) && !Object.hasOwn(item, labelKey);
 
 /**
  * The pills of a list. A bare id is skipped next to the related rows it

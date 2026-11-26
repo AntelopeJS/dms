@@ -121,7 +121,9 @@ export function resolvePreviewBlock(
   layoutPath: string | undefined,
 ): PermissionPreviewBlock | undefined {
   if (!result || !layoutPath) return undefined;
-  return result.blocks[layoutPath];
+  return Object.hasOwn(result.blocks, layoutPath)
+    ? result.blocks[layoutPath]
+    : undefined;
 }
 
 /**

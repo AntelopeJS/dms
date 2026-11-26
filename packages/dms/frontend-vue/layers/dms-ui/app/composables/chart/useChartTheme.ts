@@ -122,7 +122,11 @@ function colorVariable(value: string): string | undefined {
   const variable = CSS_VARIABLE_FUNCTION.exec(value);
   if (variable) return variable[1];
   const token = SHADE_TOKEN.exec(value);
-  if (!token) return COLOR_NAME_TO_VAR[value];
+  if (!token) {
+    return Object.hasOwn(COLOR_NAME_TO_VAR, value)
+      ? COLOR_NAME_TO_VAR[value]
+      : undefined;
+  }
   const scale = token[1] === "accent" ? "primary" : token[1];
   return `--ui-color-${scale}-${token[2]}`;
 }

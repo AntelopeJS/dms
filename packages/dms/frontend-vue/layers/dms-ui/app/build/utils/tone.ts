@@ -78,7 +78,9 @@ export const DMS_TONE_OUTLINE: Record<Tone, string> = {
  * for a value that is no tone.
  */
 export function toneTextClass(tone: string | undefined): string {
-  return tone && isDmsTone(tone) ? DMS_TONE_TEXT[tone] : "";
+  return tone && isDmsTone(tone) && Object.hasOwn(DMS_TONE_TEXT, tone)
+    ? DMS_TONE_TEXT[tone]
+    : "";
 }
 
 /**

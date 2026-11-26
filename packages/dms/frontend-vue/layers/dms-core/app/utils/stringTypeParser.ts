@@ -3,20 +3,17 @@ import type { JsonValue } from "../types/json";
 
 export type Primitive = JsonValue | Date | undefined;
 
-const KEYWORD_VALUES: Record<
-  Parameters<typeof isKeyword>[0],
-  ReturnType<typeof parse>
-> = {
-  true: true,
-  false: false,
-  null: null,
-  undefined: undefined,
-};
+const KEYWORD_VALUES: ReadonlyMap<string, ReturnType<typeof parse>> = new Map([
+  ["true", true],
+  ["false", false],
+  ["null", null],
+  ["undefined", undefined],
+]);
 
 const PARSER_REGISTRY = [
   {
     test: isKeyword,
-    parse: (value: string) => KEYWORD_VALUES[value],
+    parse: (value: string) => KEYWORD_VALUES.get(value),
   },
   {
     test: isStringNumber,
@@ -53,7 +50,7 @@ export function parseObject(items: Array<{ key: string; value: string }>) {
 }
 
 export function isKeyword(value: string): boolean {
-  return Object.keys(KEYWORD_VALUES).includes(value);
+  return KEYWORD_VALUES.has(value);
 }
 
 export function isStringNumber(value: string): boolean {

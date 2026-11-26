@@ -20,11 +20,11 @@ export const evaluateRowActionRule: RuleEvaluator = (rule, row) => {
   if ("or" in rule) return rule.or.some((r) => evaluateRowActionRule(r, row));
   if ("not" in rule) return !evaluateRowActionRule(rule.not, row);
 
-  if (FIELD_KEY in rule) {
+  if (Object.hasOwn(rule, FIELD_KEY)) {
     const ruleObj: RuleDictionary = rule;
     const fieldValue: unknown = get(row, rule.field);
     for (const [operator, def] of Object.entries(FIELD_OPERATORS)) {
-      if (operator in ruleObj) {
+      if (Object.hasOwn(ruleObj, operator)) {
         const ruleValue = ruleObj[operator];
         if (!def.isArray) return def.compare(fieldValue, ruleValue);
         const ruleValues: unknown[] | undefined = Array.isArray(ruleValue)

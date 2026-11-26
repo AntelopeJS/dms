@@ -140,32 +140,33 @@ function resolveMenuBadge(
 
 const preview = usePermissionPreview();
 const { t } = useI18n();
-const PREVIEW_ENTRY_LINK_CLASSES: Record<PreviewEntryState, string> = {
-  hidden: "text-muted dms-hatch-locked",
-  partial: "dms-hatch-partial",
-};
-const PREVIEW_LOCK_TONES: Record<PreviewEntryState, string> = {
-  hidden: "text-error",
-  partial: "text-warning",
-};
-const PREVIEW_ENTRY_TITLES: Record<PreviewEntryState, string> = {
-  hidden: "page.settings.roles.preview.menu_hidden",
-  partial: "page.settings.roles.preview.menu_partial",
-};
+const PREVIEW_ENTRY_LINK_CLASSES: ReadonlyMap<PreviewEntryState, string> =
+  new Map([
+    ["hidden", "text-muted dms-hatch-locked"],
+    ["partial", "dms-hatch-partial"],
+  ]);
+const PREVIEW_LOCK_TONES: ReadonlyMap<PreviewEntryState, string> = new Map([
+  ["hidden", "text-error"],
+  ["partial", "text-warning"],
+]);
+const PREVIEW_ENTRY_TITLES: ReadonlyMap<PreviewEntryState, string> = new Map([
+  ["hidden", "page.settings.roles.preview.menu_hidden"],
+  ["partial", "page.settings.roles.preview.menu_partial"],
+]);
 
 function drawPreviewEntry(
   item: DmsMenuItem,
   state: PreviewEntryState,
 ): DmsMenuItem {
   const hasChildren = (item.children?.length ?? 0) > 0;
-  const title = t(PREVIEW_ENTRY_TITLES[state], {
+  const title = t(PREVIEW_ENTRY_TITLES.get(state) ?? "", {
     role: preview.session.value?.roleName ?? "",
   });
   const result: DmsMenuItem = {
     ...item,
     previewState: state,
     previewLocked: state === "hidden",
-    class: [item.class, PREVIEW_ENTRY_LINK_CLASSES[state]],
+    class: [item.class, PREVIEW_ENTRY_LINK_CLASSES.get(state)],
     title,
     "aria-label": `${String(item.label ?? "")} · ${title}`,
   };
@@ -175,7 +176,7 @@ function drawPreviewEntry(
     result.ui = {
       ...UNSET_MENU_ITEM_UI,
       ...item.ui,
-      linkTrailingIcon: `size-3.5 ${PREVIEW_LOCK_TONES[state]}`,
+      linkTrailingIcon: `size-3.5 ${PREVIEW_LOCK_TONES.get(state) ?? ""}`,
     };
   }
   return result;
@@ -346,7 +347,9 @@ function onStateChange(id: string, open: boolean): void {
         :name="PREVIEW_LOCK_ICON"
         :class="
           ui.linkLeadingIcon({
-            class: PREVIEW_LOCK_TONES[item.previewState as PreviewEntryState],
+            class: PREVIEW_LOCK_TONES.get(
+              item.previewState as PreviewEntryState,
+            ),
             active,
             disabled: !!item.disabled,
           })

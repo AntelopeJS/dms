@@ -159,7 +159,9 @@ export function storedSidePanelWidth(
   bounds: SidePanelWidthBounds,
 ): number {
   return clampSidePanelWidth(
-    preferences.widths[id] ?? bounds.defaultWidth,
+    (Object.hasOwn(preferences.widths, id)
+      ? preferences.widths[id]
+      : undefined) ?? bounds.defaultWidth,
     bounds,
   );
 }
