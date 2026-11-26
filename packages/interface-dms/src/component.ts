@@ -44,7 +44,7 @@ import {
 } from "./internal/component-watches";
 import type { Permission } from "./permissions";
 import type { CreatedPage, MaybePromise } from "./types";
-import { brandClass } from "./internal/brand";
+import { brandClass } from "./utils/internal/brand";
 
 export interface ActionDefinition {
   title: string;

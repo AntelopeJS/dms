@@ -10,7 +10,7 @@ import {
 } from "@antelopejs/interface-database-decorators";
 import { CORE_SCHEMA_NAME } from "../../../constants";
 import type { ImageValue } from "../../../types";
-import { brandClass } from "../../../internal/brand";
+import { brandClass } from "../../../utils/internal/brand";
 
 export const USERS_TABLE_NAME = "users";
 

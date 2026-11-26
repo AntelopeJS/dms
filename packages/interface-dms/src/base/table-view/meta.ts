@@ -45,7 +45,7 @@ import type {
   TableViewOptionsSerialized,
   TableViewRowActionOptions,
 } from "./options";
-import { brandClass } from "../../internal/brand";
+import { brandClass } from "../../utils/internal/brand";
 
 const FORM_MODE_BY_VIEW_MODE: Record<"view" | "edit" | "new", FormMode> = {
   view: FormMode.view,

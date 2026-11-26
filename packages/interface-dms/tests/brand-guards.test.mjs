@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { brandClass } from "../dist/internal/brand.js";
+import { brandClass } from "../dist/utils/internal/brand.js";
 import { Action, IsAction } from "../dist/component.js";
 import { IsUser, User } from "../dist/auth/db/tables/users.table.js";
 import {

@@ -1,4 +1,4 @@
-import { isObject } from "../utils/internal/type-check";
+import { isObject } from "./type-check";
 
 /**
  * Brands the prototype of `type` and returns the guard that tests for the brand.

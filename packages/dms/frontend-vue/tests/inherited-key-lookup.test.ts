@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { readAt } from "../layers/dms-core/app/build/composables/user/preferencesCookie";
-import { storedSidePanelWidth } from "../layers/dms-ui/app/build/composables/layout/sidePanelState";
+import { readAt } from "../layers/dms-core/app/entries/composables/user/preferencesCookie";
+import { storedSidePanelWidth } from "../layers/dms-ui/app/entries/composables/layout/sidePanelState";
 import { resolveFormSuccessTarget } from "../layers/dms-ui/app/entries/composables/table-view/registerDefaultFunctions";
 import { loadCodeHighlighter } from "../layers/dms-ui/app/entries/utils/codeHighlight";
 import {

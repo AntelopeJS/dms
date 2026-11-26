@@ -4,7 +4,7 @@ import { Logging } from "@antelopejs/interface-core/logging";
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import { TenantLifecycleModel } from "./db/internal/tenantLifecycle.model";
 import { isFunction, isObject } from "./utils/internal/type-check";
-import { brandClass } from "./internal/brand";
+import { brandClass } from "./utils/internal/brand";
 
 const HTTP_CLIENT_ERROR_MIN = 400;
 const HTTP_SERVER_ERROR_MIN = 500;
