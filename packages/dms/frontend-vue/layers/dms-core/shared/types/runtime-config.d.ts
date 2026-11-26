@@ -1,3 +1,5 @@
+import type { User } from "../../app/types/user";
+
 interface DmsOAuthProviderDescriptor {
   id: string;
   label: string;
@@ -56,8 +58,6 @@ interface DmsBrowserSession {
 }
 
 declare module "#dms/frontend-module" {
-  import type { User } from "../../app/types/user";
-
   interface PublicRuntimeConfig {
     dms: DmsPublicConfig;
   }
