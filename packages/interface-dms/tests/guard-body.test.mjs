@@ -50,7 +50,11 @@ const refusal = (run) => {
 const assertRefusedAs400 = (error, label) => {
   assert.ok(IsHTTPResult(error), `${label}: ${String(error)}`);
   assert.equal(error.getStatus(), 400, label);
-  assert.match(String(error.getBody()), /64/, label);
+  assert.deepEqual(
+    JSON.parse(String(error.getBody())),
+    { message: "$dms.refusals.body.too_deep", params: { maxDepth: 64 } },
+    label,
+  );
 };
 
 await test("a JSON object body decodes to its fields, as text or bytes", () => {

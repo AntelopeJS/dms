@@ -637,6 +637,79 @@
         "userId": "User",
         "userIds": "Users"
       }
+    },
+    "refusals": {
+      "auth": {
+        "unauthorized": "Unauthorized",
+        "invalid_session_token": "Invalid session token",
+        "no_token_provided": "No JWT token provided",
+        "email_not_validated": "Email not validated",
+        "owner_only": "Owner-only"
+      },
+      "export": {
+        "not_accessible": "Export not accessible",
+        "not_found": "Export not found"
+      },
+      "archive": {
+        "cannot_view_archived": "Forbidden: cannot view archived rows"
+      },
+      "permissions": {
+        "missing_permission": "Forbidden: missing permission {permissionId}"
+      },
+      "file": {
+        "not_found": "File not found",
+        "access_denied": "File access denied."
+      },
+      "upload": {
+        "invalid_field_token": "Upload rejected: missing or invalid attachment field token.",
+        "rejected": "Upload rejected: the file exceeds the allowed size or type.",
+        "file_too_large": "Upload rejected: the file exceeds this field’s maximum size of {maxSize} bytes.",
+        "type_not_allowed": "Upload rejected: type \"{mimetype}\" is not allowed for this field (allowed: {allowed}).",
+        "file_not_stored": "A submitted file was never stored. Upload it again."
+      },
+      "body": {
+        "too_deep": "The JSON body nests more than {maxDepth} levels deep."
+      },
+      "connection": {
+        "read_only": "Connection \"{connection}\" is read-only: the project allows no changes to its tables."
+      },
+      "tenant": {
+        "admission_paused": "Tenant lifecycle admission is paused"
+      },
+      "invite": {
+        "retired_while_reissued": "Invitation was retired while it was reissued",
+        "creation_pending": "Invitation creation is still pending",
+        "different_decision": "Invitation already has a different terminal decision",
+        "different_replacement": "Invitation already has a different replacement",
+        "expired_before_acceptance": "Invitation expired before acceptance",
+        "created_concurrently": "Invitation for this email was created concurrently with other content"
+      },
+      "mockup": {
+        "not_found": "Mockup not found",
+        "version_not_found": "Version not found",
+        "page_not_found": "Page not found",
+        "fixture_not_found": "Fixture not found",
+        "rows_not_found": "Array of rows not found",
+        "example_not_found": "Example not found",
+        "annotation_not_found": "Annotation not found",
+        "node_not_found": "Node at this path not found",
+        "page_node_not_found": "Node at this page and path not found",
+        "row_not_found": "Row not found",
+        "route_not_found": "Route not found",
+        "lock_not_found": "Lock not found",
+        "spec_not_object": "spec.json holds no JSON object",
+        "spec_changed": "spec.json changed since it was read",
+        "lock_spec_changed": "spec.json changed since it was read, so the pointer may name another block: read it again and retake the lock",
+        "lock_ambiguous_ids": "Another block has the same ids as this one, so a lock cannot tell them apart: give one of them another id",
+        "note_ambiguous_ids": "Another block has the same ids as this one, so a note cannot tell them apart: give one of them another id",
+        "lock_spec_invalid": "spec.json is not a valid spec, so the block cannot get an id",
+        "note_spec_invalid": "spec.json is not a valid spec, so the note’s block cannot get an id",
+        "row_not_object": "A row is a JSON object",
+        "exists": "Another mockup already has this name",
+        "no_free_name": "No free name for the copy: give one",
+        "no_event_stream": "This viewer has no event stream open on the mockup",
+        "block_held": "{holder} is editing this block"
+      }
     }
   }
 }

@@ -45,6 +45,7 @@ export type {
 const DEFAULT_MAX_EXECUTION_TIME_MS = 10 * 60 * 1000;
 const MIN_PROGRESS = 0;
 const MAX_IN_PROGRESS = 99;
+const EXPORT_NOT_ACCESSIBLE = "$dms.refusals.export.not_accessible";
 
 /**
  * The access checks of a status or download call, the caller's own check
@@ -62,12 +63,12 @@ function assertOwnership(
   user: User,
   access: ExportJobAccess,
 ): void {
-  assert(record.userId === user._id, 403, "Export not accessible");
+  assert(record.userId === user._id, 403, EXPORT_NOT_ACCESSIBLE);
   if (access?.scope !== undefined) {
-    assert(record.scope === access.scope, 403, "Export not accessible");
+    assert(record.scope === access.scope, 403, EXPORT_NOT_ACCESSIBLE);
   }
   if (access?.isOwnedBy) {
-    assert(access.isOwnedBy(record, user), 403, "Export not accessible");
+    assert(access.isOwnedBy(record, user), 403, EXPORT_NOT_ACCESSIBLE);
   }
 }
 
@@ -227,7 +228,7 @@ export async function loadExportJobForUser(
   const tenantId = getRequestTenantId(ctx);
   const model = GetModel(ExportJobModel, tenantId);
   const record = await model.get(jobId);
-  assert(record, 404, "Export not found");
+  assert(record, 404, "$dms.refusals.export.not_found");
   assertOwnership(record, user, access);
   return { model, record };
 }

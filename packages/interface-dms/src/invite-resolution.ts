@@ -41,7 +41,7 @@ export async function assertInviteReady(
   assert(
     parent?.completed,
     HTTP_CONFLICT,
-    "Invitation creation is still pending",
+    "$dms.refusals.invite.creation_pending",
   );
 }
 
@@ -53,12 +53,12 @@ function assertSameDecision(
     resolution.reason === input.reason &&
       resolution.userId === (input.userId ?? null),
     HTTP_CONFLICT,
-    "Invitation already has a different terminal decision",
+    "$dms.refusals.invite.different_decision",
   );
   assert(
     isSameInviteContent(resolution.replacement, input.replacement),
     HTTP_CONFLICT,
-    "Invitation already has a different replacement",
+    "$dms.refusals.invite.different_replacement",
   );
 }
 
@@ -98,7 +98,7 @@ export async function decideInvite(
       existing ||
       new Date(input.invite.expiresAt) > new Date(),
     HTTP_CONFLICT,
-    "Invitation expired before acceptance",
+    "$dms.refusals.invite.expired_before_acceptance",
   );
   if (input.replacement && !existing)
     await assertOnlyInviteOfEmail(input.tenantId, input.invite);

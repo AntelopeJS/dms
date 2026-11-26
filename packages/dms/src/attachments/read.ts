@@ -26,7 +26,7 @@ async function readStoredFile(key: string, storage?: string) {
     return { ...metadata, ...read };
   } catch (error) {
     if (error instanceof FileNotFoundError)
-      throw new HTTPResult(404, "File not found");
+      throw new HTTPResult(404, "$dms.refusals.file.not_found");
     throw error;
   }
 }

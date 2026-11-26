@@ -37,6 +37,7 @@ import { readExampleSpec } from "./example";
 import { buildMockupSchema } from "./json-schema";
 import type { Json, JsonObject, MockupName, MockupState } from "./model";
 import { MockupOwnerController } from "./owner-controller";
+import { type MockupSubject, notFound } from "./refusals";
 import { parseViewerId } from "./presence";
 import { PresenceBoard } from "./presence-board";
 import { registerPresenceRoutes } from "./presence-routes";
@@ -60,7 +61,6 @@ import { registerManageRoutes } from "./manage-routes";
 import { registerSpecRoutes } from "./source-routes";
 
 const HTTP_BAD_REQUEST = 400;
-const HTTP_NOT_FOUND = 404;
 const HTTP_CONFLICT = 409;
 const SSE_CONTENT_TYPE = "text/event-stream";
 const SSE_RECONNECT_MS = 1000;
@@ -86,10 +86,6 @@ export function createMockupEngine(
   return { store, streams: new Set(), presence, pages };
 }
 
-function notFound(what: string): HTTPResult {
-  return new HTTPResult(HTTP_NOT_FOUND, { message: `${what} not found` });
-}
-
 /** The row of `rows` that `?id=` names, read at `?key=` when the query gives one. */
 function rowOf(
   rows: readonly JsonObject[],
@@ -111,7 +107,7 @@ function nameOf(raw: string): MockupName {
 function checkParam(
   schema: z.ZodType<string>,
   raw: string,
-  what: string,
+  what: MockupSubject,
 ): string {
   const parsed = schema.safeParse(raw);
   if (!parsed.success) throw notFound(what);
@@ -141,7 +137,7 @@ async function readRows(
   rawKey: string,
 ): Promise<JsonObject[]> {
   const rows = parseRows(await readFixture(store, rawName, rawPage, rawKey));
-  if (!rows) throw notFound("array of rows");
+  if (!rows) throw notFound("rows");
   return rows;
 }
 
@@ -267,7 +263,7 @@ export function registerMockupRoutes(engine: MockupEngine) {
     ): Promise<RowsPage> {
       await this.assertOwner();
       const rows = parseRows(await fixtureOf(rawName, rawPage, rawKey));
-      if (!rows) throw notFound("array of rows");
+      if (!rows) throw notFound("rows");
       return listRows(rows, parseRowsQuery(context.url.searchParams));
     }
 
@@ -349,16 +345,14 @@ function refusal(
     case "no_annotation":
       return notFound("annotation");
     case "no_node":
-      return notFound("node at this page and path");
+      return notFound("pageNode");
     case "ambiguous":
       return new HTTPResult(HTTP_CONFLICT, {
-        message:
-          "another block has the same ids as this one, so a note cannot tell them apart: give one of them another id",
+        message: "$dms.refusals.mockup.note_ambiguous_ids",
       });
     case "spec_invalid":
       return new HTTPResult(HTTP_CONFLICT, {
-        message:
-          "spec.json is not a valid spec, so the note's block cannot get an id",
+        message: "$dms.refusals.mockup.note_spec_invalid",
         errors: refused.errors.map(({ path, message }) => ({ path, message })),
       });
   }
@@ -415,7 +409,7 @@ function registerRecordRoutes(store: MockupStore) {
       const sent = jsonObjectSchema.safeParse(body);
       if (!sent.success) {
         throw new HTTPResult(HTTP_BAD_REQUEST, {
-          message: "a row is a JSON object",
+          message: "$dms.refusals.mockup.row_not_object",
         });
       }
       return { ...rowOf(rows, context.url.searchParams), ...sent.data };

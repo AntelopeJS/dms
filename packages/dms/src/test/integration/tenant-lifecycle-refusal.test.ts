@@ -72,7 +72,7 @@ async function endWhileReleaseFails(
     await runTenantLifecycleOperation(TENANT, async () => {
       restore = fault(model, faulty);
       if (ending === "refusal") {
-        throw new HTTPResult(HTTP_PAYMENT_REQUIRED, "seat limit reached");
+        throw new HTTPResult(HTTP_PAYMENT_REQUIRED, "$test.seat_limit_reached");
       }
     }).catch((error: unknown) => {
       assert.ok(error instanceof Error || IsHTTPResult(error));

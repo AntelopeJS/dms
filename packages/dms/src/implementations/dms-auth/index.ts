@@ -38,15 +38,15 @@ import { INVITE_EXPIRY_DAYS } from "@antelopejs/interface-dms/invites";
 
 const HTTP_FORBIDDEN = 403;
 const HTTP_UNAUTHORIZED = 401;
-const OWNER_ONLY_ERROR_MESSAGE = "Owner-only";
-const EMAIL_NOT_VALIDATED_ERROR = "Email not validated";
-const NO_JWT_TOKEN_ERROR = "No jwt token provided";
+const OWNER_ONLY_ERROR_MESSAGE = "$dms.refusals.auth.owner_only";
+const EMAIL_NOT_VALIDATED_ERROR = "$dms.refusals.auth.email_not_validated";
+const NO_JWT_TOKEN_ERROR = "$dms.refusals.auth.no_token_provided";
 const INVALID_TENANT_ASSIGNMENT_TOKEN_ERROR = "Invalid tenant assignment token";
 const INVALID_TWO_FACTOR_TOKEN_ERROR = "error.invalid_2fa_token";
 const TWO_FACTOR_TOKEN_PURPOSE = "2fa";
 const ACCESS_TOKEN_PURPOSE = "access";
 const REFRESH_TOKEN_PURPOSE = "refresh";
-const INVALID_SESSION_TOKEN_ERROR = "Invalid session token";
+const INVALID_SESSION_TOKEN_ERROR = "$dms.refusals.auth.invalid_session_token";
 const MISSING_SESSION_ID_ERROR = "An access or refresh token needs a sessionId";
 
 interface TenantTokenInput {

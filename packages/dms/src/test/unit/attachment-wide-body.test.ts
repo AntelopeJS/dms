@@ -9,7 +9,10 @@ import { untouchedRequestContext } from "../helpers/request-context";
 
 const MAX_DEPTH = 64;
 const BAD_REQUEST = 400;
-const REFUSAL = "The JSON body nests more than 64 levels deep.";
+const REFUSAL = {
+  message: "$dms.refusals.body.too_deep",
+  params: { maxDepth: 64 },
+};
 const CONTAINERS = ["array", "object"] as const;
 type Container = (typeof CONTAINERS)[number];
 type Nested = null | Nested[] | { child: Nested };
@@ -109,7 +112,7 @@ async function expectSavedWhole(gallery: FieldValue) {
 async function expectRefusedInTime(gallery: FieldValue) {
   const { refusal, saves, ms } = await timedSave(saveRequest(gallery));
   expect(refusal?.getStatus()).to.equal(BAD_REQUEST);
-  expect(refusal?.getBody()).to.equal(REFUSAL);
+  expect(JSON.parse(String(refusal?.getBody()))).to.deep.equal(REFUSAL);
   expect(saves).to.equal(0);
   expect(ms).to.be.below(MAX_REFUSAL_MS);
 }

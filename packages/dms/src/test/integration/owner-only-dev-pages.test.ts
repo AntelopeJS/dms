@@ -104,7 +104,7 @@ for (const { slug, api, start, stop } of DEV_AREAS) {
       expect(answer.status, JSON.stringify(answer.data)).to.equal(
         HTTP_FORBIDDEN,
       );
-      expect(String(answer.data)).to.equal("Owner-only");
+      expect(answer.data).to.equal("$dms.refusals.auth.owner_only");
     });
 
     it("refuses a caller with no session", async () => {

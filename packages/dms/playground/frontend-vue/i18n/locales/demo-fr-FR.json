@@ -290,9 +290,11 @@
         "past_due": "Votre paiement de {amount} a échoué. Nouvel essai le {date}.",
         "pay": "Mettre à jour le moyen de paiement",
         "suspended": "Cet espace est suspendu, ou la bannière composant est activée.",
-        "suspended_link": "Ouvrir Tenancy"
+        "suspended_link": "Ouvrir Tenancy",
+        "unknown": "Bannière inconnue"
       },
       "hooks": {
+        "bad_signature": "Signature invalide",
         "seats_full": "Plus de place libre : libérez-en une ou changez d'offre pour inviter quelqu'un"
       },
       "realtime": {

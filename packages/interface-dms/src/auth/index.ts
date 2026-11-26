@@ -14,7 +14,10 @@ import {
 import { fireAndForget } from "../utils/fire-and-forget";
 import type { ParsedUserAgent } from "./internal/user-agent";
 import { CreateJwtAuthDecorator } from "./internal/jwt-auth-decorator";
-import { bindVerifiedRequestPrincipal } from "./internal/request-authenticators";
+import {
+  bindVerifiedRequestPrincipal,
+  unauthorized,
+} from "./internal/request-authenticators";
 import { DEFAULT_TENANT_ID } from "../constants";
 import { isBoolean, isString } from "../utils/internal/type-check";
 
@@ -40,9 +43,7 @@ export const NotifyCollaboratorJoined =
 export const ParseUserAgent =
   InterfaceFunction<(userAgent: string) => ParsedUserAgent>();
 
-const HTTP_UNAUTHORIZED = 401;
 const HTTP_CONFLICT = 409;
-const UNAUTHORIZED_MESSAGE = "Unauthorized";
 const IDENTITY_ALREADY_LINKED_MESSAGE = "error.oauth.identity_already_linked";
 
 export interface TenantTokenInput {
@@ -65,7 +66,7 @@ export async function authenticateRequestUser(
   const decoded = await internal.AuthUserAuthenticator(token);
   const validated = await internal.AuthUserValidator(decoded);
   if (!validated || isBoolean(validated)) {
-    throw new HTTPResult(HTTP_UNAUTHORIZED, UNAUTHORIZED_MESSAGE);
+    throw unauthorized();
   }
   bindVerifiedRequestPrincipal(ctx, {
     userId: validated._id,

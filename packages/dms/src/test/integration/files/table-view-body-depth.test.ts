@@ -9,7 +9,10 @@ const WIDE_KEYS = 100_000;
 const TOO_DEEP = [1_088, 1_640, 5_000, 10_000, 100_000];
 const HTTP_OK = 200;
 const HTTP_BAD_REQUEST = 400;
-const REFUSAL = "The JSON body nests more than 64 levels deep.";
+const REFUSAL = {
+  message: "$dms.refusals.body.too_deep",
+  params: { maxDepth: 64 },
+};
 
 /**
  * Time limit of the wide and wide-and-deep requests. The decoder answers them
@@ -66,7 +69,7 @@ describe("[integration] the table-view save route bounds the depth of its body",
         expect(response.status, JSON.stringify(response.data)).to.equal(
           HTTP_BAD_REQUEST,
         );
-        expect(JSON.stringify(response.data)).to.contain(REFUSAL);
+        expect(response.data).to.deep.equal(REFUSAL);
       });
     }
 
@@ -77,7 +80,7 @@ describe("[integration] the table-view save route bounds the depth of its body",
       expect(response.status, JSON.stringify(response.data)).to.equal(
         HTTP_BAD_REQUEST,
       );
-      expect(JSON.stringify(response.data)).to.contain(REFUSAL);
+      expect(response.data).to.deep.equal(REFUSAL);
       expect(milliseconds).to.be.lessThan(REPLY_LIMIT_MS);
     });
 

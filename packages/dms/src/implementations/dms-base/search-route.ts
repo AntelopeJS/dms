@@ -215,7 +215,7 @@ export async function applyArchiveFilter(
     assert(
       showArchived !== "true",
       403,
-      "Forbidden: cannot view archived rows",
+      "$dms.refusals.archive.cannot_view_archived",
     );
     return { ...filters, [archiveField]: archiveFilter(false) };
   }

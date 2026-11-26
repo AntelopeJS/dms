@@ -17,19 +17,36 @@ function matchesMimetype(mimetype: string, pattern: string): boolean {
   );
 }
 
+/** The refusal body of a constraint a file breaks: a translation key and its params. */
+export type ConstraintViolation =
+  | {
+      message: "$dms.refusals.upload.file_too_large";
+      params: { maxSize: number };
+    }
+  | {
+      message: "$dms.refusals.upload.type_not_allowed";
+      params: { mimetype: string; allowed: string };
+    };
+
 /** Describes the first constraint the file breaks, or `undefined` when it satisfies them all. */
 export function findConstraintViolation(
   constraints: UploadConstraints | undefined,
   file: ConstrainedFile,
-): string | undefined {
+): ConstraintViolation | undefined {
   if (constraints?.maxSize !== undefined && file.size > constraints.maxSize)
-    return `the file exceeds this field's maximum size of ${constraints.maxSize} bytes`;
+    return {
+      message: "$dms.refusals.upload.file_too_large",
+      params: { maxSize: constraints.maxSize },
+    };
   const allowed = constraints?.allowedMimetypes;
   if (
     allowed?.length &&
     !allowed.some((pattern) => matchesMimetype(file.mimetype, pattern))
   )
-    return `type "${file.mimetype}" is not allowed for this field (allowed: ${allowed.join(", ")})`;
+    return {
+      message: "$dms.refusals.upload.type_not_allowed",
+      params: { mimetype: file.mimetype, allowed: allowed.join(", ") },
+    };
   return undefined;
 }
 
@@ -39,9 +56,5 @@ export function assertUploadSatisfiesField(
   file: ConstrainedFile,
 ): void {
   const violation = findConstraintViolation(constraints, file);
-  if (violation)
-    throw new HTTPResult(
-      UPLOAD_REJECTED_STATUS,
-      `Upload rejected: ${violation}.`,
-    );
+  if (violation) throw new HTTPResult(UPLOAD_REJECTED_STATUS, violation);
 }

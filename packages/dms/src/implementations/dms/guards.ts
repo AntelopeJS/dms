@@ -19,10 +19,10 @@ import { internal as authInternal } from "../dms-auth";
 const HTTP_FORBIDDEN_STATUS = 403;
 
 function forbiddenMissingPermission(permissionId: string): HTTPResult {
-  return new HTTPResult(
-    HTTP_FORBIDDEN_STATUS,
-    `Forbidden: missing permission ${permissionId}`,
-  );
+  return new HTTPResult(HTTP_FORBIDDEN_STATUS, {
+    message: "$dms.refusals.permissions.missing_permission",
+    params: { permissionId },
+  });
 }
 
 export namespace internal {

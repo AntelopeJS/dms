@@ -96,10 +96,10 @@ export function isInviteFieldValues(
     }
     if (!Array.isArray(current) && !isPlainObject(current)) return false;
     if (depth >= MAX_INVITE_BODY_DEPTH) {
-      throw new HTTPResult(
-        HTTP_BAD_REQUEST,
-        `The JSON body nests more than ${MAX_INVITE_BODY_DEPTH} levels deep.`,
-      );
+      throw new HTTPResult(HTTP_BAD_REQUEST, {
+        message: "$dms.refusals.body.too_deep",
+        params: { maxDepth: MAX_INVITE_BODY_DEPTH },
+      });
     }
     for (const child of Object.values(current)) {
       pending.push({ value: child, depth: depth + 1 });

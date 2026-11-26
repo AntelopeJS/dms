@@ -59,10 +59,10 @@ function failureOf(run) {
 function assertBadRequest(failure) {
   assert.ok(IsHTTPResult(failure), `got ${String(failure)}`);
   assert.equal(failure.status, 400);
-  assert.match(
-    String(failure.body),
-    new RegExp(`more than ${BOUND} levels deep`),
-  );
+  assert.deepEqual(JSON.parse(String(failure.body)), {
+    message: "$dms.refusals.body.too_deep",
+    params: { maxDepth: BOUND },
+  });
 }
 
 const flows = [

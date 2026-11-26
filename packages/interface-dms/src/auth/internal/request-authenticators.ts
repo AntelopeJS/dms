@@ -27,8 +27,9 @@ const requestPrincipals = new WeakMap<
 >();
 const pendingAuthentications = new WeakMap<IncomingMessage, Promise<unknown>>();
 
-function unauthorized(): HTTPResult {
-  return new HTTPResult(HTTP_UNAUTHORIZED, "Unauthorized");
+/** @internal The 401 every refused authentication answers, whatever the reason. */
+export function unauthorized(): HTTPResult {
+  return new HTTPResult(HTTP_UNAUTHORIZED, "$dms.refusals.auth.unauthorized");
 }
 
 /** @internal Read only a successfully authenticated, unchanged request's tenant. */

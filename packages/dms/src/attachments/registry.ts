@@ -12,7 +12,7 @@ export function attachmentTable() {
 }
 
 export function denyAttachment(): never {
-  throw new HTTPResult(FORBIDDEN, "File access denied.");
+  throw new HTTPResult(FORBIDDEN, "$dms.refusals.file.access_denied");
 }
 
 export function attachmentId(key: string, storage?: string): string {

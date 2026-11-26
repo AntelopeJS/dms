@@ -159,10 +159,11 @@ describe("[unit] mockup presence: locks over HTTP", () => {
     expect([same.status, parent.status, top.status]).to.deep.equal([
       409, 409, 409,
     ]);
-    expect(same.data).to.have.property(
-      "message",
-      `${ADA} is editing this block`,
-    );
+    expect(same.data).to.deep.include({
+      message: "$dms.refusals.mockup.block_held",
+      params: { holder: ADA },
+      holder: ADA,
+    });
     expect(sibling.status).to.equal(200);
 
     await unlock(bea, b);
@@ -508,8 +509,8 @@ describe("[unit] mockup presence: a lock take names its block in the file the cl
 
     expect(stale.status).to.equal(409);
     expect(staleSchema.parse(stale.data).digest).to.equal(current.digest);
-    expect(staleSchema.parse(stale.data).message).to.contain(
-      "changed since it was read",
+    expect(staleSchema.parse(stale.data).message).to.equal(
+      "$dms.refusals.mockup.lock_spec_changed",
     );
     expect(await readFile(specPath, "utf8")).to.equal(before);
     expect(heldPaths(adaStream)).to.deep.equal([]);

@@ -637,6 +637,79 @@
         "userId": "Utilisateur",
         "userIds": "Utilisateurs"
       }
+    },
+    "refusals": {
+      "auth": {
+        "unauthorized": "Non autorisé",
+        "invalid_session_token": "Jeton de session invalide",
+        "no_token_provided": "Aucun jeton JWT fourni",
+        "email_not_validated": "Adresse e-mail non validée",
+        "owner_only": "Réservé aux propriétaires"
+      },
+      "export": {
+        "not_accessible": "Export inaccessible",
+        "not_found": "Export introuvable"
+      },
+      "archive": {
+        "cannot_view_archived": "Interdit : vous ne pouvez pas voir les lignes archivées"
+      },
+      "permissions": {
+        "missing_permission": "Interdit : permission {permissionId} manquante"
+      },
+      "file": {
+        "not_found": "Fichier introuvable",
+        "access_denied": "Accès au fichier refusé."
+      },
+      "upload": {
+        "invalid_field_token": "Envoi refusé : jeton du champ de pièce jointe manquant ou invalide.",
+        "rejected": "Envoi refusé : le fichier dépasse la taille autorisée ou n’a pas un type autorisé.",
+        "file_too_large": "Envoi refusé : le fichier dépasse la taille maximale de {maxSize} octets de ce champ.",
+        "type_not_allowed": "Envoi refusé : le type \"{mimetype}\" n’est pas autorisé pour ce champ (autorisés : {allowed}).",
+        "file_not_stored": "Un fichier envoyé n’a jamais été enregistré. Envoyez-le de nouveau."
+      },
+      "body": {
+        "too_deep": "Le corps JSON est imbriqué sur plus de {maxDepth} niveaux."
+      },
+      "connection": {
+        "read_only": "La connexion \"{connection}\" est en lecture seule : le projet n’autorise aucune modification de ses tables."
+      },
+      "tenant": {
+        "admission_paused": "L’admission du cycle de vie de l’espace est suspendue"
+      },
+      "invite": {
+        "retired_while_reissued": "L’invitation a été retirée pendant sa réémission",
+        "creation_pending": "La création de l’invitation est toujours en cours",
+        "different_decision": "L’invitation a déjà une autre décision finale",
+        "different_replacement": "L’invitation a déjà un autre remplacement",
+        "expired_before_acceptance": "L’invitation a expiré avant d’être acceptée",
+        "created_concurrently": "Une invitation pour cette adresse e-mail a été créée en parallèle avec un autre contenu"
+      },
+      "mockup": {
+        "not_found": "Maquette introuvable",
+        "version_not_found": "Version introuvable",
+        "page_not_found": "Page introuvable",
+        "fixture_not_found": "Jeu de données introuvable",
+        "rows_not_found": "Liste de lignes introuvable",
+        "example_not_found": "Exemple introuvable",
+        "annotation_not_found": "Annotation introuvable",
+        "node_not_found": "Nœud introuvable à ce chemin",
+        "page_node_not_found": "Nœud introuvable à cette page et à ce chemin",
+        "row_not_found": "Ligne introuvable",
+        "route_not_found": "Route introuvable",
+        "lock_not_found": "Verrou introuvable",
+        "spec_not_object": "spec.json ne contient aucun objet JSON",
+        "spec_changed": "spec.json a changé depuis sa lecture",
+        "lock_spec_changed": "spec.json a changé depuis sa lecture, le pointeur peut donc désigner un autre bloc : relisez-le et reprenez le verrou",
+        "lock_ambiguous_ids": "Un autre bloc a les mêmes identifiants que celui-ci, un verrou ne peut donc pas les distinguer : donnez un autre identifiant à l’un d’eux",
+        "note_ambiguous_ids": "Un autre bloc a les mêmes identifiants que celui-ci, une note ne peut donc pas les distinguer : donnez un autre identifiant à l’un d’eux",
+        "lock_spec_invalid": "spec.json n’est pas une spec valide, le bloc ne peut donc pas recevoir d’identifiant",
+        "note_spec_invalid": "spec.json n’est pas une spec valide, le bloc de la note ne peut donc pas recevoir d’identifiant",
+        "row_not_object": "Une ligne est un objet JSON",
+        "exists": "Une autre maquette porte déjà ce nom",
+        "no_free_name": "Aucun nom libre pour la copie : donnez-en un",
+        "no_event_stream": "Ce lecteur n’a aucun flux d’événements ouvert sur la maquette",
+        "block_held": "{holder} modifie ce bloc"
+      }
     }
   }
 }

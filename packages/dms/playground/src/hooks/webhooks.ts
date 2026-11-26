@@ -32,7 +32,10 @@ export class PlaygroundWebhooksController extends Controller(WEBHOOKS_API) {
       | undefined,
   ): WebhookResult {
     if (signature !== WEBHOOK_SECRET) {
-      throw new HTTPResult(HTTP_UNAUTHORIZED, "Bad signature");
+      throw new HTTPResult(
+        HTTP_UNAUTHORIZED,
+        "$demo.pages.hooks.bad_signature",
+      );
     }
     recordHookEvent({
       icon: "i-ph-webhooks-logo",

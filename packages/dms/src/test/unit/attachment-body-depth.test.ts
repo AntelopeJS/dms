@@ -10,7 +10,10 @@ import { untouchedRequestContext } from "../helpers/request-context";
 const MAX_DEPTH = 64;
 const TOO_DEEP = 10_000;
 const BAD_REQUEST = 400;
-const REFUSAL = "The JSON body nests more than 64 levels deep.";
+const REFUSAL = {
+  message: "$dms.refusals.body.too_deep",
+  params: { maxDepth: 64 },
+};
 const CONTAINERS = ["array", "object"] as const;
 
 const FILE_FIELD: AttachmentField = {
@@ -71,7 +74,7 @@ async function savedDocument(request: AttachmentSaveRequest) {
 async function expectDepthRefusal(request: AttachmentSaveRequest) {
   const { saves, refusal } = await attempt(request);
   expect(refusal?.getStatus()).to.equal(BAD_REQUEST);
-  expect(refusal?.getBody()).to.equal(REFUSAL);
+  expect(JSON.parse(String(refusal?.getBody()))).to.deep.equal(REFUSAL);
   expect(saves).to.equal(0);
 }
 

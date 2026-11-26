@@ -38,7 +38,7 @@ export interface AttachmentSaveRequest {
  * Table-view proxy that promotes the files of a `new`, `edit` or `delete` route.
  * It answers nothing: the wrapper returns the wrapped route's own answer.
  * A declared attachment field that nests more than 64 levels deep (the body is
- * level 1) is refused with a 400 "The JSON body nests more than 64 levels deep."
+ * level 1) is refused with a 400 `{ message: "$dms.refusals.body.too_deep", params: { maxDepth: 64 } }`
  * at every depth. The attachment save path checks it, and the guard decoder
  * counts depth iteratively before any schema parse. Measured on a table-view
  * `new`, arrays and objects answered 400 from 65 levels up to 100,000.
@@ -67,7 +67,7 @@ type AttachmentSaver = <T>(
  * Removed files are deleted after successful persistence; cleanup errors are logged.
  * This is not reference-counted cleanup: callers own the risk of shared keys.
  * A declared attachment field that nests more than 64 levels deep (the body is
- * level 1) is refused with a 400 "The JSON body nests more than 64 levels deep."
+ * level 1) is refused with a 400 `{ message: "$dms.refusals.body.too_deep", params: { maxDepth: 64 } }`
  * before any file is touched.
  */
 export const SaveComponentFiles =

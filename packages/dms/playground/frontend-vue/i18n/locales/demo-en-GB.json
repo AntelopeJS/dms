@@ -290,9 +290,11 @@
         "past_due": "Your payment of {amount} failed. We will try again on {date}.",
         "pay": "Update the payment method",
         "suspended": "This workspace is suspended, or the component banner is switched on.",
-        "suspended_link": "Open Tenancy"
+        "suspended_link": "Open Tenancy",
+        "unknown": "Unknown banner"
       },
       "hooks": {
+        "bad_signature": "Bad signature",
         "seats_full": "No seat left: free one or upgrade the plan to invite someone"
       },
       "realtime": {

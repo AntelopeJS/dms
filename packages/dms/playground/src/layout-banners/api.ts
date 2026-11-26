@@ -57,7 +57,7 @@ export class LayoutBannersDemoController extends Controller(
     @Parameter("key") key: string,
   ): Promise<BannerToggleResult> {
     if (!isBannerKey(key)) {
-      throw new HTTPResult(HTTP_NOT_FOUND, "Unknown banner");
+      throw new HTTPResult(HTTP_NOT_FOUND, "$demo.pages.banners.unknown");
     }
     const tenantId = getRequestTenantId(ctx);
     const shown = toggleBanner(key, tenantId);
