@@ -1,5 +1,17 @@
 # Changelog
 
+## v0.24.2
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/v0.24.1...v0.24.2)
+
+### 🩹 Fixes
+
+- **deps:** Require dms-frontend 0.11.11, which builds the bundles one after another ([#1271](https://github.com/AntelopeJS/dms/pull/1271))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli
+
 ## v0.24.1
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/v0.24.0...v0.24.1)
