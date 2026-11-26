@@ -77,7 +77,7 @@ export async function installShellRuntime(path = "/") {
   vi.stubGlobal("useI18n", () => ({ ...i18n.global, locales: vue.ref([]) }));
   vi.stubGlobal("useToast", useToast);
   engine.updateDmsAppConfig([
-    { module: "shell-fixture", config: { ui: { icons: {} } } },
+    { module: "shell-fixture", config: { ui: { icons: {} }, branding: {} } },
   ]);
   engine.useDmsState("dms-siteLayout", () => ({ pages: {}, categories: {} }));
   engine.useDmsState("dms-pageTree", () => ({
