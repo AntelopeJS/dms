@@ -662,26 +662,26 @@
       },
       "upload": {
         "invalid_field_token": "Envoi refusé : jeton du champ de pièce jointe manquant ou invalide.",
-        "rejected": "Envoi refusé : le fichier dépasse la taille autorisée ou n’a pas un type autorisé.",
+        "rejected": "Envoi refusé : le fichier dépasse la taille autorisée ou n'a pas un type autorisé.",
         "file_too_large": "Envoi refusé : le fichier dépasse la taille maximale de {maxSize} octets de ce champ.",
-        "type_not_allowed": "Envoi refusé : le type \"{mimetype}\" n’est pas autorisé pour ce champ (autorisés : {allowed}).",
-        "file_not_stored": "Un fichier envoyé n’a jamais été enregistré. Envoyez-le de nouveau."
+        "type_not_allowed": "Envoi refusé : le type \"{mimetype}\" n'est pas autorisé pour ce champ (autorisés : {allowed}).",
+        "file_not_stored": "Un fichier envoyé n'a jamais été enregistré. Envoyez-le de nouveau."
       },
       "body": {
         "too_deep": "Le corps JSON est imbriqué sur plus de {maxDepth} niveaux."
       },
       "connection": {
-        "read_only": "La connexion \"{connection}\" est en lecture seule : le projet n’autorise aucune modification de ses tables."
+        "read_only": "La connexion \"{connection}\" est en lecture seule : le projet n'autorise aucune modification de ses tables."
       },
       "tenant": {
-        "admission_paused": "L’admission du cycle de vie de l’espace est suspendue"
+        "admission_paused": "L'admission du cycle de vie de l'espace est suspendue"
       },
       "invite": {
-        "retired_while_reissued": "L’invitation a été retirée pendant sa réémission",
-        "creation_pending": "La création de l’invitation est toujours en cours",
-        "different_decision": "L’invitation a déjà une autre décision finale",
-        "different_replacement": "L’invitation a déjà un autre remplacement",
-        "expired_before_acceptance": "L’invitation a expiré avant d’être acceptée",
+        "retired_while_reissued": "L'invitation a été retirée pendant sa réémission",
+        "creation_pending": "La création de l'invitation est toujours en cours",
+        "different_decision": "L'invitation a déjà une autre décision finale",
+        "different_replacement": "L'invitation a déjà un autre remplacement",
+        "expired_before_acceptance": "L'invitation a expiré avant d'être acceptée",
         "created_concurrently": "Une invitation pour cette adresse e-mail a été créée en parallèle avec un autre contenu"
       },
       "mockup": {
@@ -700,14 +700,14 @@
         "spec_not_object": "spec.json ne contient aucun objet JSON",
         "spec_changed": "spec.json a changé depuis sa lecture",
         "lock_spec_changed": "spec.json a changé depuis sa lecture, le pointeur peut donc désigner un autre bloc : relisez-le et reprenez le verrou",
-        "lock_ambiguous_ids": "Un autre bloc a les mêmes identifiants que celui-ci, un verrou ne peut donc pas les distinguer : donnez un autre identifiant à l’un d’eux",
-        "note_ambiguous_ids": "Un autre bloc a les mêmes identifiants que celui-ci, une note ne peut donc pas les distinguer : donnez un autre identifiant à l’un d’eux",
-        "lock_spec_invalid": "spec.json n’est pas une spec valide, le bloc ne peut donc pas recevoir d’identifiant",
-        "note_spec_invalid": "spec.json n’est pas une spec valide, le bloc de la note ne peut donc pas recevoir d’identifiant",
+        "lock_ambiguous_ids": "Un autre bloc a les mêmes identifiants que celui-ci, un verrou ne peut donc pas les distinguer : donnez un autre identifiant à l'un d'eux",
+        "note_ambiguous_ids": "Un autre bloc a les mêmes identifiants que celui-ci, une note ne peut donc pas les distinguer : donnez un autre identifiant à l'un d'eux",
+        "lock_spec_invalid": "spec.json n'est pas une spec valide, le bloc ne peut donc pas recevoir d'identifiant",
+        "note_spec_invalid": "spec.json n'est pas une spec valide, le bloc de la note ne peut donc pas recevoir d'identifiant",
         "row_not_object": "Une ligne est un objet JSON",
         "exists": "Une autre maquette porte déjà ce nom",
         "no_free_name": "Aucun nom libre pour la copie : donnez-en un",
-        "no_event_stream": "Ce lecteur n’a aucun flux d’événements ouvert sur la maquette",
+        "no_event_stream": "Ce lecteur n'a aucun flux d'événements ouvert sur la maquette",
         "block_held": "{holder} modifie ce bloc"
       }
     }

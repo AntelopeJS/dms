@@ -663,7 +663,7 @@
       "upload": {
         "invalid_field_token": "Upload rejected: missing or invalid attachment field token.",
         "rejected": "Upload rejected: the file exceeds the allowed size or type.",
-        "file_too_large": "Upload rejected: the file exceeds this field’s maximum size of {maxSize} bytes.",
+        "file_too_large": "Upload rejected: the file exceeds this field's maximum size of {maxSize} bytes.",
         "type_not_allowed": "Upload rejected: type \"{mimetype}\" is not allowed for this field (allowed: {allowed}).",
         "file_not_stored": "A submitted file was never stored. Upload it again."
       },
@@ -703,7 +703,7 @@
         "lock_ambiguous_ids": "Another block has the same ids as this one, so a lock cannot tell them apart: give one of them another id",
         "note_ambiguous_ids": "Another block has the same ids as this one, so a note cannot tell them apart: give one of them another id",
         "lock_spec_invalid": "spec.json is not a valid spec, so the block cannot get an id",
-        "note_spec_invalid": "spec.json is not a valid spec, so the note’s block cannot get an id",
+        "note_spec_invalid": "spec.json is not a valid spec, so the note's block cannot get an id",
         "row_not_object": "A row is a JSON object",
         "exists": "Another mockup already has this name",
         "no_free_name": "No free name for the copy: give one",
