@@ -112,7 +112,7 @@ describe("the async data scope", () => {
     expect(host.textContent).toBe("orders of account A");
   });
 
-  it("drops the previous account's data once the session switches", async () => {
+  it("reads the data on screen again under the new account once the session switches", async () => {
     const browser = engine.createDmsFrontendRuntime(undefined, {});
     const browserApp = createApp(Root);
     await start(browserApp, browser, ACCOUNT_A);
@@ -122,13 +122,16 @@ describe("the async data scope", () => {
     await settle();
     expect(host.textContent).toBe("orders of account A");
 
+    handler.mockResolvedValueOnce("orders of account B");
     browserApp.runWithContext(() => {
       sessionState().value = ACCOUNT_B;
     });
     await settle();
 
-    expect(browser.asyncData.size).toBe(0);
-    expect(host.textContent).toBe("none");
+    expect([...browser.asyncData.keys()]).toEqual([
+      `${asyncDataScopeOf(ACCOUNT_B)}|orders`,
+    ]);
+    expect(host.textContent).toBe("orders of account B");
   });
 
   it("is set before a higher-priority module's plugin reads at setup", async () => {

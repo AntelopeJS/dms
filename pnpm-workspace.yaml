@@ -16,5 +16,6 @@ onlyBuiltDependencies:
 allowBuilds:
   lefthook: false
   mongodb-memory-server: false
+minimumReleaseAge: 1440
 minimumReleaseAgeExclude:
-  - "@antelopejs/interface-*"
+  - "@antelopejs/*"

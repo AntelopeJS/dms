@@ -447,8 +447,8 @@ importers:
         specifier: ~1.24.5
         version: 1.24.6
       '@antelopejs/dms-frontend':
-        specifier: '>=0.11.8 <0.12.0'
-        version: 0.11.8(@antelopejs/core@1.24.6)
+        specifier: '>=0.11.11 <0.12.0'
+        version: 0.11.11(@antelopejs/core@1.24.6)
       '@antelopejs/tooling-configs':
         specifier: '>=0.10.1 <0.11.0'
         version: 0.10.1(@nuxt/eslint-config@1.17.0(@typescript-eslint/utils@8.68.0(eslint@10.15.0(jiti@2.7.0))(typescript@5.9.3))(@vue/compiler-sfc@3.5.25)(eslint@10.15.0(jiti@2.7.0))(typescript@5.9.3))(knip@6.34.0)(mongodb-memory-server@11.3.0(socks@2.8.7))(oxfmt@0.66.0)(oxlint@1.81.0(oxlint-tsgolint@7.0.2001))(pixelmatch@8.0.0)(playwright-core@1.65.1)(sharp@0.35.5(@types/node@26.6.5))
@@ -538,8 +538,8 @@ importers:
         specifier: ~1.24.5
         version: 1.24.6
       '@antelopejs/dms-frontend':
-        specifier: '>=0.11.8 <0.12.0'
-        version: 0.11.8(@antelopejs/core@1.24.6)
+        specifier: '>=0.11.11 <0.12.0'
+        version: 0.11.11(@antelopejs/core@1.24.6)
       '@types/node':
         specifier: ^24.19.2
         version: 24.19.2
@@ -666,8 +666,8 @@ packages:
     engines: {node: ^20.19.0 || >=22.12.0}
     hasBin: true
 
-  '@antelopejs/dms-frontend@0.11.8':
-    resolution: {integrity: sha512-owMawDaP66LA0j7OlBTJ4gebBC0TFpn8xveEpsv9kUyy8ltkPn1DPoJHyJ+7QNxq5iO56m1V49+sW0j2M/LpvQ==}
+  '@antelopejs/dms-frontend@0.11.11':
+    resolution: {integrity: sha512-DNqMpvOTdfZc19WG9Uh9iW1MWDItxDHSEHos3gEXtxn7/paKH5F7SH6wyQI7mJEGK3xp7YqEz4j5qWk9Rr6HfQ==}
     engines: {node: '>=20.19.0'}
     hasBin: true
     peerDependencies:
@@ -5048,10 +5048,6 @@ packages:
     resolution: {integrity: sha512-/8UvqAPU9DGTI9k4mxtf49U37Isfwr8Uts96+SBHIkFxPJnHS0Ew4f00sM4Scd8V8EjM0jUNtVDdv1kPdt35lg==}
     engines: {node: '>= 4'}
 
-  ignore@7.0.6:
-    resolution: {integrity: sha512-BAg6QkE8W+TuQLrrw0Ugr7HegXduRuuj8/ti2kSOc+jz1dmx8/WNcjr6XGnq5YpDWxFwwaavqD0+jIUOKelTsw==}
-    engines: {node: '>= 4'}
-
   immutable@4.3.9:
     resolution: {integrity: sha512-ObHy4YN7ycwZOUCLI1/6svfyAFu7vL8RhAvVu/bh/RZW9EPlOyDaQ9jDQWCtdqzaXUjgXZCW1migtHE7YI7UGQ==}
 
@@ -7713,7 +7709,7 @@ snapshots:
       semver: 7.8.6
       typescript: 5.9.3
 
-  '@antelopejs/dms-frontend@0.11.8(@antelopejs/core@1.24.6)':
+  '@antelopejs/dms-frontend@0.11.11(@antelopejs/core@1.24.6)':
     dependencies:
       '@antelopejs/core': 1.24.6
       '@intlify/message-compiler': 11.4.8
@@ -8859,7 +8855,7 @@ snapshots:
   '@intlify/message-compiler@11.4.8':
     dependencies:
       '@intlify/shared': 11.4.8
-      source-map-js: 1.2.2
+      source-map-js: 1.2.4
 
   '@intlify/shared@11.4.8': {}
 
@@ -9153,7 +9149,7 @@ snapshots:
       destr: 2.0.5
       errx: 0.1.2
       exsolve: 1.1.1
-      ignore: 7.0.6
+      ignore: 7.0.12
       jiti: 2.7.0
       klona: 2.0.6
       mlly: 1.8.2
@@ -9310,7 +9306,7 @@ snapshots:
       exsolve: 1.1.1
       pathe: 2.0.3
       pkg-types: 2.3.1
-      semver: 7.8.5
+      semver: 7.8.6
     transitivePeerDependencies:
       - magic-string
       - magicast
@@ -9776,7 +9772,7 @@ snapshots:
       jiti: 2.7.0
       lightningcss: 1.32.0
       magic-string: 0.30.21
-      source-map-js: 1.2.2
+      source-map-js: 1.2.4
       tailwindcss: 4.3.3
 
   '@tailwindcss/oxide-android-arm64@4.3.3':
@@ -10626,7 +10622,7 @@ snapshots:
       '@vue/shared': 3.5.25
       entities: 4.5.0
       estree-walker: 2.0.2
-      source-map-js: 1.2.1
+      source-map-js: 1.2.4
 
   '@vue/compiler-dom@3.5.25':
     dependencies:
@@ -12311,8 +12307,6 @@ snapshots:
 
   ignore@7.0.12: {}
 
-  ignore@7.0.6: {}
-
   immutable@4.3.9:
     optional: true
 
@@ -13011,7 +13005,7 @@ snapshots:
       https-proxy-agent: 7.0.6
       mongodb: 7.5.0(socks@2.8.7)
       new-find-package-json: 2.0.0
-      semver: 7.8.5
+      semver: 7.8.6
       tar-stream: 3.2.2
       tslib: 2.8.1
       yauzl: 3.4.0
@@ -13550,13 +13544,13 @@ snapshots:
     dependencies:
       nanoid: 3.3.18
       picocolors: 1.1.1
-      source-map-js: 1.2.1
+      source-map-js: 1.2.4
 
   postcss@8.5.6:
     dependencies:
       nanoid: 3.3.11
       picocolors: 1.1.1
-      source-map-js: 1.2.1
+      source-map-js: 1.2.4
 
   postgres-array@2.0.0: {}
 
