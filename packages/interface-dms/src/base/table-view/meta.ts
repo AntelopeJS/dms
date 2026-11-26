@@ -45,6 +45,7 @@ import type {
   TableViewOptionsSerialized,
   TableViewRowActionOptions,
 } from "./options";
+import { brandClass } from "../../internal/brand";
 
 const FORM_MODE_BY_VIEW_MODE: Record<"view" | "edit" | "new", FormMode> = {
   view: FormMode.view,
@@ -52,11 +53,11 @@ const FORM_MODE_BY_VIEW_MODE: Record<"view" | "edit" | "new", FormMode> = {
   new: FormMode.new,
 };
 
-const ACCESS_ACTION_BY_FORM_MODE: Record<FormMode, string> = {
-  [FormMode.new]: "new",
-  [FormMode.edit]: "edit",
-  [FormMode.view]: "get",
-};
+const ACCESS_ACTION_BY_FORM_MODE: ReadonlyMap<FormMode, string> = new Map([
+  [FormMode.new, "new"],
+  [FormMode.edit, "edit"],
+  [FormMode.view, "get"],
+]);
 
 /** Insertion-ordered set of weakly held objects; `live` drops the collected ones. */
 class WeakRefList<T extends object> {
@@ -323,7 +324,7 @@ export class TableViewMeta {
 
   /** Whether a field is read-only in the data API action a form runs. */
   private isReadOnlyIn(meta: FieldData, mode: FormMode): boolean {
-    const action = ACCESS_ACTION_BY_FORM_MODE[mode];
+    const action = ACCESS_ACTION_BY_FORM_MODE.get(mode);
     return GetEffectiveMode(meta, action) === AccessMode.ReadOnly;
   }
 
@@ -487,6 +488,12 @@ export class TableViewMeta {
     this.archiveField = field;
   }
 }
+
+/**
+ * Whether `value` is an {@link TableViewMeta}, including one built by another copy of this package,
+ * where `instanceof` answers false.
+ */
+export const IsTableViewMeta = brandClass(TableViewMeta, "TableViewMeta");
 
 export const Column = MakeMethodAndPropertyDecorator(
   (target, key, descriptor, options: ColumnOptions) => {
