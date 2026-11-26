@@ -24,6 +24,7 @@ const siblingManifest = z.object({
 
 /**
  * Lists each @csstools sibling of a pnpm store whose css-tokenizer peer range the lowest version dms allows misses.
+ * A store folder holds its package as a directory and links to the package's dependencies, and its name can be hashed, so the package is the one directory in it.
  * @param {string} [store] the `.pnpm` folder to read, the workspace's own by default
  */
 export function unmetTokenizerPeers(store = installedStore) {
@@ -39,12 +40,18 @@ export function unmetTokenizerPeers(store = installedStore) {
   for (const dir of readdirSync(store).filter((d) =>
     d.startsWith("@csstools+css-"),
   )) {
-    const name = dir.replace(/^@csstools\+([^@]+)@.*$/, "@csstools/$1");
-    const file = join(store, dir, "node_modules", name, "package.json");
-    const peer = siblingManifest.parse(JSON.parse(readFileSync(file, "utf8")))
-      .peerDependencies?.[TOKENIZER];
-    if (peer && !satisfies(lowest, peer)) {
-      unmet.push(`${name} needs css-tokenizer ${peer}, dms allows ${range}`);
+    const scope = join(store, dir, "node_modules", "@csstools");
+    for (const own of readdirSync(scope, { withFileTypes: true }).filter(
+      (entry) => entry.isDirectory(),
+    )) {
+      const file = join(scope, own.name, "package.json");
+      const peer = siblingManifest.parse(JSON.parse(readFileSync(file, "utf8")))
+        .peerDependencies?.[TOKENIZER];
+      if (peer && !satisfies(lowest, peer)) {
+        unmet.push(
+          `@csstools/${own.name} needs css-tokenizer ${peer}, dms allows ${range}`,
+        );
+      }
     }
   }
   return unmet;
