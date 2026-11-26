@@ -1,5 +1,19 @@
 # Changelog
 
+## v0.24.1
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/v0.24.0...v0.24.1)
+
+### 🩹 Fixes
+
+- **interface-dms:** Compare live-hold fixture path separator-safely ([#1267](https://github.com/AntelopeJS/dms/pull/1267))
+- **frontend-vue:** Type api error presenter functions as properties ([#1268](https://github.com/AntelopeJS/dms/pull/1268))
+- **test:** Wait for the welcome notification in the inbox test ([#1269](https://github.com/AntelopeJS/dms/pull/1269))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli
+
 ## v0.24.0
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/v0.23.0...v0.24.0)
