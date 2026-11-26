@@ -2,7 +2,8 @@
   "compilerOptions": {
     "lib": ["ES2024", "DOM", "DOM.Iterable"],
     "allowJs": true,
-    "maxNodeModuleJsDepth": 1
+    "maxNodeModuleJsDepth": 1,
+    "skipLibCheck": false
   },
   "include": ["./**/*.ts", "./**/*.js"],
   "exclude": []
