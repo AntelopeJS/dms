@@ -349,7 +349,7 @@ function finished(
       if (entry === UNFINISHED) {
         return UNFINISHED;
       }
-      if (key in value) {
+      if (Object.hasOwn(value, key)) {
         kept[key] = entry;
       }
     }
@@ -388,7 +388,7 @@ function withoutUnfinishedEntries(
 ): BlockOptions {
   const kept: BlockOptions = { ...config };
   for (const [key, option] of Object.entries(schema)) {
-    if (!(key in config)) {
+    if (!Object.hasOwn(config, key)) {
       continue;
     }
     const entry = finished(option, config[key]);

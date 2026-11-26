@@ -30,7 +30,7 @@ function walkOptions(
   }
   if (schema.properties && isPlainObject(value)) {
     for (const [key, nested] of Object.entries(schema.properties)) {
-      if (key in value) {
+      if (Object.hasOwn(value, key)) {
         walkOptions(nested, value[key], `${pointer}/${key}`, visit);
       }
     }
@@ -64,7 +64,7 @@ function checkFieldAspects(
   const issues: ValidationIssue[] = [];
   const config = block.config ?? {};
   for (const [key, schema] of Object.entries(descriptor.config)) {
-    if (!(key in config)) {
+    if (!Object.hasOwn(config, key)) {
       continue;
     }
     walkOptions(

@@ -42,9 +42,10 @@ export const LOGO_SLOTS: LogoSlot[] = [
  * JPEG, as the DMS documents for `branding.logo.email`: Gmail and Outlook show
  * no SVG, WebP or ICO.
  */
-const SLOT_EXTENSIONS: Partial<Record<LogoSlot, string[]>> = {
-  email: ["png", "jpg", "jpeg"],
-};
+const SLOT_EXTENSIONS: ReadonlyMap<LogoSlot, string[]> = new Map<
+  LogoSlot,
+  string[]
+>([["email", ["png", "jpg", "jpeg"]]]);
 
 export const COLOR_ROLES: ThemeColorRole[] = [
   "primary",
@@ -79,7 +80,7 @@ const PUBLIC_PATH = /^\/(?!\/)(?!.*\.\.)[A-Za-z0-9._/-]+$/;
 const PALETTE_NAME = /^[a-z][a-z0-9-]*$/;
 
 export function slotAccepts(slot: LogoSlot, extension: string): boolean {
-  return SLOT_EXTENSIONS[slot]?.includes(extension.toLowerCase()) ?? true;
+  return SLOT_EXTENSIONS.get(slot)?.includes(extension.toLowerCase()) ?? true;
 }
 
 function nestedObject(

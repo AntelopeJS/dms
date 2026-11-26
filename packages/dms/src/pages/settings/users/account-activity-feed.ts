@@ -223,8 +223,8 @@ function toneOf(event: AccountActivityEvent, look: EventLook): Tone {
 
 /** The title and details of an event, with every value they interpolate. */
 function textsOf(event: AccountActivityType, source: AccountActivityEvent) {
-  const title = TITLES[event]?.(source) ?? text(`event.${event}`);
-  const entries = (META[event]?.(source) ?? []).filter(
+  const title = ownValue(TITLES, event)?.(source) ?? text(`event.${event}`);
+  const entries = (ownValue(META, event)?.(source) ?? []).filter(
     (entry): entry is string | ActivityText => !!entry,
   );
   const params = { ...title.params };

@@ -77,9 +77,19 @@ function sourceReader({ model, tableView }: BulkRowSource) {
     modelKey,
     { value: model, enumerable: true },
   );
+  const carries = (key: string): boolean => {
+    for (
+      let holder: object | null = reader;
+      holder !== null && holder !== Object.prototype;
+      holder = Reflect.getPrototypeOf(holder)
+    ) {
+      if (Object.hasOwn(holder, key)) return true;
+    }
+    return false;
+  };
   return new Proxy(reader, {
     get(target, key) {
-      if (isSymbol(key) || key in target) return target[key];
+      if (isSymbol(key) || carries(key)) return target[key];
       throw new Error(
         `resolveBulkRowIds read "${key}" of ${controller.name}, which a BulkRowSource does not carry: resolve the selection from a route of ${controller.name}, with this.`,
       );

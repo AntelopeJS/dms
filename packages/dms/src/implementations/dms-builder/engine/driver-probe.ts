@@ -22,12 +22,15 @@ const ProbeExport = z.function({
  */
 export type LoadedProbe = z.infer<typeof ProbeExport>;
 
-const ENGINE_LABELS: Record<DatabaseEngine, string> = {
-  postgres: "PostgreSQL",
-  mysql: "MySQL or MariaDB",
-  mongodb: "MongoDB",
-  rethinkdb: "RethinkDB",
-};
+const ENGINE_LABELS: ReadonlyMap<DatabaseEngine, string> = new Map<
+  DatabaseEngine,
+  string
+>([
+  ["postgres", "PostgreSQL"],
+  ["mysql", "MySQL or MariaDB"],
+  ["mongodb", "MongoDB"],
+  ["rethinkdb", "RethinkDB"],
+]);
 
 /** Where the check requires the driver's `probe` of an engine from, and from which bases. */
 export interface ProbeTarget {
@@ -72,5 +75,5 @@ export function setProbeLoaderForTests(loader?: ProbeLoader): void {
 
 /** The sentence for an engine whose driver, with its `probe`, is installed neither with this module nor in the project. */
 export function missingDriver(engine: DatabaseEngine): string {
-  return `Install ${driverPackageName(engine)} to connect a ${ENGINE_LABELS[engine]} database.`;
+  return `Install ${driverPackageName(engine)} to connect a ${ENGINE_LABELS.get(engine) ?? engine} database.`;
 }

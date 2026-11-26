@@ -5,7 +5,6 @@ import type {
 } from "@antelopejs/interface-dms-builder";
 import semver from "semver";
 import { z } from "zod";
-import { DATABASE_ENGINES } from "./database-access";
 import { loadModuleFrom } from "./module-loader";
 import { resolveProjectRoot } from "./project";
 
@@ -30,40 +29,57 @@ interface Driver {
  * cursor batches of rows, it starts at the release that answers in batches. Moving the DMS to another line of an interface, or a driver
  * release, means updating this table only.
  */
-const DRIVERS: Record<DatabaseEngine, Driver> = {
-  postgres: {
-    package: "@antelopejs/postgres",
-    segments: [
-      { from: "0.4.1", interfaceDatabase: ">=0.4.0 <0.4.1" },
-      { from: "0.4.2", interfaceDatabase: ">=0.4.1 <0.5.0" },
-    ],
-  },
-  mysql: {
-    package: "@antelopejs/mysql",
-    segments: [
-      { from: "0.2.3", interfaceDatabase: ">=0.4.0 <0.4.1" },
-      { from: "0.2.4", interfaceDatabase: ">=0.4.1 <0.5.0" },
-    ],
-  },
-  mongodb: {
-    package: "@antelopejs/mongodb",
-    segments: [
-      { from: "1.8.3", interfaceDatabase: ">=0.4.0 <0.4.1" },
-      { from: "1.8.4", interfaceDatabase: ">=0.4.1 <0.5.0" },
-    ],
-  },
-  rethinkdb: {
-    package: "@antelopejs/rethinkdb",
-    segments: [
-      { from: "1.10.2", interfaceDatabase: ">=0.4.0 <0.4.1" },
-      { from: "1.10.3", interfaceDatabase: ">=0.4.1 <0.5.0" },
-    ],
-  },
-};
+const DRIVERS: ReadonlyMap<DatabaseEngine, Driver> = new Map<
+  DatabaseEngine,
+  Driver
+>([
+  [
+    "postgres",
+    {
+      package: "@antelopejs/postgres",
+      segments: [
+        { from: "0.4.1", interfaceDatabase: ">=0.4.0 <0.4.1" },
+        { from: "0.4.2", interfaceDatabase: ">=0.4.1 <0.5.0" },
+      ],
+    },
+  ],
+  [
+    "mysql",
+    {
+      package: "@antelopejs/mysql",
+      segments: [
+        { from: "0.2.3", interfaceDatabase: ">=0.4.0 <0.4.1" },
+        { from: "0.2.4", interfaceDatabase: ">=0.4.1 <0.5.0" },
+      ],
+    },
+  ],
+  [
+    "mongodb",
+    {
+      package: "@antelopejs/mongodb",
+      segments: [
+        { from: "1.8.3", interfaceDatabase: ">=0.4.0 <0.4.1" },
+        { from: "1.8.4", interfaceDatabase: ">=0.4.1 <0.5.0" },
+      ],
+    },
+  ],
+  [
+    "rethinkdb",
+    {
+      package: "@antelopejs/rethinkdb",
+      segments: [
+        { from: "1.10.2", interfaceDatabase: ">=0.4.0 <0.4.1" },
+        { from: "1.10.3", interfaceDatabase: ">=0.4.1 <0.5.0" },
+      ],
+    },
+  ],
+]);
 
 /** The package of the driver module of `engine`. */
 export function driverPackageName(engine: DatabaseEngine): string {
-  return DRIVERS[engine].package;
+  const driver = DRIVERS.get(engine);
+  if (!driver) throw new Error(`No driver package is declared for ${engine}`);
+  return driver.package;
 }
 
 const Manifest = z.object({ version: z.string() });
@@ -117,10 +133,10 @@ export function driverPackages(
     return {};
   }
   const drivers: Partial<Record<DatabaseEngine, DriverPackage>> = {};
-  for (const engine of DATABASE_ENGINES) {
-    const version = rangeFor(DRIVERS[engine], interfaceDatabase);
+  for (const [engine, driver] of DRIVERS) {
+    const version = rangeFor(driver, interfaceDatabase);
     if (version) {
-      drivers[engine] = { package: DRIVERS[engine].package, version };
+      drivers[engine] = { package: driver.package, version };
     }
   }
   return drivers;

@@ -138,7 +138,7 @@ function structureIssues(input: ComposePageInput): ValidationIssue[] {
     }
     queries.set(name, at);
     const key = block.query.into ?? DEFAULT_ROUTE_KEY;
-    if (block.config && key in block.config) {
+    if (block.config && Object.hasOwn(block.config, key)) {
       issues.push({
         pointer: `${at}/config/${key}`,
         message: `the route of the block's query is written to "${key}"; remove it from \`config\` or point \`query.into\` elsewhere`,

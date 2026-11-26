@@ -397,7 +397,7 @@ function deleteNestedKey(target: User, dottedKey: string) {
   let current: unknown = target;
 
   for (let i = 0; i < parts.length - 1; i++) {
-    if (isPropertyBag(current) && parts[i] in current) {
+    if (isPropertyBag(current) && Object.hasOwn(current, parts[i])) {
       current = current[parts[i]];
     } else {
       return;

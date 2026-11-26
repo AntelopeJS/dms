@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { McpConfig } from "../config";
+import { ownValue } from "../utils/own-value";
 import type { McpTool, McpToolEffect } from "./tool";
 
 export type McpAccess = NonNullable<McpConfig["access"]>;
@@ -19,7 +20,7 @@ const EFFECTS_BY_ACCESS: Readonly<
 
 /** Whether a session with this access may list and call the tool. */
 export function isToolAllowed(tool: McpTool, access: McpAccess): boolean {
-  return EFFECTS_BY_ACCESS[access].has(tool.effect);
+  return ownValue(EFFECTS_BY_ACCESS, access)?.has(tool.effect) ?? false;
 }
 
 /**
