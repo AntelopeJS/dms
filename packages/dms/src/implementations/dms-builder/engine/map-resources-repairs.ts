@@ -47,13 +47,15 @@ export function readableLabel(
   return label;
 }
 
-/** The columns the table options filter on and sort by, which the controller must let the TableView do. */
 /** The columns that must be filterable and the ones that must be sortable. */
 interface NeededFlags {
   filterable: Set<string>;
   sortable: Set<string>;
 }
 
+/**
+ * The columns the table options filter on and sort by, which the controller must let the TableView do.
+ */
 function neededFlags(
   options: TableViewSettings | undefined,
   tabsColumn: string | undefined,
@@ -106,13 +108,15 @@ export function raiseFlags(
   }
 }
 
-/** Tabs the table cannot show are left out with a warning, the page is written without them. */
 /** The column a table's tabs read, and whether they were left out. */
 interface SafeTabs {
   tabs?: TabsChoice;
   dropped: boolean;
 }
 
+/**
+ * Tabs the table cannot show are left out with a warning, the page is written without them.
+ */
 export function safeTabs(
   planning: TabsPlanning,
   warnings: OpWarning[],

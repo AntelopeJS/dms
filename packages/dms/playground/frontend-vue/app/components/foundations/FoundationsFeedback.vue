@@ -4,11 +4,6 @@ import ShowcaseDemo from "../showcase/ShowcaseDemo.vue";
 import ShowcaseSection from "../showcase/ShowcaseSection.vue";
 import DmsPermissionVeil from "#dms-ui/app/build/components/permission/PermissionVeil.vue";
 
-/**
- * Design system › Foundations › Feedback & status: notices, empty states,
- * meters, rule lists and permission veils.
- */
-
 const BANNER_TONES = [
   { tone: "warning", icon: "i-ph-warning", title: "Beta module" },
   { tone: "info", icon: "i-ph-info", title: "Maintenance tonight" },

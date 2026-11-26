@@ -3,13 +3,6 @@ import DrawerModalDemoContent from "./DrawerModalDemoContent.vue";
 import ShowcaseDemo from "./showcase/ShowcaseDemo.vue";
 import ShowcaseSection from "./showcase/ShowcaseSection.vue";
 
-/**
- * Layout › Drawer & Modal: the public `useDrawer()` / `useModal()`
- * composables, each option a module picks (the drawer's edge, the modal's
- * size, the header icon), and the handle `open` returns (`result`, `close`,
- * `patch`).
- */
-
 type Direction = "top" | "right" | "bottom" | "left";
 type ModalWidth =
   | "sm"

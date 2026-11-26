@@ -18,8 +18,6 @@ import TableMenuDensity from "../layers/dms-ui/app/entries/components/table/Menu
 import TableMenuRoot from "../layers/dms-ui/app/entries/components/table/MenuRoot";
 import { defined } from "./helpers/defined";
 
-/** The global name `@nuxt/icon` registers and the sources resolve. */
-
 type SharedDataStub = NonNullable<Parameters<typeof provide>[1]>;
 
 describe("table density menu", () => {

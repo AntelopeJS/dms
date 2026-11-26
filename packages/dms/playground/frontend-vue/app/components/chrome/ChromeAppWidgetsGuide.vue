@@ -3,12 +3,6 @@ import ShowcaseDemo from "../showcase/ShowcaseDemo.vue";
 import ShowcaseSection from "../showcase/ShowcaseSection.vue";
 import SourceSnippet from "../showcase/SourceSnippet.vue";
 
-/**
- * Frontend modules › Dashboard chrome › App widgets & overlays: the framed
- * dock the DMS draws (`useAppWidgets`) and the free overlay a module places
- * itself (`useAppOverlay`), both added and removed from this page.
- */
-
 const EXTRA_WIDGET_ID = "demo:extra";
 const EXTRA_WIDGET_ORDER = 2;
 const OVERLAY_NAME = "PlaygroundOverlayBubble";

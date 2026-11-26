@@ -106,15 +106,6 @@ async function softRefresh(
 }
 
 /**
- * The single dev-reload mechanism, with its dependencies passed in so it can be
- * exercised without a DMS app runtime.
- *
- * Both entry points — the SSE `reload` event and a module's `awaitRoute` —
- * funnel through the same route-readiness loop and the same in-flight refresh,
- * so a module never polls the layout on its own and never races the plugin with
- * a second fetch loop.
- */
-/**
  * Everything the loops below share: the app they drive, the clock they read,
  * and the one in-flight pass they coalesce on.
  */

@@ -7,15 +7,6 @@ import {
 import { pinInputTheme } from "./pin-input";
 
 /**
- * Nuxt UI themes of the form controls (DMS design v2, mockup
- * components/input.html, select.html, checkbox.html and form.html), spread
- * into the app config `ui` key. Each entry extends the Nuxt UI default theme:
- * slot and variant classes are appended and tailwind-merged over it.
- *
- * Every class stays a literal string so Tailwind finds it when scanning.
- */
-
-/**
  * v2 field surface: the recessed --dms-bg-field on a 1px accented border
  * with the xs shadow, a stronger border on hover and the muted band when
  * disabled. Select triggers repeat it so they never differ from a text input.
@@ -222,12 +213,6 @@ const inputTagsTheme = {
 };
 
 /**
- * v2 choice card (`.check-card`, `variant="card"` on UCheckbox,
- * UCheckboxGroup and URadioGroup): a bordered card tile, the whole tile is
- * the hit area; selected = accent border, accent-line halo and the tint;
- * disabled = muted band at half opacity. Put an icon well in the label slot.
- */
-/**
  * Date field: the text-field looks with mono tabular segments; the focused
  * segment takes the accent tint. Nuxt UI turns `focus:` into `has-focus:`
  * on this root (a div around the segments), so the soft and ghost focus
@@ -374,6 +359,14 @@ const fileUploadTheme = {
   ],
 };
 
+/**
+ * Nuxt UI themes of the form controls (DMS design v2, mockup
+ * components/input.html, select.html, checkbox.html and form.html), spread
+ * into the app config `ui` key. Each entry extends the Nuxt UI default theme:
+ * slot and variant classes are appended and tailwind-merged over it.
+ *
+ * Every class stays a literal string so Tailwind finds it when scanning.
+ */
 export const formControlsTheme = {
   input: inputTheme,
   textarea: {

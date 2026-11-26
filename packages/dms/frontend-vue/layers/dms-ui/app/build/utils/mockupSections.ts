@@ -9,12 +9,6 @@ import {
   type MockupSpecPage,
 } from "./mockupSpec";
 
-/**
- * The sidebar's sections, as the categories of the dashboard's menu group its
- * pages: the default section, which holds the pages without a category, then
- * each category of the spec in the menu's order.
- */
-
 /** Its pages go to the default section. */
 type RemoveCategoryEdit = { kind: "removeCategory"; category: string };
 
@@ -54,6 +48,10 @@ export interface MockupSection<Page> {
 const CATEGORY_ID_FALLBACK = "section";
 
 /**
+ * The sidebar's sections, as the categories of the dashboard's menu group its
+ * pages: the default section, which holds the pages without a category, then
+ * each category of the spec in the menu's order.
+ *
  * The pages under their sections: the default section first, then each
  * category in order, each holding its pages in the order given. A page that
  * names no category given is in the default section.

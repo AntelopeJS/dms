@@ -364,7 +364,6 @@ function refusal(
   }
 }
 
-/** The annotation routes over the mockups of `store`. */
 /**
  * The routes a sub-page and a table's forms reach a fixture's rows through:
  * one row by id, as a record and where a data controller's `get` route
@@ -439,6 +438,9 @@ function registerRecordRoutes(store: MockupStore) {
   return MockupRecordController;
 }
 
+/**
+ * The annotation routes over the mockups of `store`.
+ */
 function registerAnnotationRoutes(store: MockupStore) {
   const { mockupsDir } = store;
   class MockupAnnotationController extends Controller(

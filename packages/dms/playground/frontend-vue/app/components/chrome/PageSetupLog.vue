@@ -2,11 +2,6 @@
 import { usePageSetupLog } from "../../composables/usePageSetupLog";
 import SourceSnippet from "../showcase/SourceSnippet.vue";
 
-/**
- * Frontend modules › Dashboard chrome › Page setup function: what the setup
- * function this page names (`setupId`) wrote while it ran, then its source.
- */
-
 const log = usePageSetupLog();
 const { formatTime } = useRegionalFormat();
 </script>

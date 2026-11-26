@@ -3,11 +3,6 @@ import ShowcaseDemo from "../showcase/ShowcaseDemo.vue";
 import ShowcaseSection from "../showcase/ShowcaseSection.vue";
 import SourceSnippet from "../showcase/SourceSnippet.vue";
 
-/**
- * Frontend modules › Dashboard chrome › Sidebar widgets: the components the
- * playground mounts in the sidebar with `useSidebarWidgets().register`.
- */
-
 const DEMO_MODULE_PATH = "/modules/demo/pages/welcome";
 const GLOBAL_SCOPE = "Outside modules";
 

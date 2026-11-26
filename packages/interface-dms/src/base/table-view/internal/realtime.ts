@@ -156,8 +156,9 @@ const CHANGED_COUNT_KEYS: ["deleted", "archivedCount", "restoredCount"] = [
  * Whether a write reports changing no row: its row rules refused every id,
  * or none existed. Broadcasting its ids would have every session watching
  * the table (the caller included) drop rows that are still there.
+ *
+ * @internal
  */
-/** @internal */
 // oxlint-disable-next-line anti-slop/no-unknown-parameters -- This published predicate accepts heterogeneous callback results; restricting it to a row or count schema would change its accepted inputs.
 export const reportsNoChange = (result: unknown): boolean => {
   if (isNumber(result)) return result === 0;

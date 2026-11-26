@@ -5,12 +5,6 @@ import type {
 } from "../../layers/dms-core/app/composables/realtime/useUserRealtime";
 import { defined } from "../helpers/defined";
 
-/**
- * The backend's realtime routes as the browser sees them: shared connections
- * (`GET /api/realtime/connection`), a session per tab on one, and the page
- * calls each session makes.
- */
-
 export const BASE_URL = "http://api";
 const CONNECTION_URL = `${BASE_URL}/api/realtime/connection`;
 const SESSION_URL = `${BASE_URL}/api/realtime/session`;

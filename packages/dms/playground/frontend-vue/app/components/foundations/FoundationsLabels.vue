@@ -2,11 +2,6 @@
 import ShowcaseDemo from "../showcase/ShowcaseDemo.vue";
 import ShowcaseSection from "../showcase/ShowcaseSection.vue";
 
-/**
- * Design system › Foundations › Icons, pills & labels: the small identity
- * pieces every v2 screen is built from (layers/dms-ui/app/components).
- */
-
 const TONES = [
   "neutral",
   "primary",

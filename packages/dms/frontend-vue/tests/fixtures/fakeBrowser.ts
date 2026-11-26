@@ -5,11 +5,6 @@ import type {
 } from "../../layers/dms-core/app/entries/utils/crossTab";
 import { isFunction } from "../../layers/dms-core/app/utils/type-check";
 
-/**
- * One browser profile for the cross-tab tests: the Web Locks every tab shares
- * and the BroadcastChannels they talk on, delivered in a microtask.
- */
-
 type LockCallback<Result> = (lock: Lock | null) => Result;
 
 interface Waiter {
@@ -151,6 +146,10 @@ export interface FakeBrowser {
   openTab(): FakeTab;
 }
 
+/**
+ * One browser profile for the cross-tab tests: the Web Locks every tab shares
+ * and the BroadcastChannels they talk on, delivered in a microtask.
+ */
 export function createFakeBrowser(): FakeBrowser {
   const locks = new FakeLockManager();
   const hub = new FakeChannelHub();

@@ -4,12 +4,6 @@ import ShowcaseDemo from "../showcase/ShowcaseDemo.vue";
 import ShowcaseSection from "../showcase/ShowcaseSection.vue";
 import SourceSnippet from "../showcase/SourceSnippet.vue";
 
-/**
- * Frontend modules › Dashboard chrome › Header actions: an icon button of the
- * dashboard header that runs code (`registerHeaderAction`), and a button this
- * component puts in its own page header (`usePageHeaderActions`).
- */
-
 const PAGE_HEADER_ACTION_ORDER = -1;
 const COMPACT_SCALE = "small";
 

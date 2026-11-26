@@ -1,9 +1,3 @@
-/**
- * A generated module that an option patch rewrites, with the bindings its
- * option value reads. The module holds the reads as a graph, so the expected
- * result of the prune comes from the graph, not from the code under check.
- */
-
 /** The kinds of top-level binding a module holds. */
 export const BINDING_KINDS = ["const", "enum", "class", "merged", "overload", "object", "arrayOfConst", "typedObject", "arrayLiteral"] as const;
 export type BindingKind = (typeof BINDING_KINDS)[number];
@@ -15,7 +9,13 @@ export interface BindingRecipe {
   picks: readonly (readonly number[])[];
 }
 
-/** What the generator draws: the bindings, and who reads which of them. */
+/**
+ * A generated module that an option patch rewrites, with the bindings its
+ * option value reads. The module holds the reads as a graph, so the expected
+ * result of the prune comes from the graph, not from the code under check.
+ *
+ * What the generator draws: the bindings, and who reads which of them.
+ */
 export interface ModuleRecipe {
   bindings: readonly BindingRecipe[];
   oldPicks: readonly number[];

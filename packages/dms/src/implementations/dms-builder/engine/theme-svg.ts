@@ -132,14 +132,6 @@ function isAllowedReference(element: Element, value: string): boolean {
 }
 
 /**
- * Hooks that remove what DOMPurify's SVG profile allows but a logo never
- * needs: an `href` that does not point inside the file, except a bitmap
- * `data:` URL on `<image>` or `<feImage>` (so `<use>`, which logo exports use
- * to reuse shapes, can only point inside the file); and every resource CSS
- * fetches, in an attribute, a `style` or a `<style>` sheet (where Illustrator
- * writes its class rules). A last hook adds a missing `xmlns`.
- */
-/**
  * A browser loads an SVG file as XML, which needs `xmlns`; an SVG copied out
  * of an HTML page often lacks it.
  */
@@ -153,6 +145,14 @@ function addNamespace(node: Element): void {
   }
 }
 
+/**
+ * Hooks that remove what DOMPurify's SVG profile allows but a logo never
+ * needs: an `href` that does not point inside the file, except a bitmap
+ * `data:` URL on `<image>` or `<feImage>` (so `<use>`, which logo exports use
+ * to reuse shapes, can only point inside the file); and every resource CSS
+ * fetches, in an attribute, a `style` or a `<style>` sheet (where Illustrator
+ * writes its class rules). A last hook adds a missing `xmlns`.
+ */
 function addHooks(sanitizer: SvgSanitizer): void {
   sanitizer.purify.addHook("uponSanitizeAttribute", (node, data) => {
     if (HREF_ATTRIBUTE.test(data.attrName)) {

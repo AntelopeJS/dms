@@ -1,15 +1,5 @@
 import { EYEBROW_CLASS } from "#dms-ui/app/entries/utils/eyebrow";
 /**
- * Nuxt UI themes of the data display primitives (DMS design v2, mockup
- * components/table.html, form.html tree picker, shell.html dots and
- * auth.html separator), spread into the app config `ui` key. Each entry
- * extends the Nuxt UI default theme: slot and variant classes are appended
- * and tailwind-merged over it, and compound variants run after the defaults.
- *
- * Every class stays a literal string so Tailwind finds it when scanning.
- */
-
-/**
  * A plain UTable reads like the DMS table (build/components/table/Table.vue):
  * mono eyebrow headers on the muted band, 44px rows on hairline dividers,
  * the accent tint and a 2px accent edge on selected rows, the 2px accent
@@ -164,7 +154,17 @@ const emptyTheme = {
   },
 };
 
-/** Data display primitive themes, spread into `ui` of the app config. */
+/**
+ * Nuxt UI themes of the data display primitives (DMS design v2, mockup
+ * components/table.html, form.html tree picker, shell.html dots and
+ * auth.html separator), spread into the app config `ui` key. Each entry
+ * extends the Nuxt UI default theme: slot and variant classes are appended
+ * and tailwind-merged over it, and compound variants run after the defaults.
+ *
+ * Every class stays a literal string so Tailwind finds it when scanning.
+ *
+ * Data display primitive themes, spread into `ui` of the app config.
+ */
 export const dataTheme = {
   table: tableTheme,
   tree: treeTheme,

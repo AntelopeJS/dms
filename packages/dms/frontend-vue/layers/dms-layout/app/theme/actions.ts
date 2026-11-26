@@ -1,13 +1,3 @@
-/**
- * Nuxt UI themes of the action and label primitives (DMS design v2, mockup
- * components/button.html, badge.html, kbd.html and tabs.html), spread into
- * the app config `ui` key. Each entry extends the Nuxt UI default theme: slot
- * and variant classes are appended and tailwind-merged over it, and compound
- * variants run after the defaults, so they win over them.
- *
- * Every class stays a literal string so Tailwind finds it when scanning.
- */
-
 /** Semantic fills that are not the accent: bright steps with dark ink, as the accent fill. */
 const SOLID_FILL_COMPOUNDS = [
   {
@@ -359,7 +349,17 @@ const tabsTheme = {
   ],
 };
 
-/** Action and label primitive themes, spread into `ui` of the app config. */
+/**
+ * Nuxt UI themes of the action and label primitives (DMS design v2, mockup
+ * components/button.html, badge.html, kbd.html and tabs.html), spread into
+ * the app config `ui` key. Each entry extends the Nuxt UI default theme: slot
+ * and variant classes are appended and tailwind-merged over it, and compound
+ * variants run after the defaults, so they win over them.
+ *
+ * Every class stays a literal string so Tailwind finds it when scanning.
+ *
+ * Action and label primitive themes, spread into `ui` of the app config.
+ */
 export const actionsTheme = {
   button: buttonTheme,
   badge: badgeTheme,

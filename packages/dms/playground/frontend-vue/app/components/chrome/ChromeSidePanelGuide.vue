@@ -4,12 +4,6 @@ import ShowcaseDemo from "../showcase/ShowcaseDemo.vue";
 import ShowcaseSection from "../showcase/ShowcaseSection.vue";
 import SourceSnippet from "../showcase/SourceSnippet.vue";
 
-/**
- * Frontend modules › Dashboard chrome › Side panel: the panel the playground
- * docks with `registerSidePanel`, opened from code through `useSidePanel`,
- * and every panel the dashboard knows through `useAppSidePanels`.
- */
-
 const CONTROLS_CODE = `const panel = useSidePanel("${SIDE_PANEL_DEMO_ID}");
 panel.open(); panel.close(); panel.toggle();
 panel.isOpen.value; // shared by every caller of the same id`;

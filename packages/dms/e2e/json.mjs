@@ -1,12 +1,6 @@
 import { writeFileSync } from "node:fs";
 
 /**
- * Reads of JSON a program received, narrowed through checks instead of typed
- * by assertion. Everything here takes `unknown` because JSON arrives
- * unchecked.
- */
-
-/**
  * @param {unknown} value A parsed JSON value
  * @returns {value is Record<string, unknown>} True for an object that is not an array or null
  */

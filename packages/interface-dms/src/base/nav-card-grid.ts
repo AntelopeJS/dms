@@ -57,6 +57,21 @@ const NAV_CARD_GRID_COMPONENT_NAME = "dms-nav-card-grid-block";
 const NAV_CARD_GRID_ICON = "i-ph-cards";
 const NAV_CARD_GRID_DEFAULT_COLUMNS = 3;
 
+/** What `NavCardGrid` takes: its options, the category being given whole. */
+export interface NavCardGridOptions extends Omit<
+  NavCardGridProps,
+  "categoryId"
+> {
+  /**
+   * The category whose pages the cards stand for: a card per page the viewer
+   * can open, with the badge its navigation entry shows. A settings overview
+   * lists its sections this way, a module's home its pages. A viewer who can
+   * open none of them gets no grid at all, title included, unless `empty`
+   * says what to show instead.
+   */
+  category?: CategoryInfo;
+}
+
 /**
  * NavCardGrid — a grid of navigation cards: icon, title, description, and
  * optionally the target's live state, a tag or a mono readout.
@@ -76,24 +91,6 @@ const NAV_CARD_GRID_DEFAULT_COLUMNS = 3;
  *   ],
  * })
  * ```
- */
-/** What `NavCardGrid` takes: its options, the category being given whole. */
-export interface NavCardGridOptions extends Omit<
-  NavCardGridProps,
-  "categoryId"
-> {
-  /**
-   * The category whose pages the cards stand for: a card per page the viewer
-   * can open, with the badge its navigation entry shows. A settings overview
-   * lists its sections this way, a module's home its pages. A viewer who can
-   * open none of them gets no grid at all, title included, unless `empty`
-   * says what to show instead.
-   */
-  category?: CategoryInfo;
-}
-
-/**
- * A grid of navigation cards.
  *
  * @docsApi
  */

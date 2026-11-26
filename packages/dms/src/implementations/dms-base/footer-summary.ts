@@ -143,7 +143,6 @@ function fieldReader(
  * The footer summaries over every row the request's filters, search and
  * archive view list, each narrowed by its own `where` rule.
  */
-
 // oxlint-disable-next-line eslint/max-params -- The interface invokes this implementation positionally with receiver, request, filters, summaries, user and permission arguments.
 export async function summarizeWithSearch(
   thisObj: SummaryReceiver,

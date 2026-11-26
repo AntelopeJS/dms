@@ -3,11 +3,6 @@ import ShowcaseDemo from "../showcase/ShowcaseDemo.vue";
 import ShowcaseSection from "../showcase/ShowcaseSection.vue";
 import SourceSnippet from "../showcase/SourceSnippet.vue";
 
-/**
- * Frontend modules › Dashboard chrome › Footer & sign-in links: what the
- * playground adds to the screens a visitor sees before signing in.
- */
-
 const SIGN_IN_PAGE = "login";
 
 const { t } = useI18n();

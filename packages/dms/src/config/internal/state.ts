@@ -8,16 +8,6 @@ import {
   MILLISECONDS_PER_SECOND,
 } from "@antelopejs/interface-dms/utils/internal/time";
 
-/**
- * Runtime configuration state and accessors.
- *
- * Deliberately a leaf module: files reachable from the interface subpath
- * entries (`<pkg>/interfaces/...`) call these accessors, and importing the
- * package root from that path re-enters `index.ts` while it is still
- * evaluating, crashing consumers whose first entry is an interface subpath.
- * Nothing here may import `./index`, `./pages`, or anything that does.
- */
-
 export interface OAuthProviderCredentials {
   clientId: string;
   clientSecret: string;

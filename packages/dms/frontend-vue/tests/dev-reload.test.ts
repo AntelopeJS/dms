@@ -4,14 +4,6 @@ import {
   type DevReloadDeps,
 } from "../layers/dms-layout/app/entries/composables/dev-reload/useDevReloadHolder";
 
-/**
- * The dev-reload coordinator is the single mechanism behind both the SSE
- * `reload` handler and the `useDevReload().awaitRoute` module frontends
- * call. These tests drive the real implementation with fake dependencies and a
- * virtual clock: `delay` never waits, it just moves `now` forward, so a
- * timeout is reached in as many iterations as the real one would take.
- */
-
 interface Harness {
   deps: DevReloadDeps;
   /** Routes the backend serves right now. */

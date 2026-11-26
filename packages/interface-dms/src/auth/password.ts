@@ -1,10 +1,3 @@
-/**
- * The DMS password policy, shared by every flow that sets a password: the DMS
- * signup, admin onboarding and password recovery, and any module owning its
- * own registration flow (a SaaS public signup, for instance). Plain values and
- * a pure function: nothing here needs the DMS to be loaded.
- */
-
 /** Minimum number of characters a password must have. */
 export const PASSWORD_MIN_LENGTH = 8;
 

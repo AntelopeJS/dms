@@ -21,6 +21,16 @@ import { fireAndForget } from "@antelopejs/interface-dms/utils/fire-and-forget";
 const HTTP_FORBIDDEN = 403;
 const EMAIL_NOT_VERIFIED_MESSAGE = "error.oauth.email_not_verified";
 
+/** One OAuth return trip. */
+export interface OAuthCallbackInput {
+  userModel: UserModel;
+  sessionModel: SessionModel;
+  providerId: string;
+  body: unknown;
+  userAgent: string;
+  origin: ClientOrigin;
+}
+
 /**
  * Complete a provider round-trip and turn it into a login outcome.
  *
@@ -43,16 +53,6 @@ const EMAIL_NOT_VERIFIED_MESSAGE = "error.oauth.email_not_verified";
  * @param origin Requesting address and country
  * @returns Session, two-factor challenge, or tenant assignment handover
  */
-/** One OAuth return trip. */
-export interface OAuthCallbackInput {
-  userModel: UserModel;
-  sessionModel: SessionModel;
-  providerId: string;
-  body: unknown;
-  userAgent: string;
-  origin: ClientOrigin;
-}
-
 export async function oauthCallback({
   userModel,
   sessionModel,

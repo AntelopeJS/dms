@@ -2,20 +2,6 @@ import type { z } from "zod";
 import { isBlankValue } from "#dms-core/app/composables/useFormValidation";
 import { isObject } from "#dms-core/app/utils/type-check";
 
-/**
- * How the generic form validates its state on top of the schema the backend
- * sends: one rule for every field type of what "left empty" means.
- *
- * The schema alone cannot say it. It travels as JSON Schema, so a required
- * date that is still unpicked fails as "not a valid value" (its union of
- * string formats rejects `undefined`), an empty rich-text document
- * (`<p></p>`) or an address of empty parts passes or fails part by part, and
- * an optional email cleared to `""` is refused although nothing was entered.
- *
- * What counts as empty is `isBlankValue` (dms-core), the rule the hand-built
- * forms of the dashboard follow too.
- */
-
 /** A field as the validation sees it. */
 export interface FormValidationField {
   id: string;
@@ -135,6 +121,18 @@ function emptyValueOf(field: FormValidationField): false | null {
 }
 
 /**
+ * How the generic form validates its state on top of the schema the backend
+ * sends: one rule for every field type of what "left empty" means.
+ *
+ * The schema alone cannot say it. It travels as JSON Schema, so a required
+ * date that is still unpicked fails as "not a valid value" (its union of
+ * string formats rejects `undefined`), an empty rich-text document
+ * (`<p></p>`) or an address of empty parts passes or fails part by part, and
+ * an optional email cleared to `""` is refused although nothing was entered.
+ *
+ * What counts as empty is `isBlankValue` (dms-core), the rule the hand-built
+ * forms of the dashboard follow too.
+ *
  * Validates a form state: the schema's issues, except that a required field
  * left empty gets the one "required" issue (and none of its type's), and a
  * field left empty in a shape its type refuses (`""` for an optional email,
