@@ -4,6 +4,7 @@ import type { DataControllerCallbackWithOptions } from "@antelopejs/interface-da
 import { getDataTypeId } from "../../data-types";
 import { FIELD_KEY } from "../../types/row-action-operators";
 import type { RowActionRule } from "../../types/row-action";
+import type { AnyFieldRule } from "../../types/row-action-operators";
 import { TableViewMeta } from "../meta";
 import { assertRowRule } from "./row-rule-shape";
 import { servesRoute } from "./tabs";
@@ -23,13 +24,19 @@ const SUMMARY_OPERATIONS: readonly TableViewSummaryOperation[] = [
   "count",
 ];
 
+function isFieldRule<T extends object>(
+  rule: RowActionRule<T>,
+): rule is AnyFieldRule<T> {
+  return Object.hasOwn(rule, FIELD_KEY);
+}
+
 /**
  * The columns a row rule reads, nested rules included.
  *
  * @internal
  */
 export function ruleFields<T extends object>(rule: RowActionRule<T>): string[] {
-  if (FIELD_KEY in rule) return [String(rule[FIELD_KEY])];
+  if (isFieldRule(rule)) return [String(rule[FIELD_KEY])];
   return [
     ...operandRules("and" in rule ? rule.and : undefined),
     ...operandRules("or" in rule ? rule.or : undefined),

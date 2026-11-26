@@ -5,14 +5,16 @@ const DEFAULT_MEASURE: SeriesMeasure = "sum";
 const total = (values: number[]): number =>
   values.reduce((running, value) => running + value, 0);
 
-const HEADLINE_BY_MEASURE: Record<SeriesMeasure, (values: number[]) => number> =
-  {
-    count: total,
-    sum: total,
-    avg: (values) => total(values) / values.length,
-    min: (values) => Math.min(...values),
-    max: (values) => Math.max(...values),
-  };
+const HEADLINE_BY_MEASURE: ReadonlyMap<
+  SeriesMeasure,
+  (values: number[]) => number
+> = new Map([
+  ["count", total],
+  ["sum", total],
+  ["avg", (values: number[]) => total(values) / values.length],
+  ["min", (values: number[]) => Math.min(...values)],
+  ["max", (values: number[]) => Math.max(...values)],
+]);
 
 /**
  * The figure a card shows above its chart, or nothing when there is none.
@@ -38,7 +40,7 @@ export function headline(
   if (values.length === 0) {
     return undefined;
   }
-  return HEADLINE_BY_MEASURE[measure](values);
+  return HEADLINE_BY_MEASURE.get(measure)?.(values);
 }
 
 /**

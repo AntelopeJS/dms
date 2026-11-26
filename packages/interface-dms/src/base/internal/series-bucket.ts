@@ -74,13 +74,14 @@ function quarterLabel(stamp: number): string | undefined {
     : undefined;
 }
 
-const LABELS: Record<SeriesBucket, (stamp: number) => string | undefined> = {
-  day: dayLabel,
-  week: weekLabel,
-  month: monthLabel,
-  quarter: quarterLabel,
-  year: (stamp) => String(stamp),
-};
+const LABELS: ReadonlyMap<SeriesBucket, (stamp: number) => string | undefined> =
+  new Map([
+    ["day", dayLabel],
+    ["week", weekLabel],
+    ["month", monthLabel],
+    ["quarter", quarterLabel],
+    ["year", (stamp: number) => String(stamp)],
+  ]);
 
 /**
  * A period stamp as a person reads it: 202608 as "Aug 2026" for a month, 20263 as
@@ -97,5 +98,5 @@ export function bucketLabel(
   if (!isNumber(key) || !Number.isInteger(key)) {
     return key;
   }
-  return LABELS[bucket](key) ?? key;
+  return LABELS.get(bucket)?.(key) ?? key;
 }

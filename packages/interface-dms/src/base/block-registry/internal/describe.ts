@@ -288,7 +288,7 @@ export function describeSchema(
   const kind = unwrapped.schema._zod.def.type;
   const truncated =
     unwrapped.exhausted === true ||
-    (depth >= MAX_DEPTH && kind in STRUCTURED_TYPE);
+    (depth >= MAX_DEPTH && Object.hasOwn(STRUCTURED_TYPE, kind));
   const base: BlockOptionSchema = (truncated
     ? undefined
     : describeKind(unwrapped.schema, depth)) ?? {
