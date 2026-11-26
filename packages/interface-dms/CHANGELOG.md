@@ -1,5 +1,17 @@
 # Changelog
 
+## v0.17.1
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/interface-v0.17.0...interface-v0.17.1)
+
+### 🩹 Fixes
+
+- **interface-dms:** Compare live-hold fixture path separator-safely ([#1267](https://github.com/AntelopeJS/dms/pull/1267))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli
+
 ## v0.17.0
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/interface-v0.16.0...interface-v0.17.0)
