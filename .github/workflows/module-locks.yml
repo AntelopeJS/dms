@@ -15,7 +15,7 @@ jobs:
   refresh:
     permissions:
       contents: read
-    uses: AntelopeJS/.github/.github/workflows/module-locks-refresh.yml@59fb12497e1bc9e5f2bac4f68fe25907f46c28e8
+    uses: AntelopeJS/.github/.github/workflows/module-locks-refresh.yml@6a13cf05772eb7a0b88ba7d746811771025a59b2
     with:
       projects: |
         packages/dms/playground
