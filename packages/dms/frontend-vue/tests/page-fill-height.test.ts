@@ -24,7 +24,6 @@ import {
   installShellRuntime,
   registerShellUi,
 } from "./helpers/live-shell-runtime";
-import { defined } from "./helpers/defined";
 
 const FillHeightProbe: FunctionalComponent = () =>
   h("output", String(usePageFillHeight().value));
@@ -164,11 +163,11 @@ describe("DefaultLayout while the page loads", () => {
     const page = () => host.querySelector("[data-page]")?.parentElement;
     expect(skeleton()?.classList.contains("hidden")).toBe(true);
     const suspense = engine.dmsPageSuspenseProps();
-    defined(suspense.onPending)();
+    suspense.onPending();
     await nextTick();
     expect(skeleton()?.classList.contains("hidden")).toBe(false);
     expect(page()?.classList.contains("hidden")).toBe(true);
-    defined(suspense.onResolve)();
+    suspense.onResolve();
     await nextTick();
     expect(skeleton()?.classList.contains("hidden")).toBe(true);
     expect(page()?.classList.contains("hidden")).toBe(false);

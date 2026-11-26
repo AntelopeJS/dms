@@ -52,7 +52,7 @@ async function mount(prefill?: LoginPrefill) {
       loginPrefill: prefill,
     };
     engine.updateDmsAppConfig([
-      { module: "login-test", config: { ui: { icons: {} } } },
+      { module: "login-test", config: { ui: { icons: {} }, branding: {} } },
     ]);
   });
   app.config.globalProperties.$t = (key: string) => key;
