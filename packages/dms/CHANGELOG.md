@@ -1,5 +1,33 @@
 # Changelog
 
+## v0.24.3
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/v0.24.2...v0.24.3)
+
+### 🩹 Fixes
+
+- **frontend-vue:** Import the User type outside the runtime config augmentation ([#1275](https://github.com/AntelopeJS/dms/pull/1275))
+- **ci:** Pass the Windows backend legs of the nightly run ([#1272](https://github.com/AntelopeJS/dms/pull/1272))
+- **interface-dms:** Send locale keys from the table view refusals an aliased assert sends ([#1282](https://github.com/AntelopeJS/dms/pull/1282))
+
+### 💅 Refactors
+
+- **dms:** Move the vitest-environment pragmas out of the Vue tests' doc blocks ([#1279](https://github.com/AntelopeJS/dms/pull/1279))
+
+### 📦 Build
+
+- **deps:** Update the AntelopeJS module locks ([#1241](https://github.com/AntelopeJS/dms/pull/1241))
+- **deps:** Require @antelopejs/tooling-configs 0.10.4 and fix its new lint reports ([#1276](https://github.com/AntelopeJS/dms/pull/1276))
+
+### 🏡 Chore
+
+- **deps:** Update antelopejs modules ([#1273](https://github.com/AntelopeJS/dms/pull/1273))
+- **deps:** Update dependency @antelopejs/core to v1.24.8 ([#1259](https://github.com/AntelopeJS/dms/pull/1259))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli
+
 ## v0.24.2
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/v0.24.1...v0.24.2)
