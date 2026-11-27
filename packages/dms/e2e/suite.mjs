@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 import { checkoutOf } from "./git.mjs";
@@ -87,15 +88,18 @@ function isSuite(value) {
  * The journeys a suite runs: those of the `smoke` feature first, then the
  * others in the order of their features, and those marked `last` after all
  * others. A `frontend: "dev"` suite runs the journeys that ask for the
- * development dashboard, any other the rest.
+ * development dashboard, any other the rest. With `seed`, the journeys not
+ * marked `last` run in an order drawn from it instead, the same for the
+ * same seed, and the `last` ones still after them in their own order.
  *
  * @param {{ name: string, journeys: Journey[] }[]} features The features and their journeys
  * @param {Suite["frontend"]} frontend How the suite's run serves its dashboard
  * @param {string} smoke The feature whose journeys run first, the journeys config's `smoke`
+ * @param {string} [seed] What draws the order, `DMS_E2E_SHUFFLE`
  * @returns {{ feature: string, journey: Journey }[]} The journeys, each with its feature
  * @throws When two journeys share an id
  */
-export function suiteJourneys(features, frontend, smoke) {
+export function suiteJourneys(features, frontend, smoke, seed) {
   const ids = features.flatMap((feature) =>
     feature.journeys.map((journey) => journey.id),
   );
@@ -113,8 +117,27 @@ export function suiteJourneys(features, frontend, smoke) {
     .filter(
       (entry) => (entry.journey.frontend === "dev") === (frontend === "dev"),
     );
+  const first = entries.filter((entry) => !entry.journey.last);
   return [
-    ...entries.filter((entry) => !entry.journey.last),
+    ...(seed === undefined ? first : shuffled(first, seed)),
     ...entries.filter((entry) => entry.journey.last),
   ];
+}
+
+/**
+ * `entries` sorted on a hash of `seed` and each feature and journey id.
+ *
+ * @param {{ feature: string, journey: Journey }[]} entries The journeys
+ * @param {string} seed What draws the order
+ * @returns {{ feature: string, journey: Journey }[]} The same journeys in the drawn order
+ */
+function shuffled(entries, seed) {
+  const rank = (/** @type {{ feature: string, journey: Journey }} */ entry) =>
+    createHash("sha256")
+      .update(`${seed}\0${entry.feature}/${entry.journey.id}`)
+      .digest("hex");
+  return entries
+    .map((entry) => ({ entry, rank: rank(entry) }))
+    .toSorted((left, right) => (left.rank < right.rank ? -1 : 1))
+    .map(({ entry }) => entry);
 }

@@ -167,3 +167,30 @@ await test("a build suite leaves out the journeys that need the development dash
     /b-1/,
   );
 });
+
+await test("a seed draws the order of the journeys not marked last, the same for the same seed, and keeps the last ones after them in their order (catches a shuffle that ignores the seed, differs between the main process and a worker, or moves a last journey)", () => {
+  const features = [
+    {
+      name: "a",
+      journeys: [
+        ...Array.from({ length: 8 }, (_, index) => journey(`a-${index}`)),
+        journey("a-last", { last: true }),
+      ],
+    },
+    {
+      name: "b",
+      journeys: [journey("b-last", { last: true }), journey("b-1")],
+    },
+  ];
+  const ids = (/** @type {string | undefined} */ seed) =>
+    suiteJourneys(features, "build", "smoke", seed).map(
+      (entry) => entry.journey.id,
+    );
+  const unshuffled = ids(undefined);
+  const drawn = ids("1");
+  assert.deepEqual(drawn, ids("1"));
+  assert.notDeepEqual(drawn, unshuffled);
+  assert.notDeepEqual(drawn, ids("2"));
+  assert.deepEqual(drawn.slice(-2), ["a-last", "b-last"]);
+  assert.deepEqual(drawn.toSorted(), unshuffled.toSorted());
+});

@@ -88,7 +88,12 @@ export async function registerJourneys() {
       journeys: await loadJourneys(journeysFile(config, name)),
     })),
   );
-  const journeys = suiteJourneys(features, suite.frontend, config.smoke);
+  const journeys = suiteJourneys(
+    features,
+    suite.frontend,
+    config.smoke,
+    process.env.DMS_E2E_SHUFFLE || undefined,
+  );
   for (const { feature, journey } of journeys) {
     const annotation = [
       { type: "title", description: journey.title },
