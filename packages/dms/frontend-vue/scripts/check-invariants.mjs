@@ -411,12 +411,15 @@ function checkGeistNarrowSpace() {
   }
 }
 
-/** Vitest reads `@vitest-environment` from its own comment at the top of a file, never from a doc block. */
+/** Every `@vitest-environment` pragma is its own comment, outside any doc block. */
 function checkVitestPragmas() {
-  const misplaced = [...sources, ...collectSources(join(ROOT, "tests")).map((file) => ({
-    file,
-    source: readFileSync(file, "utf8"),
-  }))].flatMap(({ file, source }) =>
+  const misplaced = [
+    ...sources,
+    ...collectSources(join(ROOT, "tests")).map((file) => ({
+      file,
+      source: readFileSync(file, "utf8"),
+    })),
+  ].flatMap(({ file, source }) =>
     [...source.matchAll(/\/\*\*[\s\S]*?\*\//g)]
       .filter((match) => match[0].includes("@vitest-environment"))
       .map(() => relative(ROOT, file)),
