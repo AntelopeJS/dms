@@ -162,16 +162,16 @@ export const affectedPackages = (files) => {
 };
 
 /**
- * The packages whose tests a run should execute. The draft and none tiers run
- * none, the fast tier runs what its base commit's diff affects, and any other
- * value, or none, runs every package.
+ * The packages whose tests a run should execute. The none tier runs none, the
+ * fast tier runs what its base commit's diff affects, and any other value, or
+ * no tier, runs every package.
  *
  * @param {{ tier?: string, base?: string }} env
  * @param {(base: string) => string[]} changedFiles Called only for the fast tier with a base.
  * @returns {string[]}
  */
 export const selectPackages = ({ tier, base }, changedFiles) => {
-  if (tier === "draft" || tier === "none") return [];
+  if (tier === "none") return [];
   if (tier === "fast" && base !== undefined && base !== "") {
     return affectedPackages(changedFiles(base));
   }
@@ -229,8 +229,8 @@ export const formalJob = ({ files }) => {
 };
 
 /**
- * The formal checks a run executes, split by the job that runs them. The draft
- * and none tiers run none. With a base, only the checks whose `covers` or
+ * The formal checks a run executes, split by the job that runs them. The none
+ * tier runs none. With a base, only the checks whose `covers` or
  * `files` the diff against it touches run. Without one, every check runs.
  *
  * @param {{ tier?: string, base?: string }} env
@@ -243,7 +243,7 @@ export const selectFormal = ({ tier, base }, checks, changedFiles) => {
   const formal = [];
   /** @type {string[]} */
   const formalGenerated = [];
-  if (tier === "draft" || tier === "none") return { formal, formalGenerated };
+  if (tier === "none") return { formal, formalGenerated };
   const changed =
     base === undefined || base === "" ? undefined : changedFiles(base);
   for (const check of checks) {

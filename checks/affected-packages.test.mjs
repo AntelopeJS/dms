@@ -39,11 +39,7 @@ await test("an unknown tier selects every package (catches an unknown tier selec
   assert.deepEqual(selectPackages({ tier: "turbo" }, failOnDiff), ALL);
 });
 
-await test("the draft and none tiers select no package (catches a draft or none run that tests)", () => {
-  assert.deepEqual(
-    selectPackages({ tier: "draft", base: "abc" }, failOnDiff),
-    [],
-  );
+await test("the none tier selects no package (catches a none run that tests)", () => {
   assert.deepEqual(selectPackages({ tier: "none" }, failOnDiff), []);
 });
 
@@ -286,13 +282,11 @@ await test("a documentation-only diff runs no formal check (catches docs treated
   );
 });
 
-await test("the draft and none tiers run no formal check even without a base (catches a draft run that runs the models)", () => {
-  for (const tier of ["draft", "none"]) {
-    assert.deepEqual(formalFor(tier, undefined), {
-      formal: [],
-      formalGenerated: [],
-    });
-  }
+await test("the none tier runs no formal check even without a base (catches a none run that runs the models)", () => {
+  assert.deepEqual(formalFor("none", undefined), {
+    formal: [],
+    formalGenerated: [],
+  });
 });
 
 /**
@@ -331,8 +325,8 @@ await test("the dependents job runs on the nightly tier only, and a push to main
   assert.equal(jobsFor("full", undefined).includes("dependents"), false);
 });
 
-await test("a draft run needs no job (catches the gate requiring a job a draft skips)", () => {
-  assert.deepEqual(jobsFor("draft", undefined), []);
+await test("a none run needs no job (catches the gate requiring a job a push to main skips)", () => {
+  assert.deepEqual(jobsFor("none", undefined), []);
 });
 
 await test("a documentation-only fast diff needs no job (catches a docs diff that runs the backend)", () => {
