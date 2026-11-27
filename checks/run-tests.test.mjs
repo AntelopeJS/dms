@@ -25,6 +25,6 @@ await test("a playground-only selection builds interface-dms before the playgrou
 
 await test("an empty selection still runs the checks folder's own tests; a runner that runs nothing passes a broken selection script", () => {
   assert.deepEqual(testCommands([]), [
-    "node --test checks/unreleased-interfaces.test.mjs checks/affected-packages.test.mjs checks/run-tests.test.mjs checks/oxlint-plugin.test.mjs",
+    "node --test checks/unreleased-interfaces.test.mjs checks/affected-packages.test.mjs checks/ci-gate.test.mjs checks/run-tests.test.mjs checks/oxlint-plugin.test.mjs",
   ]);
 });
