@@ -312,7 +312,7 @@ jobs:
   e2e:
     needs: select
     if: contains(fromJSON(needs.select.outputs.jobs), 'e2e')
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     timeout-minutes: 60
     strategy:
       fail-fast: false
@@ -352,6 +352,9 @@ jobs:
         env:
           DMS_E2E_DURATIONS: ${{ runner.temp }}/e2e-durations.json
           PLAYWRIGHT_BLOB_OUTPUT_DIR: e2e/blob-report
+      # The kit's phase timings of the shard, as a notice on the check run.
+      - if: success() || failure()
+        run: node e2e/timings-summary.mjs "$DMS_E2E_RUNS"
       # The run helper of @antelopejs/dms/e2e/run, on the playground the suite prepared.
       - if: matrix.shard == 'smoke' || matrix.shard == 1
         run: node --test packages/dms/e2e/run.test.mjs
