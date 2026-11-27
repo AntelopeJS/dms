@@ -9,9 +9,11 @@ import {
 } from "./dashboard.mjs";
 import { existingBuildRoots } from "./build-inputs.mjs";
 import { describeFailure } from "./failure.mjs";
+import { assertFrontendBound } from "./frontend-bound.mjs";
 import { checkoutOf } from "./git.mjs";
 import { apiTargetFile, writeTarget } from "./forwarder.mjs";
 import { currentNamespaces, isSameProcess } from "./identity.mjs";
+import { reservedPorts } from "./reserved-ports.mjs";
 import { dropRunDatabases, startMongod } from "./mongo.mjs";
 import {
   freePort,
@@ -231,7 +233,7 @@ async function startFirstMail(state) {
       return;
     } catch (error) {
       if (attempt === MAIL_PORT_ATTEMPTS) throw error;
-      state.smtpPort = await restartablePort();
+      state.smtpPort = await restartablePort(reservedPorts(state));
     }
   }
 }
@@ -288,7 +290,7 @@ export async function launchBackend(
   mode = runBackendMode(state),
 ) {
   const { ajs } = cliPaths(build?.playground ?? state.playground);
-  const port = await freePort();
+  const port = await freePort(reservedPorts(state));
   const launch = spec(
     state,
     `backend${database.slice(state.databasePrefix.length)}`,
@@ -495,6 +497,7 @@ async function buildAndStart(state, useCache) {
     const frontend = startDetached(frontendSpec(state));
     record(state, { ...frontend, port: state.webPort });
     await waitForOk(`${state.webUrl}/dms-preview`, frontend, READY_TIMEOUT_MS);
+    assertFrontendBound(frontend);
   });
   await recordDashboardModules(state);
 }

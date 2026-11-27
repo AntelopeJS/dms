@@ -4,6 +4,7 @@ import { createRequire } from "node:module";
 import { join } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
 import { pathToFileURL } from "node:url";
+import { reservedPorts } from "./reserved-ports.mjs";
 import {
   arrayOf,
   decode,
@@ -261,14 +262,14 @@ export async function mongodBinary(from) {
  * every other process the kit starts does, since Windows runs no script
  * by its path alone.
  *
- * @param {{ mongo: string, logs: string }} paths The run's folders
+ * @param {{ mongo: string, logs: string, apiPort?: number, webPort?: number, smtpPort?: number, processes?: ReadonlyArray<{ port?: number }> }} paths The run's folders, or the run, whose reserved ports the mongod does not take
  * @param {string[]} from Folders to resolve mongodb-memory-server-core from
  * @param {import("./processes.mjs").RestartablePort} [port] The port, which a restart keeps so the backend's URL still reaches it, so it must be one {@link restartablePort} gave
  * @returns {Promise<{ url: string, record: ReturnType<typeof startDetached> & { port: import("./processes.mjs").RestartablePort } }>} Its URL and process record
  */
 export async function startMongod(paths, from, port) {
   const binary = await mongodBinary(from);
-  port ??= await restartablePort();
+  port ??= await restartablePort(reservedPorts(paths));
   mkdirSync(paths.mongo, { recursive: true });
   const script = JAVASCRIPT_FILE.test(binary);
   const record = startDetached({
