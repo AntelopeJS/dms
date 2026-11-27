@@ -219,7 +219,7 @@ const ACTION_GUARD_CONFIGS: GuardInvocationConfigs = {
       const idField = getIdField(controller);
       const id = String(params.id);
       const current = await fetchRowForGuard(controller, id, idField);
-      throwHttpAssert(current, 404, "Not Found");
+      throwHttpAssert(current, 404, "$dms.refusals.table.row_not_found");
       const afterWrite = await guard.call(controller, ctx, {
         id,
         body,

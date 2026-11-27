@@ -1,5 +1,4 @@
-import type { RequestContext } from "@antelopejs/interface-api";
-import { assert as throwHttpAssert } from "@antelopejs/interface-api-util";
+import { HTTPResult, type RequestContext } from "@antelopejs/interface-api";
 import { Logging } from "@antelopejs/interface-core/logging";
 import type {
   DataControllerCallback,
@@ -52,6 +51,22 @@ export const GATE_BYPASSABLE_ACTIONS = [
   SELECT_ACTION,
 ];
 
+const HTTP_FORBIDDEN = 403;
+
+const missingPermissionRefusal = (permissionIds: string[]) =>
+  new HTTPResult(
+    HTTP_FORBIDDEN,
+    permissionIds.length === 1
+      ? {
+          message: "$dms.refusals.permissions.missing_permission",
+          params: { permissionId: permissionIds[0] },
+        }
+      : {
+          message: "$dms.refusals.permissions.missing_any_permission",
+          params: { permissionIds: permissionIds.join(", ") },
+        },
+  );
+
 function isGateBypassableAction(
   actionId: string,
   permissionIds: string[],
@@ -97,18 +112,17 @@ export async function authorizeAction(
     roleModel,
   );
   if (permissionIds.length === 0) {
-    throwHttpAssert(
-      GrantsEveryPermission(permissions),
-      403,
-      `Forbidden: action "${actionId}" declares no permission`,
-    );
+    if (!GrantsEveryPermission(permissions)) {
+      throw new HTTPResult(HTTP_FORBIDDEN, {
+        message: "$dms.refusals.permissions.action_declares_no_permission",
+        params: { actionId },
+      });
+    }
     return permissions;
   }
-  throwHttpAssert(
-    await HasAnyPermission(permissions, permissionIds),
-    403,
-    `Forbidden: missing permission ${permissionIds.join(" or ")}`,
-  );
+  if (!(await HasAnyPermission(permissions, permissionIds))) {
+    throw missingPermissionRefusal(permissionIds);
+  }
   return permissions;
 }
 

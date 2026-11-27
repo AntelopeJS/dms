@@ -654,7 +654,13 @@
         "cannot_view_archived": "Forbidden: cannot view archived rows"
       },
       "permissions": {
-        "missing_permission": "Forbidden: missing permission {permissionId}"
+        "missing_permission": "Forbidden: missing permission {permissionId}",
+        "missing_any_permission": "Forbidden: missing one of the permissions {permissionIds}",
+        "action_declares_no_permission": "Forbidden: action \"{actionId}\" declares no permission"
+      },
+      "table": {
+        "row_not_found": "Row not found",
+        "edit_not_allowed": "Edit not allowed: the row does not satisfy the action's rules"
       },
       "file": {
         "not_found": "File not found",

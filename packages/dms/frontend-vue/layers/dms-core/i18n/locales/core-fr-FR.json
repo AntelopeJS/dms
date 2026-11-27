@@ -654,7 +654,13 @@
         "cannot_view_archived": "Interdit : vous ne pouvez pas voir les lignes archivées"
       },
       "permissions": {
-        "missing_permission": "Interdit : permission {permissionId} manquante"
+        "missing_permission": "Interdit : permission {permissionId} manquante",
+        "missing_any_permission": "Interdit : il manque l'une des permissions {permissionIds}",
+        "action_declares_no_permission": "Interdit : l'action \"{actionId}\" ne déclare aucune permission"
+      },
+      "table": {
+        "row_not_found": "Ligne introuvable",
+        "edit_not_allowed": "Modification refusée : la ligne ne respecte pas les règles de l'action"
       },
       "file": {
         "not_found": "Fichier introuvable",
