@@ -674,7 +674,9 @@
         "file_not_stored": "A submitted file was never stored. Upload it again."
       },
       "body": {
-        "too_deep": "The JSON body nests more than {maxDepth} levels deep."
+        "too_deep": "The JSON body nests more than {maxDepth} levels deep.",
+        "invalid_json": "The request body is not valid JSON.",
+        "not_an_object": "The request body must be a JSON object."
       },
       "connection": {
         "read_only": "Connection \"{connection}\" is read-only: the project allows no changes to its tables."
