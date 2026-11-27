@@ -1,10 +1,10 @@
+// @vitest-environment jsdom
 /**
  * Once an action changes the record a page shows, its data blocks read their
  * data again in place: `refreshPageBlocks()` (or the `REFRESH_PAGE` watch
  * function a form names) re-fetches every mounted block, keeps what it shows
  * until the answer lands, and leaves an unmounted block alone.
  *
- * @vitest-environment jsdom
  * @packageDocumentation
  */
 import { createApp, defineComponent, h, ref } from "vue";

@@ -1,8 +1,8 @@
+// @vitest-environment jsdom
 /**
  * A data block refreshed keeps what it shows until the new answer lands: it
  * draws its skeleton only before its first answer.
  *
- * @vitest-environment jsdom
  * @packageDocumentation
  */
 import { createApp, defineComponent, h, nextTick, type Component } from "vue";

@@ -1,9 +1,9 @@
+// @vitest-environment jsdom
 /**
  * A bare chart reads its data source's `series` shape, which the block
  * registry declares as one point per group: what a route the Builder
  * generates answers.
  *
- * @vitest-environment jsdom
  * @packageDocumentation
  */
 import { defineComponent, h, ref, type App } from "vue";

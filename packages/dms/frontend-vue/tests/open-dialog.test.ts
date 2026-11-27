@@ -1,10 +1,10 @@
+// @vitest-environment jsdom
 /**
  * `useOpenDialog` follows the dialogs the closing-layers watch tracks: a
  * drawer, a modal or a slideover open on the page, whoever rendered it, and
  * not a popover, whose content is a dialog layer anchored to its trigger.
  *
  * @packageDocumentation
- * @vitest-environment jsdom
  */
 import { createApp, h, nextTick, type App, type Ref } from "vue";
 import { afterEach, expect, it } from "vitest";

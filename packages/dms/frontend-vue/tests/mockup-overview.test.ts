@@ -1,7 +1,4 @@
-/**
- * @vitest-environment jsdom
- * @packageDocumentation
- */
+// @vitest-environment jsdom
 import { ref } from "vue";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { MockupAnnotation } from "../layers/dms-ui/app/entries/utils/mockup";

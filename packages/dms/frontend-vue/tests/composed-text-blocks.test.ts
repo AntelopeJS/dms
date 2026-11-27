@@ -1,9 +1,9 @@
+// @vitest-environment jsdom
 /**
  * StatGroup, KeyValueList and Banner draw a composed text wherever they draw
  * a text — from their options or from the JSON their route answers — in the
  * reader's language, and keep drawing plain strings as before.
  *
- * @vitest-environment jsdom
  * @packageDocumentation
  */
 import { Suspense, createApp, h, type Component } from "vue";

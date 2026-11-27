@@ -1,7 +1,4 @@
-/**
- * @packageDocumentation
- * @vitest-environment jsdom
- */
+// @vitest-environment jsdom
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { CustomRowAction } from "../layers/dms-ui/app/types/row-action";
 import { interpolateUrl } from "../layers/dms-core/app/utils/url-interpolation";

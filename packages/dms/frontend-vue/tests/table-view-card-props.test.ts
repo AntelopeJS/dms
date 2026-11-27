@@ -1,7 +1,4 @@
-/**
- * @packageDocumentation
- * @vitest-environment jsdom
- */
+// @vitest-environment jsdom
 import type { TableViewDisplayContext } from "../layers/dms-ui/app/composables/table-view/types/display";
 import "./helpers/table-runtime";
 import {

@@ -1,10 +1,10 @@
+// @vitest-environment jsdom
 /**
  * A form's section link or a refused field scrolls the form's own scroll
  * container only: `scrollIntoView` also scrolled the layout's
  * `overflow: hidden` root, pushing the header out of view for good.
  *
  * @packageDocumentation
- * @vitest-environment jsdom
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {

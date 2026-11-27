@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 /**
  * A `TableView.fromSource` table with a `periodScope` follows its
  * PeriodSelector like a chart: its route is sent the period, it lists again
@@ -5,7 +6,6 @@
  * until the selector has registered the scope.
  *
  * @packageDocumentation
- * @vitest-environment jsdom
  */
 import { surfaceRejection } from "./surface-rejection";
 import {

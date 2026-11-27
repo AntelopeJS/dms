@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 /**
  * A cards display whose custom card loads lazily keeps its skeleton until the
  * card's code is there, and the code of the components the card draws: an
@@ -5,7 +6,6 @@
  * the cards land.
  *
  * @packageDocumentation
- * @vitest-environment jsdom
  */
 import type { isObject } from "../layers/dms-core/app/utils/type-check";
 import "./helpers/table-runtime";

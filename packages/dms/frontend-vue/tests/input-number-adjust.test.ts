@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 /**
  * A number field keeps a typed value within its bounds when it is left or on
  * Enter, and on its steps only when asked to (`stepSnapping`): by default the
@@ -6,7 +7,6 @@
  * the kept value again, so a module shows "1020 → 1,000" without remounting
  * the field.
  *
- * @vitest-environment jsdom
  * @packageDocumentation
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";

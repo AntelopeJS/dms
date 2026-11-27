@@ -1,10 +1,10 @@
+// @vitest-environment jsdom
 /**
  * ActivityFeed, Meter, TopListCard and NavCardGrid draw a composed text
  * wherever they draw a text — from their options or from the JSON their
  * route answers — in the reader's language, and keep drawing plain and `$`
  * strings as before.
  *
- * @vitest-environment jsdom
  * @packageDocumentation
  */
 import { createApp, type Component } from "vue";

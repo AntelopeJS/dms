@@ -1,7 +1,4 @@
-/**
- * @vitest-environment jsdom
- * @packageDocumentation
- */
+// @vitest-environment jsdom
 import { createApp, h, ref } from "vue";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import ApexChartHost from "../layers/dms-ui/app/components/chart/ApexChartHost.vue";

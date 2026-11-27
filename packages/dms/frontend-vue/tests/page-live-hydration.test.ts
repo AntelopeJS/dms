@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 /**
  * `usePageLive` while a component hydrates. The server renders a live page
  * with no controller: it knows the page declares `live`, and reads it as
@@ -10,7 +11,6 @@
  * own mount, as the live toggle and dms-api's live traffic do.
  *
  * @packageDocumentation
- * @vitest-environment jsdom
  */
 import { defineComponent, h, nextTick, type Component } from "vue";
 import {

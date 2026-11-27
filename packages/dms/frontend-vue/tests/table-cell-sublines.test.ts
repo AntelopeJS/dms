@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 /**
  * The secondary lines of the table cells — under a status pill, under an
  * identity's name, under a `two_line` primary — draw a composed text from the
@@ -5,7 +6,6 @@
  * without a value stands as its empty label and icon.
  *
  * @packageDocumentation
- * @vitest-environment jsdom
  */
 import { createApp, defineComponent, h, ref, type App } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";

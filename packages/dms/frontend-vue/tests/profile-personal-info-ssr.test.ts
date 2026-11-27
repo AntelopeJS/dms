@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 /**
  * The profile's personal information through the runtime's real async data: a
  * server render reads the profile and the picture's URL and renders the name,
@@ -5,7 +6,6 @@
  * them without asking again.
  *
  * @packageDocumentation
- * @vitest-environment jsdom
  */
 import {
   computed,

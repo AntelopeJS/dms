@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 /**
  * Nuxt UI's key hints (`<UKbd value="meta">`) through a server render and its
  * hydration, on the renderer's own runtime: the renderer prints them through
@@ -8,7 +9,6 @@
  * the page, an async component hydrated once its chunk has loaded.
  *
  * @packageDocumentation
- * @vitest-environment jsdom
  */
 import {
   computed,

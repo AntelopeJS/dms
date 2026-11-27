@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 /**
  * A short single-line input sizes itself for its value instead of filling
  * the row: asked for with `width: "compact"`, or by itself when its bounds
@@ -5,7 +6,6 @@
  * `maxLength` is 16 or less). The width applies from `sm` up, so a phone
  * keeps the full row, and `width: "full"` opts out.
  *
- * @vitest-environment jsdom
  * @packageDocumentation
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";

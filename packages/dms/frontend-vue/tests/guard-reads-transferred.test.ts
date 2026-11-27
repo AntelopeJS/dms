@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 /**
  * The two reads a server render's guards make, the onboarding status and the
  * permission set, go through the renderer's data layer: on a runtime set up
@@ -6,7 +7,6 @@
  * not carry, and the browser hydrating the page, then navigating, asks for
  * neither again.
  *
- * @vitest-environment jsdom
  * @packageDocumentation
  */
 import { AsyncLocalStorage } from "node:async_hooks";

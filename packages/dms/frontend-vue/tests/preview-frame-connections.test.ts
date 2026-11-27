@@ -1,10 +1,10 @@
+// @vitest-environment jsdom
 /**
  * A `/dms-preview` frame opens no long-lived connection of its own: the
  * mockup Overview draws a dozen of them, and a stream each would hold the six
  * connections a browser opens per host.
  *
  * @packageDocumentation
- * @vitest-environment jsdom
  */
 import { reactive, ref, watch } from "vue";
 import { afterEach, expect, it, vi } from "vitest";

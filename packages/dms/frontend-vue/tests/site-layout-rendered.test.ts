@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 /**
  * The site layout of a page that brings none with its props (a custom page)
  * as the sidebar reads it, through the runtime's real async data: the server
@@ -5,7 +6,6 @@
  * asking again. A page that brought it reads nothing.
  *
  * @packageDocumentation
- * @vitest-environment jsdom
  */
 import {
   defineComponent,

@@ -1,9 +1,9 @@
+// @vitest-environment jsdom
 /**
  * A card dropped on a column the server refuses (a deal moved to "Lost"
  * without its mandatory reason, or a read-only demo) toasts the refusal as a
  * warning and goes back to its column.
  *
- * @vitest-environment jsdom
  * @packageDocumentation
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";

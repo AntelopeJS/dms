@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 /**
  * A read-only list (an array or key-value field shown, not edited) reads as
  * a table of values: each cell drawn as the grid draws it (amounts
@@ -6,7 +7,6 @@
  * container.
  *
  * @packageDocumentation
- * @vitest-environment jsdom
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import * as vue from "vue";

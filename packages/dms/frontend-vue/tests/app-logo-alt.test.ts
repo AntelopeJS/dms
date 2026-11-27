@@ -1,8 +1,8 @@
+// @vitest-environment jsdom
 /**
  * The brand logo is announced by name: the configured `branding.logo.alt`
  * reaches both the light and the dark image.
  *
- * @vitest-environment jsdom
  * @packageDocumentation
  */
 import { createApp, defineComponent, h, type App } from "vue";

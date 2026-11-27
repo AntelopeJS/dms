@@ -1,7 +1,4 @@
-/**
- * @packageDocumentation
- * @vitest-environment jsdom
- */
+// @vitest-environment jsdom
 import { afterEach, expect, it } from "vitest";
 import { createApp, defineComponent, h, type App } from "vue";
 import PasswordStrength from "../layers/dms-ui/app/components/PasswordStrength.vue";

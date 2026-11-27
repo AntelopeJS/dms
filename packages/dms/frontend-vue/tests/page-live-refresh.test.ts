@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 /**
  * `usePageLiveRefresh`, the public face of the Direct / Pause gate: a module's
  * own component refreshes on its topic at the page's `maxRate`, counts what
@@ -6,7 +7,6 @@
  * the page is live only.
  *
  * @packageDocumentation
- * @vitest-environment jsdom
  */
 import { createApp, defineComponent, h } from "vue";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";

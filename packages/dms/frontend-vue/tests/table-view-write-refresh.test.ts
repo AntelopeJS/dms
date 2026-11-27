@@ -1,10 +1,10 @@
+// @vitest-environment jsdom
 /**
  * A write through a table view can move what the rest of the page shows of the
  * same records (a KPI counting them, a tab's badge): a page refresh reaches
  * every block, the table among them, and settles once all have read.
  *
  * @packageDocumentation
- * @vitest-environment jsdom
  */
 import { createApp, defineComponent, h } from "vue";
 import { afterEach, describe, expect, it, vi } from "vitest";

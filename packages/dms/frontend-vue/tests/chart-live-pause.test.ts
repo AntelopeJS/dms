@@ -1,8 +1,8 @@
+// @vitest-environment jsdom
 /**
  * A chart on a paused live page sends no request on its events or on a page
  * refresh, and reads once when the page resumes.
  *
- * @vitest-environment jsdom
  * @packageDocumentation
  */
 import { createApp, defineComponent, h, ref } from "vue";

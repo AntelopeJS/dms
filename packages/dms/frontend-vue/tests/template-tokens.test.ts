@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 /**
  * Every option naming a value with a token writes it `{{<scope>.<key>}}`, and
  * every URL or link option fills the page's `{{params.X}}` / `{{query.X}}` the
@@ -5,7 +6,6 @@
  * `from`, a block's links.
  *
  * @packageDocumentation
- * @vitest-environment jsdom
  */
 import {
   createApp,

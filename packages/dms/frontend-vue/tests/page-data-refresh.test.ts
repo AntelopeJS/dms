@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 /**
  * A page's `useApiData` reads follow the page: `refreshPageBlocks()` (an
  * action of the user) and an event on one of the page's realtime topics read
@@ -7,7 +8,6 @@
  * action of the user reads at once.
  *
  * @packageDocumentation
- * @vitest-environment jsdom
  */
 import { type App, createApp, defineComponent, h, nextTick, ref } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";

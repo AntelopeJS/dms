@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 /**
  * A rolling period (`last-hour`, `last-24h`) slides every minute, and every
  * block reading it refetches. On a paused live page the period holds still,
@@ -5,7 +6,6 @@
  * once, and resuming catches the skipped minutes up in one read.
  *
  * @packageDocumentation
- * @vitest-environment jsdom
  */
 import { createApp, defineComponent, h, ref } from "vue";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";

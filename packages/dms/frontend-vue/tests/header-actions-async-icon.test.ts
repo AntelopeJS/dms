@@ -1,7 +1,4 @@
-/**
- * @vitest-environment jsdom
- * @packageDocumentation
- */
+// @vitest-environment jsdom
 import { defineAsyncComponent, type Component } from "vue";
 import { describe, expect, it, vi } from "vitest";
 import {

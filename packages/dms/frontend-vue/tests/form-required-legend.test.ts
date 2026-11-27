@@ -1,8 +1,8 @@
+// @vitest-environment jsdom
 /**
  * The required-fields legend is a public component, auto-registered as
  * `DmsFormRequiredLegend`: a module's own form prints it like a stock one.
  *
- * @vitest-environment jsdom
  * @packageDocumentation
  */
 import { existsSync } from "node:fs";

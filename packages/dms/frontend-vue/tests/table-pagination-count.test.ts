@@ -1,9 +1,9 @@
+// @vitest-environment jsdom
 /**
  * The table footer counts its rows in the locale's grammar: one row is
  * "1 élément", several are "2 éléments".
  *
  * @packageDocumentation
- * @vitest-environment jsdom
  */
 import {
   computed,

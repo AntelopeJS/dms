@@ -1,7 +1,4 @@
-/**
- * @packageDocumentation
- * @vitest-environment jsdom
- */
+// @vitest-environment jsdom
 import { nextTick } from "vue";
 import { expect, it, vi } from "vitest";
 import TargetComponentTree from "../layers/dms-ui/app/entries/components/containers/TargetComponentTree";

@@ -1,7 +1,4 @@
-/**
- * @packageDocumentation
- * @vitest-environment jsdom
- */
+// @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { PreviewInboundMessage } from "../layers/dms-ui/app/entries/utils/blockPreview";
 import { fillingHeight } from "../layers/dms-ui/app/entries/utils/mockupFrame";

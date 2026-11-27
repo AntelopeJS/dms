@@ -1,7 +1,4 @@
-/**
- * @vitest-environment jsdom
- * @packageDocumentation
- */
+// @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { PreviewNode } from "../layers/dms-ui/app/entries/utils/blockPreview";
 import type { MockupState } from "../layers/dms-ui/app/entries/utils/mockup";

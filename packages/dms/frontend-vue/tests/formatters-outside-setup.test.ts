@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 /**
  * A data-type formatter runs wherever a value is drawn — a footer summary, a
  * group header, a card field, a filter chip, an export — often with no
@@ -6,7 +7,6 @@
  * registered formatter must write its text through the application's
  * composer instead, in its active locale.
  *
- * @vitest-environment jsdom
  * @packageDocumentation
  */
 import { createApp, defineComponent, h, isVNode, type VNodeChild } from "vue";

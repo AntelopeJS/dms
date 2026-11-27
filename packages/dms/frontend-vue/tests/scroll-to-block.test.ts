@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 /**
  * A page's block is brought into view by its anchor, the key path it is
  * declared under (`summary`, `tabs.statistics`): `scrollToBlock` scrolls its
@@ -5,7 +6,6 @@
  * screen — never drawn, or unmounted since — answers false.
  *
  * @packageDocumentation
- * @vitest-environment jsdom
  */
 import {
   computed,

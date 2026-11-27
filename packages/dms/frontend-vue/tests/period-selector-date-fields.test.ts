@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 /**
  * The start and end fields of a PeriodSelector's popover. A date field
  * reports every complete date while the user types, so a day on its way to
@@ -6,7 +7,6 @@
  * leaves the field.
  *
  * @packageDocumentation
- * @vitest-environment jsdom
  */
 import { CalendarDate } from "@internationalized/date";
 import {

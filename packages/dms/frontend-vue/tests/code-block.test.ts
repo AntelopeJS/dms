@@ -1,7 +1,4 @@
-/**
- * @vitest-environment jsdom
- * @packageDocumentation
- */
+// @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { type App, type Component, type VNode, createApp, h, ref } from "vue";
 import { isFunction } from "../layers/dms-core/app/utils/type-check";

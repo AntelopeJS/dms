@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 /**
  * A drawer's or a modal's backdrop lets clicks through to the page as soon
  * as the container starts closing, and fades out quickly (at once with
@@ -5,7 +6,6 @@
  * classes are compiled by Tailwind and applied to a backdrop that carries
  * reka's inline `pointer-events: auto`, as the real one does.
  *
- * @vitest-environment jsdom
  * @packageDocumentation
  */
 import { readFile } from "node:fs/promises";

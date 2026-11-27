@@ -1,10 +1,10 @@
+// @vitest-environment jsdom
 /**
  * `fit` draws a horizontal pill list as wide as its tabs: the list stops
  * taking the column's width and the triggers stop growing to share it. A
  * link list, a vertical one and a list without `fit` keep their classes.
  *
  * @packageDocumentation
- * @vitest-environment jsdom
  */
 import * as vue from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";

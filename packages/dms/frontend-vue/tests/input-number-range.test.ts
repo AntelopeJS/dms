@@ -1,10 +1,10 @@
+// @vitest-environment jsdom
 /**
  * A number field clamps a value typed outside `min` / `max` into range on
  * blur, as the input does by default. With `clamp: false` it keeps the value
  * as typed and reports it as the field's error, which blocks the submit; its
  * steppers stop at the bounds.
  *
- * @vitest-environment jsdom
  * @packageDocumentation
  */
 import { formFieldInjectionKey } from "@nuxt/ui/composables/useFormField";
