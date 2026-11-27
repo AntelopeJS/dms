@@ -1,7 +1,5 @@
 import { runJourney as driveJourney } from "./journey-run.mjs";
-import { loadRun } from "./run-state.mjs";
-import { down } from "./stack.mjs";
-import { startOptions, startStack } from "./start.mjs";
+import { startRuns } from "./start.mjs";
 
 export { apiRequest, onboard } from "./session.mjs";
 export { freshDatabase, restartBackend } from "./backend.mjs";
@@ -13,9 +11,6 @@ export { loadRun, saveRun } from "./run-state.mjs";
  * @typedef {import("./start.mjs").RunOptions} RunOptions How a test starts a run
  * @typedef {{ run: RunState, stop: () => Promise<void> }} StartedRun A ready run, and what stops it
  */
-
-/** @type {NodeJS.Signals[]} */
-const STOP_SIGNALS = ["SIGINT", "SIGTERM"];
 
 /**
  * Starts a run of the checkout's playground, as the global setup of a
@@ -31,36 +26,11 @@ const STOP_SIGNALS = ["SIGINT", "SIGTERM"];
  * @throws When the skill, its prepare commands or the stack fail; nothing it started is left running
  */
 export async function startRun(options = {}) {
-  const cwd = process.cwd();
-  const run = await startStack(startOptions(options, cwd), cwd);
-  const onSignal = (/** @type {NodeJS.Signals} */ signal) => {
-    release();
-    const reraise = () => process.kill(process.pid, signal);
-    stopRun(run.dir).then(reraise, reraise);
-  };
-  const release = () => {
-    for (const signal of STOP_SIGNALS) process.off(signal, onSignal);
-  };
-  for (const signal of STOP_SIGNALS) process.on(signal, onSignal);
-  return {
-    run,
-    stop: () => {
-      release();
-      return stopRun(run.dir);
-    },
-  };
-}
-
-/**
- * Stops a run from what its `run.json` recorded last, which the journeys of
- * other processes update, and reports what it could not do on stderr.
- *
- * @param {string} dir The run folder
- */
-async function stopRun(dir) {
-  const lines = await down(loadRun(dir));
-  for (const line of lines.filter((entry) => entry.startsWith("could not")))
-    process.stderr.write(`dms-e2e: ${line}\n`);
+  const {
+    runs: [run],
+    stop,
+  } = await startRuns(options, 1);
+  return { run, stop };
 }
 
 /**

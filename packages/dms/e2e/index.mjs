@@ -17,11 +17,13 @@ export * from "./fixtures.mjs";
 
 const MINUTE = 60_000;
 const CI = Boolean(process.env.CI);
+const WORKERS = 2;
 
 /**
- * The Playwright config of a suite: one worker against the run its global
- * setup starts (parallelism comes from `--shard`), no retries, a test
- * timeout above the kit's own waits, and the CI reporters. It is plain
+ * The Playwright config of a suite: two workers, each against a run of its
+ * own that the global setup starts (one worker when `DMS_E2E_RUN` names
+ * the run to drive), no retries, a test timeout above the kit's own waits,
+ * and the CI reporters. It is plain
  * Playwright config, so `defineConfig(e2eConfig(), overrides)` adjusts it.
  * The suite's journeys come from `e2e/journeys.config.ts` and
  * `e2e/journeys/`, or the journeys config `config` names and the
@@ -42,7 +44,7 @@ export function e2eConfig(options = {}) {
     testMatch: /\.spec\.ts$/,
     outputDir: `test-results${suffix}`,
     fullyParallel: true,
-    workers: 1,
+    workers: process.env.DMS_E2E_RUN ? 1 : WORKERS,
     retries: 0,
     forbidOnly: CI,
     timeout: 15 * MINUTE,
