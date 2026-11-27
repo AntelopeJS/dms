@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 /**
  * The PageToolbar block: its LiveToggle on a live page, at the toolbar's
  * size; "updated N s ago" and a refresh button where there is no toggle to
@@ -5,7 +6,6 @@
  * height per size for every control it holds, with or without live.
  *
  * @packageDocumentation
- * @vitest-environment jsdom
  */
 import { createApp, h, nextTick, type App } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";

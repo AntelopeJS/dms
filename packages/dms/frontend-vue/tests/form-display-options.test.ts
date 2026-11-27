@@ -1,7 +1,4 @@
-/**
- * @vitest-environment jsdom
- * @packageDocumentation
- */
+// @vitest-environment jsdom
 import { computed, createApp, h, useAttrs } from "vue";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import Display from "../layers/dms-ui/app/components/form/components/DisplayValue.vue";

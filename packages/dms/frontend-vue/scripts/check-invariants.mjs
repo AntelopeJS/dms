@@ -411,6 +411,26 @@ function checkGeistNarrowSpace() {
   }
 }
 
+/** Every `@vitest-environment` pragma is its own comment, outside any doc block. */
+function checkVitestPragmas() {
+  const misplaced = [
+    ...sources,
+    ...collectSources(join(ROOT, "tests")).map((file) => ({
+      file,
+      source: readFileSync(file, "utf8"),
+    })),
+  ].flatMap(({ file, source }) =>
+    [...source.matchAll(/\/\*\*[\s\S]*?\*\//g)]
+      .filter((match) => match[0].includes("@vitest-environment"))
+      .map(() => relative(ROOT, file)),
+  );
+  assert.deepEqual(
+    misplaced,
+    [],
+    "Write @vitest-environment as its own `//` comment on the first line, outside any doc block",
+  );
+}
+
 /** @type {[string, () => unknown][]} */
 const CHECKS = [
   ["API error presentation", () => assertApiErrorPresentation([LAYERS_DIR])],
@@ -429,6 +449,7 @@ const CHECKS = [
   ["Geist narrow no-break spaces", checkGeistNarrowSpace],
   ["font asset URLs", checkFontAssetUrls],
   ["onboarding page meta", checkOnboardingPageMeta],
+  ["vitest environment pragmas", checkVitestPragmas],
 ];
 
 for (const [name, check] of CHECKS) {

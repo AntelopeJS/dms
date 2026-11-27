@@ -1,7 +1,4 @@
-/**
- * @vitest-environment jsdom
- * @packageDocumentation
- */
+// @vitest-environment jsdom
 import { useHead } from "@unhead/vue";
 import {
   createHead as createClientHead,

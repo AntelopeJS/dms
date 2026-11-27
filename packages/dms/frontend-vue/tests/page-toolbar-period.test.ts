@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 /**
  * The PeriodSelector of a `pageToolbar()`, mounted from the options the
  * interface gives it: every segment named in full whatever it shows (a short
@@ -8,7 +9,6 @@
  * out.
  *
  * @packageDocumentation
- * @vitest-environment jsdom
  */
 import { computed, createApp, h, nextTick, ref, type App } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";

@@ -1,7 +1,4 @@
-/**
- * @vitest-environment jsdom
- * @packageDocumentation
- */
+// @vitest-environment jsdom
 import { createSSRApp, h, ref } from "vue";
 import { renderToString } from "vue/server-renderer";
 import { beforeEach, describe, expect, it, vi } from "vitest";

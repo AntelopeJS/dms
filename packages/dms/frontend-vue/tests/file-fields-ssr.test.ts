@@ -1,10 +1,10 @@
+// @vitest-environment jsdom
 /**
  * The stored files of the file and image fields and of their table previews,
  * through the runtime's real async data: a server render reads their
  * metadata and renders the names and pictures, and the browser hydrates with
  * it without asking again.
  *
- * @vitest-environment jsdom
  * @packageDocumentation
  */
 import {

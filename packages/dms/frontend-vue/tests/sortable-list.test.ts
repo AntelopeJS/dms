@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 /**
  * The sortable list of the column menu and the kanban: SortableJS moves the
  * dragged element in the DOM, the list puts it back and changes its array, and
@@ -5,7 +6,6 @@
  * them, DOM moves included.
  *
  * @packageDocumentation
- * @vitest-environment jsdom
  */
 import { createApp, h, nextTick, reactive, type App } from "vue";
 import { afterEach, describe, expect, it } from "vitest";

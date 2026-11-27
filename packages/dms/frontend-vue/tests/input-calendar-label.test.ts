@@ -1,8 +1,8 @@
+// @vitest-environment jsdom
 /**
  * The inline calendar field names its calendar in the user's language, as
  * the date picker does, instead of the library's English "Event Date".
  *
- * @vitest-environment jsdom
  * @packageDocumentation
  */
 import { afterEach, beforeEach, expect, it, vi } from "vitest";

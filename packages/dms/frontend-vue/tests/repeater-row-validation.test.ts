@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 /**
  * Editing a cell of a repeater checks the row it belongs to, not the rows
  * nobody touched: a form opening with three empty-description rows flags
@@ -5,7 +6,6 @@
  * A submit still checks every row.
  *
  * @packageDocumentation
- * @vitest-environment jsdom
  */
 import type { z } from "zod";
 import { beforeEach, describe, expect, it, vi } from "vitest";

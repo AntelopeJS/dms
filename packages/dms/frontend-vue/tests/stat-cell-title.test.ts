@@ -1,9 +1,9 @@
+// @vitest-environment jsdom
 /**
  * A KPI card shows its whole title: a title longer than the card wraps onto
  * another line instead of ending in an ellipsis.
  *
  * @packageDocumentation
- * @vitest-environment jsdom
  */
 import { computed, createApp, defineComponent, h, type App } from "vue";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";

@@ -1,9 +1,9 @@
+// @vitest-environment jsdom
 /**
  * An ActivityFeed that must not hide what its entries say: `wrap` lets each
  * entry take the lines it needs instead of an ellipsis, and `visibleItems`
  * shows the first entries with a "Show N more" button that unfolds the rest.
  *
- * @vitest-environment jsdom
  * @packageDocumentation
  */
 import { createApp, defineComponent, h, nextTick, ref } from "vue";

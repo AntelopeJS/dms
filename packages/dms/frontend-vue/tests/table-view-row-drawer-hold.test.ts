@@ -1,9 +1,9 @@
+// @vitest-environment jsdom
 /**
  * A live table whose rows open in a drawer holds its rows while one is open,
  * and says why ("Table on hold · row open"), as it does with a side panel.
  *
  * @packageDocumentation
- * @vitest-environment jsdom
  */
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { defineComponent } from "vue";

@@ -1,10 +1,10 @@
+// @vitest-environment jsdom
 /**
  * A table view's list, tab counters and footer figures, through the runtime's
  * real async data: a server render requests them in parallel and renders them,
  * the browser hydrates with them without asking again and without a mismatch.
  *
  * @packageDocumentation
- * @vitest-environment jsdom
  */
 import {
   computed,

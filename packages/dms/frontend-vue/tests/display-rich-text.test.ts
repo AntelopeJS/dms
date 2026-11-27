@@ -1,9 +1,9 @@
+// @vitest-environment jsdom
 /**
  * A rich text value is drawn from its sanitised markup: the elements and
  * attributes the sanitiser keeps reach the page, what it strips never does,
  * and the attributes the parent sets land on the same wrapper.
  *
- * @vitest-environment jsdom
  * @packageDocumentation
  */
 import { computed, createApp, createSSRApp, h } from "vue";

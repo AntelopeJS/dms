@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 /**
  * A data block states what its reader sees on its root element, for the
  * assistant overlay and test harnesses to read: `loading` before the first
@@ -5,7 +6,6 @@
  * `error` when the read failed. A block placed by a page also names its layout
  * path.
  *
- * @vitest-environment jsdom
  * @packageDocumentation
  */
 import {

@@ -1,9 +1,9 @@
+// @vitest-environment jsdom
 /**
  * Every block reading its data through useChartFetch hands it the period
  * scope and the realtime topics of its options: a block that dropped them
  * would silently stop following its PeriodSelector or its topics.
  *
- * @vitest-environment jsdom
  * @packageDocumentation
  */
 import { type Component, createApp, defineComponent, h, nextTick } from "vue";

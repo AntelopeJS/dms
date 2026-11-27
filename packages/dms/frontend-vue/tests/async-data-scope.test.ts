@@ -1,10 +1,10 @@
+// @vitest-environment jsdom
 /**
  * Every key of the async data lives in the scope of the session's account and
  * workspace: the browser finds what the server transferred under the same
  * scope, and a switch of account or workspace drops the previous session's
  * data instead of showing it under the new one.
  *
- * @vitest-environment jsdom
  * @packageDocumentation
  */
 import {

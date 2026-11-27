@@ -1,9 +1,9 @@
+// @vitest-environment jsdom
 /**
  * A module drawer opened through `useDrawer` and Nuxt UI's overlay injects
  * what its caller provides as the caller would: the overlay keeps its props
  * reactive, and that must not wrap what the body injects.
  *
- * @vitest-environment jsdom
  * @packageDocumentation
  */
 import {

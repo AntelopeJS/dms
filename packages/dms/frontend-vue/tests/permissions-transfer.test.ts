@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 /**
  * The permission set the `auth` middleware preloads while a server renders a
  * page reaches the browser with the page, through the runtime's real async
@@ -5,7 +6,6 @@
  * A caller that only needs a set joins a load in flight.
  *
  * @packageDocumentation
- * @vitest-environment jsdom
  */
 import {
   createApp,

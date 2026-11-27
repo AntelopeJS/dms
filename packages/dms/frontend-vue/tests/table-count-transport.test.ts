@@ -1,7 +1,4 @@
-/**
- * @packageDocumentation
- * @vitest-environment jsdom
- */
+// @vitest-environment jsdom
 import { afterEach, expect, it, vi } from "vitest";
 import { withQuery } from "ufo";
 import { createApp } from "vue";

@@ -1,7 +1,4 @@
-/**
- * @packageDocumentation
- * @vitest-environment jsdom
- */
+// @vitest-environment jsdom
 import { nextTick } from "vue";
 import { beforeEach, describe, expect, it } from "vitest";
 import { PHONE_VIEWPORT_QUERY } from "../layers/dms-ui/app/entries/composables/table-view/useMobileDisplay";

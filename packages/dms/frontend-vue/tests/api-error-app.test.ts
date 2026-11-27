@@ -1,7 +1,4 @@
-/**
- * @vitest-environment jsdom
- * @packageDocumentation
- */
+// @vitest-environment jsdom
 import { createApp, nextTick } from "vue";
 import { useToast } from "@nuxt/ui/composables/useToast";
 import { afterEach, expect, it, vi } from "vitest";

@@ -1,10 +1,10 @@
+// @vitest-environment jsdom
 /**
  * A table view reads its rows again when they moved without a write through its
  * own routes: on each event of its `realtimeTopic`, and each time the page asks
  * its blocks to refresh (refreshPageBlocks).
  *
  * @packageDocumentation
- * @vitest-environment jsdom
  */
 import { createApp, defineComponent, h } from "vue";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";

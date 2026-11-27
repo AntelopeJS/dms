@@ -1,7 +1,4 @@
-/**
- * @vitest-environment jsdom
- * @packageDocumentation
- */
+// @vitest-environment jsdom
 import { afterEach, expect, it, vi } from "vitest";
 import { createApp, h, nextTick, Suspense, type App } from "vue";
 import Input from "@nuxt/ui/components/Input.vue";

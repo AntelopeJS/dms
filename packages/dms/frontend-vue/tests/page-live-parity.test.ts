@@ -1,7 +1,4 @@
-/**
- * @packageDocumentation
- * @vitest-environment jsdom
- */
+// @vitest-environment jsdom
 import { createApp, defineComponent, h, nextTick, ref } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { liveShellRuntime } from "./helpers/live-shell-runtime";

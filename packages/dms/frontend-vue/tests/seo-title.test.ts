@@ -1,10 +1,10 @@
+// @vitest-environment jsdom
 /**
  * The document title: the page's name followed by the platform's title, on
  * the first render and after a sign-in or a workspace switch, which drops
  * every async data the plugin read at setup.
  *
  * @packageDocumentation
- * @vitest-environment jsdom
  */
 import { useHead, useSeoMeta } from "@unhead/vue";
 import { createHead, renderDOMHead } from "@unhead/vue/client";

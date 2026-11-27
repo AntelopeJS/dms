@@ -1,7 +1,4 @@
-/**
- * @packageDocumentation
- * @vitest-environment jsdom
- */
+// @vitest-environment jsdom
 import { describe, expect, it, vi } from "vitest";
 import {
   bulkSelectionQuery,

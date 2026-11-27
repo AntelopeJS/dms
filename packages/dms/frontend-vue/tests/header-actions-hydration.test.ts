@@ -1,7 +1,4 @@
-/**
- * @vitest-environment jsdom
- * @packageDocumentation
- */
+// @vitest-environment jsdom
 import { defineAsyncComponent, h, nextTick } from "vue";
 import { describe, expect, it, vi } from "vitest";
 import { registerHeaderAction } from "../layers/dms-layout/app/composables/useHeaderActions";

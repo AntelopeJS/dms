@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 /**
  * A link clicked to the page a table is already shown on is followed even
  * when it names the tab open: Inertia pushes it as a client visit (turned
@@ -5,7 +6,6 @@
  * a page control rebuilding the query replaces it and is no link.
  *
  * @packageDocumentation
- * @vitest-environment jsdom
  */
 import { createApp, defineComponent, h } from "vue";
 import { afterEach, describe, expect, it } from "vitest";

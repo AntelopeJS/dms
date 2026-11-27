@@ -1,7 +1,4 @@
-/**
- * @vitest-environment jsdom
- * @packageDocumentation
- */
+// @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { MockupAnnotation } from "../layers/dms-ui/app/entries/utils/mockup";
 import { MOCKUP_ASSISTANT_PROMPT_EVENT } from "../layers/dms-ui/app/utils/mockupAssistant";

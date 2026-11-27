@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 /**
  * A chart names its series in a legend drawn in the dashboard's colours, at
  * the top of an axis chart or under a circular one unless `legendPosition`
@@ -5,7 +6,6 @@
  * heading its single series, until the card asks for it with
  * `showSeriesLegend`: no raw Apex `legend` option is needed for either.
  *
- * @vitest-environment jsdom
  * @packageDocumentation
  */
 import { createApp, defineComponent, h, ref } from "vue";

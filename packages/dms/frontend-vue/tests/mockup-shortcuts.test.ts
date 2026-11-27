@@ -1,7 +1,4 @@
-/**
- * @vitest-environment jsdom
- * @packageDocumentation
- */
+// @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import uiEn from "../layers/dms-ui/app/entries/i18n/locales/ui-en-GB.json";
 import uiFr from "../layers/dms-ui/app/entries/i18n/locales/ui-fr-FR.json";

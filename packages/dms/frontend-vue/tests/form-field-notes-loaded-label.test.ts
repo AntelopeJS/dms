@@ -1,9 +1,9 @@
+// @vitest-environment jsdom
 /**
  * "Changed · was X" words what a field loaded with. A relation holds the id
  * of its row in the form, the server sent the joined row: the note names the
  * row by its label, not by its id.
  *
- * @vitest-environment jsdom
  * @packageDocumentation
  */
 import { afterEach, beforeEach, expect, it, vi } from "vitest";

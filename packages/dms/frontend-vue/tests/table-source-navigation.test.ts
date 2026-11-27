@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 /**
  * A `TableView.fromSource` table whose `fetchUrl` reads the page query lists
  * again when a link changes that query, through the runtime's real async data
@@ -5,7 +6,6 @@
  * (a fresh instance binding to the cached entry of its key).
  *
  * @packageDocumentation
- * @vitest-environment jsdom
  */
 import { surfaceRejection } from "./surface-rejection";
 import {

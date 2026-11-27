@@ -1,8 +1,8 @@
+// @vitest-environment jsdom
 /**
  * A chart reads whatever its route answers. A route answering a shape the
  * chart does not read leaves that chart empty and the page around it whole.
  *
- * @vitest-environment jsdom
  * @packageDocumentation
  */
 import { defineComponent, h, ref, type App } from "vue";

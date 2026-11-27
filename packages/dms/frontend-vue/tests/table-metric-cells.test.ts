@@ -1,7 +1,4 @@
-/**
- * @packageDocumentation
- * @vitest-environment jsdom
- */
+// @vitest-environment jsdom
 import { createApp, defineComponent, h, type App } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { DataType } from "../layers/dms-core/app/composables/data-types/useDataType";

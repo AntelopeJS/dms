@@ -1,10 +1,10 @@
+// @vitest-environment jsdom
 /**
  * A Banner with a `fetchUrl` draws what its route answers, over its static
  * options field by field; draws nothing while the first answer is on its way
  * or when the route answers no banner (`null`, `{}`, a 204); reads its route
  * again on a page refresh; and runs the button targets the route answers.
  *
- * @vitest-environment jsdom
  * @packageDocumentation
  */
 import { createApp, defineComponent, h, type Component } from "vue";

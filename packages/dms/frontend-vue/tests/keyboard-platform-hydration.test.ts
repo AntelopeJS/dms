@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 /**
  * Keyboard hints across a server render and its hydration, on the renderer's
  * own runtime (cookies, transferred state, `isDmsHydrating`, the page
@@ -7,7 +8,6 @@
  * corrects the platform cookie; the page's hint, hydrating after that, must
  * still draw what the server drew, then show the browser's platform.
  *
- * @vitest-environment jsdom
  * @packageDocumentation
  */
 import {

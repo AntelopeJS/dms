@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 /**
  * A `liveHold` table on a paused live page, or with its rows on screen, keeps
  * its rows: its events are counted into a "N new · Show" banner, a source route
@@ -6,7 +7,6 @@
  * leaving the pause.
  *
  * @packageDocumentation
- * @vitest-environment jsdom
  */
 import { createApp, defineComponent, h, nextTick, ref, type App } from "vue";
 import { refreshPageBlocks } from "../layers/dms-ui/app/utils/blockRefresh";

@@ -1,7 +1,4 @@
-/**
- * @packageDocumentation
- * @vitest-environment jsdom
- */
+// @vitest-environment jsdom
 import { nextTick } from "vue";
 import { describe, expect, it } from "vitest";
 import { resetColumnFilters } from "../layers/dms-ui/app/entries/composables/table/utils/clearTableFilters";

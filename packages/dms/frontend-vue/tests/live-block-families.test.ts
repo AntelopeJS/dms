@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 /**
  * Pause freezes every block of a live page, family by family: the cards that
  * read a `fetchUrl` (KPI, chart, top list, meter, banner), the list blocks
@@ -8,7 +9,6 @@
  * own `useApiData` reads have their own suites (table-live-hold,
  * page-data-refresh), `usePageLiveRefresh` too (page-live-refresh).
  *
- * @vitest-environment jsdom
  * @packageDocumentation
  */
 import { createApp, defineComponent, h } from "vue";

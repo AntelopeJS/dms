@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 /**
  * The header bell's counts as the dashboard frame reads them with the page,
  * through the runtime's real async data: a server render shows the badge,
@@ -5,7 +6,6 @@
  * same counts without asking again. A signed-out visit reads nothing.
  *
  * @packageDocumentation
- * @vitest-environment jsdom
  */
 import { defineComponent, h, nextTick, ref, type App } from "vue";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";

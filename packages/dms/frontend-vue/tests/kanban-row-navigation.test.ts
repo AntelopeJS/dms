@@ -1,10 +1,10 @@
+// @vitest-environment jsdom
 /**
  * A board reads its rows column by column, apart from the table's list: it
  * hands the cards it shows to the table view (`rows-shown`, then the display
  * context's `setShownRows`) in the order the user reads them, so a card's
  * drawer steps through them ("3 of 5", previous / next, J and K).
  *
- * @vitest-environment jsdom
  * @packageDocumentation
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";

@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 /**
  * The requests behind a table view's list and counters, through the
  * runtime's real async data: a query rebuilt equal by value reads nothing
@@ -5,7 +6,6 @@
  * abort signal, so a run replaced or dropped cancels its request.
  *
  * @packageDocumentation
- * @vitest-environment jsdom
  */
 import { surfaceRejection } from "./surface-rejection";
 import { computed, createApp, defineComponent, h, nextTick, ref } from "vue";

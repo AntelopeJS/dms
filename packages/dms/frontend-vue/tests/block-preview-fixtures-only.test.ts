@@ -1,7 +1,4 @@
-/**
- * @vitest-environment jsdom
- * @packageDocumentation
- */
+// @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { type App, createApp, defineComponent, h, shallowRef } from "vue";
 import { useBlockPreviewEmbed } from "../layers/dms-ui/app/entries/composables/block-preview/useBlockPreviewEmbed";

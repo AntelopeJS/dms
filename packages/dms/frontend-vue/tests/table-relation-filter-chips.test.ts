@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 /**
  * A relation filter holds the related rows' ids: its chip names the rows
  * ("Acme"), read once from the relation's `select` route as its picker does,
@@ -5,7 +6,6 @@
  * named "Not found", with the id in the chip's tooltip.
  *
  * @packageDocumentation
- * @vitest-environment jsdom
  */
 import {
   computed,

@@ -1,8 +1,8 @@
+// @vitest-environment jsdom
 /**
  * A DmsNoticeBanner given no icon shows its tone's, as the Banner block does: a
  * check on success, an "i" on info. An icon given wins.
  *
- * @vitest-environment jsdom
  * @packageDocumentation
  */
 import { createApp, defineComponent, h, type App } from "vue";

@@ -1,7 +1,4 @@
-/**
- * @vitest-environment jsdom
- * @packageDocumentation
- */
+// @vitest-environment jsdom
 import { createApp, h, type App } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import MockupSidebarMenu from "../layers/dms-layout/app/entries/components/layout/MockupSidebarMenu";

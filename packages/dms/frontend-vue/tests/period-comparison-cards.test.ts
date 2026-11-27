@@ -1,10 +1,10 @@
+// @vitest-environment jsdom
 /**
  * A card bound to a period selector shows the comparison the selector
  * applies: its label follows the selected mode, its comparison value is
  * formatted as the value, and "no comparison" hides all of it.
  *
  * @packageDocumentation
- * @vitest-environment jsdom
  */
 import { computed, createApp, h, ref, shallowRef, type Component } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";

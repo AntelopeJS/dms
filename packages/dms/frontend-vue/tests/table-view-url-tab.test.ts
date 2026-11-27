@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 /**
  * A table view opens the tab its URL names (`?<tableId>.tab=`, or `?tab=` on
  * a page with a single table view), on arrival and afterwards: a link or a
@@ -6,7 +7,6 @@
  * place, under the same key.
  *
  * @packageDocumentation
- * @vitest-environment jsdom
  */
 import { createApp, defineComponent, h, nextTick, reactive, ref } from "vue";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";

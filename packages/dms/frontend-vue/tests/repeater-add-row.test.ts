@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 /**
  * A row added to an array field is empty: it is checked once its cells are
  * filled or the form is submitted, never flagged "required" the moment it
@@ -6,7 +7,6 @@
  * A read-only array field shows its rows and nothing to change them with.
  *
  * @packageDocumentation
- * @vitest-environment jsdom
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {

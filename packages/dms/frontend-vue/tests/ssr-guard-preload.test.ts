@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 /**
  * A server render of a protected page waits on two requests its middlewares
  * make, the onboarding status (`onboarding`) and the permission set (`auth`):
@@ -5,7 +6,6 @@
  * composables, and each middleware joins the request already in flight.
  *
  * @packageDocumentation
- * @vitest-environment jsdom
  */
 import { computed, createSSRApp, defineComponent, h, nextTick } from "vue";
 import { renderToString } from "vue/server-renderer";

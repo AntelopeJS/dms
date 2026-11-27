@@ -1,7 +1,4 @@
-/**
- * @packageDocumentation
- * @vitest-environment jsdom
- */
+// @vitest-environment jsdom
 import { createApp, h, ref, type App } from "vue";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { DmsLink } from "#dms/frontend-module";

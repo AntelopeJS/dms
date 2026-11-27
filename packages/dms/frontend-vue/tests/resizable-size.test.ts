@@ -1,10 +1,10 @@
+// @vitest-environment jsdom
 /**
  * The resize logic shared by the side panels and the drawers: a handle on
  * the inner edge of a sheet, dragged or driven by the keyboard, and the
  * per-drawer size cookie with its bounds.
  *
  * @packageDocumentation
- * @vitest-environment jsdom
  */
 import { ref, type Ref } from "vue";
 import { describe, expect, it } from "vitest";

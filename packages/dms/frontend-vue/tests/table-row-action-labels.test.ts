@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 /**
  * A row's actions are named after the row: a custom action's label fills its
  * `{field}` braces from the row ("Translate {name}"), and the ⋯ button opening
@@ -7,7 +8,6 @@
  * otherwise.
  *
  * @packageDocumentation
- * @vitest-environment jsdom
  */
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import {

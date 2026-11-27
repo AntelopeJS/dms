@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 /**
  * A period-scoped card must issue exactly one request on mount, before any
  * interaction — see AntelopeJS/dms#365. The failure mode is silent (the card
@@ -7,7 +8,6 @@
  * or after the cards'.
  *
  * @packageDocumentation
- * @vitest-environment jsdom
  */
 import {
   computed,

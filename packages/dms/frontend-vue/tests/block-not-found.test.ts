@@ -1,10 +1,10 @@
+// @vitest-environment jsdom
 /**
  * A data block whose source answers 404 shows what it reads does not exist:
  * a translated not-found state (the server's message or `emptyState` over
  * it), never "Check your connection" with a retry, and never the values it
  * showed for the record it read before.
  *
- * @vitest-environment jsdom
  * @packageDocumentation
  */
 import {

@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 /**
  * The reads of the settings pages through the runtime's real async data: a
  * server render reads what the page shows and hands it to the browser, which
@@ -5,7 +6,6 @@
  * share it, and a change still reads it again.
  *
  * @packageDocumentation
- * @vitest-environment jsdom
  */
 import {
   computed,

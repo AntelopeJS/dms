@@ -1,10 +1,10 @@
+// @vitest-environment jsdom
 /**
  * A row the user adds starts with the values its columns declare, and so do
  * the rows a field below `min` opens with, which the form reads as its
  * starting value, not a change.
  *
  * @packageDocumentation
- * @vitest-environment jsdom
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
