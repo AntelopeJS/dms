@@ -1,10 +1,10 @@
 import { HTTPResult, type RequestContext } from "@antelopejs/interface-api";
 import {
   CreateReadUrl,
-  FileNotFoundError,
   GetFileMetadata,
 } from "@antelopejs/interface-file-storage";
 import { assertNativeFileAccess } from "./access";
+import { isFileNotFoundError } from "./file-not-found";
 import {
   denyAttachment,
   loadAttachment,
@@ -25,7 +25,7 @@ async function readStoredFile(key: string, storage?: string) {
     );
     return { ...metadata, ...read };
   } catch (error) {
-    if (error instanceof FileNotFoundError)
+    if (isFileNotFoundError(error))
       throw new HTTPResult(404, "$dms.refusals.file.not_found");
     throw error;
   }

@@ -18,6 +18,7 @@ import {
   isString,
 } from "@antelopejs/interface-dms/utils/internal/type-check";
 import { findConstraintViolation } from "./constraints";
+import { isFileNotFoundError } from "./file-not-found";
 import {
   type AttachmentReference,
   collectAttachments,
@@ -27,8 +28,6 @@ import { denyAttachment, findAttachment, loadAttachment } from "./registry";
 import { readStoredClaims } from "./stored-claims";
 
 const BAD_REQUEST = 400;
-
-const FILE_NOT_FOUND_ERROR_NAME = "FileNotFoundError";
 
 /**
  * The canonical key of a submitted reference and its stored metadata. A
@@ -43,7 +42,7 @@ async function storedReference(ref: AttachmentReference) {
       : ref.key;
     return { key, metadata: await GetFileMetadata(key, ref.field.storage) };
   } catch (error) {
-    if (error instanceof Error && error.name === FILE_NOT_FOUND_ERROR_NAME)
+    if (isFileNotFoundError(error))
       throw new HTTPResult(BAD_REQUEST, "$dms.refusals.upload.file_not_stored");
     throw error;
   }
