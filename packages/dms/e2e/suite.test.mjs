@@ -11,6 +11,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 import { declareSuite, declaredSuite, suiteJourneys } from "./suite.mjs";
+import globalSetup from "./global-setup.mjs";
 import { startOptions } from "./start.mjs";
 
 const CONFIG = `export default ${JSON.stringify({
@@ -193,4 +194,16 @@ await test("a seed draws the order of the journeys not marked last, the same for
   assert.notDeepEqual(drawn, ids("2"));
   assert.deepEqual(drawn.slice(-2), ["a-last", "b-last"]);
   assert.deepEqual(drawn.toSorted(), unshuffled.toSorted());
+});
+
+await test("the global setup refuses several workers on the run DMS_E2E_RUN names (catches two workers driving one run, whose journeys would share its backend and database)", async (t) => {
+  twoSuiteCheckout(t);
+  const adopted = process.env.DMS_E2E_RUN;
+  process.env.DMS_E2E_RUN = join(process.cwd(), "no-run");
+  t.after(() => {
+    if (adopted === undefined) delete process.env.DMS_E2E_RUN;
+    else process.env.DMS_E2E_RUN = adopted;
+  });
+  declareSuite({});
+  await assert.rejects(globalSetup({ workers: 2 }), /--workers=1/);
 });

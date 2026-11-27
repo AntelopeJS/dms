@@ -95,13 +95,16 @@ async function stopRun(dir) {
 }
 
 /**
- * Stops the runs in `dirs` together.
+ * Stops the runs in `dirs` together, each to its end whatever the others do.
  *
  * @param {string[]} dirs The run folders
  * @returns {Promise<void>}
+ * @throws The first failure, once every run stopped
  */
 async function stopRuns(dirs) {
-  await Promise.all(dirs.map(stopRun));
+  const stopped = await Promise.allSettled(dirs.map(stopRun));
+  const failed = stopped.find((result) => result.status === "rejected");
+  if (failed) throw failed.reason;
 }
 
 /**
