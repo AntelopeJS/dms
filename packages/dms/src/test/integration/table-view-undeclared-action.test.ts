@@ -21,9 +21,10 @@ describe("[integration] a table route whose action no table view declares", () =
       expect(refused.status, JSON.stringify(refused.data)).to.equal(
         HTTP_FORBIDDEN,
       );
-      expect(refused.data).to.equal(
-        `Forbidden: action "${route}" declares no permission`,
-      );
+      expect(refused.data).to.deep.equal({
+        message: "$dms.refusals.permissions.action_declares_no_permission",
+        params: { actionId: route },
+      });
     });
   }
 });

@@ -27,10 +27,12 @@ import { createGuardedWriteRoute } from "@antelopejs/interface-dms/base/table-vi
 import { TableViewMeta } from "@antelopejs/interface-dms/base/table-view/meta";
 import type { TableViewGuards } from "@antelopejs/interface-dms/base/types/guards";
 import { expect } from "chai";
+import { httpRejectionOf } from "../../../helpers/http-rejection";
 import { requestContextFixture } from "../../../helpers/request-context";
 
 const SCHEMA = "after-write-row-test";
 const TABLE = "invoices";
+const HTTP_NOT_FOUND = 404;
 const ctx = requestContextFixture();
 
 @RegisterTable(TABLE, SCHEMA)
@@ -141,6 +143,23 @@ describe("[unit] interfaces/dms-base/table-view — the row an after-write recei
       customer: "Globex",
       number: "INV-1",
     });
+  });
+
+  it("refuses an edit guard's edit of a row that does not exist, before the guard runs", async () => {
+    const seen: string[] = [];
+    withGuards({ edit: (_ctx, { id }) => void seen.push(id) });
+    const error = await httpRejectionOf(
+      (async () =>
+        editRoute.func.call(
+          controller,
+          ctx,
+          { id: "no-such-invoice" },
+          json({ customer: "Globex" }),
+        ))(),
+    );
+    expect(error.getStatus()).to.equal(HTTP_NOT_FOUND);
+    expect(error.getBody()).to.equal("$dms.refusals.table.row_not_found");
+    expect(seen).to.deep.equal([]);
   });
 
   it("reads the edited row back when the route answers nothing", async () => {

@@ -15,12 +15,13 @@ const DECLARED = "list";
 const UNDECLARED = "archive";
 const HTTP_FORBIDDEN = 403;
 
-/** A controller whose one mounted table view declares `list` alone. */
-function tableViewInstance(stamps: Record<string, string | undefined>) {
+/** A controller with one mounted table view per entry of `stampSets`. */
+function tableViewInstance(...stampSets: Record<string, string | undefined>[]) {
   class Controller {}
-  GetMetadata(Controller, TableViewMeta).addComponentBuilder(
-    new StampedTableViewBuilder(stamps),
-  );
+  const meta = GetMetadata(Controller, TableViewMeta);
+  for (const stamps of stampSets) {
+    meta.addComponentBuilder(new StampedTableViewBuilder(stamps));
+  }
   return new Controller();
 }
 
@@ -66,6 +67,34 @@ describe("[unit] interfaces/dms-base/table-view — an action no table view decl
     );
 
     expect(error.getStatus()).to.equal(HTTP_FORBIDDEN);
+    expect(JSON.parse(String(error.getBody()))).to.deep.equal({
+      message: "$dms.refusals.permissions.missing_permission",
+      params: { permissionId: `${PERMISSION_ID}.${DECLARED}` },
+    });
+  });
+
+  it("names every permission that would serve an action two table views declare, to a member holding none", async () => {
+    const member = await memberHolding("tv-undeclared-two-views", []);
+
+    const error = await httpRejectionOf(
+      authorizeAction(
+        tableViewInstance(
+          { [DECLARED]: `${PERMISSION_ID}.${DECLARED}` },
+          { [DECLARED]: `${PERMISSION_ID}.other.${DECLARED}` },
+        ),
+        DECLARED,
+        member,
+        TENANT,
+      ),
+    );
+
+    expect(error.getStatus()).to.equal(HTTP_FORBIDDEN);
+    expect(JSON.parse(String(error.getBody()))).to.deep.equal({
+      message: "$dms.refusals.permissions.missing_any_permission",
+      params: {
+        permissionIds: `${PERMISSION_ID}.${DECLARED}, ${PERMISSION_ID}.other.${DECLARED}`,
+      },
+    });
   });
 
   it("refuses an undeclared action to a member holding every declared permission", async () => {
@@ -79,9 +108,10 @@ describe("[unit] interfaces/dms-base/table-view — an action no table view decl
     );
 
     expect(error.getStatus()).to.equal(HTTP_FORBIDDEN);
-    expect(error.getBody()).to.equal(
-      `Forbidden: action "${UNDECLARED}" declares no permission`,
-    );
+    expect(JSON.parse(String(error.getBody()))).to.deep.equal({
+      message: "$dms.refusals.permissions.action_declares_no_permission",
+      params: { actionId: UNDECLARED },
+    });
   });
 
   it("refuses an action whose table view no page mounted to a member", async () => {

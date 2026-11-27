@@ -42,8 +42,10 @@ function userWithId(id: string): User {
 
 const MEMBER = userWithId("tv-gate-member");
 
-const undeclaredRefusal = (actionId: string) =>
-  `Forbidden: action "${actionId}" declares no permission`;
+const undeclaredRefusal = (actionId: string) => ({
+  message: "$dms.refusals.permissions.action_declares_no_permission",
+  params: { actionId },
+});
 
 const gateInfo = denyingTenantGate("tv-gate", DENIED_TENANT, SUSPENDED_CODE);
 
@@ -131,7 +133,9 @@ function registerFlaggedActionCases(): void {
         ALLOWED_TENANT,
       ),
     );
-    expect(error.getBody()).to.equal(undeclaredRefusal(LIST_ACTION));
+    expect(JSON.parse(String(error.getBody()))).to.deep.equal(
+      undeclaredRefusal(LIST_ACTION),
+    );
   });
 }
 
@@ -184,7 +188,9 @@ function registerFlaggedAccessCases(): void {
         ALLOWED_TENANT,
       ),
     );
-    expect(error.getBody()).to.equal(undeclaredRefusal("delete"));
+    expect(JSON.parse(String(error.getBody()))).to.deep.equal(
+      undeclaredRefusal("delete"),
+    );
   });
 }
 
@@ -199,9 +205,10 @@ function registerBypassCases(): void {
       ),
     );
     expect(error.getStatus()).to.equal(HTTP_FORBIDDEN);
-    expect(error.getBody()).to.equal(
-      `Forbidden: missing permission ${PERMISSION_ID}`,
-    );
+    expect(JSON.parse(String(error.getBody()))).to.deep.equal({
+      message: "$dms.refusals.permissions.missing_permission",
+      params: { permissionId: PERMISSION_ID },
+    });
   });
 
   it("grants a permitted caller its permission set under bypass", async () => {
@@ -235,7 +242,9 @@ function registerBypassCases(): void {
         ALLOWED_TENANT,
       ),
     );
-    expect(error.getBody()).to.equal(undeclaredRefusal(LIST_ACTION));
+    expect(JSON.parse(String(error.getBody()))).to.deep.equal(
+      undeclaredRefusal(LIST_ACTION),
+    );
   });
 
   it("keeps the bypass when a later registration omits the flag", async () => {
