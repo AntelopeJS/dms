@@ -14,11 +14,13 @@ const ACTIONS = [
   { name: "restore", method: "put", path: (id: string) => `restore?ids=${id}` },
 ] as const;
 
+const NOT_AN_OBJECT = "$dms.refusals.body.not_an_object";
+
 const REFUSED_BODIES = [
-  { body: "[1]", message: "The request body must be a JSON object." },
-  { body: "null", message: "The request body must be a JSON object." },
-  { body: '"text"', message: "The request body must be a JSON object." },
-  { body: "{", message: "Invalid JSON body." },
+  { body: "[1]", message: NOT_AN_OBJECT },
+  { body: "null", message: NOT_AN_OBJECT },
+  { body: '"text"', message: NOT_AN_OBJECT },
+  { body: "{", message: "$dms.refusals.body.invalid_json" },
 ];
 
 interface Note {
