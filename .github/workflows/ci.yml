@@ -429,11 +429,14 @@ jobs:
     with:
       checks: ${{ needs.select.outputs.formal-generated }}
 
-  # The one check branch protection requires was the single job's name, so it
-  # stays: green only when every job the plan requires is. A job outside the
-  # plan is skipped and does not fail it, a required job that was skipped does,
-  # and so does a failed or cancelled one. It answers on pull_request and
-  # merge_group, and the merge queue requires it with `ci / checks`.
+  # The org ruleset requires this job, named `ubuntu`, next to the `ci / checks`
+  # of the shared workflow, so the name stays. It is green only when every job
+  # the plan requires is, and a failed or cancelled job fails it. On the fast
+  # and none tiers the planner narrows the run, so a job outside the plan may
+  # be skipped. On every other tier the gate holds its own table of the jobs
+  # the tier must run, apart from the planner, so a planner that drops a job
+  # fails the gate. A pull request narrows the formal checks by its diff, so
+  # the formal jobs are expected only outside pull requests.
   ubuntu:
     if: always()
     needs:
@@ -454,13 +457,21 @@ jobs:
         env:
           NEEDS: ${{ toJSON(needs) }}
           REQUIRED: ${{ needs.select.outputs.jobs }}
+          TIER: ${{ needs.select.outputs.tier }}
+          EVENT: ${{ github.event_name }}
         run: |
           set -euo pipefail
-          offenders=$(jq -r --argjson required "${REQUIRED:-[]}" '
+          offenders=$(jq -r --argjson required "${REQUIRED:-[]}" --arg tier "$TIER" --arg event "$EVENT" '
             . as $needs
+            | ["backend", "frontend-test", "frontend-verify", "e2e"] as $always
+            | (if $event == "pull_request" then [] else ["formal", "formal-generated"] end) as $formal
+            | (if $tier == "queue" or $tier == "nightly" then ["docs-playground"] else [] end) as $docs
+            | (if $tier == "nightly" then ["dependents"] else [] end) as $dependents
+            | (if $tier == "fast" or $tier == "none" then [] else $always + $formal + $docs + $dependents end) as $expected
             | [ ("select", "ci") as $job | select($needs[$job].result != "success") | $job ]
               + [ $needs | to_entries[] | select(.value.result == "failure" or .value.result == "cancelled") | .key ]
               + [ $required[] | select(($needs[.].result // "missing") != "success") ]
+              + [ $expected[] | select(($needs[.].result // "missing") != "success") ]
             | unique[]
             | "\(.): \($needs[.].result // "missing")"
           ' <<< "$NEEDS")
