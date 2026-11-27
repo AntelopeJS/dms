@@ -269,7 +269,6 @@ describe("Sketch check bounds on what the parser materialises", () => {
   });
 });
 
-/** `checkSketch` as a caller without the types sees it: a method's parameter accepts anything. */
 /** A field as a JavaScript caller might fill it: anything but a string included, even an object posing as one. */
 type AnyField =
   | string
@@ -282,6 +281,9 @@ type AnyField =
 /** A sketch as a JavaScript caller might pass it, or no sketch at all. */
 type AnySource = AnyField | { html?: AnyField; css?: AnyField };
 
+/**
+ * `checkSketch` as a caller without the types sees it: a method's parameter accepts anything.
+ */
 interface UntypedCaller {
   check(source: AnySource): SketchCheck;
 }

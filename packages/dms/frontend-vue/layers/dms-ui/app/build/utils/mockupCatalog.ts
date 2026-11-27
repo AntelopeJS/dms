@@ -12,11 +12,6 @@ import {
 } from "./json";
 import type { MockupSpecNode } from "./mockupSpec";
 
-/**
- * The block catalog `GET /api/mockup/schema/blocks` answers, as the editor
- * reads it: a mirror of the part of `BlockTypeDescriptor` it uses.
- */
-
 /** Presentation hints of one option (`BlockOptionUi`). */
 export interface MockupOptionUi {
   label?: string;

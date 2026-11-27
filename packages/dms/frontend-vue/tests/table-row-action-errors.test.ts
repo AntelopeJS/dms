@@ -72,7 +72,12 @@ const confirm = vi.fn(async (options: ConfirmOptions) => {
   }
 });
 
-function fetchError(status: number | undefined, data?: string) {
+interface RefusalBody {
+  message: string;
+  params?: Record<string, string>;
+}
+
+function fetchError(status: number | undefined, data?: string | RefusalBody) {
   return Object.assign(new Error(`[PUT] "/api/task": ${status}`), {
     name: "FetchError",
     statusCode: status,
@@ -193,9 +198,12 @@ function registerRowActionRefusalTests() {
     expect(refresh).not.toHaveBeenCalled();
   });
 
-  it("toasts a plain refusal with its contextual fallback and warning tone", async () => {
+  it("toasts a keyed refusal translated with its params, in the warning tone", async () => {
     api.mockRejectedValue(
-      fetchError(403, "Forbidden: missing permission settings.invites"),
+      fetchError(403, {
+        message: "$dms.refusals.permissions.missing_permission",
+        params: { permissionId: "settings.invites" },
+      }),
     );
     const { handleCustomRowAction } = rowActions();
     handleCustomRowAction(
@@ -217,8 +225,7 @@ function registerRowActionRefusalTests() {
     expect(toast.add).toHaveBeenCalledWith(
       expect.objectContaining({
         color: Color.warning,
-        title:
-          "Something went wrong and the action couldn’t be completed. Try again.",
+        title: "Forbidden: missing permission settings.invites",
         description: undefined,
       }),
     );

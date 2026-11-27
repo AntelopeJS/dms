@@ -1,10 +1,4 @@
 /**
- * Reader's view of RealtimeTabs.tla for /statechart: one region per tab (what
- * it shows of the record, and whether it follows the page), one for the
- * record and the shared stream.
- */
-
-/**
  * @typedef {"t1" | "t2"} TabId
  * @typedef {TabId | "none"} LeadTab
  * @typedef {{ st: string, sid: number, conn: number, topics: boolean, loaded: boolean, shown: number }} TabState
@@ -63,8 +57,15 @@ function record(v) {
   return `v${v.stored} stored, ${stream}`;
 }
 
-/** One region per tab, and one for the record with the stream. */
-/** @param {State} v */
+/**
+ * Reader's view of RealtimeTabs.tla for /statechart: one region per tab (what
+ * it shows of the record, and whether it follows the page), one for the
+ * record and the shared stream.
+ *
+ * One region per tab, and one for the record with the stream.
+ *
+ * @param {State} v
+ */
 export function state(v) {
   return {
     "Tab 1": `${session(v, "t1")}${screen(v.tab.t1)}`,

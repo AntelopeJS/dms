@@ -13,6 +13,7 @@ const PAGE_LAYOUT = pageRoutePath(PAGE, "/pagelayout");
 const NEW_FORM_LAYOUT = pageRoutePath(PAGE, "/content/new/pagelayout");
 const HTTP_OK = 200;
 const HTTP_FORBIDDEN = 403;
+const MISSING_PERMISSION = "$dms.refusals.permissions.missing_permission";
 
 async function memberHolding(permissions: string[]): Promise<AxiosInstance> {
   const [role] = await GetModel(RoleModel, DEFAULT_TENANT_ID).insert({
@@ -47,8 +48,10 @@ describe("[integration] the layout route of a page and of its form pages", () =>
 
     const own = await client.get(PAGE_LAYOUT);
     expect(own.status, JSON.stringify(own.data)).to.equal(HTTP_FORBIDDEN);
-    expect(String(own.data)).to.include(`missing permission ${PAGE}`);
-    expect(String(own.data)).to.not.include(`${TABLE}.`);
+    expect(own.data).to.deep.equal({
+      message: MISSING_PERMISSION,
+      params: { permissionId: PAGE },
+    });
   });
 
   it("guards a form page with its own action, not the last form registered", async () => {
@@ -60,6 +63,9 @@ describe("[integration] the layout route of a page and of its form pages", () =>
 
     const viewed = await viewing.get(NEW_FORM_LAYOUT);
     expect(viewed.status, JSON.stringify(viewed.data)).to.equal(HTTP_FORBIDDEN);
-    expect(String(viewed.data)).to.include(`missing permission ${TABLE}.add`);
+    expect(viewed.data).to.deep.equal({
+      message: MISSING_PERMISSION,
+      params: { permissionId: `${TABLE}.add` },
+    });
   });
 });

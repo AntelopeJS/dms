@@ -14,6 +14,7 @@ import { parseSpec } from "./compile";
 import { MOCKUP_API } from "./fixtures";
 import { parseMockupName } from "./model";
 import { MockupOwnerController } from "./owner-controller";
+import { notFound } from "./refusals";
 import type { PresenceBoard } from "./presence-board";
 import {
   type Acquisition,
@@ -32,7 +33,6 @@ import {
 
 const HTTP_BAD_REQUEST = 400;
 const HTTP_FORBIDDEN = 403;
-const HTTP_NOT_FOUND = 404;
 const HTTP_CONFLICT = 409;
 const MAX_POINTER = 2048;
 
@@ -65,13 +65,9 @@ export interface ReleaseAnswer {
   ok: true;
 }
 
-function notFound(what: string): HTTPResult {
-  return new HTTPResult(HTTP_NOT_FOUND, { message: `${what} not found` });
-}
-
 function notOnMockup(): HTTPResult {
   return new HTTPResult(HTTP_FORBIDDEN, {
-    message: "this viewer has no event stream open on the mockup",
+    message: "$dms.refusals.mockup.no_event_stream",
   });
 }
 
@@ -89,30 +85,29 @@ function refused(refusal: Refusal): HTTPResult {
     case "no_mockup":
       return notFound("mockup");
     case "no_node":
-      return notFound("node at this path");
+      return notFound("node");
     case "no_lock":
       return notFound("lock");
     case "unknown_viewer":
       return notOnMockup();
     case "held":
       return new HTTPResult(HTTP_CONFLICT, {
-        message: `${refusal.by} is editing this block`,
+        message: "$dms.refusals.mockup.block_held",
+        params: { holder: refusal.by },
         holder: refusal.by,
       });
     case "stale":
       return new HTTPResult(HTTP_CONFLICT, {
-        message:
-          "spec.json changed since it was read, so the pointer may name another block: read it again and retake the lock",
+        message: "$dms.refusals.mockup.lock_spec_changed",
         digest: refusal.digest,
       });
     case "ambiguous":
       return new HTTPResult(HTTP_CONFLICT, {
-        message:
-          "another block has the same ids as this one, so a lock cannot tell them apart: give one of them another id",
+        message: "$dms.refusals.mockup.lock_ambiguous_ids",
       });
     case "spec_invalid":
       return new HTTPResult(HTTP_CONFLICT, {
-        message: "spec.json is not a valid spec, so the block cannot get an id",
+        message: "$dms.refusals.mockup.lock_spec_invalid",
         errors: refusal.errors,
       });
   }

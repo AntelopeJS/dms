@@ -90,7 +90,7 @@ export const usePreferences = () => {
     if (lastKey === undefined) return;
     const next = toPlainTree(tree.value);
     const parent = keys.length === 0 ? next : readAt(next, keys);
-    if (!isBranch(parent) || !(lastKey in parent)) return;
+    if (!isBranch(parent) || !Object.hasOwn(parent, lastKey)) return;
 
     Reflect.deleteProperty(parent, lastKey);
     commit(next);

@@ -1,11 +1,4 @@
 <script setup lang="ts">
-/**
- * Detail component of the "Expandable rows" demo, named by the backend
- * `expandable.component` option. With `lazyLoad`, the TableView hands it the
- * order as `get` answers it when the row opens: its lines and timeline are
- * neither grid columns nor listed fields.
- */
-
 interface OrderLine {
   sku: string;
   name: string;
@@ -32,6 +25,12 @@ interface OrderLinesDetailProps {
   rowId: string;
 }
 
+/**
+ * Detail component of the "Expandable rows" demo, named by the backend
+ * `expandable.component` option. With `lazyLoad`, the TableView hands it the
+ * order as `get` answers it when the row opens: its lines and timeline are
+ * neither grid columns nor listed fields.
+ */
 const props = defineProps<OrderLinesDetailProps>();
 
 const { locale, dateTimeFormat } = useRegionalFormat();

@@ -1,4 +1,8 @@
-import { RawBody, type RequestContext } from "@antelopejs/interface-api";
+import {
+  HTTPResult,
+  RawBody,
+  type RequestContext,
+} from "@antelopejs/interface-api";
 import { assert as throwHttpAssert } from "@antelopejs/interface-api-util";
 import { GetMetadata } from "@antelopejs/interface-core";
 import {
@@ -105,11 +109,12 @@ const parseJsonObject = (text: string) => {
     400,
     "The request body must be a JSON object.",
   );
-  throwHttpAssert(
-    !nestsDeeperThan(Object.values(fields.data), MAX_BODY_DEPTH),
-    400,
-    `The JSON body nests more than ${MAX_BODY_DEPTH} levels deep.`,
-  );
+  if (nestsDeeperThan(Object.values(fields.data), MAX_BODY_DEPTH)) {
+    throw new HTTPResult(400, {
+      message: "$dms.refusals.body.too_deep",
+      params: { maxDepth: MAX_BODY_DEPTH },
+    });
+  }
   return copyJsonFields(Object.entries(fields.data));
 };
 

@@ -3,15 +3,6 @@ import type { I18nTranslate } from "./translation/useTranslation";
 import { resolveApiErrorMessage } from "./resolveApiError";
 import { isBoolean, isNumber, isObject, isString } from "../utils/type-check";
 
-/**
- * The dashboard's error rule: an error that belongs to one field (a value
- * refused by validation, a wrong current password, an address already used,
- * a name already taken…) shows under that field only; anything else (network
- * failure, permission denied, rate limit, server error) is a toast.
- *
- * This module tells the two apart from what `$authFetch` / `$fetch` threw.
- */
-
 /** An API error tied to one field, before translation. */
 export interface ApiFieldError {
   /** Id of the field, as the form names it (the request body key). */
@@ -485,6 +476,13 @@ export interface HandleApiErrorOptions {
 }
 
 /**
+ * The dashboard's error rule: an error that belongs to one field (a value
+ * refused by validation, a wrong current password, an address already used,
+ * a name already taken…) shows under that field only; anything else (network
+ * failure, permission denied, rate limit, server error) is a toast.
+ *
+ * This module tells the two apart from what `$authFetch` / `$fetch` threw.
+ *
  * Inline errors of a form, following the dashboard's error rule: a
  * field-tied error shows under its field (red text, the control marked
  * `aria-invalid` and described by it, focused on a failed submit), anything

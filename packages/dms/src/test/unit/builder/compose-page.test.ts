@@ -226,6 +226,17 @@ function composesANewPage(): void {
 }
 
 function extendsAPageAndPreviewsQueries(): void {
+  it("lets a query route land under a name Object.prototype holds when the block's config lacks it", async () => {
+    const card = kpi("revenue", "Revenue", "sum");
+    if (!card.query) {
+      throw new Error("fixture");
+    }
+    const blocks = [{ ...card, query: { ...card.query, into: "constructor" } }];
+    const composed = await ComposePage({ ...analytics("proto-key"), blocks });
+    const text = JSON.stringify(composed.ok ? "" : composed.error);
+    expect(text).to.not.include("is written to");
+  });
+
   it("puts a KPI row above a mapped table and survives a remap", async () => {
     const [row] = [
       {

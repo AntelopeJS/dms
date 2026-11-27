@@ -4,6 +4,7 @@ import { Logging } from "@antelopejs/interface-core/logging";
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import { TenantLifecycleModel } from "./db/internal/tenantLifecycle.model";
 import { isFunction, isObject } from "./utils/internal/type-check";
+import { brandClass } from "./utils/internal/brand";
 
 const HTTP_CLIENT_ERROR_MIN = 400;
 const HTTP_SERVER_ERROR_MIN = 500;
@@ -38,6 +39,15 @@ export class TenantLifecycleReleaseError extends Error {
     this.attemptId = attemptId;
   }
 }
+
+/**
+ * Whether `value` is a {@link TenantLifecycleReleaseError}, including one built by another copy of this package,
+ * where `instanceof` answers false.
+ */
+export const IsTenantLifecycleReleaseError = brandClass(
+  TenantLifecycleReleaseError,
+  "TenantLifecycleReleaseError",
+);
 
 /**
  * Releases the admission of an invocation whose effects are all known: it

@@ -78,10 +78,6 @@ export function projectSourcePaths(rootDir: string): string[] {
 const INDENT_SAMPLE_BYTES = 8192;
 
 /**
- * Match the indentation the project already uses, rather than imposing one:
- * generated code sits in the author's files and should not read as foreign.
- */
-/**
  * The `.editorconfig` settings that govern TypeScript, in file order.
  *
  * Matching the whole file section-blind reads a `[*.{yml,json}]` stanza as if
@@ -274,6 +270,9 @@ export function sampledIndentation(text: string): IndentationText | undefined {
 }
 
 /**
+ * Match the indentation the project already uses, rather than imposing one:
+ * generated code sits in the author's files and should not read as foreign.
+ *
  * The configured indentation, else that of the first of the project's sources
  * with an indented line: an entry that only imports says nothing. A file the
  * tsconfig lists that is not on disk yet, such as a generated declaration, is

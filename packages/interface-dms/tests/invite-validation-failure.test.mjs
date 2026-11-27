@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { HTTPResult } from "@antelopejs/interface-api";
+import { IsHTTPResult } from "@antelopejs/interface-api";
 import {
   RegisterInviteExtension,
   internal,
@@ -95,7 +95,7 @@ for (const { flow, collect, body } of submissions) {
       const failure = failureOf(collect, body);
 
       assert.ok(
-        failure instanceof HTTPResult,
+        IsHTTPResult(failure),
         `expected an HTTPResult, got ${String(failure)}`,
       );
       assert.equal(failure.status, 400);

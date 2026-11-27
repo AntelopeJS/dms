@@ -164,7 +164,7 @@ async function interfaceKind(
 ): Promise<InterfaceKind> {
   const looksLikeInterface =
     INTERFACE_NAME_PATTERN.test(dependency) ||
-    dependency in (await registryFolders(freshness));
+    Object.hasOwn(await registryFolders(freshness), dependency);
   if (!looksLikeInterface) return "library";
   const kind = await interfaceKinds.get(
     `${dependency}@${range}`,

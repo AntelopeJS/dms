@@ -8,12 +8,6 @@ import ShowcaseDemo from "../showcase/ShowcaseDemo.vue";
 import ShowcaseSection from "../showcase/ShowcaseSection.vue";
 import SourceSnippet from "../showcase/SourceSnippet.vue";
 
-/**
- * Frontend modules › Dashboard chrome › Command palette: the playground's own
- * group in Ctrl/Cmd+K (`registerCommandPaletteSource`) and its assistant mode
- * (`registerCommandPaletteAssistant`).
- */
-
 const { t } = useI18n();
 const sidePanel = useSidePanelDemo();
 const { groups } = useCommandPaletteGroups();

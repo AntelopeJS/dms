@@ -17,8 +17,8 @@ import {
   BULK_ALL_MATCHING_KEY,
   type BulkRowSource,
   DEFAULT_ROW_ID_FIELD,
+  IsTableViewMeta,
   MAX_BULK_MATCHING_ROWS,
-  TableViewMeta,
 } from "@antelopejs/interface-dms/base/table-view";
 import { getTableViewMetaFor } from "@antelopejs/interface-dms/base/table-view/internal/meta";
 import { getRequestTenantId } from "@antelopejs/interface-dms/request-tenant";
@@ -42,7 +42,7 @@ function isBulkRowSource(
     typeof table === "object" &&
     table !== null &&
     "tableView" in table &&
-    table.tableView instanceof TableViewMeta &&
+    IsTableViewMeta(table.tableView) &&
     "model" in table &&
     typeof table.model === "object" &&
     table.model !== null
@@ -77,9 +77,19 @@ function sourceReader({ model, tableView }: BulkRowSource) {
     modelKey,
     { value: model, enumerable: true },
   );
+  const carries = (key: string): boolean => {
+    for (
+      let holder: object | null = reader;
+      holder !== null && holder !== Object.prototype;
+      holder = Reflect.getPrototypeOf(holder)
+    ) {
+      if (Object.hasOwn(holder, key)) return true;
+    }
+    return false;
+  };
   return new Proxy(reader, {
     get(target, key) {
-      if (isSymbol(key) || key in target) return target[key];
+      if (isSymbol(key) || carries(key)) return target[key];
       throw new Error(
         `resolveBulkRowIds read "${key}" of ${controller.name}, which a BulkRowSource does not carry: resolve the selection from a route of ${controller.name}, with this.`,
       );

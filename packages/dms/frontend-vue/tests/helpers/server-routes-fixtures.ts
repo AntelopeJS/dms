@@ -104,7 +104,10 @@ function backendAnswer(
     path === "/api/auth/logout" &&
     authorization === `Bearer ${accessToken("t1", "expired")}`
   )
-    return { status: 401, body: { message: "Invalid session token" } };
+    return {
+      status: 401,
+      body: { message: "$dms.refusals.auth.invalid_session_token" },
+    };
   if (
     [
       "/api/auth/login",

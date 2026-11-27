@@ -1,21 +1,4 @@
 import { isFunction } from "../../utils/type-check";
-/**
- * Coordination between the tabs of one browser profile, for the long-lived
- * streams a dashboard keeps open.
- *
- * Over HTTP/1.1 a browser opens at most six connections per host, and a
- * streaming response holds one for as long as it lives: one stream per tab
- * starves every other request once a few tabs are open. One tab is elected
- * (a Web Lock, released by the browser when the tab goes, however it goes),
- * opens the stream, and relays it to the others over a BroadcastChannel.
- *
- * Web Locks need a secure context (HTTPS, or localhost). Where either API is
- * missing, every tab is its own leader on a bus of its own: the behaviour of a
- * stream per tab, unchanged.
- *
- * @internal
- */
-
 const TAB_LOCK_SEPARATOR = ":tab:";
 
 export type TabMessageHandler = (
@@ -50,7 +33,22 @@ export function browserCrossTabEnvironment(): CrossTabEnvironment {
   return { locks, createChannel: (name) => new BroadcastChannel(name) };
 }
 
-/** Whether the tabs can share: without both APIs each tab stays on its own. */
+/**
+ * Whether the tabs can share: without both APIs each tab stays on its own.
+ *
+ * Tabs of one browser profile share the long-lived streams a dashboard keeps
+ * open. Over HTTP/1.1 a browser opens at most six connections per host, and a
+ * streaming response holds one for as long as it lives: one stream per tab
+ * starves every other request once a few tabs are open. One tab is elected
+ * (a Web Lock, released by the browser when the tab goes, however it goes),
+ * opens the stream, and relays it to the others over a BroadcastChannel.
+ *
+ * Web Locks need a secure context (HTTPS, or localhost). Where either API is
+ * missing, every tab is its own leader on a bus of its own: the behaviour of a
+ * stream per tab, unchanged.
+ *
+ * @internal
+ */
 export function canShareAcrossTabs(
   environment: CrossTabEnvironment,
 ): environment is Required<CrossTabEnvironment> {

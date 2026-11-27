@@ -23,8 +23,6 @@ import {
 
 const TECHNICAL_MESSAGE = "DMS backend request failed";
 
-/** The global name `@nuxt/icon` registers and the sources resolve. */
-
 let app: App;
 let host: HTMLDivElement;
 

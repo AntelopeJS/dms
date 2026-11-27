@@ -43,7 +43,7 @@ describe("[integration] an ownerOnly page outside a module", () => {
 
     const layout = await client.get(PAGE_LAYOUT);
     expect(layout.status, JSON.stringify(layout.data)).to.equal(HTTP_FORBIDDEN);
-    expect(String(layout.data)).to.equal("Owner-only");
+    expect(layout.data).to.equal("$dms.refusals.auth.owner_only");
 
     const page = await openPage(client);
     expect(page.data.route?.hasAccess ?? false).to.equal(false);

@@ -1,9 +1,4 @@
 /**
- * Reader's view of OnboardingBootstrap.tla for /statechart: one region for
- * the platform (owners, an OAuth account, has_onboarded) and one per request.
- */
-
-/**
  * @typedef {{
  *   onboarded: boolean;
  *   oauth: string;
@@ -58,8 +53,14 @@ function platform(v) {
   return `${phase}, ${OWNERS[v.ownerRows.length]}${oauth}`;
 }
 
-/** One region for the platform, one per register and per status poll. */
-/** @param {State} v */
+/**
+ * Reader's view of OnboardingBootstrap.tla for /statechart: one region for
+ * the platform (owners, an OAuth account, has_onboarded) and one per request.
+ *
+ * One region for the platform, one per register and per status poll.
+ *
+ * @param {State} v
+ */
 export function state(v) {
   const answers = new Map(Object.entries(v.answer));
   /** @type {Record<string, string | undefined>} */

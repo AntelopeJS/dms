@@ -6,14 +6,6 @@ import { useEnclosingForm } from "#dms-ui/app/composables/form/useEnclosingForm"
 import type { InputNumberAdjustment } from "#dms-ui/app/types/input-number";
 import DmsInputNumber from "#dms-ui/app/components/form/components/InputNumber.vue";
 
-/**
- * A module's own input for a retention in days, the `inputComponent` of the
- * "Custom input" demo. It draws `DmsInputNumber` and tells why a typed value
- * was adjusted, refuses a value that is not whole weeks (`useControlError`),
- * asks before a save that lowers the retention (`useEnclosingForm`
- * validator, then `useConfirmFrom`), and focuses another field on demand.
- */
-
 interface Props {
   id?: string;
   disabled?: boolean;
@@ -26,6 +18,13 @@ interface Props {
   confirmUrl?: string;
 }
 
+/**
+ * A module's own input for a retention in days, the `inputComponent` of the
+ * "Custom input" demo. It draws `DmsInputNumber` and tells why a typed value
+ * was adjusted, refuses a value that is not whole weeks (`useControlError`),
+ * asks before a save that lowers the retention (`useEnclosingForm`
+ * validator, then `useConfirmFrom`), and focuses another field on demand.
+ */
 const props = defineProps<Props>();
 const model = defineModel<number | null>();
 

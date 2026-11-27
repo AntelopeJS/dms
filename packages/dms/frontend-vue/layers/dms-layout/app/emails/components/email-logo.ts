@@ -1,10 +1,3 @@
-/**
- * Which logo URL an email may carry. A recipient's mail client fetches the
- * image from the internet, so it needs an absolute public http(s) URL; Gmail
- * and Outlook also refuse SVG. A logo that fails either test is left out
- * rather than drawn as a broken image.
- */
-
 const ROOT_PATH = "/";
 const WEB_PROTOCOLS = ["http:", "https:"];
 const SVG_PATH = /\.svg(?:[?#]|$)/i;
@@ -38,6 +31,11 @@ export function isPublicEmailHost(hostname: string): boolean {
 }
 
 /**
+ * Which logo URL an email may carry. A recipient's mail client fetches the
+ * image from the internet, so it needs an absolute public http(s) URL; Gmail
+ * and Outlook also refuse SVG. A logo that fails either test is left out
+ * rather than drawn as a broken image.
+ *
  * The logo URL an email may use: `logoPath` made absolute against
  * `clientBaseUrl` when it starts with `/`, or `""` when it is an SVG, not
  * http(s), or served from a host a mail client cannot reach (localhost, a

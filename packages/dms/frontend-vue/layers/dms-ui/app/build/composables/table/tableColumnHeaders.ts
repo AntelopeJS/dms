@@ -22,10 +22,10 @@ import {
 
 import type { TableColumnContext } from "./tableColumnTypes";
 
-const SORT_DIRECTION_ICON: Record<SortDirection, string> = {
-  asc: "i-ph-arrow-up",
-  desc: "i-ph-arrow-down",
-};
+const SORT_DIRECTION_ICON: ReadonlyMap<SortDirection, string> = new Map([
+  ["asc", "i-ph-arrow-up"],
+  ["desc", "i-ph-arrow-down"],
+]);
 
 const SORTABLE_LABEL_CLASS =
   "group/sort -mx-1.5 inline-flex min-w-0 cursor-pointer items-center gap-1 rounded-[5px] px-1.5 py-[3px] uppercase transition-colors hover:bg-elevated hover:text-default";
@@ -147,7 +147,7 @@ const renderSortIcon = <T extends Data>(
 
   if (cue === "active" && isSorted) {
     return h(Icon, {
-      name: SORT_DIRECTION_ICON[isSorted],
+      name: SORT_DIRECTION_ICON.get(isSorted),
       class: config.ui.value.columnActiveSortIcon(),
     });
   }
@@ -157,7 +157,7 @@ const renderSortIcon = <T extends Data>(
       { class: SORT_ICON_BOX_CLASS, title: t("dms.sort.default_sort") },
       [
         h(Icon, {
-          name: SORT_DIRECTION_ICON[isSorted],
+          name: SORT_DIRECTION_ICON.get(isSorted),
           class: SORT_DEFAULT_ICON_CLASS,
         }),
       ],

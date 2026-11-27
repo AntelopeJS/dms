@@ -44,6 +44,7 @@ import {
 } from "./internal/component-watches";
 import type { Permission } from "./permissions";
 import type { CreatedPage, MaybePromise } from "./types";
+import { brandClass } from "./utils/internal/brand";
 
 export interface ActionDefinition {
   title: string;
@@ -79,6 +80,12 @@ export class Action {
     return toActionPermission(this, this.componentPermissionId);
   }
 }
+
+/**
+ * Whether `value` is an {@link Action}, including one built by another copy of this package,
+ * where `instanceof` answers false.
+ */
+export const IsAction = brandClass(Action, "Action");
 
 export const getPermissionIdRef = {
   get(_component: Component): string | undefined {

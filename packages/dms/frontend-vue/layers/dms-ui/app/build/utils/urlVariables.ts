@@ -53,8 +53,11 @@ function fillRouteTokens(
   encoding: TokenEncoding,
 ): string {
   return text
-    .replace(PARAM_TOKEN, (match, key) => {
-      const value = context.routeParams?.[key];
+    .replace(PARAM_TOKEN, (match, key: string) => {
+      const value =
+        context.routeParams && Object.hasOwn(context.routeParams, key)
+          ? context.routeParams[key]
+          : undefined;
       return value ? encoding.param(value) : match;
     })
     .replace(QUERY_TOKEN, (match, key) => {

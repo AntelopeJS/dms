@@ -1,4 +1,4 @@
-import { HTTPResult } from "@antelopejs/interface-api";
+import { HTTPResult, IsHTTPResult } from "@antelopejs/interface-api";
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import { expect } from "chai";
 import { RoleModel, TenantMemberModel } from "@antelopejs/interface-dms/db";
@@ -62,7 +62,7 @@ describe("[unit] pages/settings/users roles delete dialog", () => {
     try {
       await run();
     } catch (error: unknown) {
-      if (error instanceof HTTPResult) return error;
+      if (IsHTTPResult(error)) return error;
       expect.fail(`expected an HTTPResult refusal, got ${String(error)}`);
     }
     return expect.fail("Expected the deletion to be refused");

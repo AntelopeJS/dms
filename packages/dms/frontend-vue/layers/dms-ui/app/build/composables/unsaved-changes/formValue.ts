@@ -3,12 +3,6 @@ import {
   isObject,
   isNumber,
 } from "../../../../../dms-core/app/utils/type-check";
-/**
- * Value comparison behind the "unsaved changes" state of every form: a form
- * is dirty when what it holds differs, by value, from what it loaded (or last
- * saved). Typing a value then putting the original back makes it clean again.
- */
-
 /** What a form field holds: the value a data type's mapper takes. */
 type FormValue = Parameters<BeforeStateMapper>[0];
 
@@ -40,6 +34,10 @@ export function isEmptyFormValue(value: FormValue): boolean {
 }
 
 /**
+ * Value comparison behind the "unsaved changes" state of every form: a form
+ * is dirty when what it holds differs, by value, from what it loaded (or last
+ * saved). Typing a value then putting the original back makes it clean again.
+ *
  * Whether two form values are the same, compared deeply by value: lists item
  * by item (order counts), objects key by key (whatever their order), dates by
  * their time; any two empty values are the same (see {@link isEmptyFormValue}).

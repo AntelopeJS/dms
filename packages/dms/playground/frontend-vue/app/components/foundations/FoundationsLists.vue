@@ -3,11 +3,6 @@ import { computed, ref } from "vue";
 import ShowcaseDemo from "../showcase/ShowcaseDemo.vue";
 import ShowcaseSection from "../showcase/ShowcaseSection.vue";
 
-/**
- * Design system › Foundations › Lists & data: the rows, facts and figures
- * cards are filled with.
- */
-
 const KEY_VALUE_ITEMS = [
   { label: "Customer", value: "Northwind Traders", type: "text" },
   {

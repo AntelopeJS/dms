@@ -4,9 +4,7 @@
  * {@link DataTypeValue} for a DataType instance and {@link ExprValue} for a raw
  * expression. Anywhere a catalog field is marked `x-dataType`, pass a
  * {@link DataTypeValue} — not a raw `$expr`.
- */
-
-/**
+ *
  * A value of a block's configuration: plain data, never a function or a class
  * instance. `undefined` stands for an absent member, which the builder skips
  * when it writes. The sentinel objects {@link DataTypeValue}, {@link ExprValue},

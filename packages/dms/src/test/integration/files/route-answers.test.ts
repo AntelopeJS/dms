@@ -130,7 +130,7 @@ describe("[integration] file-bearing table routes answer what the route answers"
     });
     expect(answerOf(forbidden)).to.deep.equal({
       status: 403,
-      body: "File access denied.",
+      body: "$dms.refusals.file.access_denied",
     });
   });
 });

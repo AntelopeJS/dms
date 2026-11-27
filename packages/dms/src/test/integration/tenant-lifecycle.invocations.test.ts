@@ -1,5 +1,5 @@
 import { strict as assert } from "node:assert";
-import { HTTPResult } from "@antelopejs/interface-api";
+import { HTTPResult, IsHTTPResult } from "@antelopejs/interface-api";
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import { TenantLifecycleModel } from "@antelopejs/interface-dms/db/internal/tenantLifecycle.model";
 import {
@@ -153,7 +153,7 @@ describe("Tenant lifecycle admission (MongoDB adapter), failed invocations", () 
       UnregisterHook(Hook.INVITE_BEING_CREATED, refuse);
     }
     assert.equal(
-      refusal instanceof HTTPResult && refusal.getStatus(),
+      IsHTTPResult(refusal) && refusal.getStatus(),
       HTTP_PAYMENT_REQUIRED,
     );
     const model = GetModel(TenantLifecycleModel, TENANT);

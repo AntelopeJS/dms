@@ -17,7 +17,7 @@ const BUTTON_LABELS: Record<BannerKey, string> = {
 function toggleButton(key: BannerKey): PageHeaderButton {
   return {
     id: `toggle-${key}`,
-    label: BUTTON_LABELS[key],
+    label: Object.hasOwn(BUTTON_LABELS, key) ? BUTTON_LABELS[key] : key,
     icon: "i-ph-flag-banner",
     target: {
       type: "api",

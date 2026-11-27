@@ -43,7 +43,9 @@ export function useDrawer() {
     const drawerOptions: DrawerOptions & DrawerCallerContext = {
       ...containerOptions,
 
-      callerProvides: DMS_OWN_DRAWER in options ? undefined : caller?.provides,
+      callerProvides: Object.hasOwn(options, DMS_OWN_DRAWER)
+        ? undefined
+        : caller?.provides,
       ...(rowHeader && {
         headerComponent: DmsRowHeader,
         headerComponentOptions: headerProps(),

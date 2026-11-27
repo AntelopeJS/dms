@@ -28,10 +28,18 @@ const CODE_LANGUAGE_LABELS: Record<
 /** The language an alias (`bash`, `ts`, `plain`) stands for; `text` when unset. */
 export function resolveCodeLanguage(language: string | undefined): string {
   const name = language?.trim().toLowerCase() || PLAIN_CODE_LANGUAGE;
-  return LANGUAGE_ALIASES[name] ?? name;
+  return (
+    (Object.hasOwn(LANGUAGE_ALIASES, name)
+      ? LANGUAGE_ALIASES[name]
+      : undefined) ?? name
+  );
 }
 
 /** The label of a language; an unknown one is shown as written. */
 export function codeLanguageLabel(language: string): string {
-  return CODE_LANGUAGE_LABELS[language] ?? language;
+  return (
+    (Object.hasOwn(CODE_LANGUAGE_LABELS, language)
+      ? CODE_LANGUAGE_LABELS[language]
+      : undefined) ?? language
+  );
 }

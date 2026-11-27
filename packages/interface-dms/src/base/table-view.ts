@@ -1,27 +1,3 @@
-/**
- * Public entry of the table-view component, split by concern under
- * `./table-view/`:
- *
- * - `options` — the consumer-facing option types and their serialized forms
- * - `meta` — `TableViewMeta` and the column declaration decorators
- * - `data-functions` — the interface functions the data implementation
- *   provides (search, export, archive, guard fetches)
- * - `realtime` — the topics of a table view and the mutation listeners a
- *   module may add
- * - `routes` — the assembled `TableViewRoutes` a data controller mounts
- * - `factory` — the `TableView()` builder that ties it all together
- * - `resource-form` — the `ResourceForm()` block over a resource
- *
- * The plumbing behind them lives under `./table-view/internal/` and is not
- * re-exported here: row rule validation (`row-rules`), consumer guards
- * (`guards`), staged uploads (`files`), per-action permission checks
- * (`auth`), the realtime route wrappers (`realtime`), serialization and form
- * pages (`factory-helpers`), declaration checks (`validation`), filter tabs
- * (`tabs`), what one request is served (`request-filter`), the one TableView
- * writing through a controller (`writer`) and the forms over a resource
- * (`resource-form`).
- */
-
 export {
   archiveRows,
   BULK_ALL_MATCHING_KEY,
@@ -54,6 +30,7 @@ export {
   type ColumnOptions,
   Exported,
   Select,
+  IsTableViewMeta,
   type TableViewAccess,
   TableViewMeta,
 } from "./table-view/meta";

@@ -43,17 +43,20 @@ interface InviteFormHost {
    * field there is the one address it was sent to, and the roles field goes
    * by its stored name.
    */
-  anchorAliases: Record<string, string>;
+  anchorAliases: ReadonlyMap<string, string>;
 }
 
 const INVITE_FORM_HOST: InviteFormHost = {
   isEditForm: false,
-  anchorAliases: {},
+  anchorAliases: new Map(),
 };
 
 const INVITE_EDIT_FORM_HOST: InviteFormHost = {
   isEditForm: true,
-  anchorAliases: { emails: "email", roles: "roles_ids" },
+  anchorAliases: new Map([
+    ["emails", "email"],
+    ["roles", "roles_ids"],
+  ]),
 };
 
 interface JsonSchemaObject {
@@ -187,7 +190,9 @@ function adaptToHost(
   const isReadOnly = host.isEditForm && !contribution.editable;
   return {
     ...contribution,
-    anchorField: anchor ? (host.anchorAliases[anchor] ?? anchor) : undefined,
+    anchorField: anchor
+      ? (host.anchorAliases.get(anchor) ?? anchor)
+      : undefined,
     group: isReadOnly ? disableGroup(contribution.group) : contribution.group,
   };
 }

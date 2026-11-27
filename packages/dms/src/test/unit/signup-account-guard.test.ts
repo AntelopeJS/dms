@@ -1,4 +1,4 @@
-import { HTTPResult } from "@antelopejs/interface-api";
+import { HTTPResult, IsHTTPResult } from "@antelopejs/interface-api";
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import { expect } from "chai";
 import { TenantMemberModel } from "@antelopejs/interface-dms/db";
@@ -94,7 +94,7 @@ function writtenDraft(attempt: SignupAttempt, draft: User): User {
 
 function expectRefusal(attempt: SignupAttempt, message: string): void {
   const refusal = attempt.error;
-  if (!(refusal instanceof HTTPResult)) {
+  if (!IsHTTPResult(refusal)) {
     expect.fail("expected an HTTPResult refusal");
   }
   expect(refusal.getStatus()).to.equal(HTTP_BAD_REQUEST);

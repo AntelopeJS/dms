@@ -11,7 +11,7 @@ import {
   findHeaderActionsHiddenByPreview,
   previewCacheKey,
 } from "../permission-preview";
-import { User } from "@antelopejs/interface-dms/auth/db";
+import { IsUser } from "@antelopejs/interface-dms/auth/db";
 import { resolvePagePermissionId, pagesBySlug } from "../../../utils";
 import type {
   PermissionPreviewRequest,
@@ -39,7 +39,7 @@ export async function findPreviewHeaderActions(
   );
 
   const previewUser: unknown = Object.create(request.user);
-  if (!(previewUser instanceof User)) {
+  if (!IsUser(previewUser)) {
     throw new Error("The previewing user is not a User.");
   }
   Object.assign(previewUser, { owner: false });

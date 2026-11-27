@@ -68,7 +68,7 @@ export class TenantLifecycleModel extends BasicDataModel(
       assert(
         !state.barrierId,
         HTTP_CONFLICT,
-        "Tenant lifecycle admission is paused",
+        "$dms.refusals.tenant.admission_paused",
       );
       if (
         await this.transition(state, {

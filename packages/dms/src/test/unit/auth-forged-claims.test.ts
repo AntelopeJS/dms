@@ -97,7 +97,7 @@ describe("[unit] auth forged claims", () => {
       await refusalOf(async () => internal.AuthUserAuthenticator(forged)),
     ).to.deep.equal({
       status: HTTP_UNAUTHORIZED,
-      body: "Invalid session token",
+      body: "$dms.refusals.auth.invalid_session_token",
     });
   });
 

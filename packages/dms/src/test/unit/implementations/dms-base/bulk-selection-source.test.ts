@@ -1,7 +1,7 @@
 import { GetMetadata } from "@antelopejs/interface-core";
 import { DataAPIMeta } from "@antelopejs/interface-data-api/metadata";
 import { TableViewMeta } from "@antelopejs/interface-dms/base/table-view";
-import { HTTPResult } from "@antelopejs/interface-api";
+import { HTTPResult, IsHTTPResult } from "@antelopejs/interface-api";
 import { expect } from "chai";
 import { resolveBulkRowIds } from "../../../../implementations/dms-base/table-view";
 import { requestContextFixture } from "../../../helpers/request-context";
@@ -22,7 +22,7 @@ describe("[unit] implementations/dms-base/bulk-selection — a row source", () =
       );
     } catch (error) {
       expect(error).to.be.instanceOf(HTTPResult);
-      if (!(error instanceof HTTPResult)) throw error;
+      if (!IsHTTPResult(error)) throw error;
       expect(error.getStatus()).to.equal(500);
       expect(error.getBody()).to.contain("has no prototype");
       return;

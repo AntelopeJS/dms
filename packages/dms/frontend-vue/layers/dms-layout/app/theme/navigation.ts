@@ -1,15 +1,4 @@
 /**
- * Nuxt UI themes of the navigation primitives (DMS design v2, mockup
- * components/navigation.html, onboarding/*.html step indicator and
- * settings/security.html setup steps), spread into the app config `ui` key.
- * Each entry extends the Nuxt UI default theme: slot and variant classes are
- * appended and tailwind-merged over it, and compound variants run after the
- * defaults, so they win over them.
- *
- * Every class stays a literal string so Tailwind finds it when scanning.
- */
-
-/**
  * v2 stepper. Horizontal is the onboarding `.au-steps` row: the label sits
  * beside its dot and a 28px hairline joins the steps (the container is
  * flattened so the separator follows the label). Vertical is the security
@@ -282,7 +271,18 @@ const dashboardSidebarTheme = {
   },
 };
 
-/** Navigation primitive themes, spread into `ui` of the app config. */
+/**
+ * Nuxt UI themes of the navigation primitives (DMS design v2, mockup
+ * components/navigation.html, onboarding/*.html step indicator and
+ * settings/security.html setup steps), spread into the app config `ui` key.
+ * Each entry extends the Nuxt UI default theme: slot and variant classes are
+ * appended and tailwind-merged over it, and compound variants run after the
+ * defaults, so they win over them.
+ *
+ * Every class stays a literal string so Tailwind finds it when scanning.
+ *
+ * Navigation primitive themes, spread into `ui` of the app config.
+ */
 export const navigationTheme = {
   stepper: stepperTheme,
   pagination: paginationTheme,

@@ -345,7 +345,7 @@ export function fieldValuesOfSubmitDefaults(
   const values: FormData = {};
   if (!submitDefaults) return values;
   for (const { id } of fields) {
-    if (id in submitDefaults) {
+    if (Object.hasOwn(submitDefaults, id)) {
       values[id] = submitDefaults[id];
     }
   }

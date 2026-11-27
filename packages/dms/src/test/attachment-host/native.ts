@@ -120,7 +120,7 @@ const form = TableView(NativeDocumentController, {
     get: async (context, { current }) => {
       const user = await authenticateRequestUser(context);
       if (current.readerId !== user._id)
-        throw new HTTPResult(403, "Native row denied");
+        throw new HTTPResult(403, "$test.native_row_denied");
     },
   },
 });

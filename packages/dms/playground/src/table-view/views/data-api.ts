@@ -87,7 +87,9 @@ const LOCALES_BY_RUN: Record<JobRunStatus, readonly string[]> = {
 };
 
 function localePills(status: JobRunStatus): DefaultDisplays.PillItem[] {
-  const present = LOCALES_BY_RUN[status];
+  const present = Object.hasOwn(LOCALES_BY_RUN, status)
+    ? LOCALES_BY_RUN[status]
+    : [];
   return NOTIFICATION_LOCALES.map((locale) =>
     present.includes(locale)
       ? { label: locale.toUpperCase(), tone: "primary", variant: "soft" }

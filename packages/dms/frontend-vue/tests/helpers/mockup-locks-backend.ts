@@ -70,7 +70,7 @@ export class FakeLocks {
       return { ok: true };
     }
     if (path !== undefined && digest !== undefined && digest !== file.digest) {
-      throw status(409, "spec.json changed since it was read");
+      throw status(409, "$dms.refusals.mockup.lock_spec_changed");
     }
     const id =
       path === undefined

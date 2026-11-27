@@ -55,7 +55,9 @@ const NUMBER_FORMAT_CONFIGS: Record<ValueFormat, NumberFormatConfig> = {
 };
 
 function resolveConfig(format: ValueFormat): NumberFormatConfig {
-  return NUMBER_FORMAT_CONFIGS[format] ?? NUMBER_FORMAT_CONFIGS.number;
+  return Object.hasOwn(NUMBER_FORMAT_CONFIGS, format)
+    ? NUMBER_FORMAT_CONFIGS[format]
+    : NUMBER_FORMAT_CONFIGS.number;
 }
 
 function precisionOptions(

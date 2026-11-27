@@ -1,15 +1,15 @@
-import { HTTPResult, type RequestContext } from "@antelopejs/interface-api";
+import type { RequestContext } from "@antelopejs/interface-api";
 import { DEFAULT_TENANT_ID } from "../../constants";
 import type {
   RequestAuthenticator,
   RequestPrincipal,
 } from "../request-authenticators";
-import { resolveRequestPrincipal } from "./request-authenticators";
+import {
+  resolveRequestPrincipal,
+  unauthorized,
+} from "./request-authenticators";
 import { internal } from "../../auth";
 import { isBoolean } from "../../utils/internal/type-check";
-
-const HTTP_UNAUTHORIZED = 401;
-const UNAUTHORIZED_MESSAGE = "Unauthorized";
 
 /**
  * Authenticate with route-local credential handlers, otherwise the existing JWT interfaces.
@@ -26,7 +26,7 @@ export async function authenticateRequestPrincipal(
     const decoded = await internal.AuthUserAuthenticator(token);
     const user = await internal.AuthUserValidator(decoded);
     if (!user || isBoolean(user)) {
-      throw new HTTPResult(HTTP_UNAUTHORIZED, UNAUTHORIZED_MESSAGE);
+      throw unauthorized();
     }
     return { user, tenantId: decoded.tenantId || DEFAULT_TENANT_ID };
   });

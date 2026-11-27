@@ -96,9 +96,9 @@ export async function AssertConnectionWritable(
     return;
   }
   if ((await GetConnectionAccess(connection)) !== "read-write") {
-    throw new HTTPResult(
-      HTTP_FORBIDDEN_STATUS,
-      `Connection "${connection}" is read-only: the project allows no changes to its tables.`,
-    );
+    throw new HTTPResult(HTTP_FORBIDDEN_STATUS, {
+      message: "$dms.refusals.connection.read_only",
+      params: { connection },
+    });
   }
 }

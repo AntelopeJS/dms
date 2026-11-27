@@ -1,4 +1,4 @@
-import { HTTPResult } from "@antelopejs/interface-api";
+import { HTTPResult, IsHTTPResult } from "@antelopejs/interface-api";
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import { expect } from "chai";
 import {
@@ -142,7 +142,7 @@ async function refusal(action: Promise<unknown>): Promise<HTTPResult> {
     () => undefined,
     (error: unknown) => error,
   );
-  if (outcome instanceof HTTPResult) return outcome;
+  if (IsHTTPResult(outcome)) return outcome;
   throw new Error(`Expected an HTTP refusal, got ${String(outcome)}`);
 }
 

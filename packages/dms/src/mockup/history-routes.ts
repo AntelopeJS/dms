@@ -2,7 +2,6 @@ import {
   Context,
   Controller,
   Get,
-  HTTPResult,
   Parameter,
   Post,
   type RequestContext,
@@ -43,6 +42,7 @@ import {
   parseMockupName,
 } from "./model";
 import { MockupOwnerController } from "./owner-controller";
+import { type MockupSubject, notFound } from "./refusals";
 import { viewOf } from "./anchor";
 import type { PresenceBoard } from "./presence-board";
 import {
@@ -52,7 +52,6 @@ import {
   withSpecLock,
 } from "./source";
 
-const HTTP_NOT_FOUND = 404;
 const SEQ_PATTERN = /^[1-9]\d{0,8}$/;
 
 /** A version as the list answers it: with how many notes were pinned on it, resolved ones included. */
@@ -80,10 +79,6 @@ export interface MockupVersionAnswer extends MockupVersionSummary {
   annotations: MockupAnnotation[];
 }
 
-function notFound(what: string): HTTPResult {
-  return new HTTPResult(HTTP_NOT_FOUND, { message: `${what} not found` });
-}
-
 function nameOf(raw: string): MockupName {
   const name = parseMockupName(raw);
   if (!name) throw notFound("mockup");
@@ -98,7 +93,7 @@ function seqOf(raw: string): number {
 function checkParam(
   schema: z.ZodType<string>,
   raw: string,
-  what: string,
+  what: MockupSubject,
 ): string {
   const parsed = schema.safeParse(raw);
   if (!parsed.success) throw notFound(what);
@@ -367,7 +362,7 @@ export function registerHistoryRoutes(
     ): Promise<RowsPage> {
       await this.assertOwner();
       const rows = parseRows(await fixtureOf(rawName, rawSeq, rawPage, rawKey));
-      if (!rows) throw notFound("array of rows");
+      if (!rows) throw notFound("rows");
       return listRows(rows, parseRowsQuery(context.url.searchParams));
     }
 

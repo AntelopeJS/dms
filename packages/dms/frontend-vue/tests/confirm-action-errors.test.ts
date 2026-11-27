@@ -163,7 +163,10 @@ function registerConfirmationRetryTests(
     const onConfirm = vi
       .fn()
       .mockRejectedValueOnce(
-        fetchError(403, "Forbidden: missing permission tasks.delete"),
+        fetchError(403, {
+          message: "$dms.refusals.permissions.missing_permission",
+          params: { permissionId: "tasks.delete" },
+        }),
       )
       .mockResolvedValueOnce(undefined);
     fixture.mount({
@@ -178,7 +181,9 @@ function registerConfirmationRetryTests(
     await fixture.flush();
     expect(fixture.closed).not.toHaveBeenCalled();
     expect(fixture.alert()?.dataset.alert).toBe("warning");
-    expect(fixture.alert()?.textContent).toBe(GENERIC_KEY);
+    expect(fixture.alert()?.textContent).toBe(
+      "dms.refusals.permissions.missing_permission",
+    );
 
     expect(fixture.host.textContent).not.toContain("[DELETE]");
 

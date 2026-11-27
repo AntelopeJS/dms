@@ -7,14 +7,6 @@ import {
   isString,
 } from "../../dms-core/app/utils/type-check";
 
-/**
- * The accounts this browser is signed in to: an index of their descriptors,
- * and one sealed cookie per account holding its refresh token. The frontend
- * server scopes and seals the cookies; their names and contents are the DMS's,
- * unchanged from when the renderer wrote them, so stored accounts survive the
- * move.
- */
-
 const ACCOUNT_INDEX_COOKIE = "dms_account_index";
 const ACCOUNT_COOKIE_PREFIX = "dms_account_";
 const MAX_AGE_SECONDS = 60 * 60 * 24 * 30;

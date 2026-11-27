@@ -300,7 +300,7 @@ export async function reissueUserInvite(
   });
   if (token !== undefined) return { inviteId, token };
   const winner = await loadInviteForAction(tenantId, inviteId);
-  assert(winner, HTTP_CONFLICT, "Invitation was retired while it was reissued");
+  assert(winner, HTTP_CONFLICT, "$dms.refusals.invite.retired_while_reissued");
   return reissueUserInvite(tenantId, winner, invitedBy);
 }
 

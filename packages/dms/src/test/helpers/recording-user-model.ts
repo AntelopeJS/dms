@@ -2,7 +2,11 @@ import {
   type DeepPartial,
   GetModel,
 } from "@antelopejs/interface-database-decorators";
-import { User, UserModel } from "@antelopejs/interface-dms/auth/db";
+import {
+  IsUser,
+  type User,
+  UserModel,
+} from "@antelopejs/interface-dms/auth/db";
 
 type ValidateOptions = NonNullable<Parameters<UserModel["insert"]>[1]>;
 
@@ -27,7 +31,7 @@ export class RecordingUserModel extends UserModel {
     _third?: ValidateOptions,
   ): Promise<number> {
     this.updateCalls += 1;
-    if (!(first instanceof User)) {
+    if (!IsUser(first)) {
       throw new Error("update was handed something other than a User row");
     }
     this.updated.push(first);

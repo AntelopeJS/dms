@@ -10,7 +10,10 @@ import { resetDatabase } from "../helpers/db";
 const LOCATION = "/api/external/countries";
 const HTTP_OK = 200;
 const HTTP_FORBIDDEN = 403;
-const READ_ONLY = 'Connection "erp" is read-only';
+const READ_ONLY = {
+  message: "$dms.refusals.connection.read_only",
+  params: { connection: "erp" },
+};
 
 interface Country {
   _id: string;
@@ -25,7 +28,7 @@ function expectStatus(response: AxiosResponse, status: number): void {
 
 function expectReadOnly(response: AxiosResponse): void {
   expectStatus(response, HTTP_FORBIDDEN);
-  expect(String(response.data)).to.include(READ_ONLY);
+  expect(response.data).to.deep.equal(READ_ONLY);
 }
 
 describe("[integration] a data controller over an external connection follows its access", () => {

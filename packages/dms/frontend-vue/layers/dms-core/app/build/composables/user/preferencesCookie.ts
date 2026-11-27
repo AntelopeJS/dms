@@ -87,7 +87,7 @@ export const preferencesCookieBytes = (
 export const markWritten = (tree: PreferencesTree, keys: string[]): void => {
   let current = tree;
   for (const key of keys) {
-    if (!(key in current)) return;
+    if (!Object.hasOwn(current, key)) return;
     const value = current[key];
     Reflect.deleteProperty(current, key);
     current[key] = value;
@@ -160,7 +160,7 @@ export const readAt = (
 ): PreferencesTree[string] => {
   let current: unknown = tree;
   for (const key of keys) {
-    if (!current || !isObject(current) || !(key in current)) {
+    if (!current || !isObject(current) || !Object.hasOwn(current, key)) {
       return undefined;
     }
     current = current[key];

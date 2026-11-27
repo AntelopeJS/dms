@@ -3,11 +3,6 @@ import { computed, reactive, ref } from "vue";
 import ShowcaseDemo from "../showcase/ShowcaseDemo.vue";
 import ShowcaseSection from "../showcase/ShowcaseSection.vue";
 
-/**
- * Design system › Foundations › Cards & controls: card frames, navigation
- * tiles, the segmented toggle and the settings rows with their save states.
- */
-
 type Plan = "starter" | "pro" | "enterprise";
 const PLANS: { value: Plan; label: string; price: string }[] = [
   { value: "starter", label: "Starter", price: "€0 / month" },

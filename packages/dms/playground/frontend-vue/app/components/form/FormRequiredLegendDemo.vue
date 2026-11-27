@@ -3,12 +3,6 @@ import { computed, reactive } from "vue";
 import DmsFieldRow from "#dms-ui/app/components/field-row/FieldRow.vue";
 import DmsFormRequiredLegend from "#dms-ui/app/components/form/FormRequiredLegend.vue";
 
-/**
- * A form built by hand in a module's component, outside the DMS `Form`:
- * `DmsFieldRow` marks its required rows, and `DmsFormRequiredLegend` explains
- * the asterisk once at least one row is required, as `Form` does on its own.
- */
-
 interface ContactRow {
   id: string;
   label: string;

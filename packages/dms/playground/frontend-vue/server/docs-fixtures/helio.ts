@@ -1,9 +1,3 @@
-/**
- * Helio, the solar installer of the `template-dms-demo` template, as the
- * documentation examples show it: fixed rows, dated around this morning so
- * "2 days ago" reads true on any day.
- */
-
 /** A JSON value a row field holds. */
 export type FixtureValue =
   | string

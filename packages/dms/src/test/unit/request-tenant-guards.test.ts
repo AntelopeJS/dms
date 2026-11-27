@@ -1,6 +1,7 @@
 import {
   ControllerMeta,
   HTTPResult,
+  IsHTTPResult,
   type RequestContext,
   computeParameter,
 } from "@antelopejs/interface-api";
@@ -26,7 +27,7 @@ import {
   IfAuthUser,
   type RequestAuthenticator,
 } from "@antelopejs/interface-dms/auth";
-import { User, UserModel } from "@antelopejs/interface-dms/auth/db";
+import { IsUser, User, UserModel } from "@antelopejs/interface-dms/auth/db";
 import { denyingTenantGate } from "../helpers/page-access";
 import { requestContextFixture } from "../helpers/request-context";
 import { sessionAccessToken } from "../helpers/session-token";
@@ -65,7 +66,7 @@ async function refusalOf<T>(
   try {
     await action();
   } catch (error: unknown) {
-    if (!(error instanceof HTTPResult)) throw error;
+    if (!IsHTTPResult(error)) throw error;
     expect(error.getStatus()).to.equal(HTTP_FORBIDDEN);
     return error.getBody();
   }
@@ -95,7 +96,7 @@ async function provided(
     meta.computed_props.user,
     new Probe(),
   );
-  if (provided !== undefined && !(provided instanceof User)) {
+  if (provided !== undefined && !IsUser(provided)) {
     throw new Error("The auth decorator provided something other than a user");
   }
   return provided;

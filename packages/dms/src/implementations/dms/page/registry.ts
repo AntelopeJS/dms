@@ -102,7 +102,7 @@ export function reportMissingCategories(): void {
     const node = findTreeNode(categoryFullId);
     const heldKeys = node ? Object.keys(node.children) : [];
     if (
-      categoryFullId in categoriesByFullId ||
+      Object.hasOwn(categoriesByFullId, categoryFullId) ||
       !node ||
       !isContainerWithoutEntry(node) ||
       heldKeys.length === 0
@@ -134,7 +134,8 @@ export function ensureContainer(
   const key = containerFullId.slice(containerFullId.lastIndexOf(".") + 1);
   const existing = ownValue(level, key);
   const isRegistered =
-    Boolean(existing?.fullId) || containerFullId in categoriesByFullId;
+    Boolean(existing?.fullId) ||
+    Object.hasOwn(categoriesByFullId, containerFullId);
   if (!isRegistered) suspectMissingCategory(containerFullId);
   if (existing) return existing;
   const container: SiteLayoutTree = {

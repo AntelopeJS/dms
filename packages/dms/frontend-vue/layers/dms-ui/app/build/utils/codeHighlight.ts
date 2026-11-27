@@ -85,7 +85,7 @@ const plain: CodeHighlighter = (code) => [{ text: code }];
 export async function loadCodeHighlighter(
   language: string,
 ): Promise<CodeHighlighter> {
-  const load = READERS[language];
+  const load = Object.hasOwn(READERS, language) ? READERS[language] : undefined;
   if (!load) return plain;
   const read = await load();
   return (code) => tokensOf(code, read);

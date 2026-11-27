@@ -1,15 +1,5 @@
 import { isFunction } from "#dms-core/app/utils/type-check";
 
-/**
- * Every form holding unsaved changes, wherever it is (a page, a drawer, a
- * modal, a settings panel), and the one confirmation asked before leaving
- * them: closing their container, navigating away, switching the tab they sit
- * in, going back in the browser or reloading the page.
- *
- * Plain TypeScript (no Vue context): `useUnsavedChanges` registers the forms
- * and hands over the dialog to show.
- */
-
 /** Asks the user whether to throw the changes away; `true` to leave. */
 export type DiscardPrompt = () => Promise<boolean>;
 

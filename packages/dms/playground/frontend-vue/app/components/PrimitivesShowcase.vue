@@ -2,12 +2,6 @@
 import { computed, ref } from "vue";
 import DmsStepIndicator from "#dms-onboarding/app/build/components/onboarding/StepIndicator.vue";
 
-/**
- * Review page for the Nuxt UI primitives themed to the DMS v2 design
- * (layers/dms-layout/app/theme/*.ts). Every block mirrors a section of the
- * static mockup (components/*.html) so both can be compared side by side.
- */
-
 const ONBOARDING_STEPS = ["Platform", "Administrator", "Ready"];
 
 const onboardingItems = (current: number) =>

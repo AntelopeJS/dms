@@ -1,4 +1,8 @@
-import { HTTPResult, type RequestContext } from "@antelopejs/interface-api";
+import {
+  HTTPResult,
+  IsHTTPResult,
+  type RequestContext,
+} from "@antelopejs/interface-api";
 import { GetMetadata } from "@antelopejs/interface-core";
 import {
   Parameters as DataParameters,
@@ -104,7 +108,7 @@ describe("[unit] interfaces/dms-base/table-view — guards amending the body", (
       (error: unknown) => error,
     );
     expect(refusal).to.be.instanceOf(HTTPResult);
-    expect(refusal instanceof HTTPResult && refusal.getStatus()).to.equal(400);
+    expect(IsHTTPResult(refusal) && refusal.getStatus()).to.equal(400);
     expect(guarded).to.deep.equal([]);
   });
 
@@ -121,6 +125,6 @@ describe("[unit] interfaces/dms-base/table-view — guards amending the body", (
       () => undefined,
       (error: unknown) => error,
     );
-    expect(refusal instanceof HTTPResult && refusal.getStatus()).to.equal(400);
+    expect(IsHTTPResult(refusal) && refusal.getStatus()).to.equal(400);
   });
 });

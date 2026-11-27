@@ -41,7 +41,7 @@ export function yieldToWinner(
   assert(
     winner && isSameInviteContent(winner, lost.invite),
     HTTP_CONFLICT,
-    "Invitation for this email was created concurrently with other content",
+    "$dms.refusals.invite.created_concurrently",
   );
   return resultFor(winner, lost);
 }

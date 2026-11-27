@@ -1,11 +1,4 @@
 <script setup lang="ts">
-/**
- * Examples › Overview: the AntelopeJS products, each card in the accent of its
- * own site, and the hosting note in the Cloud's. The copy comes from the
- * backend (`.options()`); only the brand colours live here, since no block
- * tone carries them.
- */
-
 /** A product site's accent: the key into ACCENTS. */
 type EcosystemAccent = "blue" | "cyan" | "violet";
 
@@ -60,6 +53,12 @@ const ACCENTS: Record<EcosystemAccent, AccentColors> = {
   violet: { dark: "#a78bfa", light: "#6d28d9" },
 };
 
+/**
+ * Examples › Overview: the AntelopeJS products, each card in the accent of its
+ * own site, and the hosting note in the Cloud's. The copy comes from the
+ * backend (`.options()`); only the brand colours live here, since no block
+ * tone carries them.
+ */
 const props = withDefaults(defineProps<Props>(), {
   description: undefined,
   hosting: undefined,

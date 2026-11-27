@@ -167,9 +167,10 @@ function registerChildRegistrationCases(): void {
         guardsImpl.internal.AuthUserWithPermissionValidator(panel, token),
       );
       expect(error.getStatus()).to.equal(HTTP_FORBIDDEN);
-      expect(error.getBody()).to.equal(
-        `Forbidden: missing permission ${PANEL_PERMISSION}`,
-      );
+      expect(JSON.parse(String(error.getBody()))).to.deep.equal({
+        message: "$dms.refusals.permissions.missing_permission",
+        params: { permissionId: PANEL_PERMISSION },
+      });
     } finally {
       Object.defineProperty(dmsAuthImpl.internal, "AuthUserValidator", {
         configurable: true,

@@ -7,15 +7,6 @@ import {
   readQueryValue,
 } from "../../build/utils/mockup";
 
-/**
- * The dev-only `/mockup` page. `?name=` picks a mockup, which it draws live
- * on its Overview, or on the page `?page=` names, with `?width=desktop|mobile`
- * and `?data=real|sample` choosing the frame width and whether a converted
- * page reads its live routes; without a name it lists the mockups the
- * backend holds. Either way it marks itself as a surface the dashboard's side
- * panel docks beside; its layout keeps the room for that panel.
- */
-
 const route = useDmsRoute();
 
 const name = readQueryValue(route.query.name);

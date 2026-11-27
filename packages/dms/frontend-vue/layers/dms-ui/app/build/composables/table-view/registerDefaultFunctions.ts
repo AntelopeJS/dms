@@ -38,7 +38,7 @@ export function resolveFormSuccessTarget(
 
   const query: RouteQuery = {};
   for (const key of preserveQuery ?? []) {
-    if (route.query[key] !== undefined) {
+    if (Object.hasOwn(route.query, key) && route.query[key] !== undefined) {
       query[key] = route.query[key];
     }
   }

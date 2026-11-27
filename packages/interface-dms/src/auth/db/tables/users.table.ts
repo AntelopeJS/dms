@@ -10,6 +10,7 @@ import {
 } from "@antelopejs/interface-database-decorators";
 import { CORE_SCHEMA_NAME } from "../../../constants";
 import type { ImageValue } from "../../../types";
+import { brandClass } from "../../../utils/internal/brand";
 
 export const USERS_TABLE_NAME = "users";
 
@@ -176,3 +177,9 @@ export class User extends Table.with(HashModifier) {
   @Field("date")
   declare twoFactorEmailCodeRequestedAt: Date | null;
 }
+
+/**
+ * Whether `value` is a {@link User} row, including one built by another copy of this package,
+ * where `instanceof` answers false.
+ */
+export const IsUser = brandClass(User, "User");

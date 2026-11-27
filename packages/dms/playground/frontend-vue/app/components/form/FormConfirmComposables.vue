@@ -9,13 +9,6 @@ import { useConfirmFrom } from "#dms-ui/app/composables/confirm/useConfirmFrom";
 import ShowcaseDemo from "../showcase/ShowcaseDemo.vue";
 import ShowcaseSection from "../showcase/ShowcaseSection.vue";
 
-/**
- * Form › Confirmations: the options of `useConfirm()` a Vue component alone
- * can give (a secondary action that runs code, the focused button, a check
- * of the body, the outcomes of `onConfirm`), and `useConfirmFrom()`, which
- * opens a dialog the server words.
- */
-
 const DIALOG_URL = "/api/form-confirm/dialog/{{row.id}}";
 const SECONDARY_DELAY_MS = 800;
 const CONFIRM_DELAY_MS = 600;

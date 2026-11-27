@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { createGuardedConfirmRoute } from "../../dist/base/table-view/internal/guards.js";
 import { TableViewMeta } from "../../dist/base/table-view/meta.js";
-import { HTTPResult } from "@antelopejs/interface-api";
+import { IsHTTPResult } from "@antelopejs/interface-api";
 import { GetMetadata } from "@antelopejs/interface-core";
 import { startCpuClock } from "./cpu-clock.mjs";
 
@@ -75,7 +75,7 @@ try {
   );
   assert.equal(JSON.stringify(seen[0]), body);
 } catch (error) {
-  outcome = error instanceof HTTPResult ? error.getStatus() : String(error);
+  outcome = IsHTTPResult(error) ? error.getStatus() : String(error);
 }
 console.log(
   JSON.stringify({

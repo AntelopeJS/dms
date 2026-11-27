@@ -15,7 +15,7 @@ describe("a field the server saved as nothing", () => {
       name: "Acme",
     }));
     const markFieldSaved = fieldSavedMarker({
-      hasField: (id) => id in initialValues.value,
+      hasField: (id) => Object.hasOwn(initialValues.value, id),
       initialValues,
       dirty,
       instantSave: { confirmField: vi.fn() },

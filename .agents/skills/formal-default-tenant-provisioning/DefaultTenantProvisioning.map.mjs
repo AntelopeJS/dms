@@ -1,9 +1,4 @@
 /**
- * Reader's view of DefaultTenantProvisioning.tla for /statechart: one region
- * for the tenant and one per process.
- */
-
-/**
  * @typedef {{
  *   row: { exists: boolean; pending: boolean; holder: string };
  *   done: Record<string, boolean>;
@@ -38,7 +33,12 @@ function tenant(v) {
   return `${marker}, ${lease}, ${STEPS_DONE[Object.values(v.done).filter(Boolean).length]}`;
 }
 
-/** @param {State} v */
+/**
+ * Reader's view of DefaultTenantProvisioning.tla for /statechart: one region
+ * for the tenant and one per process.
+ *
+ * @param {State} v
+ */
 export function state(v) {
   /** @type {Record<string, string | undefined>} */
   const regions = { Tenant: tenant(v) };

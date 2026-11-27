@@ -1,5 +1,5 @@
 import { strict as assert } from "node:assert";
-import { HTTPResult } from "@antelopejs/interface-api";
+import { IsHTTPResult } from "@antelopejs/interface-api";
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import { type UserInvite, UserInviteModel } from "@antelopejs/interface-dms/db";
 import {
@@ -96,7 +96,7 @@ describe("[integration] concurrent invitations of one email", () => {
     );
     assert.equal(refusals.length, 1);
     const refusal = refusals[0];
-    assert.ok(refusal instanceof HTTPResult, String(refusal));
+    assert.ok(IsHTTPResult(refusal), String(refusal));
     assert.equal(refusal.getStatus(), HTTP_CONFLICT);
   });
 });
@@ -149,7 +149,7 @@ async function assertReplacementRefused(fresh: UserInvite): Promise<void> {
     () => null,
     (error: unknown) => error,
   );
-  assert.ok(refusal instanceof HTTPResult, String(refusal));
+  assert.ok(IsHTTPResult(refusal), String(refusal));
   assert.equal(refusal.getStatus(), HTTP_CONFLICT);
 }
 

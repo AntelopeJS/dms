@@ -9,11 +9,6 @@ import {
   type PreviewHeaderAction,
 } from "./blockPreviewMessages";
 
-/**
- * The dev-only mockup API the viewer reads (`/api/mockup`): the compiled state
- * of a spec file, its annotations, and the list of specs.
- */
-
 /** A problem in `spec.json`, at a JSON pointer into it (`""` is the whole file). */
 export interface MockupIssue {
   path: string;

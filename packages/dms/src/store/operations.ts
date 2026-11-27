@@ -19,6 +19,7 @@ import {
   installDependency,
   pickDependencies,
 } from "./requirements";
+import { ownValue } from "../utils/own-value";
 import { INTERFACE_PACKAGE, latestRelease } from "./registry";
 import {
   describeRuntimeModule,
@@ -324,7 +325,7 @@ async function execute(
   context: OperationContext,
 ): Promise<void> {
   try {
-    await RUNNERS[kind](context);
+    await ownValue(RUNNERS, kind)?.(context);
     errors.delete(context.id);
   } catch (error) {
     const message = describeError(error);
@@ -352,7 +353,7 @@ async function prepareContext(
   const { projectPath } = await GetRuntimeInfo();
   const declaration = (await listCatalogDeclarations([catalogEntry])).get(id);
   assert(
-    PRECONDITIONS[kind](declaration),
+    ownValue(PRECONDITIONS, kind)?.(declaration),
     HTTP_CONFLICT,
     "error.store_invalid_state",
   );

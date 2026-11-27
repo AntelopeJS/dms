@@ -66,11 +66,34 @@ const ACCEPTED: PresignCase[] = [
   { field: "gallery", mimetype: "image/png", size: FIELD_MAX_SIZE },
 ];
 
-const REJECTED: PresignCase[] = [
-  { field: "file", mimetype: "text/plain", size: FIELD_MAX_SIZE + 1 },
-  { field: "image", mimetype: "text/plain", size: 16 },
-  { field: "gallery", mimetype: "image/jpeg", size: 16 },
-  { field: "gallery", mimetype: "image/png", size: FIELD_MAX_SIZE + 1 },
+const TOO_LARGE = "$dms.refusals.upload.file_too_large";
+const TYPE_NOT_ALLOWED = "$dms.refusals.upload.type_not_allowed";
+
+const REJECTED: Array<PresignCase & { refusal: string }> = [
+  {
+    field: "file",
+    mimetype: "text/plain",
+    size: FIELD_MAX_SIZE + 1,
+    refusal: TOO_LARGE,
+  },
+  {
+    field: "image",
+    mimetype: "text/plain",
+    size: 16,
+    refusal: TYPE_NOT_ALLOWED,
+  },
+  {
+    field: "gallery",
+    mimetype: "image/jpeg",
+    size: 16,
+    refusal: TYPE_NOT_ALLOWED,
+  },
+  {
+    field: "gallery",
+    mimetype: "image/png",
+    size: FIELD_MAX_SIZE + 1,
+    refusal: TOO_LARGE,
+  },
 ];
 
 describe("[integration] native field constraints at presign", () => {
@@ -91,7 +114,10 @@ describe("[integration] native field constraints at presign", () => {
       expect(response.status, JSON.stringify(request)).to.equal(
         HTTP_BAD_REQUEST,
       );
-      expect(String(response.data)).to.match(/^Upload rejected: /);
+      expect(response.data, JSON.stringify(request)).to.have.property(
+        "message",
+        request.refusal,
+      );
     }
   });
 
@@ -108,7 +134,9 @@ describe("[integration] native field constraints at presign", () => {
       size: 16,
     });
     expect(rejected.status).to.equal(HTTP_BAD_REQUEST);
-    expect(String(rejected.data)).to.contain("image/png");
+    expect(rejected.data).to.have.property("message", TYPE_NOT_ALLOWED);
+    expect(rejected.data.params).to.deep.include({ mimetype: "text/plain" });
+    expect(rejected.data.params.allowed).to.contain("image/png");
   });
 
   it("still rejects at promotion a key staged through a laxer field", async () => {

@@ -65,7 +65,7 @@ export function readHeaderActions(
 
 function servesQuickAction(served: ServedQuickActions, key: string): boolean {
   return (
-    key in served.actions ||
+    Object.hasOwn(served.actions, key) ||
     Object.values(served.actions).some((action) => action.id === key)
   );
 }
@@ -117,7 +117,9 @@ export function findQuickActionsHiddenByPreview(
   viewer: ServedQuickActions,
   preview: ServedQuickActions,
 ): string[] {
-  return Object.keys(viewer.actions).filter((key) => !(key in preview.actions));
+  return Object.keys(viewer.actions).filter(
+    (key) => !Object.hasOwn(preview.actions, key),
+  );
 }
 
 /**

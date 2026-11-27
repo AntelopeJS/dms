@@ -10,13 +10,6 @@ import DmsChipGroup, {
   type ChipGroupItem,
 } from "#dms-ui/app/entries/components/form/ChipGroup";
 
-/**
- * The roles of a member as pills, one per role of the workspace, each with
- * what it grants: the invite form and the members table's "Change roles"
- * form both pick roles with it. A form field: `v-model` is the list of role
- * ids, the wrapping `UFormField`'s error rings the pills in the error ink.
- */
-
 interface RoleOption {
   _id: string;
   name: string;
@@ -64,6 +57,12 @@ interface Props {
   allowEmpty?: boolean;
 }
 
+/**
+ * The roles of a member as pills, one per role of the workspace, each with
+ * what it grants: the invite form and the members table's "Change roles"
+ * form both pick roles with it. A form field: `v-model` is the list of role
+ * ids, the wrapping `UFormField`'s error rings the pills in the error ink.
+ */
 const props = defineProps<Props>();
 const model = defineModel<string[] | null | undefined>();
 

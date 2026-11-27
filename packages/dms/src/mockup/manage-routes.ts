@@ -18,9 +18,9 @@ import {
 } from "./manage";
 import { mockupNameSchema, parseMockupName } from "./model";
 import { MockupOwnerController } from "./owner-controller";
+import { notFound } from "./refusals";
 
 const HTTP_BAD_REQUEST = 400;
-const HTTP_NOT_FOUND = 404;
 const HTTP_CONFLICT = 409;
 const MAX_TITLE_LENGTH = 120;
 
@@ -43,14 +43,14 @@ function refusal(
 ): HTTPResult {
   switch (refused.kind) {
     case "no_mockup":
-      return new HTTPResult(HTTP_NOT_FOUND, { message: "mockup not found" });
+      return notFound("mockup");
     case "exists":
       return new HTTPResult(HTTP_CONFLICT, {
-        message: "another mockup already has this name",
+        message: "$dms.refusals.mockup.exists",
       });
     case "no_free_name":
       return new HTTPResult(HTTP_CONFLICT, {
-        message: "no free name for the copy: give one",
+        message: "$dms.refusals.mockup.no_free_name",
       });
   }
 }
@@ -67,9 +67,7 @@ function badBody(error: z.ZodError): HTTPResult {
 export function registerManageRoutes(mockupsDir: string) {
   function nameOf(raw: string) {
     const name = parseMockupName(raw);
-    if (!name) {
-      throw new HTTPResult(HTTP_NOT_FOUND, { message: "mockup not found" });
-    }
+    if (!name) throw notFound("mockup");
     return name;
   }
 

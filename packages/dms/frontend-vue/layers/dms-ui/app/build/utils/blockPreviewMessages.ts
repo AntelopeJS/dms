@@ -18,12 +18,6 @@ import {
 import type { MockupSectionEdit } from "./mockupSections";
 import { parseSectionEdit } from "./mockupSectionEdits";
 
-/**
- * The `postMessage` protocol between `/dms-preview` and the page embedding
- * it: what the parent asks the preview to draw, and what the preview reports
- * back.
- */
-
 export const PREVIEW_CHANNEL = "dms-preview";
 
 /** One entry of the sidebar the preview draws around the blocks. */

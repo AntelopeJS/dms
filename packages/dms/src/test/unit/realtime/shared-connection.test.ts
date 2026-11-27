@@ -1,4 +1,4 @@
-import { HTTPResult } from "@antelopejs/interface-api";
+import { IsHTTPResult } from "@antelopejs/interface-api";
 import type { User } from "@antelopejs/interface-dms/auth/db";
 import { expect } from "chai";
 import { z } from "zod";
@@ -225,7 +225,7 @@ function registerConnectionCases(): void {
     try {
       await openSession(connectionId, OTHER_USER);
     } catch (error) {
-      if (!(error instanceof HTTPResult)) throw error;
+      if (!IsHTTPResult(error)) throw error;
       status = error.getStatus();
     }
     expect(status).to.equal(403);

@@ -19,14 +19,6 @@ import {
 import { isRecord } from "./record";
 import { isJsonValue } from "./json";
 
-/**
- * The realtime connection one browser shares between its tabs: the elected tab
- * holds `GET /api/realtime/connection` and relays it, each tab opens its own
- * session on it. See `crossTab.ts` for why.
- *
- * @internal
- */
-
 const HELLO_EVENT = "hello";
 const SESSION_EVENT = "session";
 const LEADER_EVENT = "leader";
@@ -392,8 +384,14 @@ const createTabId = (): string =>
   `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
 
 /**
+ * The realtime connection one browser shares between its tabs: the elected tab
+ * holds `GET /api/realtime/connection` and relays it, each tab opens its own
+ * session on it. See `crossTab.ts` for why.
+ *
  * Joins the browser's realtime connection for `options.name`, electing this
  * tab to hold it when no other tab does.
+ *
+ * @internal
  */
 export function joinSharedRealtimeConnection(
   options: SharedRealtimeConnectionOptions,

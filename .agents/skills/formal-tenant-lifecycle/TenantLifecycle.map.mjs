@@ -1,9 +1,4 @@
 /**
- * Reader's view of TenantLifecycle.tla for /statechart: one region for the
- * tenant, one per invocation, one per barrier owner and one for the deletion.
- */
-
-/**
  * @typedef {{
  *   row: { closed: boolean; barrier: string; active: string[] };
  *   attempt: Record<string, string>;
@@ -67,7 +62,12 @@ function tenant(row) {
   return `${admission}, ${COUNT[row.active.length]}`;
 }
 
-/** @param {State} v */
+/**
+ * Reader's view of TenantLifecycle.tla for /statechart: one region for the
+ * tenant, one per invocation, one per barrier owner and one for the deletion.
+ *
+ * @param {State} v
+ */
 export function state(v) {
   /** @type {Record<string, string | undefined>} */
   const regions = { Tenant: tenant(v.row), Deletion: DELETER.get(v.deleter) };

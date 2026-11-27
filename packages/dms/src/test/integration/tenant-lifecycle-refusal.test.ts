@@ -1,9 +1,10 @@
 import { strict as assert } from "node:assert";
-import { HTTPResult } from "@antelopejs/interface-api";
+import { HTTPResult, IsHTTPResult } from "@antelopejs/interface-api";
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import { TenantLifecycleModel } from "@antelopejs/interface-dms/db/internal/tenantLifecycle.model";
 import {
-  TenantLifecycleReleaseError,
+  type TenantLifecycleReleaseError,
+  IsTenantLifecycleReleaseError,
   closeTenantLifecycleAdmission,
   observeTenantLifecycle,
   releaseTenantLifecycleAttempt,
@@ -71,10 +72,10 @@ async function endWhileReleaseFails(
     await runTenantLifecycleOperation(TENANT, async () => {
       restore = fault(model, faulty);
       if (ending === "refusal") {
-        throw new HTTPResult(HTTP_PAYMENT_REQUIRED, "seat limit reached");
+        throw new HTTPResult(HTTP_PAYMENT_REQUIRED, "$test.seat_limit_reached");
       }
     }).catch((error: unknown) => {
-      assert.ok(error instanceof Error || error instanceof HTTPResult);
+      assert.ok(error instanceof Error || IsHTTPResult(error));
       outcome = error;
     });
   } finally {
@@ -89,7 +90,7 @@ async function assertReleased(
   outcome: Error | HTTPResult | undefined,
 ): Promise<void> {
   if (ending === "refusal") {
-    assert.ok(outcome instanceof HTTPResult);
+    assert.ok(IsHTTPResult(outcome));
     assert.equal(outcome.getStatus(), HTTP_PAYMENT_REQUIRED);
   } else {
     assert.equal(outcome, undefined);
@@ -107,11 +108,11 @@ function releaseFailureOf(
   if (ending === "refusal") {
     assert.ok(outcome instanceof AggregateError);
     const refusal: unknown = outcome.errors[0];
-    assert.ok(refusal instanceof HTTPResult);
+    assert.ok(IsHTTPResult(refusal));
     assert.equal(refusal.getStatus(), HTTP_PAYMENT_REQUIRED);
     releaseFailure = outcome.errors[1];
   }
-  assert.ok(releaseFailure instanceof TenantLifecycleReleaseError);
+  assert.ok(IsTenantLifecycleReleaseError(releaseFailure));
   return releaseFailure;
 }
 

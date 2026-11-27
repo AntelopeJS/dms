@@ -14,6 +14,7 @@ import { z } from "zod";
 import { MOCKUP_API } from "./fixtures";
 import { jsonObjectSchema, type JsonObject, parseMockupName } from "./model";
 import { MockupOwnerController } from "./owner-controller";
+import { notFound } from "./refusals";
 import { viewOf } from "./anchor";
 import type { PresenceBoard } from "./presence-board";
 import { viewerIdSchema } from "./presence";
@@ -25,7 +26,6 @@ import {
 } from "./source";
 
 const HTTP_BAD_REQUEST = 400;
-const HTTP_NOT_FOUND = 404;
 const HTTP_CONFLICT = 409;
 
 const writeBodySchema = z
@@ -63,9 +63,7 @@ export function registerSpecRoutes(
 ) {
   function nameOf(raw: string) {
     const name = parseMockupName(raw);
-    if (!name) {
-      throw new HTTPResult(HTTP_NOT_FOUND, { message: "mockup not found" });
-    }
+    if (!name) throw notFound("mockup");
     return name;
   }
 
@@ -86,12 +84,10 @@ export function registerSpecRoutes(
       await this.assertOwner();
       const name = nameOf(rawName);
       const source = await readSpecSource(mockupsDir, name);
-      if (!source) {
-        throw new HTTPResult(HTTP_NOT_FOUND, { message: "mockup not found" });
-      }
+      if (!source) throw notFound("mockup");
       if (!source.spec) {
         throw new HTTPResult(HTTP_CONFLICT, {
-          message: "spec.json holds no JSON object",
+          message: "$dms.refusals.mockup.spec_not_object",
         });
       }
       const answer: SpecSourceAnswer = {
@@ -126,7 +122,7 @@ export function registerSpecRoutes(
         const current = await readSpecSource(mockupsDir, name);
         if (digest !== undefined && current && current.digest !== digest) {
           throw new HTTPResult(HTTP_CONFLICT, {
-            message: "spec.json changed since it was read",
+            message: "$dms.refusals.mockup.spec_changed",
             digest: current.digest,
           });
         }

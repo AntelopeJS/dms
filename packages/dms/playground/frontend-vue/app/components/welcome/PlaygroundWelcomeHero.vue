@@ -1,12 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from "vue";
 
-/**
- * Examples › Overview: the welcome hero of the playground, the one part of the
- * page no backend block draws. What the playground is, what the DMS is, the
- * links out, and the three layers every page goes through.
- */
-
 const DOCS_URL = "https://dms.antelopejs.com/docs/";
 const WEBSITE_URL = "https://dms.antelopejs.com/";
 const REPOSITORY_URL = "https://github.com/AntelopeJS/dms";

@@ -56,7 +56,7 @@ ImplementInterface(
     internal: {
       AuthUserAuthenticator: async (/** @type {string} */ token) => {
         const data = await decodeJwt(token);
-        if (!data) throw new HTTPResult(UNAUTHORIZED, "Unauthorized");
+        if (!data) throw new HTTPResult(UNAUTHORIZED, "$test.unauthorized");
         return data;
       },
       IfAuthUserAuthenticator: decodeJwt,

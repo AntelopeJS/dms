@@ -3,12 +3,6 @@ import { h, ref, resolveComponent } from "vue";
 import ShowcaseDemo from "../showcase/ShowcaseDemo.vue";
 import ShowcaseSection from "../showcase/ShowcaseSection.vue";
 
-/**
- * Design system › Foundations › Overlays: DmsConfirmModal, opened through
- * the public useConfirm() composable. Each button shows one option set; the
- * resolved value is logged under the buttons.
- */
-
 const { confirm } = useConfirm();
 const USelect = resolveComponent("USelect");
 const UCheckbox = resolveComponent("UCheckbox");

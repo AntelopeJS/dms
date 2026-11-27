@@ -14,7 +14,9 @@ function withOnlyReachableChildren(node: LayoutTree): LayoutTree {
     ...node,
     children,
     ...(node.childrenOrders && {
-      childrenOrders: node.childrenOrders.filter((key) => key in children),
+      childrenOrders: node.childrenOrders.filter((key) =>
+        Object.hasOwn(children, key),
+      ),
     }),
   };
 }
@@ -29,7 +31,7 @@ function categoriesNamedBy(
   );
   for (let id = pending.pop(); id !== undefined; id = pending.pop()) {
     const category = categories[id];
-    if (!category || id in kept) continue;
+    if (!category || Object.hasOwn(kept, id)) continue;
     kept[id] = category;
     if (category.categoryId) pending.push(category.categoryId);
   }

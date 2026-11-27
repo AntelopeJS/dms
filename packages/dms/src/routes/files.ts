@@ -37,7 +37,7 @@ export class FilesController extends Controller("/api/files") {
     if (!claims?.field) {
       throw new HTTPResult(
         UPLOAD_TOKEN_REJECTED_STATUS,
-        "Upload rejected: missing or invalid attachment field token.",
+        "$dms.refusals.upload.invalid_field_token",
       );
     }
     try {
@@ -56,7 +56,7 @@ export class FilesController extends Controller("/api/files") {
       if (isUploadValidationError(error)) {
         throw new HTTPResult(
           UPLOAD_REJECTED_STATUS,
-          "Upload rejected: the file exceeds the allowed size or type.",
+          "$dms.refusals.upload.rejected",
         );
       }
       throw error;

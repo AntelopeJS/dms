@@ -8,12 +8,6 @@ import {
 import { type ValidationIssue, validationIssueMessage } from "./useFieldErrors";
 import { isBoolean, isNumber, isObject, isString } from "../utils/type-check";
 
-/**
- * Client-side checks of the hand-built forms (auth pages, onboarding,
- * settings panels), worded like the DMS form: an empty required control says
- * "This field is required.", a malformed one says why, under the control.
- */
-
 /** A required control left empty. */
 export const REQUIRED_MESSAGE = "$dms.field_errors.required";
 /** A code entry (PIN cells) filled only in part. */

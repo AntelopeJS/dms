@@ -89,7 +89,7 @@ async function guard(
   expect(context.url.toString()).to.equal(ctx.url.toString());
   expect(args.id).to.be.a("string");
   if (args.current.documentType !== "invoice")
-    throw new HTTPResult(NOT_FOUND, "Not Found");
+    throw new HTTPResult(NOT_FOUND, "$test.not_found");
 }
 
 async function get(id: string) {

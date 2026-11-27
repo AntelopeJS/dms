@@ -10,12 +10,6 @@ import {
   type JsonWritable,
 } from "./json";
 
-/**
- * `mockups/<name>/spec.json` as the editor reads and writes it: the spec as
- * written, `fixture:` references and every field the editor does not know
- * kept as they are.
- */
-
 /** A node of a page tree, as written. */
 export interface MockupSpecNode {
   type?: string;
@@ -36,7 +30,13 @@ export interface MockupSpecPage {
   [field: string]: JsonValue | MockupSpecNode[];
 }
 
-/** The whole spec, as written. */
+/**
+ * `mockups/<name>/spec.json` as the editor reads and writes it: the spec as
+ * written, `fixture:` references and every field the editor does not know
+ * kept as they are.
+ *
+ * The whole spec, as written.
+ */
 export interface MockupSpecDocument {
   pages: MockupSpecPage[];
   [field: string]: JsonValue | MockupSpecPage[];

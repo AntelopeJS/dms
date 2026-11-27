@@ -1,4 +1,4 @@
-import { HTTPResult } from "@antelopejs/interface-api";
+import { HTTPResult, IsHTTPResult } from "@antelopejs/interface-api";
 
 /**
  * The `HTTPResult` that `call` rejects with. Fails when the call resolves, and
@@ -10,7 +10,7 @@ export async function httpRejectionOf(
   try {
     await call;
   } catch (error: unknown) {
-    if (error instanceof HTTPResult) return error;
+    if (IsHTTPResult(error)) return error;
     throw error;
   }
   throw new Error("expected the call to be rejected with an HTTPResult");
