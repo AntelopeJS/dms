@@ -142,7 +142,7 @@
     "zod": "^4.5.0"
   },
   "devDependencies": {
-    "@antelopejs/api": "~1.7.8",
+    "@antelopejs/api": "~1.7.9",
     "@antelopejs/core": "~1.24.5",
     "@antelopejs/mongodb": ">=1.8.13 <1.9.0",
     "@antelopejs/mysql": ">=0.2.7 <0.3.0",
