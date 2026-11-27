@@ -79,7 +79,7 @@ export class SalesPage extends PageController("sales", {
 
 | Package                                     | Supported        | Tested with |
 | ------------------------------------------- | ---------------- | ----------- |
-| `@antelopejs/core`                          | `~1.24.5`        | `1.24.6`    |
+| `@antelopejs/core`                          | `~1.24.5`        | `1.24.8`    |
 | `@antelopejs/interface-api`                 | `>=0.3.5 <0.4.0` | `0.3.5`     |
 | `@antelopejs/interface-api-util`            | `>=0.3.3 <0.4.0` | `0.3.3`     |
 | `@antelopejs/interface-core`                | `>=0.5.2 <0.6.0` | `0.5.2`     |
