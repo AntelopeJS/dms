@@ -68,7 +68,7 @@ The docs tsconfig in `packages/interface-dms/docs` maps `@antelopejs/interface-d
 
 ## Guardrails
 
-CI runs `pnpm run checks` in full on every pull request and reports what failed. The commit hook formats and lints the staged files. Locally, check only what you touched, one test file and not the suite, as the [`verify-changes`](.agents/skills/verify-changes/SKILL.md) skill says.
+CI runs `pnpm run checks` in full on every pull request and reports what failed. The commit hook formats and lints the staged files. Locally, check only what you touched, one test file and not the suite, as the [`verify-dms`](.agents/skills/verify-dms/SKILL.md) skill says.
 
 ### Comments
 
