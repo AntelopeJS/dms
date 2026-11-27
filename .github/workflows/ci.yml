@@ -45,7 +45,6 @@ jobs:
       renovate-sync: false
       test-job: true
       single-job: false
-      windows-merge-queue: true
     permissions:
       contents: read
 
@@ -93,7 +92,7 @@ jobs:
           fi
 
           os='["ubuntu-latest"]'
-          if [[ "$tier" == nightly || "$EVENT" == workflow_dispatch ]]; then
+          if [[ "$tier" == nightly ]]; then
             os='["ubuntu-latest","windows-latest"]'
           fi
 
