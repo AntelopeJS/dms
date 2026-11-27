@@ -654,7 +654,13 @@
         "cannot_view_archived": "Interdit : vous ne pouvez pas voir les lignes archivées"
       },
       "permissions": {
-        "missing_permission": "Interdit : permission {permissionId} manquante"
+        "missing_permission": "Interdit : permission {permissionId} manquante",
+        "missing_any_permission": "Interdit : il manque l'une des permissions {permissionIds}",
+        "action_declares_no_permission": "Interdit : l'action \"{actionId}\" ne déclare aucune permission"
+      },
+      "table": {
+        "row_not_found": "Ligne introuvable",
+        "edit_not_allowed": "Modification refusée : la ligne ne respecte pas les règles de l'action"
       },
       "file": {
         "not_found": "Fichier introuvable",
@@ -668,7 +674,9 @@
         "file_not_stored": "Un fichier envoyé n'a jamais été enregistré. Envoyez-le de nouveau."
       },
       "body": {
-        "too_deep": "Le corps JSON est imbriqué sur plus de {maxDepth} niveaux."
+        "too_deep": "Le corps JSON est imbriqué sur plus de {maxDepth} niveaux.",
+        "invalid_json": "Le corps de la requête n'est pas un JSON valide.",
+        "not_an_object": "Le corps de la requête doit être un objet JSON."
       },
       "connection": {
         "read_only": "La connexion \"{connection}\" est en lecture seule : le projet n'autorise aucune modification de ses tables."

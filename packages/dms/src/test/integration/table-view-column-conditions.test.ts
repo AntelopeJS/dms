@@ -10,6 +10,7 @@ import { defined } from "../helpers/defined";
 const LOCATION = "/api/conditions/deals";
 const HTTP_OK = 200;
 const HTTP_BAD_REQUEST = 400;
+const HTTP_NOT_FOUND = 404;
 
 interface Deal {
   _id: string;
@@ -112,6 +113,12 @@ describe("[integration] table view column conditions", () => {
     const deal = await read("Open");
     expect(deal).to.include({ stage: "lost", lostReason: "timing" });
     expect(deal.probability).to.equal(30);
+  });
+
+  it("refuses an edit of a row that does not exist", async () => {
+    const refused = await edit("no-such-deal", { stage: "lost" });
+    expect(refused.status).to.equal(HTTP_NOT_FOUND);
+    expect(refused.data).to.equal("$dms.refusals.table.row_not_found");
   });
 
   it("clears the value a field stored once an edit hides it", async () => {

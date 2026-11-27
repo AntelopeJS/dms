@@ -114,7 +114,7 @@ export const withColumnConditions = <
         String(params.id),
         tableMeta.options.rowIdKey || DEFAULT_ROW_ID_FIELD,
       );
-      throwHttpAssert(current, 404, "Not Found");
+      throwHttpAssert(current, 404, "$dms.refusals.table.row_not_found");
       row = { ...current, ...body };
     }
 

@@ -254,6 +254,7 @@ describe("[unit] TableView row rules are those of the controller's writing table
   it("refuses an edit the writing table view's rule refuses", async () => {
     const error = await httpRejectionOf(editRow("archived"));
     expect(error.getStatus()).to.equal(HTTP_FORBIDDEN);
+    expect(error.getBody()).to.equal("$dms.refusals.table.edit_not_allowed");
     expect(
       await edit.func.call(controller, REQUEST, { id: "low" }),
     ).to.deep.equal({ edited: true });

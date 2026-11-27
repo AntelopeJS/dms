@@ -50,11 +50,7 @@ type ActionValidationConfigs = {
 };
 
 const refuseEdit = (): never => {
-  throwHttpAssert(
-    false,
-    403,
-    "edit not allowed: row does not satisfy action rules",
-  );
+  throwHttpAssert(false, 403, "$dms.refusals.table.edit_not_allowed");
 };
 
 const ACTION_VALIDATION_CONFIGS: ActionValidationConfigs = {

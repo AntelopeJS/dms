@@ -96,8 +96,8 @@ const badRequest = (message) => (/** @type {unknown} */ error) =>
   error.getStatus() === 400 &&
   error.getBody() === message;
 
-const INVALID_JSON = badRequest("Invalid JSON body.");
-const NOT_AN_OBJECT = badRequest("The request body must be a JSON object.");
+const INVALID_JSON = badRequest("$dms.refusals.body.invalid_json");
+const NOT_AN_OBJECT = badRequest("$dms.refusals.body.not_an_object");
 
 await test("malformed JSON is refused with 400", () => {
   assert.throws(() => parseGuardBody("{"), INVALID_JSON);
