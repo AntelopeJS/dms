@@ -1,5 +1,21 @@
 # Changelog
 
+## v0.17.2
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/interface-v0.17.1...interface-v0.17.2)
+
+### 🩹 Fixes
+
+- **interface-dms:** Send locale keys from the table view refusals an aliased assert sends ([#1282](https://github.com/AntelopeJS/dms/pull/1282))
+
+### 📦 Build
+
+- **deps:** Require @antelopejs/tooling-configs 0.10.4 and fix its new lint reports ([#1276](https://github.com/AntelopeJS/dms/pull/1276))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli
+
 ## v0.17.1
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/interface-v0.17.0...interface-v0.17.1)
