@@ -1,5 +1,5 @@
 import { randomBytes } from "node:crypto";
-import { existsSync, rmSync } from "node:fs";
+import { existsSync, readFileSync, rmSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { layOutFrontendBuild } from "./build-cache.mjs";
 import {
@@ -15,6 +15,7 @@ import { currentNamespaces, isSameProcess } from "./identity.mjs";
 import { dropRunDatabases, startMongod } from "./mongo.mjs";
 import {
   freePort,
+  reservedPorts,
   restartablePort,
   runToEnd,
   startDetached,
@@ -231,7 +232,7 @@ async function startFirstMail(state) {
       return;
     } catch (error) {
       if (attempt === MAIL_PORT_ATTEMPTS) throw error;
-      state.smtpPort = await restartablePort();
+      state.smtpPort = await restartablePort(reservedPorts(state));
     }
   }
 }
@@ -288,7 +289,7 @@ export async function launchBackend(
   mode = runBackendMode(state),
 ) {
   const { ajs } = cliPaths(build?.playground ?? state.playground);
-  const port = await freePort();
+  const port = await freePort(reservedPorts(state));
   const launch = spec(
     state,
     `backend${database.slice(state.databasePrefix.length)}`,
@@ -453,6 +454,21 @@ export function frontendSpec(state) {
 }
 
 /**
+ * Refuses a dashboard that did not bind its port: another server answered the
+ * readiness probe in its place.
+ *
+ * @param {{ log: string }} frontend The dashboard's process record
+ * @throws When its log says its port is already in use
+ */
+export function assertFrontendBound(frontend) {
+  const log = existsSync(frontend.log)
+    ? readFileSync(frontend.log, "utf8")
+    : "";
+  const refusal = /Port \d+ is already in use/.exec(log);
+  if (refusal) throw new Error(`${refusal[0]}; see ${frontend.log}`);
+}
+
+/**
  * @param {RunState} state
  * @param {boolean} useCache
  * @returns {Promise<void>}
@@ -495,6 +511,7 @@ async function buildAndStart(state, useCache) {
     const frontend = startDetached(frontendSpec(state));
     record(state, { ...frontend, port: state.webPort });
     await waitForOk(`${state.webUrl}/dms-preview`, frontend, READY_TIMEOUT_MS);
+    assertFrontendBound(frontend);
   });
   await recordDashboardModules(state);
 }
