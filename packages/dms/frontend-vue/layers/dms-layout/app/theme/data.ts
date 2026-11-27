@@ -155,15 +155,13 @@ const emptyTheme = {
 };
 
 /**
- * Nuxt UI themes of the data display primitives (DMS design v2, mockup
- * components/table.html, form.html tree picker, shell.html dots and
- * auth.html separator), spread into the app config `ui` key. Each entry
- * extends the Nuxt UI default theme: slot and variant classes are appended
- * and tailwind-merged over it, and compound variants run after the defaults.
+ * Nuxt UI themes of the data display primitives (DMS design v2: the mockup's
+ * table, form tree picker, shell dots and auth separator), spread into the app
+ * config `ui` key. Each entry extends the Nuxt UI default theme: slot and
+ * variant classes are appended and tailwind-merged over it, and compound
+ * variants run after the defaults.
  *
  * Every class stays a literal string so Tailwind finds it when scanning.
- *
- * Data display primitive themes, spread into `ui` of the app config.
  */
 export const dataTheme = {
   table: tableTheme,
