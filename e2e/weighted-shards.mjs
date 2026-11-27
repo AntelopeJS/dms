@@ -58,8 +58,9 @@ export function contiguousShards(seconds, count) {
 /**
  * Replaces Playwright's `--shard`, which cuts the suite into contiguous runs
  * of equal count, with `contiguousShards`' runs of equal seconds by
- * `test-weights.json`. The journeys of a shard share one dms run, so a shard
- * stays a contiguous run of the suite's order, as with `--shard`. With
+ * `test-weights.json`. The workers of a shard take its journeys in the
+ * suite's order, so a shard stays a contiguous run of that order, as with
+ * `--shard`. With
  * `DMS_E2E_DURATIONS` set to a path, it writes there the seconds each test of
  * the run took, which `refresh-test-weights.mjs e2e` averages into the weights.
  *

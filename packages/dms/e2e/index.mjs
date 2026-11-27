@@ -69,7 +69,8 @@ export function e2eConfig(options = {}) {
  * Registers the journeys of the suite its config declared: those of the
  * journeys config that its `frontend` serves, the config's `smoke`
  * feature first, then the other features in order, and those marked
- * `last` after all others. One test per journey, named by its id under its
+ * `last` after all others; with `DMS_E2E_SHUFFLE` set, the journeys not
+ * marked `last` in the order its seed draws. One test per journey, named by its id under its
  * feature's name, with the
  * journey's `tag` and its title and entry point as annotations. Each test
  * drives its journey through the `dms` fixture, prepared with the

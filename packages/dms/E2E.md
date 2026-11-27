@@ -50,7 +50,7 @@ Each `*.mjs` file of `e2e/journeys/` is a feature, named after the file, and exp
 
 `registerJourneys()` reads both from the config that loaded it.
 
-The tests of a suite run one at a time against its run, the files in alphabetical order. `registerJourneys()` registers the journeys of the config's `smoke` feature first, then the other features in alphabetical order, then every journey marked `last`, so `--grep @smoke` runs the `smoke` journey before the other journeys. Name the journeys file so that it sorts after the specs (`zz-journeys.spec.ts`): a journey marked `last` changes the playground for the backends that follow, and a spec that sorts after it cannot start its backend. `--shard=i/N` splits a suite across machines, each with a run of its own.
+A suite runs on two workers. The global setup starts a run for each, with its own playground copy, ports, MongoDB, mail sink, backends and dashboard, and each worker runs its tests one at a time against its own run, taking the next test in order, the files in alphabetical order. `--workers=N` starts N runs. With `DMS_E2E_RUN`, the suite runs on one worker. `registerJourneys()` registers the journeys of the config's `smoke` feature first, then the other features in alphabetical order, then every journey marked `last`, so `--grep @smoke` runs the `smoke` journey before the other journeys. Name the journeys file so that it sorts after the specs (`zz-journeys.spec.ts`): a journey marked `last` changes the playground of its worker's run for the backends that follow, and a spec that sorts after it on that worker cannot start its backend. `--shard=i/N` splits a suite across machines, each with a run of its own.
 
 ## Write a spec
 
@@ -67,7 +67,7 @@ test("the administrator opens the members page", async ({ adminPage }) => {
 
 The fixtures:
 
-- `run`: the run of the global setup, shared by a worker: its `webUrl`, `apiUrl`, `accounts` and `evidence` folder.
+- `run`: the run the global setup started for the worker, which only its tests drive: its `webUrl`, `apiUrl`, `accounts` and `evidence` folder.
 - `baseURL`: the run's dashboard, so `page.goto("/settings")` opens it.
 - `dms`: the test's journey context. Before the test, it prepares the run as a journey's run does: a fresh database with a backend of its own, and an onboarded administrator. The test drives the run through it: `dms.tab(account)`, `dms.api(label, request)`, `dms.mail(accept)`, `dms.email(name)`, `dms.unique(prefix)` and `dms.verify(label, checks)`. After the test, it closes the tabs, judges the `verify` steps, and replays them into the report. A failing step attaches its screenshot and ARIA snapshot, and a failed test attaches the backend's log. The evidence goes to `<run>/evidence/<feature>/<test>/`. A test whose preparation fails does not run.
 - `adminPage`: a tab of `dms` that the administrator signed in on.
@@ -120,6 +120,7 @@ test("the administrator reads the onboarding state", async () => {
 - `DMS_E2E_RUN=<run folder>`: the tests drive that run, such as one `startRun` started, and the suite stops nothing. A run whose dashboard is not served the way the suite asks is refused.
 - `DMS_E2E_RUNS`: the folder the run folders go to.
 - `DMS_E2E_NO_STANDBY=1`: each fresh database's backend starts when the test needs it, rather than one ahead.
+- `DMS_E2E_SHUFFLE=<seed>`: `registerJourneys()` registers the journeys not marked `last` in an order drawn from the seed, the same for the same seed, and the `last` ones after them. A suite that passes under several seeds holds no journey that depends on another's state.
 
 ## Port recipe
 
