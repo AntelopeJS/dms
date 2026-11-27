@@ -1,5 +1,5 @@
 import { randomBytes } from "node:crypto";
-import { existsSync, readFileSync, rmSync } from "node:fs";
+import { existsSync, rmSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { layOutFrontendBuild } from "./build-cache.mjs";
 import {
@@ -9,13 +9,14 @@ import {
 } from "./dashboard.mjs";
 import { existingBuildRoots } from "./build-inputs.mjs";
 import { describeFailure } from "./failure.mjs";
+import { assertFrontendBound } from "./frontend-bound.mjs";
 import { checkoutOf } from "./git.mjs";
 import { apiTargetFile, writeTarget } from "./forwarder.mjs";
 import { currentNamespaces, isSameProcess } from "./identity.mjs";
+import { reservedPorts } from "./reserved-ports.mjs";
 import { dropRunDatabases, startMongod } from "./mongo.mjs";
 import {
   freePort,
-  reservedPorts,
   restartablePort,
   runToEnd,
   startDetached,
@@ -451,21 +452,6 @@ export function frontendSpec(state) {
     "-p",
     String(state.webPort),
   ]);
-}
-
-/**
- * Refuses a dashboard that did not bind its port: another server answered the
- * readiness probe in its place.
- *
- * @param {{ log: string }} frontend The dashboard's process record
- * @throws When its log says its port is already in use
- */
-export function assertFrontendBound(frontend) {
-  const log = existsSync(frontend.log)
-    ? readFileSync(frontend.log, "utf8")
-    : "";
-  const refusal = /Port \d+ is already in use/.exec(log);
-  if (refusal) throw new Error(`${refusal[0]}; see ${frontend.log}`);
 }
 
 /**

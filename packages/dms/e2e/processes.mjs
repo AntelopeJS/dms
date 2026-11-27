@@ -35,7 +35,6 @@ const EPHEMERAL_RANGE_FILE = "/proc/sys/net/ipv4/ip_local_port_range";
 const FIRST_UNPRIVILEGED_PORT = 1024;
 const LAST_PORT = 65_535;
 const RESTARTABLE_PORT_ATTEMPTS = 100;
-const EXCLUDED_PORT_ATTEMPTS = 100;
 
 /**
  * @param {string | import("node:net").AddressInfo | null} address What a listening server reports
@@ -46,22 +45,21 @@ function isTcpAddress(address) {
 }
 
 /**
- * Asks the kernel for a free TCP port on the loopback interface that is not
- * in `exclude`.
+ * Asks the kernel for a free loopback port outside `exclude`.
  *
- * @param {Iterable<number>} [exclude] Ports the run already holds
+ * @param {Iterable<number>} [exclude] Skipped ports
  * @returns {Promise<number>} The port
  */
 export async function freePort(exclude = []) {
-  const excluded = new Set(exclude);
-  for (let attempt = 0; attempt < EXCLUDED_PORT_ATTEMPTS; attempt += 1) {
+  const skip = new Set(exclude);
+  for (let n = 0; n < RESTARTABLE_PORT_ATTEMPTS; n += 1) {
     const port = await kernelPort();
-    if (!excluded.has(port)) return port;
+    if (!skip.has(port)) return port;
   }
-  throw new Error("no free loopback port outside the excluded ones");
+  throw new Error("no free port");
 }
 
-/** @returns {Promise<number>} A port the kernel gave a `listen(0)` */
+/** @returns {Promise<number>} */
 function kernelPort() {
   return new Promise((resolve, reject) => {
     const server = createServer();
@@ -120,15 +118,15 @@ export function isRestartablePort(port) {
 }
 
 /**
- * A free loopback port outside the kernel's ephemeral range and `exclude`, for a server
+ * A free loopback port outside the ephemeral range and `exclude` for a server
  * that must listen on the same port again after it restarts. No outgoing
  * connection takes such a port as its source port, so none can hold it in
  * TIME_WAIT and make that listen fail with `EADDRINUSE`, as a port from
  * {@link freePort} can be held.
  *
- * @param {Iterable<number>} [exclude] Ports the run already holds
+ * @param {Iterable<number>} [exclude] Skipped ports
  * @returns {Promise<RestartablePort>} The port
- * @throws When no unprivileged port outside the range is free
+ * @throws When none is free
  */
 export async function restartablePort(exclude = []) {
   const excluded = new Set(exclude);
@@ -147,17 +145,16 @@ export async function restartablePort(exclude = []) {
       isRestartablePort(port) &&
       !excluded.has(port) &&
       (await canListen(port))
-    ) {
+    )
       return port;
-    }
   }
   throw new Error("no loopback port outside the ephemeral range is free");
 }
 
 /**
- * @param {Set<number>} excluded Ports the run already holds
- * @returns {Promise<RestartablePort>} A port from {@link freePort}, where /proc does not tell the range
- * @throws When the range is known and the port lies in it
+ * @param {Set<number>} excluded Ports to skip
+ * @returns {Promise<RestartablePort>} A port from {@link freePort}, where /proc tells no range
+ * @throws When the port lies in the range
  */
 async function restartableFree(excluded) {
   const port = await freePort(excluded);
@@ -610,20 +607,4 @@ export async function killRecorded(records) {
     ...skippedRecords(records),
     ...targets.map(({ pid }) => `killed pid ${pid}`),
   ];
-}
-
-/**
- * The ports a run holds or has reserved: its API, dashboard and mail ports
- * and the port of every process it recorded.
- *
- * @param {{ apiPort?: number, webPort?: number, smtpPort?: number, processes?: ReadonlyArray<{ port?: number }> }} run The run, or the folders of one
- * @returns {number[]} The ports a new server must not take
- */
-export function reservedPorts(run) {
-  return [
-    run.apiPort,
-    run.webPort,
-    run.smtpPort,
-    ...(run.processes ?? []).map((entry) => entry.port),
-  ].filter((port) => port !== undefined);
 }

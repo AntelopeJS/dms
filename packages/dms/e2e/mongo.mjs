@@ -4,6 +4,7 @@ import { createRequire } from "node:module";
 import { join } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
 import { pathToFileURL } from "node:url";
+import { reservedPorts } from "./reserved-ports.mjs";
 import {
   arrayOf,
   decode,
@@ -14,7 +15,6 @@ import {
   recordOf,
 } from "./json.mjs";
 import {
-  reservedPorts,
   restartablePort,
   startDetached,
   stopRecorded,

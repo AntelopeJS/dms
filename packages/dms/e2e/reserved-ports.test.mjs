@@ -3,8 +3,9 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
-import { reservedPorts, restartablePort } from "./processes.mjs";
-import { assertFrontendBound } from "./stack.mjs";
+import { restartablePort } from "./processes.mjs";
+import { reservedPorts } from "./reserved-ports.mjs";
+import { assertFrontendBound } from "./frontend-bound.mjs";
 
 const LAST_PORT = 65535;
 const DRAWS = 64;
