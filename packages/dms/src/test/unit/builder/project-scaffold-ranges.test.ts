@@ -19,6 +19,8 @@ const OTHER_STEPS = [
   "suppressions",
   "sync:check",
   "lockfile:singletons",
+  "lockfile:module-peers",
+  "pnpm:release-age",
   "dependency:one-range",
   "git:identity",
   "readme:version",
