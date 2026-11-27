@@ -170,7 +170,7 @@ importers:
         version: 0.4.3
       '@antelopejs/rethinkdb':
         specifier: ~1.10.6
-        version: 1.10.7
+        version: 1.10.8
       '@antelopejs/tooling-configs':
         specifier: '>=0.10.1 <0.11.0'
         version: 0.10.1(@nuxt/eslint-config@1.17.0(@typescript-eslint/utils@8.68.0(eslint@10.15.0(jiti@2.7.0))(typescript@6.0.3))(@vue/compiler-sfc@3.5.25)(eslint@10.15.0(jiti@2.7.0))(typescript@6.0.3))(knip@6.34.0)(mongodb-memory-server@11.3.0(socks@2.8.7))(oxfmt@0.66.0)(oxlint@1.81.0(oxlint-tsgolint@7.0.2001))(pixelmatch@8.0.0)(playwright-core@1.65.1)(sharp@0.35.5(@types/node@26.6.5))
@@ -713,6 +713,11 @@ packages:
     peerDependencies:
       '@antelopejs/interface-core': '>=0.5.1 <0.6.0'
 
+  '@antelopejs/interface-database@0.4.4':
+    resolution: {integrity: sha512-Aw0ZI2h2wk3wDMWlYaTLsEpy7lcGWXrg2lcBX84kMMdE6LqNOvAi+scM2nKo4RljIco18NNHy4weJgJq0VBy3A==}
+    peerDependencies:
+      '@antelopejs/interface-core': '>=0.5.1 <0.6.0'
+
   '@antelopejs/interface-dms-automation@0.7.2':
     resolution: {integrity: sha512-TRPAERL/8FDHxdfKcQtx16ezWIOjgq+DPlE1UX+xHMcPkFOUtAYmu5b19p4v8U2rpnwCMu2onVTuIgjCC2Vksw==}
     peerDependencies:
@@ -752,8 +757,8 @@ packages:
     resolution: {integrity: sha512-nRMEXySfMPNPuoQmWn+qdXWFPanzZOVKxhvhy0xyCmcGFmwpAZmgDLY3woHFzK20SlTJyZsOm59S7Q07Wc64yQ==}
     engines: {node: '>=22'}
 
-  '@antelopejs/rethinkdb@1.10.7':
-    resolution: {integrity: sha512-FhjIxeGQptbTX5lDjA6CoWJZkHNv/Mja9ZydTI6FvopGHbxdAKXhTGfliaLSSHLDY0Yy5JQokhDaDkZHScHc3A==}
+  '@antelopejs/rethinkdb@1.10.8':
+    resolution: {integrity: sha512-OM6lnbtxkMyIwFT//GCG0HGW9Lkp5J5Pub2Kx8tKs6WW4JtGHNR9nFxrB+5wmpwNuYwCFAmZaLth1sCVT+O4uQ==}
 
   '@antelopejs/tooling-configs@0.10.1':
     resolution: {integrity: sha512-M722deNkHUjuoQVcrYC5t8YKNb7PJNWcjsPFoIoRqGttEHjOYivwc9n97O7hSg4J0tSyJ4V1QGKMHBnbDTuRxQ==}
@@ -7762,6 +7767,10 @@ snapshots:
     dependencies:
       '@antelopejs/interface-core': 0.5.2
 
+  '@antelopejs/interface-database@0.4.4(@antelopejs/interface-core@0.5.2)':
+    dependencies:
+      '@antelopejs/interface-core': 0.5.2
+
   '@antelopejs/interface-dms-automation@0.7.2(@antelopejs/interface-core@0.5.2)':
     dependencies:
       '@antelopejs/interface-core': 0.5.2
@@ -7843,10 +7852,10 @@ snapshots:
     transitivePeerDependencies:
       - pg-native
 
-  '@antelopejs/rethinkdb@1.10.7':
+  '@antelopejs/rethinkdb@1.10.8':
     dependencies:
       '@antelopejs/interface-core': 0.5.2
-      '@antelopejs/interface-database': 0.4.3(@antelopejs/interface-core@0.5.2)
+      '@antelopejs/interface-database': 0.4.4(@antelopejs/interface-core@0.5.2)
       '@antelopejs/interface-database-catalog': 0.1.1(@antelopejs/interface-core@0.5.2)
       chai: 4.5.0
       reflect-metadata: 0.2.2
