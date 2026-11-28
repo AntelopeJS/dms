@@ -33,7 +33,6 @@ import type { InviteDeliveryOptions } from "./types";
  * @internal
  */
 export function CollectInviteExtensionPayloads(
-  // oxlint-disable-next-line anti-slop/no-unknown-parameters -- The published submission boundary accepts arbitrary bodies; each extension slice is validated below without replacing its stored input.
   body: unknown,
 ): InviteExtensionPayloads {
   const source = isInviteFieldValues(body) ? body : {};

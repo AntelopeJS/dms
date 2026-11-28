@@ -66,7 +66,6 @@ export function ReadInviteExtensionFields(
  * @internal
  */
 export function CollectInviteExtensionEdits(
-  // oxlint-disable-next-line anti-slop/no-unknown-parameters -- This published submission boundary accepts arbitrary bodies and validates each present slice with its extension schema.
   body: unknown,
 ): InviteExtensionPayloads {
   const source = isInviteFieldValues(body) ? body : {};
