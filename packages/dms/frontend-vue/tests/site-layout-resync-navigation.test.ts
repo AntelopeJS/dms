@@ -8,6 +8,7 @@ import {
   dispatchNavigate,
   finishedVisit,
   type InertiaReloadOptions,
+  VISIT_ID,
   type VisitOutcome,
 } from "./fixtures/inertiaVisit";
 import { useSiteLayout } from "../layers/dms-core/app/composables/page/useSiteLayout";
@@ -29,8 +30,9 @@ function endVisit(outcome: VisitOutcome, own?: InertiaReloadOptions): void {
 function completeReload(index: number): void {
   const reload = reloads[index];
   if (!reload) return;
-  sharedDmsState(state)("dms-pageTree", () => undefined).value =
-    serverMenu.map((name) => ({ name }));
+  sharedDmsState(state)("dms-pageTree", () => undefined).value = serverMenu.map(
+    (name) => ({ name }),
+  );
   endVisit(COMPLETED, reload);
 }
 
@@ -127,6 +129,7 @@ it("reloads nothing on later navigations once the resync is done (catches a retr
   await settle();
 
   expect(reloads).toHaveLength(1);
+  expect(reloads[0]?.only).toEqual(["shared", "page"]);
 });
 
 it("gives a second menu change that arrives during the retry its own reload, after the first, and ends on the latest menu (catches a menu sync whose retry swallows a later change)", async () => {
@@ -201,10 +204,10 @@ it("reloads again after the settle timeout when nothing follows the cancellation
   }
 });
 
-it("reloads again when the page changed while the reload ran, whose answer Inertia then drops (catches a resync that trusts a reload of the page it left)", async () => {
+it("reloads again when another visit set a page while the reload ran, whose answer Inertia then drops (catches a resync that trusts a reload of the page it left)", async () => {
   serverMenu = ["Projects", "Project Alpha"];
   const resync = useSiteLayout().resync();
-  window.history.pushState(null, "", "/cloud/projects/project");
+  dispatchNavigate("navigation");
   endVisit(COMPLETED, reloads[0]);
   await settle();
   completeReload(1);
@@ -214,4 +217,15 @@ it("reloads again when the page changed while the reload ran, whose answer Inert
   expect(useSiteLayout().siteLayoutTree.value).toEqual(
     sidebarOf("Projects", "Project Alpha"),
   );
+});
+
+it("stops once the reload's own answer set the page, even when it moved to another URL, as a redirect does (catches a resync that reloads after each redirect, without end)", async () => {
+  const resync = useSiteLayout().resync();
+  window.history.pushState(null, "", "/cloud/projects/elsewhere");
+  dispatchNavigate(VISIT_ID);
+  completeReload(0);
+  await resync;
+  await settle();
+
+  expect(reloads).toHaveLength(1);
 });

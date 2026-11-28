@@ -21,7 +21,7 @@ const ignore = (): undefined => undefined;
 /** A finished visit of the page on screen, ended as `outcome` says. */
 export function finishedVisit(outcome: VisitOutcome): InertiaActiveVisit {
   return {
-    id: "visit",
+    id: VISIT_ID,
     url: new URL(window.location.href),
     completed: !outcome.cancelled && !outcome.interrupted,
     ...outcome,
@@ -74,7 +74,16 @@ export function dispatchFinish(outcome: VisitOutcome): void {
   );
 }
 
-/** Inertia's global `navigate` event: it set a page, from a visit, a prefetched response or a history step. */
-export function dispatchNavigate(): void {
-  document.dispatchEvent(new CustomEvent("inertia:navigate", { detail: {} }));
+/** The id of every visit `finishedVisit` makes. */
+export const VISIT_ID = "visit";
+
+/**
+ * Inertia's global `navigate` event: it set a page, from the visit
+ * `visitId` names (a visit or a prefetched response), or from a history step
+ * when it names none.
+ */
+export function dispatchNavigate(visitId?: string): void {
+  document.dispatchEvent(
+    new CustomEvent("inertia:navigate", { detail: { visitId } }),
+  );
 }
