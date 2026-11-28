@@ -99,7 +99,7 @@ export async function waitForOwnPort(port, record, timeoutMs) {
   while (Date.now() < deadline && isAlive(record.pid)) {
     const own = new Set([record.pid, ...descendantsOf([record.pid])]);
     if (listenersOf(port)?.some((pid) => own.has(pid))) return;
-    await sleep(POLL_MS);
+    await sleep(READY_POLL_MS);
   }
   throw new Error(
     `${record.name} does not listen on ${port}; see ${record.log}`,
