@@ -1,10 +1,12 @@
 import { spawn } from "node:child_process";
 import assert from "node:assert/strict";
-import { existsSync } from "node:fs";
+import { existsSync, mkdtempSync, rmSync } from "node:fs";
 import { createServer } from "node:http";
 import { once } from "node:events";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import test from "node:test";
-import { freePort } from "./processes.mjs";
+import { freePort, restartablePort } from "./processes.mjs";
 import { waitForBackend, waitForDashboard } from "./waits.mjs";
 
 const SERVE = `require("node:http").createServer((_, res) => res.end("ok")).listen(Number(process.argv[1]), "127.0.0.1")`;
@@ -96,3 +98,26 @@ await test("a server that a started process runs in a child of its own passes bo
   await assert.doesNotReject(waitForBackend(record));
   await assert.doesNotReject(waitForDashboard(dashboardOn(port), record));
 });
+
+await test(
+  "a backend that finds its port held when it starts and listens on another one fails its wait at once (catches a wait that polls the given port for 180 s)",
+  { timeout: 20_000 },
+  async (t) => {
+    const port = await restartablePort();
+    await stranger(t, port);
+    const folder = mkdtempSync(join(tmpdir(), "dms-e2e-own-port-"));
+    t.after(() => rmSync(folder, { recursive: true, force: true }));
+    const log = join(folder, "backend.log");
+    const fallBack = `const { appendFileSync } = require("node:fs"); const s = require("node:http").createServer((_, res) => res.end("ok")).listen(0, "127.0.0.1", () => appendFileSync(${JSON.stringify(log)}, "Port " + process.argv[1] + " in use, listening on http://127.0.0.1:" + s.address().port + " instead.\\n"))`;
+    const backend = { ...started("backend", fallBack, port), log };
+    t.after(() => process.kill(-backend.pid, "SIGKILL"));
+
+    await assert.rejects(
+      waitForBackend(backend),
+      new RegExp(
+        `backend found port ${port} in use when it started and listens on another one; see .*backend\\.log`,
+        "u",
+      ),
+    );
+  },
+);
