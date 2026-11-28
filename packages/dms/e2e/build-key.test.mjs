@@ -385,6 +385,32 @@ await test("a linked workspace package is keyed by its files, without its instal
   );
 });
 
+await test("a scope folder that links to the checkout's, as a run copy's does, is keyed entry by entry, its link: packages by their files", (t) => {
+  const { frontend, checkout, modules, prepare } = fixture(t);
+  const side = prepare("run", 1001);
+  const shared = join(checkout, "packages", "shared-ui");
+  write(join(shared, "index.js"), 'export const label = "SHARED-V1";\n');
+  const scope = join(checkout, "node_modules", "@acme");
+  write(join(scope, ".keep"), "");
+  symlinkSync("../../packages/shared-ui", join(scope, "shared-ui"));
+  symlinkSync(scope, join(modules, "@acme"));
+  const linked = keyOf(frontend, side);
+  write(join(shared, "index.js"), 'export const label = "SHARED-V2";\n');
+  assert.notEqual(
+    keyOf(frontend, side),
+    linked,
+    "a key on a linked scope's target path serves a build of its link: package's old files",
+  );
+  const theme = join(checkout, "elsewhere", "theme.css");
+  write(theme, "a { color: red; }\n");
+  symlinkSync(theme, join(shared, "theme.css"));
+  assert.throws(
+    () => keyOf(frontend, side),
+    /shared-ui[\\/]theme\.css links to .*elsewhere[\\/]theme\.css, which the build cache does not key/u,
+    "a key that skips the links of a linked scope's packages serves a build of the old file one reaches",
+  );
+});
+
 await test("a package copied into node_modules is keyed with its own node_modules", (t) => {
   const { frontend, modules, prepare } = fixture(t);
   const side = prepare("run", 1001);

@@ -6,6 +6,7 @@ import {
   readFileSync,
   readlinkSync,
   realpathSync,
+  statSync,
 } from "node:fs";
 import { basename, dirname, isAbsolute, join, relative, sep } from "node:path";
 import { isRecord } from "./json.mjs";
@@ -168,12 +169,12 @@ function hashFolder(folder, names, walk = SOURCES) {
 
 /**
  * Keys an entry at the top of a `node_modules` above the workspace, or in a
- * scope folder there. A scope folder is keyed entry by entry. A link is keyed
- * by its target, and, when the target is not a package of pnpm's virtual
- * store (a `link:` or `workspace:` package), by the content hash of the
- * folder it resolves to, its installs left out, read once however many links
- * reach it. A package copied in is keyed by its files, its own
- * `node_modules` included.
+ * scope folder there. A scope folder, or a link to one, is keyed entry by
+ * entry. Any other link is keyed by its target, and, when the target is not
+ * a package of pnpm's virtual store (a `link:` or `workspace:` package), by
+ * the content hash of the folder it resolves to, its installs left out,
+ * read once however many links reach it. A package copied in is keyed by
+ * its files, its own `node_modules` included.
  *
  * @param {import("node:crypto").Hash} hash
  * @param {string} path The entry
@@ -181,7 +182,7 @@ function hashFolder(folder, names, walk = SOURCES) {
  */
 function hashInstalled(hash, path, outside) {
   const stat = lstatSync(path, { throwIfNoEntry: false });
-  if (stat?.isDirectory() && basename(path).startsWith("@")) {
+  if (isScope(path)) {
     hash.update("scope\0");
     for (const name of readdirSync(path).sort()) {
       hash.update(`${name}\0`);
@@ -209,6 +210,19 @@ function hashInstalled(hash, path, outside) {
 }
 
 /**
+ * @param {string} path An entry of a `node_modules`
+ * @returns {boolean} Whether it is a scope folder, or a link to one
+ */
+function isScope(path) {
+  if (!basename(path).startsWith("@")) return false;
+  try {
+    return statSync(path).isDirectory();
+  } catch {
+    return false;
+  }
+}
+
+/**
  * @param {string} path A real path
  * @returns {boolean}
  */
@@ -228,7 +242,7 @@ function packagesIn(modules) {
     .filter((name) => !name.startsWith("."))
     .flatMap((name) => {
       const path = join(modules, name);
-      return name.startsWith("@") && lstatSync(path).isDirectory()
+      return isScope(path)
         ? readdirSync(path).map((scoped) => join(path, scoped))
         : [path];
     });

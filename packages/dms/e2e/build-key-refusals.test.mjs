@@ -133,3 +133,34 @@ await test("a link inside a package copied into node_modules that the key cannot
     "a key that hashes a copied package's links by their text serves a build of the old files they reach",
   );
 });
+
+await test("a scope folder linked into a linked package's node_modules is checked entry by entry: a link into pnpm's store keys, a package copied in refuses the key", (t) => {
+  const { dir, frontend, checkout, side, shared } = linkedFixture(t);
+  const vue = join("node_modules", ".pnpm", "vue@3.5.0", "node_modules", "vue");
+  write(join(checkout, vue, "index.js"), "vue();\n");
+  const scope = join(dir, "elsewhere", "@ext");
+  mkdirSync(scope, { recursive: true });
+  symlinkSync(join(checkout, vue), join(scope, "vue"));
+  mkdirSync(join(shared, "node_modules"));
+  symlinkSync(scope, join(shared, "node_modules", "@ext"));
+  assert.doesNotThrow(
+    () => keyOf(frontend, side),
+    "a check that takes a linked scope for one package refuses a scope whose packages are all keyed",
+  );
+  write(join(scope, "copied", "index.js"), "copied();\n");
+  assert.throws(
+    () => keyOf(frontend, side),
+    /@ext[\\/]copied is a package copied into a linked package's node_modules, which the build cache does not key/u,
+    "a check that skips a linked scope's entries serves a build of a copied package's old files",
+  );
+});
+
+await test("a scope link that loops is keyed as a dangling link", (t) => {
+  const { frontend, modules, prepare } = fixture(t);
+  const side = prepare("run", 1001);
+  symlinkSync("@loop", join(modules, "@loop"));
+  assert.doesNotThrow(
+    () => keyOf(frontend, side),
+    "a scope check that lets ELOOP through refuses an install with a link that resolves nothing",
+  );
+});
