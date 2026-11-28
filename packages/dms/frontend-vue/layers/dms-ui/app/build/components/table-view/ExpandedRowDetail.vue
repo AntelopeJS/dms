@@ -1,6 +1,7 @@
 <script setup lang="ts" generic="T extends Data">
 import { computed, type Component, type VNodeChild } from "vue";
 import { get } from "@nuxt/ui/runtime/utils/index.js";
+import { isObject } from "#dms-core/app/utils/type-check";
 import DmsKeyValueList, {
   type KeyValueItem,
 } from "../../../components/key-value-list/KeyValueList.vue";
@@ -17,8 +18,9 @@ import type { Data } from "../table/TableRoot.vue";
 /**
  * Detail band of an expanded TableView row: the configured `component`, which
  * draws the whole band, or else the configured `fields` as a label/value list
- * (each value drawn by its column's data type, like a cell). While a
- * `lazyLoad` row loads, or if it fails, the band says so in its place.
+ * (each value drawn by its column's data type, like a cell; a `fullWidth` one
+ * in full, over the whole width). While a `lazyLoad` row loads, or if it fails,
+ * the band says so in its place.
  */
 export interface ExpandedRowDetailProps<T extends Data> {
   /** What the band details, as a custom band receives it. */
@@ -47,12 +49,20 @@ interface DetailField {
   column: TableViewColumn;
 }
 
+function isEmpty(value: Parameters<typeof isObject>[0]): boolean {
+  if (value === null || value === undefined || value === "") return true;
+  if (value instanceof Date || !isObject(value)) return false;
+  return Object.keys(value).length === 0;
+}
+
 const fields = computed<DetailField[]>(() =>
   (props.config.fields ?? []).flatMap((field) => {
     const column = props.rowProps.columns.find(
       (candidate) => candidate.accessorKey === field.key,
     );
     if (!column) return [];
+    if (field.hideEmpty && isEmpty(get(props.rowProps.row, column.accessorKey)))
+      return [];
     return [
       {
         column,
@@ -60,6 +70,7 @@ const fields = computed<DetailField[]>(() =>
           id: field.key,
           label: processI18n(field.label ?? column.header),
           value: "",
+          fullWidth: field.fullWidth,
         },
       },
     ];
@@ -76,16 +87,16 @@ const detailComponent = computed<Component | string | undefined>(() => {
   return resolveDmsComponent(name) || name;
 });
 
-function renderField(key: string | undefined): VNodeChild {
+function renderField({ id: key, fullWidth }: KeyValueItem): VNodeChild {
   const column = key ? columnByKey.value.get(key) : undefined;
   if (!column) return EMPTY_VALUE;
   const row = props.rowProps.row;
   if (get(row, column.accessorKey) === "") return EMPTY_VALUE;
-  return renderColumnValue(column, row, "detail");
+  return renderColumnValue(column, row, fullWidth ? "full" : "detail");
 }
 
 const FieldValue = (fieldProps: { item: KeyValueItem }) =>
-  renderField(fieldProps.item.id);
+  renderField(fieldProps.item);
 </script>
 
 <template>
@@ -138,10 +149,19 @@ const FieldValue = (fieldProps: { item: KeyValueItem }) =>
       dense
     >
       <template #value="{ item }">
-        <span class="text-highlighted min-w-0 truncate">
+        <div v-if="item.fullWidth" class="text-highlighted min-w-0">
+          <FieldValue :item="item" />
+        </div>
+        <span v-else class="text-highlighted min-w-0 truncate">
           <FieldValue :item="item" />
         </span>
       </template>
     </DmsKeyValueList>
   </section>
+  <p
+    v-else-if="props.config.fields?.some((field) => field.hideEmpty)"
+    class="text-dimmed text-[12.5px]"
+  >
+    {{ t("dms.form.empty_value") }}
+  </p>
 </template>

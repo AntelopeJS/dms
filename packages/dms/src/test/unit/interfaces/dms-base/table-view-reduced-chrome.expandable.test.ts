@@ -5,6 +5,7 @@ import {
   TableView,
   type TableViewOptions,
 } from "@antelopejs/interface-dms/base/table-view";
+import { TableViewSchema } from "@antelopejs/interface-dms/base/table-view/schema";
 import { CustomComponent } from "@antelopejs/interface-dms/base/custom";
 import { resolveCustomRowActions } from "@antelopejs/interface-dms/base/table-view/internal/request-filter";
 import { resolveTableViewTabs } from "@antelopejs/interface-dms/base/table-view/internal/tabs";
@@ -41,6 +42,26 @@ function registerExpandableRowCases(): void {
         expandable: { fields: ["missing"] },
       }),
     ).to.throw(/expandable fields .* unknown column "missing"/);
+  });
+
+  it("serializes how a field shows its value", () => {
+    const { expandable } = optionsOf(
+      TableView(OrderAPI, {
+        realtime: false,
+        expandable: {
+          fields: [{ key: "carrier", fullWidth: true, hideEmpty: true }],
+        },
+      }),
+    );
+    expect(expandable?.fields).to.deep.equal([
+      { key: "carrier", fullWidth: true, hideEmpty: true },
+    ]);
+  });
+
+  it("offers fullWidth and hideEmpty to the block's schema", () => {
+    const field = { key: "carrier", fullWidth: true, hideEmpty: true };
+    const parsed = TableViewSchema.parse({ expandable: { fields: [field] } });
+    expect(parsed.expandable).to.deep.include({ fields: [field] });
   });
 
   it("passes lazyLoad through, with fields or a component", () => {

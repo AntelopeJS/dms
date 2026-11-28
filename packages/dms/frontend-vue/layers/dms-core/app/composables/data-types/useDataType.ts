@@ -8,8 +8,9 @@ export type RecordWithDefault<T> = Record<string, T> & { default: T };
  * fields; it is absent elsewhere (forms, filters) and must be optional.
  *
  * Keys of a data type's `formatter` record: `default` (required), `cell` (a
- * shorter grid rendering), `empty` (drawn instead of the fallback for a
- * null/undefined value), and one per compare mode for filter chips.
+ * shorter grid rendering), `full` (the whole value, for a `fullWidth` field of
+ * a detail band), `empty` (drawn instead of the fallback for a null/undefined
+ * value), and one per compare mode for filter chips.
  *
  * @typeParam Value - What a field of the row holds, the formatted one included.
  * @typeParam Options - The options of the field's control.

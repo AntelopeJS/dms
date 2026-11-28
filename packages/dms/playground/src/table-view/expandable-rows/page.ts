@@ -17,6 +17,9 @@ const DETAIL_FIELDS = [
   "carrier",
   "payment",
   "email",
+  { key: "instructions", fullWidth: true, hideEmpty: true },
+  { key: "parcels", fullWidth: true, hideEmpty: true },
+  { key: "references", fullWidth: true, hideEmpty: true },
 ];
 
 const statusTabs = ORDER_STATUSES.map((status) => ({
