@@ -59,7 +59,6 @@ async function settle(): Promise<void> {
   }
 }
 
-
 beforeEach(() => {
   state.clear();
   sessionId = ref<string | undefined>(undefined);
@@ -120,4 +119,19 @@ it("reloads nothing on a first opening when the menu did not change since the pa
   expect(useSiteLayout().siteLayoutTree.value).toEqual(
     menuOf("Overview").siteLayoutTree,
   );
+});
+
+it("resyncs on a reopening even when the menu looks unchanged, since its events may have moved more than the menu (catches a reopening that only compares the menu)", async () => {
+  server = menuOf("Overview");
+  loadPage();
+  await setUpMenuSync();
+  sessionId.value = "session-1";
+  await settle();
+
+  sessionId.value = undefined;
+  await settle();
+  sessionId.value = "session-2";
+  await settle();
+
+  expect(reload).toHaveBeenCalled();
 });

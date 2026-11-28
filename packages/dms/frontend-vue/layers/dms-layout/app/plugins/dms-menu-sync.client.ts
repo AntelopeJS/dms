@@ -6,7 +6,8 @@ const MENU_CHANGED_EVENT_TYPE = "menu-changed";
  * Calls `onOpen` each time the realtime stream opens: the menu events sent
  * while it was closed never arrived. `first` is true on its first opening,
  * which follows the page load that brought the current menu, and false when
- * it opens again after it was lost.
+ * it opens again after it was lost. A stream already open when this starts
+ * counts as its first opening, at once.
  *
  * @param sessionId The stream's session id, unset while it is closed
  * @param onOpen What to run once it is open
@@ -16,6 +17,7 @@ export function watchRealtimeOpenings(
   onOpen: (first: boolean) => void,
 ): void {
   let hasConnected = !!sessionId.value;
+  if (hasConnected) onOpen(true);
   watch(sessionId, (next, previous) => {
     if (!next || next === previous) return;
     onOpen(!hasConnected);
