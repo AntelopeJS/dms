@@ -7,7 +7,14 @@ import {
   ephemeralRange,
 } from "./helpers/ephemeral-range.mjs";
 import { canNarrowRange, runInNarrowRange } from "./helpers/narrow-range.mjs";
-import { decode, isNumber, isString, nullable, objectOf } from "./json.mjs";
+import {
+  arrayOf,
+  decode,
+  isNumber,
+  isString,
+  nullable,
+  objectOf,
+} from "./json.mjs";
 import { freePort } from "./processes.mjs";
 import { runPorts } from "./stack.mjs";
 
@@ -101,6 +108,42 @@ await test(
       { mail: null, dashboard: null },
       `listening again on mail ${report.smtpPort} and dashboard ${report.webPort}`,
     );
+  },
+);
+
+/** Takes the ports of two runs from `runPorts` at the same time, before either listens on one, and prints them. */
+const TWO_RUNS = `
+import { join } from "node:path";
+const { runPorts } = await import(join(process.argv[1], "stack.mjs"));
+const runs = await Promise.all([runPorts(), runPorts()]);
+console.log(JSON.stringify(runs.flatMap((ports) => Object.values(ports))));
+`;
+const SIX_RESTARTABLE_PORTS = "1024 65529";
+const TRIALS = 10;
+
+await test(
+  "two runs that take their ports at the same time share none, where only six ports lie outside the ephemeral range; a version that gives a port again before it is listened on repeats one in each trial nineteen times out of twenty",
+  {
+    skip:
+      !canNarrowRange() &&
+      "this host does not let the test make a network namespace",
+  },
+  () => {
+    for (let trial = 0; trial < TRIALS; trial += 1) {
+      const nested = runInNarrowRange(
+        TWO_RUNS,
+        import.meta.dirname,
+        SIX_RESTARTABLE_PORTS,
+      );
+      assert.equal(nested.status, 0, nested.stderr);
+      const ports = decode(
+        arrayOf(isNumber),
+        JSON.parse(nested.stdout),
+        "the nested runs",
+        "their ports",
+      );
+      assert.equal(new Set(ports).size, 6, `${ports.join(", ")} repeat a port`);
+    }
   },
 );
 

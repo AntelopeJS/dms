@@ -49,21 +49,30 @@ export async function targetOf(options, cwd) {
 }
 
 /**
- * Starts the stack of a run: with `prepare`, the journeys config's install
- * and build commands first, then the stack on its playground and renderer.
+ * Runs the journeys config's install and build commands when `options`
+ * asks for them.
+ *
+ * @param {StartOptions} options How the runs start
+ * @param {string} cwd Where the runs start from, which finds the journeys config
+ * @returns {Promise<import("./timing.mjs").TimingEntry[]>} The timings of the commands, none when it ran nothing
+ */
+async function prepareRuns(options, cwd) {
+  if (!options.prepare) return [];
+  const config = await loadSuiteConfig(cwd, options.config);
+  return runPrepare(config, config.repo);
+}
+
+/**
+ * Starts the stack of a run on its playground and renderer, the journeys
+ * config's commands already run.
  *
  * @param {StartOptions} options How to start it
+ * @param {import("./timing.mjs").TimingEntry[]} prepared The timings of the commands, which the run records
  * @param {string} cwd Where the run starts from, which finds the journeys config
  * @returns {Promise<import("./run-state.mjs").RunState>} The ready run
  */
-export async function startStack(options, cwd) {
-  const { prepare, config: journeysConfig, ...upOptions } = options;
-  /** @type {import("./timing.mjs").TimingEntry[]} */
-  let prepared = [];
-  if (prepare) {
-    const config = await loadSuiteConfig(cwd, journeysConfig);
-    prepared = runPrepare(config, config.repo);
-  }
+export async function startStack(options, prepared, cwd) {
+  const { prepare: _prepare, config: _journeysConfig, ...upOptions } = options;
   const state = await up({
     ...upOptions,
     ...(await targetOf(options, cwd)),
@@ -110,22 +119,23 @@ async function stopRuns(dirs) {
 /**
  * Starts `count` runs of the checkout's playground, each with its own
  * playground copy, ports, MongoDB, mail sink, backends and dashboard, for
- * the workers of one suite to drive one each. The first runs the journeys
- * config's prepare commands as `options` asks; the others start once it is
- * ready, together, without them, so their dashboards come from the build
- * cache the first one filled. `stop` stops them all, and from the moment
- * the first is ready a SIGINT or SIGTERM to this process stops every run
- * started so far, then ends the process by that signal.
+ * the workers of one suite to drive one each. The journeys config's prepare
+ * commands run first, once, as `options` asks; then every run starts at the
+ * same time. `stop` stops them all, and from the moment the runs start a
+ * SIGINT or SIGTERM to this process stops every run ready so far, then
+ * ends the process by that signal.
  *
  * @param {RunOptions} options How to start them
  * @param {number} count How many, at least 1
- * @returns {Promise<{ runs: import("./run-state.mjs").RunState[], stop: () => Promise<void> }>} The ready runs, and what stops them
- * @throws When a run fails to start; every run it started is stopped first
+ * @returns {Promise<{ runs: import("./run-state.mjs").RunState[], stop: () => Promise<void> }>} The ready runs, one per worker, and what stops them
+ * @throws When a run fails to start; every run that started is stopped first
  */
 export async function startRuns(options, count) {
   const cwd = process.cwd();
-  const first = await startStack(startOptions(options, cwd), cwd);
-  const dirs = [first.dir];
+  const start = startOptions(options, cwd);
+  const prepared = await prepareRuns(start, cwd);
+  /** @type {string[]} */
+  const dirs = [];
   const onSignal = (/** @type {NodeJS.Signals} */ signal) => {
     release();
     const reraise = () => process.kill(process.pid, signal);
@@ -135,29 +145,23 @@ export async function startRuns(options, count) {
     for (const signal of STOP_SIGNALS) process.off(signal, onSignal);
   };
   for (const signal of STOP_SIGNALS) process.on(signal, onSignal);
-  const others = await Promise.allSettled(
-    Array.from({ length: count - 1 }, async () => {
-      const run = await startStack(
-        startOptions({ ...options, prepare: false }, cwd),
-        cwd,
-      );
+  const started = await Promise.allSettled(
+    Array.from({ length: count }, async (_, index) => {
+      const run = await startStack(start, index === 0 ? prepared : [], cwd);
       dirs.push(run.dir);
       return run;
     }),
   );
-  const failed = others.find((other) => other.status === "rejected");
+  const failed = started.find((run) => run.status === "rejected");
   if (failed) {
     release();
     await stopRuns(dirs);
     throw failed.reason;
   }
   return {
-    runs: [
-      first,
-      ...others.flatMap((other) =>
-        other.status === "fulfilled" ? [other.value] : [],
-      ),
-    ],
+    runs: started.flatMap((run) =>
+      run.status === "fulfilled" ? [run.value] : [],
+    ),
     stop: () => {
       release();
       return stopRuns(dirs);

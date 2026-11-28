@@ -41,8 +41,22 @@ function isTcpAddress(address) {
   return typeof address === "object" && address !== null;
 }
 
+/** Every port {@link freePort} or {@link restartablePort} gave in this process, which neither gives again: runs that start at the same time each pick a port before any of them listens on it. */
+const handedOut = new Set();
+
 /**
- * Asks the kernel for a free loopback port outside `exclude`.
+ * @template {number} P
+ * @param {P} port A port to give
+ * @returns {P} The port, never to be given again in this process
+ */
+function handOut(port) {
+  handedOut.add(port);
+  return port;
+}
+
+/**
+ * Asks the kernel for a free loopback port outside `exclude` that this
+ * process has not given before.
  *
  * @param {Iterable<number>} [exclude] Skipped ports
  * @returns {Promise<number>} The port
@@ -51,7 +65,7 @@ export async function freePort(exclude = []) {
   const skip = new Set(exclude);
   for (let n = 0; n < RESTARTABLE_PORT_ATTEMPTS; n += 1) {
     const port = await kernelPort();
-    if (!skip.has(port)) return port;
+    if (!skip.has(port) && !handedOut.has(port)) return handOut(port);
   }
   throw new Error("no free port");
 }
@@ -115,11 +129,11 @@ export function isRestartablePort(port) {
 }
 
 /**
- * A free loopback port outside the ephemeral range and `exclude` for a server
- * that must listen on the same port again after it restarts. No outgoing
- * connection takes such a port as its source port, so none can hold it in
- * TIME_WAIT and make that listen fail with `EADDRINUSE`, as a port from
- * {@link freePort} can be held.
+ * A free loopback port outside the ephemeral range and `exclude`, which this
+ * process has not given before, for a server that must listen on the same
+ * port again after it restarts. No outgoing connection takes such a port as
+ * its source port, so none can hold it in TIME_WAIT and make that listen
+ * fail with `EADDRINUSE`, as a port from {@link freePort} can be held.
  *
  * @param {Iterable<number>} [exclude] Skipped ports
  * @returns {Promise<RestartablePort>} The port
@@ -141,9 +155,10 @@ export async function restartablePort(exclude = []) {
     if (
       isRestartablePort(port) &&
       !excluded.has(port) &&
-      (await canListen(port))
+      (await canListen(port)) &&
+      !handedOut.has(port)
     )
-      return port;
+      return handOut(port);
   }
   throw new Error("no loopback port outside the ephemeral range is free");
 }

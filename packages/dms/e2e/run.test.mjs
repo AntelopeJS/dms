@@ -6,6 +6,7 @@ import { apiRequest, onboard, startRun } from "./run.mjs";
 import globalSetup, { currentRun } from "./global-setup.mjs";
 import { loadRun, recordedBackends } from "./run-state.mjs";
 import { down } from "./stack.mjs";
+import { readTimings } from "./timing.mjs";
 import { declareSuite } from "./suite.mjs";
 
 /**
@@ -23,6 +24,19 @@ function processesOf(dir) {
       ]),
     ).values(),
   ];
+}
+
+/**
+ * When the start of a run began and ended, from its timings.
+ *
+ * @param {string} evidence The run's evidence folder
+ * @returns {{ start: number, end: number }} Its `up` phase, in milliseconds since the epoch
+ */
+function upOf(evidence) {
+  const up = readTimings(evidence).find((entry) => entry.phase === "up");
+  assert.ok(up, `${evidence} recorded no up phase`);
+  const start = Date.parse(up.startedAt);
+  return { start, end: start + up.ms };
 }
 
 await test("a node:test file starts the checkout's playground, calls its backend anonymously and as the onboarded administrator, and leaves no process once it stops (catches a stop that leaves the backend, the mail sink or mongod running)", async (t) => {
@@ -91,7 +105,7 @@ setInterval(() => {}, 1000);`,
   );
 });
 
-await test("the global setup of a two-worker suite starts a run for each worker, apart from the other, and its teardown leaves no process of either (catches workers that share a run, a database, a mail sink or a dashboard, or a teardown that stops only the first run)", async (t) => {
+await test("the global setup of a two-worker suite starts a run for each worker at the same time, apart from the other, and its teardown leaves no process of either (catches runs started one after the other, workers that share a run, a database, a mail sink or a dashboard, or a teardown that stops only the first run)", async (t) => {
   const saved = {
     DMS_E2E_SUITE: process.env.DMS_E2E_SUITE,
     DMS_E2E_PREBUILT: process.env.DMS_E2E_PREBUILT,
@@ -122,6 +136,11 @@ await test("the global setup of a two-worker suite starts a run for each worker,
     assert.notEqual(first[key], second[key], key);
   }
   assert.throws(() => currentRun(suite, 2), /worker 2 has no run/);
+  const [firstUp, secondUp] = runs.map((run) => upOf(run.evidence));
+  assert.ok(
+    firstUp.start < secondUp.end && secondUp.start < firstUp.end,
+    `the runs started one after the other: ${JSON.stringify([firstUp, secondUp])}`,
+  );
 
   const admin = await onboard(first, {});
   assert.equal(admin.register.status, 200, JSON.stringify(admin.register));
