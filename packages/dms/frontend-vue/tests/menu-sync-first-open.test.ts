@@ -1,8 +1,9 @@
 // @vitest-environment jsdom
-import { nextTick, ref, type Ref } from "vue";
+import { createApp, nextTick, ref, type Ref } from "vue";
 import { router as inertiaRouter } from "@inertiajs/vue3";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { sharedDmsState, type StateValue } from "./state-stub";
+import { dmsAppContext } from "./fixtures/dmsAppContext";
 import { useSiteLayout } from "../layers/dms-core/app/composables/page/useSiteLayout";
 import { useTrailingDeduper } from "../layers/dms-core/app/composables/useTrailingDeduper";
 import { createTrailingDeduper } from "../layers/dms-core/app/utils/trailingDeduper";
@@ -95,7 +96,7 @@ afterEach(() => {
 it("lists a menu entry created after the page load and before the realtime stream first opens, whose menu-changed event no session received (catches a first opening that trusts the menu the page brought)", async () => {
   server = menuOf("Overview");
   loadPage();
-  await setUpMenuSync();
+  await setUpMenuSync(dmsAppContext(createApp({})));
 
   server = menuOf("Overview", "Project Alpha");
   sessionId.value = "session-1";
@@ -109,7 +110,7 @@ it("lists a menu entry created after the page load and before the realtime strea
 it("reloads nothing on a first opening when the menu did not change since the page load, and asks for it once (catches a first opening that reloads the page and the menu on every load)", async () => {
   server = menuOf("Overview");
   loadPage();
-  await setUpMenuSync();
+  await setUpMenuSync(dmsAppContext(createApp({})));
 
   sessionId.value = "session-1";
   await settle();
@@ -124,7 +125,7 @@ it("reloads nothing on a first opening when the menu did not change since the pa
 it("resyncs on a reopening even when the menu looks unchanged, since its events may have moved more than the menu (catches a reopening that only compares the menu)", async () => {
   server = menuOf("Overview");
   loadPage();
-  await setUpMenuSync();
+  await setUpMenuSync(dmsAppContext(createApp({})));
   sessionId.value = "session-1";
   await settle();
 
