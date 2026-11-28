@@ -15,23 +15,26 @@ export const COPY_SKIPPED = new Set([
   WORKSPACE_FOLDER,
 ]);
 const SHADOW_SKIPPED = new Set([".antelope", WORKSPACE_FOLDER, ".git"]);
+/** The folder of `node_modules` that a run's processes write to, which each run keeps its own. */
+const MODULES_CACHE = ".cache";
 
 /**
  * @param {string} real
  * @param {string} shadow
- * @param {string} keep
+ * @param {string[]} keep
  */
-function shadowLevel(real, shadow, keep) {
+function shadowLevel(real, shadow, ...keep) {
   mkdirSync(shadow, { recursive: true });
   for (const entry of readdirSync(real)) {
-    if (entry === keep || SHADOW_SKIPPED.has(entry)) continue;
+    if (keep.includes(entry) || SHADOW_SKIPPED.has(entry)) continue;
     symlinkSync(join(real, entry), join(shadow, entry));
   }
 }
 
 /**
  * A `node_modules` that is `modules` with `@antelopejs/dms-frontend` replaced
- * by the renderer checkout, every other entry linked to the original.
+ * by the renderer checkout and no `.cache`, every other entry linked to the
+ * original.
  *
  * @param {string} modules The playground's installed modules
  * @param {string} shadow The run's `node_modules`
@@ -39,7 +42,7 @@ function shadowLevel(real, shadow, keep) {
  */
 export function linkRenderer(modules, shadow, renderer) {
   const scope = "@antelopejs";
-  shadowLevel(modules, shadow, scope);
+  shadowLevel(modules, shadow, scope, MODULES_CACHE);
   const scoped = join(modules, scope);
   const shadowScope = join(shadow, scope);
   if (existsSync(scoped)) shadowLevel(scoped, shadowScope, "dms-frontend");
@@ -52,9 +55,10 @@ export function linkRenderer(modules, shadow, renderer) {
  * the playground, every sibling is linked, so relative paths such as a
  * tsconfig `extends` resolve as in the checkout. The playground itself is
  * copied without its installed modules and build, so `.antelope/` and the
- * frontend build belong to the run. Its `node_modules` is the playground's,
- * except that `@antelopejs/dms-frontend` is the `renderer` checkout when
- * there is one.
+ * frontend build belong to the run. Its `node_modules` links every entry of
+ * the playground's but `.cache`, where a backend writes its MCP credential
+ * and its packed modules, so that folder belongs to the run too; and
+ * `@antelopejs/dms-frontend` is the `renderer` checkout when there is one.
  *
  * @param {string} playground The playground folder
  * @param {string} checkout The checkout root, or the module folder outside one
@@ -77,6 +81,6 @@ export function layOutCopy(playground, checkout, root, renderer) {
   });
   const modules = join(playground, "node_modules");
   if (renderer) linkRenderer(modules, join(shadow, "node_modules"), renderer);
-  else symlinkSync(modules, join(shadow, "node_modules"));
+  else shadowLevel(modules, join(shadow, "node_modules"), MODULES_CACHE);
   return shadow;
 }

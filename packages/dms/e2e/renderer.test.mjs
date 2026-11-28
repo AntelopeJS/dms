@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import {
-  lstatSync,
+  existsSync,
   mkdirSync,
   mkdtempSync,
   realpathSync,
@@ -147,15 +147,6 @@ await test("a playground that installs no @antelopejs scope still gets the rende
   );
 });
 
-await test("without a renderer the run's node_modules is the playground's", (t) => {
-  const root = scratch(t);
-  const { checkout, playground, modules } = checkoutWithPlayground(root);
-  const copy = layOutCopy(playground, checkout, join(root, "run"));
-  const linked = join(copy, "node_modules");
-  assert.equal(lstatSync(linked).isSymbolicLink(), true);
-  assert.equal(realpathSync(linked), realpathSync(modules));
-});
-
 await test("the dashboard CLI is the renderer's build, the backend CLI stays the playground's core", (t) => {
   const root = scratch(t);
   const { playground } = checkoutWithPlayground(root);
@@ -245,4 +236,27 @@ await test("a run with a renderer has no base backend", async () => {
     withBaseBackend({ renderer: "/ui" }, {}, async () => {}),
     /no base backend/,
   );
+});
+
+await test("two runs of one playground each write their own node_modules/.cache and resolve every installed module to the playground's (catches runs whose backends write their MCP credential to one file)", (t) => {
+  const root = scratch(t);
+  const { checkout, playground, modules } = checkoutWithPlayground(root);
+  mkdirSync(join(modules, ".cache", "dms"), { recursive: true });
+  const copies = ["run-1", "run-2"].map((run) =>
+    layOutCopy(playground, checkout, join(root, run)),
+  );
+  const credential = (/** @type {string} */ folder) =>
+    join(folder, "node_modules", ".cache", "dms", "mcp.json");
+  mkdirSync(join(copies[0], "node_modules", ".cache", "dms"), {
+    recursive: true,
+  });
+  writeFileSync(credential(copies[0]), "{}");
+  assert.equal(existsSync(credential(copies[1])), false);
+  assert.equal(existsSync(credential(playground)), false);
+  for (const copy of copies) {
+    assert.equal(
+      realpathSync(join(copy, "node_modules", "zod")),
+      realpathSync(join(modules, "zod")),
+    );
+  }
 });
