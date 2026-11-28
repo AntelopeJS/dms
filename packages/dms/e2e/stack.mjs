@@ -334,18 +334,34 @@ export function liveBackends(state) {
 }
 
 /**
- * Waits until a backend answers `/api/onboarding/informations` on its own port.
+ * Waits until a backend listens on its own port and answers
+ * `/api/onboarding/informations` there.
  *
  * @param {import("./run-state.mjs").ServerRecord} backend The backend
  * @returns {Promise<void>} Resolves once it answers 200
- * @throws When it exits first or the timeout passes, naming its log
+ * @throws When it exits first, another process holds its port or the timeout passes, naming its log
  */
-export function waitForBackend(backend) {
-  return waitForOk(
+export async function waitForBackend(backend) {
+  await waitForOwnPort(backend.port, backend, READY_TIMEOUT_MS);
+  await waitForOk(
     `http://127.0.0.1:${backend.port}/api/onboarding/informations`,
     backend,
     READY_TIMEOUT_MS,
   );
+}
+
+/**
+ * Waits until the run's dashboard listens on the run's web port and answers
+ * `/dms-preview` there.
+ *
+ * @param {Pick<RunState, "webPort" | "webUrl">} state The run
+ * @param {import("./run-state.mjs").ProcessRecord} frontend The dashboard's process
+ * @returns {Promise<void>} Resolves once it answers 200
+ * @throws When it exits first, another process holds its port or the timeout passes, naming its log
+ */
+export async function waitForDashboard(state, frontend) {
+  await waitForOwnPort(state.webPort, frontend, READY_TIMEOUT_MS);
+  await waitForOk(`${state.webUrl}/dms-preview`, frontend, READY_TIMEOUT_MS);
 }
 
 /**
@@ -496,7 +512,7 @@ async function buildAndStart(state, useCache) {
   await timed(state, "frontend-start", async () => {
     const frontend = startDetached(frontendSpec(state));
     record(state, { ...frontend, port: state.webPort });
-    await waitForOk(`${state.webUrl}/dms-preview`, frontend, READY_TIMEOUT_MS);
+    await waitForDashboard(state, frontend);
     assertFrontendBound(frontend);
   });
   await recordDashboardModules(state);

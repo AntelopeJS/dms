@@ -319,8 +319,8 @@ export async function waitForPort(port, record, timeoutMs) {
 }
 
 /**
- * Polls until the process itself listens on the port, so a port another
- * program took after it was picked is not mistaken for ours.
+ * Polls until the process or one it started listens on the port, so a port
+ * another program took after it was picked is not mistaken for ours.
  *
  * @param {number} port The port
  * @param {{ name: string, pid: number, log: string }} record The process that must listen
@@ -332,7 +332,8 @@ export async function waitForOwnPort(port, record, timeoutMs) {
   if (listenersOf(port) === null) return waitForPort(port, record, timeoutMs);
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline && isAlive(record.pid)) {
-    if (listenersOf(port).includes(record.pid)) return;
+    const own = new Set([record.pid, ...descendantsOf([record.pid])]);
+    if (listenersOf(port)?.some((pid) => own.has(pid))) return;
     await sleep(POLL_MS);
   }
   throw new Error(
