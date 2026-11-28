@@ -101,10 +101,29 @@ export function extractRouteParams(
 }
 
 /**
+ * Resolves once a visit that was neither cancelled nor interrupted finishes:
+ * the navigation that cancelled a reload, or the last of the navigations that
+ * followed it, is over.
+ */
+function nextSettledVisit(): Promise<void> {
+  return new Promise((resolve) => {
+    const stop = inertiaRouter.on("finish", (event) => {
+      const { visit } = event.detail;
+      if (visit.cancelled || visit.interrupted) return;
+      stop();
+      resolve();
+    });
+  });
+}
+
+/**
  * A partial reload of the page on screen: the server sends the site layout
  * and the page fresh, and they replace the browser's copies, the layout
- * Inertia carries from page to page included. A failure rejects and leaves
- * the page as it is: Inertia would otherwise show the error in its place.
+ * Inertia carries from page to page included. A navigation to another page
+ * cancels it and keeps the layout the browser holds, so it starts again once
+ * that navigation is over, as often as navigations cancel it. A failure
+ * rejects and leaves the page as it is: Inertia would otherwise show the
+ * error in its place.
  */
 function reloadSiteLayoutAndPage(): Promise<void> {
   return new Promise((resolve, reject) => {
@@ -119,7 +138,12 @@ function reloadSiteLayoutAndPage(): Promise<void> {
         failure = error;
         return false;
       },
-      onFinish: () => (failure ? reject(failure) : resolve()),
+      onFinish: (visit) => {
+        if (failure) reject(failure);
+        else if (visit.cancelled || visit.interrupted) {
+          resolve(nextSettledVisit().then(reloadSiteLayoutAndPage));
+        } else resolve();
+      },
     });
   });
 }
