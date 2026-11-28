@@ -5,6 +5,7 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { sharedDmsState, type StateValue } from "./state-stub";
 import {
   dispatchFinish,
+  dispatchNavigate,
   finishedVisit,
   type InertiaReloadOptions,
   type VisitOutcome,
@@ -53,6 +54,7 @@ function sidebarOf(...entries: string[]): Array<{ name: string }> {
 }
 
 beforeEach(() => {
+  window.history.replaceState(null, "", "/cloud/projects");
   state.clear();
   reloads.length = 0;
   vi.stubGlobal("useDmsApp", () => ({}));
@@ -150,5 +152,66 @@ it("gives a second menu change that arrives during the retry its own reload, aft
   expect(reloads).toHaveLength(3);
   expect(useSiteLayout().siteLayoutTree.value).toEqual(
     sidebarOf("Projects", "Project Alpha", "Project Beta"),
+  );
+});
+
+it("reloads again after a history step that cancelled the reload, which sets the page without a finish event (catches a retry that waits for a finish that never comes)", async () => {
+  serverMenu = ["Projects", "Project Alpha"];
+  const resync = useSiteLayout().resync();
+  navigationCancelsReload(0);
+  await settle();
+  dispatchNavigate();
+  await settle();
+  completeReload(1);
+  await resync;
+
+  expect(useSiteLayout().siteLayoutTree.value).toEqual(
+    sidebarOf("Projects", "Project Alpha"),
+  );
+});
+
+it("does not reload while the visits that finish are cancelled or interrupted, since the navigation that cancelled it is still in flight (catches a retry woken by any finish)", async () => {
+  const resync = useSiteLayout().resync();
+  navigationCancelsReload(0);
+  await settle();
+  dispatchFinish({ cancelled: true, interrupted: false });
+  dispatchFinish({ cancelled: false, interrupted: true });
+  await settle();
+
+  expect(reloads).toHaveLength(1);
+  navigationFinishes();
+  await settle();
+  completeReload(1);
+  await resync;
+});
+
+it("reloads again after the settle timeout when nothing follows the cancellation (catches a resync held for good by a cancel no visit follows)", async () => {
+  vi.useFakeTimers();
+  try {
+    const resync = useSiteLayout().resync();
+    navigationCancelsReload(0);
+    await vi.advanceTimersByTimeAsync(1_999);
+    expect(reloads).toHaveLength(1);
+    await vi.advanceTimersByTimeAsync(1);
+    expect(reloads).toHaveLength(2);
+    completeReload(1);
+    await resync;
+  } finally {
+    vi.useRealTimers();
+  }
+});
+
+it("reloads again when the page changed while the reload ran, whose answer Inertia then drops (catches a resync that trusts a reload of the page it left)", async () => {
+  serverMenu = ["Projects", "Project Alpha"];
+  const resync = useSiteLayout().resync();
+  window.history.pushState(null, "", "/cloud/projects/project");
+  endVisit(COMPLETED, reloads[0]);
+  await settle();
+  completeReload(1);
+  await resync;
+
+  expect(reloads).toHaveLength(2);
+  expect(useSiteLayout().siteLayoutTree.value).toEqual(
+    sidebarOf("Projects", "Project Alpha"),
   );
 });

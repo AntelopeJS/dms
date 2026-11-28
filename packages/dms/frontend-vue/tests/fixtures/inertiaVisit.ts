@@ -73,3 +73,8 @@ export function dispatchFinish(outcome: VisitOutcome): void {
     }),
   );
 }
+
+/** Inertia's global `navigate` event: it set a page, from a visit, a prefetched response or a history step. */
+export function dispatchNavigate(): void {
+  document.dispatchEvent(new CustomEvent("inertia:navigate", { detail: {} }));
+}
