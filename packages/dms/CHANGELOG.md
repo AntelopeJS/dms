@@ -1,5 +1,17 @@
 # Changelog
 
+## v0.25.4
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/v0.25.3...v0.25.4)
+
+### 🩹 Fixes
+
+- **dms:** Resync the sidebar when the realtime stream first opens on a changed menu ([#1311](https://github.com/AntelopeJS/dms/pull/1311))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli
+
 ## v0.25.3
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/v0.25.2...v0.25.3)
