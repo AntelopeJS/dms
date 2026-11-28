@@ -3,8 +3,27 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { isSameProcess } from "./identity.mjs";
 import { apiRequest, onboard, startRun } from "./run.mjs";
+import globalSetup, { currentRun } from "./global-setup.mjs";
 import { loadRun, recordedBackends } from "./run-state.mjs";
 import { down } from "./stack.mjs";
+import { declareSuite } from "./suite.mjs";
+
+/**
+ * Every process a run recorded, its backends included, once each.
+ *
+ * @param {string} dir The run folder
+ * @returns {import("./run-state.mjs").ProcessRecord[]}
+ */
+function processesOf(dir) {
+  return [
+    ...new Map(
+      [...loadRun(dir).processes, ...recordedBackends(dir)].map((entry) => [
+        entry.pid,
+        entry,
+      ]),
+    ).values(),
+  ];
+}
 
 await test("a node:test file starts the checkout's playground, calls its backend anonymously and as the onboarded administrator, and leaves no process once it stops (catches a stop that leaves the backend, the mail sink or mongod running)", async (t) => {
   const { run, stop } = await startRun({ prepare: false });
@@ -30,13 +49,7 @@ await test("a node:test file starts the checkout's playground, calls its backend
   });
   assert.deepEqual(after.body, { has_onboarded: true });
 
-  const started = [
-    ...new Map(
-      [...loadRun(run.dir).processes, ...recordedBackends(run.dir)].map(
-        (entry) => [entry.pid, entry],
-      ),
-    ).values(),
-  ];
+  const started = processesOf(run.dir);
   assert.ok(
     started.some((entry) => entry.name === "backend"),
     "the run recorded its backend",
@@ -72,6 +85,56 @@ setInterval(() => {}, 1000);`,
   const started = loadRun(dir).processes;
   child.kill("SIGINT");
   assert.equal(await exited, "SIGINT");
+  assert.deepEqual(
+    started.filter(isSameProcess).map((entry) => `${entry.name} ${entry.pid}`),
+    [],
+  );
+});
+
+await test("the global setup of a two-worker suite starts a run for each worker, apart from the other, and its teardown leaves no process of either (catches workers that share a run, a database, a mail sink or a dashboard, or a teardown that stops only the first run)", async (t) => {
+  const saved = {
+    DMS_E2E_SUITE: process.env.DMS_E2E_SUITE,
+    DMS_E2E_PREBUILT: process.env.DMS_E2E_PREBUILT,
+    DMS_E2E_RUN: process.env.DMS_E2E_RUN,
+    DMS_E2E_LANES: process.env.DMS_E2E_LANES,
+  };
+  process.env.DMS_E2E_PREBUILT = "1";
+  delete process.env.DMS_E2E_RUN;
+  const suite = declareSuite({});
+  const teardown = await globalSetup({ workers: 2, webServer: null });
+  const runs = [currentRun(suite, 0), currentRun(suite, 1)];
+  t.after(async () => {
+    for (const run of runs) await down(loadRun(run.dir));
+    for (const [name, value] of Object.entries(saved)) {
+      if (value === undefined) delete process.env[name];
+      else process.env[name] = value;
+    }
+  });
+  const [first, second] = runs;
+  for (const key of /** @type {const} */ ([
+    "dir",
+    "apiPort",
+    "webPort",
+    "smtpPort",
+    "mongoUrl",
+    "runPlayground",
+  ])) {
+    assert.notEqual(first[key], second[key], key);
+  }
+  assert.throws(() => currentRun(suite, 2), /worker 2 has no run/);
+
+  const admin = await onboard(first, {});
+  assert.equal(admin.register.status, 200, JSON.stringify(admin.register));
+  const other = await apiRequest(second, {
+    method: "GET",
+    path: "/api/onboarding/informations",
+    as: "anon",
+  });
+  assert.deepEqual(other.body, { has_onboarded: false });
+
+  const started = runs.flatMap((run) => processesOf(run.dir));
+  assert.ok(teardown, "the global setup returned its teardown");
+  await teardown();
   assert.deepEqual(
     started.filter(isSameProcess).map((entry) => `${entry.name} ${entry.pid}`),
     [],

@@ -10,7 +10,7 @@ import { loadSuiteConfig } from "./journeys-config.mjs";
 /**
  * @typedef {import("./suite.mjs").Suite} Suite
  * @typedef {import("./test-journey.mjs").DmsOptions} DmsOptions How the `dms` fixture prepares a test
- * @typedef {{ dmsSuite: Suite, run: import("./run-state.mjs").RunState, journeysConfig: import("./journeys-config.mjs").SuiteConfig }} DmsWorkerFixtures What a worker shares: the suite its config declared, the run its global setup started, and the journeys config of the suite
+ * @typedef {{ dmsSuite: Suite, run: import("./run-state.mjs").RunState, journeysConfig: import("./journeys-config.mjs").SuiteConfig }} DmsWorkerFixtures What a worker shares: the suite its config declared, the run its global setup started for it, and the journeys config of the suite
  * @typedef {{ dmsOptions: DmsOptions, dms: import("./journey.mjs").JourneyContext, adminPage: import("@playwright/test").Page }} DmsTestFixtures What one test gets: its options, the journey context it drives the run through, and a page the administrator signed in on
  * @typedef {import("@playwright/test").PlaywrightTestArgs & import("@playwright/test").PlaywrightTestOptions} PlaywrightTestFixtures The fixtures Playwright gives a test
  * @typedef {import("@playwright/test").PlaywrightWorkerArgs & import("@playwright/test").PlaywrightWorkerOptions} PlaywrightWorkerFixtures The fixtures Playwright gives a worker
@@ -93,8 +93,8 @@ async function report(result, state, testInfo) {
 const FIXTURES = {
   dmsSuite: [UNDECLARED_SUITE, { option: true, scope: "worker" }],
   run: [
-    async ({ dmsSuite }, use) => {
-      await use(currentRun(dmsSuite));
+    async ({ dmsSuite }, use, workerInfo) => {
+      await use(currentRun(dmsSuite, workerInfo.parallelIndex));
     },
     { scope: "worker" },
   ],

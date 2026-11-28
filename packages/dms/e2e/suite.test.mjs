@@ -11,6 +11,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 import { declareSuite, declaredSuite, suiteJourneys } from "./suite.mjs";
+import globalSetup from "./global-setup.mjs";
 import { startOptions } from "./start.mjs";
 
 const CONFIG = `export default ${JSON.stringify({
@@ -165,5 +166,59 @@ await test("a build suite leaves out the journeys that need the development dash
         "smoke",
       ),
     /b-1/,
+  );
+});
+
+await test("a seed draws the order of the journeys not marked last, the same for the same seed, and keeps the last ones after them in their order (catches a shuffle that ignores the seed, draws a new order on each call, or moves a last journey)", () => {
+  const features = [
+    {
+      name: "a",
+      journeys: [
+        ...Array.from({ length: 8 }, (_, index) => journey(`a-${index}`)),
+        journey("a-last", { last: true }),
+      ],
+    },
+    {
+      name: "b",
+      journeys: [journey("b-last", { last: true }), journey("b-1")],
+    },
+  ];
+  const ids = (/** @type {string | undefined} */ seed) =>
+    suiteJourneys(features, "build", "smoke", seed).map(
+      (entry) => entry.journey.id,
+    );
+  const unshuffled = ids(undefined);
+  const drawn = ids("1");
+  assert.deepEqual(drawn, ids("1"));
+  assert.notDeepEqual(drawn, unshuffled);
+  assert.notDeepEqual(drawn, ids("2"));
+  assert.deepEqual(drawn.slice(-2), ["a-last", "b-last"]);
+  assert.deepEqual(drawn.toSorted(), unshuffled.toSorted());
+});
+
+await test("the global setup refuses several workers on the run DMS_E2E_RUN names (catches two workers driving one run, whose journeys would share its backend and database)", async (t) => {
+  twoSuiteCheckout(t);
+  const adopted = process.env.DMS_E2E_RUN;
+  process.env.DMS_E2E_RUN = join(process.cwd(), "no-run");
+  t.after(() => {
+    if (adopted === undefined) delete process.env.DMS_E2E_RUN;
+    else process.env.DMS_E2E_RUN = adopted;
+  });
+  declareSuite({});
+  await assert.rejects(
+    globalSetup({ workers: 2, webServer: null }),
+    /--workers=1/,
+  );
+});
+
+await test("the global setup refuses several workers when the config starts a webServer, which every worker would share (catches two workers whose journeys reset and read one mock server)", async (t) => {
+  twoSuiteCheckout(t);
+  declareSuite({});
+  await assert.rejects(
+    globalSetup({
+      workers: 2,
+      webServer: { command: "node mock.js", url: "http://127.0.0.1:4010" },
+    }),
+    /webServer.*workers: 1/,
   );
 });

@@ -1,6 +1,7 @@
 import { resolve } from "node:path";
 import { checkoutOf } from "./git.mjs";
-import { up } from "./stack.mjs";
+import { loadRun } from "./run-state.mjs";
+import { down, up } from "./stack.mjs";
 import { loadSuiteConfig, runPrepare } from "./journeys-config.mjs";
 
 /**
@@ -76,4 +77,90 @@ export async function startStack(options, cwd) {
     );
   }
   return state;
+}
+
+/** @type {NodeJS.Signals[]} */
+const STOP_SIGNALS = ["SIGINT", "SIGTERM"];
+
+/**
+ * Stops a run from what its `run.json` recorded last, which the journeys of
+ * other processes update, and reports what it could not do on stderr.
+ *
+ * @param {string} dir The run folder
+ */
+async function stopRun(dir) {
+  const lines = await down(loadRun(dir));
+  for (const line of lines.filter((entry) => entry.startsWith("could not")))
+    process.stderr.write(`dms-e2e: ${line}\n`);
+}
+
+/**
+ * Stops the runs in `dirs` together, each to its end whatever the others do.
+ *
+ * @param {string[]} dirs The run folders
+ * @returns {Promise<void>}
+ * @throws The first failure, once every run stopped
+ */
+async function stopRuns(dirs) {
+  const stopped = await Promise.allSettled(dirs.map(stopRun));
+  const failed = stopped.find((result) => result.status === "rejected");
+  if (failed) throw failed.reason;
+}
+
+/**
+ * Starts `count` runs of the checkout's playground, each with its own
+ * playground copy, ports, MongoDB, mail sink, backends and dashboard, for
+ * the workers of one suite to drive one each. The first runs the journeys
+ * config's prepare commands as `options` asks; the others start once it is
+ * ready, together, without them, so their dashboards come from the build
+ * cache the first one filled. `stop` stops them all, and from the moment
+ * the first is ready a SIGINT or SIGTERM to this process stops every run
+ * started so far, then ends the process by that signal.
+ *
+ * @param {RunOptions} options How to start them
+ * @param {number} count How many, at least 1
+ * @returns {Promise<{ runs: import("./run-state.mjs").RunState[], stop: () => Promise<void> }>} The ready runs, and what stops them
+ * @throws When a run fails to start; every run it started is stopped first
+ */
+export async function startRuns(options, count) {
+  const cwd = process.cwd();
+  const first = await startStack(startOptions(options, cwd), cwd);
+  const dirs = [first.dir];
+  const onSignal = (/** @type {NodeJS.Signals} */ signal) => {
+    release();
+    const reraise = () => process.kill(process.pid, signal);
+    stopRuns(dirs).then(reraise, reraise);
+  };
+  const release = () => {
+    for (const signal of STOP_SIGNALS) process.off(signal, onSignal);
+  };
+  for (const signal of STOP_SIGNALS) process.on(signal, onSignal);
+  const others = await Promise.allSettled(
+    Array.from({ length: count - 1 }, async () => {
+      const run = await startStack(
+        startOptions({ ...options, prepare: false }, cwd),
+        cwd,
+      );
+      dirs.push(run.dir);
+      return run;
+    }),
+  );
+  const failed = others.find((other) => other.status === "rejected");
+  if (failed) {
+    release();
+    await stopRuns(dirs);
+    throw failed.reason;
+  }
+  return {
+    runs: [
+      first,
+      ...others.flatMap((other) =>
+        other.status === "fulfilled" ? [other.value] : [],
+      ),
+    ],
+    stop: () => {
+      release();
+      return stopRuns(dirs);
+    },
+  };
 }
