@@ -22,10 +22,6 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
-# The checks run as parallel jobs: one sequential job waited for the sum of
-# them, the slowest alone is enough. Every job builds what it reads exactly
-# once, then sets DMS_PREBUILT so the package scripts and the test harness use
-# that build rather than compiling it again.
 jobs:
   ci:
     uses: AntelopeJS/.github/.github/workflows/ci-node.yml@v2
@@ -54,10 +50,6 @@ jobs:
     permissions:
       contents: read
 
-  # ci-node.yml exposes no outputs, so this takes its tier rule from the shared
-  # action and forces the tier of an event it does not know. checks/
-  # affected-packages.mjs is the only selector: it plans the packages, the
-  # formal checks and the jobs of the run, and every job below reads that plan.
   select:
     runs-on: ${{ vars.RUNNER_CI || (github.event.repository.visibility == 'public' && 'ubuntu-latest' || 'blacksmith-4vcpu-ubuntu-2404') }}
     timeout-minutes: 5
@@ -143,9 +135,6 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/setup
 
-      # The MongoDB binary the harness downloads and the provider modules it
-      # installs into its cache folder are pinned in antelope.test.ts, and the
-      # modules install from the locks in antelope-lock/.
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |
@@ -153,12 +142,7 @@ jobs:
             packages/dms/.antelope/cache
           key: dms-test-harness-${{ runner.os }}-${{ hashFiles('packages/dms/src/test/antelope.test.ts', 'packages/dms/antelope-lock/**') }}
 
-      # Also the compile gate: the separate `build` step this job replaces
-      # had nothing else to check.
       - run: pnpm --dir packages/dms build
-      # Needs no service: the harness starts an in-memory MongoDB replica set
-      # and lets the OS pick the api port. A builder shard takes its files by
-      # the seconds in scripts/test-weights.json and records this run's.
       - env:
           SUITE: ${{ matrix.suite }}
           DMS_TEST_DURATIONS: ${{ runner.temp }}/builder-durations.json
@@ -193,13 +177,10 @@ jobs:
         shell: bash
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      # Some tests import the interface's chart helpers at runtime.
       - uses: ./.github/actions/setup
         with:
           interface: "true"
 
-      # Most of the suite's time is the per-file jsdom setup, which splits
-      # evenly across shards.
       - run: pnpm --dir packages/dms/frontend-vue test --shard=${{ matrix.shard }}/2
 
   frontend-verify:
@@ -221,8 +202,6 @@ jobs:
         with:
           interface: "true"
 
-      # `ajs dms verify-source`: the client, SSR and e-mail builds, the bundle
-      # check and vue-tsc, in a workspace of its own.
       - run: pnpm --dir packages/dms/frontend-vue typecheck
 
   dependents:
@@ -254,19 +233,11 @@ jobs:
           interface: "true"
       - run: pnpm --dir packages/dms/frontend-vue typecheck -m "$GITHUB_WORKSPACE/dependents/${{ matrix.repository }}/${{ matrix.module }}"
 
-  # The shipped playground image, in the merge queue and on the nightly run.
   docs-playground:
     needs: select
     if: contains(fromJSON(needs.select.outputs.jobs), 'docs-playground')
     uses: ./.github/workflows/docs-playground.yml
 
-  # The Playwright suite of e2e/, when the plan selects it: its global setup
-  # prepares the playground and starts one run of the @antelopejs/dms/e2e kit
-  # for each of its two workers.
-  # A pull request runs the @smoke tests. The merge queue runs the whole suite
-  # in nine shards; a manual run, a pull request labelled ci:full and the
-  # nightly schedule in three. e2e-report merges the shards into one report.
-  # The shard list carries the choice: ["smoke"], or the shard numbers.
   e2e:
     needs: select
     if: contains(fromJSON(needs.select.outputs.jobs), 'e2e')
@@ -309,22 +280,15 @@ jobs:
         run: pnpm e2e --shard=${{ matrix.shard }}/${{ strategy.job-total }} --add-reporter=blob
         env:
           DMS_E2E_DURATIONS: ${{ runner.temp }}/e2e-durations.json
-          # Shard 1 takes this many seconds fewer journeys: its node:test
-          # step below (66 s), plus the 15 s its journeys run over their
-          # weights.
+          # Shard 1 takes fewer journeys: its node:test step runs on it too.
           DMS_E2E_FIRST_SHARD_EXTRA: 80
           PLAYWRIGHT_BLOB_OUTPUT_DIR: e2e/blob-report
-      # The kit's phase timings of the shard, as a notice on the check run.
       - if: success() || failure()
         run: node e2e/timings-summary.mjs "$DMS_E2E_RUNS"
-      # The run helper of @antelopejs/dms/e2e/run, on the playground the suite prepared.
       - if: matrix.shard == 'smoke'
         run: node --test packages/dms/e2e/run.test.mjs
-      # On shard 1, with the journeys that open no tab, through runJourney of
-      # @antelopejs/dms/e2e/run, side by side.
       - if: (success() || failure()) && matrix.shard == 1
         run: node --test packages/dms/e2e/run.test.mjs e2e/integration/journeys.test.mjs
-      # The declarations @antelopejs/dms/e2e publishes, built by the run's prepare.
       - if: success() || failure()
         run: pnpm exec tsc --noEmit -p e2e
       - if: ${{ !cancelled() && matrix.shard != 'smoke' }}
@@ -350,7 +314,6 @@ jobs:
             ${{ runner.temp }}/dms-runs/*/logs
           retention-days: 7
 
-  # One HTML and JSON report of the shards, whenever the whole suite ran.
   e2e-report:
     needs: [select, e2e]
     if: always() && needs.e2e.result != 'skipped' && (needs.select.outputs.tier == 'queue' || needs.select.outputs.tier == 'nightly' || github.event_name == 'workflow_dispatch' || contains(github.event.pull_request.labels.*.name, 'ci:full'))
@@ -377,9 +340,6 @@ jobs:
           path: e2e/playwright-report
           retention-days: 14
 
-  # The checks the selector plans: those the change touches on a pull request,
-  # all of them in the queue and on the nightly run, which checks their full
-  # configurations, as a manual run does.
   formal:
     needs: select
     if: contains(fromJSON(needs.select.outputs.jobs), 'formal')
@@ -395,13 +355,7 @@ jobs:
     with:
       checks: ${{ needs.select.outputs.formal-generated }}
 
-  # The org ruleset requires this job, named `ubuntu`, next to the `ci / checks`
-  # of the shared workflow, so the name stays. It is green only when every job
-  # the plan requires is, and a failed or cancelled job fails it. On the fast
-  # and none tiers the planner narrows the run, so a job outside the plan may
-  # be skipped. On every other tier the gate holds its own table of the jobs
-  # the tier must run, apart from the planner, so a planner that drops a job
-  # fails the gate (`checks/ci-gate.mjs`).
+  # The org ruleset requires this job by the name `ubuntu`: keep it.
   ubuntu:
     if: always()
     needs:
