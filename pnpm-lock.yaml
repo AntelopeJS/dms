@@ -450,8 +450,8 @@ importers:
         specifier: '>=0.11.11 <0.12.0'
         version: 0.11.11(@antelopejs/core@1.24.8)
       '@antelopejs/tooling-configs':
-        specifier: '>=0.10.14 <0.11.0'
-        version: 0.10.14(@nuxt/eslint-config@1.17.0(@typescript-eslint/utils@8.68.0(eslint@10.15.0(jiti@2.7.0))(typescript@5.9.3))(@vue/compiler-sfc@3.5.25)(eslint@10.15.0(jiti@2.7.0))(typescript@5.9.3))(knip@6.34.0)(mongodb-memory-server@11.3.0(socks@2.8.7))(oxfmt@0.66.0)(oxlint@1.81.0(oxlint-tsgolint@7.0.2001))(pixelmatch@8.0.0)(playwright-core@1.65.1)(sharp@0.35.5(@types/node@26.6.5))
+        specifier: '>=0.10.15 <0.11.0'
+        version: 0.10.15(@nuxt/eslint-config@1.17.0(@typescript-eslint/utils@8.68.0(eslint@10.15.0(jiti@2.7.0))(typescript@5.9.3))(@vue/compiler-sfc@3.5.25)(eslint@10.15.0(jiti@2.7.0))(typescript@5.9.3))(knip@6.34.0)(mongodb-memory-server@11.3.0(socks@2.8.7))(oxfmt@0.66.0)(oxlint@1.81.0(oxlint-tsgolint@7.0.2001))(pixelmatch@8.0.0)(playwright-core@1.65.1)(sharp@0.35.5(@types/node@26.6.5))
       '@inertiajs/vue3':
         specifier: ^3.7.0
         version: 3.7.1(axios@1.18.0)(vue@3.5.25(typescript@5.9.3))
@@ -759,40 +759,6 @@ packages:
 
   '@antelopejs/rethinkdb@1.10.8':
     resolution: {integrity: sha512-OM6lnbtxkMyIwFT//GCG0HGW9Lkp5J5Pub2Kx8tKs6WW4JtGHNR9nFxrB+5wmpwNuYwCFAmZaLth1sCVT+O4uQ==}
-
-  '@antelopejs/tooling-configs@0.10.14':
-    resolution: {integrity: sha512-jSEmmtT7P11Ur9uSJ9oVFTUYRgzgLVpwiOdjp1Xo49y3zwcbV1nu/TCnqRcdPOMeZbRlJtnW0B0iYEi7m0dqGw==}
-    engines: {node: '>=22.18.0'}
-    hasBin: true
-    peerDependencies:
-      '@nuxt/eslint-config': '>=1.2.0'
-      eslint-plugin-perfectionist: '>=5.0.0'
-      knip: '>=6.0.0'
-      mongodb-memory-server: '>=10.0.0'
-      oxfmt: ^0.66.0 || ^0.77.0 || ^0.79.0 || ^0.80.0
-      oxlint: 1.81.0 || 1.94.0 || 1.95.0
-      pixelmatch: '>=7.0.0'
-      playwright-core: '>=1.56.0'
-      sharp: '>=0.34.0'
-    peerDependenciesMeta:
-      '@nuxt/eslint-config':
-        optional: true
-      eslint-plugin-perfectionist:
-        optional: true
-      knip:
-        optional: true
-      mongodb-memory-server:
-        optional: true
-      oxfmt:
-        optional: true
-      oxlint:
-        optional: true
-      pixelmatch:
-        optional: true
-      playwright-core:
-        optional: true
-      sharp:
-        optional: true
 
   '@antelopejs/tooling-configs@0.10.15':
     resolution: {integrity: sha512-eOUy9JJG5kMiy5g9kT/6lmRUaNEvY83KDn/BtlIKM0V1qr1iYJEi04JhoEYeGdl3aAeG4x08CTZ9ghkVy+DQ6w==}
@@ -7978,7 +7944,7 @@ snapshots:
     optionalDependencies:
       '@antelopejs/interface-rethinkdb': 0.1.2(@antelopejs/interface-core@0.5.2)
 
-  '@antelopejs/tooling-configs@0.10.14(@nuxt/eslint-config@1.17.0(@typescript-eslint/utils@8.68.0(eslint@10.15.0(jiti@2.7.0))(typescript@5.9.3))(@vue/compiler-sfc@3.5.25)(eslint@10.15.0(jiti@2.7.0))(typescript@5.9.3))(knip@6.34.0)(mongodb-memory-server@11.3.0(socks@2.8.7))(oxfmt@0.66.0)(oxlint@1.81.0(oxlint-tsgolint@7.0.2001))(pixelmatch@8.0.0)(playwright-core@1.65.1)(sharp@0.35.5(@types/node@26.6.5))':
+  '@antelopejs/tooling-configs@0.10.15(@nuxt/eslint-config@1.17.0(@typescript-eslint/utils@8.68.0(eslint@10.15.0(jiti@2.7.0))(typescript@5.9.3))(@vue/compiler-sfc@3.5.25)(eslint@10.15.0(jiti@2.7.0))(typescript@5.9.3))(knip@6.34.0)(mongodb-memory-server@11.3.0(socks@2.8.7))(oxfmt@0.66.0)(oxlint@1.81.0(oxlint-tsgolint@7.0.2001))(pixelmatch@8.0.0)(playwright-core@1.65.1)(sharp@0.35.5(@types/node@26.6.5))':
     dependencies:
       '@oxlint/plugins': 1.95.0
       dts-bundle-generator: 9.5.1
