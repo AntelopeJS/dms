@@ -22,7 +22,9 @@ const WORKERS = 2;
 /**
  * The Playwright config of a suite: two workers, each against a run of its
  * own that the global setup starts (one worker when `DMS_E2E_RUN` names
- * the run to drive), no retries, a test timeout above the kit's own waits,
+ * the run to drive), one retry in a GitHub merge-queue run (`merge_group`),
+ * which reports a pass on retry as flaky, and none elsewhere, a test timeout
+ * above the kit's own waits,
  * and the CI reporters. It is plain
  * Playwright config, so `defineConfig(e2eConfig(), overrides)` adjusts it.
  * The suite's journeys come from `e2e/journeys.config.ts` and
@@ -45,7 +47,7 @@ export function e2eConfig(options = {}) {
     outputDir: `test-results${suffix}`,
     fullyParallel: true,
     workers: process.env.DMS_E2E_RUN ? 1 : WORKERS,
-    retries: 0,
+    retries: process.env.GITHUB_EVENT_NAME === "merge_group" ? 1 : 0,
     forbidOnly: CI,
     timeout: 15 * MINUTE,
     globalSetup: fileURLToPath(new URL("global-setup.mjs", import.meta.url)),
