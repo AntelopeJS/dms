@@ -170,12 +170,11 @@ function hashFolder(folder, names, walk = SOURCES) {
 /**
  * Keys an entry at the top of a `node_modules` above the workspace, or in a
  * scope folder there. A scope folder, or a link to one, is keyed entry by
- * entry. Any other link is keyed
- * by its target, and, when the target is not a package of pnpm's virtual
- * store (a `link:` or `workspace:` package), by the content hash of the
- * folder it resolves to, its installs left out, read once however many links
- * reach it. A package copied in is keyed by its files, its own
- * `node_modules` included.
+ * entry. Any other link is keyed by its target, and, when the target is not
+ * a package of pnpm's virtual store (a `link:` or `workspace:` package), by
+ * the content hash of the folder it resolves to, its installs left out,
+ * read once however many links reach it. A package copied in is keyed by
+ * its files, its own `node_modules` included.
  *
  * @param {import("node:crypto").Hash} hash
  * @param {string} path The entry
@@ -215,10 +214,12 @@ function hashInstalled(hash, path, outside) {
  * @returns {boolean} Whether it is a scope folder, or a link to one
  */
 function isScope(path) {
-  return (
-    basename(path).startsWith("@") &&
-    statSync(path, { throwIfNoEntry: false })?.isDirectory() === true
-  );
+  if (!basename(path).startsWith("@")) return false;
+  try {
+    return statSync(path).isDirectory();
+  } catch {
+    return false;
+  }
 }
 
 /**
