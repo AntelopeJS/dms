@@ -1,5 +1,32 @@
 # Changelog
 
+## v0.25.0
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/v0.24.3...v0.25.0)
+
+### 🔥 Performance
+
+- **dms:** Run two e2e workers per shard, each on a run of its own ([#1286](https://github.com/AntelopeJS/dms/pull/1286))
+
+### 🩹 Fixes
+
+- **dms:** Keep the e2e kit's mongod off the run's reserved ports ([#1285](https://github.com/AntelopeJS/dms/pull/1285))
+- **ci:** Run every job on Blacksmith, gate the hand-written jobs and sync tooling-configs 0.10.12 ([#1289](https://github.com/AntelopeJS/dms/pull/1289))
+
+### 🏡 Chore
+
+- **deps:** Update dependency @types/chai to v5 ([#1294](https://github.com/AntelopeJS/dms/pull/1294))
+- **deps:** Update dependency @types/jsdom to v30 ([#1295](https://github.com/AntelopeJS/dms/pull/1295))
+- **deps:** Update dependency @unhead/vue to v3 ([#1296](https://github.com/AntelopeJS/dms/pull/1296))
+
+#### ⚠️ Breaking Changes
+
+- **dms:** Run two e2e workers per shard, each on a run of its own ([#1286](https://github.com/AntelopeJS/dms/pull/1286))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli
+
 ## v0.24.3
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/v0.24.2...v0.24.3)
