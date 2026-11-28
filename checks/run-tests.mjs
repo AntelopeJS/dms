@@ -26,6 +26,7 @@ const DMS_TESTS = [
   "e2e/processes",
   "e2e/renderer",
   "e2e/retries",
+  "e2e/run-copy",
   "e2e/run-exports",
   "e2e/run-ports",
   "e2e/run-state",

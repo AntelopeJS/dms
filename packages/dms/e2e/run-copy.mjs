@@ -34,7 +34,7 @@ function shadowLevel(real, shadow, ...keep) {
 /**
  * A `node_modules` that is `modules` with `@antelopejs/dms-frontend` replaced
  * by the renderer checkout and no `.cache`, every other entry linked to the
- * original.
+ * original. Without `modules`, it holds only the renderer.
  *
  * @param {string} modules The playground's installed modules
  * @param {string} shadow The run's `node_modules`
@@ -42,11 +42,11 @@ function shadowLevel(real, shadow, ...keep) {
  */
 export function linkRenderer(modules, shadow, renderer) {
   const scope = "@antelopejs";
-  shadowLevel(modules, shadow, scope, MODULES_CACHE);
+  if (existsSync(modules)) shadowLevel(modules, shadow, scope, MODULES_CACHE);
   const scoped = join(modules, scope);
   const shadowScope = join(shadow, scope);
   if (existsSync(scoped)) shadowLevel(scoped, shadowScope, "dms-frontend");
-  else mkdirSync(shadowScope);
+  else mkdirSync(shadowScope, { recursive: true });
   symlinkSync(renderer, join(shadowScope, "dms-frontend"));
 }
 
@@ -59,6 +59,8 @@ export function linkRenderer(modules, shadow, renderer) {
  * the playground's but `.cache`, where a backend writes its MCP credential
  * and its packed modules, so that folder belongs to the run too; and
  * `@antelopejs/dms-frontend` is the `renderer` checkout when there is one.
+ * A playground with no `node_modules` of its own gets none, unless it has a
+ * `renderer`, and resolves its modules from the linked levels above it.
  *
  * @param {string} playground The playground folder
  * @param {string} checkout The checkout root, or the module folder outside one
@@ -81,6 +83,8 @@ export function layOutCopy(playground, checkout, root, renderer) {
   });
   const modules = join(playground, "node_modules");
   if (renderer) linkRenderer(modules, join(shadow, "node_modules"), renderer);
-  else shadowLevel(modules, join(shadow, "node_modules"), MODULES_CACHE);
+  else if (existsSync(modules)) {
+    shadowLevel(modules, join(shadow, "node_modules"), MODULES_CACHE);
+  }
   return shadow;
 }
