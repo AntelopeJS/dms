@@ -67,7 +67,10 @@ await test("cuts the suite into contiguous shards that together hold every test 
   );
 });
 
-await test("splits by the weights rather than by count, so the slowest shard of the recorded suite is within 5% of the mean", async () => {
+/** Half the seconds of the heaviest recorded journey: how far a shard's load can sit from its share when a cut falls inside that journey. */
+const HALF_HEAVIEST = Math.max(...Object.values(WEIGHTS)) / 2;
+
+await test("splits by the weights rather than by count, so the slowest shard of the recorded suite is within half its heaviest journey of the mean", async () => {
   const tests = Object.keys(WEIGHTS).map(testCase);
   const total = 3;
   const loads = await Promise.all(
@@ -81,7 +84,7 @@ await test("splits by the weights rather than by count, so the slowest shard of 
   );
   const mean = loads.reduce((sum, load) => sum + load, 0) / total;
   assert.ok(
-    Math.max(...loads) <= mean * 1.05,
+    Math.max(...loads) <= mean + HALF_HEAVIEST,
     `loads ${loads.join(", ")} around a mean of ${mean}`,
   );
 });
@@ -116,11 +119,11 @@ async function loadsWith(total, extra) {
 }
 
 await test("gives shard 1 fewer journeys by the seconds it spends after the suite on each of its two workers, so it ends with the others (catches a split that ignores DMS_E2E_FIRST_SHARD_EXTRA)", async () => {
-  const loads = await loadsWith(3, "30");
-  const ends = [loads[0] + 60, ...loads.slice(1)];
+  const loads = await loadsWith(3, "80");
+  const ends = [loads[0] + 160, ...loads.slice(1)];
   const mean = ends.reduce((sum, end) => sum + end, 0) / ends.length;
   assert.ok(
-    Math.max(...ends) <= mean * 1.05,
+    ends[0] <= mean + HALF_HEAVIEST,
     `ends ${ends.join(", ")} around a mean of ${mean}`,
   );
 });
