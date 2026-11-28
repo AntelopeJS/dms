@@ -1,5 +1,17 @@
 # Changelog
 
+## v0.25.3
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/v0.25.2...v0.25.3)
+
+### 🩹 Fixes
+
+- **dms:** Start a journey backend outside the ephemeral range, and fail its wait when it falls back ([#1308](https://github.com/AntelopeJS/dms/pull/1308))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli
+
 ## v0.25.2
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/v0.25.1...v0.25.2)
