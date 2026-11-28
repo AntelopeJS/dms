@@ -1,5 +1,17 @@
 # Changelog
 
+## v0.17.3
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/interface-v0.17.2...interface-v0.17.3)
+
+### 🩹 Fixes
+
+- **ci:** Run every job on Blacksmith, gate the hand-written jobs and sync tooling-configs 0.10.12 ([#1289](https://github.com/AntelopeJS/dms/pull/1289))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli
+
 ## v0.17.2
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/interface-v0.17.1...interface-v0.17.2)
