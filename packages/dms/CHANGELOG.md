@@ -1,5 +1,21 @@
 # Changelog
 
+## v0.25.5
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/v0.25.4...v0.25.5)
+
+### 🩹 Fixes
+
+- **dms:** Reload the site layout again when a navigation cancels the resync's reload ([#1314](https://github.com/AntelopeJS/dms/pull/1314))
+
+### 📦 Build
+
+- **deps:** Bump tooling-configs to 0.10.15 and run sync ([#1312](https://github.com/AntelopeJS/dms/pull/1312))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli
+
 ## v0.25.4
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/v0.25.3...v0.25.4)
