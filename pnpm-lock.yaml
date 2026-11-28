@@ -181,8 +181,8 @@ importers:
         specifier: ^6.0.4
         version: 6.0.4
       '@types/chai':
-        specifier: ^4.3.20
-        version: 4.3.20
+        specifier: ^5.0.0
+        version: 5.2.3
       '@types/jsdom':
         specifier: ^28.0.3
         version: 28.0.3
@@ -3054,9 +3054,6 @@ packages:
 
   '@types/archiver@6.0.4':
     resolution: {integrity: sha512-ULdQpARQ3sz9WH4nb98mJDYA0ft2A8C4f4fovvUcFwINa1cgGjY36JCAYuP5YypRq4mco1lJp1/7jEMS2oR0Hg==}
-
-  '@types/chai@4.3.20':
-    resolution: {integrity: sha512-/pC9HAB5I/xMlc5FP77qjCnI16ChlJfW0tGa0IUcFn38VJrTV6DeZ60NU5KZBtaOZqjdpwTWohz5HU1RrhiYxQ==}
 
   '@types/chai@5.2.3':
     resolution: {integrity: sha512-Mw558oeA9fFbv65/y4mHtXDs9bPnFMZAL/jxdPFUpOHHIXX91mcgEHbS5Lahr+pwZFR8A7GQleRWeI6cGFC2UA==}
@@ -10172,8 +10169,6 @@ snapshots:
   '@types/archiver@6.0.4':
     dependencies:
       '@types/readdir-glob': 1.1.5
-
-  '@types/chai@4.3.20': {}
 
   '@types/chai@5.2.3':
     dependencies:
