@@ -15,8 +15,8 @@ importers:
         specifier: workspace:*
         version: link:packages/dms
       '@antelopejs/tooling-configs':
-        specifier: '>=0.10.4 <0.11.0'
-        version: 0.10.7(@nuxt/eslint-config@1.17.0(@typescript-eslint/utils@8.68.0(eslint@10.15.0(jiti@2.7.0))(typescript@6.0.3))(@vue/compiler-sfc@3.5.25)(eslint@10.15.0(jiti@2.7.0))(typescript@6.0.3))(knip@6.34.0)(mongodb-memory-server@11.3.0(socks@2.8.7))(oxfmt@0.66.0)(oxlint@1.81.0(oxlint-tsgolint@7.0.2001))(pixelmatch@8.0.0)(playwright-core@1.65.1)(sharp@0.35.5)
+        specifier: '>=0.10.12 <0.11.0'
+        version: 0.10.12(@nuxt/eslint-config@1.17.0(@typescript-eslint/utils@8.68.0(eslint@10.15.0(jiti@2.7.0))(typescript@6.0.3))(@vue/compiler-sfc@3.5.25)(eslint@10.15.0(jiti@2.7.0))(typescript@6.0.3))(knip@6.34.0)(mongodb-memory-server@11.3.0(socks@2.8.7))(oxfmt@0.66.0)(oxlint@1.81.0(oxlint-tsgolint@7.0.2001))(pixelmatch@8.0.0)(playwright-core@1.65.1)(sharp@0.35.5)
       '@playwright/test':
         specifier: ~1.65.0
         version: 1.65.1
@@ -172,8 +172,8 @@ importers:
         specifier: ~1.10.6
         version: 1.10.8
       '@antelopejs/tooling-configs':
-        specifier: '>=0.10.4 <0.11.0'
-        version: 0.10.7(@nuxt/eslint-config@1.17.0(@typescript-eslint/utils@8.68.0(eslint@10.15.0(jiti@2.7.0))(typescript@6.0.3))(@vue/compiler-sfc@3.5.25)(eslint@10.15.0(jiti@2.7.0))(typescript@6.0.3))(knip@6.34.0)(mongodb-memory-server@11.3.0(socks@2.8.7))(oxfmt@0.66.0)(oxlint@1.81.0(oxlint-tsgolint@7.0.2001))(pixelmatch@8.0.0)(playwright-core@1.65.1)(sharp@0.35.5(@types/node@26.6.5))
+        specifier: '>=0.10.12 <0.11.0'
+        version: 0.10.12(@nuxt/eslint-config@1.17.0(@typescript-eslint/utils@8.68.0(eslint@10.15.0(jiti@2.7.0))(typescript@6.0.3))(@vue/compiler-sfc@3.5.25)(eslint@10.15.0(jiti@2.7.0))(typescript@6.0.3))(knip@6.34.0)(mongodb-memory-server@11.3.0(socks@2.8.7))(oxfmt@0.66.0)(oxlint@1.81.0(oxlint-tsgolint@7.0.2001))(pixelmatch@8.0.0)(playwright-core@1.65.1)(sharp@0.35.5(@types/node@26.6.5))
       '@playwright/test':
         specifier: ~1.65.0
         version: 1.65.1
@@ -450,8 +450,8 @@ importers:
         specifier: '>=0.11.11 <0.12.0'
         version: 0.11.11(@antelopejs/core@1.24.8)
       '@antelopejs/tooling-configs':
-        specifier: '>=0.10.4 <0.11.0'
-        version: 0.10.7(@nuxt/eslint-config@1.17.0(@typescript-eslint/utils@8.68.0(eslint@10.15.0(jiti@2.7.0))(typescript@5.9.3))(@vue/compiler-sfc@3.5.25)(eslint@10.15.0(jiti@2.7.0))(typescript@5.9.3))(knip@6.34.0)(mongodb-memory-server@11.3.0(socks@2.8.7))(oxfmt@0.66.0)(oxlint@1.81.0(oxlint-tsgolint@7.0.2001))(pixelmatch@8.0.0)(playwright-core@1.65.1)(sharp@0.35.5(@types/node@26.6.5))
+        specifier: '>=0.10.12 <0.11.0'
+        version: 0.10.12(@nuxt/eslint-config@1.17.0(@typescript-eslint/utils@8.68.0(eslint@10.15.0(jiti@2.7.0))(typescript@5.9.3))(@vue/compiler-sfc@3.5.25)(eslint@10.15.0(jiti@2.7.0))(typescript@5.9.3))(knip@6.34.0)(mongodb-memory-server@11.3.0(socks@2.8.7))(oxfmt@0.66.0)(oxlint@1.81.0(oxlint-tsgolint@7.0.2001))(pixelmatch@8.0.0)(playwright-core@1.65.1)(sharp@0.35.5(@types/node@26.6.5))
       '@inertiajs/vue3':
         specifier: ^3.7.0
         version: 3.7.1(axios@1.18.0)(vue@3.5.25(typescript@5.9.3))
@@ -593,8 +593,8 @@ importers:
         specifier: '>=0.1.4 <0.2.0'
         version: 0.1.9(@antelopejs/interface-core@0.5.2)
       '@antelopejs/tooling-configs':
-        specifier: '>=0.10.4 <0.11.0'
-        version: 0.10.7(@nuxt/eslint-config@1.17.0(@typescript-eslint/utils@8.68.0(eslint@10.15.0(jiti@2.7.0))(typescript@6.0.3))(@vue/compiler-sfc@3.5.25)(eslint@10.15.0(jiti@2.7.0))(typescript@6.0.3))(knip@6.34.0)(mongodb-memory-server@11.3.0(socks@2.8.7))(oxfmt@0.66.0)(oxlint@1.81.0(oxlint-tsgolint@7.0.2001))(pixelmatch@8.0.0)(playwright-core@1.65.1)(sharp@0.35.5)
+        specifier: '>=0.10.12 <0.11.0'
+        version: 0.10.12(@nuxt/eslint-config@1.17.0(@typescript-eslint/utils@8.68.0(eslint@10.15.0(jiti@2.7.0))(typescript@6.0.3))(@vue/compiler-sfc@3.5.25)(eslint@10.15.0(jiti@2.7.0))(typescript@6.0.3))(knip@6.34.0)(mongodb-memory-server@11.3.0(socks@2.8.7))(oxfmt@0.66.0)(oxlint@1.81.0(oxlint-tsgolint@7.0.2001))(pixelmatch@8.0.0)(playwright-core@1.65.1)(sharp@0.35.5)
       '@types/node':
         specifier: ^24.0.0
         version: 24.13.3
@@ -623,8 +623,8 @@ importers:
         specifier: '>=0.5.2 <0.6.0'
         version: 0.5.2
       '@antelopejs/tooling-configs':
-        specifier: '>=0.10.4 <0.11.0'
-        version: 0.10.7(@nuxt/eslint-config@1.17.0(@typescript-eslint/utils@8.68.0(eslint@10.15.0(jiti@2.7.0))(typescript@6.0.3))(@vue/compiler-sfc@3.5.25)(eslint@10.15.0(jiti@2.7.0))(typescript@6.0.3))(knip@6.34.0)(mongodb-memory-server@11.3.0(socks@2.8.7))(oxfmt@0.66.0)(oxlint@1.81.0(oxlint-tsgolint@7.0.2001))(pixelmatch@8.0.0)(playwright-core@1.65.1)(sharp@0.35.5)
+        specifier: '>=0.10.12 <0.11.0'
+        version: 0.10.12(@nuxt/eslint-config@1.17.0(@typescript-eslint/utils@8.68.0(eslint@10.15.0(jiti@2.7.0))(typescript@6.0.3))(@vue/compiler-sfc@3.5.25)(eslint@10.15.0(jiti@2.7.0))(typescript@6.0.3))(knip@6.34.0)(mongodb-memory-server@11.3.0(socks@2.8.7))(oxfmt@0.66.0)(oxlint@1.81.0(oxlint-tsgolint@7.0.2001))(pixelmatch@8.0.0)(playwright-core@1.65.1)(sharp@0.35.5)
       '@types/node':
         specifier: ^24.0.0
         version: 24.13.3
@@ -760,8 +760,8 @@ packages:
   '@antelopejs/rethinkdb@1.10.8':
     resolution: {integrity: sha512-OM6lnbtxkMyIwFT//GCG0HGW9Lkp5J5Pub2Kx8tKs6WW4JtGHNR9nFxrB+5wmpwNuYwCFAmZaLth1sCVT+O4uQ==}
 
-  '@antelopejs/tooling-configs@0.10.7':
-    resolution: {integrity: sha512-13abD0BhsR9RF6LQoYYKa+XBknlmcrZVB6iW3BwdfHKu6pPG4ClhAQCLJSSPYtbTMuvNU4imI+dVFSB78TdTnQ==}
+  '@antelopejs/tooling-configs@0.10.12':
+    resolution: {integrity: sha512-2Yjx8JxWr4Opz1hA8363Zctf4SUmtG3DFmm/UaPe1447fWzmTX8FgTDRg1qoEIQ94g/U6rte6lj9cIdNEE3Kmg==}
     engines: {node: '>=22.18.0'}
     hasBin: true
     peerDependencies:
@@ -769,8 +769,8 @@ packages:
       eslint-plugin-perfectionist: '>=5.0.0'
       knip: '>=6.0.0'
       mongodb-memory-server: '>=10.0.0'
-      oxfmt: ^0.66.0 || ^0.77.0 || ^0.79.0
-      oxlint: 1.81.0 || 1.94.0
+      oxfmt: ^0.66.0 || ^0.77.0 || ^0.79.0 || ^0.80.0
+      oxlint: 1.81.0 || 1.94.0 || 1.95.0
       pixelmatch: '>=7.0.0'
       playwright-core: '>=1.56.0'
       sharp: '>=0.34.0'
@@ -2498,8 +2498,8 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@oxlint/plugins@1.94.0':
-    resolution: {integrity: sha512-YT6htikBOBQ00XDxZpRZLZ0anEDo7h9s4+YvjRU0/Ng/cLd0D6SZQ3tsms4g/GDer/z8UKlegC5iptEfyRXJcw==}
+  '@oxlint/plugins@1.95.0':
+    resolution: {integrity: sha512-wb81nObfxWVASxtMQknyL4A387XDVuSIgpL1/wlhWzGpWLAGMzEvI+xWXJ242Bk8qqAmgDwG6ejetKnLISTGGw==}
     engines: {node: ^12.22.0 || ^14.17.0 || >=16.0.0}
 
   '@phun-ky/typeof@2.0.3':
@@ -3922,9 +3922,6 @@ packages:
 
   brace-expansion@1.1.22:
     resolution: {integrity: sha512-CKLDTuSsN0+r1ThM0WkzzBI7dnPI6xEGfa/JnVYIK9JNBA1N1NyPwXVHor//NKD/y3sDxp764sZdLhFK7pH8XQ==}
-
-  brace-expansion@2.0.2:
-    resolution: {integrity: sha512-Jt0vHyM+jmUBqojB7E1NIYadt0vI0Qxjxd2TErW94wDz+E2LAm5vKMXXwg6ZZBTHPuUlDgQHKXvjGBdfcF1ZDQ==}
 
   brace-expansion@2.1.8:
     resolution: {integrity: sha512-BnlDzDYQoplTsZSvPi86CNzmbcb07X8ufR8fk1zivaiEJlXJkiq1MQyDCVmlWcsWbj6aWXqHnrwwevbrm/Saig==}
@@ -7888,9 +7885,9 @@ snapshots:
     optionalDependencies:
       '@antelopejs/interface-rethinkdb': 0.1.2(@antelopejs/interface-core@0.5.2)
 
-  '@antelopejs/tooling-configs@0.10.7(@nuxt/eslint-config@1.17.0(@typescript-eslint/utils@8.68.0(eslint@10.15.0(jiti@2.7.0))(typescript@5.9.3))(@vue/compiler-sfc@3.5.25)(eslint@10.15.0(jiti@2.7.0))(typescript@5.9.3))(knip@6.34.0)(mongodb-memory-server@11.3.0(socks@2.8.7))(oxfmt@0.66.0)(oxlint@1.81.0(oxlint-tsgolint@7.0.2001))(pixelmatch@8.0.0)(playwright-core@1.65.1)(sharp@0.35.5(@types/node@26.6.5))':
+  '@antelopejs/tooling-configs@0.10.12(@nuxt/eslint-config@1.17.0(@typescript-eslint/utils@8.68.0(eslint@10.15.0(jiti@2.7.0))(typescript@5.9.3))(@vue/compiler-sfc@3.5.25)(eslint@10.15.0(jiti@2.7.0))(typescript@5.9.3))(knip@6.34.0)(mongodb-memory-server@11.3.0(socks@2.8.7))(oxfmt@0.66.0)(oxlint@1.81.0(oxlint-tsgolint@7.0.2001))(pixelmatch@8.0.0)(playwright-core@1.65.1)(sharp@0.35.5(@types/node@26.6.5))':
     dependencies:
-      '@oxlint/plugins': 1.94.0
+      '@oxlint/plugins': 1.95.0
       dts-bundle-generator: 9.5.1
       minimatch: 10.2.6
       semver: 7.8.6
@@ -7926,9 +7923,9 @@ snapshots:
       playwright-core: 1.65.1
       sharp: 0.35.5(@types/node@26.6.5)
 
-  '@antelopejs/tooling-configs@0.10.7(@nuxt/eslint-config@1.17.0(@typescript-eslint/utils@8.68.0(eslint@10.15.0(jiti@2.7.0))(typescript@6.0.3))(@vue/compiler-sfc@3.5.25)(eslint@10.15.0(jiti@2.7.0))(typescript@6.0.3))(knip@6.34.0)(mongodb-memory-server@11.3.0(socks@2.8.7))(oxfmt@0.66.0)(oxlint@1.81.0(oxlint-tsgolint@7.0.2001))(pixelmatch@8.0.0)(playwright-core@1.65.1)(sharp@0.35.5(@types/node@26.6.5))':
+  '@antelopejs/tooling-configs@0.10.12(@nuxt/eslint-config@1.17.0(@typescript-eslint/utils@8.68.0(eslint@10.15.0(jiti@2.7.0))(typescript@6.0.3))(@vue/compiler-sfc@3.5.25)(eslint@10.15.0(jiti@2.7.0))(typescript@6.0.3))(knip@6.34.0)(mongodb-memory-server@11.3.0(socks@2.8.7))(oxfmt@0.66.0)(oxlint@1.81.0(oxlint-tsgolint@7.0.2001))(pixelmatch@8.0.0)(playwright-core@1.65.1)(sharp@0.35.5(@types/node@26.6.5))':
     dependencies:
-      '@oxlint/plugins': 1.94.0
+      '@oxlint/plugins': 1.95.0
       dts-bundle-generator: 9.5.1
       minimatch: 10.2.6
       semver: 7.8.6
@@ -7964,9 +7961,9 @@ snapshots:
       playwright-core: 1.65.1
       sharp: 0.35.5(@types/node@26.6.5)
 
-  '@antelopejs/tooling-configs@0.10.7(@nuxt/eslint-config@1.17.0(@typescript-eslint/utils@8.68.0(eslint@10.15.0(jiti@2.7.0))(typescript@6.0.3))(@vue/compiler-sfc@3.5.25)(eslint@10.15.0(jiti@2.7.0))(typescript@6.0.3))(knip@6.34.0)(mongodb-memory-server@11.3.0(socks@2.8.7))(oxfmt@0.66.0)(oxlint@1.81.0(oxlint-tsgolint@7.0.2001))(pixelmatch@8.0.0)(playwright-core@1.65.1)(sharp@0.35.5)':
+  '@antelopejs/tooling-configs@0.10.12(@nuxt/eslint-config@1.17.0(@typescript-eslint/utils@8.68.0(eslint@10.15.0(jiti@2.7.0))(typescript@6.0.3))(@vue/compiler-sfc@3.5.25)(eslint@10.15.0(jiti@2.7.0))(typescript@6.0.3))(knip@6.34.0)(mongodb-memory-server@11.3.0(socks@2.8.7))(oxfmt@0.66.0)(oxlint@1.81.0(oxlint-tsgolint@7.0.2001))(pixelmatch@8.0.0)(playwright-core@1.65.1)(sharp@0.35.5)':
     dependencies:
-      '@oxlint/plugins': 1.94.0
+      '@oxlint/plugins': 1.95.0
       dts-bundle-generator: 9.5.1
       minimatch: 10.2.6
       semver: 7.8.6
@@ -9694,7 +9691,7 @@ snapshots:
   '@oxlint/binding-win32-x64-msvc@1.81.0':
     optional: true
 
-  '@oxlint/plugins@1.94.0': {}
+  '@oxlint/plugins@1.95.0': {}
 
   '@phun-ky/typeof@2.0.3': {}
 
@@ -11046,10 +11043,6 @@ snapshots:
     dependencies:
       balanced-match: 1.0.2
       concat-map: 0.0.1
-
-  brace-expansion@2.0.2:
-    dependencies:
-      balanced-match: 1.0.2
 
   brace-expansion@2.1.8:
     dependencies:
@@ -12962,7 +12955,7 @@ snapshots:
 
   minimatch@5.1.9:
     dependencies:
-      brace-expansion: 2.0.2
+      brace-expansion: 2.1.8
 
   minimatch@9.0.9:
     dependencies:
