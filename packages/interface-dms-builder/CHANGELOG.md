@@ -1,5 +1,21 @@
 # Changelog
 
+## v0.6.4
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/interface-dms-builder-v0.6.3...interface-dms-builder-v0.6.4)
+
+### 🩹 Fixes
+
+- **ci:** Run every job on Blacksmith, gate the hand-written jobs and sync tooling-configs 0.10.12 ([#1289](https://github.com/AntelopeJS/dms/pull/1289))
+
+### 📦 Build
+
+- **deps:** Require @antelopejs/tooling-configs 0.10.4 and fix its new lint reports ([#1276](https://github.com/AntelopeJS/dms/pull/1276))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli
+
 ## v0.6.3
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/interface-dms-builder-v0.6.2...interface-dms-builder-v0.6.3)
