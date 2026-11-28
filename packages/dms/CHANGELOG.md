@@ -1,5 +1,19 @@
 # Changelog
 
+## v0.25.1
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/v0.25.0...v0.25.1)
+
+### 🩹 Fixes
+
+- **e2e:** Retry a failed journey once in the merge queue, reported as flaky ([#1302](https://github.com/AntelopeJS/dms/pull/1302))
+- **e2e:** Make the backend and dashboard waits refuse a port another process holds ([#1301](https://github.com/AntelopeJS/dms/pull/1301))
+- **dms:** Lay out a run copy of a playground with no node_modules of its own ([#1303](https://github.com/AntelopeJS/dms/pull/1303))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli
+
 ## v0.25.0
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/v0.24.3...v0.25.0)
