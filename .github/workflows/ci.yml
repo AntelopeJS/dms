@@ -309,9 +309,10 @@ jobs:
         run: pnpm e2e --shard=${{ matrix.shard }}/${{ strategy.job-total }} --add-reporter=blob
         env:
           DMS_E2E_DURATIONS: ${{ runner.temp }}/e2e-durations.json
-          # The seconds of shard 1's node:test step below, which takes it
-          # that many fewer journeys.
-          DMS_E2E_FIRST_SHARD_EXTRA: 70
+          # Shard 1 takes this many seconds fewer journeys: its node:test
+          # step below (66 s), plus the 15 s its journeys run over their
+          # weights.
+          DMS_E2E_FIRST_SHARD_EXTRA: 80
           PLAYWRIGHT_BLOB_OUTPUT_DIR: e2e/blob-report
       # The kit's phase timings of the shard, as a notice on the check run.
       - if: success() || failure()
