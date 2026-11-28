@@ -1,5 +1,7 @@
 # dms
 
+Read [ARCHITECTURE.md](ARCHITECTURE.md) first: the packages and their entry points, the `src/` tiers and the Vue layers, the page-render and bootstrap flows, the test tiers and the invariants the checks hold.
+
 ## Layout
 
 A pnpm workspace with two published packages. The root holds the tool configs, the CI workflows and nothing else.
