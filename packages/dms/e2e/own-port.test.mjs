@@ -5,7 +5,7 @@ import { createServer } from "node:http";
 import { once } from "node:events";
 import test from "node:test";
 import { freePort } from "./processes.mjs";
-import { waitForBackend, waitForDashboard } from "./stack.mjs";
+import { waitForBackend, waitForDashboard } from "./waits.mjs";
 
 const SERVE = `require("node:http").createServer((_, res) => res.end("ok")).listen(Number(process.argv[1]), "127.0.0.1")`;
 

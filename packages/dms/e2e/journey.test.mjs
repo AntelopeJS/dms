@@ -13,12 +13,8 @@ import { loadJourneys } from "./journey-load.mjs";
 import { apiTargetFile, writeTarget } from "./forwarder.mjs";
 import { commandOf, newRun, served, startedOn } from "./helpers/fake-run.mjs";
 import { startMongod } from "./mongo.mjs";
-import {
-  freePort,
-  startDetached,
-  stopRecorded,
-  waitForPort,
-} from "./processes.mjs";
+import { freePort, startDetached, stopRecorded } from "./processes.mjs";
+import { waitForPort } from "./waits.mjs";
 import { recordBackend, saveRun } from "./run-state.mjs";
 import { liveBackends } from "./stack.mjs";
 import { readTimings } from "./timing.mjs";

@@ -21,9 +21,8 @@ import {
   runToEnd,
   startDetached,
   stopRecorded,
-  waitForOk,
-  waitForOwnPort,
 } from "./processes.mjs";
+import { waitForBackend, waitForDashboard, waitForOwnPort } from "./waits.mjs";
 import {
   backendsFolder,
   createRunFolders,
@@ -331,37 +330,6 @@ export function liveBackends(state) {
     forgetBackend(state.dir, backend.pid);
     return false;
   });
-}
-
-/**
- * Waits until a backend listens on its own port and answers
- * `/api/onboarding/informations` there.
- *
- * @param {import("./run-state.mjs").ServerRecord} backend The backend
- * @returns {Promise<void>} Resolves once it answers 200
- * @throws When it exits first, another process holds its port or the timeout passes, naming its log
- */
-export async function waitForBackend(backend) {
-  await waitForOwnPort(backend.port, backend, READY_TIMEOUT_MS);
-  await waitForOk(
-    `http://127.0.0.1:${backend.port}/api/onboarding/informations`,
-    backend,
-    READY_TIMEOUT_MS,
-  );
-}
-
-/**
- * Waits until the run's dashboard listens on the run's web port and answers
- * `/dms-preview` there.
- *
- * @param {Pick<RunState, "webPort" | "webUrl">} state The run
- * @param {import("./run-state.mjs").ProcessRecord} frontend The dashboard's process
- * @returns {Promise<void>} Resolves once it answers 200
- * @throws When it exits first, another process holds its port or the timeout passes, naming its log
- */
-export async function waitForDashboard(state, frontend) {
-  await waitForOwnPort(state.webPort, frontend, READY_TIMEOUT_MS);
-  await waitForOk(`${state.webUrl}/dms-preview`, frontend, READY_TIMEOUT_MS);
 }
 
 /**

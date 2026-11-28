@@ -11,8 +11,8 @@ import {
   record,
   runBackendMode,
   startBackend,
-  waitForBackend,
 } from "./stack.mjs";
+import { waitForBackend } from "./waits.mjs";
 import { recordTiming, stopwatch, timed } from "./timing.mjs";
 
 /** @typedef {import("./run-state.mjs").RunState} RunState */
