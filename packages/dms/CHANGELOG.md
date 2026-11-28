@@ -1,5 +1,25 @@
 # Changelog
 
+## v0.25.2
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/v0.25.1...v0.25.2)
+
+### 🔥 Performance
+
+- **dms:** Start the e2e kit's runs together ([#1306](https://github.com/AntelopeJS/dms/pull/1306))
+
+### 🩹 Fixes
+
+- **dms:** Key a symlinked scope folder of the e2e build key entry by entry ([#1307](https://github.com/AntelopeJS/dms/pull/1307))
+
+### 🏡 Chore
+
+- **deps:** Update @antelopejs/tooling-configs to 0.10.14 and sync ([#1305](https://github.com/AntelopeJS/dms/pull/1305))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli
+
 ## v0.25.1
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/v0.25.0...v0.25.1)
