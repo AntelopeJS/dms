@@ -44,18 +44,50 @@ export interface FakeRequest {
   };
 }
 
+/** Who the fake backend signs the viewer's notes and replies as. */
+export const FAKE_AUTHOR = { userId: "me", name: "Me" };
+
+/** What the fake backend answers on the reply routes, `<note>/replies` and `<note>/replies/<reply>`. */
+function answerReplies(
+  notes: MockupAnnotation[],
+  segments: string[],
+  init: FakeRequest | undefined,
+) {
+  const noteId = decodeURIComponent(segments[0]);
+  const note = notes.find((entry) => entry.id === noteId);
+  if (!note) throw Object.assign(new Error("not found"), { status: 404 });
+  const replies = note.replies ?? [];
+  if (init?.method === "POST" && init.body) {
+    note.replies = [
+      ...replies,
+      {
+        id: `r${replies.length + 1}`,
+        author: FAKE_AUTHOR,
+        text: init.body.text,
+        createdAt: "2026-11-07T11:00:00.000Z",
+      },
+    ];
+  } else if (init?.method === "DELETE") {
+    const replyId = decodeURIComponent(segments[2] ?? "");
+    note.replies = replies.filter((reply) => reply.id !== replyId);
+  }
+  return note;
+}
+
 /** What the fake backend answers on the annotation routes, keeping `notes` as the real one keeps the file. */
 export function answerAnnotations(
   notes: MockupAnnotation[],
   url: string,
   init: FakeRequest | undefined,
 ) {
+  const segments = url.split("/annotations/")[1]?.split("/") ?? [];
+  if (segments[1] === "replies") return answerReplies(notes, segments, init);
   if (init?.method === "POST" && init.body) {
     const { text, ...place } = init.body;
-    const created = placed(annotation({ id: "new", text }), {
-      ...place,
-      offset: place.offset ?? { x: 0, y: 0 },
-    });
+    const created = placed(
+      annotation({ id: "new", text, author: FAKE_AUTHOR, replies: [] }),
+      { ...place, offset: place.offset ?? { x: 0, y: 0 } },
+    );
     notes.push(created);
     return created;
   }

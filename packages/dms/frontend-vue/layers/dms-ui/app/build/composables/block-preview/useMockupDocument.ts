@@ -13,6 +13,8 @@ interface DocumentOptions {
   viewer: string;
   /** The id of the block this session holds the lock of, while it holds one. */
   held: Readonly<Ref<string | undefined>>;
+  /** Whether the viewer edits the spec: a reviewer does not, and the editor then reads nothing. */
+  enabled: boolean;
 }
 
 /**
@@ -56,6 +58,7 @@ export function useMockupDocument(options: DocumentOptions) {
     onNotice: notify,
     viewer: options.viewer,
     held: options.held,
+    enabled: options.enabled,
   });
   const history = useMockupVersions({
     name: options.name,

@@ -14,6 +14,8 @@ defineProps<{
   mode: { kind: "comment" } | { kind: "place"; name: string } | undefined;
   isUnclaimed: boolean;
   isResolving: boolean;
+  /** Whether the viewer hands the comments to the AI: the owner does, a reviewer leaves them to the owner. */
+  canResolve: boolean;
 }>();
 const emit = defineEmits<{ close: []; resolve: [] }>();
 
@@ -47,6 +49,7 @@ const { t } = useI18n();
       <MockupModeBanner :mode="mode" />
     </div>
     <div
+      v-if="canResolve"
       class="pointer-events-none absolute inset-x-0 bottom-4 z-40 flex justify-center"
     >
       <MockupResolveBar

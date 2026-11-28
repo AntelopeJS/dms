@@ -31,20 +31,27 @@ import {
   type PreviewRenderMessage,
 } from "../../layers/dms-ui/app/entries/utils/blockPreview";
 import type {
+  MockupAccess,
   MockupAnnotation,
   MockupPageState,
   MockupState,
 } from "../../layers/dms-ui/app/entries/utils/mockup";
 import type { MockupBlockType } from "../../layers/dms-ui/app/entries/utils/mockupCatalog";
 import type { MockupSpecDocument } from "../../layers/dms-ui/app/entries/utils/mockupSpec";
+import {
+  accessFirst,
+  OWNER_ACCESS,
+  REVIEWER_ACCESS,
+} from "./mockup-access-backend";
 import { FakeLocks, type LockRequest } from "./mockup-locks-backend";
 import {
   annotation,
   answerAnnotations,
+  FAKE_AUTHOR,
   type FakeRequest,
 } from "./mockup-notes-backend";
 
-export { annotation };
+export { annotation, FAKE_AUTHOR, OWNER_ACCESS, REVIEWER_ACCESS };
 
 export class FakeEventSource {
   static readonly CLOSED = 2;
@@ -287,6 +294,8 @@ interface RuntimeOptions {
   blocks?: MockupBlockType[];
   /** The notes the fake backend starts with. */
   notes?: MockupAnnotation[];
+  /** Who the backend says the viewer is; the owner by default. A number is the status the access route fails with. */
+  access?: MockupAccess | number;
 }
 
 /** What the viewer raised: a toast it added, or a failure it presented. */
@@ -404,7 +413,9 @@ export function stubMockupRuntime(options: RuntimeOptions = {}): MockupRuntime {
   vi.stubGlobal("useDmsRuntimeConfig", () => ({
     public: { dms: { baseURL: "http://backend/" } },
   }));
-  vi.stubGlobal("useAuthFetch", () => ({ $authFetch: authFetch }));
+  vi.stubGlobal("useAuthFetch", () => ({
+    $authFetch: accessFirst(authFetch, options.access ?? OWNER_ACCESS),
+  }));
   const presentError: ApiErrorPresenter["presentError"] = (_error, init) =>
     toasts.push({ color: "error", ...init });
   vi.stubGlobal("useApiErrorPresenter", () => ({ presentError }));
@@ -465,7 +476,8 @@ export async function flush(): Promise<void> {
 /**
  * Mounts `DmsMockupViewer` against the fake stream and a spied preview window.
  * The spy follows the preview's current window, because switching Real data
- * replaces the frame.
+ * replaces the frame. The viewer asks the backend who it is before it draws
+ * the workbench, so the mount settles twice before the frame is looked for.
  */
 export async function mountViewer(): Promise<MountedViewer> {
   const { default: MockupViewer } = await import(
@@ -487,6 +499,7 @@ export async function mountViewer(): Promise<MountedViewer> {
   app.component("UKbd", UKbd);
   app.component("UDropdownMenu", UDropdownMenu);
   app.mount(host);
+  await flush();
   await flush();
   const posted: PreviewInboundMessage[] = [];
   const spied = new WeakSet<Window>();

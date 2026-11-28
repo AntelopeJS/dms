@@ -27,9 +27,11 @@ export interface ServedMockups {
   /** The project folder: the spec is `mockups/desk/spec.json` in it. */
   dir: string;
   engine: MockupEngine;
-  /** A client signed in as the platform owner, the one caller the routes serve. */
+  /** A client signed in as the platform owner, the caller every route serves. */
   owner: AxiosInstance;
   ownerToken: string;
+  /** The platform owner's user id: the author of the owner's notes, and the recipient of a reviewer's. */
+  ownerId: string;
 }
 
 function mockupRouteIds(): number[] {
@@ -53,7 +55,9 @@ export function serveMockupRoutes(
 
   before(async () => {
     expect(mockupRouteIds()).to.deep.equal([]);
-    const ownerToken = (await registerUser({ owner: true })).accessToken;
+    const { accessToken: ownerToken, userId: ownerId } = await registerUser({
+      owner: true,
+    });
     const dir = await mkdtemp(join(tmpdir(), "dms-mockup-routes-"));
     await mkdir(join(dir, "mockups", "desk"), { recursive: true });
     await writeFile(join(dir, "mockups", "desk", "spec.json"), spec);
@@ -64,7 +68,13 @@ export function serveMockupRoutes(
       pages,
     );
     registerMockupRoutes(engine);
-    served = { dir, engine, owner: authorizedClient(ownerToken), ownerToken };
+    served = {
+      dir,
+      engine,
+      owner: authorizedClient(ownerToken),
+      ownerToken,
+      ownerId,
+    };
   });
 
   after(async () => {

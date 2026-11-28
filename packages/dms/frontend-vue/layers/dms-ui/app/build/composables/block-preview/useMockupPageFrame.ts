@@ -30,7 +30,8 @@ interface PageFrameOptions {
   record: Readonly<Ref<string | undefined>>;
   realData: Readonly<Ref<boolean>>;
   navigation: Readonly<Ref<PreviewNavigation>>;
-  isPreviewing: Readonly<Ref<boolean>>;
+  /** Whether a click on a block selects it to edit; off, the page runs as the dashboard would. */
+  inspects: Readonly<Ref<boolean>>;
   /** Opens the page `id`, on the row `record` when a link names one. */
   openPage: (id: string, record?: string) => void;
   onSectionEdit: (edit: MockupSectionEdit) => void;
@@ -63,7 +64,7 @@ export function useMockupPageFrame(options: PageFrameOptions) {
         mockupPageParams(page, options.record.value),
       ),
     );
-    bridge.post(previewInspectMessage(!options.isPreviewing.value));
+    bridge.post(previewInspectMessage(options.inspects.value));
     bridge.post(previewMinHeightMessage(size.fillHeight.value));
   }
 

@@ -16,7 +16,11 @@ import { useMockupToolModes } from "../../composables/block-preview/useMockupToo
 import { useMockupViewerHandoff } from "../../composables/block-preview/useMockupViewerHandoff";
 import { useMockupViewerPages } from "../../composables/block-preview/useMockupViewerPages";
 import { useMockupViewerShortcuts } from "../../composables/block-preview/useMockupViewerShortcuts";
-import type { MockupDataMode, MockupWidth } from "../../utils/mockup";
+import type {
+  MockupAccess,
+  MockupDataMode,
+  MockupWidth,
+} from "../../utils/mockup";
 import { mockupNavigation } from "../../utils/mockupFrame";
 import { outlineRows } from "../../utils/mockupOutline";
 import { specCategories } from "../../utils/mockupSections";
@@ -57,9 +61,17 @@ import MockupTopBar from "./MockupTopBar.vue";
  * goes back to the Overview where it was. Preview hands every click to the
  * page, as the dashboard runs it; Escape leaves it. Each page opened, from
  * the Overview or a link, is a new entry of the browser's history.
+ *
+ * A reviewer, a member whose role reviews mockups rather than the platform
+ * owner, gets the same viewer without the editing: no panels, no overlay, no
+ * history, no build, and the page runs as in Preview under the pins. They
+ * browse, pin comments, reply, resolve and reopen, and the backend keeps
+ * them from rewriting anyone else's note.
  */
 const props = defineProps<{
   name: string;
+  /** Who the viewer is to the mockup: the owner edits it, a reviewer comments on it. */
+  access: MockupAccess;
   initialWidth?: MockupWidth;
   initialData?: MockupDataMode;
 }>();
@@ -67,6 +79,9 @@ const props = defineProps<{
 const { t } = useI18n();
 const { $authFetch } = useAuthFetch();
 const config = useDmsRuntimeConfig();
+
+const isOwner = props.access.role === "owner";
+const isReviewing = computed(() => !isOwner);
 
 const session = useMockupSession({
   name: props.name,
@@ -81,8 +96,9 @@ const { editor, history } = useMockupDocument({
   viewer: session.viewer,
   held: heldBlock,
   onNotice: () => editing.settle(),
+  enabled: isOwner,
 });
-const catalog = useMockupCatalog($authFetch);
+const catalog = useMockupCatalog($authFetch, isOwner);
 const panels = useMockupPanels();
 
 const width = ref<MockupWidth>(props.initialWidth ?? "desktop");
@@ -173,11 +189,13 @@ const pins = useMockupPins({
   toFrame: (client) =>
     isOverview.value ? overview.toFrame(client) : toFrame(client),
   previewed: computed(() => history.previewing.value?.annotations),
+  access: props.access,
 });
-const { isPreviewing, mode } = useMockupToolModes({
+const { isPreviewing, inspects, mode } = useMockupToolModes({
   editing,
   pins,
   isOverview,
+  isReviewing,
   post: (message) => bridge.post(message),
   focusCanvas: () => focusCanvas(),
 });
@@ -192,9 +210,10 @@ const rows = computed(() =>
       )
     : [],
 );
-/** The editing panels show on the current spec's page view alone: the Overview, Preview, a past version and a generated form page edit nothing. */
+/** The editing panels show on the current spec's page view alone, to the owner: the Overview, Preview, a past version, a generated form page and a reviewer edit nothing. */
 const canEdit = computed(
   () =>
+    isOwner &&
     !!spec.value &&
     !isReadOnly.value &&
     !isOverview.value &&
@@ -251,7 +270,7 @@ const {
   record,
   realData,
   navigation,
-  isPreviewing,
+  inspects,
   openPage,
   onSectionEdit: (edit) => sections.write(edit),
   onEscape: () =>
@@ -282,6 +301,7 @@ const { showsLeft, showsInspector, gridClass } = useMockupGridLayout({
       :panels="panels.open.value"
       :is-history-open="history.isOpen.value"
       :is-building="runs.isRunning('build')"
+      :can-edit="isOwner"
       @history="history.toggle"
       @undo="shortcuts.undo"
       @redo="shortcuts.redo"
@@ -295,6 +315,13 @@ const { showsLeft, showsInspector, gridClass } = useMockupGridLayout({
       :has-request-failed="hasRequestFailed"
       :history="history"
     />
+    <p
+      v-if="isReviewing"
+      class="bg-elevated text-muted border-default border-b px-3 py-1.5 text-xs"
+      data-dms-mockup-review-hint
+    >
+      {{ t("dms.mockup.review_hint") }}
+    </p>
     <MockupModules :modules="modules" />
     <div class="grid min-h-0 flex-1" :class="gridClass">
       <MockupEditPanel
@@ -347,7 +374,9 @@ const { showsLeft, showsInspector, gridClass } = useMockupGridLayout({
                 :style="previewStyle"
               />
               <MockupEditOverlay
-                v-if="spec && !isReadOnly && !isPreviewing && !isVirtual"
+                v-if="
+                  isOwner && spec && !isReadOnly && !isPreviewing && !isVirtual
+                "
                 :selected="
                   locks.blocker.value ? undefined : editing.selected.value
                 "
@@ -419,12 +448,13 @@ const { showsLeft, showsInspector, gridClass } = useMockupGridLayout({
           :mode="mode"
           :is-unclaimed="handoff.isUnclaimed.value"
           :is-resolving="runs.isRunning('resolve-comments')"
+          :can-resolve="isOwner"
           @close="closePage"
           @resolve="resolveComments"
         />
       </div>
       <MockupHistoryPanel
-        v-if="history.isOpen.value"
+        v-if="isOwner && history.isOpen.value"
         :versions="history.versions.value"
         :previewing="history.previewing.value?.seq"
         :is-loading="history.isLoading.value"

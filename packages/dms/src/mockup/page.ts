@@ -12,14 +12,21 @@ import {
 } from "@antelopejs/interface-dms/page";
 import { MOCKUP_LAYOUT } from "../pages/public/preview";
 import { MOCKUP_API } from "./fixtures";
+import { MOCKUP_REVIEW_PERMISSION_ID } from "./review";
 
 const { DateType, NumberType, StringType } = DefaultDataTypes;
 
+export const MOCKUP_CARDS_DISPLAY_ID = "dms:mockup-cards";
+const TEXTS = "$dms.mockup";
+const MOCKUPS_ICON = "i-lucide-layout-template";
+
 /**
  * `/mockup`: the viewer of `mockups/<name>/spec.json`, drawing each page with
- * `/dms-preview` and redrawing it on every save. Hidden and owner-only, like
- * the `/api/mockup` routes it reads; `?name=`, `?page=` and `?width=` pick what
- * it shows.
+ * `/dms-preview` and redrawing it on every save. Hidden, and open to the
+ * platform owner, who edits, and to a member whose role holds
+ * {@link MOCKUP_REVIEW_PERMISSION_ID}, who reads and comments: the
+ * `/api/mockup` routes it reads draw the same line. `?name=`, `?page=` and
+ * `?width=` pick what it shows.
  */
 export class MockupPage extends PageController(
   "mockup",
@@ -27,7 +34,12 @@ export class MockupPage extends PageController(
     displayName: "Mockup",
     urlSlug: "mockup",
     hidden: true,
-    ownerOnly: true,
+    permission: {
+      id: MOCKUP_REVIEW_PERMISSION_ID,
+      title: `${TEXTS}.review_permission`,
+      description: `${TEXTS}.review_permission_description`,
+    },
+    noComponentPermissions: true,
     category: pagesCategory,
 
     live: {},
@@ -36,10 +48,6 @@ export class MockupPage extends PageController(
 ) {
   static content = CustomComponent("DmsMockupViewer");
 }
-
-export const MOCKUP_CARDS_DISPLAY_ID = "dms:mockup-cards";
-const TEXTS = "$dms.mockup";
-const MOCKUPS_ICON = "i-lucide-layout-template";
 
 /**
  * `/mockups`: every mockup of the project as a card, from `GET /api/mockup`.

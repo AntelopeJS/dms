@@ -2,29 +2,18 @@ import type { PassThrough } from "node:stream";
 import {
   Context,
   Controller,
-  Delete,
   Get,
   HTTPResult,
   JSONBody,
   Parameter,
-  Post,
   Put,
   type RequestContext,
-  Route,
   WriteStream,
 } from "@antelopejs/interface-api";
 import { ListBlockTypes } from "@antelopejs/interface-dms/base/block-types";
 import type { z } from "zod";
-import {
-  annotationDraftSchema,
-  annotationPatchSchema,
-  createAnnotation,
-  deleteAnnotation,
-  listAnnotations,
-  type MockupAnnotation,
-  type PlacementRefusal,
-  updateAnnotation,
-} from "./annotations";
+import { authorOf } from "./review";
+import { registerReviewRoutes } from "./review-routes";
 import {
   findRow,
   listRows,
@@ -42,7 +31,6 @@ import { parseViewerId } from "./presence";
 import { PresenceBoard } from "./presence-board";
 import { registerPresenceRoutes } from "./presence-routes";
 import {
-  annotationIdSchema,
   fixtureKeySchema,
   jsonObjectSchema,
   pageIdSchema,
@@ -61,7 +49,6 @@ import { registerManageRoutes } from "./manage-routes";
 import { registerSpecRoutes } from "./source-routes";
 
 const HTTP_BAD_REQUEST = 400;
-const HTTP_CONFLICT = 409;
 const SSE_CONTENT_TYPE = "text/event-stream";
 const SSE_RECONNECT_MS = 1000;
 const SSE_HELLO = `retry: ${SSE_RECONNECT_MS}\n: connected\n\n`;
@@ -158,9 +145,12 @@ function write(out: PassThrough, payload: string): void {
 }
 
 /**
- * Registers the mockup API under `/api/mockup`. Development only, and platform
- * owners only: it serves the files of the project it runs in. The MCP mockup
- * tools read the files directly, not through these routes.
+ * Registers the mockup API under `/api/mockup`. Development only: it serves
+ * the files of the project it runs in. The platform owner reaches every
+ * route; a member whose role reviews mockups reaches what draws a mockup and
+ * comments on it, never what writes its files, locks its blocks, lists its
+ * versions or manages it. The MCP mockup tools read the files directly, not
+ * through these routes.
  */
 export function registerMockupRoutes(engine: MockupEngine) {
   const { store } = engine;
@@ -171,7 +161,7 @@ export function registerMockupRoutes(engine: MockupEngine) {
   class MockupController extends Controller(MOCKUP_API, MockupOwnerController) {
     @Get("/")
     async list(): Promise<{ results: MockupSummary[]; total: number }> {
-      await this.assertOwner();
+      await this.assertReviewer();
       const results = await store.list();
       return { results, total: results.length };
     }
@@ -192,7 +182,7 @@ export function registerMockupRoutes(engine: MockupEngine) {
 
     @Get(":name")
     async state(@Parameter("name") rawName: string): Promise<MockupState> {
-      await this.assertOwner();
+      await this.assertReviewer();
       const state = await store.state(nameOf(rawName));
       if (!state) throw notFound("mockup");
       return state;
@@ -204,7 +194,7 @@ export function registerMockupRoutes(engine: MockupEngine) {
       @WriteStream(SSE_CONTENT_TYPE) out: PassThrough,
       @Context() context: RequestContext,
     ): Promise<void> {
-      const owner = await this.owner();
+      const owner = authorOf(await this.reviewer());
       const name = nameOf(rawName);
       const id = parseViewerId(context.url.searchParams.get("viewer"));
       let unsubscribe: (() => void) | undefined;
@@ -250,7 +240,7 @@ export function registerMockupRoutes(engine: MockupEngine) {
       @Parameter("page") rawPage: string,
       @Parameter("key") rawKey: string,
     ): Promise<Json> {
-      await this.assertOwner();
+      await this.assertReviewer();
       return fixtureOf(rawName, rawPage, rawKey);
     }
 
@@ -261,7 +251,7 @@ export function registerMockupRoutes(engine: MockupEngine) {
       @Parameter("key") rawKey: string,
       @Context() context: RequestContext,
     ): Promise<RowsPage> {
-      await this.assertOwner();
+      await this.assertReviewer();
       const rows = parseRows(await fixtureOf(rawName, rawPage, rawKey));
       if (!rows) throw notFound("rows");
       return listRows(rows, parseRowsQuery(context.url.searchParams));
@@ -279,7 +269,7 @@ export function registerMockupRoutes(engine: MockupEngine) {
     }
   }
   registerCreatedRoute(engine);
-  registerAnnotationRoutes(store);
+  registerReviewRoutes(store.mockupsDir);
   registerRecordRoutes(store);
   registerSpecRoutes(store.mockupsDir, engine.presence);
   registerPresenceRoutes(engine.presence, store.mockupsDir);
@@ -335,29 +325,6 @@ function registerCreatedRoute(engine: MockupEngine) {
   return MockupCreatedController;
 }
 
-/** The refusal a creation or an update that changed no annotation answers with. */
-function refusal(
-  refused: PlacementRefusal | { kind: "no_mockup" } | { kind: "no_annotation" },
-): HTTPResult {
-  switch (refused.kind) {
-    case "no_mockup":
-      return notFound("mockup");
-    case "no_annotation":
-      return notFound("annotation");
-    case "no_node":
-      return notFound("pageNode");
-    case "ambiguous":
-      return new HTTPResult(HTTP_CONFLICT, {
-        message: "$dms.refusals.mockup.note_ambiguous_ids",
-      });
-    case "spec_invalid":
-      return new HTTPResult(HTTP_CONFLICT, {
-        message: "$dms.refusals.mockup.note_spec_invalid",
-        errors: refused.errors.map(({ path, message }) => ({ path, message })),
-      });
-  }
-}
-
 /**
  * The routes a sub-page and a table's forms reach a fixture's rows through:
  * one row by id, as a record and where a data controller's `get` route
@@ -377,7 +344,7 @@ function registerRecordRoutes(store: MockupStore) {
       @Parameter("key") rawKey: string,
       @Context() context: RequestContext,
     ): Promise<JsonObject> {
-      await this.assertOwner();
+      await this.assertReviewer();
       const rows = await readRows(store, rawName, rawPage, rawKey);
       const row = rowOf(rows, context.url.searchParams);
       if (!row) throw notFound("row");
@@ -404,7 +371,7 @@ function registerRecordRoutes(store: MockupStore) {
       @Context() context: RequestContext,
       @JSONBody() body: unknown,
     ): Promise<JsonObject> {
-      await this.assertOwner();
+      await this.assertReviewer();
       const rows = await readRows(store, rawName, rawPage, rawKey);
       const sent = jsonObjectSchema.safeParse(body);
       if (!sent.success) {
@@ -423,94 +390,13 @@ function registerRecordRoutes(store: MockupStore) {
       @Parameter("key") rawKey: string,
       @Parameter("change") change: string,
     ): Promise<JsonObject> {
-      await this.assertOwner();
+      await this.assertReviewer();
       if (!ARCHIVE_CHANGES.has(change)) throw notFound("route");
       await readRows(store, rawName, rawPage, rawKey);
       return {};
     }
   }
   return MockupRecordController;
-}
-
-/**
- * The annotation routes over the mockups of `store`.
- */
-function registerAnnotationRoutes(store: MockupStore) {
-  const { mockupsDir } = store;
-  class MockupAnnotationController extends Controller(
-    MOCKUP_API,
-    MockupOwnerController,
-  ) {
-    @Get(":name/annotations")
-    async annotations(
-      @Parameter("name") rawName: string,
-    ): Promise<{ annotations: MockupAnnotation[] }> {
-      await this.assertOwner();
-      const annotations = await listAnnotations(nameOf(rawName), mockupsDir);
-      if (!annotations) throw notFound("mockup");
-      return { annotations };
-    }
-
-    @Post(":name/annotations")
-    async create(
-      @Parameter("name") rawName: string,
-      @JSONBody() body: unknown,
-    ): Promise<MockupAnnotation> {
-      await this.assertOwner();
-      const name = nameOf(rawName);
-      const draft = annotationDraftSchema.safeParse(body);
-      if (!draft.success) {
-        throw new HTTPResult(HTTP_BAD_REQUEST, {
-          message: draft.error.message,
-        });
-      }
-      const created = await createAnnotation(name, draft.data, mockupsDir);
-      if (created.kind !== "created") throw refusal(created);
-      return created.annotation;
-    }
-
-    @Route("handler", "patch", ":name/annotations/:id")
-    async update(
-      @Parameter("name") rawName: string,
-      @Parameter("id") rawId: string,
-      @JSONBody() body: unknown,
-    ): Promise<MockupAnnotation> {
-      await this.assertOwner();
-      const name = nameOf(rawName);
-      const id = annotationIdSchema.safeParse(rawId);
-      if (!id.success) throw notFound("annotation");
-      const patch = annotationPatchSchema.safeParse(body);
-      if (!patch.success) {
-        throw new HTTPResult(HTTP_BAD_REQUEST, {
-          message: patch.error.message,
-        });
-      }
-      const updated = await updateAnnotation(
-        name,
-        id.data,
-        patch.data,
-        mockupsDir,
-      );
-      if (updated.kind !== "updated") throw refusal(updated);
-      return updated.annotation;
-    }
-
-    @Delete(":name/annotations/:id")
-    async remove(
-      @Parameter("name") rawName: string,
-      @Parameter("id") rawId: string,
-    ): Promise<{ id: string }> {
-      await this.assertOwner();
-      const name = nameOf(rawName);
-      const id = annotationIdSchema.safeParse(rawId);
-      if (!id.success) throw notFound("annotation");
-      if (!(await deleteAnnotation(name, id.data, mockupsDir))) {
-        throw notFound("annotation");
-      }
-      return { id: id.data };
-    }
-  }
-  return MockupAnnotationController;
 }
 
 /**

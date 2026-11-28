@@ -14,6 +14,7 @@ import {
   type MockupAnnotation,
   type MockupAnnotationDraft,
   type MockupAnnotationPatch,
+  type MockupReplyDraft,
   type MockupState,
 } from "../../utils/mockup";
 import {
@@ -51,6 +52,10 @@ export interface MockupSession {
   /** Changes a note's status or text, or moves its pin. */
   updateAnnotation: (id: string, patch: MockupAnnotationPatch) => Promise<void>;
   deleteAnnotation: (id: string) => Promise<void>;
+  /** Adds a reply under a note. */
+  addReply: (id: string, draft: MockupReplyDraft) => Promise<void>;
+  /** Removes a reply from under a note. */
+  deleteReply: (id: string, replyId: string) => Promise<void>;
 }
 
 /**
@@ -80,7 +85,7 @@ export function useMockupSession(options: MockupSessionOptions): MockupSession {
 
   async function sendAnnotation(
     endpoint: string,
-    init: { method: "POST" | "PATCH"; body: object },
+    init: { method: "POST" | "PATCH" | "DELETE"; body?: object },
   ): Promise<void> {
     hasRequestFailed.value = false;
     try {
@@ -103,6 +108,13 @@ export function useMockupSession(options: MockupSessionOptions): MockupSession {
 
   function noteEndpoint(id: string): string {
     return `${annotationsEndpoint}/${encodeURIComponent(id)}`;
+  }
+
+  function repliesEndpoint(id: string, replyId?: string): string {
+    const replies = `${noteEndpoint(id)}/replies`;
+    return replyId === undefined
+      ? replies
+      : `${replies}/${encodeURIComponent(replyId)}`;
   }
 
   onMounted(() => {
@@ -139,5 +151,9 @@ export function useMockupSession(options: MockupSessionOptions): MockupSession {
     updateAnnotation: (id, patch) =>
       sendAnnotation(noteEndpoint(id), { method: "PATCH", body: patch }),
     deleteAnnotation,
+    addReply: (id, draft) =>
+      sendAnnotation(repliesEndpoint(id), { method: "POST", body: draft }),
+    deleteReply: (id, replyId) =>
+      sendAnnotation(repliesEndpoint(id, replyId), { method: "DELETE" }),
   };
 }

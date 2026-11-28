@@ -9,6 +9,8 @@ interface ToolModesOptions {
   editing: MockupEditing;
   pins: MockupPins;
   isOverview: Readonly<Ref<boolean>>;
+  /** The viewer reviews the mockup and edits nothing: the page runs as in Preview, under the pins. */
+  isReviewing: Readonly<Ref<boolean>>;
   post: PreviewFrame["post"];
   /** Gives the focus to the canvas, once the page shows. */
   focusCanvas: () => void;
@@ -19,11 +21,15 @@ interface ToolModesOptions {
  * click to the page, so no block stays selected and no tool stays armed; a
  * block armed and the comment tool never are both; the Overview places no
  * block and leaves Preview, to comment on every page, and gives the focus
- * back to the page once it shows again.
+ * back to the page once it shows again. A reviewer's page runs as in
+ * Preview whatever the toggle says, since nothing of it is selected to edit.
  */
 export function useMockupToolModes(options: ToolModesOptions) {
   const { editing, pins, post } = options;
   const isPreviewing = ref(false);
+  const inspects = computed(
+    () => !isPreviewing.value && !options.isReviewing.value,
+  );
 
   watch(isPreviewing, (isOn) => {
     if (isOn) {
@@ -32,7 +38,7 @@ export function useMockupToolModes(options: ToolModesOptions) {
       pins.cancel();
       pins.isPlacing.value = false;
     }
-    post(previewInspectMessage(!isOn));
+    post(previewInspectMessage(inspects.value));
   });
   watch(
     () => editing.placing.value,
@@ -57,6 +63,8 @@ export function useMockupToolModes(options: ToolModesOptions) {
 
   return {
     isPreviewing,
+    /** Whether the page's blocks answer a click with a selection: not in Preview, nor for a reviewer. */
+    inspects,
     /** The tool armed, which the banner says; the comment tool and a placed block never are both. */
     mode: computed(() => {
       if (pins.isPlacing.value) return { kind: "comment" as const };

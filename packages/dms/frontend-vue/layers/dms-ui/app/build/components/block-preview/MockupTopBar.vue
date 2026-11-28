@@ -12,24 +12,36 @@ const WIDTH_ICONS: Record<MockupWidth, string> = {
   mobile: "i-ph-device-mobile",
 };
 
+/** Where the owner goes back to: the Mockups page, which is theirs alone. */
 const MOCKUPS_PATH = "/mockups";
+/** Where a reviewer goes back to: the viewer's own list, the one page their role opens. */
+const REVIEW_LIST_PATH = "/mockup";
 
-defineProps<{
-  title: string;
-  canUndo: boolean;
-  canRedo: boolean;
-  issueCount: number;
-  isConnected: boolean;
-  /** Whether the page has live routes to read: the Real data switch shows only then. */
-  hasRealData: boolean;
-  panels: MockupPanelsOpen;
-  /** Whether the version history panel is open. */
-  isHistoryOpen: boolean;
-  /** Whether the Overview is on screen in place of a page. */
-  isOverview: boolean;
-  /** Whether the assistant builds the mockup now: "Build it" then leads to its conversation. */
-  isBuilding: boolean;
-}>();
+withDefaults(
+  defineProps<{
+    title: string;
+    canUndo: boolean;
+    canRedo: boolean;
+    issueCount: number;
+    isConnected: boolean;
+    /** Whether the page has live routes to read: the Real data switch shows only then. */
+    hasRealData: boolean;
+    panels: MockupPanelsOpen;
+    /** Whether the version history panel is open. */
+    isHistoryOpen: boolean;
+    /** Whether the Overview is on screen in place of a page. */
+    isOverview: boolean;
+    /** Whether the assistant builds the mockup now: "Build it" then leads to its conversation. */
+    isBuilding: boolean;
+    /**
+     * Whether the viewer edits the mockup. A reviewer does not: the bar keeps
+     * the title, Comment, Preview, the width and the shortcuts, and loses the
+     * panels, undo and redo, History, the rename and Build it.
+     */
+    canEdit?: boolean;
+  }>(),
+  { canEdit: true },
+);
 const width = defineModel<MockupWidth>("width", { required: true });
 const realData = defineModel<boolean>("realData", { required: true });
 const isPlacing = defineModel<boolean>("placing", { required: true });
@@ -58,13 +70,14 @@ const { t } = useI18n();
         color="neutral"
         variant="ghost"
         icon="i-ph-arrow-left"
-        :to="MOCKUPS_PATH"
+        :to="canEdit ? MOCKUPS_PATH : REVIEW_LIST_PATH"
         data-dms-mockup-back
       >
         {{ t("dms.mockup.back") }}
       </UButton>
     </MockupShortcutTip>
     <MockupShortcutTip
+      v-if="canEdit"
       :label="t('dms.mockup.edit_panel')"
       shortcut="left_panel"
     >
@@ -80,7 +93,18 @@ const { t } = useI18n();
         @click="emit('panel', 'left')"
       />
     </MockupShortcutTip>
-    <MockupTitle :title="title" @rename="emit('rename', $event)" />
+    <MockupTitle
+      v-if="canEdit"
+      :title="title"
+      @rename="emit('rename', $event)"
+    />
+    <h1
+      v-else
+      class="text-highlighted mx-1 min-w-0 truncate text-sm font-semibold"
+      data-dms-mockup-title
+    >
+      {{ title }}
+    </h1>
     <UBadge
       :color="issueCount ? 'warning' : 'success'"
       variant="subtle"
@@ -97,7 +121,7 @@ const { t } = useI18n();
       {{ t("dms.mockup.disconnected") }}
     </span>
     <div class="ms-auto flex flex-wrap items-center gap-2">
-      <div class="flex gap-0.5">
+      <div v-if="canEdit" class="flex gap-0.5">
         <MockupShortcutTip :label="t('dms.mockup.undo')" shortcut="undo">
           <UButton
             size="sm"
@@ -159,7 +183,7 @@ const { t } = useI18n();
           </UButton>
         </MockupShortcutTip>
       </div>
-      <MockupShortcutTip :label="t('dms.mockup.history_hint')">
+      <MockupShortcutTip v-if="canEdit" :label="t('dms.mockup.history_hint')">
         <UButton
           size="sm"
           color="neutral"
@@ -221,6 +245,7 @@ const { t } = useI18n();
         />
       </MockupShortcutTip>
       <MockupShortcutTip
+        v-if="canEdit"
         :label="t(isBuilding ? 'dms.mockup.run_hint' : 'dms.mockup.build_hint')"
       >
         <UButton
@@ -234,6 +259,7 @@ const { t } = useI18n();
         </UButton>
       </MockupShortcutTip>
       <MockupShortcutTip
+        v-if="canEdit"
         :label="t('dms.mockup.inspector')"
         shortcut="right_panel"
       >

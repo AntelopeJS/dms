@@ -676,6 +676,19 @@
         "role_permissions_changed": {
           "title": "{actor} a modifié les permissions de « {role} »",
           "description": "Les membres qui ont ce rôle ont reçu les nouveaux accès immédiatement. Vérifiez le rôle dans Rôles."
+        },
+        "mockup_comment": {
+          "title": "{actor} a commenté la maquette « {mockup} »",
+          "description": "{text}"
+        },
+        "mockup_reply": {
+          "title": "{actor} a répondu à un commentaire sur la maquette « {mockup} »",
+          "description": "{text}"
+        },
+        "mockup_comment_resolved": {
+          "title": "{actor} a résolu un commentaire sur la maquette « {mockup} »",
+          "title_ai": "L’IA a résolu un commentaire sur la maquette « {mockup} »",
+          "description": "{text}"
         }
       }
     },
@@ -870,6 +883,17 @@
       "pin_resolved_in": "Résolu dans la version {number}",
       "pin_tray_hint": "Glissez-en un sur la page pour l’épingler à nouveau.",
       "delete_note": "Supprimer le commentaire",
+      "pin_author": "{name}",
+      "pin_resolved_by": "Résolu par {name}",
+      "replies": "{count} réponse | {count} réponses",
+      "reply": "Répondre",
+      "reply_placeholder": "Répondre…",
+      "delete_reply": "Supprimer la réponse",
+      "review_permission": "Relire les maquettes",
+      "review_permission_description": "Ouvrir une maquette en lecture seule et la commenter. La modification et la construction restent au propriétaire de la plateforme.",
+      "review_hint": "Vous relisez cette maquette : cliquez sur Commenter, puis sur la page, pour demander un changement.",
+      "access_denied": "Vous ne pouvez pas ouvrir cette maquette.",
+      "access_failed": "La maquette n’a pas pu être ouverte. Réessayez.",
       "open_comments": "{count} commentaire ouvert | {count} commentaires ouverts",
       "resolve_ai": "Résoudre avec l’IA",
       "copy_prompt": "Copier le prompt",

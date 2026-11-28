@@ -23,11 +23,19 @@ export interface MockupCatalog {
 
 const CATALOG_ENDPOINT = `${MOCKUP_LIST_ENDPOINT}/schema/blocks`;
 
-/** Reads `GET /api/mockup/schema/blocks` once the editor mounts. */
-export function useMockupCatalog(authFetch: AuthFetch): MockupCatalog {
+/**
+ * Reads `GET /api/mockup/schema/blocks` once the editor mounts. A viewer
+ * that edits nothing (`enabled` false) reads nothing: the route is the
+ * owner's, and the catalog stays empty.
+ */
+export function useMockupCatalog(
+  authFetch: AuthFetch,
+  enabled = true,
+): MockupCatalog {
   const blocks = shallowRef<MockupBlockType[]>([]);
   const hasFailed = shallowRef(false);
   onMounted(async () => {
+    if (!enabled) return;
     try {
       const parsed = parseBlockCatalog(
         await authFetch<JsonValue>(CATALOG_ENDPOINT),

@@ -27,11 +27,19 @@ const { t } = useI18n();
       <li v-for="entry in pins.tray.value" :key="entry.note.id">
         <button
           type="button"
-          class="hover:bg-elevated flex w-full cursor-grab touch-none items-center gap-2 rounded-md px-1 py-1 text-start text-xs select-none active:cursor-grabbing"
+          class="hover:bg-elevated flex w-full touch-none items-center gap-2 rounded-md px-1 py-1 text-start text-xs select-none"
+          :class="
+            pins.canChange(entry.note)
+              ? 'cursor-grab active:cursor-grabbing'
+              : 'cursor-pointer'
+          "
           :aria-expanded="pins.openId.value === entry.note.id"
           :data-dms-mockup-pin="entry.note.id"
           :data-status="entry.note.status"
-          @pointerdown="pins.press(entry.note.id, $event)"
+          @pointerdown="
+            pins.canChange(entry.note) && pins.press(entry.note.id, $event)
+          "
+          @click="!pins.canChange(entry.note) && pins.toggleCard(entry.note.id)"
           @keydown.enter.prevent="pins.toggleCard(entry.note.id)"
           @keydown.space.prevent="pins.toggleCard(entry.note.id)"
         >
@@ -47,10 +55,14 @@ const { t } = useI18n();
           class="mt-1 w-full shadow-none"
           :note="entry.note"
           :number="entry.number"
+          :can-change="pins.canChange(entry.note)"
+          :can-remove-reply="pins.canRemoveReply"
           :unsaved="pins.unsaved"
           @save="(text) => pins.setText(entry.note.id, text)"
           @status="(status) => pins.setStatus(entry.note.id, status)"
           @remove="pins.remove(entry.note.id)"
+          @reply="(text) => pins.reply(entry.note.id, text)"
+          @remove-reply="(replyId) => pins.removeReply(entry.note.id, replyId)"
           @close="pins.toggleCard(entry.note.id)"
         />
       </li>

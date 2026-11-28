@@ -80,6 +80,12 @@ interface MockupSpecOptions {
    * put it, and never writes it.
    */
   held?: Readonly<Ref<string | undefined>>;
+  /**
+   * Whether the viewer edits the spec. False for a reviewer, whom the backend
+   * refuses the spec routes: the editor then neither reads nor writes the
+   * file, holds no spec, and every edit changes nothing. Defaults to true.
+   */
+  enabled?: boolean;
 }
 
 /** The spec the `/mockup` editor changes, and its undo history. */
@@ -488,14 +494,17 @@ class MockupSpecSync {
 export function useMockupSpec(options: MockupSpecOptions): MockupSpecEditor {
   const sync = new MockupSpecSync(options);
   const { history, written } = sync;
+  const enabled = options.enabled !== false;
 
   onMounted(async () => {
+    if (!enabled) return;
     const source = await sync.read();
     if (source && !sync.isClosed && !history.value) sync.adopt(source, false);
   });
   watch(
     () => options.state.value?.revision,
     () => {
+      if (!enabled) return;
       sync.isAwaitingState.value = false;
       ignoreRejection(sync.check());
     },

@@ -4,15 +4,19 @@ import { useEventListener } from "@vueuse/core";
 import type {
   MockupAnnotation,
   MockupAnnotationStatus,
+  MockupReply,
 } from "../../utils/mockup";
 
 /**
  * The card of one pin: the note being written for a new pin, or a note left
- * before, whose text is edited in place and which is resolved, reopened or
- * deleted from here. Escape closes it, Ctrl or Cmd with Enter saves. A
- * read-only card, on a pin of a past version, shows the note and its status:
- * open, or resolved and on which version. A note pinned on a named state of
- * a sketch says which.
+ * before, whose text is edited in place by whoever may change it and which
+ * is resolved, reopened or deleted from here. Escape closes it, Ctrl or Cmd
+ * with Enter saves. A read-only card, on a pin of a past version, shows the
+ * note and its status: open, or resolved and on which version. A note pinned
+ * on a named state of a sketch says which. A note left before is signed by
+ * its author, and the thread of replies under it is read and written here:
+ * a reviewer reads and resolves another's note and replies under it, but
+ * rewrites, moves and deletes only their own, as the backend enforces.
  *
  * A press anywhere else closes it too, a press in the preview included,
  * which reaches the page as a press on its iframe; a press on its own pin
@@ -29,6 +33,10 @@ const props = defineProps<{
   number?: number;
   /** Shows the note's text and status without a way to change it. */
   readOnly?: boolean;
+  /** Whether the viewer may rewrite and delete the note: the owner, or its author. Defaults to true. */
+  canChange?: boolean;
+  /** Whether the viewer may delete a reply. Defaults to the owner's and the author's. */
+  canRemoveReply?: (reply: MockupReply) => boolean;
   /** What each note's card held unsaved when it closed, by note id. */
   unsaved?: Map<string, string>;
 }>();
@@ -37,6 +45,8 @@ const emit = defineEmits<{
   close: [];
   status: [status: MockupAnnotationStatus];
   remove: [];
+  reply: [text: string];
+  removeReply: [replyId: string];
 }>();
 
 const NOTE_MAX_LENGTH = 2000;
@@ -49,6 +59,7 @@ const card = useTemplateRef<HTMLElement>("card");
 const text = ref(
   props.note ? (props.unsaved?.get(props.note.id) ?? props.note.text) : "",
 );
+const replyText = ref("");
 const isShaking = ref(false);
 let isDiscarded = false;
 
@@ -59,9 +70,12 @@ watch(
   },
 );
 
+const canEdit = computed(() => !props.readOnly && (props.canChange ?? true));
+const replies = computed(() => props.note?.replies ?? []);
 const canSave = computed(
   () => text.value.trim() !== "" && text.value.trim() !== props.note?.text,
 );
+const canReply = computed(() => replyText.value.trim() !== "");
 
 const stateLabel = computed(() => {
   const resolvedOn = props.note?.resolvedVersion;
@@ -71,8 +85,18 @@ const stateLabel = computed(() => {
     : t("dms.mockup.pin_resolved_in", { number: resolvedOn });
 });
 
+function mayRemoveReply(reply: MockupReply): boolean {
+  return props.canRemoveReply?.(reply) ?? true;
+}
+
 function save(): void {
   if (canSave.value) emit("save", text.value.trim());
+}
+
+function sendReply(): void {
+  if (!canReply.value) return;
+  emit("reply", replyText.value.trim());
+  replyText.value = "";
 }
 
 /** Close or Escape: what was written and not saved is let go. */
@@ -134,6 +158,13 @@ onBeforeUnmount(() => {
     @keydown.enter.meta.exact.prevent="save"
   >
     <p
+      v-if="note?.author"
+      class="text-muted truncate text-xs font-medium"
+      data-dms-mockup-pin-author
+    >
+      {{ t("dms.mockup.pin_author", { name: note.author.name }) }}
+    </p>
+    <p
       v-if="note?.state"
       class="text-muted flex items-center gap-1 text-xs"
       :data-dms-mockup-pin-sketch-state="note.state"
@@ -141,8 +172,11 @@ onBeforeUnmount(() => {
       <UIcon name="i-ph-stack" class="size-3.5" />
       {{ t("dms.mockup.pin_sketch_state", { state: note.state }) }}
     </p>
-    <template v-if="note && readOnly">
-      <p class="text-default text-sm break-words whitespace-pre-wrap">
+    <template v-if="note && (readOnly || !canEdit)">
+      <p
+        class="text-default text-sm break-words whitespace-pre-wrap"
+        data-dms-mockup-pin-text
+      >
         {{ note.text }}
       </p>
       <div class="flex items-center gap-2">
@@ -155,8 +189,15 @@ onBeforeUnmount(() => {
             class="size-3.5"
           />
           {{ stateLabel }}
+          <template v-if="note.status === 'resolved' && note.resolvedBy">
+            ·
+            {{
+              t("dms.mockup.pin_resolved_by", { name: note.resolvedBy.name })
+            }}
+          </template>
         </span>
         <UButton
+          v-if="readOnly"
           size="xs"
           color="neutral"
           variant="ghost"
@@ -177,6 +218,66 @@ onBeforeUnmount(() => {
       :maxlength="NOTE_MAX_LENGTH"
       :placeholder="t('dms.mockup.note_placeholder')"
     />
+    <ul
+      v-if="note && replies.length"
+      class="border-default space-y-1.5 border-t pt-2"
+      data-dms-mockup-pin-replies
+      :aria-label="
+        t('dms.mockup.replies', { count: replies.length }, replies.length)
+      "
+    >
+      <li
+        v-for="reply in replies"
+        :key="reply.id"
+        class="flex items-start gap-1 text-xs"
+        :data-dms-mockup-pin-reply="reply.id"
+      >
+        <span class="min-w-0 flex-1">
+          <span class="text-muted font-medium" data-dms-mockup-reply-author>
+            {{ reply.author.name }}
+          </span>
+          <span
+            class="text-default block break-words whitespace-pre-wrap"
+            data-dms-mockup-reply-text
+          >
+            {{ reply.text }}
+          </span>
+        </span>
+        <UButton
+          v-if="!readOnly && mayRemoveReply(reply)"
+          size="xs"
+          color="neutral"
+          variant="ghost"
+          icon="i-ph-x"
+          :aria-label="t('dms.mockup.delete_reply')"
+          data-dms-mockup-reply-delete
+          @click="emit('removeReply', reply.id)"
+        />
+      </li>
+    </ul>
+    <div v-if="note && !readOnly" class="flex items-end gap-1">
+      <UTextarea
+        v-model="replyText"
+        class="w-full"
+        :rows="1"
+        autoresize
+        :maxlength="NOTE_MAX_LENGTH"
+        :placeholder="t('dms.mockup.reply_placeholder')"
+        data-dms-mockup-reply-input
+        @keydown.enter.ctrl.exact.stop.prevent="sendReply"
+        @keydown.enter.meta.exact.stop.prevent="sendReply"
+      />
+      <UButton
+        size="xs"
+        color="neutral"
+        variant="outline"
+        :disabled="!canReply"
+        data-dms-mockup-reply-send
+        @click="sendReply"
+      >
+        {{ t("dms.mockup.reply") }}
+      </UButton>
+    </div>
     <div v-if="!readOnly" class="flex items-center gap-1">
       <template v-if="note">
         <UButton
@@ -194,6 +295,7 @@ onBeforeUnmount(() => {
           }}
         </UButton>
         <UButton
+          v-if="canEdit"
           size="xs"
           color="error"
           variant="ghost"
@@ -214,6 +316,7 @@ onBeforeUnmount(() => {
           {{ note ? t("dms.mockup.close") : t("dms.mockup.cancel") }}
         </UButton>
         <UButton
+          v-if="!note || canEdit"
           size="xs"
           :disabled="!canSave"
           data-dms-mockup-pin-save

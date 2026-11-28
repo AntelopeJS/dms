@@ -84,12 +84,20 @@ function setOpenText(text: string): void {
   if (id) void props.pins.setText(id, text);
 }
 
+/** Whether the pin `id` can be dragged: on the current spec, by whoever may move its note. */
+function isDraggable(id: string): boolean {
+  const pin = drawn.value.find((entry) => entry.note.id === id);
+  return (
+    !props.pins.isReadOnly.value && !!pin && props.pins.canChange(pin.note)
+  );
+}
+
 function onPress(id: string, event: PointerEvent): void {
-  if (!props.pins.isReadOnly.value) props.pins.press(id, event);
+  if (isDraggable(id)) props.pins.press(id, event);
 }
 
 function onClick(id: string): void {
-  if (props.pins.isReadOnly.value) props.pins.toggleCard(id);
+  if (!isDraggable(id)) props.pins.toggleCard(id);
 }
 
 function clientOf(event: PointerEvent | MouseEvent) {
@@ -127,9 +135,9 @@ function clientOf(event: PointerEvent | MouseEvent) {
         pin.note.status === 'open'
           ? 'bg-primary text-inverted border-default'
           : 'bg-elevated text-muted border-default opacity-70',
-        pins.isReadOnly.value
-          ? 'cursor-pointer'
-          : 'cursor-grab active:cursor-grabbing',
+        isDraggable(pin.note.id)
+          ? 'cursor-grab active:cursor-grabbing'
+          : 'cursor-pointer',
       ]"
       :style="pinStyle(pin.point)"
       :aria-label="t('dms.mockup.pin_label', { number: pin.number })"
@@ -156,10 +164,16 @@ function clientOf(event: PointerEvent | MouseEvent) {
       :note="openPin.note"
       :number="openPin.number"
       :read-only="pins.isReadOnly.value"
+      :can-change="pins.canChange(openPin.note)"
+      :can-remove-reply="pins.canRemoveReply"
       :unsaved="pins.unsaved"
       @save="setOpenText"
       @status="setOpenStatus"
       @remove="pins.remove(openPin.note.id)"
+      @reply="(text) => openPin && pins.reply(openPin.note.id, text)"
+      @remove-reply="
+        (replyId) => openPin && pins.removeReply(openPin.note.id, replyId)
+      "
       @close="pins.toggleCard(openPin.note.id)"
     />
     <template v-if="draft">

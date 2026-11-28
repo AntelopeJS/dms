@@ -18,32 +18,20 @@ import {
 } from "@antelopejs/interface-dms/page";
 import type { AxiosInstance } from "axios";
 import { expect } from "chai";
-import { startMockupEngine, stopMockupEngine } from "../../mockup";
+import {
+  MOCKUP_REVIEW_PERMISSION_ID,
+  startMockupEngine,
+  stopMockupEngine,
+} from "../../mockup";
 import type { RoleEditorPermissionNode } from "../../pages/permissions";
 import { authorizedClient, registerUser } from "../helpers/auth";
 import { resetDatabase } from "../helpers/db";
 import { createClient } from "../helpers/http";
 
 const EDITOR_TREE = pageRoutePath("/settings/workspace/roles", "/editor-tree");
+const MOCKUP_API = "/api/mockup";
 const HTTP_OK = 200;
 const HTTP_FORBIDDEN = 403;
-
-interface DevArea {
-  slug: string;
-  api: string;
-  start: (scratch: string) => void;
-  stop: () => void;
-}
-
-/** The development-only areas whose page must stay the platform owner's alone. */
-const DEV_AREAS: DevArea[] = [
-  {
-    slug: "/mockup",
-    api: "/api/mockup",
-    start: (scratch) => startMockupEngine(scratch),
-    stop: stopMockupEngine,
-  },
-];
 
 function unregisterRoutesUnder(api: string): void {
   for (const route of getRegisteredRoutes()) {
@@ -51,12 +39,12 @@ function unregisterRoutesUnder(api: string): void {
   }
 }
 
-function registeredPage(slug: string): PageInfo | undefined {
+function registeredPage(slug: string): PageInfo {
   for (const { handler } of getRegisteredRouteHandlers()) {
     const { pageInfo } = GetMetadata(handler.controller, PageMetadata);
     if (pageInfo?.fullSlug === slug) return pageInfo;
   }
-  return undefined;
+  throw new Error(`${slug} registered no page`);
 }
 
 async function memberHolding(permission: string): Promise<AxiosInstance> {
@@ -68,38 +56,52 @@ async function memberHolding(permission: string): Promise<AxiosInstance> {
   return authorizedClient(member.accessToken);
 }
 
+async function platformOwner(): Promise<AxiosInstance> {
+  const owner = await registerUser({ owner: true });
+  return authorizedClient(owner.accessToken);
+}
+
 function nodeIds(nodes: RoleEditorPermissionNode[]): string[] {
   return nodes.flatMap((node) => [node.id, ...nodeIds(node.children ?? [])]);
 }
 
-for (const { slug, api, start, stop } of DEV_AREAS) {
-  describe(`[integration] the ${slug} development page`, () => {
-    let page: PageInfo;
-    let layout: string;
-    let scratch: string;
+async function editorTreeIds(owner: AxiosInstance): Promise<string[]> {
+  const tree = await owner.get<RoleEditorPermissionNode[]>(EDITOR_TREE);
+  expect(tree.status, JSON.stringify(tree.data)).to.equal(HTTP_OK);
+  return nodeIds(tree.data);
+}
 
-    before(async () => {
-      scratch = await mkdtemp(join(tmpdir(), "dms-owner-only-page-"));
-      start(scratch);
-      const found = registeredPage(slug);
-      if (!found) throw new Error(`${slug} registered no page`);
-      page = found;
-      layout = pageRoutePath(page.fullSlug, "/pagelayout");
-    });
+describe("[integration] the mockup development pages", () => {
+  let list: PageInfo;
+  let viewer: PageInfo;
+  let listLayout: string;
+  let viewerLayout: string;
+  let scratch: string;
 
-    after(async () => {
-      stop();
-      unregisterRoutesUnder(api);
-      pageInterfaceInternal.RegisterPage.unregister(page);
-      await rm(scratch, { recursive: true, force: true });
-    });
+  before(async () => {
+    scratch = await mkdtemp(join(tmpdir(), "dms-owner-only-page-"));
+    startMockupEngine(scratch);
+    list = registeredPage("/mockups");
+    viewer = registeredPage("/mockup");
+    listLayout = pageRoutePath(list.fullSlug, "/pagelayout");
+    viewerLayout = pageRoutePath(viewer.fullSlug, "/pagelayout");
+  });
 
-    beforeEach(resetDatabase);
+  after(async () => {
+    stopMockupEngine();
+    unregisterRoutesUnder(MOCKUP_API);
+    pageInterfaceInternal.RegisterPage.unregister(list);
+    pageInterfaceInternal.RegisterPage.unregister(viewer);
+    await rm(scratch, { recursive: true, force: true });
+  });
 
+  beforeEach(resetDatabase);
+
+  describe("/mockups, the platform owner's list", () => {
     it("refuses a member whose role holds the page's permission", async () => {
-      const member = await memberHolding(page.fullId);
+      const member = await memberHolding(list.fullId);
 
-      const answer = await member.get(layout);
+      const answer = await member.get(listLayout);
 
       expect(answer.status, JSON.stringify(answer.data)).to.equal(
         HTTP_FORBIDDEN,
@@ -108,28 +110,51 @@ for (const { slug, api, start, stop } of DEV_AREAS) {
     });
 
     it("refuses a caller with no session", async () => {
-      const answer = await createClient().get(layout);
+      const answer = await createClient().get(listLayout);
 
       expect(answer.status).to.not.equal(HTTP_OK);
     });
 
     it("serves the page to the platform owner", async () => {
-      const owner = await registerUser({ owner: true });
-
-      const answer = await authorizedClient(owner.accessToken).get(layout);
+      const answer = await (await platformOwner()).get(listLayout);
 
       expect(answer.status, JSON.stringify(answer.data)).to.equal(HTTP_OK);
     });
 
     it("is left out of the Roles editor, so no role can be granted it", async () => {
-      const owner = await registerUser({ owner: true });
-
-      const tree = await authorizedClient(owner.accessToken).get<
-        RoleEditorPermissionNode[]
-      >(EDITOR_TREE);
-
-      expect(tree.status, JSON.stringify(tree.data)).to.equal(HTTP_OK);
-      expect(nodeIds(tree.data)).to.not.include(page.fullId);
+      expect(await editorTreeIds(await platformOwner())).to.not.include(
+        list.fullId,
+      );
     });
   });
-}
+
+  describe("/mockup, the viewer a reviewer's role opens", () => {
+    it("refuses a member whose role holds another permission, and a caller with no session (fails when the viewer opens to every member)", async () => {
+      const member = await memberHolding(list.fullId);
+
+      const refused = await member.get(viewerLayout);
+      const anonymous = await createClient().get(viewerLayout);
+
+      expect(refused.status, JSON.stringify(refused.data)).to.equal(
+        HTTP_FORBIDDEN,
+      );
+      expect(anonymous.status).to.not.equal(HTTP_OK);
+    });
+
+    it("serves the page to a member whose role holds the review permission, as to the platform owner (fails when only the owner opens the viewer)", async () => {
+      const reviewer = await memberHolding(MOCKUP_REVIEW_PERMISSION_ID);
+
+      const reviewed = await reviewer.get(viewerLayout);
+      const owned = await (await platformOwner()).get(viewerLayout);
+
+      expect(reviewed.status, JSON.stringify(reviewed.data)).to.equal(HTTP_OK);
+      expect(owned.status, JSON.stringify(owned.data)).to.equal(HTTP_OK);
+    });
+
+    it("offers the review permission in the Roles editor, so a role can be granted it (fails when the viewer stays owner-only)", async () => {
+      expect(await editorTreeIds(await platformOwner())).to.include(
+        MOCKUP_REVIEW_PERMISSION_ID,
+      );
+    });
+  });
+});

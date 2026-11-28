@@ -15,12 +15,30 @@ import { annotationIdSchema } from "./model";
 const JSON_INDENT = 2;
 
 /** The version of the annotations file this module writes. */
-export const FILE_VERSION = 3;
+export const FILE_VERSION = 4;
+
+/** The version before authors and replies: its notes read as unsigned, with no reply. */
+const UNSIGNED_VERSION = 3;
 
 /** Whether a note is still to be acted on, or done. */
 export const statusSchema = z.enum(["open", "resolved"]);
 const versionNumberSchema = z.number().int().positive();
 const fractionSchema = z.number().min(0).max(1);
+
+/** Who wrote a note or a reply: the signed-in user, and the name the others see. */
+export const noteAuthorSchema = z
+  .object({ userId: z.string(), name: z.string() })
+  .strict();
+export type NoteAuthor = z.infer<typeof noteAuthorSchema>;
+
+/** One reply under a note. */
+const replySchema = z.object({
+  id: annotationIdSchema,
+  author: noteAuthorSchema,
+  text: z.string(),
+  createdAt: z.string(),
+});
+export type StoredReply = z.infer<typeof replySchema>;
 
 /**
  * Where a pin sits on what it is on: fractions of its box, from its top left
@@ -45,18 +63,33 @@ const storedSchema = z.object({
   resolvedVersion: versionNumberSchema.optional(),
   /** The state of the sketch the note was pinned on; absent on its default `html` and on any other block. */
   state: z.string().optional(),
+  /** Who pinned the note; absent on a note written before authors. */
+  author: noteAuthorSchema.optional(),
+  /** Who resolved the note, while it is resolved; absent when the AI did, or before authors. */
+  resolvedBy: noteAuthorSchema.optional(),
+  /** The replies under the note, oldest first. */
+  replies: z.array(replySchema).default([]),
 });
 export type StoredAnnotation = z.infer<typeof storedSchema>;
 
 /** Where a note of a version 2 file sits on its block: that version had no offset. */
 const VERSION_2_OFFSET: PinOffset = { x: 0, y: 0 };
 
-/** An annotations file as stored, a version 2 file read as version 3. The version 3 file takes `version` and `resolvedVersion` as optional fields. */
+/**
+ * An annotations file as stored, an older file read as the current version: a
+ * version 3 file's notes have no author and no reply, a version 2 file's sit
+ * at the top left corner of their block too.
+ */
 const annotationsFileSchema = z.union([
-  z.object({
-    version: z.literal(FILE_VERSION),
-    annotations: z.array(storedSchema),
-  }),
+  z
+    .object({
+      version: z.union([z.literal(UNSIGNED_VERSION), z.literal(FILE_VERSION)]),
+      annotations: z.array(storedSchema),
+    })
+    .transform(({ annotations }): AnnotationsFile => ({
+      version: FILE_VERSION,
+      annotations,
+    })),
   z
     .object({
       version: z.literal(2),

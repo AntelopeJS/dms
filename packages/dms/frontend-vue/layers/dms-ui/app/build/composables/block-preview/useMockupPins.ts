@@ -7,9 +7,12 @@ import {
   type Ref,
 } from "vue";
 import type { PreviewRect } from "../../utils/blockPreviewMessages";
-import type {
-  MockupAnnotation,
-  MockupAnnotationStatus,
+import {
+  isMine,
+  type MockupAccess,
+  type MockupAnnotation,
+  type MockupAnnotationStatus,
+  type MockupReply,
 } from "../../utils/mockup";
 import {
   isOnCanvas,
@@ -41,6 +44,8 @@ interface PinsOptions {
    * version's spec; undefined while the current spec is on screen.
    */
   previewed: ComputedRef<readonly MockupAnnotation[] | undefined>;
+  /** Who the viewer is to the mockup: the owner changes any note, a reviewer only their own. */
+  access: MockupAccess;
 }
 
 /** A note, numbered in the order the notes were left. */
@@ -95,6 +100,12 @@ export interface MockupPins {
   setText: (id: string, text: string) => Promise<void>;
   setStatus: (id: string, status: MockupAnnotationStatus) => Promise<void>;
   remove: (id: string) => Promise<void>;
+  reply: (id: string, text: string) => Promise<void>;
+  removeReply: (id: string, replyId: string) => Promise<void>;
+  /** Whether the viewer may rewrite, move or delete `note`: the owner any, a reviewer their own. */
+  canChange: (note: Pick<MockupAnnotation, "author">) => boolean;
+  /** Whether the viewer may delete `reply`: the owner any, a reviewer their own. */
+  canRemoveReply: (reply: Pick<MockupReply, "author">) => boolean;
   /** Steps back from what is going on: the armed tool, the pin being written, the open card. False when nothing was. */
   cancel: () => boolean;
 }
@@ -377,6 +388,9 @@ function usePinViews(
  * the innermost block under it, else on the page, of the page it lands on.
  * While a past version is previewed, the pins pinned on that version show
  * instead, resolved ones too, and nothing can be placed, moved or changed.
+ * The owner changes any note; a reviewer resolves, reopens and replies to
+ * any, and rewrites, moves or deletes only their own: the backend refuses
+ * the rest, so the cards offer only what the viewer may do.
  */
 export function useMockupPins(options: PinsOptions): MockupPins {
   const { session } = options;
@@ -461,6 +475,14 @@ export function useMockupPins(options: PinsOptions): MockupPins {
       await session.deleteAnnotation(id);
       if (openId.value === id) openId.value = undefined;
     },
+    reply: (id, text) => session.addReply(id, { text }),
+    removeReply: (id, replyId) => session.deleteReply(id, replyId),
+    canChange: (note) =>
+      options.access.role === "owner" ||
+      isMine(note.author, options.access.userId),
+    canRemoveReply: (reply) =>
+      options.access.role === "owner" ||
+      isMine(reply.author, options.access.userId),
     cancel,
   };
 }

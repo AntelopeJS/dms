@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { expect } from "chai";
 import { z } from "zod";
 import {
+  addReply,
   createAnnotation,
   defaultMockupsDir,
   deleteAnnotation,
@@ -212,7 +213,7 @@ describe("[unit] mockup annotation pins: deleting and older files", () => {
     expect(listed?.map(({ id }) => id)).to.deep.equal([kept.id]);
   });
 
-  it("reads a version 2 file with each note at its block's top left corner, and writes version 3 on the next change (fails when a version 2 file is refused)", async () => {
+  it("reads a version 2 file with each note at its block's top left corner, and writes the current version on the next change (fails when a version 2 file is refused)", async () => {
     await put(sketch("<p>a</p>"));
     const { anchor } = await annotate("home", "/pages/0/tree/0");
     await writeFile(
@@ -244,6 +245,53 @@ describe("[unit] mockup annotation pins: deleting and older files", () => {
 
     expect(note).to.include({ page: "home", path: "/pages/0/tree/0" });
     expect(note.offset).to.deep.equal({ x: 0, y: 0 });
-    expect(written.version).to.equal(3);
+    expect(note.replies).to.deep.equal([]);
+    expect(written.version).to.equal(4);
+  });
+
+  it("reads a version 3 file, from before authors, as notes nobody signed with no reply, and writes version 4 with the replies on the next change (fails when a version 3 file is refused or a reply is lost)", async () => {
+    await put(sketch("<p>a</p>"));
+    const { anchor } = await annotate("home", "/pages/0/tree/0");
+    await writeFile(
+      annotationsPath(),
+      JSON.stringify({
+        version: 3,
+        annotations: [
+          {
+            id: "unsigned",
+            anchor,
+            offset: { x: 0.5, y: 0.5 },
+            text: "older note",
+            status: "open",
+            createdAt: "2026-01-01T00:00:00.000Z",
+          },
+        ],
+      }),
+    );
+
+    const note = await served("unsigned");
+    const replied = await addReply(
+      MOCKUP,
+      "unsigned",
+      { text: "still wanted" },
+      { userId: "client", name: "Client" },
+      defaultMockupsDir(),
+    );
+    const written = z
+      .object({
+        version: z.number(),
+        annotations: z.array(
+          z.object({ replies: z.array(z.object({ text: z.string() })) }),
+        ),
+      })
+      .parse(JSON.parse(await readFile(annotationsPath(), "utf8")));
+
+    expect(note).to.not.have.property("author");
+    expect(note.replies).to.deep.equal([]);
+    expect(replied.kind).to.equal("replied");
+    expect(written.version).to.equal(4);
+    expect(written.annotations[0].replies).to.deep.equal([
+      { text: "still wanted" },
+    ]);
   });
 });

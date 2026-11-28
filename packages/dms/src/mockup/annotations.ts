@@ -11,14 +11,17 @@ import {
 } from "./anchor";
 import { parseSpec } from "./compile";
 import {
+  type AnnotationsFile,
   annotationsPath,
   exists,
   FILE_VERSION,
+  type NoteAuthor,
   pinOffsetSchema,
   readAnnotationsFile,
   serialized,
   statusSchema,
   type StoredAnnotation,
+  type StoredReply,
   writeAnnotationsFile,
 } from "./annotations-file";
 import { defaultMockupsDir, mockupDirectory } from "./files";
@@ -86,6 +89,10 @@ export const annotationPatchSchema = z
   .strict();
 export type AnnotationPatch = z.infer<typeof annotationPatchSchema>;
 
+/** What a reviewer posts under a note: the reply. */
+export const replyDraftSchema = z.object({ text: textSchema }).strict();
+export type ReplyDraft = z.infer<typeof replyDraftSchema>;
+
 /**
  * A reviewer's pin on a mockup: a note on one block, or on one page as a
  * whole, at `offset` of its box. The file stores `anchor` and no location.
@@ -93,7 +100,9 @@ export type AnnotationPatch = z.infer<typeof annotationPatchSchema>;
  * served: `page` alone for a note on a page, neither when its block or page
  * was removed. `version` is the history version the note was pinned on; a
  * note written before versions is served as pinned on the newest one.
- * `resolvedVersion` is the version it was resolved on.
+ * `resolvedVersion` is the version it was resolved on. `author` is who pinned
+ * it, `resolvedBy` who resolved it, each absent when nobody signed in did,
+ * and `replies` the thread under it, oldest first.
  */
 export type MockupAnnotation = StoredAnnotation & Partial<NoteSite>;
 
@@ -115,6 +124,19 @@ export type AnnotationUpdate =
   | { kind: "no_mockup" }
   | { kind: "no_annotation" }
   | PlacementRefusal;
+
+/** What replying under an annotation answers. */
+export type ReplyAddition =
+  | { kind: "replied"; annotation: MockupAnnotation; reply: StoredReply }
+  | { kind: "no_mockup" }
+  | { kind: "no_annotation" };
+
+/** What deleting a reply answers. */
+export type ReplyDeletion =
+  | { kind: "deleted"; annotation: MockupAnnotation }
+  | { kind: "no_mockup" }
+  | { kind: "no_annotation" }
+  | { kind: "no_reply" };
 
 /** The anchor a place gets, or why it gets none. */
 type Anchoring = { kind: "anchored"; anchor: NoteAnchor } | PlacementRefusal;
@@ -250,6 +272,17 @@ export async function listAnnotations(
   return (await readPlaced(name, mockupsDir))?.notes;
 }
 
+/** The annotation `id` of a mockup as {@link listAnnotations} serves it, or undefined when the mockup or the annotation does not exist. */
+export async function readAnnotation(
+  name: MockupName,
+  id: string,
+  mockupsDir = defaultMockupsDir(),
+): Promise<MockupAnnotation | undefined> {
+  return (await listAnnotations(name, mockupsDir))?.find(
+    (note) => note.id === id,
+  );
+}
+
 /**
  * The annotations of a mockup as {@link listAnnotations} lists them, each
  * with the pointer and the node of what it is on, read from the same spec.
@@ -344,23 +377,30 @@ async function servedNow(
   );
 }
 
+function freshId(): string {
+  return randomBytes(ID_BYTES).toString("base64url");
+}
+
 async function create(
   held: Held,
   draft: AnnotationDraft,
+  author: NoteAuthor | undefined,
 ): Promise<AnnotationCreation> {
   const file = await readAnnotationsFile(held.path);
   const anchored = await anchorPlace(held, draft);
   if (anchored.kind !== "anchored") return anchored;
   const version = await newestVersion(held.mockupsDir, held.name);
   const note: StoredAnnotation = {
-    id: randomBytes(ID_BYTES).toString("base64url"),
+    id: freshId(),
     anchor: anchored.anchor,
     offset: draft.offset,
     text: draft.text,
     status: "open",
     createdAt: new Date().toISOString(),
+    replies: [],
     ...(version !== undefined && { version }),
     ...(draft.state !== undefined && { state: draft.state }),
+    ...(author && { author }),
   };
   await writeAnnotationsFile(held.path, {
     version: FILE_VERSION,
@@ -370,7 +410,8 @@ async function create(
 }
 
 /**
- * Adds an open annotation, pinned on the newest version of the mockup, at the draft's place in the current spec: on the
+ * Adds an open annotation, signed by `author` when one is given, pinned on
+ * the newest version of the mockup, at the draft's place in the current spec: on the
  * page `page` when the draft has no `path`, else on the block of the node at
  * `path`. When that node and its ancestors have no id, a fresh one is stamped
  * on the node in `spec.json`, whatever other issues the spec has. Answers why
@@ -382,24 +423,26 @@ export async function createAnnotation(
   name: MockupName,
   draft: AnnotationDraft,
   mockupsDir = defaultMockupsDir(),
+  author?: NoteAuthor,
 ): Promise<AnnotationCreation> {
   if (!(await exists(mockupDirectory(mockupsDir, name)))) {
     return { kind: "no_mockup" };
   }
-  return locked(mockupsDir, name, (held) => create(held, draft));
+  return locked(mockupsDir, name, (held) => create(held, draft, author));
 }
 
 /**
  * `annotation` with `change`, pinned on `newest` when it was written before
- * versions. A resolved note keeps the time and version of its first
- * resolution; an open one has neither.
+ * versions. A resolved note keeps the time, the version and the resolver of
+ * its first resolution; an open one has none of them.
  */
 function withStatusAndText(
   annotation: StoredAnnotation,
   change: Pick<AnnotationPatch, "status" | "text">,
   newest: number | undefined,
+  by: NoteAuthor | undefined,
 ): StoredAnnotation {
-  const { resolvedAt, resolvedVersion, ...rest } = annotation;
+  const { resolvedAt, resolvedVersion, resolvedBy, ...rest } = annotation;
   const next = {
     ...rest,
     ...change,
@@ -408,10 +451,12 @@ function withStatusAndText(
   };
   if (next.status === "open") return next;
   const version = resolvedVersion ?? newest;
+  const resolver = resolvedAt === undefined ? by : resolvedBy;
   return {
     ...next,
     resolvedAt: resolvedAt ?? new Date().toISOString(),
     ...(version !== undefined && { resolvedVersion: version }),
+    ...(resolver && { resolvedBy: resolver }),
   };
 }
 
@@ -419,6 +464,7 @@ async function update(
   held: Held,
   id: string,
   patch: AnnotationPatch,
+  by: NoteAuthor | undefined,
 ): Promise<AnnotationUpdate> {
   const file = await readAnnotationsFile(held.path);
   const index = file.annotations.findIndex((note) => note.id === id);
@@ -428,6 +474,7 @@ async function update(
     file.annotations[index],
     change,
     await newestVersion(held.mockupsDir, held.name),
+    by,
   );
   if (place) {
     const anchored = await anchorPlace(held, place);
@@ -440,19 +487,17 @@ async function update(
       ...(place.state !== undefined && { state: place.state }),
     };
   }
-  await writeAnnotationsFile(held.path, {
-    ...file,
-    annotations: file.annotations.map((note, position) =>
-      position === index ? updated : note,
-    ),
-  });
-  return { kind: "updated", annotation: await servedNow(held, updated) };
+  return {
+    kind: "updated",
+    annotation: await writeReplaced(held, file, index, updated),
+  };
 }
 
 /**
  * Changes an annotation's text or status, or pins it at another place, which
- * anchors it as {@link createAnnotation} does. `resolvedAt` and
- * `resolvedVersion` are set while it is resolved. Answers why when it cannot: the mockup or the annotation does
+ * anchors it as {@link createAnnotation} does. `resolvedAt`,
+ * `resolvedVersion` and, when `by` names who resolves it, `resolvedBy` are
+ * set while it is resolved. Answers why when it cannot: the mockup or the annotation does
  * not exist, or the place is refused, which changes nothing.
  */
 export async function updateAnnotation(
@@ -460,11 +505,91 @@ export async function updateAnnotation(
   id: string,
   patch: AnnotationPatch,
   mockupsDir = defaultMockupsDir(),
+  by?: NoteAuthor,
 ): Promise<AnnotationUpdate> {
   if (!(await exists(mockupDirectory(mockupsDir, name)))) {
     return { kind: "no_mockup" };
   }
-  return locked(mockupsDir, name, (held) => update(held, id, patch));
+  return locked(mockupsDir, name, (held) => update(held, id, patch, by));
+}
+
+/** Writes `file` with the annotation at `index` replaced by `updated`, and answers `updated` as served now. */
+async function writeReplaced(
+  held: Held,
+  file: AnnotationsFile,
+  index: number,
+  updated: StoredAnnotation,
+): Promise<MockupAnnotation> {
+  await writeAnnotationsFile(held.path, {
+    ...file,
+    annotations: file.annotations.map((note, position) =>
+      position === index ? updated : note,
+    ),
+  });
+  return servedNow(held, updated);
+}
+
+/**
+ * Adds a reply signed by `author` under the annotation `id`, newest last.
+ * Answers the annotation as served now and the reply, or why nothing changed:
+ * the mockup or the annotation does not exist.
+ */
+export async function addReply(
+  name: MockupName,
+  id: string,
+  draft: ReplyDraft,
+  author: NoteAuthor,
+  mockupsDir = defaultMockupsDir(),
+): Promise<ReplyAddition> {
+  if (!(await exists(mockupDirectory(mockupsDir, name)))) {
+    return { kind: "no_mockup" };
+  }
+  return locked(mockupsDir, name, async (held) => {
+    const file = await readAnnotationsFile(held.path);
+    const index = file.annotations.findIndex((note) => note.id === id);
+    if (index < 0) return { kind: "no_annotation" };
+    const reply: StoredReply = {
+      id: freshId(),
+      author,
+      text: draft.text,
+      createdAt: new Date().toISOString(),
+    };
+    const note = file.annotations[index];
+    const annotation = await writeReplaced(held, file, index, {
+      ...note,
+      replies: [...note.replies, reply],
+    });
+    return { kind: "replied", annotation, reply };
+  });
+}
+
+/**
+ * Removes the reply `replyId` from under the annotation `id` for good.
+ * Answers the annotation as served now, or why nothing changed: the mockup,
+ * the annotation or the reply does not exist.
+ */
+export async function deleteReply(
+  name: MockupName,
+  id: string,
+  replyId: string,
+  mockupsDir = defaultMockupsDir(),
+): Promise<ReplyDeletion> {
+  if (!(await exists(mockupDirectory(mockupsDir, name)))) {
+    return { kind: "no_mockup" };
+  }
+  return locked(mockupsDir, name, async (held) => {
+    const file = await readAnnotationsFile(held.path);
+    const index = file.annotations.findIndex((note) => note.id === id);
+    if (index < 0) return { kind: "no_annotation" };
+    const note = file.annotations[index];
+    const replies = note.replies.filter((reply) => reply.id !== replyId);
+    if (replies.length === note.replies.length) return { kind: "no_reply" };
+    const annotation = await writeReplaced(held, file, index, {
+      ...note,
+      replies,
+    });
+    return { kind: "deleted", annotation };
+  });
 }
 
 /**

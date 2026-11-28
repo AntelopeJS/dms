@@ -27,6 +27,7 @@ import {
   resolveUserPermissions as resolveUserPermissionsImplementation,
   isPlatformOwner as isPlatformOwnerImplementation,
   assertPlatformOwner as assertPlatformOwnerImplementation,
+  buildAccessContext as buildAccessContextImplementation,
 } from "./page/access";
 
 export { AddFrontendModule, GetFrontendModules } from "../../store/frontend";
@@ -67,3 +68,4 @@ export const buildSiteLayoutPayload = buildSiteLayoutPayloadImplementation;
 export const buildNavBadges = buildNavBadgesImplementation;
 export const isPlatformOwner = isPlatformOwnerImplementation;
 export const assertPlatformOwner = assertPlatformOwnerImplementation;
+export const buildAccessContext = buildAccessContextImplementation;

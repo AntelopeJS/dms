@@ -134,11 +134,28 @@ export interface MockupPinOffset {
   y: number;
 }
 
+/** Who wrote a note or a reply: the signed-in user, and the name the others see. */
+export interface MockupNoteAuthor {
+  userId: string;
+  name: string;
+}
+
+/** One reply under a note. */
+export interface MockupReply {
+  id: string;
+  author: MockupNoteAuthor;
+  text: string;
+  createdAt: string;
+}
+
 /**
  * A reviewer's pin. `page` and `path` are where it is now: both on a block,
  * `page` alone on a page, neither when its block or page was removed.
  * `version` is the number of the history version it was pinned on, and
- * `resolvedVersion` the one it was resolved on.
+ * `resolvedVersion` the one it was resolved on. `author` is who pinned it and
+ * `resolvedBy` who resolved it, each absent when nobody signed in did;
+ * `replies` is the thread under it, oldest first, absent on a note served
+ * before threads.
  */
 export interface MockupAnnotation {
   id: string;
@@ -155,6 +172,17 @@ export interface MockupAnnotation {
   resolvedVersion?: number;
   /** The state of the sketch the note was pinned on; absent on its own `html` and on any other block. */
   state?: string;
+  author?: MockupNoteAuthor;
+  resolvedBy?: MockupNoteAuthor;
+  replies?: MockupReply[];
+}
+
+/** What the viewer is to a mockup: the owner, who edits it, or a reviewer, who comments on it. */
+export type MockupRole = "owner" | "reviewer";
+
+/** What `GET /api/mockup/:name/access` answers: the viewer's role, and who they are to the notes. */
+export interface MockupAccess extends MockupNoteAuthor {
+  role: MockupRole;
 }
 
 /**
@@ -178,6 +206,11 @@ export interface MockupAnnotationPatch {
   status?: MockupAnnotationStatus;
   text?: string;
   place?: MockupPinPlace;
+}
+
+/** What `POST /api/mockup/:name/annotations/:id/replies` takes. */
+export interface MockupReplyDraft {
+  text: string;
 }
 
 /** Who wrote a mockup: the dashboard chat, Claude Code or Codex. */
@@ -252,6 +285,11 @@ export const MOCKUP_ANNOTATIONS_EVENT = "annotations";
 /** The path of a mockup's API, `suffix` included (`/events`, `/annotations/<id>`). */
 export function mockupEndpoint(name: string, suffix = ""): string {
   return `${MOCKUP_LIST_ENDPOINT}/${encodeURIComponent(name)}${suffix}`;
+}
+
+/** `GET /api/mockup/:name/access`: the viewer's role on the mockup. */
+export function mockupAccessEndpoint(name: string): string {
+  return mockupEndpoint(name, "/access");
 }
 
 export function isMockupWidth(value: string | undefined): value is MockupWidth {
@@ -430,6 +468,26 @@ function isOffset(
   return isRecord(value) && isFraction(value.x) && isFraction(value.y);
 }
 
+function isAuthor(
+  value: Parameters<typeof isObject>[0],
+): value is MockupNoteAuthor {
+  return isRecord(value) && isString(value.userId) && isString(value.name);
+}
+
+function isOptionalAuthor(value: Parameters<typeof isObject>[0]): boolean {
+  return value === undefined || isAuthor(value);
+}
+
+function isReply(value: Parameters<typeof isObject>[0]): value is MockupReply {
+  return (
+    isRecord(value) &&
+    isString(value.id) &&
+    isAuthor(value.author) &&
+    isString(value.text) &&
+    isString(value.createdAt)
+  );
+}
+
 function isAnnotation(
   value: Parameters<typeof isObject>[0],
 ): value is MockupAnnotation {
@@ -446,8 +504,33 @@ function isAnnotation(
     isOptionalString(value.resolvedAt) &&
     isOptionalNumber(value.version) &&
     isOptionalNumber(value.resolvedVersion) &&
-    isOptionalString(value.state)
+    isOptionalString(value.state) &&
+    isOptionalAuthor(value.author) &&
+    isOptionalAuthor(value.resolvedBy) &&
+    (value.replies === undefined ||
+      (Array.isArray(value.replies) && value.replies.every(isReply)))
   );
+}
+
+/** The access a `GET /api/mockup/:name/access` answers, or undefined when the answer is not one. */
+export function parseMockupAccess(
+  value: Parameters<typeof isObject>[0],
+): MockupAccess | undefined {
+  if (!isRecord(value)) return undefined;
+  const { role, userId, name } = value;
+  return (role === "owner" || role === "reviewer") &&
+    isString(userId) &&
+    isString(name)
+    ? { role, userId, name }
+    : undefined;
+}
+
+/** Whether `author` is the signed-in user `me`; false for a note nobody signed. */
+export function isMine(
+  author: MockupNoteAuthor | undefined,
+  me: string | undefined,
+): boolean {
+  return author !== undefined && me !== undefined && author.userId === me;
 }
 
 /** The annotation a `POST` or `PATCH` answers, or undefined when the answer is not one. */

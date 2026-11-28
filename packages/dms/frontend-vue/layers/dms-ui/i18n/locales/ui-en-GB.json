@@ -676,6 +676,19 @@
         "role_permissions_changed": {
           "title": "{actor} changed the permissions of “{role}”",
           "description": "Members with this role got the new access right away. Review the role in Roles."
+        },
+        "mockup_comment": {
+          "title": "{actor} commented on the mockup “{mockup}”",
+          "description": "{text}"
+        },
+        "mockup_reply": {
+          "title": "{actor} replied to a comment on the mockup “{mockup}”",
+          "description": "{text}"
+        },
+        "mockup_comment_resolved": {
+          "title": "{actor} resolved a comment on the mockup “{mockup}”",
+          "title_ai": "The AI resolved a comment on the mockup “{mockup}”",
+          "description": "{text}"
         }
       }
     },
@@ -870,6 +883,17 @@
       "pin_resolved_in": "Resolved in version {number}",
       "pin_tray_hint": "Drag one onto the page to pin it again.",
       "delete_note": "Delete comment",
+      "pin_author": "{name}",
+      "pin_resolved_by": "Resolved by {name}",
+      "replies": "{count} reply | {count} replies",
+      "reply": "Reply",
+      "reply_placeholder": "Reply…",
+      "delete_reply": "Delete reply",
+      "review_permission": "Review mockups",
+      "review_permission_description": "Open a mockup read-only and comment on it. Editing and building stay with the platform owner.",
+      "review_hint": "You are reviewing this mockup: click Comment, then the page, to ask for a change.",
+      "access_denied": "You cannot open this mockup.",
+      "access_failed": "The mockup could not be opened. Try again.",
       "open_comments": "{count} open comment | {count} open comments",
       "resolve_ai": "Resolve with AI",
       "copy_prompt": "Copy the prompt",
