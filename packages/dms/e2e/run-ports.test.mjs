@@ -119,7 +119,7 @@ const runs = await Promise.all([runPorts(), runPorts()]);
 console.log(JSON.stringify(runs.flatMap((ports) => Object.values(ports))));
 `;
 const SIX_RESTARTABLE_PORTS = "1024 65529";
-const TRIALS = 3;
+const TRIALS = 10;
 
 await test(
   "two runs that take their ports at the same time share none, where only six ports lie outside the ephemeral range; a version that gives a port again before it is listened on repeats one in each trial nineteen times out of twenty",
