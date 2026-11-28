@@ -1,6 +1,6 @@
 import { spawn } from "node:child_process";
 import assert from "node:assert/strict";
-import { existsSync, mkdtempSync, rmSync } from "node:fs";
+import { existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { createServer } from "node:http";
 import { once } from "node:events";
 import { tmpdir } from "node:os";
@@ -121,3 +121,18 @@ await test(
     );
   },
 );
+
+await test("a backend whose log names another port's fallback passes its wait (catches a fallback check that ignores which port fell back)", async (t) => {
+  const port = await restartablePort();
+  const folder = mkdtempSync(join(tmpdir(), "dms-e2e-own-port-"));
+  t.after(() => rmSync(folder, { recursive: true, force: true }));
+  const log = join(folder, "backend.log");
+  writeFileSync(
+    log,
+    `Port ${port + 1} in use, listening on http://127.0.0.1:${port + 2} instead.\n`,
+  );
+  const record = { ...started("backend", SERVE, port), log };
+  t.after(() => process.kill(-record.pid, "SIGKILL"));
+
+  await assert.doesNotReject(waitForBackend(record));
+});
