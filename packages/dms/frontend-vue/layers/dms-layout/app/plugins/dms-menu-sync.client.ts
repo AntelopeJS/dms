@@ -3,21 +3,22 @@ import { type Ref, watch } from "vue";
 const MENU_CHANGED_EVENT_TYPE = "menu-changed";
 
 /**
- * Calls `onReconnect` each time the realtime stream opens again after it was
- * lost: the events sent meanwhile never arrived. Not on its first opening,
- * which follows the page load that brought the current menu.
+ * Calls `onOpen` each time the realtime stream opens: the menu events sent
+ * while it was closed never arrived. `first` is true on its first opening,
+ * which follows the page load that brought the current menu, and false when
+ * it opens again after it was lost.
  *
  * @param sessionId The stream's session id, unset while it is closed
- * @param onReconnect What to run once it is back
+ * @param onOpen What to run once it is open
  */
-export function watchRealtimeReconnects(
+export function watchRealtimeOpenings(
   sessionId: Ref<string | undefined>,
-  onReconnect: () => void,
+  onOpen: (first: boolean) => void,
 ): void {
   let hasConnected = !!sessionId.value;
   watch(sessionId, (next, previous) => {
     if (!next || next === previous) return;
-    if (hasConnected) onReconnect();
+    onOpen(!hasConnected);
     hasConnected = true;
   });
 }
@@ -46,7 +47,18 @@ export default defineDmsPlugin(() => {
     await refresh();
   };
 
-  watchRealtimeReconnects(realtime.sessionId, () => void refresh());
+  const refreshIfChanged = (): Promise<void> =>
+    siteLayout.differsFromServer().then(
+      (differs) => (differs ? refresh() : undefined),
+      (error: unknown) => {
+        console.error("[dms-menu-sync] Menu check failed:", error);
+      },
+    );
+
+  watchRealtimeOpenings(
+    realtime.sessionId,
+    (first) => void (first ? refreshIfChanged() : refresh()),
+  );
 
   const unsubscribes: Array<() => void> = [];
 

@@ -2,42 +2,42 @@ import { nextTick, ref } from "vue";
 import { describe, expect, it, vi } from "vitest";
 
 vi.stubGlobal("defineDmsPlugin", <Setup>(setup: Setup) => setup);
-const { watchRealtimeReconnects } = await import(
+const { watchRealtimeOpenings } = await import(
   "../layers/dms-layout/app/plugins/dms-menu-sync.client"
 );
 
-describe("the menu resync on a realtime reconnect", () => {
-  it("leaves the first opening alone and resyncs on each reopening", async () => {
+describe("the openings of the realtime stream", () => {
+  it("tells the first opening from each reopening", async () => {
     const sessionId = ref<string | undefined>(undefined);
-    const onReconnect = vi.fn();
-    watchRealtimeReconnects(sessionId, onReconnect);
+    const onOpen = vi.fn();
+    watchRealtimeOpenings(sessionId, onOpen);
 
     sessionId.value = "session-1";
     await nextTick();
-    expect(onReconnect).not.toHaveBeenCalled();
+    expect(onOpen.mock.calls).toEqual([[true]]);
 
     sessionId.value = undefined;
     await nextTick();
     sessionId.value = "session-2";
     await nextTick();
-    expect(onReconnect).toHaveBeenCalledOnce();
+    expect(onOpen.mock.calls).toEqual([[true], [false]]);
 
     sessionId.value = undefined;
     await nextTick();
     sessionId.value = "session-3";
     await nextTick();
-    expect(onReconnect).toHaveBeenCalledTimes(2);
+    expect(onOpen.mock.calls).toEqual([[true], [false], [false]]);
   });
 
   it("counts a stream already open when it starts as its first opening", async () => {
     const sessionId = ref<string | undefined>("session-1");
-    const onReconnect = vi.fn();
-    watchRealtimeReconnects(sessionId, onReconnect);
+    const onOpen = vi.fn();
+    watchRealtimeOpenings(sessionId, onOpen);
 
     sessionId.value = undefined;
     await nextTick();
     sessionId.value = "session-2";
     await nextTick();
-    expect(onReconnect).toHaveBeenCalledOnce();
+    expect(onOpen.mock.calls).toEqual([[false]]);
   });
 });

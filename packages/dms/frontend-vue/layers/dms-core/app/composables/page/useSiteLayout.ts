@@ -132,6 +132,14 @@ interface SiteLayoutResponse {
   isOwner: boolean;
 }
 
+const SITE_LAYOUT_FIELDS = [
+  "siteLayout",
+  "siteLayoutTree",
+  "quickActions",
+  "modules",
+  "isOwner",
+] as const satisfies ReadonlyArray<keyof SiteLayoutResponse>;
+
 /** The shared site layout, as a page's props or `/dms/sitelayout` set it. */
 function useSiteLayoutState() {
   return {
@@ -166,6 +174,21 @@ function applySiteLayoutResponse(
   state.modules.value = result.modules;
   state.isOwner.value = result.isOwner;
   state.lastRefreshTime.value = Date.now();
+}
+
+/**
+ * Whether `/dms/sitelayout` now answers another layout than the one `state`
+ * holds: one request, which changes nothing.
+ */
+async function siteLayoutDiffersFromServer(
+  state: ReturnType<typeof useSiteLayoutState>,
+): Promise<boolean> {
+  const { $authFetch } = useAuthFetch();
+  const served = await $authFetch<SiteLayoutResponse>(SITE_LAYOUT_ENDPOINT);
+  return SITE_LAYOUT_FIELDS.some(
+    (field) =>
+      JSON.stringify(state[field].value) !== JSON.stringify(served[field]),
+  );
 }
 
 function useSiteLayoutRequestsInFlight() {
@@ -316,6 +339,7 @@ const useSiteLayoutRequests = () => {
     loadSiteLayout,
     refresh,
     resync,
+    differsFromServer: () => siteLayoutDiffersFromServer(state),
     refreshIfStale,
     clearPageLayoutCaches,
   };
@@ -434,6 +458,7 @@ export const useSiteLayout = () => {
     loadSiteLayout,
     refresh,
     resync,
+    differsFromServer,
     refreshIfStale,
     clearPageLayoutCaches,
   } = useSiteLayoutRequests();
@@ -515,6 +540,7 @@ export const useSiteLayout = () => {
     loadPageLayout,
     refresh,
     resync,
+    differsFromServer,
     refreshIfStale,
     findMatchingRoute: findPageRoute,
     findMatchingRouteOrCategory,
