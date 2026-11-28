@@ -31,7 +31,7 @@ async function preprocess(tests, shard) {
   let skippedSharding = false;
   await new WeightedShards().preprocess(
     {
-      config: { shard },
+      config: { shard, workers: 2 },
       suite: { allTests: () => tests },
       testRun: {
         skipSharding: () => {
@@ -84,4 +84,52 @@ await test("splits by the weights rather than by count, so the slowest shard of 
     Math.max(...loads) <= mean * 1.05,
     `loads ${loads.join(", ")} around a mean of ${mean}`,
   );
+});
+
+/**
+ * The recorded seconds each of `total` shards takes, with
+ * `DMS_E2E_FIRST_SHARD_EXTRA` set to `extra`.
+ *
+ * @param {number} total How many shards
+ * @param {string} extra The variable's value
+ * @returns {Promise<number[]>}
+ */
+async function loadsWith(total, extra) {
+  process.env["DMS_E2E_FIRST_SHARD_EXTRA"] = extra;
+  try {
+    const tests = Object.keys(WEIGHTS).map(testCase);
+    return await Promise.all(
+      Array.from({ length: total }, async (_, index) => {
+        const { kept } = await preprocess(tests, {
+          current: index + 1,
+          total,
+        });
+        return kept.reduce(
+          (sum, t) => sum + WEIGHTS[t.titlePath().slice(2).join(" › ")],
+          0,
+        );
+      }),
+    );
+  } finally {
+    delete process.env["DMS_E2E_FIRST_SHARD_EXTRA"];
+  }
+}
+
+await test("gives shard 1 fewer journeys by the seconds it spends after the suite on each of its two workers, so it ends with the others (catches a split that ignores DMS_E2E_FIRST_SHARD_EXTRA)", async () => {
+  const loads = await loadsWith(3, "30");
+  const ends = [loads[0] + 60, ...loads.slice(1)];
+  const mean = ends.reduce((sum, end) => sum + end, 0) / ends.length;
+  assert.ok(
+    Math.max(...ends) <= mean * 1.05,
+    `ends ${ends.join(", ")} around a mean of ${mean}`,
+  );
+});
+
+await test("leaves shard 1 no journey when its extra seconds fill its share, and splits the suite over the others as it would over one shard fewer (catches a split whose second shard absorbs the overflow)", async () => {
+  const loads = await loadsWith(9, "100");
+  assert.deepEqual(loads, [0, ...(await loadsWith(8, "0"))]);
+});
+
+await test("refuses a DMS_E2E_FIRST_SHARD_EXTRA that is not seconds, rather than a NaN split that runs no journey on any shard", async () => {
+  await assert.rejects(loadsWith(3, "a minute"), /not a count of seconds/);
 });
