@@ -16,7 +16,6 @@ import { currentNamespaces, isSameProcess } from "./identity.mjs";
 import { reservedPorts } from "./reserved-ports.mjs";
 import { dropRunDatabases, startMongod } from "./mongo.mjs";
 import {
-  freePort,
   restartablePort,
   runToEnd,
   startDetached,
@@ -265,7 +264,9 @@ const BACKEND_ARGS = {
 
 /**
  * Starts a backend of the run on `database` and a free loopback port of its
- * own, from the run's build or `build`, without waiting for it, and records
+ * own outside the kernel's ephemeral range, where no other process's
+ * `listen(0)` or outgoing connection takes it, from the run's build or
+ * `build`, without waiting for it, and records
  * it in a file of its own. Its log is named after its database,
  * `backend_<suffix>.log`, so two backends that run at once write apart; the
  * first database's is `backend.log`.
@@ -289,7 +290,7 @@ export async function launchBackend(
   mode = runBackendMode(state),
 ) {
   const { ajs } = cliPaths(build?.playground ?? state.playground);
-  const port = await freePort(reservedPorts(state));
+  const port = await restartablePort(reservedPorts(state));
   const launch = spec(
     state,
     `backend${database.slice(state.databasePrefix.length)}`,

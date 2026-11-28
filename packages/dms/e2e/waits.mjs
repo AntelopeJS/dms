@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { createConnection } from "node:net";
 import { setTimeout as sleep } from "node:timers/promises";
 import { isAlive } from "./identity.mjs";
@@ -27,20 +28,31 @@ export async function probe(url) {
 }
 
 /**
- * Polls `url` until it answers 200, the process exits or the timeout passes.
+ * @typedef {() => string | null} Refusal Why a wait cannot succeed any more, or `null` while it can
+ */
+
+/** @type {Refusal} */
+const NEVER = () => null;
+
+/**
+ * Polls `url` until it answers 200, the process exits, `refused` tells why
+ * it never will, or the timeout passes.
  *
  * @param {string} url The readiness URL
  * @param {{ pid: number, log: string }} record The process that must serve it
  * @param {number} timeoutMs How long to wait
+ * @param {Refusal} [refused] Read at every poll
  * @returns {Promise<void>} Resolves once ready
- * @throws When the process exits first or the timeout passes, naming its log
+ * @throws When the process exits first, `refused` tells a reason or the timeout passes, naming its log
  */
-export async function waitForOk(url, record, timeoutMs) {
+export async function waitForOk(url, record, timeoutMs, refused = NEVER) {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
     if (!isAlive(record.pid)) {
       throw new Error(`${url}: the process exited first; see ${record.log}`);
     }
+    const reason = refused();
+    if (reason !== null) throw new Error(reason);
     if ((await probe(url)) === 200) return;
     await sleep(READY_POLL_MS);
   }
@@ -90,15 +102,18 @@ export async function waitForPort(port, record, timeoutMs) {
  * @param {number} port The port
  * @param {{ name: string, pid: number, log: string }} record The process that must listen
  * @param {number} timeoutMs How long to wait
+ * @param {Refusal} [refused] Read at every poll
  * @returns {Promise<void>} Resolves once the process listens
- * @throws When it exits first (the port was taken) or the timeout passes
+ * @throws When it exits first (the port was taken), `refused` tells a reason or the timeout passes
  */
-export async function waitForOwnPort(port, record, timeoutMs) {
+export async function waitForOwnPort(port, record, timeoutMs, refused = NEVER) {
   if (listenersOf(port) === null) return waitForPort(port, record, timeoutMs);
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline && isAlive(record.pid)) {
     const own = new Set([record.pid, ...descendantsOf([record.pid])]);
     if (listenersOf(port)?.some((pid) => own.has(pid))) return;
+    const reason = refused();
+    if (reason !== null) throw new Error(reason);
     await sleep(READY_POLL_MS);
   }
   throw new Error(
@@ -107,19 +122,42 @@ export async function waitForOwnPort(port, record, timeoutMs) {
 }
 
 /**
+ * Why a backend never listens on its port: its log says the port was in use
+ * when it started, and it listens on another one instead.
+ *
+ * @param {import("./run-state.mjs").ServerRecord} backend The backend
+ * @returns {Refusal}
+ */
+function movedOff(backend) {
+  const line = `Port ${backend.port} in use, listening on `;
+  return () => {
+    let log = "";
+    try {
+      log = readFileSync(backend.log, "utf8");
+    } catch {
+      return null;
+    }
+    if (!log.includes(line)) return null;
+    return `${backend.name} found port ${backend.port} in use when it started and listens on another one; see ${backend.log}`;
+  };
+}
+
+/**
  * Waits until a backend listens on its own port and answers
  * `/api/onboarding/informations` there.
  *
  * @param {import("./run-state.mjs").ServerRecord} backend The backend
  * @returns {Promise<void>} Resolves once it answers 200
- * @throws When it exits first, another process holds its port or the timeout passes, naming its log
+ * @throws When it exits first, another process holds its port, its log says it listens on another port, or the timeout passes, naming its log
  */
 export async function waitForBackend(backend) {
-  await waitForOwnPort(backend.port, backend, READY_TIMEOUT_MS);
+  const refused = movedOff(backend);
+  await waitForOwnPort(backend.port, backend, READY_TIMEOUT_MS, refused);
   await waitForOk(
     `http://127.0.0.1:${backend.port}/api/onboarding/informations`,
     backend,
     READY_TIMEOUT_MS,
+    refused,
   );
 }
 
