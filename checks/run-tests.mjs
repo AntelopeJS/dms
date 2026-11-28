@@ -21,6 +21,7 @@ const DMS_TESTS = [
   "e2e/module-root",
   "e2e/mongo-server",
   "e2e/mongo",
+  "e2e/own-port",
   "e2e/pid-reuse",
   "e2e/processes",
   "e2e/renderer",

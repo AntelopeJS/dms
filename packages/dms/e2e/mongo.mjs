@@ -14,12 +14,8 @@ import {
   objectOf,
   recordOf,
 } from "./json.mjs";
-import {
-  restartablePort,
-  startDetached,
-  stopRecorded,
-  waitForOwnPort,
-} from "./processes.mjs";
+import { restartablePort, startDetached, stopRecorded } from "./processes.mjs";
+import { waitForOwnPort } from "./waits.mjs";
 
 /** A file name Node runs as a script. */
 const JAVASCRIPT_FILE = /\.[cm]?js$/u;

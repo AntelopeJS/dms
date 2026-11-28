@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
 import { arrayOf, decode, isBoolean, isRecord, objectOf } from "./json.mjs";
 import { frontendPackage } from "./launch.mjs";
-import { probe, waitForOk } from "./processes.mjs";
+import { probe, waitForOk } from "./waits.mjs";
 
 const MODULE_SET = "./dist/module-set.js";
 const MANIFEST_PATH = "/dms/frontend?renderer=vue&rendererVersion=3";

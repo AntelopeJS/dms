@@ -6,12 +6,8 @@ import test from "node:test";
 import { freshDatabase } from "./backend.mjs";
 import { awaitDashboard, recordDashboardModules } from "./dashboard.mjs";
 import { newRun } from "./helpers/fake-run.mjs";
-import {
-  freePort,
-  restartablePort,
-  startDetached,
-  waitForOk,
-} from "./processes.mjs";
+import { freePort, restartablePort, startDetached } from "./processes.mjs";
+import { waitForOk } from "./waits.mjs";
 import { saveRun } from "./run-state.mjs";
 import { record } from "./stack.mjs";
 
