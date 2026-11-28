@@ -304,7 +304,8 @@ jobs:
           exit 1
 
   # The Playwright suite of e2e/, when the plan selects it: its global setup
-  # prepares the playground and starts one run of the @antelopejs/dms/e2e kit.
+  # prepares the playground and starts one run of the @antelopejs/dms/e2e kit
+  # for each of its two workers.
   # A pull request runs the @smoke tests. The merge queue runs the whole suite
   # in nine shards; a manual run, a pull request labelled ci:full and the
   # nightly schedule in three. e2e-report merges the shards into one report.

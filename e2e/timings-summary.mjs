@@ -1,4 +1,4 @@
-import { readdirSync } from "node:fs";
+import { existsSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { readTimings } from "../packages/dms/e2e/timing.mjs";
 
@@ -26,7 +26,7 @@ function quantile(values, fraction) {
  * @param {TimingEntry[]} entries The phases a run recorded
  * @returns {string[]}
  */
-export function phaseLines(entries) {
+function phaseLines(entries) {
   /** @type {Map<string, number[]>} */
   const byPhase = new Map();
   for (const entry of entries) {
@@ -42,11 +42,13 @@ export function phaseLines(entries) {
 /**
  * Prints, as one GitHub Actions notice, the phase timings of every run in
  * the runs folder `process.argv[2]`, so a reader of the check run's
- * annotations sees where a shard's time went.
+ * annotations sees where a shard's time went. Prints nothing when no run
+ * started.
  */
 function main() {
   const runs = process.argv[2];
   if (!runs) throw new Error("usage: timings-summary.mjs <runs folder>");
+  if (!existsSync(runs)) return;
   const entries = readdirSync(runs).flatMap((run) =>
     readTimings(join(runs, run, "evidence")),
   );
@@ -54,4 +56,4 @@ function main() {
   process.stdout.write(`::notice title=dms e2e timings (ms)::${message}\n`);
 }
 
-if (process.argv[1] === new URL(import.meta.url).pathname) main();
+if (import.meta.main) main();
