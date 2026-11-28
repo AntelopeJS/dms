@@ -113,8 +113,9 @@ async function stopRuns(dirs) {
  * the workers of one suite to drive one each. The first runs the journeys
  * config's prepare commands as `options` asks; the others start once it is
  * ready, together, without them, so their dashboards come from the build
- * cache the first one filled. `stop` stops them all, and so does a SIGINT
- * or SIGTERM to this process, which then ends by that signal.
+ * cache the first one filled. `stop` stops them all, and from the moment
+ * the first is ready a SIGINT or SIGTERM to this process stops every run
+ * started so far, then ends the process by that signal.
  *
  * @param {RunOptions} options How to start them
  * @param {number} count How many, at least 1
@@ -124,23 +125,7 @@ async function stopRuns(dirs) {
 export async function startRuns(options, count) {
   const cwd = process.cwd();
   const first = await startStack(startOptions(options, cwd), cwd);
-  const others = await Promise.allSettled(
-    Array.from({ length: count - 1 }, () =>
-      startStack(startOptions({ ...options, prepare: false }, cwd), cwd),
-    ),
-  );
-  const runs = [
-    first,
-    ...others.flatMap((other) =>
-      other.status === "fulfilled" ? [other.value] : [],
-    ),
-  ];
-  const dirs = runs.map((run) => run.dir);
-  const failed = others.find((other) => other.status === "rejected");
-  if (failed) {
-    await stopRuns(dirs);
-    throw failed.reason;
-  }
+  const dirs = [first.dir];
   const onSignal = (/** @type {NodeJS.Signals} */ signal) => {
     release();
     const reraise = () => process.kill(process.pid, signal);
@@ -150,8 +135,29 @@ export async function startRuns(options, count) {
     for (const signal of STOP_SIGNALS) process.off(signal, onSignal);
   };
   for (const signal of STOP_SIGNALS) process.on(signal, onSignal);
+  const others = await Promise.allSettled(
+    Array.from({ length: count - 1 }, async () => {
+      const run = await startStack(
+        startOptions({ ...options, prepare: false }, cwd),
+        cwd,
+      );
+      dirs.push(run.dir);
+      return run;
+    }),
+  );
+  const failed = others.find((other) => other.status === "rejected");
+  if (failed) {
+    release();
+    await stopRuns(dirs);
+    throw failed.reason;
+  }
   return {
-    runs,
+    runs: [
+      first,
+      ...others.flatMap((other) =>
+        other.status === "fulfilled" ? [other.value] : [],
+      ),
+    ],
     stop: () => {
       release();
       return stopRuns(dirs);

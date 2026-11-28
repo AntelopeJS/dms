@@ -101,7 +101,7 @@ await test("the global setup of a two-worker suite starts a run for each worker,
   process.env.DMS_E2E_PREBUILT = "1";
   delete process.env.DMS_E2E_RUN;
   const suite = declareSuite({});
-  const teardown = await globalSetup({ workers: 2 });
+  const teardown = await globalSetup({ workers: 2, webServer: null });
   const runs = [currentRun(suite, 0), currentRun(suite, 1)];
   t.after(async () => {
     for (const run of runs) await down(loadRun(run.dir));

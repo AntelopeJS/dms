@@ -14,7 +14,9 @@ const isLanes = arrayOf(isString);
  * Playwright's global setup of a journeys suite, once per `playwright test`.
  * With `DMS_E2E_RUN` set, the tests drive that run and it stops nothing; a
  * run whose dashboard is not served the way the suite asks is refused, and
- * so are several workers, which would share it. Otherwise it starts one run
+ * so are several workers, which would share it. Several workers are refused
+ * too when the config starts a `webServer`, a server every worker would
+ * share, such as a mock of an outside API. Otherwise it starts one run
  * per worker through `startRuns`: the journeys config's prepare commands
  * (none with `DMS_E2E_PREBUILT=1`), then the stacks, whose dashboard is the
  * development one for a `frontend: "dev"` suite. It publishes the runs'
@@ -22,12 +24,17 @@ const isLanes = arrayOf(isString);
  * stops them. A run outlives the worker Playwright replaces after a failed
  * test, and the replacement drives the same run.
  *
- * @param {Pick<import("@playwright/test").FullConfig, "workers">} config The resolved config
+ * @param {Pick<import("@playwright/test").FullConfig, "workers" | "webServer">} config The resolved config
  * @returns {Promise<(() => Promise<void>) | undefined>} The teardown of the runs it started
- * @throws When the adopted run serves its dashboard another way than the suite asks, or several workers would share it
+ * @throws When the adopted run serves its dashboard another way than the suite asks, or several workers would share it or the config's `webServer`
  */
-export default async function globalSetup({ workers }) {
+export default async function globalSetup({ workers, webServer }) {
   const suite = declaredSuite();
+  if (workers > 1 && webServer) {
+    throw new Error(
+      `the config's webServer is one server that ${workers} workers would share: set workers: 1 in the suite's config`,
+    );
+  }
   const adopted = process.env[RUN];
   if (adopted) {
     if (workers > 1) {

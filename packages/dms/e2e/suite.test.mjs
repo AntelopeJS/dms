@@ -169,7 +169,7 @@ await test("a build suite leaves out the journeys that need the development dash
   );
 });
 
-await test("a seed draws the order of the journeys not marked last, the same for the same seed, and keeps the last ones after them in their order (catches a shuffle that ignores the seed, differs between the main process and a worker, or moves a last journey)", () => {
+await test("a seed draws the order of the journeys not marked last, the same for the same seed, and keeps the last ones after them in their order (catches a shuffle that ignores the seed, draws a new order on each call, or moves a last journey)", () => {
   const features = [
     {
       name: "a",
@@ -205,5 +205,20 @@ await test("the global setup refuses several workers on the run DMS_E2E_RUN name
     else process.env.DMS_E2E_RUN = adopted;
   });
   declareSuite({});
-  await assert.rejects(globalSetup({ workers: 2 }), /--workers=1/);
+  await assert.rejects(
+    globalSetup({ workers: 2, webServer: null }),
+    /--workers=1/,
+  );
+});
+
+await test("the global setup refuses several workers when the config starts a webServer, which every worker would share (catches two workers whose journeys reset and read one mock server)", async (t) => {
+  twoSuiteCheckout(t);
+  declareSuite({});
+  await assert.rejects(
+    globalSetup({
+      workers: 2,
+      webServer: { command: "node mock.js", url: "http://127.0.0.1:4010" },
+    }),
+    /webServer.*workers: 1/,
+  );
 });
