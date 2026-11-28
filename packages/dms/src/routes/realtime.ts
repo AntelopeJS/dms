@@ -163,25 +163,23 @@ const applySessionTopics = async (
     unsubscribe();
     subscriptions.delete(topic);
   }
+  const added = [...desired].filter((topic) => !subscriptions.has(topic));
+  for (const topic of added) {
+    subscriptions.set(
+      topic,
+      subscribeRealtime(topic, (event) => {
+        if (!isEventForTenant(event, tenantViewOn(info, topic))) return;
+        info.send(event.topic, event);
+      }),
+    );
+  }
   const presence = getPresenceTracker();
-  for (const topic of desired) {
-    const isNew = !subscriptions.has(topic);
-    if (isNew) {
-      subscriptions.set(
-        topic,
-        subscribeRealtime(topic, (event) => {
-          if (!isEventForTenant(event, tenantViewOn(info, topic))) return;
-          info.send(event.topic, event);
-        }),
-      );
-    }
-    if (isNew || refreshSnapshots) {
-      const entries = await presence.snapshotForTopic(
-        topic,
-        tenantViewOn(info, topic),
-      );
-      info.send(SNAPSHOT_EVENT, { topic, entries });
-    }
+  for (const topic of refreshSnapshots ? desired : added) {
+    const entries = await presence.snapshotForTopic(
+      topic,
+      tenantViewOn(info, topic),
+    );
+    info.send(SNAPSHOT_EVENT, { topic, entries });
   }
 };
 
