@@ -1,4 +1,5 @@
 import { defineConfig } from "vitest/config";
+import { testTimeouts } from "@antelopejs/tooling-configs/vitest";
 import { resolve } from "node:path";
 import vue from "@vitejs/plugin-vue";
 import ui from "@nuxt/ui/vite";
@@ -48,6 +49,7 @@ export default defineConfig({
     tsconfigRaw: "{}",
   },
   test: {
+    ...testTimeouts,
     setupFiles: ["./tests/setup.ts"],
     include: ["tests/**/*.test.ts", "tests/**/*.untyped.test.js"],
   },
